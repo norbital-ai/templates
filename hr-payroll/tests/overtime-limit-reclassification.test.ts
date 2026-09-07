@@ -177,7 +177,10 @@ function bundle(overrides = {}) {
 function measure(world, extras = {}) {
 	return measureEmployment({
 		bundle: bundle({ workDays: extras.workDays, salary: extras.salary }),
-		configuration: configuration(world),
+		configuration: configuration({
+			...world,
+			overtimeLimits: extras.overtimeLimits ?? world.overtimeLimits
+		}),
 		period: '2026-03',
 		salary: MARCH,
 		periodsRemaining: 10,
@@ -422,4 +425,97 @@ test('Malaysia: thirteen clocked hours on an ordinary day keep four OT hours and
 		family: 'WORK_DAY',
 		id: 'day-2026-03-19'
 	});
+});
+
+// ── a lineage's INCENTIVE boundary replaces the statutory classifiers ───────────────────────────
+
+/** Nihon's arrangement on its forked `MY-nihon` lineage: a twelve-hour day less its one-hour break. */
+const NIHON_INCENTIVE_LIMIT = {
+	period: 'DAY',
+	measures: 'TOTAL_WORK_HOURS',
+	max_hours: 11,
+	on_exceed: 'INCENTIVE',
+	authority: 'Nihon Pigment arrangement stated by Kavriel Lin, 7 September 2026'
+};
+const NIHON = { overtimeLimits: [...MY_OVERTIME_LIMITS, NIHON_INCENTIVE_LIMIT] };
+const MY_LIMIT_OPTIONS = {
+	dailyWorkLimit: 12,
+	dailyOvertimeHoursLimit: null,
+	monthlyOrdinaryOvertimeLimit: 104
+};
+
+test('an INCENTIVE boundary classifies ordinary-day hours worked past it as incentive, half-hour floored', () => {
+	const [day] = classifyOvertimeByCalendarMonth({
+		days: [ordinaryDay(5, 13.75)],
+		...MY_LIMIT_OPTIONS,
+		ordinaryDayIncentiveBoundary: 11
+	});
+	assert.equal(day.retainedHours, 2.5);
+	assert.equal(day.excessHours, 2.5);
+});
+
+test('with an INCENTIVE boundary the statutory daily and monthly limits validate but move nothing', () => {
+	const days = [
+		{ ...ordinaryDay(60, 68), date: '2026-03-10', workDayId: 'a' },
+		{ ...ordinaryDay(60, 68), date: '2026-03-11', workDayId: 'b' },
+		{ ...ordinaryDay(3, 14), date: '2026-03-14', workDayId: 'c', dayType: 'REST_DAY' }
+	];
+	const statutory = classifyOvertimeByCalendarMonth({ days, ...MY_LIMIT_OPTIONS });
+	assert.ok(
+		statutory.some((entry) => entry.excessHours > 0),
+		'the statutory limits move hours'
+	);
+	const company = classifyOvertimeByCalendarMonth({
+		days,
+		...MY_LIMIT_OPTIONS,
+		ordinaryDayIncentiveBoundary: 11
+	});
+	assert.deepEqual(
+		company.map((entry) => [entry.day.workDayId, entry.retainedHours, entry.excessHours]),
+		[
+			['a', 3, 57],
+			['b', 3, 57],
+			['c', 3, 0]
+		]
+	);
+});
+
+test('Nihon: thirteen worked hours on a weekday keep three OT hours and pay two as incentive at the same rate', () => {
+	const measured = measure(MY, {
+		workDays: [clock('2026-03-19', '08:30', '22:30')],
+		salary: { value: 3451, currency: 'MYR' },
+		...NIHON
+	});
+	assert.equal(measured.overtimeDays[0].totalWorkHours, 13);
+	assert.equal(lineOf(measured, 'OT_ORDINARY_BEYOND_NORMAL_0').quantity, 3);
+	assert.equal(amountOf(measured, 'OT_ORDINARY_BEYOND_NORMAL_0'), 74.66);
+	assert.equal(lineOf(measured, 'OT_EXCESS_ORDINARY_BEYOND_NORMAL_0').quantity, 2);
+	assert.equal(amountOf(measured, 'OT_EXCESS_ORDINARY_BEYOND_NORMAL_0'), 49.77);
+});
+
+test('Nihon: an eleven-hour weekday is all statutory overtime, and a rest day is never split by the boundary', () => {
+	const weekday = measure(MY, {
+		workDays: [clock('2026-03-19', '08:30', '20:30')],
+		...NIHON
+	});
+	assert.equal(lineOf(weekday, 'OT_ORDINARY_BEYOND_NORMAL_0').quantity, 3);
+	assert.equal(lineOf(weekday, 'OT_EXCESS_ORDINARY_BEYOND_NORMAL_0'), null);
+	const restDay = measure(MY, {
+		workDays: [clock('2026-03-15', '08:30', '22:30')],
+		...NIHON
+	});
+	assert.ok(paid(restDay).some((item) => item.label.startsWith('OT_REST_DAY')));
+	assert.ok(!paid(restDay).some((item) => item.label.startsWith('OT_EXCESS')));
+});
+
+test('the statutory twelve-hour ceiling still validates beside an INCENTIVE boundary; only the boundary moves hours', () => {
+	const measured = measure(MY, {
+		workDays: [clock('2026-03-19', '08:30', '23:30')],
+		...NIHON
+	});
+	// Fourteen worked hours: the statute's twelve-hour ceiling is a BLOCK the engine reports from
+	// the same day, while pay splits at eleven. Six OT hours: three retained, three incentive.
+	assert.equal(measured.overtimeDays[0].totalWorkHours, 14);
+	assert.equal(lineOf(measured, 'OT_ORDINARY_BEYOND_NORMAL_0').quantity, 3);
+	assert.equal(lineOf(measured, 'OT_EXCESS_ORDINARY_BEYOND_NORMAL_0').quantity, 3);
 });

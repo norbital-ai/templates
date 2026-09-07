@@ -22,8 +22,44 @@
 		},
 		"regime": {
 			"overtime_coverage": null,
-			"overtime_rules": [],
-			"overtime_limits": []
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK",
+					"authority": "Public fixture: twelve-hour day (Employment Act 1955 s.60A(7) shape)"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"on_exceed": "WARN",
+					"authority": "Public fixture: 104 overtime hours a month (Employment (Limitation of Overtime Work) Regulations 1980 shape)"
+				},
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 11,
+					"on_exceed": "INCENTIVE",
+					"authority": "Public fixture arrangement: weekday work past eleven hours (a twelve-hour day including the one-hour break) is incentive overtime"
+				}
+			]
 		}
 	}
 ]

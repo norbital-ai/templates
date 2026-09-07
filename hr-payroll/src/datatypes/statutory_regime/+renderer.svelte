@@ -107,7 +107,7 @@
 		{
 			key: 'on_exceed',
 			label: 'When exceeded',
-			field: enumField('on_exceed', ['WARN', 'BLOCK']),
+			field: enumField('on_exceed', ['WARN', 'BLOCK', 'INCENTIVE']),
 			width: 150
 		},
 		{ key: 'authority', label: 'Authority', field: textField('authority'), width: 240 }

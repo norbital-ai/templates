@@ -439,6 +439,10 @@ type ClassifiedDailyOvertime = {
  *   same ordinary-only rule as the monthly cap, and the rule Indonesia states in PP 35/2021
  *   Pasal 26(2).
  *
+ * A lineage may state an INCENTIVE boundary instead (`ordinaryDayIncentiveBoundary`, the regime's
+ * `on_exceed: 'INCENTIVE'` limit); then none of the statutory controls below classify, they only
+ * validate.
+ *
  * The monthly counter includes only ordinary-day overtime (OFF_DAY uses the ordinary rule). Work
  * on a rest day or public holiday is expressly excluded by the 1980 Regulations. The counter still
  * advances by the whole qualifying day, even if part of that day already exceeded a daily
@@ -449,7 +453,26 @@ export function classifyOvertimeByCalendarMonth(options: {
 	readonly dailyWorkLimit: number | null;
 	readonly dailyOvertimeHoursLimit?: number | null;
 	readonly monthlyOrdinaryOvertimeLimit: number | null;
+	/**
+	 * The regime's INCENTIVE boundary, in hours worked on an ordinary day. Stated, it is the only
+	 * classifier: ordinary-day overtime past it is incentive, every other day is priced whole on
+	 * the statutory ladder, and the statutory limits above validate compliance but move no hours.
+	 * Null leaves the statutory limits to classify.
+	 */
+	readonly ordinaryDayIncentiveBoundary?: number | null;
 }): ClassifiedDailyOvertime[] {
+	const boundary = options.ordinaryDayIncentiveBoundary ?? null;
+	if (boundary != null) {
+		return options.days
+			.toSorted((left, right) => left.date.localeCompare(right.date))
+			.map((day) => {
+				const retainedHours =
+					ruleDayType(day.dayType) === 'ORDINARY'
+						? Math.max(0, day.hours - floorHalfHour(Math.max(0, day.totalWorkHours - boundary)))
+						: day.hours;
+				return { day, retainedHours, excessHours: day.hours - retainedHours };
+			});
+	}
 	const ordinaryHoursByMonth = new Map<string, number>();
 	const dailyOvertimeHoursLimit = options.dailyOvertimeHoursLimit ?? null;
 	return options.days

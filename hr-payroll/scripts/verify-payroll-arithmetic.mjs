@@ -627,7 +627,8 @@ const monthlyDays = [
 const monthlyClassified = classifyOvertimeByCalendarMonth({
 	days: monthlyDays,
 	dailyWorkLimit: null,
-	monthlyOrdinaryOvertimeLimit: 104
+	monthlyOrdinaryOvertimeLimit: 104,
+	ordinaryDayIncentiveBoundary: null
 });
 check(
 	'the 104-hour counter excludes rest-day and public-holiday work',
@@ -654,7 +655,8 @@ check(
 	classifyOvertimeByCalendarMonth({
 		days: [{ ...sixHourDay, hours: 4, totalWorkHours: 12.6 }],
 		dailyWorkLimit: 12,
-		monthlyOrdinaryOvertimeLimit: null
+		monthlyOrdinaryOvertimeLimit: null,
+		ordinaryDayIncentiveBoundary: null
 	})[0]?.excessHours,
 	0.5
 );
@@ -663,7 +665,8 @@ check(
 	classifyOvertimeByCalendarMonth({
 		days: [{ ...sixHourDay, hours: 4, totalWorkHours: 12.4 }],
 		dailyWorkLimit: 12,
-		monthlyOrdinaryOvertimeLimit: null
+		monthlyOrdinaryOvertimeLimit: null,
+		ordinaryDayIncentiveBoundary: null
 	})[0]?.excessHours,
 	0
 );
@@ -671,7 +674,8 @@ const vietnamDailyOt = classifyOvertimeByCalendarMonth({
 	days: [{ ...sixHourDay, hours: 6, totalWorkHours: 14 }],
 	dailyWorkLimit: null,
 	dailyOvertimeHoursLimit: 4,
-	monthlyOrdinaryOvertimeLimit: 40
+	monthlyOrdinaryOvertimeLimit: 40,
+	ordinaryDayIncentiveBoundary: null
 })[0];
 check(
 	'Vietnam four-hour daily overtime ceiling retains four hours',

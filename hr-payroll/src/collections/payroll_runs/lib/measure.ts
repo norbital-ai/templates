@@ -250,7 +250,7 @@ export type MeasuredEmployment = {
  * of them in the same country could disagree about where it sits.
  */
 export function dailyTotalWorkLimit(configuration: Configuration): number | null {
-	const limits = configuration.overtimeLimits.filter(
+	const limits = statutoryLimits(configuration).filter(
 		(limit) => limit.period === 'DAY' && limit.measures === 'TOTAL_WORK_HOURS'
 	);
 	if (limits.length > 1)
@@ -265,7 +265,7 @@ export function dailyTotalWorkLimit(configuration: Configuration): number | null
  * derived overtime hours. A jurisdiction that states neither has no daily reclassification.
  */
 export function dailyOvertimeHoursLimit(configuration: Configuration): number | null {
-	const limits = configuration.overtimeLimits.filter(
+	const limits = statutoryLimits(configuration).filter(
 		(limit) => limit.period === 'DAY' && limit.measures === 'OVERTIME_HOURS'
 	);
 	if (limits.length > 1)
@@ -273,8 +273,24 @@ export function dailyOvertimeHoursLimit(configuration: Configuration): number | 
 	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
 }
 
+/** The statute's ceilings: every limit that is not an INCENTIVE boundary. */
+function statutoryLimits(configuration: Configuration) {
+	return configuration.overtimeLimits.filter((limit) => limit.on_exceed !== 'INCENTIVE');
+}
+
+/**
+ * The regime's INCENTIVE boundary, in hours worked on an ordinary day, or null where the lineage
+ * states none and the statutory ceilings classify. Nihon's forked lineage states 11.
+ */
+export function incentiveBoundary(configuration: Configuration): number | null {
+	const limits = configuration.overtimeLimits.filter((limit) => limit.on_exceed === 'INCENTIVE');
+	if (limits.length > 1)
+		throw new Error('More than one INCENTIVE boundary is effective for this jurisdiction.');
+	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
+}
+
 function monthlyOvertimeLimit(configuration: Configuration): number | null {
-	const limits = configuration.overtimeLimits.filter(
+	const limits = statutoryLimits(configuration).filter(
 		(limit) => limit.period === 'MONTH' && limit.measures === 'OVERTIME_HOURS'
 	);
 	if (limits.length > 1)
@@ -706,7 +722,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		days: overtimeDays,
 		dailyWorkLimit,
 		dailyOvertimeHoursLimit: dailyOvertimeLimit,
-		monthlyOrdinaryOvertimeLimit: monthlyOvertimeLimit(configuration)
+		monthlyOrdinaryOvertimeLimit: monthlyOvertimeLimit(configuration),
+		ordinaryDayIncentiveBoundary: incentiveBoundary(configuration)
 	});
 	if (paymentEligible) {
 		for (const classified of classifiedOvertime) {
