@@ -39,7 +39,7 @@ export const SCHEDULE_IMBALANCED = 'SCHEDULE_IMBALANCED' as const;
 export const SCHEDULE_OUT_OF_ORDER = 'SCHEDULE_OUT_OF_ORDER' as const;
 export const SCHEDULE_OUTSIDE_EFFECTIVE_RANGE = 'SCHEDULE_OUTSIDE_EFFECTIVE_RANGE' as const;
 
-export type LoanScheduleRefusal = {
+type LoanScheduleRefusal = {
 	readonly code:
 		| typeof SCHEDULE_IMBALANCED
 		| typeof SCHEDULE_OUT_OF_ORDER
@@ -48,7 +48,7 @@ export type LoanScheduleRefusal = {
 };
 
 /** One repayment as the invariants see it: an amount, a day, and the position that orders them. */
-export type LoanScheduleRow = {
+type LoanScheduleRow = {
 	readonly due_date?: unknown;
 	readonly amount_due?: unknown;
 	readonly sequence?: unknown;
@@ -320,7 +320,7 @@ export function generateLoanSchedule(input: {
 
 // ── recovery ────────────────────────────────────────────────────────────────────────────────
 
-export type RepaymentProgress = {
+type RepaymentProgress = {
 	readonly recoveredAmount: number;
 	readonly outstandingAmount: number;
 	readonly paidRepayments: number;

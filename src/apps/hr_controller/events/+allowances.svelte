@@ -29,7 +29,7 @@
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
-	import { sourceLock, sourceLockRecordMetadata } from '../../../lib/scheduling/lock.js';
+	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -54,20 +54,6 @@
 			Pick<WorkspaceRow<'payslip_allowance_request_inputs'>, 'period'>
 		> | null;
 	};
-
-	function rowMetadata(row: AllowanceRow) {
-		const capture = row.payslip_allowance_request_input_allowance_request?.[0] ?? null;
-		return sourceLockRecordMetadata(
-			sourceLock({
-				existing: true,
-				approvalId: row.approval_id,
-				dates: [],
-				settledBy: capture == null ? null : { period: capture.period },
-				datePassed: 'IS_NOT_A_LOCK'
-			}),
-			t
-		);
-	}
 </script>
 
 <AppShell
@@ -96,7 +82,12 @@
 				collection="allowance_requests"
 				view={`hr_controller:events:allowances:${selectedCompanyId}`}
 				title={t('app.allowances.title')}
-				recordMetadata={rowMetadata}
+				recordMetadata={(row: AllowanceRow) =>
+					payRequestRecordMetadata(
+						row.approval_id,
+						row.payslip_allowance_request_input_allowance_request,
+						t
+					)}
 				query={{
 					where: {
 						allowance_request_employment: { some: { company_id: { eq: selectedCompanyId } } }

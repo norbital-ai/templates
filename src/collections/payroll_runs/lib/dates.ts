@@ -121,7 +121,7 @@ export function intersectDays(
  * chronological order, so the previous-run-paid rule and the year-to-date filter read the new
  * grammar unchanged.
  */
-export const RUN_PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-[12])?$/;
+const RUN_PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-[12])?$/;
 
 /** The `YYYY-MM` a run period belongs to; the whole of it for a monthly period. */
 export function periodMonth(period: string): string {

@@ -37,11 +37,11 @@ import { requiredDateKey, type IsoDate } from './dates.js';
 import { defaultPayPeriod, type PayCadence } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-export type ClaimRequest = WorkspaceRow<'claim_requests'>;
-export type AllowanceRequest = WorkspaceRow<'allowance_requests'>;
-export type BonusRequest = WorkspaceRow<'bonus_requests'>;
-export type ArrearsRequest = WorkspaceRow<'arrears_requests'>;
-export type CorrectionRequest = WorkspaceRow<'correction_requests'>;
+type ClaimRequest = WorkspaceRow<'claim_requests'>;
+type AllowanceRequest = WorkspaceRow<'allowance_requests'>;
+type BonusRequest = WorkspaceRow<'bonus_requests'>;
+type ArrearsRequest = WorkspaceRow<'arrears_requests'>;
+type CorrectionRequest = WorkspaceRow<'correction_requests'>;
 export type Loan = WorkspaceRow<'loans'>;
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
 
@@ -55,15 +55,6 @@ export const PAY_REQUEST_FAMILIES = [
 ] as const;
 export type PayRequestFamily = (typeof PAY_REQUEST_FAMILIES)[number];
 
-/** The `payslip_adjustments.input` arm each family's capture is recorded under. */
-export const PAY_REQUEST_INPUT_KIND = {
-	CLAIM: 'CLAIM_REQUEST_INPUT',
-	ALLOWANCE: 'ALLOWANCE_REQUEST_INPUT',
-	BONUS: 'BONUS_REQUEST_INPUT',
-	ARREARS: 'ARREARS_REQUEST_INPUT',
-	CORRECTION: 'CORRECTION_REQUEST_INPUT'
-} as const satisfies Record<PayRequestFamily, string>;
-
 /** The five arms of `payslip_adjustments.input` that name a pay request, for a read that wants them all. */
 export const REQUEST_INPUT_KINDS = [
 	'CLAIM_REQUEST_INPUT',
@@ -74,7 +65,7 @@ export const REQUEST_INPUT_KINDS = [
 ] as const;
 
 /** The window a standing allowance is live across; `end` null is open-ended. */
-export type RequestWindow = { readonly start: IsoDate; readonly end: IsoDate | null };
+type RequestWindow = { readonly start: IsoDate; readonly end: IsoDate | null };
 
 /**
  * One pay request as the run reads it. Every derived answer is settled by the builder that made it,
