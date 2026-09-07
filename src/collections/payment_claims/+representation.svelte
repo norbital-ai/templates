@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -13,53 +14,59 @@
 	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	const subtitle = $derived(
+		record == null ? undefined : `${record.claim_type ?? '—'} · ${record.status ?? '—'}`
+	);
 </script>
 
-<CollectionForm
-	client={workspaceClient}
-	collection="payment_claims"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="supporting_documents" hidden />
-		<Grid minimum="compact">
-			<Field name="claim_number" />
-			<Field
-				name="project_id"
-				label={t('component.project')}
-				relationOptions={{
-					label: (record) => {
-						const number = record.project_number;
-						const name = record.project_name;
-						if (number && name) return `${number} · ${name}`;
-						const v = record.project_name;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { project_number: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="job_id"
-				label={t('component.job')}
-				relationOptions={{
-					label: (record) => {
-						const v = record.job_title;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { job_title: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="claim_type" />
-			<Field name="status" />
-			<Field name="claimed_amount" />
-			<Field name="certified_amount" />
-			<Field name="claim_period" />
-			<Field name="submitted_date" />
-			<Field name="paid_date" />
-			<Column span="all"><Field name="description" /></Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.claim_number ?? 'New payment claim'} {subtitle}>
+	<CollectionForm
+		client={workspaceClient}
+		collection="payment_claims"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="supporting_documents" hidden />
+			<Grid minimum="compact">
+				<Field name="claim_number" />
+				<Field
+					name="project_id"
+					label={t('component.project')}
+					relationOptions={{
+						label: (record) => {
+							const number = record.project_number;
+							const name = record.project_name;
+							if (number && name) return `${number} · ${name}`;
+							const v = record.project_name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { project_number: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="job_id"
+					label={t('component.job')}
+					relationOptions={{
+						label: (record) => {
+							const v = record.job_title;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { job_title: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="claim_type" />
+				<Field name="status" />
+				<Field name="claimed_amount" />
+				<Field name="certified_amount" />
+				<Field name="claim_period" />
+				<Field name="submitted_date" />
+				<Field name="paid_date" />
+				<Column span="all"><Field name="description" /></Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

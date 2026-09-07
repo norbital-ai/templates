@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -13,45 +14,51 @@
 	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	const subtitle = $derived(
+		record == null ? undefined : `${record.rfi_number ?? '—'} · ${record.status ?? '—'}`
+	);
 </script>
 
-<CollectionForm
-	client={workspaceClient}
-	collection="rfis"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="subject" hidden />
-		<Field name="submitted_date" hidden />
-		<Field name="resolved_date" hidden />
-		<Field name="attachments" hidden />
-		<Field name="related_defect_id" hidden />
-		<Grid minimum="compact">
-			<Field name="rfi_number" />
-			<Field name="title" />
-			<Field
-				name="project_id"
-				label={t('component.project')}
-				relationOptions={{
-					label: (record) => {
-						const number = record.project_number;
-						const name = record.project_name;
-						if (number && name) return `${number} · ${name}`;
-						const v = record.project_name;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { project_number: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="status" />
-			<Field name="priority" />
-			<Field name="asked_by" />
-			<Field name="assigned_to" />
-			<Field name="due_date" />
-			<Column span="all"><Field name="question" /></Column>
-			<Column span="all"><Field name="answer" /></Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.title ?? 'New RFI'} {subtitle}>
+	<CollectionForm
+		client={workspaceClient}
+		collection="rfis"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="subject" hidden />
+			<Field name="submitted_date" hidden />
+			<Field name="resolved_date" hidden />
+			<Field name="attachments" hidden />
+			<Field name="related_defect_id" hidden />
+			<Grid minimum="compact">
+				<Field name="rfi_number" />
+				<Field name="title" />
+				<Field
+					name="project_id"
+					label={t('component.project')}
+					relationOptions={{
+						label: (record) => {
+							const number = record.project_number;
+							const name = record.project_name;
+							if (number && name) return `${number} · ${name}`;
+							const v = record.project_name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { project_number: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="status" />
+				<Field name="priority" />
+				<Field name="asked_by" />
+				<Field name="assigned_to" />
+				<Field name="due_date" />
+				<Column span="all"><Field name="question" /></Column>
+				<Column span="all"><Field name="answer" /></Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

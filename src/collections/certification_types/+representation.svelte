@@ -3,26 +3,35 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record, close }: RepresentationProps = $props();
+
+	const subtitle = $derived(
+		record == null
+			? undefined
+			: `${record.certification_code ?? '—'} · ${record.issuing_body ?? '—'}`
+	);
 </script>
 
-<CollectionForm
-	client={collectionClient}
-	collection="certification_types"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="requirements" hidden />
-		<Grid minimum="compact">
-			<Field name="certification_name" />
-			<Field name="certification_code" />
-			<Field name="category" />
-			<Field name="issuing_body" />
-			<Field name="validity_period_months" />
-			<Field name="requires_refresher" />
-			<Column span="all"><Field name="description" /></Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.certification_name ?? 'New certification'} {subtitle}>
+	<CollectionForm
+		client={collectionClient}
+		collection="certification_types"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="requirements" hidden />
+			<Grid minimum="compact">
+				<Field name="certification_name" />
+				<Field name="certification_code" />
+				<Field name="category" />
+				<Field name="issuing_body" />
+				<Field name="validity_period_months" />
+				<Field name="requires_refresher" />
+				<Column span="all"><Field name="description" /></Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>
