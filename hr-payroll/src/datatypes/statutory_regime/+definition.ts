@@ -93,6 +93,43 @@ export const statutoryRestBreakRuleValueSchema = Schema.Struct({
 export type StatutoryRestBreakRule = Schema.Schema.Type<typeof statutoryRestBreakRuleValueSchema>;
 
 /**
+ * The weekly rest day, in the one shape a roster can actually be judged against.
+ *
+ * Both Acts state an entitlement — a rest day of one whole day in each week — and neither states a
+ * run length. A roster has no week boundary to test that against: a week is a continuous period of
+ * seven days, not a calendar one, so picking Monday would be enforcement invented here. Singapore
+ * is the jurisdiction that puts the entitlement into roster terms, and does it as an interval:
+ * where the employer draws up a monthly roster the rest day may be any day of the month, provided
+ * the interval between two rest days does not exceed twelve days. That interval is what this member
+ * carries, and it is boundary-free. Six carries the plain weekly reading for a jurisdiction that
+ * substitutes nothing.
+ *
+ * `discharged_by` is the other half of the transcription, and it is what finally gives
+ * `roster_code_variant`'s REST kind a consequence: REST means only the statutory rest day
+ * discharges the duty, so an ordinary OFF day neither counts as work nor releases the run;
+ * REST_OR_OFF is the reading for a roster that substitutes a plain non-working day for it.
+ *
+ * `on_exceed` mirrors the overtime limit and rest break rules: BLOCK refuses the roster write,
+ * WARN does not. The enforcement choice is effective-dated with the law it is a choice about.
+ */
+export const statutoryWeeklyRestRuleValueSchema = Schema.Struct({
+	max_consecutive_work_days: Schema.Int.check(
+		Schema.isGreaterThan(0),
+		// The write hook reads a fixed neighbourhood either side of each changed day so it can see a
+		// run that starts in the previous month. A ceiling no statute approaches keeps that window a
+		// constant instead of a second round trip once the regime is known.
+		Schema.isLessThanOrEqualTo(30)
+	),
+	discharged_by: Schema.Literals(['REST', 'REST_OR_OFF']),
+	on_exceed: Schema.Literals(['WARN', 'BLOCK']),
+	authority
+});
+
+export type StatutoryWeeklyRestRule = Schema.Schema.Type<
+	typeof statutoryWeeklyRestRuleValueSchema
+>;
+
+/**
  * The atomic working-time part of one effective-dated jurisdiction snapshot.
  *
  * These values are attributes of one law revision, not independently versioned records. The
@@ -118,7 +155,17 @@ export const statutoryRegimeValueSchema = Schema.Struct({
 	 * `src/lib/scheduling/rest-break.ts` now retires: the day sheet quotes the figure, the publish
 	 * gate refuses on it, and the write hook warns on it, all from these rows.
 	 */
-	rest_break_rules: Schema.optionalKey(Schema.Array(statutoryRestBreakRuleValueSchema))
+	rest_break_rules: Schema.optionalKey(Schema.Array(statutoryRestBreakRuleValueSchema)),
+	/**
+	 * The weekly rest day. Optional for the same reason `rest_break_rules` is: the view below is
+	 * strict, and every snapshot seeded before this member existed carries no such key. Absent means
+	 * the snapshot declares no rule, never "unknown rule".
+	 *
+	 * Singular, unlike its array siblings: a snapshot has one rest-day rule, and an array would leave
+	 * "which of the two governs this roster?" to seed order — the ambiguity the limit-key and
+	 * break-arm checks in `statutoryRegimeIssues` exist to catch elsewhere.
+	 */
+	weekly_rest_rule: Schema.optionalKey(statutoryWeeklyRestRuleValueSchema)
 });
 
 export type StatutoryRegime = Schema.Schema.Type<typeof statutoryRegimeValueSchema>;

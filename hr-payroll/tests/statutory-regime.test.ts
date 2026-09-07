@@ -1,7 +1,11 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { statutoryRegimeIssues } from '../src/datatypes/statutory_regime/+definition.ts';
+import { Result, Schema } from 'effect';
+import {
+	statutoryRegimeIssues,
+	statutoryRegimeSchema
+} from '../src/datatypes/statutory_regime/+definition.ts';
 import { configurationSnapshot } from '../src/collections/payroll_runs/lib/configuration.ts';
 
 const regime = () => ({
@@ -147,4 +151,36 @@ test('an INCENTIVE boundary sits beside the statutory ceilings and must be a dai
 		).join(' '),
 		/More than one INCENTIVE DAY limit/
 	);
+});
+
+/**
+ * The weekly rest rule decodes through the strict view — and, critically, a snapshot that predates
+ * the member still decodes. `rest_break_rules` learnt this the hard way: a required member would
+ * have failed every seeded snapshot, which is a migration disguised as a schema change.
+ */
+test('the weekly rest rule is optional, bounded and strict', () => {
+	const decode = (weekly) =>
+		Schema.decodeUnknownResult(statutoryRegimeSchema)(
+			weekly === undefined ? regime() : { ...regime(), weekly_rest_rule: weekly }
+		);
+	const lawful = {
+		max_consecutive_work_days: 12,
+		discharged_by: 'REST_OR_OFF',
+		on_exceed: 'BLOCK',
+		authority: 'Employment Act 1968 s.36'
+	};
+	assert.ok(Result.isSuccess(decode(lawful)), 'a snapshot that declares one');
+	assert.ok(Result.isSuccess(decode(undefined)), 'and one seeded before the member existed');
+
+	for (const [why, bad] of [
+		['a run of zero days is not a rule', { ...lawful, max_consecutive_work_days: 0 }],
+		['nor is a fraction of a day', { ...lawful, max_consecutive_work_days: 6.5 }],
+		// The hook reads a fixed 31-day neighbourhood; a limit above 30 would be unenforceable
+		// there, so the schema is where it is refused rather than where it silently under-reads.
+		['a limit past the read window', { ...lawful, max_consecutive_work_days: 31 }],
+		['an unknown discharge', { ...lawful, discharged_by: 'HOLIDAY' }],
+		['an unstated authority', { ...lawful, authority: '' }]
+	]) {
+		assert.ok(Result.isFailure(decode(bad)), why);
+	}
 });

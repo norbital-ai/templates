@@ -28,6 +28,10 @@ const api = {
 		work_days: { findMany: () => Effect.succeed([]) },
 		shift_definitions: { findMany: () => Effect.succeed([]) },
 		shift_patterns: { findMany: () => Effect.succeed([]) },
+		// The company's law lineage, and the versions of it. Empty here: these fixtures are about
+		// attendance, and a company that binds to no jurisdiction has no rest-day rule to break.
+		companies: { findMany: () => Effect.succeed([]) },
+		jurisdiction_settings: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) },
 		payslip_work_day_inputs: { findFirst: () => Effect.succeed(null) },
 		leave_requests: { findMany: () => Effect.succeed([]) }

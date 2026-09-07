@@ -1,8 +1,13 @@
-import { Effect } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../lib/iso-day.js';
-import { monthBounds } from '../../lib/period.js';
+import { addDays, monthBounds } from '../../lib/period.js';
+import { settingsInForce } from '../../lib/jurisdiction_settings.js';
+import {
+	statutoryRegimeSchema,
+	type StatutoryWeeklyRestRule
+} from '../../datatypes/statutory_regime/+definition.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import {
 	patternRosterCodeId,
@@ -24,6 +29,25 @@ import { assertNoOverlap, readOverlapData, type OverlapData } from './lib/assign
 import { decodeNumber } from '@norbital-ai/std/json';
 
 const QUERY_LIMIT = 20_000;
+/**
+ * How far either side of a touched month the roster is read, so a consecutive-work run that starts
+ * in the previous month is seen whole. It is the schema's ceiling on `max_consecutive_work_days`
+ * (30) plus one, which makes it provably sufficient for every rule the schema can express while
+ * staying a constant — the alternative is reading the regime first and paying a third round trip.
+ */
+const REST_RUN_PAD_DAYS = 31;
+
+/** The jurisdiction version columns `settingsInForce` and the rest-day rule read. */
+type SettingsVersionRow = {
+	readonly id: string;
+	readonly code: string;
+	readonly name: string | null;
+	readonly sealed_at: string | null;
+	readonly voided_at: string | null;
+	readonly approval_id: string | null;
+	readonly effective_range: unknown;
+	readonly regime: unknown;
+};
 
 /**
  * The two questions attendance asks about a person-day, answered once for the whole batch.
@@ -151,6 +175,87 @@ function assertMonthConformsToPattern(options: {
 	);
 }
 /**
+ * One rest day in every run: a roster may not commit a person to more consecutive worked days than
+ * the jurisdiction in force allows between rest days.
+ *
+ * Judged over the batch's overlay, exactly as the month rule above is, so a two-cell swap that
+ * *moves* the rest day rather than deleting it still passes. Only a run this write actually touches
+ * is refused — `changedDates` is that intersection, and without it an import of one historical
+ * month would freeze every unrelated cell around a run that was already there.
+ *
+ * "Worked" is the effective roster code's kind being WORK, and nothing else. A public holiday is a
+ * separate entitlement rather than a rest day, and the schedule keeps the WORK shift on one while
+ * relabelling the day type — the roster still commits the person, so reading holidays would only
+ * make this rule more permissive than the Act. Approved leave is likewise not read: this judges the
+ * roster, not attendance, and a roster committing thirteen straight WORK days is unlawful whether
+ * or not leave later removes some of them.
+ */
+export function assertRunHasRestDay(options: {
+	readonly employeeNumber: string;
+	readonly rule: StatutoryWeeklyRestRule;
+	readonly window: { readonly start: string; readonly end: string };
+	readonly plannedByDate: ReadonlyMap<string, string | null>;
+	readonly changedDates: ReadonlySet<string>;
+	readonly terms: readonly {
+		readonly shift_pattern_id: string | null;
+		readonly effective_range: unknown;
+	}[];
+	readonly patternById: ReadonlyMap<string, ShiftPatternLike>;
+	readonly codeKindById: ReadonlyMap<string, 'WORK' | 'REST' | 'OFF'>;
+}): void {
+	const { employeeNumber, rule, window, plannedByDate, changedDates, terms, patternById, codeKindById } =
+		options;
+	if (rule.on_exceed !== 'BLOCK') return;
+	let runStart: string | null = null;
+	let runEnd: string | null = null;
+	let length = 0;
+	let touched = false;
+	const flush = (): void => {
+		if (touched && length > rule.max_consecutive_work_days)
+			refuse(
+				`Roster change for ${employeeNumber} is refused: ${runStart} to ${runEnd} would be ` +
+					`${length} consecutive worked day(s) with no rest day inside them. This jurisdiction ` +
+					`allows ${rule.max_consecutive_work_days} (${rule.authority}). Give the run a rest day — ` +
+					`swap one of those days for a ${rule.discharged_by === 'REST' ? 'REST' : 'REST or OFF'} ` +
+					`code in the same write — or move the work outside it.`
+			);
+		runStart = null;
+		runEnd = null;
+		length = 0;
+		touched = false;
+	};
+	let date = window.start;
+	while (date <= window.end) {
+		const term = terms.find((candidate) => coversDate(candidate.effective_range, date));
+		const pattern = term == null ? null : termPattern(term, patternById);
+		let projectedId: string | null = null;
+		if (pattern != null && pattern.type === 'PATTERNED') {
+			try {
+				projectedId = patternRosterCodeId(pattern, date);
+			} catch {
+				projectedId = null;
+			}
+		}
+		// A rostered-as-assigned employment has no projection at all, which is precisely where
+		// explicit rows stack thirteen days — so unlike the month rule this does not skip it.
+		const effectiveId = plannedByDate.get(date) ?? projectedId;
+		const kind = effectiveId == null ? null : codeKindById.get(effectiveId);
+		if (kind === 'WORK') {
+			if (runStart == null) runStart = date;
+			runEnd = date;
+			length += 1;
+			if (changedDates.has(date)) touched = true;
+		} else if (kind === 'REST' || (kind === 'OFF' && rule.discharged_by === 'REST_OR_OFF')) {
+			flush();
+		}
+		// An OFF day under a REST-only rule, and a day with no code at all, are neither work nor
+		// discharge: they carry the run rather than resetting it.
+		date = addDays(date, 1);
+	}
+	flush();
+}
+
+/**
  * The batched conformance read: one month-span query for the whole write, then one pure
  * comparison per touched employment-month. Deletes never reach here — removing an override can
  * only resume the pattern — and attendance-only writes carry no plan change to check.
@@ -197,8 +302,14 @@ function assertBatchConformsToPattern(
 		if (changes.length === 0) return;
 		const employmentIds = [...new Set(changes.map((change) => change.employment_id))];
 		const months = [...new Set(changes.map((change) => change.work_date.slice(0, 7)))].toSorted();
-		const spanStart = `${months[0]}-01`;
-		const spanEnd = monthBounds(months[months.length - 1]!).end;
+		// Padded either side of the touched months so a run that begins in the previous month, or
+		// continues into the next, is seen whole. `REST_RUN_PAD_DAYS` is the schema's own ceiling on
+		// `max_consecutive_work_days` plus one: if the true run through a changed day is longer than
+		// the limit N, then the days inside [changed-N, changed+N] already contain N+1 consecutive
+		// worked days, so it is caught; and the observed run is never longer than the true one, so
+		// nothing is refused falsely. A constant lets this read be issued before the regime is known.
+		const spanStart = addDays(`${months[0]}-01`, -REST_RUN_PAD_DAYS);
+		const spanEnd = addDays(monthBounds(months[months.length - 1]!).end, REST_RUN_PAD_DAYS);
 		const employmentById = new Map(employments.map((employment) => [employment.id, employment]));
 		const companyIds = [
 			...new Set(
@@ -208,7 +319,7 @@ function assertBatchConformsToPattern(
 				})
 			)
 		];
-		const [monthRows, terms] = yield* Effect.all(
+		const [monthRows, terms, companies] = yield* Effect.all(
 			[
 				api.db.work_days.findMany({
 					where: {
@@ -222,16 +333,35 @@ function assertBatchConformsToPattern(
 					where: { employment_id: { in: employmentIds } },
 					columns: { employment_id: true, shift_pattern_id: true, effective_range: true },
 					limit: QUERY_LIMIT
-				})
+				}),
+				// Which law each company binds to. Both this and the settings read below sit behind the
+				// `changes.length === 0` gate above, which is load-bearing rather than tidy: the kiosk
+				// holds neither grant, and a punch carries no plan change, so it never reaches them.
+				companyIds.length === 0
+					? Effect.succeed([] as { readonly id: string; readonly settings_code: string | null }[])
+					: api.db.companies.findMany({
+							where: { id: { in: companyIds } },
+							columns: { id: true, settings_code: true },
+							limit: QUERY_LIMIT
+						})
 			],
 			{ concurrency: 'unbounded' }
 		);
 		// The codes and the named patterns of every company touched: the pattern is the base the
 		// month is compared with, and it is read here rather than carried on the terms row so one
 		// write across two employments on the same pattern reads it once.
-		const [codes, patterns] =
+		const settingsCodes = [
+			...new Set(
+				companies.flatMap((company) =>
+					company.settings_code == null || company.settings_code === ''
+						? []
+						: [company.settings_code]
+				)
+			)
+		];
+		const [codes, patterns, settingsVersions] =
 			companyIds.length === 0
-				? [[], []]
+				? [[], [], []]
 				: yield* Effect.all(
 						[
 							api.db.shift_definitions.findMany({
@@ -243,7 +373,23 @@ function assertBatchConformsToPattern(
 								where: { company_id: { in: companyIds } },
 								columns: { id: true, code: true, pattern: true },
 								limit: QUERY_LIMIT
-							})
+							}),
+							settingsCodes.length === 0
+								? Effect.succeed([] as SettingsVersionRow[])
+								: api.db.jurisdiction_settings.findMany({
+										where: { code: { in: settingsCodes } },
+										columns: {
+											id: true,
+											code: true,
+											name: true,
+											sealed_at: true,
+											voided_at: true,
+											approval_id: true,
+											effective_range: true,
+											regime: true
+										},
+										limit: QUERY_LIMIT
+									})
 						],
 						{ concurrency: 'unbounded' }
 					);
@@ -309,6 +455,47 @@ function assertBatchConformsToPattern(
 				patternById,
 				codeKindById,
 				paidMinutesById
+			});
+		}
+		// The rest-day run is keyed by employment alone, not by employment-month: a run straddles the
+		// first of the month, and grouping it by month is exactly the seam a thirteen-day roster would
+		// slip through.
+		const versions = settingsVersions as readonly SettingsVersionRow[];
+		const settingsCodeByCompany = new Map(
+			companies.map((company) => [company.id, company.settings_code])
+		);
+		for (const employmentId of employmentIds) {
+			const own = changes.filter((change) => change.employment_id === employmentId);
+			const firstChange = own[0];
+			if (firstChange == null) continue;
+			const companyId = employmentById.get(employmentId)?.company_id;
+			const settingsCode = companyId == null ? null : settingsCodeByCompany.get(companyId);
+			if (settingsCode == null || settingsCode === '') continue;
+			// Effective-dated on the day whose lawfulness is being judged, like every other reader of
+			// a jurisdiction snapshot.
+			const version = settingsInForce(versions, settingsCode, firstChange.work_date);
+			if (version == null) continue;
+			// The same strict view the settings write hook decoded this snapshot through, so a regime
+			// that would not be accepted today governs nothing rather than governing partly.
+			const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(version.regime);
+			if (Result.isFailure(decoded)) continue;
+			const rule: StatutoryWeeklyRestRule | undefined = decoded.success.weekly_rest_rule;
+			if (rule == null) continue;
+			const plannedByDate = new Map<string, string | null>();
+			for (const [storedKey, shiftId] of storedByKey) {
+				if (!storedKey.startsWith(`${employmentId}:`)) continue;
+				plannedByDate.set(storedKey.slice(employmentId.length + 1), shiftId);
+			}
+			for (const change of own) plannedByDate.set(change.work_date, change.shift_definition_id);
+			assertRunHasRestDay({
+				employeeNumber: employmentById.get(employmentId)?.employee_number ?? employmentId,
+				rule,
+				window: { start: spanStart, end: spanEnd },
+				plannedByDate,
+				changedDates: new Set(own.map((change) => change.work_date)),
+				terms: termsByEmployment.get(employmentId) ?? [],
+				patternById,
+				codeKindById
 			});
 		}
 	});
