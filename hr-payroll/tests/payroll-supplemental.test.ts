@@ -136,11 +136,9 @@ test('successive supplemental payrolls pay only new money and do not repeat sala
 	const regularFacts = await prepare();
 	const originalHash = corePayrollInputHash(regularFacts);
 	const regular = buildPayrollRun(regularFacts).payslip_payroll_run;
-	const bonus = createPublicPayrollWorld({ includeBonus: true }).component_entries.find(
-		(row) => row.event.kind === 'BONUS'
-	);
+	const [bonus] = createPublicPayrollWorld({ includeBonus: true }).bonus_requests;
 	assert.ok(bonus);
-	world.component_entries.push(bonus);
+	world.bonus_requests.push(bonus);
 	const addedFacts = await prepare();
 	assert.equal(corePayrollInputHash(addedFacts), originalHash);
 	const cumulative = buildPayrollRun(addedFacts).payslip_payroll_run;
@@ -178,7 +176,11 @@ test('monthly contribution cap is charged once across regular and ad hoc payment
 		statutory: [charge(gross, amount)],
 		payslip_adjustment_payslip: [],
 		payslip_work_day_input_payslip: [],
-		payslip_component_entry_input_payslip: [],
+		payslip_claim_request_input_payslip: [],
+		payslip_allowance_request_input_payslip: [],
+		payslip_bonus_request_input_payslip: [],
+		payslip_arrears_request_input_payslip: [],
+		payslip_correction_request_input_payslip: [],
 		payslip_leave_request_input_payslip: [],
 		payslip_loan_repayment_input_payslip: []
 	});

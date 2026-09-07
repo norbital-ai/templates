@@ -85,14 +85,18 @@ test('a scoped page narrows people to its own entity', () => {
 	assert.equal(scoped.limit, 10_000);
 });
 
-test('the three controller pages set the scope, and the three forms read it', () => {
+test('every controller page sets the scope, and every form it opens reads it', () => {
 	// A symbol context has no runtime trace to assert from outside a component, so the wiring is
 	// read from source. Both halves are checked: a page that stops providing it and a form that
 	// stops consuming it fail the same way — silently, back to every version of everything.
 	for (const page of [
 		'src/apps/hr_controller/+leave.svelte',
 		'src/apps/hr_controller/+loans.svelte',
-		'src/apps/hr_controller/+component_entries.svelte'
+		'src/apps/hr_controller/events/+claims.svelte',
+		'src/apps/hr_controller/events/+allowances.svelte',
+		'src/apps/hr_controller/events/+bonuses.svelte',
+		'src/apps/hr_controller/events/+arrears.svelte',
+		'src/apps/hr_controller/events/+corrections.svelte'
 	]) {
 		const text = source(page);
 		assert.match(
@@ -104,7 +108,11 @@ test('the three controller pages set the scope, and the three forms read it', ()
 	for (const representation of [
 		'src/collections/leave_requests/+representation.svelte',
 		'src/collections/loans/+representation.svelte',
-		'src/collections/component_entries/+representation.svelte'
+		'src/collections/claim_requests/+representation.svelte',
+		'src/collections/allowance_requests/+representation.svelte',
+		'src/collections/bonus_requests/+representation.svelte',
+		'src/collections/arrears_requests/+representation.svelte',
+		'src/collections/correction_requests/+representation.svelte'
 	]) {
 		const text = source(representation);
 		assert.match(text, /hrCreateScope\(\)/, `${representation} does not read the create scope`);

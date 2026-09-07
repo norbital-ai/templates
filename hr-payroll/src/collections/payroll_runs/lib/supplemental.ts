@@ -27,8 +27,26 @@ function adjustmentKeys(payslip: Payslip) {
 		WORK_DAY_INPUT: new Map(
 			payslip.payslip_work_day_input_payslip.map((row) => [row.id, row.work_day_id])
 		),
-		COMPONENT_ENTRY_INPUT: new Map(
-			payslip.payslip_component_entry_input_payslip.map((row) => [row.id, row.component_entry_id])
+		CLAIM_REQUEST_INPUT: new Map(
+			payslip.payslip_claim_request_input_payslip.map((row) => [row.id, row.claim_request_id])
+		),
+		ALLOWANCE_REQUEST_INPUT: new Map(
+			payslip.payslip_allowance_request_input_payslip.map((row) => [
+				row.id,
+				row.allowance_request_id
+			])
+		),
+		BONUS_REQUEST_INPUT: new Map(
+			payslip.payslip_bonus_request_input_payslip.map((row) => [row.id, row.bonus_request_id])
+		),
+		ARREARS_REQUEST_INPUT: new Map(
+			payslip.payslip_arrears_request_input_payslip.map((row) => [row.id, row.arrears_request_id])
+		),
+		CORRECTION_REQUEST_INPUT: new Map(
+			payslip.payslip_correction_request_input_payslip.map((row) => [
+				row.id,
+				row.correction_request_id
+			])
 		),
 		LEAVE_REQUEST_INPUT: new Map(
 			payslip.payslip_leave_request_input_payslip.map((row) => [row.id, row.leave_request_id])
@@ -222,7 +240,7 @@ export function corePayrollInputHash(prepared: PreparedRun): string {
 				.toSorted((a, b) => a.employment.id.localeCompare(b.employment.id))
 				.map(
 					({
-						componentEntries,
+						payRequests,
 						employee,
 						terms,
 						statutoryFacts,

@@ -297,7 +297,7 @@ test(
 			// Seven components: five the engine feeds, plus the two entry-taking ones the arm-pairing
 			// rule needs — a CLAIM component and a MANUAL_ADJUSTMENT one, since an entry may only be
 			// raised against a component declaring its own arm.
-			assert.deepEqual(counts[0], { schemes: 2, rates: 2, types: 2, components: 7, holidays: 1 });
+			assert.deepEqual(counts[0], { schemes: 2, rates: 2, types: 3, components: 7, holidays: 1 });
 
 			// A paid run cites the version, so voiding it states a reason.
 			const founder = teamHeaders(session);

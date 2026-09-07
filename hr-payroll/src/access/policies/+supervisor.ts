@@ -1,5 +1,4 @@
 import {
-	NOT_A_CORRECTION,
 	attendanceWriteGrants,
 	employeeSelfServiceGrants,
 	grantOn,
@@ -77,11 +76,15 @@ export default {
 		// what they may *write* is the narrower half, below.
 		grantsOn('work_days', ['read']),
 		grantsOn('leave_requests', ['read']),
-		// The narrowing has to be stated here, not subtracted higher up: one unconditional
-		// `component_entries` read in any policy this subject matches would erase it.
-		grantOn('component_entries', 'read', {
-			where: NOT_A_CORRECTION
-		}),
+		// Four families, and deliberately not the fifth. A supervisor who could see corrections could
+		// reconstruct what HR fixed about their own team's pay. This is stated here rather than
+		// subtracted higher up because one unconditional read in any policy this subject matches
+		// would erase it — and now "not the fifth" is a grant that is absent rather than a
+		// predicate that has to keep being right.
+		grantsOn('claim_requests', ['read']),
+		grantsOn('allowance_requests', ['read']),
+		grantsOn('bonus_requests', ['read']),
+		grantsOn('arrears_requests', ['read']),
 		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
 		// duplicate grant, which `mergeGrants` refuses.
 

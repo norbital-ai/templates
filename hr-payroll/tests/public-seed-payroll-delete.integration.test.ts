@@ -81,8 +81,28 @@ test(
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'component_entry', component_entry_id
-				 from payslip_component_entry_inputs i
+				 select 'claim_request', claim_request_id
+				 from payslip_claim_request_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'allowance_request', allowance_request_id
+				 from payslip_allowance_request_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'bonus_request', bonus_request_id
+				 from payslip_bonus_request_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'arrears_request', arrears_request_id
+				 from payslip_arrears_request_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'correction_request', correction_request_id
+				 from payslip_correction_request_inputs i
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
@@ -161,8 +181,24 @@ test(
 				 from payslip_work_day_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
 				 union all
-				 select 'component_entry', component_entry_id
-				 from payslip_component_entry_inputs
+				 select 'claim_request', claim_request_id
+				 from payslip_claim_request_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'allowance_request', allowance_request_id
+				 from payslip_allowance_request_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'bonus_request', bonus_request_id
+				 from payslip_bonus_request_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'arrears_request', arrears_request_id
+				 from payslip_arrears_request_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'correction_request', correction_request_id
+				 from payslip_correction_request_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
 				 union all
 				 select 'leave_request', leave_request_id
@@ -182,7 +218,11 @@ test(
 
 			const sourceTable = {
 				work_day: 'work_days',
-				component_entry: 'component_entries',
+				claim_request: 'claim_requests',
+				allowance_request: 'allowance_requests',
+				bonus_request: 'bonus_requests',
+				arrears_request: 'arrears_requests',
+				correction_request: 'correction_requests',
 				leave_request: 'leave_requests',
 				loan_repayment: 'loan_repayments'
 			} as const;

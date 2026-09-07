@@ -108,14 +108,40 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-leave-catalogue');
 		try {
 			// HR12: rows = eligible employments × types × the leave years each employment overlaps.
+			//
+			// "Eligible" is load-bearing now that the catalogue carries a restricted type. A type
+			// with a blank eligibility generates for everyone; NS generates only for the one male
+			// employee whose standing in this jurisdiction carries the liability, so it is counted
+			// against the employments it actually reaches rather than against all of them. The
+			// arithmetic below states that restriction — it is not a fudge factor, and if NS ever
+			// started generating for the female employees or for the foreigner, this is the count
+			// that moves.
 			const employments = seedRows('employments');
 			const types = seedRows('leave_catalogue');
 			const currentYear = new Date().getUTCFullYear();
 			const overlapping = (hire: string) =>
 				[currentYear - 1, currentYear, currentYear + 1].filter((year) => hire <= `${year}-12-31`)
 					.length;
+			const universal = types.filter((type) => String(type.eligibility ?? '') === '');
+			assert.equal(
+				types.length - universal.length,
+				1,
+				'exactly one public type is restricted; the count below assumes it'
+			);
+			const employees = new Map(seedRows('employees').map((row) => [row.id, row]));
+			const liable = (employmentId: unknown) => {
+				const employee = employments.find((row) => row.id === employmentId);
+				const person = employee == null ? undefined : employees.get(employee.employee_id);
+				return (
+					person?.gender === 'MALE' &&
+					(person?.residency_status === 'CITIZEN' ||
+						person?.residency_status === 'PERMANENT_RESIDENT')
+				);
+			};
 			const expectedRows = employments.reduce(
-				(total, row) => total + overlapping(String(row.hire_date)) * types.length,
+				(total, row) =>
+					total +
+					overlapping(String(row.hire_date)) * (universal.length + (liable(row.id) ? 1 : 0)),
 				0
 			);
 			const rows = (await session.query(
@@ -135,7 +161,8 @@ test(
 				catalogue.map((row) => [row.code, row.is_statutory, String(row.authority ?? '') !== '']),
 				[
 					['ANNUAL', true, true],
-					['HOSPITALIZATION', true, true]
+					['HOSPITALIZATION', true, true],
+					['NS', true, true]
 				]
 			);
 			assert.equal(

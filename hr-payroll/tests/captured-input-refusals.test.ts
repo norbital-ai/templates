@@ -1,11 +1,15 @@
 /**
  * Nothing a payroll run has already priced may be changed underneath it.
  *
- * Twelve handlers enforce that — update and delete on `work_days`, `component_entries`,
- * `leave_requests` and `loan_repayments`, plus update on each of the four `payslip_*_inputs`
- * junctions — and exactly one of them, `work_days` update, was ever driven by a test
- * (`lock.test.ts`). The other eleven are the guards that stop somebody rewriting money a draft has
+ * Twenty-four handlers enforce that — update and delete on `work_days`, `leave_requests`,
+ * `loan_repayments` and each of the five pay-request families, plus update on each of the eight
+ * `payslip_*_inputs` junctions — and exactly one of them, `work_days` update, was ever driven by a
+ * test (`lock.test.ts`). The rest are the guards that stop somebody rewriting money a draft has
  * already settled, and a change that removed any of them would have left the suite green.
+ *
+ * The five families are driven separately rather than through one shared case. They share
+ * `assertPayRequestAdmissible`, but each states its own junction and its own dating column, and
+ * those two lines are exactly what a copy-paste between families gets wrong.
  *
  * Each case calls the authored handler, not `refuseIfCaptured` underneath it: the question is
  * whether the hook asks, on the right path, against the right junction. A test of the shared
@@ -18,11 +22,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Effect } from 'effect';
-import componentEntryHooks from '../src/collections/component_entries/+hooks.ts';
+import claimRequestHooks from '../src/collections/claim_requests/+hooks.ts';
+import allowanceRequestHooks from '../src/collections/allowance_requests/+hooks.ts';
+import bonusRequestHooks from '../src/collections/bonus_requests/+hooks.ts';
+import arrearsRequestHooks from '../src/collections/arrears_requests/+hooks.ts';
+import correctionRequestHooks from '../src/collections/correction_requests/+hooks.ts';
 import leaveRequestHooks from '../src/collections/leave_requests/+hooks.ts';
 import loanRepaymentHooks from '../src/collections/loan_repayments/+hooks.ts';
 import workDayInputHooks from '../src/collections/payslip_work_day_inputs/+hooks.ts';
-import componentEntryInputHooks from '../src/collections/payslip_component_entry_inputs/+hooks.ts';
+import claimRequestInputHooks from '../src/collections/payslip_claim_request_inputs/+hooks.ts';
+import allowanceRequestInputHooks from '../src/collections/payslip_allowance_request_inputs/+hooks.ts';
+import bonusRequestInputHooks from '../src/collections/payslip_bonus_request_inputs/+hooks.ts';
+import arrearsRequestInputHooks from '../src/collections/payslip_arrears_request_inputs/+hooks.ts';
+import correctionRequestInputHooks from '../src/collections/payslip_correction_request_inputs/+hooks.ts';
 import leaveRequestInputHooks from '../src/collections/payslip_leave_request_inputs/+hooks.ts';
 import loanRepaymentInputHooks from '../src/collections/payslip_loan_repayment_inputs/+hooks.ts';
 
@@ -34,21 +46,21 @@ const PERIOD = '2026-07';
  * Narrow on purpose. A broader fake would be a second description of the authoring api, free to
  * drift from the real one — the same reason the attendance lock tests keep theirs narrow.
  */
-const capturedBy = (junction: string, captured: boolean) => ({
+const capturedBy = (family: Family, captured: boolean) => ({
 	db: {
-		[junction]: {
+		[family.junction]: {
 			findFirst: () => Effect.succeed(captured ? { period: PERIOD } : undefined)
 		},
-		// The component-entry guard runs after the catalogue checks, so the candidate has to survive
-		// them to reach it. A claimable component with no evidence requirement is the shortest route.
+		// A pay request's capture guard runs *after* the catalogue checks, so the candidate has to
+		// survive them to reach it. A component with no evidence requirement and no cap is the
+		// shortest route — and `entry_kind` has to be this family's, or the pairing rule refuses
+		// first and the test would pass while proving nothing about the lock.
 		component_catalogue: {
 			findFirst: () =>
 				Effect.succeed({
 					code: 'TRANSPORT',
 					definition: { source: 'ENTRY', unit: 'MONEY', evidence: 'NONE', settlement: 'PAYROLL' },
-					// The arm the candidate declares has to be the one the component takes, or the
-					// pairing rule refuses before the capture guard is ever reached.
-					entry_kind: 'ALLOWANCE'
+					entry_kind: family.entryKind ?? null
 				})
 		}
 	}
@@ -63,6 +75,8 @@ const run = <A>(effect: Effect.Effect<A, unknown, never> | A): A =>
 type Family = {
 	readonly label: string;
 	readonly junction: string;
+	/** The `component_catalogue.entry_kind` a request of this family must be raised against. */
+	readonly entryKind?: string;
 	readonly update: (api: unknown) => unknown;
 	readonly remove: (api: unknown) => unknown;
 	readonly updateAction: RegExp;
@@ -71,30 +85,139 @@ type Family = {
 
 const families: readonly Family[] = [
 	{
-		label: 'component entry',
-		junction: 'payslip_component_entry_inputs',
-		// The update handler asks this first, so it refuses before any component read.
+		label: 'claim',
+		junction: 'payslip_claim_request_inputs',
+		entryKind: 'CLAIM',
+		// The update handler asks this last, after the catalogue reads — which is why the api below
+		// answers every read with nothing: a family that reached the capture check by accident,
+		// before its own component rules, would pass this test and refuse a legal write in
+		// production.
 		update: (api) =>
-			componentEntryHooks.mutate.perRecord.before.handler({
+			claimRequestHooks.mutate.perRecord.before.handler({
 				input: { amount: 310 },
 				existing: {
-					id: 'entry-1',
+					id: 'request-1',
 					amount: 310,
 					component_catalogue_id: 'component-1',
-					event: {
-						kind: 'ALLOWANCE',
-						recurrence: { kind: 'RECURRING', from: '2026-07-01', to: '2026-07-31' }
-					}
+					incurred_on: '2026-07-10'
 				},
 				api
 			} as never),
 		remove: (api) =>
-			componentEntryHooks.delete.perRecord.before.handler({
-				existing: { id: 'entry-1' },
+			claimRequestHooks.delete.perRecord.before.handler({
+				existing: { id: 'request-1' },
 				api
 			} as never),
-		updateAction: /Changing this component entry is locked/,
-		deleteAction: /Deleting this component entry is locked/
+		updateAction: /Changing this claim is locked/,
+		deleteAction: /Deleting this claim is locked/
+	},
+	{
+		label: 'allowance',
+		junction: 'payslip_allowance_request_inputs',
+		entryKind: 'ALLOWANCE',
+		// The update handler asks this last, after the catalogue reads — which is why the api below
+		// answers every read with nothing: a family that reached the capture check by accident,
+		// before its own component rules, would pass this test and refuse a legal write in
+		// production.
+		update: (api) =>
+			allowanceRequestHooks.mutate.perRecord.before.handler({
+				input: { amount: 310 },
+				existing: {
+					id: 'request-1',
+					amount: 310,
+					component_catalogue_id: 'component-1',
+					recurrence: { kind: 'RECURRING', from: '2026-07-01', to: '2026-07-31' }
+				},
+				api
+			} as never),
+		remove: (api) =>
+			allowanceRequestHooks.delete.perRecord.before.handler({
+				existing: { id: 'request-1' },
+				api
+			} as never),
+		updateAction: /Changing this allowance is locked/,
+		deleteAction: /Deleting this allowance is locked/
+	},
+	{
+		label: 'bonus',
+		junction: 'payslip_bonus_request_inputs',
+		entryKind: 'BONUS',
+		// The update handler asks this last, after the catalogue reads — which is why the api below
+		// answers every read with nothing: a family that reached the capture check by accident,
+		// before its own component rules, would pass this test and refuse a legal write in
+		// production.
+		update: (api) =>
+			bonusRequestHooks.mutate.perRecord.before.handler({
+				input: { amount: 310 },
+				existing: {
+					id: 'request-1',
+					amount: 310,
+					component_catalogue_id: 'component-1',
+					awarded_on: '2026-07-10'
+				},
+				api
+			} as never),
+		remove: (api) =>
+			bonusRequestHooks.delete.perRecord.before.handler({
+				existing: { id: 'request-1' },
+				api
+			} as never),
+		updateAction: /Changing this bonus is locked/,
+		deleteAction: /Deleting this bonus is locked/
+	},
+	{
+		label: 'arrears',
+		junction: 'payslip_arrears_request_inputs',
+		entryKind: 'ARREARS',
+		// The update handler asks this last, after the catalogue reads — which is why the api below
+		// answers every read with nothing: a family that reached the capture check by accident,
+		// before its own component rules, would pass this test and refuse a legal write in
+		// production.
+		update: (api) =>
+			arrearsRequestHooks.mutate.perRecord.before.handler({
+				input: { amount: 310 },
+				existing: {
+					id: 'request-1',
+					amount: 310,
+					component_catalogue_id: 'component-1',
+					settled_on: '2026-07-10'
+				},
+				api
+			} as never),
+		remove: (api) =>
+			arrearsRequestHooks.delete.perRecord.before.handler({
+				existing: { id: 'request-1' },
+				api
+			} as never),
+		updateAction: /Changing this arrears is locked/,
+		deleteAction: /Deleting this arrears is locked/
+	},
+	{
+		label: 'correction',
+		junction: 'payslip_correction_request_inputs',
+		entryKind: 'CORRECTION',
+		// The update handler asks this last, after the catalogue reads — which is why the api below
+		// answers every read with nothing: a family that reached the capture check by accident,
+		// before its own component rules, would pass this test and refuse a legal write in
+		// production.
+		update: (api) =>
+			correctionRequestHooks.mutate.perRecord.before.handler({
+				input: { amount: 310 },
+				existing: {
+					id: 'request-1',
+					amount: 310,
+					component_catalogue_id: 'component-1',
+					corrected_on: '2026-07-10'
+				},
+				api
+			} as never),
+		remove: (api) =>
+			correctionRequestHooks.delete.perRecord.before.handler({
+				existing: { id: 'request-1' },
+				api
+			} as never),
+		updateAction: /Changing this correction is locked/,
+		deleteAction: /Deleting this correction is locked/
 	},
 	{
 		label: 'leave request',
@@ -136,13 +259,13 @@ const families: readonly Family[] = [
 
 for (const family of families) {
 	test(`a captured ${family.label} refuses an edit, naming the run that holds it`, () => {
-		const api = capturedBy(family.junction, true);
+		const api = capturedBy(family, true);
 		assert.throws(() => run(family.update(api) as never), family.updateAction);
 		assert.throws(() => run(family.update(api) as never), LOCKED);
 	});
 
 	test(`a captured ${family.label} refuses a delete`, () => {
-		const api = capturedBy(family.junction, true);
+		const api = capturedBy(family, true);
 		assert.throws(() => run(family.remove(api) as never), family.deleteAction);
 	});
 
@@ -155,7 +278,7 @@ for (const family of families) {
 	 * is a different sentence about a different thing.
 	 */
 	test(`an uncaptured ${family.label} is not locked`, () => {
-		const api = capturedBy(family.junction, false);
+		const api = capturedBy(family, false);
 		for (const attempt of [family.update, family.remove]) {
 			try {
 				run(attempt(api) as never);
@@ -173,13 +296,17 @@ for (const family of families) {
 /**
  * The captures themselves.
  *
- * All four junction hooks are byte-identical and none was imported by any test. They are the
+ * All eight junction hooks are byte-identical and none was imported by any test. They are the
  * second lock: the engine replaces a capture by deleting and creating, never by patching, so an
  * update is always somebody moving the settlement lock a run holds over its own inputs.
  */
 const junctionHooks = {
 	payslip_work_day_inputs: workDayInputHooks,
-	payslip_component_entry_inputs: componentEntryInputHooks,
+	payslip_claim_request_inputs: claimRequestInputHooks,
+	payslip_allowance_request_inputs: allowanceRequestInputHooks,
+	payslip_bonus_request_inputs: bonusRequestInputHooks,
+	payslip_arrears_request_inputs: arrearsRequestInputHooks,
+	payslip_correction_request_inputs: correctionRequestInputHooks,
 	payslip_leave_request_inputs: leaveRequestInputHooks,
 	payslip_loan_repayment_inputs: loanRepaymentInputHooks
 };

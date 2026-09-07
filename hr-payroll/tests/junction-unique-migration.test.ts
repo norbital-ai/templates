@@ -43,11 +43,43 @@ const FEB_PAYSLIP = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2';
 
 const JUNCTIONS = [
 	{
-		name: 'payslip_component_entry_inputs',
-		source: 'component_entry_id',
-		firstId: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',
-		secondId: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2',
-		sameId: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'
+		name: 'payslip_claim_request_inputs',
+		singleUse: true,
+		source: 'claim_request_id',
+		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc1001',
+		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc1002',
+		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc1003'
+	},
+	{
+		name: 'payslip_allowance_request_inputs',
+		source: 'allowance_request_id',
+		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2001',
+		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2002',
+		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2003'
+	},
+	{
+		name: 'payslip_bonus_request_inputs',
+		singleUse: true,
+		source: 'bonus_request_id',
+		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3001',
+		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3002',
+		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3003'
+	},
+	{
+		name: 'payslip_arrears_request_inputs',
+		singleUse: true,
+		source: 'arrears_request_id',
+		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc4001',
+		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc4002',
+		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc4003'
+	},
+	{
+		name: 'payslip_correction_request_inputs',
+		singleUse: true,
+		source: 'correction_request_id',
+		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc5001',
+		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc5002',
+		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc5003'
 	},
 	{
 		name: 'payslip_leave_request_inputs',
@@ -79,7 +111,7 @@ const declaredIndexes = async (): Promise<readonly string[]> => {
 	return statements;
 };
 
-test('the schema in force uniques a capture per payslip, not per source row', async () => {
+test('every capture is unique per payslip, and only the single-use families are unique per source', async () => {
 	const indexes = await declaredIndexes();
 	for (const junction of JUNCTIONS) {
 		const composite = indexes.filter(
@@ -92,19 +124,39 @@ test('the schema in force uniques a capture per payslip, not per source row', as
 			1,
 			`${junction.name} must unique on (payslip_id, ${junction.source}): ${JSON.stringify(indexes)}`
 		);
-		// The one that must not exist: a unique on the source column alone caps a part-recovered
-		// input at a single payslip, which is the bug this shape was chosen to prevent.
+		/**
+		 * The asymmetry the split bought, and it runs in both directions.
+		 *
+		 * `payslip_component_entry_inputs` held five families at once, so it could state neither
+		 * answer: a recurring allowance is an input to one payslip per period its window covers,
+		 * while a claim, a bonus, an arrears settlement and a correction are each consumed once. It
+		 * recorded that in a comment and left the rule to a named refusal in the gather step.
+		 *
+		 * Four junctions now carry a global unique on their source, so "consumed once" is a
+		 * constraint. The other four — the allowance, the leave request, the loan repayment and the
+		 * work day — must NOT, because a part-recovered or per-period input legitimately reaches
+		 * several payslips, and a unique there caps it at one. Both halves are asserted, because a
+		 * copy-paste between junctions gets exactly this wrong.
+		 */
 		const global = indexes.filter(
 			(statement) =>
 				statement.includes(`ON "${junction.name}"`) &&
 				/UNIQUE/i.test(statement) &&
 				statement.includes(`("${junction.source}")`)
 		);
-		assert.deepEqual(
-			global,
-			[],
-			`${junction.name} declares a global unique on ${junction.source}, so one input can only ever reach one payslip`
-		);
+		if (junction.singleUse === true) {
+			assert.equal(
+				global.length,
+				1,
+				`${junction.name} must unique on ${junction.source} alone: a ${junction.source.replace(/_id$/, '').replace(/_/g, ' ')} is consumed once`
+			);
+		} else {
+			assert.deepEqual(
+				global,
+				[],
+				`${junction.name} declares a global unique on ${junction.source}, so one input can only ever reach one payslip`
+			);
+		}
 	}
 });
 
@@ -166,9 +218,10 @@ test('a captured input lands on two payslips, and never twice on one', async () 
 /**
  * `quantity` counts something, and a component entry does not.
  *
- * The column was on `component_entries` and nothing multiplied by it — the engine copied it onto
- * the payslip adjustment and used it nowhere — so it was dropped. `payslip_adjustments` keeps its
- * own, because that one is fed by sources that genuinely count: leave days, work hours.
+ * The column was on the entries table and nothing multiplied by it — the engine copied it onto the
+ * payslip adjustment and used it nowhere — so it was dropped, and none of the five request families
+ * that replaced that table carries it. `payslip_adjustments` keeps its own, because that one is fed
+ * by sources that genuinely count: leave days, work hours.
  *
  * Two tables, one word, opposite answers. Written down here because the asymmetry reads as an
  * oversight otherwise, and the cheap "fix" is to put the column back on the input where a form
@@ -184,13 +237,21 @@ test('an entry states an amount; only a calculated line states a quantity', () =
 		assert.ok(body != null, `${table} is not created by the committed lineage`);
 		return [...body.matchAll(/^\t"([a-z_]+)"/gm)].map((match) => match[1] ?? '');
 	};
-	const entry = columnsOf('component_entries');
-	assert.ok(entry.includes('amount'), 'a component entry states the amount it is worth');
-	assert.equal(
-		entry.includes('quantity'),
-		false,
-		'component_entries carries a quantity again, and nothing multiplies by it'
-	);
+	for (const family of [
+		'claim_requests',
+		'allowance_requests',
+		'bonus_requests',
+		'arrears_requests',
+		'correction_requests'
+	]) {
+		const entry = columnsOf(family);
+		assert.ok(entry.includes('amount'), `${family} states the amount it is worth`);
+		assert.equal(
+			entry.includes('quantity'),
+			false,
+			`${family} carries a quantity, and nothing multiplies by it`
+		);
+	}
 	const adjustment = columnsOf('payslip_adjustments');
 	assert.ok(
 		adjustment.includes('quantity'),

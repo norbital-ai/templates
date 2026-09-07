@@ -279,7 +279,7 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 			}
 		],
 		statutoryFacts: [],
-		componentEntries: [],
+		payRequests: [],
 		children: [],
 		loans: [],
 		loanRepayments: [],

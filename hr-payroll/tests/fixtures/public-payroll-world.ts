@@ -73,16 +73,11 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employment_id: EMPLOYMENT_ID,
 		component_catalogue_id: TRANSPORT_ID,
 		amount: 310,
-		event_date: '2026-01-01',
 		pay_period: null,
-		// A standing allowance: its window lives in the arm, and it pays whole in every period the
-		// window covers rather than depleting across them.
-		event: {
-			kind: 'ALLOWANCE',
-			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: '2026-03-31' }
-		},
-		corrects_adjustment_id: null,
-		evidence_file: null,
+		// A standing allowance: its window is the recurrence itself, and it pays whole in every
+		// period the window covers rather than depleting across them. There is no date column here
+		// on purpose — the window already states the day it opens.
+		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: '2026-03-31' },
 		approval_id: null
 	};
 	const bonus = {
@@ -90,11 +85,9 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employment_id: EMPLOYMENT_ID,
 		component_catalogue_id: TRANSPORT_ID,
 		amount: 100,
-		event_date: '2026-01-15',
+		awarded_on: '2026-01-15',
 		pay_period: '2026-01',
-		event: { kind: 'BONUS', note: 'one-off' },
-		corrects_adjustment_id: null,
-		evidence_file: null,
+		note: 'one-off',
 		approval_id: null
 	};
 	return {
@@ -236,7 +229,11 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			}
 		],
 		employment_statutory_facts: [],
-		component_entries: options.includeBonus === true ? [standing, bonus] : [standing],
+		claim_requests: [],
+		allowance_requests: [standing],
+		bonus_requests: options.includeBonus === true ? [bonus] : [],
+		arrears_requests: [],
+		correction_requests: [],
 		loans: [],
 		loan_repayments: [],
 		leave_requests: [],
@@ -244,7 +241,11 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employee_children: [],
 		payroll_runs: [],
 		payslips: [],
-		payslip_component_entry_inputs: [],
+		payslip_claim_request_inputs: [],
+		payslip_allowance_request_inputs: [],
+		payslip_bonus_request_inputs: [],
+		payslip_arrears_request_inputs: [],
+		payslip_correction_request_inputs: [],
 		payslip_adjustments: [],
 		payslip_leave_request_inputs: [],
 		payslip_loan_repayment_inputs: []

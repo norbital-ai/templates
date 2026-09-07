@@ -33,7 +33,7 @@ export const ENTRY_OVER_CONSUMED = 'ENTRY_OVER_CONSUMED' as const;
 
 /** What the engine knows when it is about to exceed a component entry. */
 const entryConsumptionSchema = Schema.Struct({
-	/** The `component_entries` row being drawn against. */
+	/** The pay request row being drawn against. */
 	component_entry_id: Schema.String.check(Schema.isUUID()),
 	/** The component code it settles under, to make the sentence readable. */
 	component_code: Schema.String,

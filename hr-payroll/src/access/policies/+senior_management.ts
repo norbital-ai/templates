@@ -35,8 +35,8 @@ import type { Policy } from './$types.js';
  * adjustment visibility to `hr_controller`/`hr_manager`; senior management is included because this
  * role is one of the two the controller's `payroll_runs.mutate.new` grant escalates to, and approving
  * a run whose corrections you are forbidden to read is a signature on a figure you cannot check. That is a
- * choice, and the narrower reading — HR only — is one grant away: put `NOT_A_CORRECTION` on the
- * `component_entries` read below, exactly as `+manager.ts` does.
+ * choice, and the narrower reading — HR only — is one line away: drop the `correction_requests`
+ * grant below, exactly as `+manager.ts` and `+supervisor.ts` do.
  */
 export default {
 	description:
@@ -85,7 +85,11 @@ export default {
 
 		// Unconditional, so corrections are visible. See the note above for why this rank and not the
 		// one below it.
-		grantsOn('component_entries', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('bonus_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('arrears_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('correction_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 

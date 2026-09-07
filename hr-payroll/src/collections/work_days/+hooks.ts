@@ -203,8 +203,16 @@ export function assertRunHasRestDay(options: {
 	readonly patternById: ReadonlyMap<string, ShiftPatternLike>;
 	readonly codeKindById: ReadonlyMap<string, 'WORK' | 'REST' | 'OFF'>;
 }): void {
-	const { employeeNumber, rule, window, plannedByDate, changedDates, terms, patternById, codeKindById } =
-		options;
+	const {
+		employeeNumber,
+		rule,
+		window,
+		plannedByDate,
+		changedDates,
+		terms,
+		patternById,
+		codeKindById
+	} = options;
 	if (rule.on_exceed !== 'BLOCK') return;
 	let runStart: string | null = null;
 	let runEnd: string | null = null;

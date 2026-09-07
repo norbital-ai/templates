@@ -163,16 +163,12 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		component_catalogue_id: transport.id,
 		amount: 100,
-		quantity: null,
-		event_date: eventDate,
+		awarded_on: eventDate,
 		pay_period: null,
-		effective_range: null,
-		event: { kind: 'BONUS', note: eventDate },
-		corrects_adjustment_id: null,
-		evidence_file: null,
+		note: eventDate,
 		approval_id: null
 	});
-	world.component_entries.push(
+	world.bonus_requests.push(
 		entry('bonus-on-the-15th', '2026-02-15'),
 		entry('bonus-on-the-16th', '2026-02-16')
 	);
@@ -180,8 +176,8 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
 	settle(world, '2026-02-1', first.prepared, first.built);
 	const second = await build(world, '2026-02-2');
 	const captured = (built) =>
-		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).payslip_component_entry_input_payslip.map(
-			(row) => row.component_entry_id
+		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).payslip_bonus_request_input_payslip.map(
+			(row) => row.bonus_request_id
 		);
 	assert.deepEqual(captured(first.built), ['bonus-on-the-15th']);
 	assert.deepEqual(captured(second.built), ['bonus-on-the-16th']);
@@ -200,7 +196,8 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	world.employment_terms[0].base_salary = { value: SEMI_MONTHLY_BASE, currency: 'MYR' };
-	world.component_entries.length = 0;
+	world.bonus_requests.length = 0;
+	world.allowance_requests.length = 0;
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
 		settings_id: JURISDICTION_ID,
@@ -278,16 +275,13 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 	const transport = world.component_catalogue.find((component) => component.code === 'TRANSPORT');
 	assert.ok(transport, 'the semi-monthly world offers a component that takes entries');
 	const ONE_OFF_ID = 'once-in-february';
-	world.component_entries.push({
+	world.allowance_requests.push({
 		id: ONE_OFF_ID,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		component_catalogue_id: transport.id,
 		amount: 100,
-		event_date: '2026-02-10',
 		pay_period: null,
-		event: { kind: 'ALLOWANCE', recurrence: { kind: 'ONE_OFF', period: '2026-02' } },
-		corrects_adjustment_id: null,
-		evidence_file: null,
+		recurrence: { kind: 'ONE_OFF', period: '2026-02' },
 		approval_id: null
 	});
 
@@ -302,8 +296,8 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 	const paidFor = (built, entryId) => {
 		const slip = slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID);
 		const captures = new Set(
-			slip.payslip_component_entry_input_payslip
-				.filter((row) => row.component_entry_id === entryId)
+			slip.payslip_allowance_request_input_payslip
+				.filter((row) => row.allowance_request_id === entryId)
 				.map((row) => row.id)
 		);
 		return slip.payslip_adjustment_payslip

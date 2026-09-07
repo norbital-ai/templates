@@ -214,7 +214,6 @@
 	/** No window means no day lock on this page: it is stated once instead of mapped over the month. */
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
 
-	type ClaimRow = WorkspaceRow<'component_entries'>;
 	type PayslipRow = WorkspaceRow<'payslips'> & {
 		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
 	};
@@ -263,14 +262,46 @@
 		});
 	}
 
-	function claimRowLock(row: ClaimRow) {
-		return sourceLock({
-			existing: true,
-			approvalId: row.approval_id,
-			dates: [],
-			settledBy: claimSettlementByEntryId.get(row.id) ?? null,
-			datePassed: 'IS_NOT_A_LOCK'
-		});
+	/**
+	 * What holds one pay request of any family, from the row itself.
+	 *
+	 * Each of the four tables below carries its own capture junction in `with`, so the lock is a
+	 * column of the row it locks rather than two page-level subscriptions — one listing every entry
+	 * id, one listing every capture naming those ids — walked into a Map. The families differ only
+	 * in which relation key holds the capture, which is why the caller hands over the array and this
+	 * function knows nothing about which collection it came from.
+	 */
+	type CapturedPayRequest = {
+		readonly approval_id: string | null;
+		readonly payslip_claim_request_input_claim_request?: ReadonlyArray<{
+			readonly period: string;
+		}>;
+		readonly payslip_allowance_request_input_allowance_request?: ReadonlyArray<{
+			readonly period: string;
+		}>;
+		readonly payslip_bonus_request_input_bonus_request?: ReadonlyArray<{
+			readonly period: string;
+		}>;
+		readonly payslip_arrears_request_input_arrears_request?: ReadonlyArray<{
+			readonly period: string;
+		}>;
+	};
+
+	function payRequestMetadata(
+		approvalId: string | null,
+		captures: ReadonlyArray<{ readonly period: string }> | undefined
+	) {
+		const capture = captures?.[0] ?? null;
+		return sourceLockRecordMetadata(
+			sourceLock({
+				existing: true,
+				approvalId,
+				dates: [],
+				settledBy: capture == null ? null : { period: capture.period },
+				datePassed: 'IS_NOT_A_LOCK'
+			}),
+			t
+		);
 	}
 	/** The next pay date: the last day of this month, or of next month once it has passed. */
 	const nextPayDate = $derived.by(() => {
@@ -480,21 +511,6 @@
 			limit: 200
 		});
 	});
-	/**
-	 * The same capture lookup for the leave table and the claims table below, scoped by the rows
-	 * each self-contained table renders. `settlementLedgerGrants()` exposes exactly the source-id +
-	 * period pair, so the walk through payslip and run the predecessor needed is gone and so is
-	 * every level of it an employee had no grant to make.
-	 */
-	const myEntryIdsQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.component_entries.findMany({
-					where: { employment_id: { eq: employmentId } },
-					columns: { id: true },
-					limit: 500
-				})
-	);
 	const PENDING_LEAVE_LIMIT = 2_000;
 	/** Held applications reserve balance: committed rows and visible proposals, including requests HR raises on this employee's behalf. */
 	const myLeavePendingQuery = $derived(
@@ -533,20 +549,6 @@
 	);
 	const currentLeaveEntitlements = $derived(
 		(leaveEntitlementsQuery?.current ?? []) as EntitlementWithEntries[]
-	);
-	const myEntryCapturesQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.payslip_component_entry_inputs.findMany({
-					where: {
-						component_entry_id: { in: (myEntryIdsQuery?.current ?? []).map((row) => row.id) }
-					},
-					columns: { component_entry_id: true, period: true },
-					limit: 500
-				})
-	);
-	const claimSettlementByEntryId = $derived(
-		capturesBySource(myEntryCapturesQuery?.current, 'component_entry_id')
 	);
 	const settlementByWorkDayId = $derived(
 		capturesBySource(scheduleSettlementsQuery?.current, 'work_day_id')
@@ -1293,30 +1295,127 @@
 {/snippet}
 
 {#snippet claims()}
-	<Cover gap="md" top={contextGate}>
-		<CollectionTable
-			{client}
-			collection="component_entries"
-			view="hr_employee:claims"
-			title={t('app.hr_employee.my_components_title')}
-			description={t('app.hr_employee.my_components_description')}
-			disabled={!employmentId}
-			recordMetadata={(row) => sourceLockRecordMetadata(claimRowLock(row), t)}
-			query={{
-				where: {
-					employment_id: employmentId ? { eq: employmentId } : undefined
-				},
-				orderBy: { event_date: 'desc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="component_catalogue_id" label={t('component.component')} card="title" />
-				<Column name="amount" label={t('component.amount')} />
-				<Column name="event_date" label={t('component.date')} />
-				<Column name="event" card="subtitle" />
-			{/snippet}
-		</CollectionTable>
-	</Cover>
+	<!--
+		Four tables, one per family this person is granted, and the grants are the whole design.
+
+		`claim_requests` is the only one with a create button, because a claim is the one thing an
+		ordinary rank may raise — `employeeSelfServiceGrants()` grants `mutate.new` on that collection
+		and on no other. An allowance, a bonus and an arrears settlement are authority HR holds, so
+		they are read-only here rather than hidden: a person may see what they are being paid and why.
+		`correction_requests` is absent entirely, because the `employee` policy has no grant on it at
+		all — a screen showing a collection the subject cannot read is a bug, not a stricter screen.
+
+		Document flow with a `Bound`/`Scroll` pair rather than a `Cover`, for the reason the leave tab
+		states: `Cover` hands its body a definite height, and this body is four things.
+	-->
+	<Bound size="full">
+		<Scroll name={t('app.hr_employee.tab_pay_requests')}>
+			<Stack gap="md">
+				{@render contextGate()}
+				<CollectionTable
+					{client}
+					collection="claim_requests"
+					bounded={false}
+					view="hr_employee:claims"
+					title={t('app.hr_employee.my_claims_title')}
+					description={t('app.hr_employee.my_claims_description')}
+					disabled={!employmentId}
+					recordMetadata={(row: CapturedPayRequest) =>
+						payRequestMetadata(row.approval_id, row.payslip_claim_request_input_claim_request)}
+					query={{
+						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+						orderBy: { incurred_on: 'desc' },
+						with: { payslip_claim_request_input_claim_request: { columns: { period: true } } }
+					}}
+				>
+					{#snippet columns({ Column })}
+						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
+						<Column name="amount" label={t('component.amount')} />
+						<Column name="incurred_on" label={t('component.incurred_on')} />
+						<Column name="description" card="subtitle" label={t('component.claim_description')} />
+						<Column name="evidence_file" label={t('component.evidence_file')} />
+					{/snippet}
+				</CollectionTable>
+				<CollectionTable
+					{client}
+					collection="allowance_requests"
+					bounded={false}
+					features={{ create: false }}
+					view="hr_employee:allowances"
+					title={t('app.hr_employee.my_allowances_title')}
+					description={t('app.hr_employee.my_allowances_description')}
+					disabled={!employmentId}
+					recordMetadata={(row: CapturedPayRequest) =>
+						payRequestMetadata(
+							row.approval_id,
+							row.payslip_allowance_request_input_allowance_request
+						)}
+					query={{
+						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+						orderBy: { created_at: 'desc' },
+						with: {
+							payslip_allowance_request_input_allowance_request: { columns: { period: true } }
+						}
+					}}
+				>
+					{#snippet columns({ Column })}
+						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
+						<Column name="amount" label={t('component.amount')} />
+						<Column name="recurrence" card="subtitle" label={t('component.entry_cadence')} />
+					{/snippet}
+				</CollectionTable>
+				<CollectionTable
+					{client}
+					collection="bonus_requests"
+					bounded={false}
+					features={{ create: false }}
+					view="hr_employee:bonuses"
+					title={t('app.hr_employee.my_bonuses_title')}
+					description={t('app.hr_employee.my_bonuses_description')}
+					disabled={!employmentId}
+					recordMetadata={(row: CapturedPayRequest) =>
+						payRequestMetadata(row.approval_id, row.payslip_bonus_request_input_bonus_request)}
+					query={{
+						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+						orderBy: { awarded_on: 'desc' },
+						with: { payslip_bonus_request_input_bonus_request: { columns: { period: true } } }
+					}}
+				>
+					{#snippet columns({ Column })}
+						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
+						<Column name="amount" label={t('component.amount')} />
+						<Column name="awarded_on" label={t('component.awarded_on')} />
+						<Column name="note" card="subtitle" label={t('component.bonus_note')} />
+					{/snippet}
+				</CollectionTable>
+				<CollectionTable
+					{client}
+					collection="arrears_requests"
+					bounded={false}
+					features={{ create: false }}
+					view="hr_employee:arrears"
+					title={t('app.hr_employee.my_arrears_title')}
+					description={t('app.hr_employee.my_arrears_description')}
+					disabled={!employmentId}
+					recordMetadata={(row: CapturedPayRequest) =>
+						payRequestMetadata(row.approval_id, row.payslip_arrears_request_input_arrears_request)}
+					query={{
+						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+						orderBy: { settled_on: 'desc' },
+						with: { payslip_arrears_request_input_arrears_request: { columns: { period: true } } }
+					}}
+				>
+					{#snippet columns({ Column })}
+						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
+						<Column name="amount" label={t('component.amount')} />
+						<Column name="settled_on" label={t('component.settled_on')} />
+						<Column name="covers_periods" label={t('component.covers_periods')} />
+						<Column name="reason" card="subtitle" label={t('component.arrears_reason')} />
+					{/snippet}
+				</CollectionTable>
+			</Stack>
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet loans()}
@@ -1389,7 +1488,7 @@
 <AppShell
 	icon="lucide:user-round"
 	title="Employee Self-Service"
-	description="View your schedule, leave, components, loans, payslips, and profile"
+	description="View your schedule, leave, pay requests, loans, payslips, and profile"
 	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
 	variant="full"
 >
@@ -1416,7 +1515,7 @@
 			},
 			{
 				name: 'claims',
-				label: t('app.hr_employee.tab_claims'),
+				label: t('app.hr_employee.tab_pay_requests'),
 				icon: 'lucide:receipt',
 				content: claims
 			},

@@ -6,8 +6,8 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 28,
-		"apps": 10,
+		"collections": 36,
+		"apps": 14,
 		"automations": 2
 	},
 	"tags": ["HR", "Finance", "Approvals"],
@@ -28,7 +28,14 @@
 			["shift_patterns"],
 			["employments"],
 			["employee_children", "employment_statutory_facts", "employment_terms", "leave_requests"],
-			["component_entries", "loans"],
+			[
+				"claim_requests",
+				"allowance_requests",
+				"bonus_requests",
+				"arrears_requests",
+				"correction_requests",
+				"loans"
+			],
 			["loan_repayments"]
 		],
 		"afterSeed": ["leave_ledger_refresh"]

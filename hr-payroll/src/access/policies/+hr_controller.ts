@@ -89,13 +89,14 @@ export default {
 		grantsOn('work_days', ['read']),
 
 		/**
-		 * The entry path, unconditional and stated here rather than folded into `peopleGrants`.
+		 * The request path, unconditional and stated here rather than folded into `peopleGrants`.
 		 *
 		 * This is the whole of "only HR-policy holders may add corrections": no policy on the ordinary
-		 * ladder has an unconditional `component_entries.mutate.new`. Employee, supervisor and
-		 * manager share one grant pinned to their own employment and a `CLAIM` event; it cannot
-		 * add the `MANUAL_ADJUSTMENT` variant. There is nothing to subtract, because correction
-		 * authority was never added below this policy.
+		 * ladder holds any grant at all on `correction_requests`. An employee holds `mutate.new` on
+		 * `claim_requests` pinned to their own employment, and supervisor and manager hold reads on
+		 * the four families that are not corrections. There is nothing to subtract, because
+		 * correction authority was never added below this policy — and it is now the absence of a
+		 * grant rather than a jsonb predicate that has to keep being right.
 		 *
 		 * Unconditional on read, too, which is the other half of the rule — a correction-hiding
 		 * predicate is absent here on purpose, so a controller sees the corrections everyone below
@@ -105,7 +106,11 @@ export default {
 		 * for would leave every correction to a settled payslip waiting on a signature — which is the
 		 * situation corrections exist to get out of.
 		 */
-		grantsOn('component_entries', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('bonus_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('arrears_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('correction_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 

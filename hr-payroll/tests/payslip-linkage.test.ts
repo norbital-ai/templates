@@ -31,6 +31,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
+import { allowanceRequest, bonusRequest } from '../src/collections/payroll_runs/lib/entries.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
@@ -261,7 +262,7 @@ function bundle(overrides = {}) {
 		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
 		terms: [terms()],
 		statutoryFacts: [],
-		componentEntries: [],
+		payRequests: [],
 		loans: [],
 		loanRepayments: [],
 		ledger: [],
@@ -405,53 +406,52 @@ test('an overtime adjustment names the statutory band, the work day, and no comp
 });
 
 test('an entry settles by the money cut-off, not by the month it is dated in', () => {
-	// The event is one union on one row. Nothing here decodes a payload to find out how the money
-	// comes due; the cutoff reads the entry's own date.
-	const entry = (date) => ({
-		id: `entry-${date}`,
-		employment_id: 'emp-1',
-		component_catalogue_id: TRANSPORT.id,
-		pay_period: null,
-		event_date: `${date}T00:00:00.000Z`,
-		amount: 240,
-		quantity: null,
-		event: { kind: 'BONUS', note: 'travel' },
-		effective_range: null
-	});
+	// Nothing here decodes a payload to find out how the money comes due: each family states the
+	// day its economics belong to in its own column, and the cutoff reads the one answer the
+	// builder derived from it.
+	const entry = (date) =>
+		bonusRequest({
+			id: `entry-${date}`,
+			employment_id: 'emp-1',
+			component_catalogue_id: TRANSPORT.id,
+			pay_period: null,
+			awarded_on: `${date}T00:00:00.000Z`,
+			amount: 240,
+			note: 'travel'
+		});
 
-	assert.equal(amountOf(measure({ componentEntries: [entry('2026-03-20')] }), 'TRANSPORT'), 240);
+	assert.equal(amountOf(measure({ payRequests: [entry('2026-03-20')] }), 'TRANSPORT'), 240);
 	assert.equal(
-		amountOf(measure({ componentEntries: [entry('2026-03-22')] }), 'TRANSPORT'),
+		amountOf(measure({ payRequests: [entry('2026-03-22')] }), 'TRANSPORT'),
 		null,
 		'an entry dated after the 21st is next period’s money and produces nothing here'
 	);
 	// And the March run does not reach backwards into a period that has already been paid.
-	assert.equal(amountOf(measure({ componentEntries: [entry('2026-02-10')] }), 'TRANSPORT'), null);
+	assert.equal(amountOf(measure({ payRequests: [entry('2026-02-10')] }), 'TRANSPORT'), null);
 });
 
 test('an entry produces an adjustment naming it, and nothing produces two', () => {
 	// One entry, one adjustment: `measureEntry` measures exactly one captured input, so the
 	// arbitrary provenance the old summed line had has nowhere left to be made.
-	const entry = (id, amount) => ({
-		id,
-		employment_id: 'emp-1',
-		component_catalogue_id: TRANSPORT.id,
-		pay_period: '2026-03',
-		event_date: '2026-03-05T00:00:00.000Z',
-		amount,
-		quantity: null,
-		event: { kind: 'BONUS', note: 'travel' },
-		effective_range: null
-	});
+	const entry = (id, amount) =>
+		bonusRequest({
+			id,
+			employment_id: 'emp-1',
+			component_catalogue_id: TRANSPORT.id,
+			pay_period: '2026-03',
+			awarded_on: '2026-03-05T00:00:00.000Z',
+			amount,
+			note: 'travel'
+		});
 	const measured = measure({
-		componentEntries: [entry('en-a', 240), entry('en-b', 60)]
+		payRequests: [entry('en-a', 240), entry('en-b', 60)]
 	});
 	const transport = measured.adjustments.filter((row) => row.label === 'TRANSPORT');
 	assert.deepEqual(
 		transport.map((row) => [row.input.family, row.input.id, row.amount]),
 		[
-			['COMPONENT_ENTRY', 'en-a', 240],
-			['COMPONENT_ENTRY', 'en-b', 60]
+			['BONUS', 'en-a', 240],
+			['BONUS', 'en-b', 60]
 		]
 	);
 	// And nothing about them landed in base: an entry is a record somebody can edit, which is
@@ -765,39 +765,39 @@ test('a whole month is still one recorded segment, not an absence of one', () =>
 test('a standing allowance prorates with the employment; a one-off does not', () => {
 	// The allowance's own effective range is its cadence: an ALLOWANCE event pays every period the
 	// range covers, and no other arm prorates at all.
-	const standing = {
+	const standing = allowanceRequest({
 		id: 'entry-recurring',
 		employment_id: 'emp-1',
 		component_catalogue_id: TRANSPORT.id,
 		pay_period: null,
-		event_date: '2026-03-01T00:00:00.000Z',
 		amount: 310,
-		quantity: null,
-		event: {
-			kind: 'ALLOWANCE',
-			recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
-		}
-	};
-	const oneOff = {
-		...standing,
+		recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
+	});
+	// A different family, not a different payload on the same one: proration is a property of the
+	// collection now, so the contrast the test draws is between two tables rather than two arms.
+	const oneOff = bonusRequest({
 		id: 'entry-once',
-		event: { kind: 'BONUS', note: 'x' },
-		effective_range: null
-	};
+		employment_id: 'emp-1',
+		component_catalogue_id: TRANSPORT.id,
+		pay_period: null,
+		amount: 310,
+		awarded_on: '2026-03-01T00:00:00.000Z',
+		note: 'x'
+	});
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
 		wageDays: { start: '2026-03-16', end: '2026-03-31' },
 		terms: [terms({ effective_range: { start: '2026-03-16', end: null } })]
 	};
 
-	assert.equal(amountOf(measure({ componentEntries: [standing] }), 'TRANSPORT'), 310);
+	assert.equal(amountOf(measure({ payRequests: [standing] }), 'TRANSPORT'), 310);
 	assert.equal(
-		amountOf(measure({ ...joined, componentEntries: [standing] }), 'TRANSPORT'),
+		amountOf(measure({ ...joined, payRequests: [standing] }), 'TRANSPORT'),
 		160,
 		'310 × 16/31'
 	);
 	assert.equal(
-		amountOf(measure({ ...joined, componentEntries: [oneOff] }), 'TRANSPORT'),
+		amountOf(measure({ ...joined, payRequests: [oneOff] }), 'TRANSPORT'),
 		310,
 		'a one-off is a whole amount for a moment in time and is never divided by a month'
 	);

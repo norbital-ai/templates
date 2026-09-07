@@ -405,14 +405,14 @@ test(
 			const claimId = crypto.randomUUID();
 			const claim = await create(
 				session,
-				'component_entries',
+				'claim_requests',
 				{
 					id: claimId,
 					employment_id: EMPLOYMENT_ID,
 					component_catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
-					event_date: '2026-03-05',
-					event: { kind: 'CLAIM', incurred_on: '2026-03-05', description: 'Client site taxi' }
+					incurred_on: '2026-03-05',
+					description: 'Client site taxi'
 				},
 				manager
 			);
@@ -438,11 +438,10 @@ test(
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id = $1 and i.${column} = $2`;
 			assert.equal(
-				await rowCount(
-					session,
-					captureSql('payslip_component_entry_inputs', 'component_entry_id'),
-					[runId, claimId]
-				),
+				await rowCount(session, captureSql('payslip_claim_request_inputs', 'claim_request_id'), [
+					runId,
+					claimId
+				]),
 				1,
 				'the claim must be captured as an input of the March run'
 			);
@@ -508,7 +507,7 @@ test(
 			assert.equal(
 				await rowCount(
 					session,
-					'select count(*)::int as n from payslip_component_entry_inputs where component_entry_id = $1',
+					'select count(*)::int as n from payslip_claim_request_inputs where claim_request_id = $1',
 					[claimId]
 				),
 				0,
@@ -524,7 +523,7 @@ test(
 				'the leave capture must be unlinked'
 			);
 			assert.equal(
-				await rowCount(session, 'select count(*)::int as n from component_entries where id = $1', [
+				await rowCount(session, 'select count(*)::int as n from claim_requests where id = $1', [
 					claimId
 				]),
 				1,

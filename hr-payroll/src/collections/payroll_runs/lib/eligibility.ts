@@ -73,6 +73,7 @@ type PersonInput = {
 		readonly gender?: string | null;
 		readonly date_of_birth?: string | null;
 		readonly nationality?: string | null;
+		readonly residency_status?: string | null;
 	} | null;
 	readonly employment: { readonly hire_date: string };
 	readonly terms: {
@@ -110,7 +111,9 @@ export function personContext(input: PersonInput): PersonContext {
 		employee: {
 			gender: input.employee?.gender ?? '',
 			age: born === '' ? 0 : completedYears(born, input.asOf),
-			citizenship: input.employee?.nationality ?? ''
+			// The employee's standing in this jurisdiction, never their free-text nationality: a rule
+			// written against the latter matches nobody and reports that as the answer.
+			citizenship: input.employee?.residency_status ?? ''
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',

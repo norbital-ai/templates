@@ -259,7 +259,11 @@ export default {
 											with: {
 												payslip_adjustment_payslip: true,
 												payslip_work_day_input_payslip: true,
-												payslip_component_entry_input_payslip: true,
+												payslip_claim_request_input_payslip: true,
+												payslip_allowance_request_input_payslip: true,
+												payslip_bonus_request_input_payslip: true,
+												payslip_arrears_request_input_payslip: true,
+												payslip_correction_request_input_payslip: true,
 												payslip_leave_request_input_payslip: true,
 												payslip_loan_repayment_input_payslip: true
 											},

@@ -23,7 +23,12 @@ import type { PersonContext } from '../src/collections/payroll_runs/lib/eligibil
 
 const PERSON: PersonContext = {
 	employee: { gender: 'FEMALE', age: 34, citizenship: 'MY' },
-	employment: { type: 'PERMANENT', classification: 'EA_COVERED', service_months: 40, hire_date: '2022-01-01' },
+	employment: {
+		type: 'PERMANENT',
+		classification: 'EA_COVERED',
+		service_months: 40,
+		hire_date: '2022-01-01'
+	},
 	terms: { basic_salary: 3451, workman: false, department: 'OPS', payroll_group: 'HQ' },
 	children: { count: 0, ages: [] }
 };
@@ -78,9 +83,17 @@ test('the ceiling is the highest layer that applies to this person on this day',
 				layers: [
 					layer({ award: { kind: 'FIXED', amount: 1000 } }),
 					// A richer employee-level layer for this very employment: the merge takes the max.
-					layer({ level: 'EMPLOYEE', employment_id: EMPLOYMENT, award: { kind: 'FIXED', amount: 2500 } }),
+					layer({
+						level: 'EMPLOYEE',
+						employment_id: EMPLOYMENT,
+						award: { kind: 'FIXED', amount: 2500 }
+					}),
 					// And one for somebody else, which must not raise this person's ceiling.
-					layer({ level: 'EMPLOYEE', employment_id: 'someone-else', award: { kind: 'FIXED', amount: 9999 } })
+					layer({
+						level: 'EMPLOYEE',
+						employment_id: 'someone-else',
+						award: { kind: 'FIXED', amount: 9999 }
+					})
 				]
 			}
 		})
@@ -182,8 +195,7 @@ test('only entries before this one, in the same capped period, are already spent
 
 test('the capped period decides what counts as already spent', () => {
 	const siblings = [entry('e0', 300, '2026-01-10'), entry('e1', 200, '2026-06-02')];
-	const spentUnder = (period: string) =>
-		resolve({ cap: cap({ period }), siblings })?.exceededBy;
+	const spentUnder = (period: string) => resolve({ cap: cap({ period }), siblings })?.exceededBy;
 	assert.equal(spentUnder('CALENDAR_YEAR'), 300, 'January counts; the later June entry does not');
 	assert.equal(spentUnder('MONTH'), 0, 'January is a different month');
 	assert.equal(spentUnder('LIFETIME'), 300, 'every earlier entry, whatever its year');
@@ -219,7 +231,13 @@ test('a reimbursement share below a hundred is what counts against the ceiling',
 test('a BLOCK cap refuses by name once the ceiling is passed, and not before', () => {
 	const resolved = { amount: 1000, percentage: 100, exceededBy: 800 };
 	assert.equal(
-		entryCapRefusal({ cap: cap(), resolved, componentCode: 'MEDICAL', subject: 'PUB-EMP-0001', proposed: 200 }),
+		entryCapRefusal({
+			cap: cap(),
+			resolved,
+			componentCode: 'MEDICAL',
+			subject: 'PUB-EMP-0001',
+			proposed: 200
+		}),
 		null,
 		'exactly the ceiling is within it'
 	);
