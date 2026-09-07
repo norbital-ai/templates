@@ -107,13 +107,7 @@ const [
 	{ isStatutoryOvertimePayCovered },
 	{ classifyWageComparand, deriveStatutoryWages },
 	{ ordinaryHourlyRate, ordinaryDayWage, absenceDayRate },
-	{
-		allowanceRequest,
-		bonusRequest,
-		claimRequest,
-		correctionRequest,
-		requestPayPeriod
-	},
+	{ allowanceRequest, bonusRequest, claimRequest, correctionRequest, requestPayPeriod },
 	{ settle }
 ] = modules;
 
@@ -836,7 +830,17 @@ check(
 // Request economics are read once, at the boundary: each family's builder settles the five answers
 // the run needs, so nothing downstream switches on a storage shape to re-derive them.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-const CORE = { id: 'e', employment_id: 'emp-1', component_catalogue_id: 'c-1', amount: 100 };
+// Every column a stored row carries, including the two the builders read off it. A fixture that
+// omits an optional column is a fixture describing a row the database cannot produce, and the
+// shape audit is what refuses to let that pass as coverage.
+const CORE = {
+	id: 'e',
+	employment_id: 'emp-1',
+	component_catalogue_id: 'c-1',
+	amount: 100,
+	approval_id: null,
+	pay_period: null
+};
 const correctionOf = (operation) =>
 	correctionRequest({
 		...CORE,
@@ -900,10 +904,7 @@ check(
 );
 check(
 	'a claim settles by its incurred date under the cutoff',
-	requestPayPeriod(
-		claimRequest({ ...CORE, incurred_on: '2026-04-10', description: null, pay_period: null }),
-		21
-	),
+	requestPayPeriod(claimRequest({ ...CORE, incurred_on: '2026-04-10', description: null }), 21),
 	'2026-04'
 );
 // A bonus dates by the day it was awarded, and past the cutoff it is next period's money.

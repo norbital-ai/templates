@@ -1,4 +1,5 @@
 import { decodeNumber } from '@norbital-ai/std/json';
+import { inForceOnDay } from './effective_range.js';
 import { newLocalId } from './ids.js';
 import { dateKey, PAYROLL_TIME_ZONE } from './iso-day.js';
 import { startOfDayInstant } from './ui/calendar.js';
@@ -20,22 +21,132 @@ export type LoanRepaymentDraft = {
 	readonly sequence: number;
 };
 
-/** Same minor-unit slack `settlement_refusals` uses for recovered totals. */
+/**
+ * Same minor-unit slack `overConsumesEntry` in `settlement_refusals.ts` uses, for the same reason:
+ * amounts are rounded to the currency's minor unit, so a schedule generated as whole units and
+ * then edited a hundredth at a time can land one cent either side of the principal. One cent of
+ * rounding is not an imbalance; a cent more than that is. Exactly the tolerance is accepted —
+ * the comparison is `>`, as it is there.
+ */
 const LOAN_SCHEDULE_TOLERANCE = 0.01;
 
-export function loanScheduleTotal(rows: readonly { readonly amount_due: unknown }[]): number {
+export function loanScheduleTotal(rows: readonly { readonly amount_due?: unknown }[]): number {
 	return rows.reduce((total, row) => total + decodeNumber(row.amount_due), 0);
+}
+
+/** The three things a repayment schedule states, named so a caller can mark each one. */
+export const SCHEDULE_IMBALANCED = 'SCHEDULE_IMBALANCED' as const;
+export const SCHEDULE_OUT_OF_ORDER = 'SCHEDULE_OUT_OF_ORDER' as const;
+export const SCHEDULE_OUTSIDE_EFFECTIVE_RANGE = 'SCHEDULE_OUTSIDE_EFFECTIVE_RANGE' as const;
+
+export type LoanScheduleRefusal = {
+	readonly code:
+		| typeof SCHEDULE_IMBALANCED
+		| typeof SCHEDULE_OUT_OF_ORDER
+		| typeof SCHEDULE_OUTSIDE_EFFECTIVE_RANGE;
+	readonly message: string;
+};
+
+/** One repayment as the invariants see it: an amount, a day, and the position that orders them. */
+export type LoanScheduleRow = {
+	readonly due_date?: unknown;
+	readonly amount_due?: unknown;
+	readonly sequence?: unknown;
+};
+
+/**
+ * Everything wrong with a repayment schedule, in one pass — the one statement of what a loan's
+ * plan has to be, shared by the loans form and the `loan_repayments` write hook.
+ *
+ * Three invariants, and they are the schedule's whole contract:
+ *
+ * 1. **The amounts sum to the principal**, to the cent (`LOAN_SCHEDULE_TOLERANCE`).
+ * 2. **`due_date` strictly increases along `sequence`.** Strictly: two instalments on one day are
+ *    one instalment, and `sequence` would be deciding which of them the engine recovers first.
+ * 3. **The last repayment falls inside `effective_range`** — an agreement does not collect after
+ *    it has ended. Judged with `inForceOnDay`, the day-head comparison the rest of this workspace
+ *    reads a stored range with, so a repayment dated ON the period's end day is inside it. That is
+ *    the same boundary `loanInstalmentDays` generates against (`if (day > to) break`), and the two
+ *    disagreeing would mean the generator produced a schedule its own rules refuse.
+ *
+ * Every issue is returned, never just the first: a form marks all of them at once, and a write
+ * refusal that names one problem at a time is a write refusal an importer meets three times.
+ *
+ * `principal` and `effectiveRange` are each judged only when stated. A caller that does not know
+ * one of them — the loans form before a principal is typed, a hook that cannot see the agreement —
+ * gets the invariants it *can* be told about rather than a refusal about a fact nobody supplied.
+ */
+export function loanScheduleRefusals(input: {
+	readonly principal?: unknown;
+	readonly effectiveRange?: unknown;
+	readonly rows: readonly LoanScheduleRow[];
+}): readonly LoanScheduleRefusal[] {
+	const refusals: LoanScheduleRefusal[] = [];
+	const rows = [...input.rows].sort(
+		(left, right) => decodeNumber(left.sequence ?? 0) - decodeNumber(right.sequence ?? 0)
+	);
+
+	if (input.principal != null) {
+		const due = loanScheduleTotal(rows);
+		const stated = decodeNumber(input.principal);
+		if (
+			!Number.isFinite(due) ||
+			!Number.isFinite(stated) ||
+			Math.abs(due - stated) > LOAN_SCHEDULE_TOLERANCE
+		)
+			refusals.push({
+				code: SCHEDULE_IMBALANCED,
+				message:
+					`${SCHEDULE_IMBALANCED}: the repayments add up to ${due.toFixed(2)}, and the loan's ` +
+					`principal is ${stated.toFixed(2)}. A schedule recovers the agreement exactly.`
+			});
+	}
+
+	// The days in sequence order, so both remaining checks read one list: the order rule walks it,
+	// and the period rule asks its last entry. A row with no day yet — a fresh form line — is out of
+	// both, and is already an imbalance.
+	const days = rows.flatMap((row) => {
+		const day = dateKey(row.due_date as string | null | undefined);
+		return day === '' ? [] : [{ day, sequence: decodeNumber(row.sequence ?? 0) }];
+	});
+
+	const backwards = days.find((entry, index) => index > 0 && entry.day <= days[index - 1]!.day);
+	if (backwards !== undefined)
+		refusals.push({
+			code: SCHEDULE_OUT_OF_ORDER,
+			message:
+				`${SCHEDULE_OUT_OF_ORDER}: repayment ${backwards.sequence} comes due ${backwards.day}, ` +
+				`on or before the one before it. A schedule's due dates strictly increase along its ` +
+				'sequence.'
+		});
+
+	const last = days.at(-1);
+	if (input.effectiveRange != null && last !== undefined) {
+		const range = input.effectiveRange as {
+			readonly start?: string | null;
+			readonly end?: string | null;
+		};
+		if (!inForceOnDay(range, last.day))
+			refusals.push({
+				code: SCHEDULE_OUTSIDE_EFFECTIVE_RANGE,
+				message:
+					`${SCHEDULE_OUTSIDE_EFFECTIVE_RANGE}: the last repayment comes due ${last.day}, ` +
+					`outside the agreement's effective period (${dateKey(range.start) || '—'} to ` +
+					`${dateKey(range.end) || '∞'}). An agreement does not collect after it has ended.`
+			});
+	}
+
+	return refusals;
 }
 
 /** True when the draft schedule does not sum to the stated principal. Empty is unbalanced. */
 export function loanScheduleImbalanced(
 	principal: unknown,
-	rows: readonly { readonly amount_due: unknown }[]
+	rows: readonly { readonly amount_due?: unknown }[]
 ): boolean {
-	const due = loanScheduleTotal(rows);
-	const stated = decodeNumber(principal);
-	if (!Number.isFinite(due) || !Number.isFinite(stated)) return true;
-	return Math.abs(due - stated) > LOAN_SCHEDULE_TOLERANCE;
+	return loanScheduleRefusals({ principal: principal ?? Number.NaN, rows }).some(
+		(refusal) => refusal.code === SCHEDULE_IMBALANCED
+	);
 }
 
 /**
@@ -148,7 +259,7 @@ export function loanInstalmentDays(range: unknown): readonly string[] {
 export function canGenerateLoanSchedule(
 	principal: unknown,
 	range: unknown,
-	rows: readonly { readonly amount_due: unknown }[]
+	rows: readonly { readonly amount_due?: unknown }[]
 ): boolean {
 	const stated = decodeNumber(principal);
 	if (!Number.isFinite(stated) || stated <= 0) return false;
@@ -205,4 +316,54 @@ export function generateLoanSchedule(input: {
 		sequence: 0
 	}));
 	return loanScheduleOrdered([...locked, ...generated]);
+}
+
+// ── recovery ────────────────────────────────────────────────────────────────────────────────
+
+export type RepaymentProgress = {
+	readonly recoveredAmount: number;
+	readonly outstandingAmount: number;
+	readonly paidRepayments: number;
+	readonly totalRepayments: number;
+	readonly settled: boolean;
+};
+
+/**
+ * How far a schedule has been recovered, from the plan and what paid runs took.
+ *
+ * `paidRepayments` is DERIVED, not counted: repayments are recovered in the order they are
+ * scheduled, so the number settled is the number of leading repayments the recovered total covers.
+ * That is the same arithmetic `repaymentOutstanding` in `payroll_runs/lib/entries.ts` makes one
+ * repayment at a time — `due - taken`, floored at zero — read across the whole plan. The two agree
+ * because the engine's own ceiling (`overRecoversRepayment`) keeps recovery inside each repayment's
+ * amount due, so a running total can never overshoot a row and land the count short.
+ *
+ * `rows` must be in recovery order; every caller reads them ordered by `due_date`, which is the
+ * order `sequence` states.
+ *
+ * The tolerance mirrors `overRecoversRepayment` in `src/lib/settlement_refusals.ts`: amounts are
+ * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
+ * principal exactly can land a hundredth either side of it across a dozen runs.
+ */
+export function repaymentProgress(
+	repayments: readonly { readonly amount_due?: unknown }[],
+	recoveredAmount: number
+): RepaymentProgress | null {
+	const principal = loanScheduleTotal(repayments);
+	if (!Number.isFinite(principal) || principal < 0) return null;
+	const outstandingAmount = Math.max(0, principal - recoveredAmount);
+	let covered = 0;
+	let paidRepayments = 0;
+	for (const repayment of repayments) {
+		covered += decodeNumber(repayment.amount_due);
+		if (covered - recoveredAmount > LOAN_SCHEDULE_TOLERANCE) break;
+		paidRepayments += 1;
+	}
+	return {
+		recoveredAmount,
+		outstandingAmount,
+		paidRepayments,
+		totalRepayments: repayments.length,
+		settled: outstandingAmount <= LOAN_SCHEDULE_TOLERANCE
+	};
 }

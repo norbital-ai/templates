@@ -38,6 +38,7 @@
 	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
+	import { repaymentProgress } from '../../lib/loan-schedule.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -53,45 +54,6 @@
 		companyId: () => selectedCompanyId ?? undefined,
 		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined
 	});
-
-	const RepaymentProgressSchema = Schema.Struct({
-		recoveredAmount: Schema.Number,
-		outstandingAmount: Schema.Number,
-		paidRepayments: Schema.Number,
-		totalRepayments: Schema.Number,
-		settled: Schema.Boolean
-	});
-	type RepaymentProgress = Schema.Schema.Type<typeof RepaymentProgressSchema>;
-
-	/**
-	 * How far a schedule has been recovered, from the plan and what paid runs took.
-	 *
-	 * The tolerance mirrors `overRecoversRepayment` in `src/lib/settlement_refusals.ts`: amounts are
-	 * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
-	 * principal exactly can land a hundredth either side of it across a dozen runs.
-	 */
-	function repaymentProgress(
-		repayments: readonly { readonly amount_due: unknown }[],
-		recoveredAmount: number
-	): RepaymentProgress | null {
-		const principal = repayments.reduce((total, row) => total + decodeNumber(row.amount_due), 0);
-		if (!Number.isFinite(principal) || principal < 0) return null;
-		const outstandingAmount = Math.max(0, principal - recoveredAmount);
-		let covered = 0;
-		let paidRepayments = 0;
-		for (const repayment of repayments) {
-			covered += decodeNumber(repayment.amount_due);
-			if (covered - recoveredAmount > 0.01) break;
-			paidRepayments += 1;
-		}
-		return {
-			recoveredAmount,
-			outstandingAmount,
-			paidRepayments,
-			totalRepayments: repayments.length,
-			settled: outstandingAmount <= 0.01
-		};
-	}
 
 	/**
 	 * The recovery ledger, in three reads rather than a nested one.

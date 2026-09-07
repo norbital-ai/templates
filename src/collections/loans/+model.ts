@@ -32,9 +32,10 @@ export default defineModel(
 		 * The window the agreement is live across, and the window the schedule generator spreads
 		 * instalments over.
 		 *
-		 * "Its last repayment falls inside it" is the intent, not an enforced constraint: nothing in
-		 * the write hooks checks it. See `loan_repayments/+model.ts` for where the schedule's other
-		 * two properties are and are not enforced.
+		 * Its last repayment falls inside it, judged by day head so an instalment dated ON the end
+		 * day is inside — the same boundary `loanInstalmentDays` generates against. `loan_repayments`
+		 * `mutate.prepare` refuses a write that would break it, alongside the schedule's other two
+		 * properties; see `loan_repayments/+model.ts` for the paths that reach.
 		 */
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
