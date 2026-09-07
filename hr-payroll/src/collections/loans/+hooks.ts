@@ -6,14 +6,15 @@ import { decodeNumber } from '@norbital-ai/std/json';
 /**
  * The loan is the agreement, and the agreement's honesty is checked here.
  *
- * The loan form nests the schedule in a matrix. Sum-to-principal is a client integrity highlight
- * that blocks submit without rewriting amounts. What this hook holds is the agreement's own
+ * The loan form nests the schedule in a matrix, and blocks submit on any of the three things
+ * `loanScheduleRefusals` states about a schedule. What this hook holds is the agreement's own
  * edges: the principal is a positive magnitude, and the component it recovers through actually
  * takes entries and settles as a payroll deduction, because a recovery is a deduction by
  * definition.
  *
- * Each repayment row is visible to `loan_repayments` `before` one write at a time. Cross-row
- * shape is not restated here.
+ * The schedule's own shape is refused by `loan_repayments` `mutate.prepare`, which is the only
+ * hook coordinate handed a whole batch. It is not restated here, and could not be: a loan write
+ * is never shown the repayment rows nested under it.
  */
 export default {
 	mutate: {

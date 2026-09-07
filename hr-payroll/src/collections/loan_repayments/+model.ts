@@ -8,24 +8,30 @@ import { defineModel, instant, integer, numeric, uuid } from '@norbital-ai/bolt/
  * `unique(payslip_id, loan_repayment_id)` plus the engine's ceiling over what paid runs actually
  * took are what keep that multi-payslip consumption honest.
  *
- * `sequence` orders the plan and makes the schedule's shape queryable. Two properties are *intended*
- * of it — the repayment dates strictly increase along it, and the amounts sum to the loan's
- * principal to the cent — and it matters exactly where each is enforced, because this comment used
- * to claim both were checked here and neither was:
+ * `sequence` orders the plan and makes the schedule's shape queryable. Three properties hold of a
+ * loan's schedule — the amounts sum to the loan's principal to the cent, the due dates strictly
+ * increase along `sequence`, and the last repayment falls inside the loan's `effective_range` —
+ * and all three are stated once, by `loanScheduleRefusals` in `lib/loan-schedule.ts`.
  *
- * - **Date order is guaranteed by construction, on the UI path only.** `lib/loan-schedule.ts` sorts
- *   by `due_date` and renumbers `sequence` from that order on every exit — read, write and
- *   generate — so a schedule built or edited on the loans screen cannot disagree with itself.
- * - **The sum to principal is checked on the UI path only**, by `loanScheduleImbalanced`, which
- *   blocks submit.
+ * Where that one statement is applied:
  *
- * Neither is enforced by a write hook. `loans/+hooks.ts` checks that the principal is positive and
- * that the named component is a payroll-settled DEDUCTION, and nothing else; `loans/+model.ts`
- * separately claims the last repayment falls inside `effective_range`, which is also unenforced. So
- * an import, an agent or any caller that is not the form can still store a schedule that does not
- * add up. That is a real gap, deliberately named rather than papered over — and whoever closes it
- * must not rewrite a repayment a payslip has already captured, because net-pay protection lets one
- * repayment legitimately span several payslips.
+ * - **The loans form** blocks submit with it, and marks every issue at once.
+ * - **`+hooks.ts` `mutate.prepare`** refuses the date order on every write, and all three on any
+ *   write that names the loan it is writing to — every create, and every update, import, agent or
+ *   API call that states `loan_id`. The batch is merged over the loan's stored repayments first, so
+ *   a patch is judged as the row it would produce and a partial write against the whole schedule it
+ *   would leave.
+ * - **`lib/loan-schedule.ts` sorts by `due_date` and renumbers `sequence`** on every exit — read,
+ *   write and generate — so the UI path cannot construct a schedule that disagrees with itself.
+ *
+ * What that does not reach, named rather than papered over: the sum and the effective period on a
+ * write nested under the loan, which is the loans form's own path and is guarded there (the hook's
+ * `prepare` comment says why no hook can judge it, and what happens when one tries); the same two
+ * on a patch that names neither its loan nor a parent; and the raw-SQL seed loader, which bypasses
+ * hooks entirely.
+ *
+ * Whoever changes any of this must not rewrite a repayment a payslip has already captured, because
+ * net-pay protection lets one repayment legitimately span several payslips.
  */
 export default defineModel(
 	{

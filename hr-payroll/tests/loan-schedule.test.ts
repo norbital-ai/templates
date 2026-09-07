@@ -10,8 +10,10 @@ import {
 	loanScheduleImbalanced,
 	loanScheduleOrdered,
 	loanScheduleTotal,
-	loanScheduleWriteRows
+	loanScheduleWriteRows,
+	repaymentProgress
 } from '../src/lib/loan-schedule.ts';
+import { repaymentOutstanding } from '../src/collections/payroll_runs/lib/entries.ts';
 
 const range = (start, end) => ({ start: `${start}T00:00:00.000Z`, end: `${end}T00:00:00.000Z` });
 const day = (value) => value.slice(0, 10);
@@ -185,4 +187,86 @@ test('the generate action is offered only when it has something to do', () => {
 		canGenerateLoanSchedule(1000, { start: '2026-04-01T00:00:00.000Z', end: null }, []),
 		false
 	);
+});
+
+/**
+ * How far a schedule has been recovered — what the loans page shows, moved out of the page and
+ * driven directly. It was unexported and untested, which is how "paid 3 of 6" could have been wrong
+ * for a year without anything noticing.
+ */
+test('progress is the plan against what paid runs took', () => {
+	const schedule = [
+		{ amount_due: 250 },
+		{ amount_due: 250 },
+		{ amount_due: 250 },
+		{ amount_due: 250 }
+	];
+	assert.deepEqual(repaymentProgress(schedule, 0), {
+		recoveredAmount: 0,
+		outstandingAmount: 1000,
+		paidRepayments: 0,
+		totalRepayments: 4,
+		settled: false
+	});
+	assert.deepEqual(repaymentProgress(schedule, 500), {
+		recoveredAmount: 500,
+		outstandingAmount: 500,
+		paidRepayments: 2,
+		totalRepayments: 4,
+		settled: false
+	});
+	assert.deepEqual(repaymentProgress(schedule, 1000), {
+		recoveredAmount: 1000,
+		outstandingAmount: 0,
+		paidRepayments: 4,
+		totalRepayments: 4,
+		settled: true
+	});
+	// Nothing to report about a plan with no rows to report on.
+	assert.equal(repaymentProgress([], 0)?.totalRepayments, 0);
+});
+
+/**
+ * A partially recovered repayment is not a paid one. Net-pay protection can take part of an
+ * instalment and leave the rest for the next run, and counting it as settled would report a loan
+ * further along than the money is.
+ */
+test('a part-recovered repayment reads as outstanding, not as paid', () => {
+	const schedule = [{ amount_due: 250 }, { amount_due: 250 }];
+	const progress = repaymentProgress(schedule, 380);
+	assert.equal(progress.paidRepayments, 1);
+	assert.equal(progress.outstandingAmount, 120);
+	assert.equal(progress.settled, false);
+});
+
+/**
+ * The page's derivation and the engine's answer to the same question agree.
+ *
+ * `repaymentOutstanding` is per repayment — `due - taken`, floored at zero, with `taken` capped at
+ * the amount due. Summed across the plan in recovery order it is exactly the page's
+ * `outstandingAmount`, and the count of repayments it leaves nothing outstanding on is exactly
+ * `paidRepayments`. If these ever disagree, one of the two is lying to somebody about a loan.
+ */
+test('progress agrees with the engine’s per-repayment outstanding', () => {
+	const schedule = [
+		{ amount_due: 250 },
+		{ amount_due: 250 },
+		{ amount_due: 250 },
+		{ amount_due: 250 }
+	];
+	for (const recovered of [0, 120, 250, 380, 500, 1000]) {
+		const progress = repaymentProgress(schedule, recovered);
+		let remaining = recovered;
+		let outstanding = 0;
+		let settledRows = 0;
+		for (const repayment of schedule) {
+			const consumed = Math.min(remaining, repayment.amount_due);
+			remaining -= consumed;
+			const left = repaymentOutstanding(repayment, consumed);
+			outstanding += left;
+			if (left === 0) settledRows += 1;
+		}
+		assert.equal(progress.outstandingAmount, outstanding, `outstanding at ${recovered}`);
+		assert.equal(progress.paidRepayments, settledRows, `paid count at ${recovered}`);
+	}
 });

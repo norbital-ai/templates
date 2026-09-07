@@ -17,7 +17,9 @@
 		generateLoanSchedule,
 		loanScheduleFromRows,
 		loanScheduleImbalanced,
+		loanScheduleRefusals,
 		loanScheduleTotal,
+		SCHEDULE_IMBALANCED,
 		loanScheduleWriteRows,
 		type LoanRepaymentDraft
 	} from '../../lib/loan-schedule.js';
@@ -119,18 +121,30 @@
 		form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
 	};
 
+	/**
+	 * Submit is blocked by the same function the write hook refuses with, and by every issue it
+	 * returns rather than the first — a schedule that is both a cent out and dated past the
+	 * agreement's end says so once, not across two round trips.
+	 *
+	 * The imbalance carries the translated sentence the panel below already shows. The other two
+	 * are the refusal's own words, which is what the server would answer with anyway.
+	 */
 	const semantic = ((values) =>
 		Effect.succeed(
-			loanScheduleImbalanced(values.principal, schedule)
-				? [
-						{
+			loanScheduleRefusals({
+				principal: values.principal ?? Number.NaN,
+				effectiveRange: values.effective_range,
+				rows: schedule
+			}).map((refusal) =>
+				refusal.code === SCHEDULE_IMBALANCED
+					? {
 							message: t('component.loan_schedule_imbalance', {
 								due: formatNumeric(loanScheduleTotal(schedule)),
 								principal: formatNumeric(values.principal)
 							})
 						}
-					]
-				: []
+					: { message: refusal.message }
+			)
 		)) satisfies CollectionFormSemantic;
 </script>
 
