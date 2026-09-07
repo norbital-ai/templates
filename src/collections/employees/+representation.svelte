@@ -25,7 +25,10 @@
 		formatStatutoryFactStatus
 	} from '../../lib/ui/display-formatters.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
-	import FaceCaptureDialog from './face-capture-dialog.svelte';
+	import { Button } from '@norbital-ai/ui/button';
+	import * as Dialog from '@norbital-ai/ui/dialog';
+	import Icon from '@iconify/svelte';
+	import FaceEnrollFlow from './face-enroll-flow.svelte';
 
 	type EmploymentTerm = Pick<
 		WorkspaceRow<'employment_terms'>,
@@ -105,7 +108,11 @@
 	let activeProfileTab = $state('person');
 	const today = todayKey();
 	const fileRuntime = getDataRendererRuntimeContext();
-	let captureOpen = $state(false);
+	/**
+	 * Face enrollment opens from here and nowhere else: the kiosk on the wall only clocks. The
+	 * flow mounts with the dialog and releases the camera when it closes.
+	 */
+	let enrollOpen = $state(false);
 	let justSavedUrl = $state<string | null>(null);
 
 	const approved = { approval_id: { isNull: true } } as const;
@@ -175,6 +182,12 @@
 			? 'APPROVED'
 			: (record?.face_enrollment_status ?? 'NONE')
 	);
+	const FACE_STATUS_KEYS: Readonly<Record<string, TenantI18nKeys>> = {
+		NONE: 'face.status_none',
+		PENDING: 'face.status_pending',
+		APPROVED: 'face.status_approved',
+		SUSPENDED: 'face.status_suspended'
+	};
 </script>
 
 {#snippet person()}
@@ -274,24 +287,27 @@
 	{#if record}
 		<Stack gap="sm">
 			{#if photoHref !== null}
-				<img class="w-40 rounded-lg" src={photoHref} alt="Enrolled face" />
+				<img class="w-40 rounded-lg" src={photoHref} alt={t('face.enrolled_photo')} />
 			{:else}
-				<p class="text-sm text-muted-foreground">No photo yet.</p>
+				<p class="text-sm text-muted-foreground">{t('face.no_photo')}</p>
 			{/if}
 			<p class="text-sm">
-				{displayFaceStatus.toLowerCase()}
+				{t(FACE_STATUS_KEYS[displayFaceStatus])}
 				{#if record.face_match_count > 0}
-					· {record.face_match_count} match{record.face_match_count === 1 ? '' : 'es'}
+					· {t('face.matches', { count: record.face_match_count })}
 				{/if}
 			</p>
 			<div>
-				<button
+				<Button
+					variant="secondary"
+					data-face-enroll-action
 					onclick={() => {
-						captureOpen = true;
+						enrollOpen = true;
 					}}
 				>
-					{photoHref === null ? 'Capture photo' : 'Re-capture photo'}
-				</button>
+					<Icon icon="lucide:scan-face" class="size-4" />
+					{displayFaceStatus === 'NONE' ? t('face.enroll') : t('face.re_enroll')}
+				</Button>
 			</div>
 		</Stack>
 	{/if}
@@ -340,20 +356,32 @@
 				},
 				{
 					name: 'face',
-					label: 'Face ID',
+					label: t('face.tab'),
 					icon: 'lucide:scan-face',
 					content: faceIdentity
 				}
 			] satisfies TabConfig[]}
 		/>
 	</Cover>
-	<FaceCaptureDialog
-		bind:open={captureOpen}
-		{record}
-		onsaved={(previewUrl) => {
-			justSavedUrl = previewUrl;
-		}}
-	/>
+	<Dialog.Root bind:open={enrollOpen}>
+		<Dialog.Content class="max-w-2xl">
+			<Dialog.Header>
+				<Dialog.Title>{t('face.title')}</Dialog.Title>
+				<Dialog.Description>{t('face.description', { name: record.name })}</Dialog.Description>
+			</Dialog.Header>
+			{#if enrollOpen}
+				<FaceEnrollFlow
+					{record}
+					onsaved={(previewUrl) => {
+						justSavedUrl = previewUrl;
+					}}
+					onclose={() => {
+						enrollOpen = false;
+					}}
+				/>
+			{/if}
+		</Dialog.Content>
+	</Dialog.Root>
 {:else}
 	{@render person()}
 {/if}

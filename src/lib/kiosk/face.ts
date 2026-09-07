@@ -13,6 +13,8 @@ type FaceCandidate = Readonly<{
 	readonly embedding?: number[];
 	readonly score: number;
 	readonly real?: number;
+	/** Head pose in radians, from the mesh; absent until the mesh graph has run on this face. */
+	readonly rotation?: Readonly<{ angle: Readonly<{ yaw: number; pitch: number }> }> | null;
 }>;
 
 const engineConfig = (backend: 'webgl' | 'wasm') => ({
@@ -138,19 +140,16 @@ export const largestFace = (faces: ReadonlyArray<FaceCandidate>): FaceCandidate 
 };
 
 /**
- * One analysed frame: largest face wins, snapshotted for the enrollment preview.
- * Null when no face is in frame — the caller tells the person to move closer.
+ * The sample for a face the engine has already read from `canvas`: the frame snapshotted for the
+ * enrollment preview and the photo, beside the descriptor. Null when the face carries no
+ * embedding, which is a face too small or turned too far for the description graph.
  */
-export const extractFaceSample = async (
-	engine: Human,
-	video: HTMLVideoElement,
-	canvas: HTMLCanvasElement
-): Promise<KioskSample | null> => {
-	if (!drawVideoFrame(video, canvas)) return null;
-	const start = performance.now();
-	const result = await engine.detect(canvas);
-	const face = largestFace(result.face ?? []);
-	if (face === undefined || face.embedding === undefined) return null;
+export const sampleFromFace = (
+	face: FaceCandidate,
+	canvas: HTMLCanvasElement,
+	ms: number
+): KioskSample | null => {
+	if (face.embedding === undefined) return null;
 	const snapshot = document.createElement('canvas');
 	snapshot.width = canvas.width;
 	snapshot.height = canvas.height;
@@ -161,6 +160,6 @@ export const extractFaceSample = async (
 		vector: [...face.embedding],
 		score: Math.round(face.score * 100) / 100,
 		box: `${Math.round(face.box?.[2] ?? 0)}x${Math.round(face.box?.[3] ?? 0)}`,
-		ms: Math.round((performance.now() - start) * 10) / 10
+		ms: Math.round(ms * 10) / 10
 	};
 };
