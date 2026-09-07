@@ -29,9 +29,9 @@ import {
 import type { Api, WorkspaceRow } from '../$types.js';
 import type { Api as AuthoringApi } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types';
+import { addDays } from '../../../lib/period.js';
 
 const QUERY_LIMIT = 20_000;
-const DAY_MS = 86_400_000;
 
 type ExplicitEntry = Pick<
 	WorkspaceRow<'work_days'>,
@@ -73,10 +73,6 @@ export type OverlapData = {
 		{ readonly code: string; readonly variant: RosterCodeVariant }
 	>;
 };
-
-function addDays(date: string, amount: number): string {
-	return new Date(Date.parse(`${date}T00:00:00.000Z`) + amount * DAY_MS).toISOString().slice(0, 10);
-}
 
 /** The four reads. Data only — every refusal below is `assertNoOverlap`'s. */
 export function readOverlapData(

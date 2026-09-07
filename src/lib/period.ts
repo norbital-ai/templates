@@ -26,6 +26,13 @@ export function isYearMonth(value: string): boolean {
 	return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
+/** The calendar day `amount` days from `date`, forwards or backwards. */
+export function addDays(date: string, amount: number): string {
+	return new Date(Date.parse(`${date}T00:00:00.000Z`) + amount * 86_400_000)
+		.toISOString()
+		.slice(0, 10);
+}
+
 /** Every calendar day of a `YYYY-MM` month, in order. */
 export function calendarDaysInMonth(month: string): readonly string[] {
 	const { start, end } = monthBounds(month);

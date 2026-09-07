@@ -307,6 +307,10 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 			work_days: { findMany: () => Effect.succeed([]) },
 			shift_definitions: { findMany: () => Effect.succeed([]) },
 			shift_patterns: { findMany: () => Effect.succeed([]) },
+		// The company's law lineage, and the versions of it. Empty here: these fixtures are about
+		// attendance, and a company that binds to no jurisdiction has no rest-day rule to break.
+		companies: { findMany: () => Effect.succeed([]) },
+		jurisdiction_settings: { findMany: () => Effect.succeed([]) },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// A capture is a `payslip_work_day_inputs` junction row naming the day. Its payslip's
 			// amount is deliberately not consulted: a zero says the run read this day and priced it

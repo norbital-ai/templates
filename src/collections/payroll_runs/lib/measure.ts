@@ -88,6 +88,7 @@ import {
 	type IsoDate
 } from './dates.js';
 import { coversDate } from './effective.js';
+import { entryCapRefusal, resolveEntryCap } from './entry-cap.js';
 import { isEligible, personContext, type PersonContext } from './eligibility.js';
 import { defaultPayPeriod, type PayCadence, type PayrollWindow } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
@@ -1310,80 +1311,18 @@ type Measurement = {
 	readonly adjustments: readonly MeasuredAdjustment[];
 };
 
-type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
-
-/** What `resolveEntryCap` needs to read the cap and price what this run already used of it. */
-type ResolveEntryCapOptions = {
-	readonly cap: EntryCap;
-	readonly component: CatalogueComponent;
-	readonly entry: ComponentEntry;
-	readonly bundle: EmploymentBundle;
-	readonly subject: PersonContext;
-	readonly context: FormulaContext;
+/** A capped entry must be datable: the ceiling is per period, and a period needs a day. */
+const entryEventDateOrThrow = (entry: ComponentEntry): string => {
+	const date = entryEventDate(entry);
+	if (date == null) throw new Error(`Component entry ${entry.id} has no event date to cap by.`);
+	return date;
 };
 
-function resolveEntryCap(
-	options: ResolveEntryCapOptions
-): { amount: number; percentage: number; exceededBy: number } | null {
-	const eventDate = entryEventDate(options.entry);
-	if (eventDate == null)
-		throw new Error(`Component entry ${options.entry.id} has no event date to cap by.`);
-	const applicable = options.cap.matrix.layers.flatMap((layer) => {
-		if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.bundle.employment.id)
-			return [];
-		if (
-			!coversDate(layer.effective_range, eventDate) ||
-			!isEligible(layer.eligibility, options.subject)
-		)
-			return [];
-		const amount =
-			layer.award.kind === 'FIXED'
-				? layer.award.amount
-				: evaluateFormula({
-						code: `${options.component.code}_${layer.level}_ENTITLEMENT`,
-						expr: layer.award.expr,
-						context: options.context
-					});
-		return [{ level: layer.level, amount, percentage: layer.reimbursement_percentage }];
-	});
-	if (applicable.length === 0) return null;
-	const amount = Math.max(...applicable.map((layer) => layer.amount));
-	const percentage = Math.max(...applicable.map((layer) => layer.percentage));
-	const samePeriod = (candidate: ComponentEntry): boolean => {
-		const candidateDate = entryEventDate(candidate);
-		if (candidateDate == null) return false;
-		switch (options.cap.period) {
-			case 'PER_EVENT':
-				return false;
-			case 'LIFETIME':
-				return true;
-			case 'MONTH':
-				return candidateDate.slice(0, 7) === eventDate.slice(0, 7);
-			case 'CALENDAR_YEAR':
-				return candidateDate.slice(0, 4) === eventDate.slice(0, 4);
-			case 'LEAVE_YEAR':
-				return leaveYearOf(candidateDate) === leaveYearOf(eventDate);
-		}
-	};
-	const previouslyUsed = options.bundle.componentEntries.reduce((total, candidate) => {
-		if (
-			candidate.component_catalogue_id !== options.component.id ||
-			candidate.id === options.entry.id
-		)
-			return total;
-		const candidateDate = entryEventDate(candidate);
-		if (candidateDate == null) return total;
-		if (
-			!samePeriod(candidate) ||
-			candidateDate > eventDate ||
-			(candidateDate === eventDate && candidate.id > options.entry.id)
-		)
-			return total;
-		return total + (entrySign(candidate) * decodeNumber(candidate.amount) * percentage) / 100;
-	}, 0);
-	return { amount, percentage, exceededBy: Math.max(0, previouslyUsed) };
-}
-
+/**
+ * The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does.
+ * MEASURE can price a `FORMULA` layer because the payslip context exists here; the hook cannot,
+ * and says so by returning `null` rather than guessing.
+ */
 type MeasureComponentOptions = {
 	readonly component: CatalogueComponent;
 	readonly bundle: EmploymentBundle;
@@ -1609,11 +1548,22 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 				? null
 				: resolveEntryCap({
 						cap: definition.cap,
-						component: options.component,
+						componentId: options.component.id,
+						employmentId: options.bundle.employment.id,
 						entry,
-						bundle: options.bundle,
+						eventDate: entryEventDateOrThrow(entry),
+						siblings: options.bundle.componentEntries,
+						eventDateOf: entryEventDate,
+						signOf: entrySign,
 						subject: options.subject,
-						context: options.context()
+						evaluateAward: (layer) =>
+							layer.award.kind === 'FIXED'
+								? layer.award.amount
+								: evaluateFormula({
+										code: `${options.component.code}_${layer.level}_ENTITLEMENT`,
+										expr: layer.award.expr,
+										context: options.context()
+									})
 					});
 		const percentage = cap?.percentage ?? 100;
 		const sign = entrySign(entry);
@@ -1635,15 +1585,18 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 		if (fraction <= 0) return null;
 		// The reimbursable share is an economic fact per claim, so it is rounded per entry.
 		const reimbursable = cents((decodeNumber(entry.amount) * fraction * percentage) / 100);
-		if (
-			cap != null &&
-			cap.exceededBy + reimbursable > cap.amount &&
-			definition.cap?.on_exceed === 'BLOCK'
-		)
-			throw new Error(
-				`${options.component.code} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
-					`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
-			);
+		// One sentence, produced by the same function the write hook refuses with, so a run and a
+		// form cannot describe the same ceiling two different ways.
+		if (cap != null && definition.cap != null) {
+			const refusal = entryCapRefusal({
+				cap: definition.cap,
+				resolved: cap,
+				componentCode: options.component.code,
+				subject: String(options.bundle.employment.employee_number),
+				proposed: reimbursable
+			});
+			if (refusal !== null) throw new Error(refusal);
+		}
 		const amount = cents(sign * reimbursable);
 		assertWithinEntry({
 			entry,
