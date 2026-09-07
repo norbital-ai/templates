@@ -15,7 +15,6 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	JURISDICTION_ID,
 	EMPLOYMENT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	publicSeedDirectory,
@@ -572,22 +571,17 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		const settings = await waitForBody(page, /Public Fixture Co/, 'a2-settings');
-		assert.match(settings, /Public Fixture Co/, 'A2 company scope');
-		assert.match(settings, /Leave types/);
+		const settings = await waitForBody(page, /Leave types/, 'a2-settings');
 		assert.match(settings, /Pay components/);
 		assert.match(settings, /Holidays/);
-		assert.match(settings, /Versions of PUB/, 'the timeline names the lineage');
 		assert.doesNotMatch(settings, /\bCompanies\b|Research sources/);
 		await waitForBody(page, /Public fixture profile/, 'a2-version');
+		// The page shows the version in force directly: the sealed PUB version's form.
 		const opened = await pollEvaluate(
 			page,
 			`(() => {
-					const row = document.querySelector('[data-settings-version="${JURISDICTION_ID}"]');
-					if (row === null || row === undefined) return 'missing-row';
-					row.click();
-					const status = document.querySelector('[data-settings-status]');
-					return status !== null && /In force|Sealed/.test(status.textContent ?? '') ? 'opened' : 'no-status';
+					const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
+					return field instanceof HTMLInputElement ? 'opened' : 'missing-form';
 				})()`,
 			(value) => value === 'opened',
 			'a2-pub-version'
@@ -602,7 +596,7 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		while (Date.now() < submitDeadline) {
 			sheet = String(
 				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-settings-timeline]');
+						const form = document.querySelector('[data-collection-field="tax_year_start_month"]')?.closest('form') ?? null;
 						const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
 						if (form === null || !(field instanceof HTMLInputElement)) return 'missing-sheet';
 						// A sealed version renders read-only: the field is disabled and there is nothing to
@@ -631,7 +625,7 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		while (Date.now() < afterDeadline) {
 			after = String(
 				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-settings-timeline]');
+						const form = document.querySelector('[data-collection-field="tax_year_start_month"]')?.closest('form') ?? null;
 						const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
 						const note = document.querySelector('[data-settings-sealed-note]');
 						const body = document.body ? document.body.innerText : '';

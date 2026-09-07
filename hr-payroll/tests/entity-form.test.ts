@@ -103,7 +103,7 @@ test('the settings form is identity and period, pay derivation, working time and
 		assert.doesNotMatch(form, new RegExp(gone), `${gone} is not on the form`);
 });
 
-test('the Entities page opens one live query and the Settings timeline one per surface', () => {
+test('the Entities page opens one live query and the Settings page one per surface', () => {
 	assert.deepEqual(registrations(source('../src/apps/hr_controller/+entities.svelte')), [
 		'CollectionTable'
 	]);
@@ -112,7 +112,7 @@ test('the Entities page opens one live query and the Settings timeline one per s
 	assert.deepEqual(
 		registrations(script),
 		['db.jurisdiction_settings.findMany'],
-		'the timeline is one query over the lineage'
+		'the page is one query over the lineage'
 	);
 	assert.match(script, /where: onLineage\(code\)/, "scoped by the entity's settings code");
 	for (const tab of ['contributions', 'leaveTypes', 'payComponents', 'holidays'])
@@ -122,13 +122,12 @@ test('the Entities page opens one live query and the Settings timeline one per s
 		[],
 		'the form is the representation'
 	);
-	assert.deepEqual(registrations(snippet(settings, 'timeline')), []);
-	for (const action of ['data-settings-seal', 'data-settings-void', 'data-settings-new-version'])
-		assert.match(settings, new RegExp(action), `${action} is an action of the timeline`);
-	assert.match(
-		settings,
-		/app\.settings\.affects_entities/,
-		'the seal lists the entities it affects'
-	);
+	for (const gone of [
+		'data-settings-timeline',
+		'data-settings-seal',
+		'data-settings-void',
+		'data-settings-new-version'
+	])
+		assert.doesNotMatch(settings, new RegExp(gone), `${gone} is no longer on the page`);
 	assert.doesNotMatch(settings, /statutory_research_sources|researchSources|jurisdictions\b/);
 });
