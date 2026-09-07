@@ -182,11 +182,6 @@ describe('template CI', () => {
 					columns.add(column);
 				}
 				for (const match of sql.matchAll(
-					/CREATE (?:UNIQUE )?INDEX (?:IF NOT EXISTS )?"([^"]+)"/g
-				)) {
-					declaredIndexes.add(match[1] ?? '');
-				}
-				for (const match of sql.matchAll(
 					/ALTER TABLE "([^"]+)" DROP COLUMN (IF EXISTS )?"([^"]+)"/g
 				)) {
 					const table = match[1] ?? '';
@@ -204,12 +199,20 @@ describe('template CI', () => {
 						declared.get(table)?.delete(column);
 					}
 				}
-				for (const match of sql.matchAll(/DROP INDEX (IF EXISTS )?"([^"]+)"/g)) {
+				// Creates and drops in document order: a migration that drops an index and recreates
+				// it under the same name must leave it declared for the next migration.
+				for (const match of sql.matchAll(
+					/CREATE (?:UNIQUE )?INDEX (?:IF NOT EXISTS )?"([^"]+)"|DROP INDEX (IF EXISTS )?"([^"]+)"/g
+				)) {
+					if (match[1] !== undefined) {
+						declaredIndexes.add(match[1]);
+						continue;
+					}
 					assert.ok(
-						match[1] || declaredIndexes.has(match[2] ?? ''),
-						`${template.slug}/${tag}: drop index ${match[2]}`
+						match[2] || declaredIndexes.has(match[3] ?? ''),
+						`${template.slug}/${tag}: drop index ${match[3]}`
 					);
-					declaredIndexes.delete(match[2] ?? '');
+					declaredIndexes.delete(match[3] ?? '');
 				}
 				for (const match of sql.matchAll(/DROP TABLE (IF EXISTS )?"([^"]+)"/g)) {
 					assert.ok(
