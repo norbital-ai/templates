@@ -1,8 +1,7 @@
 <script lang="ts">
 	/**
-	 * A leave request is four core facts — who, which leave, which entitlement account and the
-	 * requested period — plus optional
-	 * certificate evidence on time off.
+	 * A leave request is four core facts — who, which leave, which entitlement and the requested
+	 * period — plus optional certificate evidence on time off.
 	 *
 	 * The auto form painted all twelve columns. `kind`, `from_date`, `to_date`, `days`,
 	 * `half_day_start`, `half_day_end`, `reason` and `summary` are `generatedAlwaysAs` projections of
@@ -21,11 +20,14 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { decodeNumber } from '@norbital-ai/std/json';
+	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { getContext } from 'svelte';
 	import { defaultTimeOffEvent } from '../../datatypes/leave_event/+definition.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
+	import { inForceSettings } from '../../lib/ui/settings-scope.js';
 	import {
 		LEAVE_REQUEST_CREATE_SCOPE,
 		type LeaveRequestCreateScope
@@ -35,7 +37,7 @@
 	const { t } = useI18n<TenantI18nKeys>();
 	const createScope = getContext<LeaveRequestCreateScope | undefined>(LEAVE_REQUEST_CREATE_SCOPE);
 	const scopedEmploymentId = $derived(createScope?.employmentId());
-	const scopedCompanyId = $derived(createScope?.companyId());
+	const scopedSettingsCode = $derived(createScope?.settingsCode());
 	const formValues = $derived(
 		record ?? {
 			...(scopedEmploymentId ? { employment_id: scopedEmploymentId } : {}),
@@ -79,6 +81,24 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
+
+	/**
+	 * The ledger of the entitlement this request draws on, read-only: every posted movement, so the
+	 * balance the request was measured against can be traced line by line from its own sheet.
+	 */
+	const ledgerQuery = $derived(
+		record?.leave_entitlement_id
+			? client.db.leave_entries.findMany({
+					where: {
+						leave_entitlement_id: { eq: record.leave_entitlement_id },
+						approval_id: { isNull: true }
+					},
+					orderBy: { effective_on: 'desc' },
+					limit: 500
+				})
+			: null
+	);
+	const ledger = $derived(ledgerQuery?.current ?? []);
 </script>
 
 <svelte:head>
@@ -124,17 +144,20 @@
 						[leaveType.code, leaveType.name]
 							.filter((part) => part != null && part !== '')
 							.join(' · ') || '—',
-					where: scopedCompanyId ? { company_id: { eq: scopedCompanyId } } : undefined,
+					// The lineage's version in force today: the catalogue a new request draws on.
+					where: scopedSettingsCode
+						? { leave_type_settings: { some: inForceSettings(scopedSettingsCode, todayKey()) } }
+						: undefined,
 					orderBy: { code: 'asc' },
 					limit: 500
 				}}
 			/>
 			<Field
-				name="leave_account_id"
-				label="Leave account"
+				name="leave_entitlement_id"
+				label={t('component.leave_entitlement')}
 				relationOptions={{
-					label: (account) =>
-						`${account.leave_name} · ${account.account_kind === 'EVENT' ? account.event_reference : account.leave_year} · ${account.accrual_kind === 'UNLIMITED' ? 'unmetered' : `${account.entitlement_days}d`}`,
+					label: (entitlement) =>
+						`${entitlement.leave_name} · ${entitlement.leave_year} · ${entitlement.accrual_kind === 'UNLIMITED' ? t('component.accrual_unlimited') : `${entitlement.entitlement_days}d`}`,
 					where: {
 						employment_id: {
 							eq:
@@ -159,6 +182,47 @@
 			<Column span="all"
 				><Field name="certificate_file" label={t('component.certificate')} /></Column
 			>
+			{#if record != null && ledgerQuery != null}
+				<Column span="all">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">{t('component.leave_ledger')}</h3>
+						{#if ledgerQuery.error != null}
+							<p class="text-sm text-destructive">{ledgerQuery.error.message}</p>
+						{:else if ledger.length === 0}
+							<p class="text-meta">{t('component.leave_ledger_empty')}</p>
+						{:else}
+							<div class="overflow-x-auto rounded-lg border">
+								<table class="w-full text-sm">
+									<thead class="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+										<tr>
+											<th class="px-3 py-2 font-medium">{t('component.effective_date')}</th>
+											<th class="px-3 py-2 font-medium">{t('component.movement')}</th>
+											<th class="px-3 py-2 text-right font-medium">{t('component.days')}</th>
+											<th class="px-3 py-2 font-medium">{t('component.reason')}</th>
+										</tr>
+									</thead>
+									<tbody>
+										{#each ledger as entry (entry.id)}
+											<tr class="border-b last:border-0">
+												<td class="px-3 py-2 tabular-nums"
+													>{formatCalendarDate(entry.effective_on)}</td
+												>
+												<td class="px-3 py-2">{entry.kind}</td>
+												<td class="px-3 py-2 text-right tabular-nums"
+													>{decodeNumber(entry.days) > 0 ? '+' : ''}{formatNumeric(
+														decodeNumber(entry.days)
+													)}</td
+												>
+												<td class="px-3 py-2 text-muted-foreground">{entry.reason}</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						{/if}
+					</Stack>
+				</Column>
+			{/if}
 		</Grid>
 	{/snippet}
 </CollectionForm>

@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { KIOSK_MODEL_BASE } from '../src/lib/kiosk/config.ts';
+import { readdir, readFile } from 'node:fs/promises';
 import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
 import {
 	COMPANY_ID,
@@ -16,12 +15,33 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-kiosk');
 		try {
+			// The kiosk resolves its model base from the chunk's own URL (`../models/human/` beside
+			// `assets/`), because a hosted release is served only under a versioned static root. The
+			// proof is end to end on this host: find the built chunk that carries the reference, fetch
+			// it from where the host serves the bundle, then fetch every model pair through the same
+			// relative resolution the browser performs from that chunk's URL.
+			const assetsDirectory = new URL('../.norbital/dist/assets/', import.meta.url);
+			const chunks = (await readdir(assetsDirectory)).filter((name) => name.endsWith('.js'));
+			const chunkSources = await Promise.all(
+				chunks.map(async (name) => [name, await readFile(new URL(name, assetsDirectory), 'utf8')])
+			);
+			const modelChunk = chunkSources.find(([, source]) => source.includes('../models/human/'));
+			assert.ok(modelChunk, 'one built chunk under assets/ references ../models/human/');
+			assert.match(
+				modelChunk[1]!,
+				/import\.meta\.url/,
+				'the model base is resolved from the chunk URL, not a fixed path'
+			);
+			const chunkUrl = `${session.host.baseUrl}/__bolt/static/assets/${modelChunk[0]}`;
+			const served = await fetch(chunkUrl, { headers: bearerHeaders(session.credential) });
+			assert.equal(served.status, 200, `Published chunk ${modelChunk[0]}`);
+			const modelBase = new URL('../models/human/', chunkUrl);
+			assert.equal(modelBase.pathname, '/__bolt/static/models/human/');
 			for (const model of ['antispoof', 'blazeface', 'facemesh', 'faceres', 'iris']) {
 				for (const suffix of ['.json', '.bin']) {
-					const response = await fetch(
-						`${session.host.baseUrl}${KIOSK_MODEL_BASE}/${model}${suffix}`,
-						{ headers: bearerHeaders(session.credential) }
-					);
+					const response = await fetch(new URL(`${model}${suffix}`, modelBase), {
+						headers: bearerHeaders(session.credential)
+					});
 					assert.equal(response.status, 200, `Published face model ${model}${suffix}`);
 					const packaged = await readFile(
 						new URL(`../node_modules/@vladmandic/human/models/${model}${suffix}`, import.meta.url)

@@ -1,42 +1,40 @@
-import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import { refuseUnlessDraftOnBoth } from '../../lib/settings_seal.js';
 import type { Hooks } from './$types.js';
 
 /**
- * Statutory schemes are pure law transcription, scoped to a statutory profile and sealed with it.
+ * Statutory schemes are rows of one jurisdiction settings version and are sealed with it.
  *
- * The profile's period is when the version governs — per-scheme effective dating is gone. What the
- * hook holds is the **seal**: a scheme of a SEALED or VOIDED profile refuses create, update and
- * delete, because a contribution rule a paid run was charged under cannot be rewritten. A change
- * of law enacts a new profile version through the approval flow.
+ * The version's period is when the scheme governs; per-scheme effective dating is gone. What the
+ * hook holds is the **seal**: a scheme of a sealed version refuses create, update and delete,
+ * because a contribution rule a paid run was charged under cannot be rewritten. A change of law
+ * is a new version of the settings.
  */
 export default {
 	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses any write on a scheme whose statutory profile is SEALED or VOIDED; schemes of a DRAFT profile may be prepared and edited until the seal.',
-				handler: ({ input, existing, api }) => {
-					const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
-					if (profileId == null)
-						refuse('A statutory contribution states the statutory profile it belongs to.');
-					return Effect.flatMap(
-						api.db.jurisdictions.findFirst({
-							where: { id: { eq: String(profileId) } },
-							columns: { lifecycle: true }
-						}),
-						(profile) => {
-							if (profile == null)
-								refuse('The statutory profile this scheme names does not exist.');
-							if (profile.lifecycle !== 'DRAFT')
-								refuse(
-									'The statutory profile this scheme belongs to is sealed, so its schemes are ' +
-										'frozen. Enact a new profile version to change the law transcription.'
-								);
-							return Effect.succeed(input);
-						}
-					);
-				}
+					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal.',
+				handler: ({ input, existing, api }) =>
+					Effect.map(
+						refuseUnlessDraftOnBoth(
+							api,
+							existing?.settings_id,
+							input.settings_id,
+							`Scheme ${String(input.code ?? existing?.code ?? '')}`
+						),
+						() => input
+					)
+			}
+		}
+	},
+	delete: {
+		perRecord: {
+			before: {
+				description: 'Refuses deleting a scheme whose jurisdiction settings version is sealed.',
+				handler: ({ existing, api }) =>
+					refuseUnlessDraftOnBoth(api, existing.settings_id, undefined, `Scheme ${existing.code}`)
 			}
 		}
 	}

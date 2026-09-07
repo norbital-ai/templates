@@ -3,8 +3,35 @@
  * faces) and the tablet run that follows it — retune here, in one place, when device numbers land.
  */
 
-/** Packaged by Vite from the pinned Human dependency; no install script or CDN is needed. */
-export const KIOSK_MODEL_BASE = '/__bolt/static/models/human';
+/**
+ * Where the face models live, resolved from this chunk's own URL.
+ *
+ * The `kiosk-face-models` plugin in `vite.config.ts` packages the five model pairs from the pinned
+ * Human dependency at `models/human/<name>` beside the `assets/` directory this chunk is built into,
+ * so one level up is right wherever the release is served. Colony serves a release's static files
+ * only under `/__bolt/static/<tenant>/<environment>/<release>/…`, and the absolute, unversioned
+ * `/__bolt/static/models/human` this used to be was a genuine 404 on every hosted tenant: Human
+ * logged `error loading model` for iris and antispoof, then `detect` threw from inside its own
+ * promise and enrollment never completed. Not `?url` imports: Human loads each `.bin` by the relative
+ * name written inside the `.json` weights manifest, and Vite would hash the `.bin` names apart from
+ * the manifest. The `@vite-ignore` marks the directory reference as deliberate; Vite leaves it for
+ * the browser to resolve.
+ */
+export const KIOSK_MODEL_BASE = new URL(/* @vite-ignore */ '../models/human/', import.meta.url)
+	.href;
+
+/**
+ * The Human model keys the kiosk's configuration enables, as `human.models.loaded()` names them.
+ * Every one must be loaded before the scan loop may run: a missing description or iris graph does
+ * not fail `load()`, it fails `detect()` on the first face, which is the silence B6 describes.
+ */
+export const KIOSK_REQUIRED_MODELS: readonly string[] = [
+	'blazeface',
+	'facemesh',
+	'iris',
+	'faceres',
+	'antispoof'
+];
 
 /** Cosine distance at or below which a probe counts as the enrolled person. */
 export const KIOSK_MATCH_THRESHOLD = 0.4;

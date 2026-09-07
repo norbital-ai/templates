@@ -14,7 +14,7 @@ import {
 	publicSeedDirectory,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
-import { leaveAccountIdFor } from '../src/lib/leave/entitlements.ts';
+import { leaveEntitlementIdFor } from '../src/lib/leave/entitlements.ts';
 
 const patternOf = (): unknown => {
 	const terms = JSON.parse(
@@ -28,9 +28,9 @@ const patternOf = (): unknown => {
 /**
  * HR settlement union, COMMUTE arm, end-to-end on the public seed.
  *
- * A March-2025 joiner on a MYR 2,600 monthly salary whose annual plan commutes
- * (÷26) gets a 2025 account that cashes out at year end: one COMMUTED −8 line
- * receipting 800 owed, the old account closed, and nothing carried into 2026.
+ * A March-2025 joiner on a MYR 2,600 monthly salary whose annual leave type commutes
+ * (÷26) gets a 2025 entitlement that cashes out at year end: one COMMUTED −8 line
+ * receipting 800 owed, the old row closed, and nothing carried into 2026.
  * The payout row the close wrote prints on the January slip as a LEAVE_PAYOUT base line.
  */
 test(
@@ -85,7 +85,7 @@ test(
 			const started = await postGuestCommand(
 				session.host.baseUrl,
 				'automations.start',
-				{ name: 'leave_ledger_refresh', input: { employment_ids: [employmentId] } },
+				{ name: 'leave_ledger_refresh', input: { company_id: COMPANY_ID } },
 				bearerHeaders(session.credential)
 			);
 			assert.ok(
@@ -93,41 +93,41 @@ test(
 				`automations.start ${started.status}: ${JSON.stringify(started.value)}`
 			);
 
-			const account2025 = leaveAccountIdFor({
+			const entitlement2025 = leaveEntitlementIdFor({
 				employment_id: employmentId,
 				leave_code: 'ANNUAL',
 				leave_year: 2025
 			});
-			const accounts = await session.query(
-				`select id, status, entitlement_days from leave_accounts where id = $1`,
-				[account2025]
+			const entitlements = await session.query(
+				`select id, status, entitlement_days from leave_entitlements where id = $1`,
+				[entitlement2025]
 			);
-			assert.equal(accounts.length, 1, 'the 2025 annual account was generated');
-			assert.equal(Number(accounts[0].entitlement_days), 8);
-			assert.equal(accounts[0].status, 'CLOSED');
+			assert.equal(entitlements.length, 1, 'the 2025 annual entitlement was generated');
+			assert.equal(Number(entitlements[0].entitlement_days), 8);
+			assert.equal(entitlements[0].status, 'CLOSED');
 
 			const entries = (await session.query(
 				`select kind, days, source_key, reason from leave_entries
-				 where leave_account_id = $1 order by effective_on, kind`,
-				[account2025]
+				 where leave_entitlement_id = $1 order by effective_on, kind`,
+				[entitlement2025]
 			)) as ReadonlyArray<Record<string, unknown>>;
 			const commuted = entries.filter((row) => row.kind === 'COMMUTED');
 			assert.equal(commuted.length, 1, JSON.stringify(entries));
 			assert.equal(Number(commuted[0]?.days), -8);
-			assert.equal(commuted[0]?.source_key, `close:${account2025}:commute`);
+			assert.equal(commuted[0]?.source_key, `close:${entitlement2025}:commute`);
 			assert.match(String(commuted[0]?.reason), /8 unused days/);
 			const rerun = await postGuestCommand(
 				session.host.baseUrl,
 				'automations.start',
-				{ name: 'leave_ledger_refresh', input: { employment_ids: [employmentId] } },
+				{ name: 'leave_ledger_refresh', input: { company_id: COMPANY_ID } },
 				bearerHeaders(session.credential)
 			);
 			assert.ok(rerun.status < 300, JSON.stringify(rerun.value));
 			assert.equal(
 				(
 					await session.query(
-						`select id from leave_entries where leave_account_id = $1 and kind = 'COMMUTED'`,
-						[account2025]
+						`select id from leave_entries where leave_entitlement_id = $1 and kind = 'COMMUTED'`,
+						[entitlement2025]
 					)
 				).length,
 				1,
@@ -161,9 +161,9 @@ test(
 			assert.equal(Number(line.amount), 800);
 
 			const carried = await session.query(
-				`select kind from leave_entries where leave_account_id = $1 and kind = 'CARRY_FORWARD'`,
+				`select kind from leave_entries where leave_entitlement_id = $1 and kind = 'CARRY_FORWARD'`,
 				[
-					leaveAccountIdFor({
+					leaveEntitlementIdFor({
 						employment_id: employmentId,
 						leave_code: 'ANNUAL',
 						leave_year: 2026

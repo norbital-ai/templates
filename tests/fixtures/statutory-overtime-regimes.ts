@@ -2,7 +2,7 @@
  * Statutory overtime ladders and limits copied from the sealed jurisdiction snapshots.
  *
  * These are the well-crafted seeds the isolated suite prices against: the same `overtime_rules`
- * and `overtime_limits` the engine reads off `jurisdictions.regime`. They are not a second
+ * and `overtime_limits` the engine reads off `jurisdiction_settings.regime`. They are not a second
  * source of law — change the sealed snapshot and update this file to match.
  */
 

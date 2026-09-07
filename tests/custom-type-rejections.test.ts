@@ -4,12 +4,11 @@ import { describe, it } from 'node:test';
 import { instantRangeSchema } from '@norbital-ai/bolt/authoring';
 import { componentDefinitionSchema } from '../src/datatypes/component_definition/+definition.js';
 import { contributionTreatmentSchema } from '../src/datatypes/contribution_treatment/+definition.js';
-import { eligibilityRulesSchema } from '../src/datatypes/eligibility_rules/+definition.js';
 import { componentEntryEventSchema } from '../src/datatypes/component_entry_event/+definition.js';
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
-import { overtimeTreatmentScheduleSchema } from '../src/datatypes/overtime_treatment_schedule/+definition.js';
+import { contributionTreatmentsSchema } from '../src/datatypes/contribution_treatments/+definition.js';
+import { ordinaryRateSchema } from '../src/datatypes/ordinary_rate/+definition.js';
 import { payComponentPolicySchema } from '../src/datatypes/pay_component_policy/+definition.js';
-import { statutoryLeaveProfileSchema } from '../src/datatypes/statutory_leave_profile/+definition.js';
 
 /**
  * What these custom types *refuse*, asserted rather than inferred.
@@ -90,32 +89,6 @@ describe('contribution_treatment', () => {
 	});
 });
 
-describe('eligibility_rules', () => {
-	it('accepts an empty rule list, which means everyone', () => {
-		assert.ok(accepts(eligibilityRulesSchema, []));
-	});
-
-	// An empty `in` is not "matches everything": it is a predicate nothing satisfies, so it would
-	// disqualify every employee while looking like an unset filter.
-	it('refuses a predicate whose list is empty', () => {
-		assert.ok(refuses(eligibilityRulesSchema, [{ field: 'GENDER', in: [] }]));
-		assert.ok(refuses(eligibilityRulesSchema, [{ field: 'DEPARTMENT', in: [] }]));
-		assert.ok(refuses(eligibilityRulesSchema, [{ field: 'DEPARTMENT', in: [''] }]));
-	});
-
-	it('refuses a non-integer or negative service bound, and an unknown member', () => {
-		assert.ok(accepts(eligibilityRulesSchema, [{ field: 'SERVICE_MONTHS', from: 0, to: null }]));
-		assert.ok(refuses(eligibilityRulesSchema, [{ field: 'SERVICE_MONTHS', from: -1, to: null }]));
-		assert.ok(
-			refuses(eligibilityRulesSchema, [{ field: 'SERVICE_MONTHS', from: Number.NaN, to: null }])
-		);
-		assert.ok(
-			refuses(eligibilityRulesSchema, [{ field: 'SERVICE_MONTHS', from: 0, to: null, until: 3 }])
-		);
-		assert.ok(refuses(eligibilityRulesSchema, [{ field: 'TENURE', in: ['X'] }]));
-	});
-});
-
 describe('component_entry_event', () => {
 	// The union that states WHY a component entry exists. What it does NOT carry is the point: no
 	// employment, no component, no amount — those are columns on the row, because a foreign key and
@@ -164,10 +137,8 @@ describe('component_entry_event', () => {
 });
 
 describe('leave_entitlement', () => {
-	// The STATUTORY arm this union once carried moved into the statutory profile's
-	// `statutory_leave` member; what remains are the company's own layers. The `accrual_key`
-	// datatype, the `MAX_WITH_COMPANY_LAYERS` merge marker and the layer `authority` /
-	// `effective_range` moved to the containing leave plan: the band sits on the layer itself.
+	// The company's service bands, statutory or not: the band sits on the layer itself and the
+	// row that carries it says whether it is the law (`is_statutory`, `authority`).
 	const layer = {
 		level: 'ORGANISATION',
 		band_from: 0,
@@ -248,83 +219,8 @@ describe('leave_entitlement', () => {
 	});
 });
 
-describe('statutory_leave_profile', () => {
-	const eventLeave = {
-		kind: 'SHARED_PARENTAL',
-		account_basis: 'EVENT',
-		qualifying_service_months: 3,
-		vesting: 'UPFRONT',
-		event: { window_months: 12, allocation: 'HOUSEHOLD' },
-		ladder: [{ band_from: 0, days: 50 }],
-		per_child: null,
-		max_days: 50,
-		transition: 'NEXT_LEAVE_YEAR',
-		settlement: { settlement: 'FORFEIT' },
-		exit: { exit: 'FORFEIT' },
-		authority: 'Fixture statutory source'
-	};
-
-	it('accepts event coverage and refuses carry or a missing event window', () => {
-		assert.ok(accepts(statutoryLeaveProfileSchema, [eventLeave]));
-		assert.ok(
-			accepts(statutoryLeaveProfileSchema, [
-				{
-					...eventLeave,
-					event: {
-						window_months: 12,
-						allocation: 'HOUSEHOLD',
-						unit: 'WEEKS',
-						weekly_index_cap: 6
-					}
-				}
-			])
-		);
-		assert.ok(
-			refuses(statutoryLeaveProfileSchema, [
-				{
-					...eventLeave,
-					event: { window_months: 12, allocation: 'HOUSEHOLD', unit: 'WEEKS' }
-				}
-			])
-		);
-		assert.ok(refuses(statutoryLeaveProfileSchema, [{ ...eventLeave, event: undefined }]));
-		assert.ok(
-			refuses(statutoryLeaveProfileSchema, [
-				{
-					...eventLeave,
-					settlement: { settlement: 'CARRY', limit_days: 1, expiry_months: 1, coverage: null }
-				}
-			])
-		);
-		assert.ok(
-			refuses(statutoryLeaveProfileSchema, [
-				{ ...eventLeave, settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' } }
-			])
-		);
-	});
-
-	it('accepts carry, commute and forfeit settlements on yearly leave', () => {
-		const yearly = { ...eventLeave };
-		delete yearly.account_basis;
-		delete yearly.event;
-		for (const settlement of [
-			{ settlement: 'FORFEIT' },
-			{ settlement: 'CARRY', limit_days: null, expiry_months: 12, coverage: ['SG_PART_IV'] },
-			{ settlement: 'COMMUTE', pay_basis: 'MONTHLY_DIV30' }
-		]) {
-			assert.ok(accepts(statutoryLeaveProfileSchema, [{ ...yearly, settlement }]));
-		}
-	});
-});
-
 describe('pay_component_policy', () => {
-	const treatment = {
-		statutory_contribution_id: '7f9c8b2e-4c1a-4d3b-9f6e-2a1b3c4d5e6f',
-		authority: 'EPF Act',
-		treatment: { kind: 'INCLUDE' },
-		effective_range: RANGE
-	};
-	const policy = { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [treatment] };
+	const policy = { kind: 'EARNING', settlement: 'ADD' };
 
 	it('accepts an earning that adds', () => {
 		assert.ok(accepts(payComponentPolicySchema, policy));
@@ -337,28 +233,10 @@ describe('pay_component_policy', () => {
 		assert.ok(refuses(payComponentPolicySchema, { ...policy, kind: 'PENALTY' }));
 	});
 
-	it('refuses a treatment with no authority or a non-UUID contribution', () => {
-		assert.ok(
-			refuses(payComponentPolicySchema, {
-				...policy,
-				statutory_treatments: [{ ...treatment, authority: '' }]
-			})
-		);
-		assert.ok(
-			refuses(payComponentPolicySchema, {
-				...policy,
-				statutory_treatments: [{ ...treatment, statutory_contribution_id: 'epf' }]
-			})
-		);
-	});
-
-	it('refuses an excess key inside a nested treatment', () => {
-		assert.ok(
-			refuses(payComponentPolicySchema, {
-				...policy,
-				statutory_treatments: [{ ...treatment, capped: true }]
-			})
-		);
+	// Chargeability moved to `contribution_treatments`; a policy still carrying the old list is a
+	// row written against the previous shape and must be reported, not silently narrowed.
+	it('refuses the statutory treatments the policy no longer carries', () => {
+		assert.ok(refuses(payComponentPolicySchema, { ...policy, statutory_treatments: [] }));
 	});
 });
 
@@ -411,7 +289,7 @@ describe('component_definition', () => {
 
 	const capLayer = {
 		level: 'ORGANISATION',
-		eligibility: [],
+		eligibility: '',
 		authority: 'Policy',
 		award: { kind: 'FIXED', amount: 500 },
 		reimbursement_percentage: 100,
@@ -482,56 +360,72 @@ describe('component_definition', () => {
 	});
 });
 
-describe('overtime_treatment_schedule', () => {
-	const entry = {
-		authority: 'EPF Act 1991 s.2 — "wages" expressly excludes overtime payment',
-		treatment: { kind: 'EXCLUDE' },
-		effective_range: RANGE
-	};
-
-	it('accepts a schedule, including the successor an amendment writes', () => {
-		assert.ok(accepts(overtimeTreatmentScheduleSchema, [entry]));
+describe('contribution_treatments', () => {
+	it('accepts a map of scheme code to treatment, including a special rule', () => {
 		assert.ok(
-			accepts(overtimeTreatmentScheduleSchema, [
-				{ ...entry, treatment: { kind: 'INCLUDE' } },
-				{ ...entry, treatment: { kind: 'SPECIAL', rule: 'VN_OT_PREMIUM' } }
-			])
+			accepts(contributionTreatmentsSchema, {
+				EPF: { kind: 'EXCLUDE' },
+				SOCSO: { kind: 'INCLUDE' },
+				PCB: { kind: 'SPECIAL', rule: 'BONUS_SPREAD' }
+			})
 		);
 	});
 
 	/*
-	 * An empty schedule is a scheme nobody has decided, and it has to survive the schema so that
-	 * VALIDATE can name the row and refuse the run. Refusing it here would move a payroll fault into
-	 * a write error on an unrelated edit, and would make a jurisdiction unseedable until every
-	 * scheme's overtime position had been researched in one sitting.
+	 * An empty map is a component nobody has decided for any scheme, and it has to survive the
+	 * schema so that VALIDATE can name the component and the scheme and refuse the run. Refusing it
+	 * here would move a payroll fault into a write error on an unrelated edit.
 	 */
-	it('accepts an empty schedule, which VALIDATE refuses rather than the schema', () => {
-		assert.ok(accepts(overtimeTreatmentScheduleSchema, []));
+	it('accepts an empty map, which VALIDATE and ACCUMULATE refuse rather than the schema', () => {
+		assert.ok(accepts(contributionTreatmentsSchema, {}));
 	});
 
-	it('refuses an entry with no cited authority', () => {
-		assert.ok(refuses(overtimeTreatmentScheduleSchema, [{ ...entry, authority: '' }]));
+	it('refuses an empty scheme code', () => {
+		assert.ok(refuses(contributionTreatmentsSchema, { '': { kind: 'INCLUDE' } }));
 	});
 
-	it('refuses a treatment or a range the nested schemas would refuse on their own', () => {
-		assert.ok(
-			refuses(overtimeTreatmentScheduleSchema, [{ ...entry, treatment: { kind: 'NONE' } }])
-		);
-		assert.ok(
-			refuses(overtimeTreatmentScheduleSchema, [
-				{ ...entry, treatment: { kind: 'SPECIAL', rule: '' } }
-			])
-		);
-		assert.ok(
-			refuses(overtimeTreatmentScheduleSchema, [
-				{ ...entry, effective_range: { start: RANGE.start } }
-			])
-		);
+	it('refuses a cell the treatment schema would refuse on its own', () => {
+		assert.ok(refuses(contributionTreatmentsSchema, { EPF: { kind: 'NONE' } }));
+		assert.ok(refuses(contributionTreatmentsSchema, { EPF: { kind: 'SPECIAL', rule: '' } }));
 	});
 
-	it('refuses an excess key rather than stripping it', () => {
+	it('refuses the dated, cited entry shape the old schedule carried', () => {
 		assert.ok(
-			refuses(overtimeTreatmentScheduleSchema, [{ ...entry, statutory_contribution_id: 'x' }])
+			refuses(contributionTreatmentsSchema, {
+				EPF: { kind: 'EXCLUDE', authority: 'EPF Act 1991 s.2', effective_range: RANGE }
+			})
+		);
+	});
+});
+
+describe('ordinary_rate', () => {
+	it('accepts the five seeded derivations', () => {
+		for (const rate of [
+			{ per: 'DAY', divisor: 26 },
+			{ per: 'DAY', divisor: 30 },
+			{ per: 'DAY', divisor: 21.75 },
+			{ per: 'HOUR', divisor: 190.66666666666666 },
+			{ per: 'HOUR', divisor: 173 }
+		])
+			assert.ok(accepts(ordinaryRateSchema, rate), JSON.stringify(rate));
+	});
+
+	it('refuses a divisor that is not a positive finite number', () => {
+		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: 0 }));
+		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: -26 }));
+		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: '26' }));
+		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY' }));
+	});
+
+	it('refuses the old two-column vocabulary and any other unit', () => {
+		assert.ok(refuses(ordinaryRateSchema, { per: 'DAYS_PER_MONTH', divisor: 26 }));
+		assert.ok(refuses(ordinaryRateSchema, { per: 'WEEK', divisor: 5 }));
+		assert.ok(
+			refuses(ordinaryRateSchema, {
+				per: 'DAY',
+				divisor: 26,
+				ordinary_rate_basis: 'DAYS_PER_MONTH'
+			})
 		);
 	});
 });

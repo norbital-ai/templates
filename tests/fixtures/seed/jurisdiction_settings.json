@@ -1,0 +1,29 @@
+[
+	{
+		"id": "22222222-2222-4222-8222-222222222222",
+		"code": "PUB",
+		"name": "Public fixture profile",
+		"sealed_at": "2020-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"currency": "MYR",
+		"tax_year_start_month": 1,
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": {
+			"per": "DAY",
+			"divisor": 26
+		},
+		"effective_range": {
+			"start": "2020-01-01",
+			"end": null
+		},
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [],
+			"overtime_limits": []
+		}
+	}
+]

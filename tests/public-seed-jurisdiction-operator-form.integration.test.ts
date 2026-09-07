@@ -11,7 +11,7 @@ import {
 	JURISDICTION_OPERATOR_HIDDEN_FIELDS,
 	JURISDICTION_OPERATOR_VISIBLE_FIELDS,
 	jurisdictionOperatorFieldNames
-} from '../src/collections/jurisdictions/operator-form.ts';
+} from '../src/collections/jurisdiction_settings/operator-form.ts';
 
 const fieldName = (value: unknown): string | undefined => {
 	if (typeof value === 'string' && value.length > 0) return value;
@@ -37,18 +37,20 @@ const mutationFieldNames = (fields: unknown): string[] => {
 };
 
 /**
- * H7: the operator form the representation consumes hides successor / void and still
- * declares every mutable jurisdiction field. Live `workspace.manifest`, not a source grep.
+ * H7: the operator form the representation consumes hides the seal, the void and the clone
+ * provenance (the timeline's actions, never typed) and still declares every mutable settings
+ * field. Live `workspace.manifest`, not a source grep.
  */
 test(
-	'public seed jurisdiction operator form hides successor and void against the live catalog',
+	'public seed settings operator form declares every mutable field against the live catalog',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-h7-operator-form');
 		try {
-			const seeded = await session.query('select id, code from jurisdictions where id = $1', [
-				JURISDICTION_ID
-			]);
+			const seeded = await session.query(
+				'select id, code from jurisdiction_settings where id = $1',
+				[JURISDICTION_ID]
+			);
 			assert.deepEqual(seeded, [{ id: JURISDICTION_ID, code: 'PUB' }]);
 
 			const manifest = requireOk(
@@ -62,20 +64,21 @@ test(
 			);
 			const collections = asRecord(manifest, 'workspace.manifest').collections;
 			assert.ok(Array.isArray(collections), 'workspace.manifest collections must be an array');
-			const jurisdictions = collections.find(
+			const settings = collections.find(
 				(entry): entry is Readonly<Record<string, unknown>> =>
 					typeof entry === 'object' &&
 					entry !== null &&
 					!Array.isArray(entry) &&
-					Reflect.get(entry, 'name') === 'jurisdictions'
+					Reflect.get(entry, 'name') === 'jurisdiction_settings'
 			);
-			assert.ok(jurisdictions, 'workspace.manifest must include jurisdictions');
+			assert.ok(settings, 'workspace.manifest must include jurisdiction_settings');
 
-			const catalog = mutationFieldNames(jurisdictions.fields);
+			const catalog = mutationFieldNames(settings.fields);
 			assert.deepEqual(
 				[...JURISDICTION_OPERATOR_HIDDEN_FIELDS],
-				['successor_profile_id', 'void_reason', 'supersedes_id']
+				['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id', 'research_notes']
 			);
+			assert.ok(JURISDICTION_OPERATOR_VISIBLE_FIELDS.includes('ordinary_rate'));
 			assert.equal(
 				new Set(jurisdictionOperatorFieldNames()).size,
 				jurisdictionOperatorFieldNames().length,

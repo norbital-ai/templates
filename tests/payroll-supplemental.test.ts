@@ -11,73 +11,53 @@ import hooks from '../src/collections/payroll_runs/+hooks.ts';
 import {
 	createPublicPayrollWorld,
 	COMPANY_ID,
-	EMPLOYMENT_ID,
-	JURISDICTION_ID
+	JURISDICTION_ID,
+	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
 test('payroll formula reads the sealed account ledger without recalculating historical policy', async () => {
 	const world = createPublicPayrollWorld();
-	world.leave_plans.length = 0;
-	world.jurisdictions[0].effective_range = { start: '2026-01-01', end: null };
-	const leavePlanId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+	world.jurisdiction_settings[0].effective_range = { start: '2026-01-01', end: null };
 	const leaveTypeId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
-	const leaveAccountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
-	world.leave_plans.push({
-		id: leavePlanId,
-		company_id: COMPANY_ID,
-		code: 'STANDARD',
-		name: 'Standard leave plan',
-		lifecycle: 'ACTIVE',
-		transition: 'NEXT_LEAVE_YEAR',
-		effective_range: { start: '2026-01-01', end: null },
-		approval_id: null
-	});
+	const leaveEntitlementId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
 	world.leave_types.push({
 		id: leaveTypeId,
-		company_id: COMPANY_ID,
-		leave_plan_id: leavePlanId,
+		settings_id: JURISDICTION_ID,
 		code: 'ANNUAL',
-		statutory_kind: 'ANNUAL',
-		eligibility: [],
+		name: 'Annual leave',
+		is_statutory: true,
+		authority: 'Fixture',
+		eligibility: '',
 		accrual: {
 			kind: 'UPFRONT',
-			settlement: { settlement: 'CARRY', limit_days: 8, expiry_months: 12, coverage: null }
+			settlement: { settlement: 'CARRY', limit_days: 8, expiry_months: 12 }
 		},
-		entitlement: { layers: [] },
+		entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 8 }] },
+		exit_settlement: { exit: 'FORFEIT' },
 		payroll_effect: { kind: 'PAID' },
 		approval_id: null
 	});
-	world.leave_accounts.push({
-		id: leaveAccountId,
+	world.leave_entitlements.push({
+		id: leaveEntitlementId,
 		employment_id: EMPLOYMENT_ID,
 		leave_type_id: leaveTypeId,
 		leave_code: 'ANNUAL',
 		leave_name: 'Annual leave',
-		opening_plan_id: leavePlanId,
-		opening_statutory_profile_id: JURISDICTION_ID,
 		leave_year: 2026,
 		starts_on: '2026-01-01',
 		ends_on: '2026-12-31',
 		status: 'OPEN',
 		entitlement_days: 8,
 		accrual_kind: 'UPFRONT',
-		carry_limit_days: 8,
-		carry_expiry_months: 12,
-		calculation: {
-			calculated_on: '2026-01-01',
-			service_months: 0,
-			statutory_days: 8,
-			company_days: 0,
-			selected_days: 8,
-			formula_version: 'LEAVE_ACCOUNT_V1'
-		},
+		settlement: { settlement: 'CARRY', limit_days: 8, expiry_months: 12 },
+		exit_settlement: { exit: 'FORFEIT' },
 		approval_id: null
 	});
 	world.leave_entries.push(
 		{
 			id: 'leave-opening',
-			leave_account_id: leaveAccountId,
+			leave_entitlement_id: leaveEntitlementId,
 			kind: 'OPENING_ENTITLEMENT',
 			effective_on: '2026-01-01',
 			days: 8,
@@ -86,7 +66,7 @@ test('payroll formula reads the sealed account ledger without recalculating hist
 		},
 		{
 			id: 'leave-carry',
-			leave_account_id: leaveAccountId,
+			leave_entitlement_id: leaveEntitlementId,
 			kind: 'CARRY_FORWARD',
 			effective_on: '2026-01-01',
 			days: 3,
@@ -110,7 +90,7 @@ test('payroll formula reads the sealed account ledger without recalculating hist
 	}
 });
 
-test('companies sharing one statutory profile cannot contribute each other’s pay components', async () => {
+test('a run reads only the catalogue of the version it picked, never a sibling version’s', async () => {
 	const world = createPublicPayrollWorld();
 	const prepare = () =>
 		Effect.runPromise(
@@ -119,9 +99,26 @@ test('companies sharing one statutory profile cannot contribute each other’s p
 	const expected = buildPayrollRun(await prepare()).payslip_payroll_run;
 	const basic = world.pay_components.find((row) => row.code === 'BASIC');
 	assert.ok(basic);
+	// Two more versions of the lineage (a draft and a voided one) carry their own BASIC clones;
+	// the picked version's catalogue is the only one the run prices.
+	world.jurisdiction_settings.push(
+		{
+			...structuredClone(world.jurisdiction_settings[0]),
+			id: 'other-settings-1',
+			name: 'PF draft',
+			sealed_at: null
+		},
+		{
+			...structuredClone(world.jurisdiction_settings[0]),
+			id: 'other-settings-2',
+			name: 'PF voided',
+			voided_at: '2025-12-31T00:00:00.000Z',
+			void_reason: 'superseded'
+		}
+	);
 	world.pay_components.push(
-		{ ...structuredClone(basic), id: 'other-basic-1', company_id: 'other-company-1' },
-		{ ...structuredClone(basic), id: 'other-basic-2', company_id: 'other-company-2' }
+		{ ...structuredClone(basic), id: 'other-basic-1', settings_id: 'other-settings-1' },
+		{ ...structuredClone(basic), id: 'other-basic-2', settings_id: 'other-settings-2' }
 	);
 	const actual = buildPayrollRun(await prepare()).payslip_payroll_run;
 	assert.equal(actual[0].gross, expected[0].gross);

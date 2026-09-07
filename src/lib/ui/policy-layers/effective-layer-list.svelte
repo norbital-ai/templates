@@ -4,16 +4,16 @@
 	/**
 	 * The part of a policy layer that every layered matrix in this workspace really does agree on.
 	 *
-	 * Checked against all three, from their `+definition.ts` rather than from a description:
+	 * Checked against both, from their `+definition.ts` rather than from a description:
 	 *
-	 * | | `pay_component_policy.statutory_treatments[]` | `component_definition.cap.matrix.layers[]` | `leave_entitlement.layers[]` |
-	 * | --- | --- | --- | --- |
-	 * | discriminant | none — a flat list | `level` | `level` |
-	 * | id it names | `statutory_contribution_id`, always | `employment_id`, EMPLOYEE arm only | `employment_id`, EMPLOYEE arm only |
-	 * | nested custom type | `treatment` | `eligibility` | `key` |
-	 * | own fields | — | `award`, `reimbursement_percentage` | `days` |
-	 * | `authority` | yes | yes | yes |
-	 * | `effective_range` | yes | yes | yes |
+	 * | | `component_definition.cap.matrix.layers[]` | `leave_entitlement.layers[]` |
+	 * | --- | --- | --- |
+	 * | discriminant | `level` | `level` |
+	 * | id it names | `employment_id`, EMPLOYEE arm only | `employment_id`, EMPLOYEE arm only |
+	 * | nested custom type | `eligibility` | `key` |
+	 * | own fields | `award`, `reimbursement_percentage` | `days` |
+	 * | `authority` | yes | yes |
+	 * | `effective_range` | yes | yes |
 	 *
 	 * The last two rows are the whole of the overlap: no two of the three share a payload field, and
 	 * one of the three has no `level` at all. So this component owns the *frame* — the row list, the

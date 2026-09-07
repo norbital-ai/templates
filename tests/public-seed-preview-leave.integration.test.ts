@@ -7,7 +7,7 @@ import {
 	postGuestCommand
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ACCOUNT_ID,
+	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_REQUEST_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	EMPLOYMENT_ID,
@@ -62,7 +62,7 @@ test(
 			const browsing = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04'
 			});
 			const availability = asAvailability(browsing.availability);
@@ -78,7 +78,7 @@ test(
 			const applyable = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04',
 				exclude_request_id: ANNUAL_LEAVE_REQUEST_ID,
 				range: {
@@ -93,7 +93,7 @@ test(
 			const sundayOnly = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04',
 				range: {
 					start: { date: '2026-04-12', half: 'FIRST' },
@@ -127,7 +127,7 @@ test(
 					input: {
 						employment_id: EMPLOYMENT_ID,
 						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-						leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+						leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 						calendar_month: '2026-09',
 						range: {
 							start: { date: '2026-09-04', half: 'FIRST' },
@@ -141,8 +141,8 @@ test(
 				hqSeptember.status >= 200 && hqSeptember.status < 300,
 				`HQ preview_leave September ${hqSeptember.status}: ${JSON.stringify(hqSeptember.value)}`
 			);
-			await session.query('update leave_types set eligibility = $1::jsonb where id = $2', [
-				JSON.stringify([{ field: 'GENDER', in: ['FEMALE'] }]),
+			await session.query('update leave_types set eligibility = $1 where id = $2', [
+				'employee.gender == "FEMALE"',
 				ANNUAL_LEAVE_TYPE_ID
 			]);
 			await session.query(
@@ -152,7 +152,7 @@ test(
 			const input = {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				range: {
 					start: { date: '2026-04-15', half: 'FIRST' },
 					end: { date: '2026-04-15', half: 'SECOND' }
@@ -162,8 +162,8 @@ test(
 				asIssues((await invokePreviewLeave(session, input)).issues).some(
 					(row) => row.code === 'INELIGIBLE'
 				),
-				false,
-				'a company eligibility restriction must not erase the sealed statutory floor'
+				true,
+				'the row states who may take it: a man is refused a FEMALE-only type on the day'
 			);
 			const create = () =>
 				postGuestCommand(
@@ -179,7 +179,7 @@ test(
 									id: crypto.randomUUID(),
 									employment_id: EMPLOYMENT_ID,
 									leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-									leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+									leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 									event: {
 										kind: 'TIME_OFF',
 										range: input.range,

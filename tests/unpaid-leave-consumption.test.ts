@@ -3,14 +3,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { entryEventDate, entryPayPeriod } from '../src/collections/payroll_runs/lib/entries.ts';
 import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
-import { PLAIN_CALENDAR } from '../src/collections/payroll_runs/lib/settlement.ts';
 
 const JURISDICTION = {
 	id: 'jur-my',
 	code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate_divisor: 26,
-	ordinary_rate_basis: 'DAYS_PER_MONTH',
+	ordinary_rate: { per: 'DAY', divisor: 26 },
 	tax_year_start_month: 1,
 	effective_range: { start: '2020-01-01', end: null }
 };
@@ -18,48 +16,48 @@ const JURISDICTION = {
 const COMPANY = {
 	id: 'co-pub-my',
 	name: 'Public Fixture Co',
-	jurisdiction_id: 'jur-my',
+	settings_code: 'MY',
 	pay_cutoff_day: 21,
-	pay_day: 25,
-	leave_year_start_month: 1,
-	overtime_calculation_method: 'STATUTORY_AGGREGATE',
 	risk_class: null,
-	settlement_policy: null,
 	effective_range: { start: '2020-01-01', end: null }
 };
 
 const BASIC = {
 	id: 'pc-basic',
-	company_id: 'co-pub-my',
+	settings_id: 'jur-my',
 	code: 'BASIC',
 	name: 'Basic salary',
 	nature: 'EARNING',
-	policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
+	is_statutory: false,
+	policy: { kind: 'EARNING', settlement: 'ADD' },
+	contribution_treatments: {},
 	sequence: 10,
-	eligibility: [],
+	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 };
 
 const NPL = {
 	id: '00000000-0000-4000-8000-0000000000n1',
-	company_id: 'co-pub-my',
+	settings_id: 'jur-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
 	nature: 'ABSENCE',
-	policy: { kind: 'ABSENCE', settlement: 'DEDUCT', statutory_treatments: [] },
+	is_statutory: false,
+	policy: { kind: 'ABSENCE', settlement: 'DEDUCT' },
+	contribution_treatments: {},
 	sequence: 20,
-	eligibility: [],
+	eligibility: '',
 	definition: { source: 'FORMULA', unit: 'MONEY', expr: '100.0' }
 };
 
 const NPL_TYPE = {
 	id: '00000000-0000-4000-8000-0000000000t1',
-	company_id: 'co-pub-my',
-	leave_plan_id: 'plan-pub-my',
+	settings_id: 'jur-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
-	eligibility: [],
-	statutory_kind: null,
+	is_statutory: false,
+	authority: null,
+	eligibility: '',
 	exit_settlement: { exit: 'FORFEIT' },
 	requires_certificate_after_days: null,
 	accrual: { kind: 'UNLIMITED' },
@@ -101,7 +99,7 @@ function bundle(ledger = []) {
 			id: 'emp-nhpmy0290',
 			employee_id: 'ee-1',
 			employee_number: 'PUBEM0290',
-			company_id: 'co-pub-my',
+			settings_id: 'jur-my',
 			hire_date: '2021-06-01',
 			exit_date: null,
 			department: null,
@@ -127,7 +125,7 @@ function bundle(ledger = []) {
 		loans: [],
 		loanRepayments: [],
 		ledger,
-		leaveAccounts: [],
+		leaveEntitlements: [],
 		leaveEntries: [],
 		workDays: [],
 		serviceMonths: 58,
@@ -159,7 +157,6 @@ function measure(ledger) {
 		salary: { start: '2026-04-01', end: '2026-04-30' },
 		periodsRemaining: 9,
 		headcount: 1,
-		policy: PLAIN_CALENDAR,
 		consumedEntries: new Map(),
 		consumedRepayments: new Map()
 	});

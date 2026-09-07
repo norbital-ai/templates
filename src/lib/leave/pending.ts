@@ -10,7 +10,7 @@ export type LeaveBalanceRequest = Pick<
 	| 'id'
 	| 'employment_id'
 	| 'leave_type_id'
-	| 'leave_account_id'
+	| 'leave_entitlement_id'
 	| 'kind'
 	| 'from_date'
 	| 'to_date'
@@ -38,7 +38,7 @@ export function measuredLeaveRequestDays(request: Readonly<Record<string, unknow
 const proposalSchema = Schema.Struct({
 	employment_id: Schema.String,
 	leave_type_id: Schema.String,
-	leave_account_id: Schema.String,
+	leave_entitlement_id: Schema.String,
 	event: leaveEventValueSchema
 });
 
@@ -84,7 +84,7 @@ export function withPendingLeaveRequests(
 				id: request.id,
 				employment_id: proposal.employment_id,
 				leave_type_id: proposal.leave_type_id,
-				leave_account_id: proposal.leave_account_id,
+				leave_entitlement_id: proposal.leave_entitlement_id,
 				kind: 'TIME_OFF',
 				event: proposal.event,
 				approval_id: request.approval_id,

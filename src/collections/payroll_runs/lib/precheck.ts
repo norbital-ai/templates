@@ -22,7 +22,7 @@
 import { Effect } from 'effect';
 import { PAGE_LIMIT, type PayrollReadApi, withReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
-import type { PayrollWindow } from './period.js';
+import { cadenceWindow, employmentPayFrequency, paysOn, type PayrollWindow } from './period.js';
 import {
 	blockers,
 	rosteredWorkCodeMaps,
@@ -138,14 +138,27 @@ export function payrollRunPrecheck(options: {
 				bucket.push(term);
 				termsByEmployment.set(term.employment_id, bucket);
 			}
+			// Each employment is validated over the window its own cadence is paid on, the same
+			// resolution `gather.ts` settles it under, and one whose cadence has nothing to pay in
+			// this period (a monthly employment in a semi-monthly first half) is not in the run.
+			const company = options.configuration.company;
+			const settled = employments.flatMap((employment) => {
+				const terms = termsByEmployment.get(employment.id) ?? [];
+				const payFrequency = employmentPayFrequency(terms, options.window.salary.end);
+				const cadence = paysOn(company, payFrequency)
+					? cadenceWindow(options.window.period, company, payFrequency)
+					: options.window;
+				return cadence == null ? [] : [{ employment, terms, window: cadence.attendance }];
+			});
 			issues.push(
 				...validateRosteredExpectations({
 					period: options.window.period,
 					window: options.window.attendance,
-					employments: employments.map((employment) => ({
+					employments: settled.map(({ employment, terms: employmentTerms, window }) => ({
 						id: employment.id,
 						employee_number: employment.employee_number,
-						terms: (termsByEmployment.get(employment.id) ?? []).map((term) => ({
+						window,
+						terms: employmentTerms.map((term) => ({
 							id: term.id,
 							pay_frequency: term.pay_frequency,
 							work_pattern: term.work_pattern,

@@ -14,7 +14,7 @@ import {
 	type HeadedPage
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ACCOUNT_ID,
+	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	JURISDICTION_ID,
 	EMPLOYMENT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
@@ -553,10 +553,10 @@ it('HR self-host scheduling paints the eye filter and no Exceptions tab', async 
 });
 
 /**
- * A2 form half: sealed PUB law edit is refused and the jurisdiction sheet stays open.
- * Command half is `public-seed-jurisdiction-sealed-law.integration.test.ts`.
+ * A2 form half: a column edit on the sealed PUB settings version is refused and the form stays
+ * open. Command half is `public-seed-jurisdiction-sealed-law.integration.test.ts`.
  */
-it('HR self-host settings keeps the PUB jurisdiction sheet open after a sealed law refuse', async () => {
+it('HR self-host settings keeps the sealed PUB version form open after a refuse', async () => {
 	const session = await startPublicSeedHost('hr-payroll-a2-form', { host: '0.0.0.0' });
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
@@ -572,37 +572,49 @@ it('HR self-host settings keeps the PUB jurisdiction sheet open after a sealed l
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /PUB|Public fixture profile/, 'a2-settings');
-
+		const settings = await waitForBody(page, /Public Fixture Co/, 'a2-settings');
+		assert.match(settings, /Public Fixture Co/, 'A2 company scope');
+		assert.match(settings, /Leave types/);
+		assert.match(settings, /Pay components/);
+		assert.match(settings, /Holidays/);
+		assert.match(settings, /Versions of PUB/, 'the timeline names the lineage');
+		assert.doesNotMatch(settings, /\bCompanies\b|Research sources/);
+		await waitForBody(page, /Public fixture profile/, 'a2-version');
 		const opened = await pollEvaluate(
 			page,
 			`(() => {
-					const row = document.querySelector('[data-jurisdiction-row="${JURISDICTION_ID}"]')
-						?? [...document.querySelectorAll('[data-jurisdiction-row]')].find((button) =>
-							/PUB/.test(button.textContent ?? '')
-						);
+					const row = document.querySelector('[data-settings-version="${JURISDICTION_ID}"]');
 					if (row === null || row === undefined) return 'missing-row';
 					row.click();
-					return 'opened';
+					const status = document.querySelector('[data-settings-status]');
+					return status !== null && /In force|Sealed/.test(status.textContent ?? '') ? 'opened' : 'no-status';
 				})()`,
 			(value) => value === 'opened',
-			'a2-pub-row'
+			'a2-pub-version'
 		);
-		assert.equal(opened, 'opened', `A2 PUB row missing — stream=${await syncStreamStatusOf(page)}`);
+		assert.equal(
+			opened,
+			'opened',
+			`A2 PUB version missing — stream=${await syncStreamStatusOf(page)}`
+		);
 		const submitDeadline = Date.now() + 10_000;
 		let sheet = '';
 		while (Date.now() < submitDeadline) {
 			sheet = String(
 				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-jurisdiction-form]');
+						const form = document.querySelector('[data-settings-timeline]');
 						const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
 						if (form === null || !(field instanceof HTMLInputElement)) return 'missing-sheet';
+						// A sealed version renders read-only: the field is disabled and there is nothing to
+						// submit. The refusal the command half proves is reached here by the form's own
+						// state, which is what keeps a person from ever seeing a save fail.
+						if (field.disabled) return 'submitted';
 						field.focus();
 						field.value = '7';
 						field.dispatchEvent(new Event('input', { bubbles: true }));
 						field.dispatchEvent(new Event('change', { bubbles: true }));
 						const save = [...document.querySelectorAll('button')].find((button) =>
-							/Save jurisdiction/.test(button.textContent ?? '')
+							/Save settings/.test(button.textContent ?? '')
 						);
 						if (save === undefined) return 'missing-save';
 						save.click();
@@ -619,13 +631,16 @@ it('HR self-host settings keeps the PUB jurisdiction sheet open after a sealed l
 		while (Date.now() < afterDeadline) {
 			after = String(
 				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-jurisdiction-form]');
+						const form = document.querySelector('[data-settings-timeline]');
 						const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
+						const note = document.querySelector('[data-settings-sealed-note]');
 						const body = document.body ? document.body.innerText : '';
 						return JSON.stringify({
 							open: form !== null,
 							value: field instanceof HTMLInputElement ? field.value : null,
-							refused: /cannot change|SEALED|refused|successor/i.test(body)
+							refused:
+								(field instanceof HTMLInputElement && field.disabled && note !== null) ||
+								/cannot change|sealed, so|refused/i.test(body)
 						});
 					})()`)
 			);
@@ -676,11 +691,41 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		await managerPage.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		const manager = await waitForBody(managerPage, /Current balances/, 'h5-manager');
-		assert.match(manager, /Plans & rules/);
-		assert.match(manager, /Requests/);
+		const manager = await waitForBody(
+			managerPage,
+			/Public Fixture Employee|ANNUAL · Annual leave/,
+			'h5-manager'
+		);
 		assert.match(manager, /HR Controller/);
-		assert.match(manager, /Current balances/);
+		assert.match(manager, /Leave requests/);
+		assert.match(manager, /New Leave Request/);
+		assert.match(manager, /Public Fixture Employee/);
+		assert.match(manager, /ANNUAL · Annual leave/);
+		assert.doesNotMatch(manager, /Plans & rules|Current balances|Leave balances|Earned to date/);
+		const managerBoard = String(
+			await managerPage.evaluate(`(() => {
+					const headers = [...document.querySelectorAll('th, [role="columnheader"]')].map(
+						(node) => node.textContent?.trim() ?? ''
+					);
+					const oldTabs = [...document.querySelectorAll('[role="tab"]')].filter((node) =>
+						/Requests|Balances|Plans & rules|Accounts|Ledger/.test(node.textContent ?? '')
+					).length;
+					return JSON.stringify({ headers, oldTabs });
+				})()`)
+		);
+		const board = JSON.parse(managerBoard) as {
+			readonly headers: readonly string[];
+			readonly oldTabs: number;
+		};
+		assert.ok(
+			board.headers.some((header) => /\bBalance\b/.test(header)),
+			`H5 manager Balance column: ${managerBoard}`
+		);
+		assert.ok(
+			board.headers.some((header) => /\bPerson\b/.test(header)),
+			`H5 manager Person column: ${managerBoard}`
+		);
+		assert.equal(board.oldTabs, 0, `H5 manager old leave tabs: ${managerBoard}`);
 
 		const selfPage = await browser.openPage(selfUrl);
 		await selfPage.evaluate(
@@ -705,6 +750,9 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		);
 		assert.equal(openedLeave, 'opened');
 		const balances = await waitForBody(selfPage, /Available after pending/, 'h14-balances');
+		assert.match(balances, /Leave balances/);
+		assert.match(balances, /ANNUAL · 2026/);
+		assert.doesNotMatch(balances, /Leave requests|Plans & rules|Current balances/);
 		assert.doesNotMatch(balances, /^\s*Accrued\s*$/m);
 		assert.doesNotMatch(balances, /\nAccrued\n/);
 		assert.match(balances, /Earned to date/);
@@ -724,7 +772,7 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 							id: crypto.randomUUID(),
 							employment_id: EMPLOYMENT_ID,
 							leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-							leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+							leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 							event: {
 								kind: 'TIME_OFF',
 								range: {
@@ -956,37 +1004,25 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /Current balances|New leave request/, 'a3-leave');
+		await waitForBody(page, /Leave requests|New Leave Request/, 'a3-leave');
 		await remountImpersonatedTeam(page, 'HQ Payroll HR', 'a3');
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /Current balances|New leave request/, 'a3-preview');
-		const openedRequests = await pollEvaluate(
-			page,
-			`(() => {
-					${ACTIVATE}
-					const tab = [...document.querySelectorAll('[role="tab"]')].find((node) =>
-						/Requests/.test((node.getAttribute('aria-label') ?? '') + (node.textContent ?? ''))
-					);
-					if (!(tab instanceof HTMLElement)) return 'missing-requests';
-					if (tab.getAttribute('data-state') !== 'active') activate(tab);
-					return tab.getAttribute('data-state') === 'active' ? 'opened' : 'inactive';
-				})()`,
-			(value) => value === 'opened',
-			'a3-requests'
+		const preview = await waitForBody(page, /Leave requests|New Leave Request/, 'a3-preview');
+		assert.match(preview, /Leave requests/);
+		assert.doesNotMatch(preview, /Plans & rules|Current balances/);
+		const leaveTabs = String(
+			await page.evaluate(`(() =>
+					[...document.querySelectorAll('[role="tab"]')].filter((node) =>
+						/Requests|Balances|Plans & rules|Accounts|Ledger/.test(node.textContent ?? '')
+					).length)()`)
 		);
-		assert.equal(openedRequests, 'opened');
+		assert.equal(leaveTabs, '0', `A3 leave app still has tabs: ${leaveTabs}`);
 		const openedCreate = await pollEvaluate(
 			page,
 			`(() => {
 					${ACTIVATE}
-					const tab = [...document.querySelectorAll('[role="tab"]')].find((node) =>
-						/Requests/.test((node.getAttribute('aria-label') ?? '') + (node.textContent ?? ''))
-					);
-					if (tab instanceof HTMLElement && tab.getAttribute('data-state') !== 'active') {
-						activate(tab);
-					}
 					const create = [...document.querySelectorAll('button')].find((button) =>
 						/New leave request/i.test(
 							(button.textContent ?? '') + ' ' + (button.getAttribute('aria-label') ?? '')
@@ -1061,7 +1097,7 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		assert.equal(
 			await pollEvaluate(
 				page,
-				openField('leave_account_id'),
+				openField('leave_entitlement_id'),
 				(value) => value === 'opened',
 				'a3-account'
 			),
@@ -1070,7 +1106,7 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		assert.equal(
 			await pollEvaluate(
 				page,
-				pickExact('Annual leave · 2026', 'leave_account_id'),
+				pickExact('Annual leave · 2026', 'leave_entitlement_id'),
 				(value) => value === 'picked',
 				'a3-annual-account'
 			),

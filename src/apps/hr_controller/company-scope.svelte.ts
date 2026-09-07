@@ -40,6 +40,11 @@ export function companyById(id: string | null): CompanyScopeRow | null {
 	return companies().find((company) => String(company.id) === id) ?? null;
 }
 
+/** The live entities bound to one jurisdiction settings lineage: what a seal affects. */
+export function companiesOnLineage(code: string): ReadonlyArray<CompanyScopeRow> {
+	return companies().filter((company) => company.settings_code === code);
+}
+
 export function companyOptions(): { value: string; label: string; description?: string }[] {
 	return companies().map((company) => ({
 		value: String(company.id),

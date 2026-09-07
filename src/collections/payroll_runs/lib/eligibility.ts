@@ -1,53 +1,191 @@
 /**
  * Eligibility.
  *
- * `pay_components.eligibility` and `leave_types.eligibility` are rule lists: **all** must match, and
- * an empty list means everyone. An ineligible component produces nothing at all — no line, no feed
- * into a base, no zero row. That is what keeps `ot_eligible ? … : 0` out of formulas, and it is why
- * a manager simply has no overtime line rather than an overtime line of zero.
+ * `leave_types.eligibility`, `pay_components.eligibility` and a claim cap layer's `eligibility` are
+ * one CEL boolean expression over the person, evaluated by Reckon exactly as a pay component's
+ * `FORMULA` is (`./formula.ts`). The context is emitted whole, with empty strings and zeros rather
+ * than absences, because CEL has no `?.` and a missing key throws. An empty expression is
+ * everyone. An ineligible component produces nothing at all: no line, no feed into a base, no zero
+ * row. An ineligible leave type generates no entitlement row.
+ *
+ * ```text
+ * employee.gender  employee.age  employee.citizenship
+ * employment.type  employment.classification  employment.service_months  employment.hire_date
+ * terms.basic_salary  terms.workman  terms.department  terms.payroll_group
+ * children.count  children.under(age)
+ * ```
+ *
+ * A malformed expression is refused at write time by `compileEligibility`: it must parse, every
+ * `root.member` it names must exist in the context, and it must evaluate to a boolean against a
+ * blank person, the same way a bad formula is refused.
  */
 
-import { Schema } from 'effect';
-import type { WorkspaceRow } from '../$types.js';
+import { Effect } from 'effect';
+import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
+import { decodeNumber } from '@norbital-ai/std/json';
+import { completedMonths, completedYears } from './dates.js';
+import { dateKey } from '../../../lib/iso-day.js';
 
-type EligibilityRules = NonNullable<WorkspaceRow<'pay_components'>['eligibility']>;
+/** The person, as an expression sees them. Every key is present; nothing is null. */
+export type PersonContext = {
+	readonly employee: {
+		readonly gender: string;
+		readonly age: number;
+		readonly citizenship: string;
+	};
+	readonly employment: {
+		readonly type: string;
+		readonly classification: string;
+		readonly service_months: number;
+		readonly hire_date: string;
+	};
+	readonly terms: {
+		readonly basic_salary: number;
+		readonly workman: boolean;
+		readonly department: string;
+		readonly payroll_group: string;
+	};
+	readonly children: {
+		readonly count: number;
+		/** Completed years of each child on the rule date; `children.under(age)` counts these. */
+		readonly ages: readonly number[];
+	};
+};
 
-/** The one employment's facts an eligibility rule list is answered against. */
-const EligibilitySubjectSchema = Schema.Struct({
-	employment_type: Schema.NullOr(Schema.String),
-	work_classification: Schema.NullOr(Schema.String),
-	service_months: Schema.Number,
-	gender: Schema.NullOr(Schema.String),
-	department: Schema.NullOr(Schema.String),
-	payroll_group: Schema.NullOr(Schema.String)
-});
-export type EligibilitySubject = Schema.Schema.Type<typeof EligibilitySubjectSchema>;
+/** The member names each root may be asked for, checked at write time. */
+const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
+	employee: new Set(['gender', 'age', 'citizenship']),
+	employment: new Set(['type', 'classification', 'service_months', 'hire_date']),
+	terms: new Set(['basic_salary', 'workman', 'department', 'payroll_group']),
+	children: new Set(['count', 'under'])
+};
 
-function includes(list: readonly string[], value: string | null): boolean {
-	return value != null && list.includes(value);
+/** A person with nothing recorded: what a new expression is compiled against. */
+const BLANK_PERSON: PersonContext = {
+	employee: { gender: '', age: 0, citizenship: '' },
+	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
+	terms: { basic_salary: 0, workman: false, department: '', payroll_group: '' },
+	children: { count: 0, ages: [] }
+};
+
+type PersonInput = {
+	readonly employee: {
+		readonly gender?: string | null;
+		readonly date_of_birth?: string | null;
+		readonly nationality?: string | null;
+	} | null;
+	readonly employment: { readonly hire_date: string };
+	readonly terms: {
+		readonly employment_type?: string | null;
+		readonly work_classification?: string | null;
+		readonly base_salary?: unknown;
+		readonly statutory_work_category?: string | null;
+		readonly department?: string | null;
+		readonly payroll_group?: string | null;
+	} | null;
+	readonly children?: ReadonlyArray<{
+		readonly id: string;
+		readonly child_birthdate: string;
+		readonly supersedes_id?: string | null;
+	}>;
+	/** The rule date: service, age and children are measured on it. */
+	readonly asOf: string;
+};
+
+/** The person context on one date, from the rows the reconciler and the engine already hold. */
+export function personContext(input: PersonInput): PersonContext {
+	const hire = dateKey(input.employment.hire_date);
+	const born = dateKey(input.employee?.date_of_birth);
+	const salary = input.terms?.base_salary as { value?: unknown } | null | undefined;
+	const children = input.children ?? [];
+	const superseded = new Set(
+		children.flatMap((child) => (child.supersedes_id == null ? [] : [child.supersedes_id]))
+	);
+	const ages = children
+		.filter((child) => !superseded.has(child.id))
+		.map((child) => dateKey(child.child_birthdate))
+		.filter((birth) => birth !== '' && birth <= input.asOf)
+		.map((birth) => completedYears(birth, input.asOf));
+	return {
+		employee: {
+			gender: input.employee?.gender ?? '',
+			age: born === '' ? 0 : completedYears(born, input.asOf),
+			citizenship: input.employee?.nationality ?? ''
+		},
+		employment: {
+			type: input.terms?.employment_type ?? '',
+			classification: input.terms?.work_classification ?? '',
+			service_months: hire === '' ? 0 : completedMonths(hire, input.asOf),
+			hire_date: hire
+		},
+		terms: {
+			basic_salary: salary == null ? 0 : decodeNumber(salary.value),
+			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
+			department: input.terms?.department ?? '',
+			payroll_group: input.terms?.payroll_group ?? ''
+		},
+		children: { count: ages.length, ages }
+	};
 }
 
-/** Whether every rule matches. */
-export function isEligible(rules: EligibilityRules | null, subject: EligibilitySubject): boolean {
-	if (rules == null || rules.length === 0) return true;
-	return rules.every((rule: EligibilityRules[number]) => {
-		switch (rule.field) {
-			case 'EMPLOYMENT_TYPE':
-				return includes(rule.in, subject.employment_type);
-			case 'WORK_CLASSIFICATION':
-				return includes(rule.in, subject.work_classification);
-			case 'SERVICE_MONTHS':
-				return (
-					subject.service_months >= rule.from &&
-					(rule.to == null || subject.service_months < rule.to)
-				);
-			case 'GENDER':
-				return includes(rule.in, subject.gender);
-			case 'DEPARTMENT':
-				return includes(rule.in, subject.department);
-			case 'PAYROLL_GROUP':
-				return includes(rule.in, subject.payroll_group);
-		}
-		return false;
-	});
+const engine = createReckonEngine().registerFunction(
+	'under',
+	'map.under(int): int',
+	(children, age) => {
+		const ages = (children as { ages?: unknown }).ages;
+		const limit = Number(age);
+		return Array.isArray(ages) ? ages.filter((value) => Number(value) < limit).length : 0;
+	}
+);
+
+function evaluate(expression: string, context: PersonContext): unknown {
+	const definition: ComputationDefinition = {
+		id: 'eligibility',
+		tables: {},
+		exprs: { eligible: expression },
+		outputs: ['eligible']
+	};
+	// Same shape as a formula fault: the engine's own error, unwrapped.
+	return Effect.runSync(
+		Effect.try({
+			try: () => engine.runComputation<PersonContext, { eligible: unknown }>(definition, context),
+			catch: (error) => error
+		})
+	).outputs.eligible;
+}
+
+/** Whether the person satisfies the expression. `''` is everyone. */
+export function isEligible(expression: string | null | undefined, context: PersonContext): boolean {
+	const expr = (expression ?? '').trim();
+	if (expr === '') return true;
+	return evaluate(expr, context) === true;
+}
+
+/**
+ * The sentence that refuses a malformed expression, or `null` when it compiles. Parsed by
+ * Reckon, checked against the context's members, and evaluated against a blank person: the
+ * result must be a boolean.
+ */
+export function compileEligibility(expression: string | null | undefined): string | null {
+	const expr = (expression ?? '').trim();
+	if (expr === '') return null;
+	for (const match of expr.matchAll(
+		/\b(employee|employment|terms|children)\.([A-Za-z_][A-Za-z0-9_]*)/g
+	)) {
+		const [, root, member] = match;
+		if (root != null && member != null && !CONTEXT_MEMBERS[root]?.has(member))
+			return (
+				`Eligibility names ${root}.${member}, which the person context does not carry. ` +
+				`Use employee.gender, employee.age, employee.citizenship, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, children.count or children.under(age).`
+			);
+	}
+	try {
+		const value = evaluate(expr, BLANK_PERSON);
+		if (typeof value !== 'boolean')
+			return `Eligibility must be a true-or-false expression; this one produces ${JSON.stringify(value)}.`;
+		return null;
+	} catch (error) {
+		const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
+		return `Eligibility does not compile: ${message}`;
+	}
 }

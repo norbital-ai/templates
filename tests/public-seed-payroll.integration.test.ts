@@ -9,7 +9,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ACCOUNT_ID,
+	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -51,14 +51,13 @@ test(
 			[...stages],
 			[
 				'team',
-				'jurisdictions',
+				'jurisdiction_settings',
 				'companies',
 				'statutory_contributions',
-				'leave_plans',
-				'contribution_rates',
-				'employees',
 				'leave_types',
 				'pay_components',
+				'contribution_rates',
+				'employees',
 				'shift_definitions',
 				'employments',
 				'employment_statutory_facts',
@@ -130,7 +129,7 @@ test(
 				readonly statutory: unknown;
 			}>;
 
-			// PLAIN_CALENDAR includes the 2026-01-20 hire (window end). Terms start 2026-01-01 so
+			// The monthly window includes the 2026-01-20 hire (window end). Terms start 2026-01-01 so
 			// every salary-window day the engine measures is covered.
 			assert.equal(
 				payslips.length,
@@ -162,9 +161,9 @@ test(
 );
 
 /**
- * H11: HQ Payroll HR may raise `payroll_runs.mutate.new`. create.before nests payslips as the
- * requesting subject, so `payrollRebuildGrants()` on `hr_controller` is what stops
- * "no matching allow policy" before the approval gate. The run itself stays held.
+ * H11: HQ Payroll HR may raise `payroll_runs.mutate.new`. create.before nests the payslips as the
+ * workspace's own work, so the controller needs no grant on them and none is held; the run
+ * itself stays held on the controller's approval route.
  */
 test(
 	'public seed HQ Payroll HR payroll create is held, not refused on payslip writes',
@@ -433,7 +432,7 @@ test(
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
 								leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-								leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+								leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 								event: {
 									kind: 'TIME_OFF',
 									range: {

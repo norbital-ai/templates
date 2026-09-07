@@ -198,9 +198,12 @@
 				initialFilters={employedTodayFilter()}
 				query={{
 					where: {
+						// A relation condition is quantified: people with at least one settled employment here.
 						employment_employee: {
-							approval_id: { isNull: true },
-							company_id: { eq: selectedCompanyId }
+							some: {
+								approval_id: { isNull: true },
+								company_id: { eq: selectedCompanyId }
+							}
 						}
 					},
 					orderBy: { name: 'asc' }

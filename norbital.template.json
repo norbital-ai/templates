@@ -6,7 +6,7 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 29,
+		"collections": 27,
 		"apps": 10,
 		"automations": 2
 	},
@@ -15,18 +15,10 @@
 		"bankTree": "norbital_hr",
 		"layout": "hr-records",
 		"stages": [
-			["team", "jurisdictions"],
+			["team", "jurisdiction_settings"],
 			["user"],
-			["companies", "statutory_contributions"],
-			["leave_plans"],
-			[
-				"company_holidays",
-				"contribution_rates",
-				"employees",
-				"leave_types",
-				"pay_components",
-				"shift_definitions"
-			],
+			["companies", "statutory_contributions", "leave_types", "pay_components", "company_holidays"],
+			["contribution_rates", "employees", "shift_definitions"],
 			["employments"],
 			["employee_children", "employment_statutory_facts", "employment_terms", "leave_requests"],
 			["work_days"],

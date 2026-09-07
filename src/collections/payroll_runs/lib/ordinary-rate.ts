@@ -1,9 +1,10 @@
 /**
  * The ordinary rate of pay, and one day's wages.
  *
- * The divisor is statutory and lives on `jurisdictions` — Malaysia's 26 is EA s.60I, Indonesia's
- * 173 is PP 35/2021, Singapore's 190.67 is 12 × monthly ÷ (52 × 44). A company using 30 where the
- * statute says 26 underpays every overtime hour by 15%, which is why it is not a company setting.
+ * The divisor is statutory and lives on `jurisdiction_settings.ordinary_rate` — Malaysia's 26 is EA s.60I,
+ * Indonesia's 173 is PP 35/2021, Singapore's 190.67 is 12 × monthly ÷ (52 × 44). A company using
+ * 30 where the statute says 26 underpays every overtime hour by 15%, which is why it is not a
+ * company setting, and why the overtime rate is this rate and not a company-chosen alternative.
  *
  * Two details matter for parity:
  *
@@ -19,6 +20,7 @@
 import { Schema } from 'effect';
 import type { Jurisdiction } from './configuration.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
+import { countryOf } from '../../../lib/jurisdiction_settings.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 import { monthDays } from './dates.js';
@@ -34,22 +36,6 @@ const RateTermsSchema = Schema.Struct({
 });
 export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
 
-const OvertimeCalculationMethodSchema = Schema.Literals([
-	'STATUTORY_AGGREGATE',
-	'ANNUALISED_CONTRACT_RATE'
-]);
-export type OvertimeCalculationMethod = Schema.Schema.Type<typeof OvertimeCalculationMethodSchema>;
-
-export function readOvertimeCalculationMethod(value: string | null): OvertimeCalculationMethod {
-	switch (value) {
-		case 'STATUTORY_AGGREGATE':
-		case 'ANNUALISED_CONTRACT_RATE':
-			return value;
-		default:
-			throw new Error('companies.overtime_calculation_method must name a supported method.');
-	}
-}
-
 /**
  * The Philippines uses 261 annual days for a five-day week and 313 for a six-day week. The
  * jurisdiction row stores the common monthly divisor (261 / 12 = 21.75); the employee's stated
@@ -59,13 +45,15 @@ export function readOvertimeCalculationMethod(value: string | null): OvertimeCal
  * divisor with a company-wide value.
  */
 function ordinaryRateDivisor(terms: RateTerms, jurisdiction: Jurisdiction): number {
+	const rate = jurisdiction.ordinary_rate;
+	if (rate == null) throw new Error('The jurisdiction states no ordinary rate.');
 	if (
-		jurisdiction.code === 'PH' &&
+		countryOf(jurisdiction.code) === 'PH' &&
 		decodeNumber(terms.ordinary_hours_per_week) > 40 &&
-		jurisdiction.ordinary_rate_basis === 'DAYS_PER_MONTH'
+		rate.per === 'DAY'
 	)
 		return 313 / 12;
-	return decodeNumber(jurisdiction.ordinary_rate_divisor);
+	return decodeNumber(rate.divisor);
 }
 
 /**
@@ -104,42 +92,12 @@ export function ordinaryHourlyRate(terms: RateTerms, jurisdiction: Jurisdiction)
 	if (terms.pay_frequency === 'DAILY')
 		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
 	const divisor = ordinaryRateDivisor(terms, jurisdiction);
-	if (!(divisor > 0)) throw new Error('jurisdictions.ordinary_rate_divisor must be positive.');
+	if (!(divisor > 0))
+		throw new Error('jurisdiction_settings.ordinary_rate.divisor must be positive.');
 	const monthly = monthlyBaseSalary(terms);
-	return jurisdiction.ordinary_rate_basis === 'HOURS_PER_MONTH'
+	return jurisdiction.ordinary_rate?.per === 'HOUR'
 		? cents(monthly / divisor)
 		: cents(monthly / divisor / normalDailyHours(terms));
-}
-
-/**
- * Contract rate from annual salary divided by contracted annual hours. The employee
- * master expresses annual hours as weekly hours × 52, so no company-wide day divisor is involved.
- */
-export function annualisedContractHourlyRate(terms: RateTerms): number {
-	// The stated rate, where the contract states one. See `ordinaryHourlyRate`.
-	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
-	if (terms.pay_frequency === 'DAILY')
-		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
-	const annualHours = decodeNumber(terms.ordinary_hours_per_week) * 52;
-	if (!(annualHours > 0)) throw new Error('Contracted annual hours must be positive.');
-	return cents((monthlyBaseSalary(terms) * 12) / annualHours);
-}
-
-/** The company-selected OT rate, never below the jurisdiction's statutory ordinary-hour rate. */
-export function overtimeHourlyRate(
-	terms: RateTerms,
-	jurisdiction: Jurisdiction,
-	method: OvertimeCalculationMethod
-): number {
-	const statutory = ordinaryHourlyRate(terms, jurisdiction);
-	switch (method) {
-		case 'STATUTORY_AGGREGATE':
-			return statutory;
-		case 'ANNUALISED_CONTRACT_RATE':
-			return Math.max(annualisedContractHourlyRate(terms), statutory);
-		default:
-			return method satisfies never;
-	}
 }
 
 /**
@@ -157,7 +115,7 @@ export function ordinaryDayWage(terms: RateTerms, jurisdiction: Jurisdiction): n
 		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
 	const divisor = ordinaryRateDivisor(terms, jurisdiction);
 	const monthly = monthlyBaseSalary(terms);
-	return jurisdiction.ordinary_rate_basis === 'HOURS_PER_MONTH'
+	return jurisdiction.ordinary_rate?.per === 'HOUR'
 		? cents((monthly * normalDailyHours(terms)) / divisor)
 		: cents(monthly / divisor);
 }
@@ -175,7 +133,7 @@ type AbsenceDayRateOptions = {
  *
  * Deliberately not `ordinaryDayWage`. That divisor answers "what is an extra day of work worth"
  * (EA s.60I: 26). Withholding pay for a day not worked is proration, and proration is configured in
- * exactly one place — `jurisdictions.proration` — so an absence follows the month's calendar days,
+ * exactly one place — `jurisdiction_settings.proration` — so an absence follows the month's calendar days,
  * its working days, or a fixed divisor, whichever that jurisdiction states.
  *
  * Conflating the two over-deducts by the ratio between the divisors: 31/26 in a 31-day Malaysian

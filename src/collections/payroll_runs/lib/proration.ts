@@ -2,7 +2,7 @@
  * Proration.
  *
  * An amount is prorated when the employment — or a standing entry's own effective range — covers
- * only part of the pay period. The divisor comes from `jurisdictions.proration` and nothing else:
+ * only part of the pay period. The divisor comes from `jurisdiction_settings.proration` and nothing else:
  * there is no `prorates` flag on a pay component, no proration arithmetic inside a formula, and no
  * branch on a pay component's name.
  *

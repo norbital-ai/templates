@@ -54,14 +54,3 @@ export const calendarDay = Schema.String.check(
 		{ title: 'realCalendarDay' }
 	)
 );
-
-/**
- * The `Date` a timestamp column stores, from a `Clock.currentTimeMillis` stamp.
- *
- * One named conversion rather than a `new Date(...)` at each write: a bare construction reads as
- * the ambient clock wherever it appears, and the whole point of taking the stamp from `Clock` is
- * that it is not ambient. The millisecond value is the caller's to obtain.
- */
-export function instantAt(milliseconds: number): Date {
-	return new Date(milliseconds);
-}

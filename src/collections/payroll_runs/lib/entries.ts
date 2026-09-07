@@ -17,7 +17,7 @@
 import type { WorkspaceRow } from '../$types.js';
 import type { ComponentEntryEvent } from '../../../datatypes/component_entry_event/+definition.js';
 import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
-import { defaultPayPeriod } from './period.js';
+import { defaultPayPeriod, type PayCadence } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 export type ComponentEntry = WorkspaceRow<'component_entries'>;
@@ -39,12 +39,19 @@ export function entryEventDate(entry: ComponentEntry): IsoDate | null {
 	return dateKey(entry.event_date);
 }
 
-/** Which run an entry settles in. The stored `pay_period` wins; the cutoff supplies the default. */
-export function entryPayPeriod(entry: ComponentEntry, cutoffDay: number): string {
+/**
+ * Which run an entry settles in. The stored `pay_period` wins; the cutoff supplies the default, in
+ * the grammar of the cadence the employment is paid on.
+ */
+export function entryPayPeriod(
+	entry: ComponentEntry,
+	cutoffDay: number,
+	cadence?: PayCadence
+): string {
 	if (entry.pay_period != null && entry.pay_period !== '') return entry.pay_period;
 	const event = entryEventDate(entry);
 	if (event == null) throw new Error(`Component entry ${entry.id} has no event date to settle by.`);
-	return defaultPayPeriod(event, cutoffDay);
+	return defaultPayPeriod(event, cutoffDay, cadence);
 }
 
 /**

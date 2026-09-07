@@ -1,17 +1,17 @@
 import {
 	captureLedgerGrants,
-	eventLeaveAccountGrant,
 	grantsOn,
 	grantOn,
 	leaveApproval,
 	manualLeaveAdjustmentGrant,
 	mergeGrants,
 	payrollGrants,
-	payrollRebuildGrants,
+	payrollRunCascadeGrants,
 	peopleGrants,
 	referenceGrants,
+	settingsCatalogueGrants,
+	settingsGrants,
 	statutoryGrants,
-	statutoryProfileGrants,
 	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -30,14 +30,15 @@ import type { Policy } from './$types.js';
  *     controller's step routes to.
  *   - `payroll_runs.mutate.existing` — run. A same-state DRAFT mutation is this workspace's
  *     recalculate.
- *   - `payrollRebuildGrants()` — run, continued. `clearRunResults` wipes the previous results before
- *     writing new ones and does it through `api.db.delete`, which authorizes against the requesting
- *     subject rather than running elevated. Without these three deletes a recalculation fails on the
- *     clear, and the run would keep the previous build's figures while reporting a fresh one.
+ *   - nothing on payslips, adjustments or the capture junctions' writes. A recalculation states
+ *     the run's complete set of payslips from the `before` hook and the omitted ones go with it;
+ *     that graph is the workspace's own work, so no grant of this policy names it.
  *   - `payroll_runs: delete` — the release path for the settlement lock. Deleting a run cascades to
  *     its payslips and their `payslip_adjustments` rows, which is what unlocks the work days,
  *     component entries and leave requests that run consumed. `payroll_runs/+hooks.ts` refuses the
  *     delete outright once `lifecycle = 'PAID'`, so this grant can only ever release a draft's claims.
+ *     The cascade descends as the deleting manager (`payrollRunCascadeGrants()`): delete, and only
+ *     delete, on the six collections a run owns.
  *
  * The generated groups and shared approval declarations carry over from `+hr_controller.ts`.
  * Derived approval identity includes this policy key, so the same flow reached through another
@@ -74,9 +75,11 @@ export default {
 
 	grants: mergeGrants(
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
-		grantsOn('leave_plans', ['mutate.new', 'mutate.existing', 'delete']),
+		// The settings lineage: everything the controller may do, plus sealing and voiding under
+		// approval. The hooks still refuse every write under a seal.
 		statutoryGrants('read'),
-		statutoryProfileGrants(),
+		settingsGrants('seal'),
+		settingsCatalogueGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		peopleGrants('read'),
 		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
@@ -96,15 +99,13 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		eventLeaveAccountGrant(false),
 		manualLeaveAdjustmentGrant(false),
 
 		payrollGrants('read'),
-		payrollRebuildGrants(),
-		// The engine reads the capture junctions under the requesting subject while it gathers: which
-		// one-off entries an earlier run already took, and what a prior payslip captured. Without
-		// this read a company with either refuses the run with a bare policy denial.
+		// The Scheduling app reads the capture junctions as this subject to mark consumed days.
 		captureLedgerGrants(),
+		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
+		payrollRunCascadeGrants(),
 		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
 	),
 	/**

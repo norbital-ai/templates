@@ -71,8 +71,7 @@ export default {
 	 * Payroll authority 1 of 2: may view payroll and may not commit it.
 	 *
 	 * A controller's `payroll_runs.mutate.new` grant carries an approval, so the run is written and
-	 * held. `create.before` also writes payslips and junctions as the requesting subject, which is
-	 * why the policy includes `payrollRebuildGrants()`. This team is also what the payroll-run
+	 * held with the payslips its `before` hook derived. This team is also what the payroll-run
 	 * approval flow routes to.
 	 */
 	'HQ Payroll HR': ['hr_controller'],

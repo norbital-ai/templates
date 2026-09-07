@@ -81,7 +81,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
  * The wall-clock frame attendance is recorded in, in minutes east of UTC.
  *
  * A shift start is a wall-clock time and a punch is an instant, so pairing them needs an offset.
- * Nothing in the schema carries one today — neither `companies` nor `jurisdictions` has a timezone
+ * Nothing in the schema carries one today — neither `companies` nor `jurisdiction_settings` has a timezone
  * column — so it is stated here, as the pre-refactor engine also did (`ATTENDANCE_TZ_OFFSET`).
  *
  * **This must match the frame the attendance clocks are stored in.** The seed writes them as

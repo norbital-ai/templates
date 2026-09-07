@@ -16,6 +16,7 @@
 		companiesUnknown as companiesUnknownOf,
 		resolveCompanyId
 	} from './company-scope.svelte.js';
+	import { inForceSettings, onLineage } from '../../lib/ui/settings-scope.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { Badge } from '@norbital-ai/ui/badge';
@@ -244,26 +245,15 @@
 		return new Map(Object.entries(grouped));
 	});
 
-	const leavePlansQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.leave_plans.findMany({
-					where: {
-						...approved,
-						company_id: { eq: selectedCompanyId },
-						lifecycle: { eq: 'ACTIVE' },
-						effective_range: { contains_date: todayInstant() }
-					},
-					columns: { id: true },
-					limit: 20
-				})
-	);
-	const activeLeavePlanIds = $derived((leavePlansQuery?.current ?? []).map((plan) => plan.id));
+	// Every version of the entity's lineage: a request may cite the row an earlier version's
+	// entitlement was sealed with, and the board only needs the code behind an id.
+	const selectedSettingsCode = $derived(companyById(selectedCompanyId)?.settings_code ?? null);
 	const leaveTypesQuery = $derived(
-		activeLeavePlanIds.length === 0
+		selectedSettingsCode == null
 			? null
 			: client.db.leave_types.findMany({
-					where: { ...approved, leave_plan_id: { in: activeLeavePlanIds } },
+					where: { ...approved, leave_type_settings: { some: onLineage(selectedSettingsCode) } },
+					columns: { id: true, code: true },
 					limit: MONTH_BOARD_QUERY_LIMITS.leaveTypes
 				})
 	);
@@ -410,11 +400,11 @@
 	);
 
 	const holidaysQuery = $derived.by(() => {
-		if (selectedCompanyId == null) return null;
+		if (selectedSettingsCode == null) return null;
 		return client.db.company_holidays.findMany({
 			where: {
 				...approved,
-				company_id: { eq: selectedCompanyId },
+				holiday_settings: { some: inForceSettings(selectedSettingsCode, monthStart) },
 				date: { gte: monthStart, lte: monthEnd }
 			},
 			columns: { id: true, date: true, name: true },
@@ -440,7 +430,6 @@
 		{ label: 'employees', query: employeesQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery },
 		{ label: 'roster codes', query: shiftsQuery },
-		{ label: 'leave plans', query: leavePlansQuery },
 		{ label: 'leave types', query: leaveTypesQuery },
 		{ label: 'payroll runs', query: payrollRunsQuery },
 		{ label: 'settlement claims', query: settlementsQuery }

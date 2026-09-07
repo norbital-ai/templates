@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
-	 * A pay component belongs to one company's catalogue. The auto form asked for `company_id` as an
-	 * editable uuid; it is a relationship and reads as the entity's name. `nature` is a read-only
-	 * projection of `policy` and is not offered as a field.
+	 * A pay component belongs to one settings version's catalogue. The auto form asked for
+	 * `settings_id` as an editable uuid; it is a relationship and reads as the version's name.
+	 * `nature` is a read-only projection of `policy` and is not offered as a field.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -32,30 +32,26 @@
 	{#snippet children({ Field })}
 		<Grid gap="md" minimum="panel">
 			<Field
-				name="company_id"
-				label={t('component.legal_entity')}
+				name="settings_id"
+				label={t('component.settings_version')}
 				relationOptions={{
-					label: (company) =>
-						company.name != null && company.name !== '' ? String(company.name) : '—',
-					orderBy: { name: 'asc' },
+					label: (version) =>
+						[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+							.filter((part) => part != null && part !== '')
+							.join(' · ') || '—',
+					orderBy: { code: 'asc' },
 					limit: 500
 				}}
 			/>
-			<Field
-				name="statutory_profile_id"
-				label={t('component.statutory_profile')}
-				relationOptions={{
-					label: (profile) =>
-						profile.name != null && profile.name !== '' ? String(profile.name) : '—',
-					orderBy: { code: 'asc' },
-					limit: 200
-				}}
-			/>
 			<Field name="code" label={t('component.code')} />
+			<Field name="is_statutory" label={t('component.is_statutory')} />
 			<Field name="sequence" label={t('component.applied_at')} />
 			<Column span="all"><Field name="policy" label={t('component.economic_type')} /></Column>
 			<Column span="all"><Field name="definition" label={t('component.how_calculated')} /></Column>
 			<Column span="all"><Field name="eligibility" label={t('component.who_receives')} /></Column>
+			<Column span="all">
+				<Field name="contribution_treatments" label={t('component.contribution_treatments')} />
+			</Column>
 		</Grid>
 	{/snippet}
 </CollectionForm>

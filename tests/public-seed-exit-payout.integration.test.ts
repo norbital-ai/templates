@@ -12,7 +12,7 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
-import { leaveAccountIdFor } from '../src/lib/leave/entitlements.ts';
+import { leaveEntitlementIdFor } from '../src/lib/leave/entitlements.ts';
 
 const patternOf = (): unknown => {
 	const terms = JSON.parse(
@@ -82,18 +82,18 @@ test(
 			const started = await postGuestCommand(
 				session.host.baseUrl,
 				'automations.start',
-				{ name: 'leave_ledger_refresh', input: { employment_ids: [resigned, dismissed] } },
+				{ name: 'leave_ledger_refresh', input: { company_id: COMPANY_ID } },
 				bearerHeaders(session.credential)
 			);
 			assert.ok(started.status < 300, JSON.stringify(started.value));
 
-			const accountOf = (employment_id: string) =>
-				leaveAccountIdFor({ employment_id, leave_code: 'ANNUAL', leave_year: 2026 });
+			const entitlementOf = (employment_id: string) =>
+				leaveEntitlementIdFor({ employment_id, leave_code: 'ANNUAL', leave_year: 2026 });
 			const closing = async (employmentId: string) =>
 				(await session.query(
 					`select kind, days, reason, source_key from leave_entries
-					 where leave_account_id = $1 and source_key = $2`,
-					[accountOf(employmentId), `exit:${accountOf(employmentId)}`]
+					 where leave_entitlement_id = $1 and source_key = $2`,
+					[entitlementOf(employmentId), `exit:${entitlementOf(employmentId)}`]
 				)) as ReadonlyArray<Record<string, unknown>>;
 			const paid = await closing(resigned);
 			assert.equal(paid.length, 1, JSON.stringify(paid));
@@ -105,8 +105,8 @@ test(
 			assert.equal(forfeited[0]?.kind, 'EXPIRED');
 			assert.match(String(forfeited[0]?.reason), /misconduct/);
 			for (const employmentId of [resigned, dismissed]) {
-				const status = await session.query(`select status from leave_accounts where id = $1`, [
-					accountOf(employmentId)
+				const status = await session.query(`select status from leave_entitlements where id = $1`, [
+					entitlementOf(employmentId)
 				]);
 				assert.equal(status[0]?.status, 'CLOSED');
 			}

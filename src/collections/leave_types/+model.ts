@@ -1,37 +1,40 @@
-import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
+import { boolean, custom, defineModel, integer, text, uuid } from '@norbital-ai/bolt/authoring';
+
+/**
+ * The leave catalogue: one row per jurisdiction settings version per code. A statutory row
+ * (`is_statutory`) is the law the version transcribes, cited by `authority`; a company-rule row is
+ * the entity's own policy. Everything the reconciler needs to generate entitlements is on the row,
+ * and the row is sealed with its version: the version in force on a leave year's rule date is the
+ * catalogue that year is generated from, and an entitlement keeps the settlement it was sealed with.
+ */
 export default defineModel(
 	{
-		company_id: uuid().notNull(),
-		leave_plan_id: uuid().notNull(),
+		settings_id: uuid().notNull(),
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }).notNull(),
+		is_statutory: boolean().notNull().default(false),
+		/** Required when `is_statutory`: the section of law the row transcribes. */
+		authority: text(),
 		/**
-		 * The canonical statutory kind this type implements, when a statute mandates it. The
-		 * statutory floor merges from the linked profile's `statutory_leave` member by this kind;
-		 * `null` is a purely company-policy leave (a floating day, a wedding day) with no floor.
-		 * The matching statutory floor is read from the independently versioned profile at account
-		 * creation or reconciliation time.
+		 * One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`), evaluated
+		 * on the leave year's rule date. `''` is everyone. A row an employee is not eligible for
+		 * generates no entitlement at all.
 		 */
-		statutory_kind: text(),
-		account_basis: enums(['YEAR', 'EVENT']).notNull().default('YEAR'),
-		event_unit: enums(['DAYS', 'WEEKS']).notNull().default('DAYS'),
-		event_window_months: integer(),
-		eligibility: custom('eligibility_rules').notNull(),
-		/** What this type's unused balance does when the employment ends, where the statute is silent. */
-		exit_settlement: custom('leave_exit_settlement').notNull(),
-		requires_certificate_after_days: integer(),
-		accrual: custom('leave_accrual').notNull(),
+		eligibility: text().notNull().default(''),
+		/** Service bands: the band whose `band_from` months is the highest at or below service wins. */
 		entitlement: custom('leave_entitlement').notNull(),
-		payroll_effect: custom('leave_payroll_effect').notNull()
+		/** MONTHLY, UPFRONT or UNLIMITED, with what the year end does with the unused balance. */
+		accrual: custom('leave_accrual').notNull(),
+		/** What the unused balance does when the employment ends. */
+		exit_settlement: custom('leave_exit_settlement').notNull(),
+		payroll_effect: custom('leave_payroll_effect').notNull(),
+		requires_certificate_after_days: integer()
 	},
 	{
 		description:
-			'One yearly or qualifying-event leave rule inside a company leave-plan version. Statutory law stays independently versioned; account reconciliation merges the two by statutory kind.',
+			'One leave type of one jurisdiction settings version: its eligibility, service bands, accrual, year-end and exit settlement, and whether it is the law (cited) or company rule. Sealed with its version.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:calendar-days',
-		indexes: [
-			{ columns: ['leave_plan_id', 'code'], unique: true },
-			{ columns: ['company_id', 'code'] }
-		]
+		indexes: [{ columns: ['settings_id', 'code'], unique: true }]
 	}
 );

@@ -14,11 +14,7 @@ const award = {
 	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 } as const;
 
-/**
- * The company's own policy layers. The STATUTORY arm this union once carried moved into the
- * statutory profile's `statutory_leave` member — the floor is law, versioned and sealed with the
- * profile revision that states it, not hand-typed per company.
- */
+/** The service bands of one leave type, statutory or company policy alike: the row says which. */
 export const leaveEntitlementLayerSchema = Schema.Struct({
 	level: Schema.Literal('ORGANISATION'),
 	...award

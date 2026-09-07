@@ -1,17 +1,17 @@
 import {
 	captureLedgerGrants,
-	eventLeaveAccountGrant,
 	grantsOn,
 	grantOn,
 	leaveApproval,
 	manualLeaveAdjustmentGrant,
 	mergeGrants,
 	payrollGrants,
-	payrollRebuildGrants,
+	payrollRunCascadeGrants,
 	peopleGrants,
 	referenceGrants,
+	settingsCatalogueGrants,
+	settingsGrants,
 	statutoryGrants,
-	statutoryProfileGrants,
 	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -74,9 +74,11 @@ export default {
 		captureLedgerGrants(),
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
-		grantsOn('leave_plans', ['mutate.new', 'mutate.existing', 'delete']),
+		// The settings lineage: everything the controller may do, plus sealing and voiding under
+		// approval. The hooks still refuse every write under a seal.
 		statutoryGrants('read'),
-		statutoryProfileGrants(),
+		settingsGrants('seal'),
+		settingsCatalogueGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		peopleGrants('read'),
 		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
@@ -97,13 +99,13 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		eventLeaveAccountGrant(false),
 		manualLeaveAdjustmentGrant(false),
 
-		// The payroll authority, identical to `hr_manager`'s. Stated as the same three builder calls so
+		// The payroll authority, identical to `hr_manager`'s. Stated as the same builder calls so
 		// that a change to what "running payroll" costs in permissions lands on both policies at once.
 		payrollGrants('read'),
-		payrollRebuildGrants(),
+		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
+		payrollRunCascadeGrants(),
 		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
 	),
 	/**

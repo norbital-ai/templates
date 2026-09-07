@@ -32,8 +32,8 @@
 	const leaveTypeId = $derived(
 		typeof props.row?.leave_type_id === 'string' ? props.row.leave_type_id : null
 	);
-	const accountId = $derived(
-		typeof props.row?.leave_account_id === 'string' ? props.row.leave_account_id : null
+	const entitlementId = $derived(
+		typeof props.row?.leave_entitlement_id === 'string' ? props.row.leave_entitlement_id : null
 	);
 	const requestId = $derived(typeof props.row?.id === 'string' ? props.row.id : null);
 	let calendarMonth = $state(todayKey().slice(0, 7));
@@ -43,7 +43,7 @@
 		return {
 			employment_id: employmentId,
 			leave_type_id: leaveTypeId,
-			...(accountId == null ? {} : { leave_account_id: accountId }),
+			...(entitlementId == null ? {} : { leave_entitlement_id: entitlementId }),
 			calendar_month: calendarMonth,
 			...(current == null ? {} : { range: current.range }),
 			...(requestId == null ? {} : { exclude_request_id: requestId })
@@ -62,7 +62,7 @@
 		if (leaveTypeId == null) return t('component.leave_picker_disabled_no_leave_type');
 		if (previewQuery?.error != null) return previewQuery.error.message;
 		if (previewLoading) return t('component.leave_picker_loading_schedule');
-		return preview?.issues.find((issue) => issue.code === 'ACCOUNT_REQUIRED')?.message ?? null;
+		return preview?.issues.find((issue) => issue.code === 'ENTITLEMENT_REQUIRED')?.message ?? null;
 	});
 	const availableDays = $derived(
 		preview == null || preview.remaining_days == null ? null : Math.max(0, preview.remaining_days)
@@ -83,7 +83,7 @@
 			case 'NO_SCHEDULE':
 			case 'MISSING_ROSTER_CODE':
 				return t('component.excluded_no_schedule');
-			case 'LEAVE_NOT_AVAILABLE':
+			case 'ENTITLEMENT_REQUIRED':
 				return t('component.excluded_leave_unavailable');
 			case 'INELIGIBLE':
 				return t('component.leave_eligibility_not_met');

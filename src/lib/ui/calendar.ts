@@ -4,7 +4,8 @@
  * Nothing here decides payroll: the period window, cutoff handling and pay-date shifting that a
  * run is actually built with belong to the payroll engine and reach the UI as stored
  * `payroll_runs.pay_date` / `attendance_from` / `attendance_to` columns. These functions only put
- * a company's `pay_day` on a calendar so an operator can see which cycles are still open.
+ * a period's pay date (its last day) on a calendar so an operator can see which cycles are still
+ * open.
  */
 
 import { Number as EffectNumber, Result } from 'effect';
@@ -133,7 +134,7 @@ export function calendarDayFromPickerInstant(value: string, pickerTimeZone: stri
 }
 
 /** The canonical range shape accepted by a day-precision platform picker. */
-export interface DayPickerInstantRange {
+interface DayPickerInstantRange {
 	readonly start: string;
 	readonly end?: string;
 }
@@ -212,12 +213,48 @@ export function daysInMonth(period: string): number {
 }
 
 /**
- * The calendar day a `pay_day`-of-month falls on for one period, clamped to the month's length so
- * a 31st pay day still resolves in February.
+ * A run period in the company's grammar: `YYYY-MM` at a monthly company, `YYYY-MM-1` (the 1st to
+ * the 15th) or `YYYY-MM-2` (the 16th to the month end) at a semi-monthly one. The engine's
+ * `periodMonth` / `periodHalf` are the same grammar; these read it for the screens.
  */
-export function payDateFor(period: string, payDay: number): string {
-	const day = EffectNumber.clamp({ minimum: 1, maximum: daysInMonth(period) })(payDay);
-	return `${period}-${String(day).padStart(2, '0')}`;
+export function periodMonthOf(period: string): string {
+	return period.slice(0, 7);
+}
+
+/** `1`, `2`, or `null` for a whole month. */
+function periodHalfOf(period: string): 1 | 2 | null {
+	return period.length === 7 ? null : period.endsWith('1') ? 1 : 2;
+}
+
+/** The first and last day of the month a period pays for: `1–15`, `16–28`, or the whole month. */
+export function periodDayRange(period: string): { readonly from: number; readonly to: number } {
+	const last = daysInMonth(periodMonthOf(period));
+	switch (periodHalfOf(period)) {
+		case 1:
+			return { from: 1, to: 15 };
+		case 2:
+			return { from: 16, to: last };
+		default:
+			return { from: 1, to: last };
+	}
+}
+
+/**
+ * The periods a company runs over a list of months: the months themselves, or both halves of each
+ * for a semi-monthly company, in chronological order.
+ */
+export function companyPeriods(months: readonly string[], payFrequency: string): string[] {
+	if (payFrequency !== 'SEMI_MONTHLY') return [...months];
+	return months.flatMap((month) => [`${month}-1`, `${month}-2`]);
+}
+
+/**
+ * The day a period pays: the 15th for a first half, otherwise its last calendar day. The
+ * compliance month is the cutoff month.
+ */
+export function payDateFor(period: string): string {
+	const month = periodMonthOf(period);
+	return `${month}-${String(periodDayRange(period).to).padStart(2, '0')}`;
 }
 
 /** Whole days from `from` to `to`, negative when `to` is in the past. */
