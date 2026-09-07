@@ -29,14 +29,15 @@ export const templateMetadataFile = 'norbital.template.json';
 export const templateRefNamespace = 'refs/heads/templates';
 const catalogPattern = /^messages\..+\.json$/;
 const sourcePattern = /\.(svelte|ts|js|mjs|json|md)$/;
-const ignoredSourceDirectories = new Set([
-	'node_modules',
-	'.norbital',
-	'.git',
-	'build',
-	'dist',
-	'.svelte-kit'
-]);
+/**
+ * Build output and tool caches, never authored source. Every dotted directory is skipped by
+ * name rather than listed here: `.svelte-check` holds a stale copy of generated Svelte source
+ * that outlives the real thing, so scanning it reports deleted keys as still reachable on a
+ * developer's machine and passes a check that CI, with no such cache, then fails.
+ */
+const ignoredSourceDirectories = new Set(['node_modules', 'build', 'dist']);
+const ignoredSourceDirectory = (name: string): boolean =>
+	name.startsWith('.') || ignoredSourceDirectories.has(name);
 /** `t(`prefix.${expression}`)` — the static head of a key built at runtime. */
 const runtimeKeyPattern = /[^A-Za-z0-9_]t\(\s*`([^`$]*)\$\{/g;
 
@@ -267,7 +268,7 @@ const messageSources = (directory: string): string => {
 		for (const entry of readdirSync(dir, { withFileTypes: true })) {
 			const full = path.join(dir, entry.name);
 			if (entry.isDirectory()) {
-				if (ignoredSourceDirectories.has(entry.name)) continue;
+				if (ignoredSourceDirectory(entry.name)) continue;
 				walk(full);
 				continue;
 			}
