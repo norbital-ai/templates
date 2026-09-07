@@ -223,8 +223,8 @@
 		</Stack>
 	{:else}
 		<p class="text-sm text-muted-foreground">
-			A payslip adjustment is written by the payroll engine, never by hand: build the payroll run and
-			it writes one row per input it took into account.
+			A payslip adjustment is written by the payroll engine, never by hand: build the payroll run
+			and it writes one row per input it took into account.
 		</p>
 	{/if}
 </RecordShell>

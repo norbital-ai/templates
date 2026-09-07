@@ -145,17 +145,14 @@
 	{/if}
 {/snippet}
 
-{#if record}
-	<RecordShell
-		title={`${record.code} · ${record.name}`}
-		{subtitle}
-		tabs={[
-			{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
-			{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }
-		] satisfies TabConfig[]}
-	/>
-{:else}
-	<RecordShell title={t('component.create_scheme')}>
-		{@render scheme()}
-	</RecordShell>
-{/if}
+<!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
+<RecordShell
+	title={record ? `${record.code} · ${record.name}` : t('component.create_scheme')}
+	{subtitle}
+	tabs={[
+		{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
+		...(record
+			? [{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }]
+			: [])
+	] satisfies TabConfig[]}
+/>

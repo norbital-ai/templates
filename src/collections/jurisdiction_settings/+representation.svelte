@@ -116,16 +116,21 @@
 	{/if}
 {/snippet}
 
-{#if embedded || !record}
+{#if embedded}
 	{@render snapshot()}
 {:else}
+	<!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
 	<RecordShell
-		title={`${record.code} · ${record.name}`}
-		subtitle={t('component.ordinary_pay_note', {
-			divisor: formatNumeric(record.ordinary_rate?.divisor),
-			unit:
-				record.ordinary_rate?.per === 'HOUR' ? t('component.hours_unit') : t('component.days_unit')
-		})}
+		title={record ? `${record.code} · ${record.name}` : t('component.create_settings')}
+		subtitle={record
+			? t('component.ordinary_pay_note', {
+					divisor: formatNumeric(record.ordinary_rate?.divisor),
+					unit:
+						record.ordinary_rate?.per === 'HOUR'
+							? t('component.hours_unit')
+							: t('component.days_unit')
+				})
+			: undefined}
 		tabs={[
 			{
 				name: 'snapshot',
@@ -133,12 +138,16 @@
 				icon: 'lucide:scale',
 				content: snapshot
 			},
-			{
-				name: 'contributions',
-				label: t('component.statutory_contributions'),
-				icon: 'lucide:landmark',
-				content: contributions
-			}
+			...(record
+				? [
+						{
+							name: 'contributions',
+							label: t('component.statutory_contributions'),
+							icon: 'lucide:landmark',
+							content: contributions
+						}
+					]
+				: [])
 		] satisfies TabConfig[]}
 	/>
 {/if}

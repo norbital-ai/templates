@@ -15,11 +15,11 @@
 	 * version with a reason; it is one action and is never undone. **New version** clones the
 	 * chosen version and all its rows into a draft starting on a given day.
 	 *
-	 * Layout is one `AppShell` (variant `full`, so the tab strip carries the app inset) whose body
-	 * is a `Cover`: the timeline is the chrome row and the tabs fill the remaining height. Each
-	 * tab panel then owns exactly one vertical scrollport — the payroll form flows inside a named
-	 * `Scroll`, each catalogue table is a bounded `CollectionTable` owning its own rows — so wheel
-	 * events never die inside a clipped panel.
+	 * Layout is one `AppShell` (variant `full`) with a single page `Scroll`: the timeline
+	 * and a sticky tab strip scroll with the content. Tab panels are natural height — the
+	 * payroll form flows inside the page scrollport and each catalogue table is a bounded
+	 * `CollectionTable` owning its own rows — so a tab owns exactly one vertical scrollport
+	 * and wheel events never die inside a clipped panel or over chrome.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -35,7 +35,7 @@
 	import {
 		Bound,
 		Cluster,
-		Cover,
+		INSET_MX_CLASS,
 		INSET_X_CLASS,
 		Inline,
 		Scroll,
@@ -188,11 +188,7 @@
 
 {#snippet payroll()}
 	{#if selectedVersion}
-		<Bound size="full">
-			<Scroll name={t('component.payroll_rules')}>
-				<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
-			</Scroll>
-		</Bound>
+		<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
 	{/if}
 {/snippet}
 
@@ -496,9 +492,22 @@
 			</p>
 		</Bound>
 	{:else}
-		<Cover gap="md" top={timeline}>
+		<!--
+			One page scrollport for the whole lineage view: the timeline and the tab strip
+			scroll with the content, and the strip sticks to the top. Tab panels are natural
+			height — the payroll form's own scroll region stays inert in flow and the
+			catalogue tables keep their bounded row scrolls — so a tab owns exactly one
+			vertical scrollport and the wheel never dies over chrome or inside a nested
+			region. Inset parity with the hero comes from the timeline's INSET_X, the
+			strip's INSET_MX, and the panels' own padding; no content adds its own.
+		-->
+		<Scroll name={t('app.settings.header_title')} layout="stack" gap="md">
+			{@render timeline()}
 			<Tabs
 				animate={false}
+				layout="responsive"
+				class="h-auto"
+				listClass={`sticky top-0 z-10 ${INSET_MX_CLASS} w-auto`}
 				config={[
 					{
 						name: 'payroll',
@@ -532,7 +541,7 @@
 					}
 				] satisfies TabConfig[]}
 			/>
-		</Cover>
+		</Scroll>
 	{/if}
 </AppShell>
 

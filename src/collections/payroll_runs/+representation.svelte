@@ -196,11 +196,13 @@
 	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
 </script>
 
-{#if record}
-	<RecordShell
-		title={record.period}
-		subtitle={t('component.period_line', { period: record.period, count: payslipCount ?? 0 })}
-	>
+<RecordShell
+	title={record?.period ?? t('component.create_payroll_run')}
+	subtitle={record
+		? t('component.period_line', { period: record.period, count: payslipCount ?? 0 })
+		: undefined}
+>
+	{#if record}
 		<Stack gap="lg">
 			<Stack as="section" gap="sm" aria-label={t('component.payroll_run_summary')}>
 				<Cluster align="start" justify="between" gap="sm">
@@ -327,9 +329,7 @@
 				</CollectionTable>
 			</Stack>
 		</Stack>
-	</RecordShell>
-{:else}
-	<RecordShell title={t('component.create_payroll_run')}>
+	{:else}
 		<CollectionForm
 			{client}
 			collection="payroll_runs"
@@ -446,5 +446,5 @@
 				</Stack>
 			{/snippet}
 		</CollectionForm>
-	</RecordShell>
-{/if}
+	{/if}
+</RecordShell>
