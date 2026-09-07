@@ -47,13 +47,12 @@
 				<Field name="void_reason" hidden />
 				<Field name="cloned_from_id" hidden />
 				<Field name="research_notes" hidden />
-				<Stack gap="lg">
+				<Stack gap="md">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
 							<h3 class="text-sm font-semibold">{t('component.profile_identity_and_period')}</h3>
-							<p class="text-meta">{t('component.profile_identity_and_period_description')}</p>
 						</Stack>
-						<Grid gap="md" minimum="panel">
+						<Grid gap="sm" minimum="panel">
 							<Field name="code" label={t('component.settings_lineage')} />
 							<Field name="name" />
 							<Field name="currency" />
@@ -64,21 +63,19 @@
 						</Grid>
 					</Stack>
 
-					<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack as="section" gap="sm" class="border-t border-border pt-4">
 						<Stack gap="xs">
 							<h3 class="text-sm font-semibold">{t('component.pay_derivation')}</h3>
-							<p class="text-meta">{t('component.pay_derivation_description')}</p>
 						</Stack>
-						<Grid gap="md" minimum="panel">
+						<Grid gap="sm" minimum="panel">
 							<Field name="proration" label={t('component.proration_basis')} />
 							<Field name="ordinary_rate" label={t('component.ordinary_rate')} />
 						</Grid>
 					</Stack>
 
-					<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack as="section" gap="sm" class="border-t border-border pt-4">
 						<Stack gap="xs">
 							<h3 class="text-sm font-semibold">{t('component.working_time_and_overtime')}</h3>
-							<p class="text-meta">{t('component.working_time_and_overtime_description')}</p>
 						</Stack>
 						<Field name="regime" label={t('component.regime')} />
 						<Field name="research_urls" label={t('component.research_urls')} />
