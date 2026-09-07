@@ -272,11 +272,14 @@ policy carries the masked reads those hooks need (`leave_requests`, `payroll_run
 HR-side attendance edits keep their reviewed grants.
 
 **Enrollment.** Face data inlines on `employees`: a 1024-d cosine descriptor (`face_embedding`,
-HNSW-indexed), a snapshot (`face_photo`), and `face_enrollment_status`. Enrolling a known person
-approves at once (`NONE` → `APPROVED`); enrolling a new person creates the person and their
-employment as `PENDING`, and HR approves in People (the face-status column), which alone may set
-`APPROVED` or `SUSPENDED`. Platform-side hires appear on the kiosk with no face yet and enroll
-from the same screen.
+HNSW-indexed), a snapshot (`face_photo`), and `face_enrollment_status`. Enrollment opens from the
+employee profile (Face ID tab), never from the wall kiosk, as a guided five-pose flow
+(`src/collections/employees/face-enroll-flow.svelte` over `src/lib/kiosk/guided-capture.ts`):
+straight, left, right, up, down, each captured automatically once held ~600 ms inside its window
+with a readable descriptor, then averaged into one vector. Every enrollment writes through
+the `kiosk_enroll` command, which approves a known person at once and refuses a pending or
+suspended enrollment HR has not reviewed; consent is recorded in both cases. HR approves in
+People (the face-status column), which alone may set `APPROVED` or `SUSPENDED`.
 
 **Matching and spoofing.** `kiosk_match` runs `findNearest` on the embedding column (cosine,
 default max distance 0.4) over `APPROVED` rows and returns the current in-force employment.
@@ -286,7 +289,15 @@ weights are emitted by Vite from the pinned Human package into the immutable bro
 `models/human/`, beside the `assets/` chunks, and the kiosk resolves that directory from its own
 chunk URL (a hosted release is served only under a versioned static root). No CDN or install
 script is required. A punch additionally requires the antispoof `real` floor and a
-blink-to-confirm inside a 6 s window; a still photo cannot blink. A video replay on a second
+blink-to-confirm inside a 2 s window; a still photo cannot blink. A video replay on a second
 phone can — randomized look/blink challenges and cooldowns mitigate it; only depth hardware
 closes it. Thresholds live in `src/lib/kiosk/config.ts` and were bench-measured (see
 `kiosk-probe`); recalibrate `KIOSK_REAL_MIN` against live captures on the device.
+
+**Voice.** Everything the kiosk says is one list (`src/lib/kiosk/phrases.ts`, en + zh), one clip
+per key per language under `assets/kiosk-voice/` (MP3, owner-recorded; see `SOURCE.md`), shipped
+beside the models by the `kiosk-voice-clips` Vite plugin and played one at a time through a queue
+(`src/lib/kiosk/voice.ts`). The generator only renders keys with no clip and never overwrites a
+recording; keys with no recording fall back to browser speech. The camera guide is a measured
+silhouette: a head ellipse at 58% of the frame height with shoulders off the bottom edge
+(`src/lib/kiosk/silhouette.ts`).

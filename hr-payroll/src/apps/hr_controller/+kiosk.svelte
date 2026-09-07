@@ -11,12 +11,9 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
 	import ManualTab from './kiosk-manual.svelte';
-	import EnrollTab from './kiosk-enroll.svelte';
-	import type { KioskSample } from '../../lib/kiosk/sample.js';
 	import {
 		createAnalyseCanvas,
 		drawVideoFrame,
-		extractFaceSample,
 		largestFace,
 		missingFaceModels,
 		showStream,
@@ -31,9 +28,15 @@
 		KIOSK_REAL_MIN
 	} from '../../lib/kiosk/config.js';
 	import { readKioskSettings, writeKioskSettings } from '../../lib/kiosk/settings.js';
-	import { pickKioskVoice } from '../../lib/kiosk/voice.js';
+	import {
+		browserNarratorPlatform,
+		createKioskNarrator,
+		pickKioskVoice
+	} from '../../lib/kiosk/voice.js';
+	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../lib/kiosk/phrases.js';
+	import { silhouetteGeometry, type FrameSize } from '../../lib/kiosk/silhouette.js';
 
-	type Tab = 'scan' | 'manual' | 'enroll';
+	type Tab = 'scan' | 'manual';
 	type Direction = 'in' | 'out';
 	type Phase =
 		| 'boot'
@@ -97,6 +100,9 @@
 	let now = $state(new Date());
 	let organizationName = $state('');
 	let organizationLogoUrl = $state<string | null>(null);
+	/** The camera frame's box, measured, so the silhouette is drawn in its pixels. */
+	let frame = $state<FrameSize>({ width: KIOSK_CAPTURE_WIDTH, height: KIOSK_CAPTURE_HEIGHT });
+	const silhouette = $derived(silhouetteGeometry(frame));
 
 	let videoNode: HTMLVideoElement | null = null;
 	let stream: MediaStream | null = null;
@@ -110,9 +116,20 @@
 	let lastFaceSeenAt = 0;
 	let challengeEyesOpenSeen = false;
 	let challengeLivenessSeen = false;
-	/** The speech voice the kiosk picked; null means text only, silent. */
+	/** The browser voice the fallback may use for a phrase whose clip is missing; null is silent. */
 	let voice: SpeechSynthesisVoice | null = null;
 	let voiceUri: string | null = settings.voiceUri;
+	/**
+	 * Everything the kiosk says goes through here: pre-generated clips, one phrase at a time, never
+	 * two at once. Created at init so the voice toggle and the locale effect below can reach it.
+	 */
+	const narrator = createKioskNarrator(
+		browserNarratorPlatform(() => voice),
+		{
+			language: kioskVoiceLanguage(i18n.intlLocale),
+			enabled: settings.voiceEnabled
+		}
+	);
 	let unreadableSince = 0;
 	let absentSince = 0;
 	let presenceSpokenAt = 0;
@@ -232,13 +249,6 @@
 				title: t('kiosk.manual_entry'),
 				detail: t('kiosk.manual_status')
 			};
-		if (tab === 'enroll')
-			return {
-				tone: 'neutral',
-				icon: 'lucide:user-round-plus',
-				title: t('kiosk.enroll_face'),
-				detail: t('kiosk.enroll_status')
-			};
 		if (phase === 'boot')
 			return {
 				tone: 'neutral',
@@ -318,7 +328,22 @@
 		};
 	});
 
-	/** Video node and stream may arrive in either order across scan and enrollment views. */
+	/**
+	 * The silhouette is drawn in the frame's own pixels, so the frame reports its size whenever the
+	 * viewport, the aside or the breakpoint changes it. The observer lives as long as the section.
+	 */
+	const measureFrame = (node: HTMLElement) => {
+		const read = () => {
+			const box = node.getBoundingClientRect();
+			if (box.width > 0 && box.height > 0) frame = { width: box.width, height: box.height };
+		};
+		read();
+		const observer = new ResizeObserver(read);
+		observer.observe(node);
+		return () => observer.disconnect();
+	};
+
+	/** Video node and stream may arrive in either order across the scan view's remounts. */
 	const attachVideo = (node: HTMLVideoElement) => {
 		videoNode = node;
 		if (stream !== null) showStream(node, stream);
@@ -384,9 +409,9 @@
 	};
 
 	/**
-	 * The voice is chosen from what the device offers, once the list has loaded (it arrives
+	 * The fallback voice is chosen from what the device offers, once the list has loaded (it arrives
 	 * asynchronously on Chromium) and again when the locale changes. The pick is kept in the kiosk
-	 * settings so the same voice speaks every day; an unacceptable list leaves the kiosk silent.
+	 * settings so the same voice speaks every day; an unacceptable list leaves a missing clip silent.
 	 */
 	const loadVoice = () => {
 		if (!('speechSynthesis' in window)) return;
@@ -400,31 +425,14 @@
 	};
 
 	$effect(() => {
-		void i18n.intlLocale;
+		narrator.setLanguage(kioskVoiceLanguage(i18n.intlLocale));
 		loadVoice();
 	});
 
-	const speak = (message: string) => {
-		if (!voiceEnabled || voice === null || !('speechSynthesis' in window)) return;
-		window.speechSynthesis.cancel();
-		const utterance = new SpeechSynthesisUtterance(message);
-		utterance.voice = voice;
-		utterance.lang = voice.lang;
-		window.speechSynthesis.speak(utterance);
-	};
-
-	/** Statuses are spoken by title; the detail is read only when the tone is a warning or error. */
-	const speakStatus = (next: KioskStatus) => {
-		speak(
-			next.tone === 'warning' || next.tone === 'error'
-				? `${next.title}. ${next.detail}`
-				: next.title
-		);
-	};
-
-	const announce = (next: KioskStatus) => {
+	/** A status the screen shows and, when it has one, the phrase the kiosk says for it. */
+	const announce = (next: KioskStatus, phrase: KioskPhraseKey | null) => {
 		notice = next;
-		speakStatus(next);
+		if (phrase !== null) narrator.say(phrase);
 	};
 
 	const showHint = (kind: Hint) => {
@@ -432,19 +440,19 @@
 		hint = kind;
 		if (spokenHints.has(kind)) return;
 		spokenHints.add(kind);
-		speak(kind === 'move_closer' ? t('kiosk.move_closer') : t('kiosk.no_face'));
+		narrator.say(kind);
 	};
 
 	const toggleVoice = () => {
 		voiceEnabled = !voiceEnabled;
 		writeKioskSettings({ voiceEnabled });
-		if (!voiceEnabled) window.speechSynthesis?.cancel();
+		narrator.setEnabled(voiceEnabled);
 	};
 
 	const selectDirection = (next: Direction) => {
 		resumeScan();
 		direction = next;
-		speak(t('kiosk.action_selected', { action: actionLabel(next) }));
+		narrator.say(next === 'in' ? 'selected_in' : 'selected_out');
 	};
 
 	const openTab = (next: Tab) => {
@@ -483,6 +491,7 @@
 			analyseCanvas = createAnalyseCanvas();
 			engineMissing = missingFaceModels(human);
 			phase = engineMissing.length > 0 ? 'unavailable' : 'scan';
+			if (phase === 'unavailable') narrator.say('engine_unavailable');
 		} catch (error) {
 			phase = 'error';
 			fatal = error instanceof Error ? error.message : String(error);
@@ -512,18 +521,26 @@
 		}
 	};
 
-	/** One analysed frame for enrollment: largest face wins, same pipeline as the loop. */
-	const analyzeSample = async (): Promise<KioskSample | null> => {
-		if (human === null || analyseCanvas === null || videoNode === null) return null;
-		return extractFaceSample(human, videoNode, analyseCanvas);
-	};
-
-	const rejectFace = (next: KioskStatus, preserveIdentity = false) => {
+	const rejectFace = (
+		next: KioskStatus,
+		phrase: KioskPhraseKey | null,
+		preserveIdentity = false
+	) => {
 		phase = 'rejected';
 		if (!preserveIdentity) candidate = null;
-		announce(next);
+		announce(next, phrase);
 		scheduleResume();
 	};
+
+	/** What the kiosk says for a refused punch; the screen's `blockedStatus` explains it. */
+	const blockedPhrase = (reason: string | undefined): KioskPhraseKey =>
+		reason === 'already-in'
+			? 'already_in'
+			: reason === 'no-open-interval'
+				? 'no_arrival'
+				: reason === 'cooldown'
+					? 'too_soon'
+					: 'unchanged';
 
 	const acceptPunch = (
 		result: PunchCommandResult,
@@ -539,8 +556,13 @@
 			retryAfterMs: 'retryAfterMs' in result ? Number(result.retryAfterMs) : undefined
 		};
 		phase = result.status === 'blocked' ? 'blocked' : 'done';
-		if (phase === 'blocked') speakStatus(blockedStatus());
-		else speak(matchedDirection === 'in' ? t('kiosk.recorded_in') : t('kiosk.recorded_out'));
+		narrator.say(
+			phase === 'blocked'
+				? blockedPhrase(punch.reason)
+				: matchedDirection === 'in'
+					? 'checked_in'
+					: 'checked_out'
+		);
 		void matchedCandidate;
 		scheduleResume(5000);
 	};
@@ -554,6 +576,7 @@
 				title: t('kiosk.record_failed'),
 				detail: error instanceof Error ? error.message : String(error)
 			},
+			'try_again',
 			true
 		);
 	};
@@ -561,22 +584,20 @@
 	const acceptMatch = (matched: MatchResult, blinked: boolean) => {
 		if (tab !== 'scan' || direction === null || phase !== 'matching') return;
 		if (matched.status === 'unenrolled') {
-			rejectFace({
-				tone: 'warning',
-				icon: 'lucide:badge-alert',
-				title: matched.employee.name,
-				detail: t('kiosk.no_active_employment')
-			});
+			rejectFace(
+				{
+					tone: 'warning',
+					icon: 'lucide:badge-alert',
+					title: matched.employee.name,
+					detail: t('kiosk.no_active_employment')
+				},
+				'no_active_employment'
+			);
 			return;
 		}
 		if (matched.status !== 'match') {
 			phase = 'unknown';
-			speakStatus({
-				tone: 'warning',
-				icon: 'lucide:user-round-question',
-				title: t('kiosk.unknown_person'),
-				detail: t('kiosk.unknown_hint')
-			});
+			narrator.say('identity_unknown');
 			scheduleResume(5500);
 			return;
 		}
@@ -592,12 +613,7 @@
 		lastFaceSeenAt = Date.now();
 		challengeEyesOpenSeen = !blinked;
 		challengeLivenessSeen = false;
-		speak(
-			t('kiosk.identity_confirmed_voice', {
-				name: candidate.employeeName,
-				action: actionLabel(direction)
-			})
-		);
+		narrator.say(direction === 'in' ? 'confirm_in' : 'confirm_out');
 	};
 
 	onMount(() => {
@@ -637,7 +653,7 @@
 					nowMs - presenceSpokenAt > PRESENCE_RESPEAK_MS
 				) {
 					presenceSpokenAt = nowMs;
-					speak(t('kiosk.choose_to_start'));
+					narrator.say('choose_action');
 				}
 				facePresent = present;
 				if (direction === null) return;
@@ -656,6 +672,7 @@
 								title: t('kiosk.face_lost'),
 								detail: t('kiosk.face_lost_detail')
 							},
+							'face_lost',
 							true
 						);
 						return;
@@ -668,6 +685,7 @@
 								title: t('kiosk.live_face_required'),
 								detail: t('kiosk.live_face_required_detail')
 							},
+							'live_face_required',
 							true
 						);
 						return;
@@ -682,6 +700,7 @@
 									title: t('kiosk.live_face_required'),
 									detail: t('kiosk.live_face_required_detail')
 								},
+								'live_face_required',
 								true
 							);
 							return;
@@ -724,12 +743,15 @@
 				absentSince = 0;
 				hint = null;
 				if ((face.real ?? 0) < KIOSK_REAL_MIN) {
-					rejectFace({
-						tone: 'error',
-						icon: 'lucide:shield-alert',
-						title: t('kiosk.live_face_required'),
-						detail: t('kiosk.live_face_required_detail')
-					});
+					rejectFace(
+						{
+							tone: 'error',
+							icon: 'lucide:shield-alert',
+							title: t('kiosk.live_face_required'),
+							detail: t('kiosk.live_face_required_detail')
+						},
+						'live_face_required'
+					);
 					return;
 				}
 				phase = 'matching';
@@ -739,12 +761,15 @@
 				});
 				acceptMatch(matched, blinked);
 			} catch (error) {
-				rejectFace({
-					tone: 'error',
-					icon: 'lucide:triangle-alert',
-					title: t('kiosk.read_failed'),
-					detail: error instanceof Error ? error.message : String(error)
-				});
+				rejectFace(
+					{
+						tone: 'error',
+						icon: 'lucide:triangle-alert',
+						title: t('kiosk.read_failed'),
+						detail: error instanceof Error ? error.message : String(error)
+					},
+					'try_again'
+				);
 			} finally {
 				inFlight = false;
 			}
@@ -754,6 +779,7 @@
 			stopCamera();
 			human?.reset();
 			window.speechSynthesis?.removeEventListener('voiceschanged', loadVoice);
+			narrator.stop();
 			window.speechSynthesis?.cancel();
 		};
 	});
@@ -816,16 +842,6 @@
 			>
 				<Icon icon="lucide:keyboard" class="size-4" />
 				<span class="hidden md:inline">{t('kiosk.manual_entry')}</span>
-			</Button>
-			<Button
-				variant={tab === 'enroll' ? 'secondary' : 'ghost'}
-				size="sm"
-				onclick={() => openTab('enroll')}
-				aria-label={t('kiosk.enroll_face')}
-				aria-pressed={tab === 'enroll'}
-			>
-				<Icon icon="lucide:user-round-plus" class="size-4" />
-				<span class="hidden md:inline">{t('kiosk.enroll_face')}</span>
 			</Button>
 			<LocaleToggle showLabel={false} />
 			<Button
@@ -944,6 +960,7 @@
 				class="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.8fr)] lg:grid-rows-none"
 			>
 				<section
+					{@attach measureFrame}
 					class="relative aspect-video overflow-hidden bg-foreground lg:aspect-auto lg:min-h-0"
 					aria-label={t('kiosk.camera')}
 				>
@@ -977,59 +994,63 @@
 					{/if}
 
 					<!--
-						One silhouette, one drawing: a head ellipse (width 0.78 of its height), a short neck
-						gap, then shoulders widening to about 2.1 head widths and fading out. It is sized to
-						70% of the frame's height so it scales with the video, and the countdown sits in the
-						head.
+						One silhouette, drawn in the frame's own pixels: a head ellipse spanning 58% of the
+						frame's height, a neck gap, then shoulders that fade as they run off the bottom edge.
+						The geometry is `silhouetteGeometry(frame)`; the frame is measured above, so the
+						guide scales with the video at every breakpoint. The countdown sits in the head.
 					-->
-					<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-						<div
-							class="relative {phase === 'challenge' ? 'text-brand' : 'text-white/80'}"
-							style="height: 70%; aspect-ratio: 220 / 260;"
-						>
-							<svg
-								viewBox="0 0 220 260"
-								class="size-full"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-dasharray="6 8"
-								aria-hidden="true"
+					<svg
+						viewBox="0 0 {silhouette.width} {silhouette.height}"
+						preserveAspectRatio="none"
+						class="pointer-events-none absolute inset-0 size-full {phase === 'challenge'
+							? 'text-brand'
+							: 'text-white/80'}"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-dasharray="6 8"
+						data-kiosk-silhouette
+						data-head-height={Math.round(silhouette.head.ry * 2)}
+						data-frame-height={Math.round(silhouette.height)}
+						aria-hidden="true"
+					>
+						<defs>
+							<linearGradient
+								id="kiosk-silhouette-fade"
+								x1="0"
+								y1={silhouette.shoulders.top}
+								x2="0"
+								y2={silhouette.height}
+								gradientUnits="userSpaceOnUse"
 							>
-								<defs>
-									<linearGradient
-										id="kiosk-silhouette-fade"
-										x1="0"
-										y1="150"
-										x2="0"
-										y2="258"
-										gradientUnits="userSpaceOnUse"
-									>
-										<stop offset="0" stop-color="currentColor" stop-opacity="1" />
-										<stop offset="0.55" stop-color="currentColor" stop-opacity="0.6" />
-										<stop offset="1" stop-color="currentColor" stop-opacity="0" />
-									</linearGradient>
-								</defs>
-								<ellipse cx="110" cy="72" rx="50" ry="64" />
-								<path
-									d="M84 150 C 84 176, 46 186, 8 258 M136 150 C 136 176, 174 186, 212 258"
-									stroke="url(#kiosk-silhouette-fade)"
-								/>
-							</svg>
-							{#if phase === 'challenge'}
-								<div
-									class="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
-									style="top: 27.7%;"
-								>
-									<span
-										class="flex size-20 items-center justify-center rounded-full bg-black/70 text-title text-white tabular-nums"
-										aria-hidden="true">{challengeLeft}</span
-									>
-								</div>
-							{/if}
+								<stop offset="0" stop-color="currentColor" stop-opacity="1" />
+								<stop offset="0.6" stop-color="currentColor" stop-opacity="0.6" />
+								<stop offset="1" stop-color="currentColor" stop-opacity="0" />
+							</linearGradient>
+						</defs>
+						<ellipse
+							cx={silhouette.head.cx}
+							cy={silhouette.head.cy}
+							rx={silhouette.head.rx}
+							ry={silhouette.head.ry}
+						/>
+						<path d={silhouette.shoulders.path} stroke="url(#kiosk-silhouette-fade)" />
+					</svg>
+					{#if phase === 'challenge'}
+						<div
+							class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+							style="left: {(silhouette.head.cx / silhouette.width) * 100}%; top: {(silhouette.head
+								.cy /
+								silhouette.height) *
+								100}%;"
+						>
+							<span
+								class="flex size-20 items-center justify-center rounded-full bg-black/70 text-title text-white tabular-nums"
+								aria-hidden="true">{challengeLeft}</span
+							>
 						</div>
-					</div>
+					{/if}
 
 					<div class="absolute inset-x-3 bottom-3 grid grid-cols-2 gap-3 lg:hidden">
 						{@render actionCards(true)}
@@ -1085,10 +1106,6 @@
 									<div>
 										<p class="text-base font-medium">{t('kiosk.unknown_person')}</p>
 										<p class="mt-1 text-sm text-muted-foreground">{t('kiosk.unknown_hint')}</p>
-										<Button class="mt-4" variant="secondary" onclick={() => openTab('enroll')}>
-											<Icon icon="lucide:user-round-plus" class="size-4" />
-											{t('kiosk.enroll_person')}
-										</Button>
 									</div>
 								</div>
 							{:else if phase === 'rejected' && notice !== null}
@@ -1152,13 +1169,9 @@
 					</div>
 				</aside>
 			</div>
-		{:else if tab === 'manual'}
-			<div class="h-full overflow-y-auto bg-muted/40">
-				<ManualTab ondone={toScan} />
-			</div>
 		{:else}
 			<div class="h-full overflow-y-auto bg-muted/40">
-				<EnrollTab ondone={toScan} ensureCamera={startCamera} {analyzeSample} {attachVideo} />
+				<ManualTab ondone={toScan} />
 			</div>
 		{/if}
 	</Cover>

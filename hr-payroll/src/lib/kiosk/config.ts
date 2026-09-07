@@ -21,6 +21,13 @@ export const KIOSK_MODEL_BASE = new URL(/* @vite-ignore */ '../models/human/', i
 	.href;
 
 /**
+ * Where the narration clips live, resolved the same way: the `kiosk-voice-clips` plugin in
+ * `vite.config.ts` emits `assets/kiosk-voice/<language>/<key>.mp3` at `kiosk-voice/…` beside the
+ * `assets/` directory this chunk is built into.
+ */
+export const KIOSK_VOICE_BASE = new URL(/* @vite-ignore */ '../kiosk-voice/', import.meta.url).href;
+
+/**
  * The Human model keys the kiosk's configuration enables, as `human.models.loaded()` names them.
  * Every one must be loaded before the scan loop may run: a missing description or iris graph does
  * not fail `load()`, it fails `detect()` on the first face, which is the silence B6 describes.
@@ -51,9 +58,6 @@ export const KIOSK_CONFIRMATION_SECONDS = 2;
 
 /** Faces smaller than this are background, not the person at the kiosk. */
 export const KIOSK_MIN_FACE_PX = 80;
-
-/** Enrollment wants this many captures; one is enough to proceed. */
-export const KIOSK_ENROLL_SAMPLES = 3;
 
 /** Capture resolution. Bench ran 640x480; the kiosk captures 720p and analyses at 640 wide. */
 export const KIOSK_CAPTURE_WIDTH = 1280;

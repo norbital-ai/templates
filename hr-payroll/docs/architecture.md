@@ -934,8 +934,18 @@ engine unavailable" naming the models and never "Camera ready". While running it
 a person: a face in frame before an action is chosen shows "Choose check in or check out to
 start"; a face too small or without an embedding for about two seconds shows "Move closer and face
 the camera"; no face for about five seconds shows "No face detected"; each is spoken once per
-attempt, title only, with a natural local voice when the browser offers one and text only
-otherwise. Manual check-in and check-out stay usable when the camera is unavailable.
+attempt. Speech is pre-generated clips (`src/lib/kiosk/phrases.ts` is the one phrase list;
+`scripts/generate-kiosk-voice.mjs` renders a clip per key and language and never overwrites a
+recording; the `kiosk-voice-clips` Vite plugin ships them beside the models), played one at a
+time through a small queue; a phrase with no clip falls back to browser speech with a natural
+local voice when the device offers one, and stays silent otherwise. The camera frame carries a
+measured silhouette (`src/lib/kiosk/silhouette.ts`): a head ellipse spanning 58% of the frame's
+height with shoulders running off the bottom edge, drawn in the frame's own pixels. Enrollment
+lives on the employee profile, not on the wall: a guided five-pose capture (straight, left,
+right, up, down, each held ~600 ms with a readable descriptor), averaged into one vector and
+written through the `kiosk_enroll` command, which approves at once and refuses a pending or
+suspended enrollment HR has not reviewed.
+Manual check-in and check-out stay usable when the camera is unavailable.
 
 ## Provenance and audit
 
