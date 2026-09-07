@@ -473,7 +473,11 @@
 			view={`crm:contracts:${selectedAccountId}`}
 			title={t('app.crm.contracts_title')}
 			description={t('app.crm.contracts_description')}
-			query={{ where: { contract_signing_quote: { account_id: { eq: selectedAccountId } } } }}
+			query={{
+				// A relation enters a predicate only under a quantifier; naming the related column
+				// directly reads as a field of `contract_signings` and is refused at decode time.
+				where: { contract_signing_quote: { some: { account_id: { eq: selectedAccountId } } } }
+			}}
 		>
 			{#snippet columns({ Column })}
 				<Column name="quote_id" label={t('component.quote')} minWidth={200} card="title" />
