@@ -213,6 +213,7 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 			// compared against it. A TOTAL_WORK_HOURS row is a different quantity, not a stricter one.
 			.filter(
 				(limit) =>
+					limit.on_exceed !== 'INCENTIVE' &&
 					limit.period === 'MONTH' &&
 					limit.measures === 'OVERTIME_HOURS' &&
 					options.monthHours > decodeNumber(limit.max_hours)

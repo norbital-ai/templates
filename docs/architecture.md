@@ -517,10 +517,31 @@ is not an input.
 
 Incentive OT is calculated output. Source incentive-overtime columns are never an input. Like
 ordinary overtime it is a derived payslip line naming the statutory band that priced it, not a pay
-component: there is nothing for a company to configure and nothing for two companies in one
-jurisdiction to disagree about.
+component. What an entity can state is only the boundary: where the value stops being statutory
+OT and becomes incentive, and it states it where every other rule of pay lives, in its
+jurisdiction settings.
 
-Two independent limits classify already-earned statutory OT value:
+#### Incentive boundary
+
+A regime limit with `on_exceed: INCENTIVE` is an arrangement, not a compliance rule: a `DAY`
+limit on `TOTAL_WORK_HOURS` (hours worked, net of the recorded break) measured on ordinary
+(Monday to Friday) days. Nihon's is 11, a twelve-hour day that includes its one-hour break, and
+it lives on Nihon's own forked lineage `MY-nihon` (cloned from `MY`, the same mechanism as the
+statutory fixtures), so the shared Malaysian law carries no company's arrangement. Where an
+INCENTIVE boundary is stated it is the only classifier:
+
+```text
+ordinary-day excess hours  = floor½(max(0, hours worked − boundary))
+retained OT hours          = payable OT hours − excess hours
+rest, off and holiday work = priced whole on the statutory ladder
+```
+
+The jurisdiction's daily and monthly limits below still validate compliance (the run still fails
+`DAILY_WORK_LIMIT_EXCEEDED` and warns on the 104-hour counter) but move no hours. Null leaves
+classification to those limits, which is every other entity today.
+
+Two independent statutory limits classify already-earned OT value where no company boundary is
+stated:
 
 #### Daily total-work boundary
 

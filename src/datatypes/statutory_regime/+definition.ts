@@ -25,11 +25,22 @@ export const statutoryOvertimeRuleValueSchema = Schema.Struct({
 
 export type StatutoryOvertimeRule = Schema.Schema.Type<typeof statutoryOvertimeRuleValueSchema>;
 
+/**
+ * One ceiling on hours, and what crossing it means.
+ *
+ * `WARN` and `BLOCK` are the statute's ceilings: the run warns or refuses, and where no
+ * `INCENTIVE` boundary is stated the hours past them are reclassified as incentive OT at the same
+ * statutory value. `INCENTIVE` is an arrangement, not a compliance rule: a `DAY` boundary on
+ * `TOTAL_WORK_HOURS` (hours worked, net of the recorded break) on ordinary days, past which
+ * overtime is paid as incentive OT. Stated, it is the only classifier; the statutory ceilings
+ * beside it validate and move nothing. Nihon's is 11: a twelve-hour day less its one-hour break,
+ * on the entity's own forked lineage.
+ */
 export const statutoryOvertimeLimitValueSchema = Schema.Struct({
 	period: Schema.Literals(['DAY', 'WEEK', 'MONTH']),
 	measures: Schema.Literals(['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
 	max_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
-	on_exceed: Schema.Literals(['WARN', 'BLOCK']),
+	on_exceed: Schema.Literals(['WARN', 'BLOCK', 'INCENTIVE']),
 	authority
 });
 
@@ -181,9 +192,16 @@ export function statutoryRegimeIssues(regime: StatutoryRegime, currency: string)
 
 	const limitKeys = new Set<string>();
 	for (const limit of regime.overtime_limits) {
-		const key = `${limit.period}:${limit.measures}`;
+		const incentive = limit.on_exceed === 'INCENTIVE';
+		if (incentive && (limit.period !== 'DAY' || limit.measures !== 'TOTAL_WORK_HOURS'))
+			issues.push(
+				`An INCENTIVE boundary is a DAY limit on TOTAL_WORK_HOURS; ${limit.period} on ${limit.measures} is not one.`
+			);
+		const key = `${limit.period}:${limit.measures}:${incentive ? 'INCENTIVE' : 'STATUTORY'}`;
 		if (limitKeys.has(key))
-			issues.push(`More than one ${limit.period} limit measures ${limit.measures}.`);
+			issues.push(
+				`More than one ${incentive ? 'INCENTIVE ' : ''}${limit.period} limit measures ${limit.measures}.`
+			);
 		limitKeys.add(key);
 	}
 

@@ -100,3 +100,51 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 		'Employment Act 1955 s.60A(3)(a)'
 	);
 });
+
+test('an INCENTIVE boundary sits beside the statutory ceilings and must be a daily total-work limit', () => {
+	const incentive = (overrides = {}) => ({
+		period: 'DAY',
+		measures: 'TOTAL_WORK_HOURS',
+		max_hours: 11,
+		on_exceed: 'INCENTIVE',
+		authority: 'Nihon Pigment arrangement, 7 September 2026',
+		...overrides
+	});
+	const statutory = [
+		{
+			period: 'DAY',
+			measures: 'TOTAL_WORK_HOURS',
+			max_hours: 12,
+			on_exceed: 'BLOCK',
+			authority: 'EA 1955 s.60A(7)'
+		},
+		{
+			period: 'MONTH',
+			measures: 'OVERTIME_HOURS',
+			max_hours: 104,
+			on_exceed: 'WARN',
+			authority: 'EA 1955 s.60A(4)(a)'
+		}
+	];
+	assert.deepEqual(
+		statutoryRegimeIssues({ ...regime(), overtime_limits: [...statutory, incentive()] }, 'MYR'),
+		[]
+	);
+	assert.match(
+		statutoryRegimeIssues(
+			{
+				...regime(),
+				overtime_limits: [incentive({ period: 'MONTH', measures: 'OVERTIME_HOURS' })]
+			},
+			'MYR'
+		).join(' '),
+		/INCENTIVE boundary is a DAY limit on TOTAL_WORK_HOURS/
+	);
+	assert.match(
+		statutoryRegimeIssues(
+			{ ...regime(), overtime_limits: [incentive(), incentive({ max_hours: 10 })] },
+			'MYR'
+		).join(' '),
+		/More than one INCENTIVE DAY limit/
+	);
+});
