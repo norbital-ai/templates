@@ -282,7 +282,7 @@ function statutoryLimits(configuration: Configuration) {
  * The regime's INCENTIVE boundary, in hours worked on an ordinary day, or null where the lineage
  * states none and the statutory ceilings classify. Nihon's forked lineage states 11.
  */
-export function incentiveBoundary(configuration: Configuration): number | null {
+function incentiveBoundary(configuration: Configuration): number | null {
 	const limits = configuration.overtimeLimits.filter((limit) => limit.on_exceed === 'INCENTIVE');
 	if (limits.length > 1)
 		throw new Error('More than one INCENTIVE boundary is effective for this jurisdiction.');
