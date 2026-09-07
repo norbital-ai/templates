@@ -54,8 +54,8 @@ type SettingsCloneApi = Readonly<{
 		| 'jurisdiction_settings'
 		| 'statutory_contributions'
 		| 'contribution_rates'
-		| 'leave_types'
-		| 'pay_components'
+		| 'leave_catalogue'
+		| 'component_catalogue'
 		| 'company_holidays'
 	>;
 }>;
@@ -67,8 +67,8 @@ export type SettingsVersionTree = Readonly<{
 	source: Row<'jurisdiction_settings'>;
 	schemes: ReadonlyArray<Row<'statutory_contributions'>>;
 	rates: ReadonlyArray<Row<'contribution_rates'>>;
-	leaveTypes: ReadonlyArray<Row<'leave_types'>>;
-	payComponents: ReadonlyArray<Row<'pay_components'>>;
+	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
+	catalogueComponents: ReadonlyArray<Row<'component_catalogue'>>;
 	holidays: ReadonlyArray<Row<'company_holidays'>>;
 }>;
 
@@ -86,16 +86,16 @@ export const readSettingsVersionTree = (
 		});
 		if (source == null) refuse('The jurisdiction settings version to clone does not exist.');
 		const under = { settings_id: { eq: source.id }, approval_id: { isNull: true } } as const;
-		const [schemes, leaveTypes, payComponents, holidays] = yield* Effect.all(
+		const [schemes, catalogueLeaves, catalogueComponents, holidays] = yield* Effect.all(
 			[
 				api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
-				api.db.leave_types.findMany({ where: under, limit: LIMIT }),
-				api.db.pay_components.findMany({ where: under, limit: LIMIT }),
+				api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.component_catalogue.findMany({ where: under, limit: LIMIT }),
 				api.db.company_holidays.findMany({ where: under, limit: LIMIT })
 			],
 			{ concurrency: 'unbounded' }
 		);
-		for (const rows of [schemes, leaveTypes, payComponents, holidays])
+		for (const rows of [schemes, catalogueLeaves, catalogueComponents, holidays])
 			if (rows.length >= LIMIT) refuse('The version is too large to clone safely.');
 		const rates =
 			schemes.length === 0
@@ -108,7 +108,7 @@ export const readSettingsVersionTree = (
 						limit: LIMIT
 					});
 		if (rates.length >= LIMIT) refuse('The version is too large to clone safely.');
-		return { source, schemes, rates, leaveTypes, payComponents, holidays };
+		return { source, schemes, rates, catalogueLeaves, catalogueComponents, holidays };
 	});
 
 type SettingsDraftOptions = Readonly<{
@@ -125,7 +125,7 @@ export function settingsDraftWrite(
 	tree: SettingsVersionTree,
 	options: SettingsDraftOptions
 ): Readonly<{ name: string; write: SettingsDraftWrite }> {
-	const { source, schemes, rates, leaveTypes, payComponents, holidays } = tree;
+	const { source, schemes, rates, catalogueLeaves, catalogueComponents, holidays } = tree;
 	const sourceRange = readRange(source.effective_range);
 	if (sourceRange != null && options.starts_on <= sourceRange.start.slice(0, 10))
 		refuse(
@@ -169,8 +169,11 @@ export function settingsDraftWrite(
 						id: crypto.randomUUID()
 					}))
 			})),
-			leave_type_settings: leaveTypes.map((row) => ({ ...cloneRow(row), id: crypto.randomUUID() })),
-			pay_component_settings: payComponents.map((row) => ({
+			leave_catalogue_settings: catalogueLeaves.map((row) => ({
+				...cloneRow(row),
+				id: crypto.randomUUID()
+			})),
+			component_catalogue_settings: catalogueComponents.map((row) => ({
 				...cloneRow(row, ['nature']),
 				id: crypto.randomUUID()
 			})),
@@ -187,8 +190,8 @@ type SettingsDraftCreated = Readonly<{
 	starts_on: string;
 	schemes: number;
 	rates: number;
-	leave_types: number;
-	pay_components: number;
+	leave_catalogue: number;
+	component_catalogue: number;
 	holidays: number;
 }>;
 
@@ -219,8 +222,8 @@ export const createSettingsDraft = (
 			starts_on: startsOn,
 			schemes: tree.schemes.length,
 			rates: tree.rates.length,
-			leave_types: tree.leaveTypes.length,
-			pay_components: tree.payComponents.length,
+			leave_catalogue: tree.catalogueLeaves.length,
+			component_catalogue: tree.catalogueComponents.length,
 			holidays: tree.holidays.length
 		};
 	});

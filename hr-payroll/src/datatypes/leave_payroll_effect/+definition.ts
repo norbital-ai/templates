@@ -2,7 +2,7 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
 /**
- * What taking this leave does to pay. `UNPAID` names the deduction pay component that
+ * What taking this leave does to pay. `UNPAID` names the deduction component that
  * carries the lost wage. A variant cannot be a foreign key — `component_id` is validated
  * in `+hooks.ts`, not by a constraint.
  */
@@ -24,6 +24,6 @@ export const leavePayrollEffectSchema = Schema.toStandardSchemaV1(leavePayrollEf
 export default defineCustomType({
 	name: 'leave_payroll_effect',
 	description:
-		'Whether taking this leave is paid, or unpaid and deducted through the pay component named here.',
+		'Whether taking this leave is paid, or unpaid and deducted through the component named here.',
 	schema: leavePayrollEffectSchema
 });

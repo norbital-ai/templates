@@ -115,7 +115,7 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		'the page is one query over the lineage'
 	);
 	assert.match(script, /where: onLineage\(code\)/, "scoped by the entity's settings code");
-	for (const tab of ['contributions', 'leaveTypes', 'payComponents', 'holidays'])
+	for (const tab of ['contributions', 'catalogueLeaves', 'catalogueComponents', 'holidays'])
 		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
 	assert.deepEqual(
 		registrations(snippet(settings, 'payroll')),

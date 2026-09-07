@@ -4,7 +4,7 @@ import { custom, defineModel, instant, integer, text, uuid } from '@norbital-ai/
  * Jurisdiction settings: the one sealed, shareable root every payroll, leave and scheduling rule
  * of an entity hangs off. A version carries the payroll scalars itself (currency, tax year,
  * proration, the rate-of-pay divisor, the working-time regime) and owns every downstream row:
- * `statutory_contributions` with their `contribution_rates`, `leave_types`, `pay_components` and
+ * `statutory_contributions` with their `contribution_rates`, `leave_catalogue`, `component_catalogue` and
  * `company_holidays`, each flagged `is_statutory` where the law names it and company rule where
  * the entity does. Shift definitions stay per company: they are site operations, not rules.
  *
@@ -65,7 +65,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One version of a jurisdiction settings lineage: currency, tax year, effective period, proration, the rate-of-pay divisor and the atomic overtime regime, owning its schemes, rate bands, leave types, pay components and holidays. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
+			'One version of a jurisdiction settings lineage: currency, tax year, effective period, proration, the rate-of-pay divisor and the atomic overtime regime, owning its schemes, rate bands, leave catalogue entries, components and holidays. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
 		recordLabel: 'name',
 		icon: 'lucide:globe',
 		indexes: [{ columns: ['code'] }, { columns: ['code', 'sealed_at'] }],

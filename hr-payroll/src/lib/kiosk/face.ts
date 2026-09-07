@@ -12,7 +12,10 @@ type FaceCandidate = Readonly<{
 	readonly box?: readonly [number, number, number, number];
 	readonly embedding?: number[];
 	readonly score: number;
+	/** Antispoof: how unlike a printed or re-displayed face this is. */
 	readonly real?: number;
+	/** Liveness: how unlike a still or replayed capture this is. A different model, a second axis. */
+	readonly live?: number;
 	/** Head pose in radians, from the mesh; absent until the mesh graph has run on this face. */
 	readonly rotation?: Readonly<{ angle: Readonly<{ yaw: number; pitch: number }> }> | null;
 }>;
@@ -46,9 +49,9 @@ const engineConfig = (backend: 'webgl' | 'wasm') => ({
 		antispoof: { enabled: true, modelPath: 'antispoof.json', skipFrames: 0, skipTime: 0 },
 		iris: { enabled: true, modelPath: 'iris.json' },
 		mesh: { enabled: true, modelPath: 'facemesh.json' },
+		liveness: { enabled: true, modelPath: 'liveness.json', skipFrames: 0, skipTime: 0 },
 		emotion: { enabled: false },
 		attention: { enabled: false },
-		liveness: { enabled: false },
 		gear: { enabled: false }
 	},
 	hand: { enabled: false },

@@ -210,7 +210,7 @@ overlap, paid payroll windows and the projected balance.
 New leave request
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ Person      [ PUBEM0359 · Aisha ▾ ]                                     │
-│ Leave type  [ Annual leave ▾ ]             Balance  4.5 days            │
+│ Catalogue leave  [ Annual leave ▾ ]             Balance  4.5 days            │
 │                                                                          │
 │ Range       [ 4 Jun 2026, AM → 11 Jun 2026, AM  ▾ ]                     │
 │             ┌─────────────────────────────────────┐                     │
@@ -247,7 +247,7 @@ Interaction contract:
   until any one configured approver accepts it; this is storage for the same approval, not another
   approval layer. The hold reserves range and balance immediately. Approval commits the
   `leave_requests` row and its `TAKEN` ledger entry; rejection or withdrawal releases the hold.
-- The leave type's `eligibility` rules are checked for each selected workday against the terms
+- The catalogue leave's `eligibility` rules are checked for each selected workday against the terms
   effective on that day. All rules must match. `requires_certificate_after_days` requires a
   certificate when server-measured workdays exceed the threshold. Only time-off events accept it.
 

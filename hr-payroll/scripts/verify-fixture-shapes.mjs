@@ -16,7 +16,7 @@
  * wrong reason or fails for a reason that looks like an arithmetic bug.
  *
  * The case that prompted this: a claim fixture carried `nature` on an invented `componentType`
- * sub-object while `settle()` reads `payComponent.nature`. `payments` summed to zero and a
+ * sub-object while `settle()` reads `catalogueComponent.nature`. `payments` summed to zero and a
  * payroll-settled reimbursement never reached net.
  *
  * ### Where a shape like that comes from
@@ -33,7 +33,7 @@
  * **A — required field absent (runtime).** Runs `verify-payroll-arithmetic.mjs` with every argument
  * to every payroll-engine function deep-proxied, and records each read of a key the fixture does not
  * have. On the case above it reports
- * `settle.settle(arg0).lines.0.payComponent.nature`, naming the field and the line.
+ * `settle.settle(arg0).lines.0.catalogueComponent.nature`, naming the field and the line.
  *
  * **B — surplus field present (static).** Flags object keys in the target script that appear nowhere
  * in `src/`. On the case above it reports `componentType`, since that name exists nowhere in the

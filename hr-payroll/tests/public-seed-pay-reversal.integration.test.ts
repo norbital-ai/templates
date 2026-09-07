@@ -27,7 +27,8 @@ import {
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
-const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
+/** The correction component: `entry_kind: MANUAL_ADJUSTMENT`, which is the arm this test files. */
+const TRANSPORT_ID = '77777777-7777-4777-8777-777777777702';
 const MUTATE = 'collections.mutate';
 
 const teamHeaders = (session: Session, team: string) => ({
@@ -118,7 +119,7 @@ const postReversal = (
 					values: {
 						id: crypto.randomUUID(),
 						employment_id: EMPLOYMENT_ID,
-						pay_component_id: TRANSPORT_ID,
+						component_catalogue_id: TRANSPORT_ID,
 						amount: 310,
 						event_date: '2026-02-10',
 						pay_period: FEBRUARY_2026,
@@ -180,14 +181,28 @@ test(
 
 			const februaryRun = await createRun(session, FEBRUARY_2026);
 			const february = await payslipOf(session, februaryRun);
-			const transport = february.adjustments.filter((row) => row.label === 'TRANSPORT');
+			/**
+			 * The correction prints under the component that takes corrections, not under the one it
+			 * corrects. A `MANUAL_ADJUSTMENT` entry may only be raised against a component whose
+			 * `entry_kind` is `MANUAL_ADJUSTMENT`, so the reversal is its own line — and it has to be
+			 * read as the pair it is: the standing allowance still pays, and the correction takes it
+			 * back. What must not change is the money, which the gross assertion below states.
+			 */
+			const allowance = february.adjustments.filter((row) => row.label === 'TRANSPORT');
 			assert.equal(
-				transport.length,
-				2,
-				`February carries the standing allowance and its reversal: ${JSON.stringify(february.adjustments)}`
+				allowance.length,
+				1,
+				`February still carries the standing allowance: ${JSON.stringify(february.adjustments)}`
 			);
-			const reversal = transport.find((row) => signed(row) < 0);
-			assert.ok(reversal, `one TRANSPORT line is the reversal: ${JSON.stringify(transport)}`);
+			assert.equal(signed(allowance[0]!), 310, 'the allowance is unchanged by the correction');
+			const corrections = february.adjustments.filter((row) => row.label === 'PAY_CORRECTION');
+			assert.equal(
+				corrections.length,
+				1,
+				`and the reversal beside it: ${JSON.stringify(february.adjustments)}`
+			);
+			const reversal = corrections[0];
+			assert.ok(reversal, `the correction line: ${JSON.stringify(corrections)}`);
 			assert.equal(signed(reversal), -310, 'exactly the negated settled amount');
 			assert.equal(
 				Number(february.payslip.gross),

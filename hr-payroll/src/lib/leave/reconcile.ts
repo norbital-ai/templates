@@ -14,7 +14,7 @@ import { leaveEntitlementIdFor, leaveEntryIdFor, requestSourceKey } from './iden
 /**
  * The leave reconciler: four rules, one arithmetic.
  *
- * 1. For each employment × leave type × (previous, current, next) leave year, the leave types
+ * 1. For each employment × leave × (previous, current, next) leave year, the leave catalogue entries
  *    being those of the jurisdiction settings version in force on the year's rule date (a year no
  *    sealed version covers generates nothing): if the person is eligible on the rule date, the
  *    entitlement row exists and its award schedule is
@@ -35,7 +35,7 @@ const LIMIT = 5_000;
 type Api = Readonly<{ readonly db: AutomationApi['db'] }>;
 type Employment = WorkspaceRow<'employments'>;
 type Employee = WorkspaceRow<'employees'>;
-type LeaveType = WorkspaceRow<'leave_types'>;
+type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
 type Child = WorkspaceRow<'employee_children'>;
 type Entitlement = WorkspaceRow<'leave_entitlements'>;
 type EmploymentTerm = WorkspaceRow<'employment_terms'>;
@@ -71,7 +71,7 @@ function leaveYearWindow(year: number): { start: string; end: string } {
 }
 
 /** The band in force at this many completed months of service: the highest `band_from` at or below it. */
-function entitlementDays(type: Pick<LeaveType, 'entitlement'>, serviceMonths: number): number {
+function entitlementDays(type: Pick<CatalogueLeave, 'entitlement'>, serviceMonths: number): number {
 	return (
 		type.entitlement.layers
 			.filter((band) => band.band_from <= serviceMonths)
@@ -94,7 +94,7 @@ function monthEndFrom(start: string, offset: number): string {
  */
 export function entitlementEntries(options: {
 	readonly entitlementId: string;
-	readonly type: Pick<LeaveType, 'accrual'>;
+	readonly type: Pick<CatalogueLeave, 'accrual'>;
 	readonly target: number;
 	readonly yearStart: string;
 	readonly yearEnd: string;
@@ -150,7 +150,7 @@ function scheduledTotal(options: Parameters<typeof entitlementEntries>[0]): numb
 function ensureEntitlement(options: {
 	readonly api: Api;
 	readonly employment: Employment;
-	readonly type: LeaveType;
+	readonly type: CatalogueLeave;
 	readonly year: number;
 	readonly openingDate: string;
 	readonly serviceMonths: number;
@@ -176,7 +176,7 @@ function ensureEntitlement(options: {
 		yield* options.api.db.leave_entitlements.mutate([
 			{
 				employment_id: options.employment.id,
-				leave_type_id: options.type.id,
+				leave_catalogue_id: options.type.id,
 				leave_year: options.year,
 				starts_on: options.openingDate,
 				ends_on: window.end,
@@ -219,7 +219,7 @@ function reconcileAwards(options: {
 	readonly entitlement: Entitlement;
 	readonly entries: readonly Entry[];
 	readonly employment: Employment;
-	readonly type: LeaveType;
+	readonly type: CatalogueLeave;
 	readonly asOf: string;
 }): Effect.Effect<number> {
 	return Effect.gen(function* () {
@@ -260,7 +260,7 @@ function reconcileAwards(options: {
 				kind: 'ADJUSTMENT',
 				effective_on: options.asOf,
 				days: delta,
-				reason: `Leave type ${type.code} changed: entitlement to date is now ${targetToDate}, ${awarded} was posted`,
+				reason: `Leave ${type.code} changed: entitlement to date is now ${targetToDate}, ${awarded} was posted`,
 				source_key: sourceKey
 			}
 		]);
@@ -495,7 +495,7 @@ export function closeOnExit(options: {
 /**
  * The ledger line each approved request of this employment takes, on the entitlement the request
  * names or, when it arrived without one (a seeded fact, an import), on the entitlement its
- * employment, leave type and start date name by formula. The request's own write posts the same
+ * employment, leave and start date name by formula. The request's own write posts the same
  * line under the same id, so whichever write comes first creates it and the other restates it;
  * nothing is charged twice.
  */
@@ -511,8 +511,8 @@ export function chargeApprovedRequests(
 		});
 		requireComplete(requests, 'employment leave requests');
 		if (requests.length === 0) return 0;
-		const typeIds = [...new Set(requests.map((request) => request.leave_type_id))];
-		const types = yield* api.db.leave_types.findMany({
+		const typeIds = [...new Set(requests.map((request) => request.leave_catalogue_id))];
+		const types = yield* api.db.leave_catalogue.findMany({
 			where: { id: { in: typeIds } },
 			limit: LIMIT
 		});
@@ -524,7 +524,7 @@ export function chargeApprovedRequests(
 				request.leave_entitlement_id ??
 				leaveEntitlementIdFor({
 					employment_id: employment.id,
-					leave_code: codeOf.get(request.leave_type_id) ?? '',
+					leave_code: codeOf.get(request.leave_catalogue_id) ?? '',
 					leave_year: leaveYearOf(start)
 				});
 			if (!entitlements.some((row) => row.id === entitlementId)) continue;
@@ -610,14 +610,14 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 		const types =
 			versions.length === 0
 				? []
-				: yield* api.db.leave_types.findMany({
+				: yield* api.db.leave_catalogue.findMany({
 						where: {
 							settings_id: { in: versions.map((row) => row.id) },
 							approval_id: { isNull: true }
 						},
 						limit: LIMIT
 					});
-		requireComplete(types, 'lineage leave types');
+		requireComplete(types, 'lineage leave catalogue entries');
 		const currentYear = leaveYearOf(asOf);
 		const hireDate = dateKey(employment.hire_date);
 		let created = 0;
@@ -678,7 +678,7 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 					where: { leave_entitlement_id: { eq: entitlement.id }, approval_id: { isNull: true } },
 					limit: LIMIT
 				});
-			const type = typeById.get(entitlement.leave_type_id);
+			const type = typeById.get(entitlement.leave_catalogue_id);
 			if (type != null && entitlement.status === 'OPEN') {
 				const awards = yield* reconcileAwards({
 					api,

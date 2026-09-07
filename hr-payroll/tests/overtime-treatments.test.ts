@@ -2,7 +2,7 @@
 /**
  * HR15: derived overtime is charged through the OVERTIME and OVERTIME_EXCESS catalogue rows.
  *
- * A derived overtime line names no pay component; its label is the rule key. ACCUMULATE resolves
+ * A derived overtime line names no component; its label is the rule key. ACCUMULATE resolves
  * the statutory row by that label and reads the scheme's cell off the row's
  * `contribution_treatments`. A catalogue without the row, or a row without the scheme's cell, is
  * refused naming the component and the scheme rather than read as EXCLUDE.
@@ -46,9 +46,9 @@ const component = (code, treatments, definition) => ({
 	definition: definition ?? { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 });
 
-const configuration = (payComponents, overtimeRules = []) => {
+const configuration = (catalogueComponents, overtimeRules = []) => {
 	const treatments = new Map();
-	for (const row of payComponents)
+	for (const row of catalogueComponents)
 		for (const contribution of [EPF]) {
 			const cell = row.contribution_treatments[contribution.row.code];
 			if (cell != null) treatments.set(`${row.id}:${contribution.row.id}`, cell);
@@ -59,7 +59,7 @@ const configuration = (payComponents, overtimeRules = []) => {
 		leaveProfiles: [],
 		contributions: [EPF],
 		treatments,
-		payComponents,
+		catalogueComponents,
 		overtimeRules,
 		overtimeLimits: [],
 		restBreakRules: [],
@@ -67,13 +67,13 @@ const configuration = (payComponents, overtimeRules = []) => {
 		shiftById: new Map(),
 		patternById: new Map(),
 		holidays: new Map(),
-		leaveTypes: [],
+		catalogueLeaves: [],
 		hash: 'test'
 	};
 };
 
 const overtimeLine = (label, amount = 100) => ({
-	payComponent: null,
+	catalogueComponent: null,
 	nature: 'EARNING',
 	label,
 	amount

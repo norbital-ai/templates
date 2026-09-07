@@ -19,15 +19,21 @@ export const KIOSK_VOICE_CLIP_FORMAT = 'mp3';
 
 type Phrase = Readonly<Record<KioskVoiceLanguage, string>>;
 
+/*
+ * Five clock phrases went when the kiosk stopped asking which direction to punch: `choose_action`,
+ * `selected_in`, `selected_out`, `already_in` and `no_arrival` all belonged to a question the clock
+ * answers for itself. `confirm_in` / `confirm_out` went with the blink challenge — the hold is
+ * silent now, because the person is asked to do nothing and the countdown in the silhouette is the
+ * whole instruction. Their clips are simply no longer shipped; the build ships the list, not the
+ * directory.
+ *
+ * `no_shift_today` arrived with the schedule gate: a punch on a day nobody is rostered for is
+ * refused, and saying "Nothing changed" at that person was truthful and useless.
+ */
 export const KIOSK_PHRASES = {
 	// Clock
-	choose_action: { en: 'Choose check in or check out.', zh: '请选择上班或下班打卡。' },
-	selected_in: { en: 'Check in. Look at the camera.', zh: '上班打卡，请看镜头。' },
-	selected_out: { en: 'Check out. Look at the camera.', zh: '下班打卡，请看镜头。' },
 	move_closer: { en: 'Move closer.', zh: '请靠近一点。' },
 	no_face: { en: 'Step into the frame.', zh: '请站到画面中。' },
-	confirm_in: { en: 'Hold still and blink to check in.', zh: '请保持不动，眨眼确认上班。' },
-	confirm_out: { en: 'Hold still and blink to check out.', zh: '请保持不动，眨眼确认下班。' },
 	checked_in: { en: 'Checked in. Have a good day.', zh: '上班打卡成功。' },
 	checked_out: { en: 'Checked out. See you.', zh: '下班打卡成功。' },
 	identity_unknown: { en: 'Not recognised. Please see HR.', zh: '无法识别，请联系人事。' },
@@ -35,9 +41,8 @@ export const KIOSK_PHRASES = {
 		en: 'No active employment. Please see HR.',
 		zh: '没有有效任职，请联系人事。'
 	},
-	already_in: { en: 'Already checked in today.', zh: '今天已打过上班卡。' },
-	no_arrival: { en: 'Check in first.', zh: '请先打上班卡。' },
 	too_soon: { en: 'Too soon. Try again shortly.', zh: '请稍后再试。' },
+	no_shift_today: { en: 'You are not scheduled today.', zh: '您今天没有排班。' },
 	unchanged: { en: 'Nothing changed.', zh: '没有变化。' },
 	live_face_required: { en: 'Look at the camera and blink.', zh: '请看镜头并眨眼。' },
 	face_lost: { en: 'Face lost. Try again.', zh: '人脸丢失，请重试。' },

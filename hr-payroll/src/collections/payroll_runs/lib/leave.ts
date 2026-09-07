@@ -10,7 +10,7 @@ export type ChildFact = WorkspaceRow<'employee_children'>;
 
 const LedgerRowSchema = Schema.Struct({
 	id: Schema.String,
-	leave_type_id: Schema.String,
+	leave_catalogue_id: Schema.String,
 	entry_date: Schema.String,
 	through_date: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	kind: Schema.NullOr(Schema.String),
@@ -35,18 +35,18 @@ export type UnpaidLeave = Schema.Schema.Type<typeof UnpaidLeaveSchema>;
 type UnpaidLeaveInWindowOptions = {
 	readonly ledger: readonly LedgerRow[];
 	readonly window: PayrollWindow['salary'];
-	readonly configuration: Pick<Configuration, 'leaveTypes'>;
+	readonly configuration: Pick<Configuration, 'catalogueLeaves'>;
 };
 
 export function unpaidLeaveInWindow(options: UnpaidLeaveInWindowOptions): UnpaidLeave[] {
-	const typeById = new Map(options.configuration.leaveTypes.map((type) => [type.id, type]));
+	const typeById = new Map(options.configuration.catalogueLeaves.map((type) => [type.id, type]));
 	const byComponent = new Map<string, { days: number; requests: Map<string, number> }>();
 	for (const row of options.ledger) {
 		if (row.kind !== 'TAKEN' || row.approval_id != null) continue;
 		const date = dateKey(row.entry_date);
 		if (date == null) continue;
 		if (date < options.window.start || date > options.window.end) continue;
-		const effect = typeById.get(row.leave_type_id)?.payroll_effect;
+		const effect = typeById.get(row.leave_catalogue_id)?.payroll_effect;
 		if (effect == null || effect.kind !== 'UNPAID') continue;
 		const bucket = byComponent.get(effect.component_id) ?? {
 			days: 0,

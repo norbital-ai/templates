@@ -8,7 +8,7 @@
  *
  * Three things are pinned here, each of which was wrong or unstated before:
  *
- * • A derived overtime line has no pay component. It must survive the export and report under the
+ * • A derived overtime line has no component. It must survive the export and report under the
  *   stable band code `overtime.ts` mints, on both the statutory arm and the reclassified excess arm.
  * • The schedule is the pattern plus its overrides, not the overrides alone. A PATTERNED employment
  *   carries an explicit roster row only where the month departs from its pattern, so Normal Hours
@@ -222,7 +222,7 @@ const PAYSLIPS = [
 	}
 ];
 /**
- * Two adjustments link to no pay component at all: the statutory rest-day day-wage award and the
+ * Two adjustments link to no component at all: the statutory rest-day day-wage award and the
  * hours the daily ceiling reclassified out of it. Contracted basic pay is inlined in `payslips.base`.
  */
 const PAYSLIP_ADJUSTMENTS = [
@@ -294,7 +294,7 @@ Effect.runPromise(
 				payslips: PAYSLIPS,
 				payslip_adjustments: PAYSLIP_ADJUSTMENTS,
 				employments: EMPLOYMENTS,
-				pay_components: [BASIC],
+				component_catalogue: [BASIC],
 				employment_terms: TERMS,
 				work_days: WORK_DAYS,
 				employees: [
@@ -317,14 +317,14 @@ Effect.runPromise(
 
 			const [patterned, leaver] = run.payslips;
 
-			// ── a derived overtime line has no pay component and still reaches the workbook ────────────────
+			// ── a derived overtime line has no component and still reaches the workbook ────────────────
 			assert.deepEqual(
-				patterned.lines.map((line) => line.payComponentCode),
+				patterned.lines.map((line) => line.componentCode),
 				['BASIC', 'OT_REST_DAY_FROM_START_OF_DAY_0_5', 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0'],
 				'both overtime arms report under the band code they were priced by'
 			);
 			assert.equal(
-				patterned.lines[1].payComponentCode,
+				patterned.lines[1].componentCode,
 				overtimeBandCode({
 					excess: false,
 					dayType: 'REST_DAY',

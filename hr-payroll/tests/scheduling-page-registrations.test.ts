@@ -43,7 +43,7 @@ test('the board opens no live query for shift patterns: the pattern rides the te
 		'db.employees.findMany',
 		'db.shift_definitions.findMany',
 		'db.employment_terms.findMany',
-		'db.leave_types.findMany',
+		'db.leave_catalogue.findMany',
 		'db.work_days.findMany',
 		'db.work_days.findMany',
 		'db.leave_requests.findMany',

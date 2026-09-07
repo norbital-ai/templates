@@ -411,7 +411,7 @@ const N0340 = [
 ];
 const NPL_TYPE = '00000000-0000-4000-8000-00000000000a';
 const NPL_COMPONENT = '00000000-0000-4000-8000-00000000000b';
-const leaveTypes = [
+const catalogueLeaves = [
 	{
 		id: NPL_TYPE,
 		code: 'UNPAID_LEAVE',
@@ -420,7 +420,7 @@ const leaveTypes = [
 ];
 const ledger0340 = N0340.map((date, index) => ({
 	id: `ledger-${index}`,
-	leave_type_id: NPL_TYPE,
+	leave_catalogue_id: NPL_TYPE,
 	entry_date: date,
 	kind: 'TAKEN',
 	days: -1,
@@ -433,7 +433,7 @@ check(
 	unpaidLeaveInWindow({
 		ledger: ledger0340,
 		window: february.attendance,
-		configuration: { leaveTypes }
+		configuration: { catalogueLeaves }
 	})[0]?.days,
 	8
 );
@@ -732,7 +732,7 @@ check(
 	true
 );
 // The First Schedule tests para 3 wages — s.2 wages less commissions, subsistence allowance and
-// overtime payment — which the engine derives from the pay components and their entries. A person
+// overtime payment — which the engine derives from the components and their entries. A person
 // on RM3,800 basic plus a RM500 fixed allowance earns RM4,300 of para 3 wages and is outside the
 // ladder, even though their base salary alone would have kept them inside it.
 check(
@@ -751,10 +751,10 @@ check(
 	true
 );
 
-// ── the para 3 comparand, classified from the pay component model ───────────────────────────────
+// ── the para 3 comparand, classified from the component model ───────────────────────────────
 // s.2: basic wages AND all other cash payments for work done. Para 3 lessens that by commissions,
 // subsistence allowance and overtime payment. The classification below is the statute read against
-// what a pay component row can say.
+// what a component row can say.
 const component = (kind, source) => ({
 	policy: kind == null ? null : { kind },
 	definition: source == null ? null : { source }
@@ -850,8 +850,10 @@ check(
 check(
 	'prorating is an allowance fact and nothing else',
 	entryProrates({
-		event: { kind: 'ALLOWANCE' },
-		effective_range: { start: '2026-01-01T00:00:00.000Z', end: null }
+		event: {
+			kind: 'ALLOWANCE',
+			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+		}
 	}),
 	true
 );
@@ -865,15 +867,29 @@ check(
 	false
 );
 check(
-	'an allowance range is its own, day-precision',
+	'an open-ended recurring allowance states its own window, day-precision',
 	JSON.stringify(
 		entryRecurringRange({
 			id: 'e10',
-			event: { kind: 'ALLOWANCE' },
-			effective_range: { start: '2026-01-01T00:00:00.000Z', end: null }
+			event: {
+				kind: 'ALLOWANCE',
+				recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+			}
 		})
 	),
 	JSON.stringify({ start: '2026-01-01', end: null })
+);
+// A one-off names a period, and its window is that period's own month — which is what makes it
+// depletable where a recurring allowance is not.
+check(
+	'a one-off allowance spans exactly the month it names',
+	JSON.stringify(
+		entryRecurringRange({
+			id: 'e10b',
+			event: { kind: 'ALLOWANCE', recurrence: { kind: 'ONE_OFF', period: '2026-02' } }
+		})
+	),
+	JSON.stringify({ start: '2026-02-01', end: '2026-02-28' })
 );
 check(
 	'a claim settles by its incurred date under the cutoff',

@@ -2,10 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
+import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/iso-day.ts';
+import { startOfDayInstant } from '../src/lib/ui/calendar.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
+	SHIFT_REST_ID,
+	SHIFT_WORK_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
@@ -37,7 +41,7 @@ test(
 			assert.equal(served.status, 200, `Published chunk ${modelChunk[0]}`);
 			const modelBase = new URL('../models/human/', chunkUrl);
 			assert.equal(modelBase.pathname, '/__bolt/static/models/human/');
-			for (const model of ['antispoof', 'blazeface', 'facemesh', 'faceres', 'iris']) {
+			for (const model of ['antispoof', 'blazeface', 'facemesh', 'faceres', 'iris', 'liveness']) {
 				for (const suffix of ['.json', '.bin']) {
 					const response = await fetch(new URL(`${model}${suffix}`, modelBase), {
 						headers: bearerHeaders(session.credential)
@@ -77,50 +81,135 @@ test(
 				'APPROVED',
 				JSON.stringify(reregistered.value)
 			);
-			const punch = (direction: 'in' | 'out') =>
-				invoke('kiosk_punch', { employment_id: EMPLOYMENT_ID, kind: 'FACE', direction });
-			const first = await punch('in');
-			assert.equal(asRecord(first.value, 'arrival').status, 'in', JSON.stringify(first.value));
-			const repeated = await punch('in');
-			assert.equal(
-				asRecord(repeated.value, 'repeat arrival').reason,
-				'already-in',
-				JSON.stringify(repeated.value)
+			/**
+			 * A face punch needs a plan for the day, and the day is whatever day the test runs on.
+			 *
+			 * The kiosk now refuses to record attendance against a day nobody rostered — that was the
+			 * whole point of the change, and it is what stops a punch inventing a plan-less work day
+			 * for a rest day or somebody else's shift. It also makes "today" load-bearing: the fixture
+			 * pattern rests every seventh day from its anchor, so a test that leaned on the projection
+			 * would pass six days a week and fail on the seventh. Every case below states the day's
+			 * plan explicitly instead.
+			 */
+			const dayKey = calendarDateInTimeZone(new Date(), PAYROLL_TIME_ZONE);
+			const workDate = startOfDayInstant(dayKey, PAYROLL_TIME_ZONE);
+			const planToday = async (shiftDefinitionId: string | null): Promise<void> => {
+				await session.query('delete from work_days where employment_id = $1 and work_date = $2', [
+					EMPLOYMENT_ID,
+					workDate
+				]);
+				if (shiftDefinitionId === null) return;
+				await session.query(
+					`insert into work_days (id, employment_id, work_date, shift_definition_id, break_minutes)
+					 values ($1, $2, $3, $4, 0)`,
+					[crypto.randomUUID(), EMPLOYMENT_ID, workDate, shiftDefinitionId]
+				);
+			};
+			/**
+			 * Ten seconds of debounce separate two real punches; a test does not wait them out.
+			 *
+			 * The cooldown reads `employees.face_last_match_at`, which a successful face punch stamps.
+			 * Clearing it is how this test says "later that day" — and it keeps the FACE path, and
+			 * therefore the schedule gate, under test rather than dropping to MANUAL to dodge it.
+			 */
+			const laterThatDay = () =>
+				session.query('update employees set face_last_match_at = null where id = $1', [employeeId]);
+			const punch = async (kind: 'FACE' | 'MANUAL' = 'FACE') => {
+				const result = await invoke('kiosk_punch', { employment_id: EMPLOYMENT_ID, kind });
+				return asRecord(result.value, `${kind} punch`);
+			};
+
+			// No plan at all: the person is not rostered today, which is not an error.
+			await planToday(null);
+			// The terms' pattern would otherwise project one, so it is removed for this case only.
+			const [terms] = (await session.query(
+				'select shift_pattern_id from employment_terms where employment_id = $1',
+				[EMPLOYMENT_ID]
+			)) as ReadonlyArray<{ readonly shift_pattern_id: string | null }>;
+			await session.query(
+				'update employment_terms set shift_pattern_id = null where employment_id = $1',
+				[EMPLOYMENT_ID]
 			);
-			const out = await punch('out');
-			assert.equal(asRecord(out.value, 'departure').status, 'out', JSON.stringify(out.value));
-			const later = await punch('out');
+			const unrostered = await punch();
+			assert.equal(unrostered.status, 'blocked', JSON.stringify(unrostered));
+			assert.equal(unrostered.reason, 'not-scheduled', JSON.stringify(unrostered));
 			assert.equal(
-				asRecord(later.value, 'later departure').status,
-				'out',
-				JSON.stringify(later.value)
+				(
+					await session.query('select count(*)::int as n from work_days where employment_id = $1', [
+						EMPLOYMENT_ID
+					])
+				)[0].n,
+				0,
+				'a refused punch invented a work day anyway'
 			);
+
+			// The supervisor path is untouched: an ad hoc day entered by hand still lands.
+			const adHoc = await punch('MANUAL');
+			assert.equal(adHoc.status, 'in', JSON.stringify(adHoc));
+			await session.query(
+				'update employment_terms set shift_pattern_id = $2 where employment_id = $1',
+				[EMPLOYMENT_ID, terms?.shift_pattern_id ?? null]
+			);
+
+			// Rostered, but rostered to rest. The refusal names the code so the screen can say which.
+			await planToday(SHIFT_REST_ID);
+			const restDay = await punch();
+			assert.equal(restDay.status, 'blocked', JSON.stringify(restDay));
+			assert.equal(restDay.reason, 'not-a-work-day', JSON.stringify(restDay));
+			assert.equal(restDay.plannedCode, 'REST', JSON.stringify(restDay));
+
+			// Rostered to work: the punch lands, and every later one moves the departure.
+			await planToday(SHIFT_WORK_ID);
+			const first = await punch();
+			assert.equal(first.status, 'in', JSON.stringify(first));
+
+			// The debounce, before it is cleared: a face held at the camera is one arrival, not two.
+			const debounced = await punch();
+			assert.equal(debounced.status, 'blocked', JSON.stringify(debounced));
+			assert.equal(debounced.reason, 'cooldown', JSON.stringify(debounced));
+
+			await laterThatDay();
+			const out = await punch();
+			assert.equal(out.status, 'out', JSON.stringify(out));
+			await laterThatDay();
+			const later = await punch();
+			assert.equal(later.status, 'out', JSON.stringify(later));
+
 			const [day] = await session.query(
 				'select worked_intervals from work_days where employment_id = $1',
 				[EMPLOYMENT_ID]
 			);
-			assert.deepEqual(day.worked_intervals, [
-				{
-					start: asRecord(first.value, 'arrival').time,
-					end: asRecord(later.value, 'last departure').time
-				}
-			]);
-			const concurrent = await Promise.all(Array.from({ length: 6 }, () => punch('out')));
-			for (const result of concurrent)
-				assert.ok(result.status < 300, `concurrent departure: ${JSON.stringify(result.value)}`);
-			const lastDeparture = concurrent
-				.flatMap((result) => {
-					const row = asRecord(result.value, 'concurrent departure');
-					return typeof row.time === 'string' ? [row.time] : [];
-				})
-				.sort()
-				.at(-1);
+			assert.deepEqual(
+				day.worked_intervals,
+				[{ start: first.time, end: later.time }],
+				'the day keeps one interval: its first arrival and its latest departure'
+			);
+
+			await laterThatDay();
+			/**
+			 * Six punches at once must not produce six intervals.
+			 *
+			 * The debounce means most of them are blocked, which is the right answer — a face held at
+			 * the camera is one punch. What matters is that the racing writers cannot corrupt the day:
+			 * whatever mixture of accepted and blocked comes back, the day still holds exactly one
+			 * interval, opened by the first arrival and ending at the latest punch that was accepted.
+			 */
+			const concurrent = await Promise.all(Array.from({ length: 6 }, () => punch()));
+			for (const result of concurrent) {
+				assert.ok(
+					result.status === 'out' || result.status === 'blocked',
+					`a concurrent punch neither recorded nor debounced: ${JSON.stringify(result)}`
+				);
+			}
+			const accepted = concurrent
+				.flatMap((row) => (typeof row.time === 'string' ? [row.time] : []))
+				.toSorted();
 			const [concurrentDay] = await session.query(
 				'select worked_intervals from work_days where employment_id = $1',
 				[EMPLOYMENT_ID]
 			);
 			assert.deepEqual(concurrentDay.worked_intervals, [
-				{ start: asRecord(first.value, 'arrival').time, end: lastDeparture }
+				{ start: first.time, end: accepted.at(-1) ?? later.time }
 			]);
 			const newPerson = {
 				name: 'Kiosk New Person',

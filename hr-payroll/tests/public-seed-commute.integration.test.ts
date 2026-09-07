@@ -8,7 +8,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	publicSeedDirectory,
@@ -28,7 +28,7 @@ const patternOf = (): unknown => {
 /**
  * HR settlement union, COMMUTE arm, end-to-end on the public seed.
  *
- * A March-2025 joiner on a MYR 2,600 monthly salary whose annual leave type commutes
+ * A March-2025 joiner on a MYR 2,600 monthly salary whose annual leave commutes
  * (÷26) gets a 2025 entitlement that cashes out at year end: one COMMUTED −8 line
  * receipting 800 owed, the old row closed, and nothing carried into 2026.
  * The payout row the close wrote prints on the January slip as a LEAVE_PAYOUT base line.
@@ -75,12 +75,12 @@ test(
 					{ start: '2025-03-01', end: null }
 				]
 			);
-			await session.query(`update leave_types set accrual = $1 where id = $2`, [
+			await session.query(`update leave_catalogue set accrual = $1 where id = $2`, [
 				{
 					kind: 'UPFRONT',
 					settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
 				},
-				ANNUAL_LEAVE_TYPE_ID
+				ANNUAL_LEAVE_CATALOGUE_ID
 			]);
 			const started = await postGuestCommand(
 				session.host.baseUrl,

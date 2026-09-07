@@ -39,6 +39,9 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2(jiti@2.7.0)(yaml@2.9.0)
     devDependencies:
+      '@norbital-ai/bolt-server':
+        specifier: 0.0.18
+        version: 0.0.18(effect@4.0.0-rc.111)
       '@norbital-ai/doctor':
         specifier: 0.0.18
         version: 0.0.18

@@ -9,7 +9,8 @@
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
-		"test": "node --experimental-strip-types --test 'tests/*.test.ts'"
+		"test": "bolt sync && node --experimental-strip-types --test 'tests/*.test.ts'",
+		"test:e2e": "bolt sync && node --experimental-strip-types --test 'tests/e2e/*.test.ts'"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
@@ -24,6 +25,7 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
+		"@norbital-ai/bolt-server": "0.0.18",
 		"@norbital-ai/doctor": "0.0.18",
 		"@norbital-ai/test-utilities": "0.0.18",
 		"@typescript/native": "npm:typescript@7.0.2",

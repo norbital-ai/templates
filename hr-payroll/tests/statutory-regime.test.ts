@@ -79,14 +79,14 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 			contributions: [],
 			leaveProfiles: [],
 			treatments: new Map(),
-			payComponents: [],
+			catalogueComponents: [],
 			overtimeRules: value.overtime_rules,
 			overtimeLimits: value.overtime_limits,
 			overtimeCoverageRule: value.overtime_coverage,
 			shiftById: new Map(),
 			patternById: new Map(),
 			holidays: new Map(),
-			leaveTypes: []
+			catalogueLeaves: []
 		},
 		'2026-08'
 	);

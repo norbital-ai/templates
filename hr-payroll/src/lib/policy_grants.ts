@@ -298,8 +298,8 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('shift_definitions', actions),
 		// The base an employee's own days are projected from; read in full, like the codes it names.
 		grantsOn('shift_patterns', actions),
-		grantsOn('pay_components', actions),
-		grantsOn('leave_types', actions)
+		grantsOn('component_catalogue', actions),
+		grantsOn('leave_catalogue', actions)
 	);
 
 const HQ_PAYROLL_HR_TEAM = 'HQ Payroll HR' as const;
@@ -357,7 +357,7 @@ export const settingsGrants = (authority: 'draft' | 'seal'): Grants =>
 			);
 
 /**
- * Every row under a settings version: schemes, bands, leave types, pay components, holidays.
+ * Every row under a settings version: schemes, bands, leave catalogue entries, components, holidays.
  *
  * Edited freely while the version is a draft, by anyone who holds this; the seal is what reviews
  * them, once, as one version, and after it the hooks refuse every write. There is no per-row
@@ -373,8 +373,8 @@ export const settingsCatalogueGrants = (
 	return mergeGrants(
 		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
 		...(writes.length === 0 ? [] : [grantsOn('contribution_rates', writes)]),
-		grantsOn('leave_types', actions),
-		grantsOn('pay_components', actions),
+		grantsOn('leave_catalogue', actions),
+		grantsOn('component_catalogue', actions),
 		grantsOn('company_holidays', actions)
 	);
 };

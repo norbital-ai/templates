@@ -95,14 +95,20 @@ function patternedPhaseOn(pattern: Extract<WorkPattern, { type: 'PATTERNED' }>, 
 		throw new Error('CONTINUOUS is valid only for a single-phase work pattern.');
 	}
 
+	// Checked before either direction is walked. It used to be checked only on the backwards path,
+	// so a phase duration that is neither CONTINUOUS nor CALENDAR_MONTHS threw for a date before the
+	// anchor and *hung* for one after it: the walk below skips a phase it cannot measure, so with no
+	// measurable phase `cycleStart` never advances and the loop spins for ever. A hang inside a
+	// payroll run has no error to report and nothing to diagnose, which is worse than a refusal.
+	const cycleMonths = pattern.phases.reduce((total, phase) => {
+		if (phase.duration.kind !== 'CALENDAR_MONTHS') {
+			throw new Error('A multi-phase pattern requires calendar-month durations.');
+		}
+		return total + phase.duration.months;
+	}, 0);
+
 	let cycleStart = pattern.anchor_date;
 	if (date < cycleStart) {
-		const cycleMonths = pattern.phases.reduce((total, phase) => {
-			if (phase.duration.kind !== 'CALENDAR_MONTHS') {
-				throw new Error('A multi-phase pattern requires calendar-month durations.');
-			}
-			return total + phase.duration.months;
-		}, 0);
 		// Move back in whole outer cycles until this date is in or after the candidate cycle. The
 		// anchor identifies a phase boundary; it is not the earliest date payroll is allowed to ask.
 		do {

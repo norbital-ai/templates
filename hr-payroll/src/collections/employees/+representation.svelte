@@ -181,7 +181,11 @@
 			: client.db.employment_terms.findMany({
 					where: {
 						approval_id: { isNull: true },
-						term_employment: { employee_id: { eq: record.id } }
+						// A relation only enters a predicate under a quantifier. Naming the related
+						// column directly reads as a field of `employment_terms`, and the grammar
+						// refuses it — "term_employment has unsupported operator employee_id" — which
+						// reached the browser as an uncaught SchemaError on every profile opened.
+						term_employment: { some: { employee_id: { eq: record.id } } }
 					},
 					// The named pattern rides the terms read; no second query per employment.
 					with: {
@@ -318,7 +322,9 @@
 			where:
 				record == null
 					? { id: { in: [] } }
-					: { statutory_fact_employment: { employee_id: { eq: record.id } } },
+					: // A relation enters a predicate only under a quantifier; naming the related
+						// column directly reads as a field of this collection and is refused.
+						{ statutory_fact_employment: { some: { employee_id: { eq: record.id } } } },
 			orderBy: { created_at: 'desc' }
 		}}
 	>

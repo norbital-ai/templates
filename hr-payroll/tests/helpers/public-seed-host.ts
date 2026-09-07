@@ -12,8 +12,8 @@ import { leaveEntitlementIdFor } from '../../src/lib/leave/entitlements.ts';
 /** Kept in lockstep with `tests/fixtures/seed/` invented ids. */
 export const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
 export const EMPLOYMENT_ID = '44444444-4444-4444-8444-444444444444';
-export const ANNUAL_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1';
-export const HOSPITALIZATION_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff5';
+export const ANNUAL_LEAVE_CATALOGUE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1';
+export const HOSPITALIZATION_LEAVE_CATALOGUE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff5';
 export const ANNUAL_LEAVE_REQUEST_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff2';
 /** Generated, never seeded: the fixture employment's 2026 annual entitlement, named by the one formula. */
 export const ANNUAL_LEAVE_ENTITLEMENT_ID = leaveEntitlementIdFor({
@@ -34,7 +34,7 @@ export const SHIFT_REST_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 export const SHIFT_OFF_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
 export const STATUTORY_PUB_EPF_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1';
 export const STATUTORY_PUB_EPF_RATE_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa2';
-export const BASIC_PAY_COMPONENT_ID = '66666666-6666-4666-8666-666666666666';
+export const BASIC_COMPONENT_CATALOGUE_ID = '66666666-6666-4666-8666-666666666666';
 
 export const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 120_000;
 export const FEBRUARY_2026 = '2026-02';

@@ -367,7 +367,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			const base = {
 				id: request.id,
 				employment_id: request.employment_id,
-				leave_type_id: request.leave_type_id,
+				leave_catalogue_id: request.leave_catalogue_id,
 				source_id: request.id,
 				approval_id: null
 			};

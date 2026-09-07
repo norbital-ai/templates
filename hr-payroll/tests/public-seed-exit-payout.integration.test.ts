@@ -13,6 +13,10 @@ import {
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 import { leaveEntitlementIdFor } from '../src/lib/leave/entitlements.ts';
+import { leaveBalance } from '../src/lib/leave/ledger.ts';
+
+/** Both leavers go on the same day; the ledger is read as at that day. */
+const EXIT_DATE = '2026-04-30';
 
 const patternOf = (): unknown => {
 	const terms = JSON.parse(
@@ -53,9 +57,9 @@ test(
 						COMPANY_ID,
 						number,
 						'2026-01-01',
-						'2026-04-30',
+						EXIT_DATE,
 						exitReason,
-						{ start: '2026-01-01', end: '2026-04-30' }
+						{ start: '2026-01-01', end: EXIT_DATE }
 					]
 				);
 				await session.query(
@@ -109,6 +113,32 @@ test(
 					entitlementOf(employmentId)
 				]);
 				assert.equal(status[0]?.status, 'CLOSED');
+			}
+
+			/**
+			 * Closed means nothing is left, whichever way the balance went out.
+			 *
+			 * Encashment and forfeiture are different lines and different money, and both must land
+			 * the ledger on exactly zero: a leaver carries no balance forward and is owed nothing
+			 * further. Nothing asserted this — the payout line's own `days` was read back from the
+			 * same line the assertion was about, so a close that paid out half a balance and left the
+			 * rest standing would have satisfied every check above.
+			 */
+			for (const [label, employmentId] of [
+				['encashed on resignation', resigned],
+				['forfeited on misconduct', dismissed]
+			] as const) {
+				const entries = (await session.query(
+					`select kind, days, effective_on, approval_id from leave_entries
+					 where leave_entitlement_id = $1`,
+					[entitlementOf(employmentId)]
+				)) as ReadonlyArray<Record<string, unknown>>;
+				assert.ok(entries.length > 0, `${label}: the entitlement has a ledger to close`);
+				assert.equal(
+					leaveBalance(entries as never, EXIT_DATE),
+					0,
+					`${label}: the ledger did not close on zero — ${JSON.stringify(entries)}`
+				);
 			}
 
 			// The final slip is the April run: it covers the exit date, whatever the cutoff names.

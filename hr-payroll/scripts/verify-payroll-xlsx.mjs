@@ -47,8 +47,8 @@ const viteResource = Effect.acquireRelease(
 
 /** A payslip line, with every flag `report.ts` reads spelled out so no default is load-bearing. */
 const line = (overrides) => ({
-	payComponentCode: 'UNUSED',
-	payComponentName: 'Unused',
+	componentCode: 'UNUSED',
+	componentName: 'Unused',
 	nature: 'EARNING',
 	calculationSource: 'ENTRY',
 	amount: 0,
@@ -80,30 +80,30 @@ const VERIFIED = {
 	employerCost: 515.15,
 	lines: [
 		line({
-			payComponentCode: 'BASIC',
-			payComponentName: 'Basic salary',
+			componentCode: 'BASIC',
+			componentName: 'Basic salary',
 			calculationSource: 'SCHEDULE',
 			amount: 3451
 		}),
 		line({
-			payComponentCode: 'UNPAID_LEAVE_DEDUCTION',
-			payComponentName: 'Unpaid leave',
+			componentCode: 'UNPAID_LEAVE_DEDUCTION',
+			componentName: 'Unpaid leave',
 			nature: 'ABSENCE',
 			calculationSource: 'FORMULA',
 			amount: 55.66,
 			quantity: 0.5
 		}),
 		line({
-			payComponentCode: 'OT_ORDINARY',
-			payComponentName: 'Overtime',
+			componentCode: 'OT_ORDINARY',
+			componentName: 'Overtime',
 			calculationSource: 'OVERTIME',
 			amount: 365.44,
 			quantity: 22,
 			overtimeDayType: 'ORDINARY'
 		}),
 		line({
-			payComponentCode: 'MEDICAL_CLAIM',
-			payComponentName: 'Medical claim',
+			componentCode: 'MEDICAL_CLAIM',
+			componentName: 'Medical claim',
 			nature: 'NON_WAGE_PAYMENT',
 			amount: 93.5,
 			isClaim: true
@@ -136,27 +136,27 @@ const JOINER = {
 	employerCost: 109.65,
 	lines: [
 		line({
-			payComponentCode: 'BASIC',
-			payComponentName: 'Basic salary',
+			componentCode: 'BASIC',
+			componentName: 'Basic salary',
 			calculationSource: 'SCHEDULE',
 			amount: 690
 		}),
 		line({
-			payComponentCode: 'TRANSPORT',
-			payComponentName: 'Transport allowance',
+			componentCode: 'TRANSPORT',
+			componentName: 'Transport allowance',
 			amount: 150
 		}),
 		line({
-			payComponentCode: 'OT_REST_DAY',
-			payComponentName: 'Rest day work',
+			componentCode: 'OT_REST_DAY',
+			componentName: 'Rest day work',
 			calculationSource: 'OVERTIME',
 			amount: 132.73,
 			quantity: 8,
 			overtimeDayType: 'REST_DAY'
 		}),
 		line({
-			payComponentCode: 'OT_INCENTIVE',
-			payComponentName: 'Incentive overtime',
+			componentCode: 'OT_INCENTIVE',
+			componentName: 'Incentive overtime',
 			calculationSource: 'OVERTIME_EXCESS',
 			amount: 33.18,
 			quantity: 1,
@@ -164,8 +164,8 @@ const JOINER = {
 			isOvertimeExcess: true
 		}),
 		line({
-			payComponentCode: 'STAFF_LOAN',
-			payComponentName: 'Staff loan instalment',
+			componentCode: 'STAFF_LOAN',
+			componentName: 'Staff loan instalment',
 			nature: 'DEDUCTION',
 			amount: 100,
 			isLoanInstalment: true
@@ -198,14 +198,14 @@ const SINGAPORE = {
 	employerCost: 914.25,
 	lines: [
 		line({
-			payComponentCode: 'BASIC',
-			payComponentName: 'Basic salary',
+			componentCode: 'BASIC',
+			componentName: 'Basic salary',
 			calculationSource: 'SCHEDULE',
 			amount: 5000
 		}),
 		line({
-			payComponentCode: 'OT_ORDINARY',
-			payComponentName: 'Overtime',
+			componentCode: 'OT_ORDINARY',
+			componentName: 'Overtime',
 			calculationSource: 'OVERTIME',
 			amount: 300,
 			quantity: 10,

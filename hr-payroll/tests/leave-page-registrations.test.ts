@@ -39,10 +39,10 @@ test('the controller Leave app opens exactly one live query: the requests table'
 	assert.match(page, /payslip_leave_request_input_leave_request:/, 'and so does the lock');
 });
 
-test('the Settings Leave types tab opens exactly one live query over the chosen version', () => {
+test('the Settings Leave catalogue entries tab opens exactly one live query over the chosen version', () => {
 	const page = source('../src/apps/hr_controller/+settings.svelte');
-	assert.deepEqual(registrations(snippet(page, 'leaveTypes')), ['CollectionTable']);
-	assert.match(snippet(page, 'leaveTypes'), /settings_id: \{ eq: selectedVersion\.id \}/);
+	assert.deepEqual(registrations(snippet(page, 'catalogueLeaves')), ['CollectionTable']);
+	assert.match(snippet(page, 'catalogueLeaves'), /settings_id: \{ eq: selectedVersion\.id \}/);
 });
 
 test('the employee leave tab reads its balances from one entitlements query carrying the ledger', () => {
@@ -68,7 +68,7 @@ test('the employee leave tab reads its balances from one entitlements query carr
 		'entries ride the entitlement'
 	);
 	assert.ok(
-		!registrations(script).includes('db.leave_types.findMany'),
+		!registrations(script).includes('db.leave_catalogue.findMany'),
 		'leave codes ride the request rows'
 	);
 	assert.deepEqual(registrations(snippet(page, 'leave')), ['CollectionTable']);

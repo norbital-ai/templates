@@ -47,12 +47,19 @@
 				<Field name="void_reason" hidden />
 				<Field name="cloned_from_id" hidden />
 				<Field name="research_notes" hidden />
-				<Stack gap="md">
+				<!--
+					Four sections, each one sentence of its own: what this snapshot is, how a day's pay is
+					worked out, what the working-time law says, and where the reading came from. No boxes
+					and no rules between them — a heading and a line of prose separate them, and every
+					border removed here was a border around two fields.
+				-->
+				<Stack gap="lg">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">{t('component.profile_identity_and_period')}</h3>
+							<h3 class="text-sm font-semibold">{t('component.settings_section_identity')}</h3>
+							<p class="text-meta">{t('component.settings_section_identity_hint')}</p>
 						</Stack>
-						<Grid gap="sm" minimum="panel">
+						<Grid gap="sm" minimum="compact">
 							<Field name="code" label={t('component.settings_lineage')} />
 							<Field name="name" />
 							<Field name="currency" />
@@ -63,21 +70,30 @@
 						</Grid>
 					</Stack>
 
-					<Stack as="section" gap="sm" class="border-t border-border pt-4">
+					<Stack as="section" gap="sm">
 						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">{t('component.pay_derivation')}</h3>
+							<h3 class="text-sm font-semibold">{t('component.settings_section_pay')}</h3>
+							<p class="text-meta">{t('component.settings_section_pay_hint')}</p>
 						</Stack>
-						<Grid gap="sm" minimum="panel">
+						<Grid gap="sm" minimum="compact">
 							<Field name="proration" label={t('component.proration_basis')} />
 							<Field name="ordinary_rate" label={t('component.ordinary_rate')} />
 						</Grid>
 					</Stack>
 
-					<Stack as="section" gap="sm" class="border-t border-border pt-4">
+					<Stack as="section" gap="sm">
 						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">{t('component.working_time_and_overtime')}</h3>
+							<h3 class="text-sm font-semibold">{t('component.settings_section_regime')}</h3>
+							<p class="text-meta">{t('component.settings_section_regime_hint')}</p>
 						</Stack>
-						<Field name="regime" label={t('component.regime')} />
+						<Field name="regime" label={t('component.settings_section_regime')} />
+					</Stack>
+
+					<Stack as="section" gap="sm">
+						<Stack gap="xs">
+							<h3 class="text-sm font-semibold">{t('component.research_urls')}</h3>
+							<p class="text-meta">{t('component.settings_section_sources_hint')}</p>
+						</Stack>
 						<Field name="research_urls" label={t('component.research_urls')} />
 					</Stack>
 				</Stack>

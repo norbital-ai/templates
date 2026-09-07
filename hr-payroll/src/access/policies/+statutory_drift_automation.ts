@@ -14,8 +14,8 @@ export default {
 		jurisdiction_settings: { read: {}, mutate: { new: {} } },
 		statutory_contributions: { read: {}, mutate: { new: {} } },
 		contribution_rates: { read: {}, mutate: { new: {} } },
-		leave_types: { read: {}, mutate: { new: {} } },
-		pay_components: { read: {}, mutate: { new: {} } },
+		leave_catalogue: { read: {}, mutate: { new: {} } },
+		component_catalogue: { read: {}, mutate: { new: {} } },
 		company_holidays: { read: {}, mutate: { new: {} } }
 	},
 	limits: {

@@ -25,10 +25,17 @@ import {
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		pay_component_id: uuid().notNull(),
+		component_catalogue_id: uuid().notNull(),
 		/** A positive magnitude, stated once here rather than repeated across the schedule. */
 		principal: numeric().notNull(),
-		/** The window the agreement is live across; its last repayment must fall inside it. */
+		/**
+		 * The window the agreement is live across, and the window the schedule generator spreads
+		 * instalments over.
+		 *
+		 * "Its last repayment falls inside it" is the intent, not an enforced constraint: nothing in
+		 * the write hooks checks it. See `loan_repayments/+model.ts` for where the schedule's other
+		 * two properties are and are not enforced.
+		 */
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
 		 * The agreement's start as a scalar instant, generated from the range.
@@ -52,6 +59,6 @@ export default defineModel(
 			'One staff loan, salary advance or overpayment recovery agreement. The loan is the agreement; the amounts due under it are loan_repayments rows, which is what payroll consumes.',
 		recordLabel: ['reference', 'principal'],
 		icon: 'lucide:hand-coins',
-		indexes: [{ columns: ['employment_id'] }, { columns: ['pay_component_id'] }]
+		indexes: [{ columns: ['employment_id'] }, { columns: ['component_catalogue_id'] }]
 	}
 );

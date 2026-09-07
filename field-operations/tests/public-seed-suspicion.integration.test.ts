@@ -446,3 +446,138 @@ test(
 		}
 	}
 );
+
+/**
+ * The log itself.
+ *
+ * P2 above proves the automation runs and stamps the assignment; it stubs a *clear* judgement, so
+ * `suspicious_activity_logs` — the row the whole automation exists to write, and the only thing a
+ * controller ever acts on — stays empty and unexamined. Nothing else in this workspace asserts
+ * that row lands in the database. The judgement here is affirmative and cites the asset actually
+ * supplied to the model, because a citation the prompt never carried is rejected as invented and
+ * collapses back to "not suspicious" (`tests/suspicion-review.test.ts`).
+ */
+const recordedPhotoSuspicious = (assetName: string): RecordedGenerated => ({
+	_tag: 'Generated',
+	result: {
+		_tag: 'Object',
+		value: {
+			job_site_review: {
+				suspicious: true,
+				reason: 'The photo shows an empty bay while the summary reports completed works.',
+				evidence_asset_name: assetName
+			},
+			similar_photo_reviews: []
+		}
+	},
+	observation: {
+		callId: 'call-suspicious',
+		provider: 'fixture',
+		model: 'provider/model',
+		operation: 'language',
+		charge: { currency: 'USD', coefficient: '125', scale: 6 },
+		chargeSource: 'provider'
+	}
+});
+
+const LOG_PHOTO_ID = '01990000-0000-7000-8005-000000000403';
+const LOG_STORAGE_KEY = 'public-seed/flagged.jpg';
+const LOG_ASSET_NAME = 'flagged.jpg';
+
+test(
+	'an affirmative review writes one suspicious activity log, and a second run writes no other',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const guest = await bootPublicSeedGuest({
+			tenantId: 'field-ops-suspicion-log',
+			releaseId: 'field-ops-suspicion-log',
+			gatewaySecret: 'field-ops-suspicion-log-gateway',
+			founderEmail: 'field-ops-suspicion-log@example.test',
+			founderClaimId: 'field-ops-suspicion-log-founder',
+			secretsKey: 'field-ops-suspicion-log-secrets-key',
+			invocationTimeoutMillis: 90_000,
+			files: true,
+			ai: recordedAi(
+				Array.from({ length: SUSPICION_AI_TRANSCRIPT_LENGTH * 2 }, () =>
+					recordedPhotoSuspicious(LOG_ASSET_NAME)
+				)
+			)
+		});
+		try {
+			if (guest.files === undefined) {
+				throw new Error('bootPublicSeedGuest must return files when files: true');
+			}
+			const { reference: photoJpeg } = solidRgbJpegPair(JPEG_WIDTH, JPEG_HEIGHT);
+			await writeAsset(guest.files.rootDirectory, LOG_STORAGE_KEY, photoJpeg);
+			await pushMutation(
+				guest.baseUrl,
+				guest.credential,
+				guest.schemaFingerprint,
+				{
+					action: 'mutate',
+					collection: 'photo_evidence',
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: LOG_PHOTO_ID,
+								job_assignment_id: PUBLIC_ASSIGNMENT_ID,
+								photo: photoDescriptor(LOG_STORAGE_KEY, LOG_ASSET_NAME, photoJpeg.byteLength)
+							}
+						}
+					]
+				},
+				[],
+				'create flagged photo_evidence'
+			);
+
+			const runReview = async (label: string): Promise<void> => {
+				const started = await postGuestCommand(
+					guest.baseUrl,
+					START_COMMAND,
+					{ name: SUSPICION_AUTOMATION, input: { assignment_id: PUBLIC_ASSIGNMENT_ID } },
+					sessionHeaders(guest.credential)
+				);
+				assert.ok(
+					started.status >= 200 && started.status < 300,
+					`${label}: ${START_COMMAND} HTTP ${started.status}: ${JSON.stringify(started.value)}`
+				);
+			};
+
+			await runReview('first review');
+			const logs = rowsOf(
+				await sessionFindMany(guest.baseUrl, guest.credential, {
+					collection: 'suspicious_activity_logs',
+					where: { job_assignment_id: { eq: PUBLIC_ASSIGNMENT_ID } },
+					limit: 10,
+					columns: { id: true, origin: true, reason: true, review_id: true, resolved_at: true }
+				}),
+				'suspicious activity logs'
+			);
+			assert.equal(logs.length, 1, `expected exactly one log, got ${JSON.stringify(logs)}`);
+			const log = logs[0];
+			assert.ok(log !== undefined);
+			assert.equal(log.origin, 'automation', 'the automation is recorded as the log author');
+			assert.equal(typeof log.review_id, 'string');
+			assert.ok(String(log.review_id).length > 0, 'the log names the review it stands on');
+			assert.equal(log.resolved_at, null, 'a new log is open');
+			assert.match(String(log.reason), /empty bay/);
+
+			// The schedule runs hourly. A second pass over the same assignment must find the standing
+			// log rather than open a second one.
+			await runReview('second review');
+			const after = rowsOf(
+				await sessionFindMany(guest.baseUrl, guest.credential, {
+					collection: 'suspicious_activity_logs',
+					where: { job_assignment_id: { eq: PUBLIC_ASSIGNMENT_ID } },
+					limit: 10,
+					columns: { id: true }
+				}),
+				'suspicious activity logs after a second review'
+			);
+			assert.equal(after.length, 1, `a second run opened another log: ${JSON.stringify(after)}`);
+		} finally {
+			await guest.stop();
+		}
+	}
+);

@@ -26,5 +26,24 @@ test('loan form nests repayments in a matrix and blocks an unbalanced schedule w
 	assert.doesNotMatch(representation, /loans\.mutate\(\[/);
 	assert.doesNotMatch(representation, /amount_due\s*=/);
 	assert.match(schedule, /Amounts are never rewritten here/);
-	assert.match(schedule, /return rows\.map\(\(row\) => \(\{/);
+	// The write is the ordered plan: every path out of the module renumbers `sequence` from the
+	// dates, so the form can drop the column without the stored key drifting from the schedule.
+	assert.match(schedule, /return loanScheduleOrdered\(rows\)\.map\(/);
+});
+
+test('the schedule matrix asks for the two facts the operator owns, and not for the sort', () => {
+	assert.doesNotMatch(representation, /key: 'sequence'/);
+	assert.match(representation, /key: 'due_date'/);
+	assert.match(representation, /key: 'amount_due'/);
+	// Stored rows arrive in date order, not in stored-sequence order.
+	assert.match(representation, /orderBy: \{ due_date: 'asc' \}/);
+});
+
+test('the generate action is offered from the form and never rewrites a captured repayment', () => {
+	assert.match(representation, /data-generate-schedule/);
+	assert.match(representation, /canGenerateLoanSchedule/);
+	assert.match(representation, /generateLoanSchedule\(/);
+	// The locked set is read from the payslip junction, not assumed.
+	assert.match(representation, /payslip_loan_repayment_inputs\.findMany/);
+	assert.match(representation, /lockedIds/);
 });

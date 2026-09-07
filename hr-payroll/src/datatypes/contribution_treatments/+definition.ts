@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { contributionTreatmentValueSchema } from '../contribution_treatment/+definition.js';
 
 /**
- * How every statutory scheme charges one pay component: a flat map keyed by scheme **code**.
+ * How every statutory scheme charges one component: a flat map keyed by scheme **code**.
  *
  * The key is the code and not the scheme row's id because the code is what stays stable across
  * profile versions: a new sealed profile carries its own EPF row, and a component that said
@@ -35,6 +35,6 @@ export const contributionTreatmentsSchema = Schema.toStandardSchemaV1(
 export default defineCustomType({
 	name: 'contribution_treatments',
 	description:
-		'How each statutory scheme, by code, charges one pay component: included, excluded, reduced against or specially ruled. A scheme the map does not name is undecided, and payroll refuses rather than guesses.',
+		'How each statutory scheme, by code, charges one component: included, excluded, reduced against or specially ruled. A scheme the map does not name is undecided, and payroll refuses rather than guesses.',
 	schema: contributionTreatmentsSchema
 });

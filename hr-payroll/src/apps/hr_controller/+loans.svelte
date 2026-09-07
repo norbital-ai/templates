@@ -29,8 +29,11 @@
 	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
 		companiesUnknown as companiesUnknownOf,
+		companyById,
 		resolveCompanyId
 	} from './company-scope.svelte.js';
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
@@ -41,6 +44,15 @@
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
+	/**
+	 * The scope the create forms this page opens are drawn against: this entity's own people, and
+	 * the catalogue version its jurisdiction lineage has in force. Without it a form opened from
+	 * this page offers every employment in the workspace and every version of every catalogue row.
+	 */
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => selectedCompanyId ?? undefined,
+		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined
+	});
 
 	const RepaymentProgressSchema = Schema.Struct({
 		recoveredAmount: Schema.Number,
@@ -174,7 +186,7 @@
 
 	type NestedLoan = WorkspaceRow<'loans'> & {
 		readonly loan_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly loan_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
+		readonly loan_component_catalogue?: Pick<WorkspaceRow<'component_catalogue'>, 'code'> | null;
 	};
 
 	function progressLabel(row: NestedLoan): string {
@@ -199,7 +211,7 @@
 	}
 
 	function componentLabel(row: NestedLoan): string {
-		const component = row.loan_pay_component;
+		const component = row.loan_component_catalogue;
 		if (component?.code) return component.code;
 		return '—';
 	}
@@ -251,7 +263,7 @@
 					orderBy: { effective_from: 'desc' },
 					with: {
 						loan_employment: { columns: { employee_number: true } },
-						loan_pay_component: { columns: { code: true } }
+						loan_component_catalogue: { columns: { code: true } }
 					}
 				}}
 			>
@@ -267,7 +279,7 @@
 						}}
 					/>
 					<Column
-						name="pay_component_id"
+						name="component_catalogue_id"
 						label={t('app.loans.deducted_as')}
 						renderer={FormattedValueRenderer}
 						rendererProps={{ format: ({ row }) => componentLabel(row) }}

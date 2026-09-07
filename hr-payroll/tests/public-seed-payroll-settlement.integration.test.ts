@@ -135,13 +135,14 @@ test(
 			assert.match(JSON.stringify(duplicate.value), /ad hoc/);
 			// A fixture correction in the same month is additional monetary input, not a salary rewrite.
 			await session.query(
-				`insert into component_entries (employment_id, pay_component_id, amount, event_date, effective_range, event)
-			values ($1, $2, 100, '2026-01-01', $3, $4)`,
+				`insert into component_entries (employment_id, component_catalogue_id, amount, event_date, event)
+			values ($1, $2, 100, '2026-01-01', $3)`,
 				[
 					EMPLOYMENT_ID,
 					'77777777-7777-4777-8777-777777777777',
-					{ start: '2026-01-01', end: '2026-01-31' },
-					{ kind: 'ALLOWANCE' }
+					// One month, so it is a one-off: the window is the arm's own now, and a one-off
+					// depletes where a recurring allowance pays whole in every period it covers.
+					{ kind: 'ALLOWANCE', recurrence: { kind: 'ONE_OFF', period: '2026-01' } }
 				]
 			);
 			const supplementId = crypto.randomUUID();

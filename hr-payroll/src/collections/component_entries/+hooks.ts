@@ -2,7 +2,8 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import {
 	componentEntryEventIssues,
-	componentEntryEventMismatchMessage
+	componentEntryEventMismatchMessage,
+	componentEntryKindIssues
 } from '../../lib/component_entry_refusals.js';
 import { refuseIfCaptured } from '../../lib/scheduling/lock.js';
 import type { Hooks } from './$types.js';
@@ -43,26 +44,34 @@ export default {
 						if (issues.length > 0) refuse(componentEntryEventMismatchMessage(candidate, issues));
 						// The component must actually take entries, and a component that demands evidence
 						// gets it from the claim that cites it.
-						const payComponent = yield* api.db.pay_components.findFirst({
-							where: { id: { eq: String(candidate.pay_component_id) } },
-							columns: { code: true, definition: true }
+						const catalogueComponent = yield* api.db.component_catalogue.findFirst({
+							where: { id: { eq: String(candidate.component_catalogue_id) } },
+							columns: { code: true, definition: true, entry_kind: true }
 						});
-						if (payComponent != null) {
-							const definition = payComponent.definition;
+						if (catalogueComponent != null) {
+							const definition = catalogueComponent.definition;
 							if (definition?.source !== 'ENTRY')
 								refuse(
-									`Pay component ${payComponent.code} does not take entries, so nothing can be raised against it.`
+									`Component ${catalogueComponent.code} does not take entries, so nothing can be raised against it.`
 								);
 							const event = candidate.event;
 							const eventKind =
 								event != null && typeof event === 'object' ? Reflect.get(event, 'kind') : undefined;
+							// The arm is the component's. The entry restates it because the union carries the
+							// payload, and this is what stops the two drifting apart.
+							const kindIssues = componentEntryKindIssues(
+								eventKind,
+								catalogueComponent.entry_kind,
+								catalogueComponent.code
+							);
+							if (kindIssues.length > 0) refuse(kindIssues.join(' '));
 							if (
 								definition.evidence === 'REQUIRED' &&
 								eventKind === 'CLAIM' &&
 								candidate.evidence_file == null
 							)
 								refuse(
-									`Pay component ${payComponent.code} requires evidence for its claims. Attach a receipt.`
+									`Component ${catalogueComponent.code} requires evidence for its claims. Attach a receipt.`
 								);
 						}
 						// Only an edit can disturb a capture: a create has no prior run that consumed it.

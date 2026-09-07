@@ -83,7 +83,13 @@
 			case 'CLAIM':
 				return { kind: 'CLAIM', incurred_on: '', description: null };
 			case 'ALLOWANCE':
-				return { kind: 'ALLOWANCE' };
+				// A one-off in the current month is the harmless default: it pays once, and the
+				// operator switches it to a window rather than discovering later that an empty
+				// range meant "recurring for ever".
+				return {
+					kind: 'ALLOWANCE',
+					recurrence: { kind: 'ONE_OFF', period: new Date().toISOString().slice(0, 7) }
+				};
 			case 'BONUS':
 				return { kind: 'BONUS', note: null };
 			case 'ARREARS':

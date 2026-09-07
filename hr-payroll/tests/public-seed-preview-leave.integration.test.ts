@@ -9,7 +9,7 @@ import {
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_REQUEST_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
@@ -61,7 +61,7 @@ test(
 		try {
 			const browsing = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
-				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04'
 			});
@@ -77,7 +77,7 @@ test(
 
 			const applyable = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
-				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04',
 				exclude_request_id: ANNUAL_LEAVE_REQUEST_ID,
@@ -92,7 +92,7 @@ test(
 
 			const sundayOnly = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
-				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04',
 				range: {
@@ -126,7 +126,7 @@ test(
 				{
 					input: {
 						employment_id: EMPLOYMENT_ID,
-						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 						leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 						calendar_month: '2026-09',
 						range: {
@@ -141,9 +141,9 @@ test(
 				hqSeptember.status >= 200 && hqSeptember.status < 300,
 				`HQ preview_leave September ${hqSeptember.status}: ${JSON.stringify(hqSeptember.value)}`
 			);
-			await session.query('update leave_types set eligibility = $1 where id = $2', [
+			await session.query('update leave_catalogue set eligibility = $1 where id = $2', [
 				'employee.gender == "FEMALE"',
-				ANNUAL_LEAVE_TYPE_ID
+				ANNUAL_LEAVE_CATALOGUE_ID
 			]);
 			await session.query(
 				'update employees set gender = $1 where id = (select employee_id from employments where id = $2)',
@@ -151,7 +151,7 @@ test(
 			);
 			const input = {
 				employment_id: EMPLOYMENT_ID,
-				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				range: {
 					start: { date: '2026-04-15', half: 'FIRST' },
@@ -178,7 +178,7 @@ test(
 								values: {
 									id: crypto.randomUUID(),
 									employment_id: EMPLOYMENT_ID,
-									leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+									leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 									leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 									event: {
 										kind: 'TIME_OFF',
@@ -197,14 +197,14 @@ test(
 				['FEMALE', EMPLOYMENT_ID]
 			);
 			await session.query(
-				'update leave_types set requires_certificate_after_days = 0 where id = $1',
-				[ANNUAL_LEAVE_TYPE_ID]
+				'update leave_catalogue set requires_certificate_after_days = 0 where id = $1',
+				[ANNUAL_LEAVE_CATALOGUE_ID]
 			);
 			assert.equal((await invokePreviewLeave(session, input)).certificate_required, true);
 			assert.match(JSON.stringify((await create()).value), /certificate/i);
 			await session.query(
-				'update leave_types set requires_certificate_after_days = 1 where id = $1',
-				[ANNUAL_LEAVE_TYPE_ID]
+				'update leave_catalogue set requires_certificate_after_days = 1 where id = $1',
+				[ANNUAL_LEAVE_CATALOGUE_ID]
 			);
 			const held = await create();
 			assert.ok(

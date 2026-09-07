@@ -43,7 +43,7 @@ const leavePreviewRangeSchema = Schema.Struct({
 
 export const previewLeaveInputSchema = Schema.Struct({
 	employment_id: Schema.String.check(Schema.isUUID()),
-	leave_type_id: Schema.String.check(Schema.isUUID()),
+	leave_catalogue_id: Schema.String.check(Schema.isUUID()),
 	leave_entitlement_id: Schema.optionalKey(Schema.String.check(Schema.isUUID())),
 	calendar_month: Schema.optionalKey(
 		Schema.String.check(Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/))
@@ -155,7 +155,7 @@ type LeavePreviewApi = {
 		employees: QueryFirst<'employees'>;
 		companies: QueryFirst<'companies'>;
 		jurisdiction_settings: QueryRows<'jurisdiction_settings', SettingsVersionRow>;
-		leave_types: QueryFirst<'leave_types'>;
+		leave_catalogue: QueryFirst<'leave_catalogue'>;
 		leave_entitlements: QueryRows<'leave_entitlements', EntitlementRow>;
 		employee_children: QueryRows<'employee_children', WorkspaceRow<'employee_children'>>;
 		leave_entries: QueryRows<'leave_entries', EntryRow>;
@@ -176,7 +176,7 @@ type LeavePreviewFacts = {
 		'gender' | 'date_of_birth' | 'nationality'
 	> | null;
 	readonly employment: WorkspaceRow<'employments'>;
-	readonly leaveType: WorkspaceRow<'leave_types'>;
+	readonly catalogueLeave: WorkspaceRow<'leave_catalogue'>;
 	readonly entitlement: EntitlementRow | null;
 	readonly entries: readonly EntryRow[];
 	readonly children: readonly WorkspaceRow<'employee_children'>[];
@@ -316,7 +316,7 @@ function dayPreview(
 	if (!work.work) return { day: { eligible: false, reason_code: 'REST_OR_OFF', reason_mark: 'R' } };
 	if (
 		!isEligible(
-			facts.leaveType.eligibility,
+			facts.catalogueLeave.eligibility,
 			personContext({
 				employee: facts.employee,
 				employment: facts.employment,
@@ -330,7 +330,7 @@ function dayPreview(
 			day: { eligible: false, reason_code: 'INELIGIBLE', reason_mark: '—' },
 			issue: issue(
 				'INELIGIBLE',
-				`This employee does not meet the eligibility rules for this leave type on ${date}.`
+				`This employee does not meet the eligibility rules for this leave on ${date}.`
 			)
 		};
 	const code = work.codeId == null ? null : (rosterCodeById.get(work.codeId) ?? null);
@@ -382,7 +382,7 @@ export function evaluateLeavePreview(
 		issues.push(
 			issue(
 				'ENTITLEMENT_REQUIRED',
-				'No generated leave entitlement covers this request. The reconciler creates the entitlement before leave can be submitted; an employee the leave type does not cover never has one.'
+				'No generated leave entitlement covers this request. The reconciler creates the entitlement before leave can be submitted; an employee the leave does not cover never has one.'
 			)
 		);
 	if (range != null && pointNumber(range.end) < pointNumber(range.start))
@@ -476,8 +476,8 @@ export function evaluateLeavePreview(
 		chargeable_days: chargeableDays,
 		certificate_required:
 			chargeableDays != null &&
-			facts.leaveType.requires_certificate_after_days != null &&
-			chargeableDays > facts.leaveType.requires_certificate_after_days,
+			facts.catalogueLeave.requires_certificate_after_days != null &&
+			chargeableDays > facts.catalogueLeave.requires_certificate_after_days,
 		encashed,
 		carry_note: null,
 		availability,
@@ -508,16 +508,16 @@ function loadLeavePreviewFacts(
 		});
 		requireComplete(versions, 'jurisdiction settings versions');
 		const versionIds = versions.map((version) => version.id);
-		const leaveType = yield* api.db.leave_types.findFirst({
-			where: { id: { eq: input.leave_type_id } }
+		const catalogueLeave = yield* api.db.leave_catalogue.findFirst({
+			where: { id: { eq: input.leave_catalogue_id } }
 		});
-		if (leaveType == null || !versionIds.includes(leaveType.settings_id))
-			refuse('That leave type does not belong to the employing entity.');
+		if (catalogueLeave == null || !versionIds.includes(catalogueLeave.settings_id))
+			refuse('That leave does not belong to the employing entity.');
 		const asOf = input.range?.end.date ?? window.end;
 		const entitlementRows = yield* api.db.leave_entitlements.findMany({
 			where: {
 				employment_id: { eq: input.employment_id },
-				leave_type_id: { eq: leaveType.id },
+				leave_catalogue_id: { eq: catalogueLeave.id },
 				approval_id: { isNull: true }
 			},
 			limit: LIMIT
@@ -528,7 +528,7 @@ function loadLeavePreviewFacts(
 			entitlementRows.find((row) => entitlementCovers(row, asOf)) ??
 			null;
 		if (input.leave_entitlement_id != null && entitlement?.id !== input.leave_entitlement_id)
-			refuse('The selected leave entitlement does not belong to this employment and leave type.');
+			refuse('The selected leave entitlement does not belong to this employment and leave.');
 
 		const [person, holidays, terms, workDays, storedRequests, settledRuns, entries, children] =
 			yield* Effect.all(
@@ -641,7 +641,7 @@ function loadLeavePreviewFacts(
 		return {
 			employee: person ?? null,
 			employment,
-			leaveType,
+			catalogueLeave,
 			entitlement,
 			entries,
 			children,

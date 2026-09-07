@@ -5,7 +5,7 @@
 		"code": "7.5AM",
 		"name": "Day",
 		"variant": { "kind": "WORK", "start_time": "07:30", "end_time": "16:30", "break_minutes": 60 },
-		"effective_range": { "start": "2020-01-01", "end": null }
+		"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
 	},
 	{
 		"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2",
@@ -13,7 +13,7 @@
 		"code": "REST",
 		"name": "Rest",
 		"variant": { "kind": "REST" },
-		"effective_range": { "start": "2020-01-01", "end": null }
+		"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
 	},
 	{
 		"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3",
@@ -21,6 +21,6 @@
 		"code": "OFF",
 		"name": "Off",
 		"variant": { "kind": "OFF" },
-		"effective_range": { "start": "2020-01-01", "end": null }
+		"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
 	}
 ]

@@ -37,7 +37,7 @@ test('the planner serves reads from context, keeps writes in memory, and hands t
 		employees: [],
 		employment_terms: [],
 		employee_children: [],
-		leave_types: [],
+		leave_catalogue: [],
 		leave_entitlements: [
 			{
 				id: 'kept',
@@ -139,7 +139,7 @@ test('the planner names the employments whose nested set changed, and only those
 		employees: [],
 		employment_terms: [],
 		employee_children: [],
-		leave_types: [],
+		leave_catalogue: [],
 		leave_entitlements: [
 			{
 				id: 'stored',
@@ -225,7 +225,7 @@ test('the context reads only the leave years around the planning date', async ()
 	const versions = wheres.find((where) => where.collection === 'jurisdiction_settings');
 	assert.deepEqual(versions?.code, { in: ['FX'] }, 'the lineage versions are read by code');
 	assert.ok(
-		!wheres.some((where) => where.collection === 'leave_types'),
+		!wheres.some((where) => where.collection === 'leave_catalogue'),
 		'with no version there is no catalogue to read'
 	);
 });

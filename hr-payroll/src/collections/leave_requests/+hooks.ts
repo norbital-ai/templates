@@ -16,7 +16,7 @@ type HookApi = MutateBeforeContext<Hooks>['api'];
 function normalizedTimeOff(
 	api: HookApi,
 	employmentId: string,
-	leaveTypeId: string,
+	leaveCatalogueId: string,
 	entitlementId: string,
 	event: LeaveEvent,
 	certificateFile: unknown,
@@ -25,7 +25,7 @@ function normalizedTimeOff(
 	return Effect.gen(function* () {
 		const preview = yield* previewLeave(api, {
 			employment_id: employmentId,
-			leave_type_id: leaveTypeId,
+			leave_catalogue_id: leaveCatalogueId,
 			leave_entitlement_id: entitlementId,
 			range: event.range,
 			...(excludeId == null ? {} : { exclude_request_id: excludeId })
@@ -76,18 +76,20 @@ export default {
 						refuse('Apply one leave request per employment at a time.');
 					employments.add(employmentId);
 				}
-				// The account a request draws on is named by formula from its employment, leave type and
+				// The account a request draws on is named by formula from its employment, leave and
 				// leave year, so a caller — the employee's app or a bulk import — never has to know an
 				// account id. What the formula needs is read once for the whole batch.
 				const typeIds = [
 					...new Set(
-						inputs.flatMap((row) => (row.leave_type_id == null ? [] : [row.leave_type_id]))
+						inputs.flatMap((row) =>
+							row.leave_catalogue_id == null ? [] : [row.leave_catalogue_id]
+						)
 					)
 				];
 				const types =
 					typeIds.length === 0
 						? []
-						: yield* api.db.leave_types.findMany({
+						: yield* api.db.leave_catalogue.findMany({
 								where: { id: { in: typeIds } },
 								limit: typeIds.length
 							});
@@ -101,13 +103,13 @@ export default {
 					Effect.gen(function* () {
 						if (existing != null) yield* assertUnlocked(api, existing, 'Changing a leave request');
 						const employmentId = input.employment_id ?? existing?.employment_id;
-						const leaveTypeId = input.leave_type_id ?? existing?.leave_type_id;
+						const leaveCatalogueId = input.leave_catalogue_id ?? existing?.leave_catalogue_id;
 						const event = input.event ?? existing?.event;
 						const derivedEntitlementId =
-							employmentId != null && leaveTypeId != null && event != null
+							employmentId != null && leaveCatalogueId != null && event != null
 								? leaveEntitlementIdFor({
 										employment_id: employmentId,
-										leave_code: prepared.typeCodes.get(leaveTypeId) ?? '',
+										leave_code: prepared.typeCodes.get(leaveCatalogueId) ?? '',
 										leave_year: leaveYearOf(event.range.start.date)
 									})
 								: null;
@@ -119,17 +121,17 @@ export default {
 								: existing?.certificate_file;
 						if (
 							employmentId == null ||
-							leaveTypeId == null ||
+							leaveCatalogueId == null ||
 							entitlementId == null ||
 							event == null
 						)
 							refuse(
-								'A leave request needs an employment, leave type, generated entitlement and range.'
+								'A leave request needs an employment, leave, generated entitlement and range.'
 							);
 						const normalized = yield* normalizedTimeOff(
 							api,
 							employmentId,
-							leaveTypeId,
+							leaveCatalogueId,
 							entitlementId,
 							event,
 							certificate,

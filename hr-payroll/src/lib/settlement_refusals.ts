@@ -35,7 +35,7 @@ export const ENTRY_OVER_CONSUMED = 'ENTRY_OVER_CONSUMED' as const;
 const entryConsumptionSchema = Schema.Struct({
 	/** The `component_entries` row being drawn against. */
 	component_entry_id: Schema.String.check(Schema.isUUID()),
-	/** The pay component code it settles under, to make the sentence readable. */
+	/** The component code it settles under, to make the sentence readable. */
 	component_code: Schema.String,
 	/** What the entry is worth — its approved magnitude. */
 	entitlement: Schema.Finite,

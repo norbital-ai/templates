@@ -13,7 +13,7 @@
 		"job_title": "Clerk",
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
-			"start": "2021-06-01",
+			"start": "2021-06-01T00:00:00.000Z",
 			"end": null
 		}
 	},
@@ -31,7 +31,7 @@
 		"job_title": "Clerk",
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
-			"start": "2026-01-01",
+			"start": "2026-01-01T00:00:00.000Z",
 			"end": null
 		}
 	},
@@ -49,7 +49,7 @@
 		"job_title": "Senior clerk",
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
-			"start": "2018-01-01",
+			"start": "2018-01-01T00:00:00.000Z",
 			"end": null
 		}
 	},
@@ -67,7 +67,7 @@
 		"job_title": "Clerk",
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
-			"start": "2025-06-01",
+			"start": "2025-06-01T00:00:00.000Z",
 			"end": null
 		}
 	}

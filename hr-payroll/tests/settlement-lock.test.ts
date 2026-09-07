@@ -146,14 +146,14 @@ function measure(overrides = {}) {
 			leaveProfiles: [JURISDICTION],
 			contributions: [],
 			treatments: new Map(),
-			payComponents: [BASIC],
+			catalogueComponents: [BASIC],
 			overtimeRules: [],
 			overtimeLimits: [],
 			overtimeCoverageRule: null,
 			shiftById: new Map(),
 			patternById: new Map([['pattern-1', { id: 'pattern-1', code: 'PATTERN', pattern: PATTERN }]]),
 			holidays: new Map(),
-			leaveTypes: [],
+			catalogueLeaves: [],
 			hash: 'test'
 		},
 		period: '2026-03',
@@ -233,7 +233,7 @@ test('a leaver\u2019s wage window widens the capture, because it widened the mea
 		ledger: [
 			{
 				id: 'lr-1',
-				leave_type_id: 'lt-1',
+				leave_catalogue_id: 'lt-1',
 				entry_date: '2026-03-15',
 				kind: 'TAKEN',
 				days: -1,
@@ -280,7 +280,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 					employerCost: 0,
 					base: [
 						{
-							payComponent: { id: 'pc-salary' },
+							catalogueComponent: { id: 'pc-salary' },
 							nature: 'EARNING',
 							label: 'BASIC',
 							amount: 1200,
@@ -290,7 +290,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 					adjustments: [
 						{
 							input: { family: 'LOAN_REPAYMENT', id: 'rp-1' },
-							payComponent: { id: 'pc-loan' },
+							catalogueComponent: { id: 'pc-loan' },
 							nature: 'DEDUCTION',
 							label: 'LOAN',
 							amount: 80,
@@ -300,7 +300,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 						},
 						{
 							input: { family: 'WORK_DAY', id: 'wd-1' },
-							payComponent: null,
+							catalogueComponent: null,
 							nature: 'EARNING',
 							label: 'OT_ORDINARY_BEYOND_NORMAL_0',
 							amount: 74.66,
@@ -310,7 +310,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 						},
 						{
 							input: { family: 'LEAVE_REQUEST', id: 'lr-1' },
-							payComponent: null,
+							catalogueComponent: null,
 							nature: 'ABSENCE',
 							label: 'NPL',
 							amount: 25.8,

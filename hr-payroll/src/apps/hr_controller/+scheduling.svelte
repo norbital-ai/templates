@@ -253,17 +253,20 @@
 	// Every version of the entity's lineage: a request may cite the row an earlier version's
 	// entitlement was sealed with, and the board only needs the code behind an id.
 	const selectedSettingsCode = $derived(companyById(selectedCompanyId)?.settings_code ?? null);
-	const leaveTypesQuery = $derived(
+	const leaveCatalogueQuery = $derived(
 		selectedSettingsCode == null
 			? null
-			: client.db.leave_types.findMany({
-					where: { ...approved, leave_type_settings: { some: onLineage(selectedSettingsCode) } },
+			: client.db.leave_catalogue.findMany({
+					where: {
+						...approved,
+						leave_catalogue_settings: { some: onLineage(selectedSettingsCode) }
+					},
 					columns: { id: true, code: true },
-					limit: MONTH_BOARD_QUERY_LIMITS.leaveTypes
+					limit: MONTH_BOARD_QUERY_LIMITS.catalogueLeaves
 				})
 	);
 	const leaveCodeById = $derived(
-		new Map((leaveTypesQuery?.current ?? []).map((type) => [type.id, type.code]))
+		new Map((leaveCatalogueQuery?.current ?? []).map((type) => [type.id, type.code]))
 	);
 
 	/**
@@ -347,7 +350,7 @@
 				id: true,
 				approval_id: true,
 				employment_id: true,
-				leave_type_id: true,
+				leave_catalogue_id: true,
 				kind: true,
 				from_date: true,
 				to_date: true,
@@ -435,7 +438,7 @@
 		{ label: 'employees', query: employeesQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery },
 		{ label: 'roster codes', query: shiftsQuery },
-		{ label: 'leave types', query: leaveTypesQuery },
+		{ label: 'leave catalogue entries', query: leaveCatalogueQuery },
 		{ label: 'payroll runs', query: payrollRunsQuery },
 		{ label: 'settlement claims', query: settlementsQuery }
 	]);
@@ -490,7 +493,7 @@
 				employees: employeesQuery?.current?.length ?? 0,
 				rosterCodes: shiftsQuery?.current?.length ?? 0,
 				employmentTerms: employmentTerms.length,
-				leaveTypes: leaveTypesQuery?.current?.length ?? 0,
+				catalogueLeaves: leaveCatalogueQuery?.current?.length ?? 0,
 				workDays: workDays.length,
 				leaveRequests: leaveRequests.length,
 				payrollRuns: payrollRunsQuery?.current?.length ?? 0,

@@ -34,10 +34,19 @@ test('a frame too narrow for the shoulders shrinks the whole figure to fit', () 
 test('guided capture takes the five poses in order, each after a steady hold with an embedding', () => {
 	let state = initialGuidedCapture();
 	assert.equal(targetPose(state), 'straight');
+	/**
+	 * Yaw is negative when the person turns to their own left.
+	 *
+	 * Every instruction the kiosk gives is in the person's frame, not the camera's, and a live
+	 * camera settled the sign on 2026-09-08: with the old positive reading, "Turn left" only
+	 * advanced when the person turned right. A unit test cannot re-derive that from Human's mesh —
+	 * the device is the authority — so what it pins is the convention itself, and the fact that the
+	 * two windows are mirror images rather than overlapping.
+	 */
 	const angles = {
 		straight: { yaw: 0, pitch: 0 },
-		left: { yaw: radians(25), pitch: 0 },
-		right: { yaw: radians(-25), pitch: 0 },
+		left: { yaw: radians(-25), pitch: 0 },
+		right: { yaw: radians(25), pitch: 0 },
 		up: { yaw: 0, pitch: radians(-20) },
 		down: { yaw: 0, pitch: radians(20) }
 	};
@@ -89,4 +98,33 @@ test('leaving the window, losing the embedding or losing the face restarts the h
 		observePose(state, { angle: { yaw: 0, pitch: 0 }, embedding: true }, 1_500).capture,
 		'straight'
 	);
+});
+
+/**
+ * The turn windows are mirror images, and a turn the wrong way never satisfies the instruction.
+ *
+ * This is the assertion the sign flip needed and did not have. With `HUMAN_YAW_LEFT_SIGN` set the
+ * other way the two windows swap, and every case below fails — which is what makes the flip a
+ * decision somebody takes rather than a constant somebody edits.
+ */
+test('turning the wrong way never advances a turn pose', () => {
+	const hold = (state, angle, from) => {
+		const started = observePose(state, { angle, embedding: true }, from);
+		return observePose(started.state, { angle, embedding: true }, from + 5_000);
+	};
+	// Reach the `left` pose by satisfying `straight` first.
+	let state = initialGuidedCapture();
+	state = hold(state, { yaw: 0, pitch: 0 }, 1_000).state;
+	assert.equal(targetPose(state), 'left');
+
+	// A turn to the person's right, held as long as you like, is not their left.
+	assert.equal(hold(state, { yaw: radians(25), pitch: 0 }, 10_000).capture, null);
+	// Nor is a turn too small to count as a turn at all.
+	assert.equal(hold(state, { yaw: radians(-5), pitch: 0 }, 20_000).capture, null);
+	// Nor one so far round that the face is no longer square to the camera.
+	assert.equal(hold(state, { yaw: radians(-60), pitch: 0 }, 30_000).capture, null);
+	// Their own left, inside the window, does.
+	const advanced = hold(state, { yaw: radians(-25), pitch: 0 }, 40_000);
+	assert.notEqual(advanced.capture, null);
+	assert.equal(targetPose(advanced.state), 'right');
 });

@@ -4,7 +4,7 @@
  * The customer's payroll workbook has a settled column vocabulary — `overtimePay`,
  * `proratedSalary`, `grossEarnings` — and the parity manifests compare those named ids. That
  * vocabulary is **presentation**, so it lives here, in the export path, and not as a column on any
- * model. A pay component knows its code, its type and how it is measured; it does not know what a
+ * model. A component knows its code, its type and how it is measured; it does not know what a
  * spreadsheet calls it.
  *
  * Everything below is derived from what was persisted — the payslip's inlined base, proration and
@@ -27,8 +27,8 @@ import { Schema } from 'effect';
 import { statutoryNaming, statutoryOutputIds, type StatutoryRole } from './vocabulary.js';
 
 const ReportLineSchema = Schema.Struct({
-	payComponentCode: Schema.String,
-	payComponentName: Schema.String,
+	componentCode: Schema.String,
+	componentName: Schema.String,
 	nature: Schema.String,
 	calculationSource: Schema.String,
 	amount: Schema.Number,
@@ -265,7 +265,7 @@ function epf(payslip: ReportPayslip, field: 'base' | 'employee' | 'employer'): n
 
 function componentAmount(payslip: ReportPayslip, codes: readonly string[]): number {
 	const wanted = new Set(codes);
-	return sumLines(payslip, (line) => wanted.has(line.payComponentCode));
+	return sumLines(payslip, (line) => wanted.has(line.componentCode));
 }
 
 /**
@@ -282,7 +282,7 @@ export function vendorWorkbookRow(payslip: ReportPayslip): Record<string, string
 			line.nature === 'EARNING' &&
 			!['SCHEDULE', 'OVERTIME', 'OVERTIME_EXCESS'].includes(line.calculationSource) &&
 			!line.isOvertimeExcess &&
-			!['BPAYBS', 'ALPAY', 'PHILE'].includes(line.payComponentCode)
+			!['BPAYBS', 'ALPAY', 'PHILE'].includes(line.componentCode)
 	);
 	// repository-health:allow AR5 -- The vendor's fixed workbook columns are a distinct external contract; this projection intentionally renames and derives persisted payroll fields into that schema.
 	return {
@@ -412,7 +412,7 @@ function workbookRow(payslip: ReportPayslip): Record<string, number> {
 		overtimePay,
 		incentiveOTPay,
 		// Overtime corresponding to work past the total-work-hours boundary is reclassified to a
-		// benefit pay component, so it would
+		// benefit component, so it would
 		// otherwise be reported twice: once here and once as `incentiveOTPay`. The customer's
 		// workbook keeps its allowance column and its incentive-overtime column disjoint, and so
 		// does this one.

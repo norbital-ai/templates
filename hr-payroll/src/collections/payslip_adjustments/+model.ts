@@ -30,11 +30,11 @@ import {
  *
  * ## What is frozen, and why nothing here names a catalogue or a scheme row
  *
- * `label`, `bucket` and `amount` are the settled facts — a later pay-component rename or
+ * `label`, `bucket` and `amount` are the settled facts — a later component rename or
  * archiving cannot rewrite them. Component-entry and loan-repayment inputs reach their pay
  * component through real source relationships; a work-day input reaches the rule that priced it
  * through `statutory_rule_key` plus the run's `statutory_snapshot_id`, which together identify the
- * applied rule. There is no `pay_component_id` here and no band blob: both are output provenance
+ * applied rule. There is no `component_catalogue_id` here and no band blob: both are output provenance
  * stated as stable keys instead of unprotected ids.
  *
  * `period` is denormalized deliberately, for an access reason rather than a convenience one: the

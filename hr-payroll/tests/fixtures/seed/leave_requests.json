@@ -2,7 +2,7 @@
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff2",
 		"employment_id": "44444444-4444-4444-8444-444444444444",
-		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"leave_catalogue_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
 		"event": {
 			"kind": "TIME_OFF",
 			"range": {

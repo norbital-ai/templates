@@ -18,18 +18,47 @@
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Effect } from 'effect';
 	import type { RepresentationProps } from './$types.js';
-	import { componentEntryEventIssues } from '../../lib/component_entry_refusals.js';
+	import {
+		componentEntryEventIssues,
+		componentEntryKindIssues
+	} from '../../lib/component_entry_refusals.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
+	import {
+		employmentRelationOptions,
+		hrCreateScope,
+		inForceCatalogue
+	} from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const createScope = hrCreateScope();
+	const scopedCompanyId = $derived(createScope?.companyId());
+	const scopedSettingsCode = $derived(createScope?.settingsCode());
+
+	/**
+	 * One-off or recurring now lives inside the ALLOWANCE arm's own `recurrence` union, so the
+	 * form reads it from the event rather than from a nullable column beside it. There is nothing
+	 * left for a toggle to desynchronise from: the value states which it is.
+	 */
+	const allowanceRecurrence = $derived.by(() => {
+		const event = record?.event;
+		if (event == null || typeof event !== 'object') return null;
+		if (Reflect.get(event, 'kind') !== 'ALLOWANCE') return null;
+		return Reflect.get(event, 'recurrence') ?? null;
+	});
 
 	/**
 	 * The captured input, which is one junction lookup instead of a walk.
 	 *
 	 * The junction names the entry directly and carries the period on the row, which is exactly the
 	 * pair `settlementLedgerGrants()` exposes to a rank with no payroll authority.
+	 *
+	 * It is read for the lock and for nothing else. This form used to open with a bordered panel
+	 * whose only content was a capture label — a whole field's worth of chrome restating what the
+	 * record's own restriction badge already says, in different words, above a form the same
+	 * capture disables. The badge is the one statement now, and it is the same badge on leave
+	 * requests and loan repayments.
 	 */
 	const captureQuery = $derived(
 		record
@@ -39,19 +68,6 @@
 				})
 			: null
 	);
-
-	/**
-	 * A human capture label, but only once a run has actually captured this entry. A drafted run
-	 * that has not reached it yet must not read as though it had.
-	 */
-	const capturedByPayslip = $derived.by((): string => {
-		if (!record) return '—';
-		if (captureQuery?.loading) return t('component.loading');
-		const capture = captureQuery?.current;
-		if (capture) return t('component.paid_in', { period: capture.period });
-		if (!record.pay_period) return t('component.settled_outside_payroll');
-		return '—';
-	});
 
 	/**
 	 * The same capture drives the label and the lock. An approved record stays editable until the
@@ -85,31 +101,45 @@
 	 * `path` is the column the issue is about where the sentence names one, and `event` otherwise —
 	 * the arm is what a mismatched payload is always ultimately about.
 	 */
-	const semantic = ((values) =>
-		Effect.succeed(
-			componentEntryEventIssues({
+	/**
+	 * Each component's declared entry shape, so the form can mark a mismatched arm exactly as the
+	 * write hook would rather than discovering it on submit. One read over the same scoped
+	 * catalogue the picker above already lists.
+	 */
+	const catalogueQuery = client.db.component_catalogue.findMany({
+		columns: { id: true, code: true, entry_kind: true },
+		limit: 500
+	});
+	const entryKindByComponent = $derived(
+		new Map((catalogueQuery.current ?? []).map((row) => [row.id, row]))
+	);
+
+	const semantic = ((values) => {
+		const component = entryKindByComponent.get(String(values.component_catalogue_id ?? ''));
+		const event = values.event;
+		const declared =
+			event != null && typeof event === 'object' ? Reflect.get(event, 'kind') : undefined;
+		return Effect.succeed([
+			...componentEntryEventIssues({
 				event: values.event,
-				effective_range: values.effective_range,
 				corrects_adjustment_id: optionalText(values.corrects_adjustment_id),
 				amount: values.amount == null ? null : decodeNumber(values.amount),
 				pay_period: optionalText(values.pay_period)
-			}).map((message) => ({ message, path: ['event'] }))
-		)) satisfies CollectionFormSemantic;
+			}).map((message) => ({ message, path: ['event'] })),
+			// Silent until a component is chosen: an unfilled picker is not a mismatch.
+			...(component == null
+				? []
+				: componentEntryKindIssues(declared, component.entry_kind, component.code).map(
+						(message) => ({ message, path: ['component_catalogue_id'] })
+					))
+		]);
+	}) satisfies CollectionFormSemantic;
 </script>
 
 <RecordShell
 	title={record ? `${record.event_date} · ${record.amount}` : t('component.create_entry')}
 >
 	<Stack gap="md">
-		<Grid gap="md" minimum="compact">
-			<Column span="all">
-				<Stack class="rounded-md border border-border bg-muted/20 p-3" gap="xs">
-					<span class="text-meta">{t('component.payroll_consumption')}</span>
-					<span aria-live="polite" class="block text-sm">{capturedByPayslip}</span>
-				</Stack>
-			</Column>
-		</Grid>
-
 		<CollectionForm
 			{client}
 			collection="component_entries"
@@ -119,42 +149,31 @@
 			submitLabel={record ? t('component.save_entry') : t('component.create_entry')}
 			onAfterSubmit={record ? undefined : close}
 		>
-			{#snippet children({ Field })}
+			{#snippet children({ Field, form })}
 				<Stack gap="lg">
 					<Grid gap="md" minimum="compact">
 						<Field
 							name="employment_id"
 							label={t('component.employment')}
-							relationOptions={{
-								label: (employment) =>
-									employment.employee_number != null && employment.employee_number !== ''
-										? String(employment.employee_number)
-										: '—',
-								orderBy: { employee_number: 'asc' },
-								limit: 10_000
-							}}
+							relationOptions={employmentRelationOptions(scopedCompanyId)}
 						/>
 						<Field
-							name="pay_component_id"
-							label={t('component.pay_component')}
+							name="component_catalogue_id"
+							label={t('component.catalogue_component')}
 							relationOptions={{
 								label: (component) => {
 									const code = component.code;
 									if (code) return String(code);
 									return '—';
 								},
+								where: inForceCatalogue('component_catalogue_settings', scopedSettingsCode),
 								orderBy: { code: 'asc' },
 								limit: 500
 							}}
 						/>
 						<Field name="amount" label={t('component.entry_amount')} />
-						<Field name="quantity" />
 						<Field name="event_date" />
-						<Field name="pay_period" label={t('component.pay_period')} />
 						<Field name="evidence_file" label={t('component.evidence_file')} />
-						<Column span="all">
-							<Field name="effective_range" label={t('component.entry_effective_period')} />
-						</Column>
 						<Column span="all">
 							<Field
 								name="corrects_adjustment_id"
@@ -170,6 +189,23 @@
 							/>
 						</Column>
 					</Grid>
+					<Stack as="section" gap="sm" aria-labelledby="component-entry-cadence-heading">
+						<h3 id="component-entry-cadence-heading" class="text-sm font-semibold">
+							{t('component.entry_cadence')}
+						</h3>
+						<!--
+							One-off versus recurring is not a control here any more. It is the ALLOWANCE
+							arm's own `recurrence`, drawn by the event renderer below along with the rest
+							of that arm's payload, so the toggle and the value cannot disagree — which is
+							what a toggle over a nullable sibling column could always do.
+						-->
+						<p class="text-meta">
+							{allowanceRecurrence == null
+								? t('component.entry_one_off_hint')
+								: t('component.entry_recurring_hint')}
+						</p>
+						<Field name="pay_period" label={t('component.pay_period_override')} />
+					</Stack>
 					<Stack as="section" gap="sm" aria-labelledby="component-entry-event-heading">
 						<h3 id="component-entry-event-heading" class="text-sm font-semibold">
 							{t('component.event_kind')}

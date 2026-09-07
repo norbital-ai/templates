@@ -12,7 +12,7 @@ export default {
 		employments: { read: {}, mutate: { existing: { fields: [] } } },
 		employment_terms: { read: {} },
 		employee_children: { read: {} },
-		leave_types: { read: {} },
+		leave_catalogue: { read: {} },
 		leave_entitlements: { read: {}, mutate: { new: {}, existing: { fields: ['status'] } } },
 		// A ledger line is never edited; restating a stored line by id (the complete set an employment
 		// write carries) is an update that changes nothing.

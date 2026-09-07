@@ -22,8 +22,8 @@ export const unreachableSourceSchema = Schema.Struct({
 });
 
 export const statutoryProposalChangeSchema = Schema.Struct({
-	collection: Schema.Literals(['contribution_rates', 'leave_types', 'pay_components']),
-	/** The scheme, leave type or pay component code the change belongs to. */
+	collection: Schema.Literals(['contribution_rates', 'leave_catalogue', 'component_catalogue']),
+	/** The scheme, leave or component code the change belongs to. */
 	code: Schema.NonEmptyString,
 	field: Schema.Literals(['bands', 'entitlement', 'contribution_treatments']),
 	previous: Schema.Unknown,

@@ -19,7 +19,7 @@ import { stableJson } from './jurisdiction_settings.js';
  * Everything here is either pure or a bounded page read through the runtime's own reader. The
  * model is asked one question per lineage, with `read_official_page` as its only tool, and the
  * answer is decoded to `StatutoryFindingsSchema`: the official band table of each scheme, the
- * official entitlement of each leave type, the official treatments of each pay component, each
+ * official entitlement of each leave, the official treatments of each component, each
  * with the page and quote it stands on. `diffStatutoryFindings` then decides what changed; the
  * model never does.
  */
@@ -286,14 +286,14 @@ export const StatutoryFindingsSchema = Schema.Struct({
 	contributions: Schema.Array(
 		Schema.Struct({ code: Schema.NonEmptyString, bands: Schema.Array(rateBandSchema), ...evidence })
 	),
-	leave_types: Schema.Array(
+	leave_catalogue: Schema.Array(
 		Schema.Struct({
 			code: Schema.NonEmptyString,
 			entitlement: leaveEntitlementValueSchema,
 			...evidence
 		})
 	),
-	pay_components: Schema.Array(
+	component_catalogue: Schema.Array(
 		Schema.Struct({
 			code: Schema.NonEmptyString,
 			contribution_treatments: contributionTreatmentsValueSchema,
@@ -315,10 +315,10 @@ export type SealedStatutoryFacts = Readonly<{
 			bands: ReadonlyArray<Schema.Schema.Type<typeof rateBandSchema>>;
 		}>
 	>;
-	leave_types: ReadonlyArray<
+	leave_catalogue: ReadonlyArray<
 		Readonly<{ code: string; name: string; authority: string | null; entitlement: unknown }>
 	>;
-	pay_components: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
+	component_catalogue: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
 }>;
 
 /** A band table in canonical order, so two spellings of one table compare equal. */
@@ -389,34 +389,34 @@ export function diffStatutoryFindings(
 		if (page == null) continue;
 		changes.push(change('contribution_rates', 'bands', finding, page, scheme.bands, finding.bands));
 	}
-	for (const finding of findings.leave_types) {
-		const type = sealed.leave_types.find((row) => row.code === finding.code);
+	for (const finding of findings.leave_catalogue) {
+		const type = sealed.leave_catalogue.find((row) => row.code === finding.code);
 		if (type == null) {
-			notes.push(`Leave type ${finding.code}: not a statutory leave type of this version`);
+			notes.push(`Leave ${finding.code}: not a statutory leave of this version`);
 			continue;
 		}
 		if (stableJson(type.entitlement) === stableJson(finding.entitlement)) continue;
-		const page = verified(finding, 'Leave type');
+		const page = verified(finding, 'Leave');
 		if (page == null) continue;
 		changes.push(
-			change('leave_types', 'entitlement', finding, page, type.entitlement, finding.entitlement)
+			change('leave_catalogue', 'entitlement', finding, page, type.entitlement, finding.entitlement)
 		);
 	}
-	for (const finding of findings.pay_components) {
-		const component = sealed.pay_components.find((row) => row.code === finding.code);
+	for (const finding of findings.component_catalogue) {
+		const component = sealed.component_catalogue.find((row) => row.code === finding.code);
 		if (component == null) {
-			notes.push(`Pay component ${finding.code}: not a statutory component of this version`);
+			notes.push(`Component ${finding.code}: not a statutory component of this version`);
 			continue;
 		}
 		if (
 			stableJson(component.contribution_treatments) === stableJson(finding.contribution_treatments)
 		)
 			continue;
-		const page = verified(finding, 'Pay component');
+		const page = verified(finding, 'Component');
 		if (page == null) continue;
 		changes.push(
 			change(
-				'pay_components',
+				'component_catalogue',
 				'contribution_treatments',
 				finding,
 				page,

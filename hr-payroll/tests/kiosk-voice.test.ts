@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { KIOSK_MODEL_BASE, KIOSK_REQUIRED_MODELS } from '../src/lib/kiosk/config.ts';
+import { blockedPhraseKey, type PunchBlockedReason } from '../src/lib/kiosk/punch.ts';
 import {
 	KIOSK_PHRASES,
 	KIOSK_PHRASE_KEYS,
@@ -56,6 +57,12 @@ test('a missing clip is silence: the narrator marks it and moves on without any 
 	void played;
 });
 
+/**
+ * `vite.config.ts` imports `KIOSK_REQUIRED_MODELS` rather than restating it, so the build cannot
+ * ship a different set from the one the kiosk refuses to start without. A guard that read the
+ * plugin's own literal list used to stand here; the import deleted the duplication and the guard
+ * with it, which is the better outcome — there is no longer a second list to disagree.
+ */
 test('the model base resolves beside this chunk and names every enabled model', () => {
 	// In the built bundle the chunk lives under `assets/` and the models one level up; under Node the
 	// same expression resolves relative to the source file, so only the shape is asserted here.
@@ -66,6 +73,51 @@ test('the model base resolves beside this chunk and names every enabled model', 
 		'blazeface',
 		'facemesh',
 		'faceres',
-		'iris'
+		'iris',
+		'liveness'
 	]);
+});
+
+/**
+ * A person who is not rostered is told so, and not told "Nothing changed".
+ *
+ * That was the defect: the schedule gate blocked the punch correctly, but the narration fell
+ * through to `unchanged` — truthful and useless at a shop-floor tablet, where the whole point of
+ * speaking is that nobody is reading. Both schedule reasons say the same sentence, because "no
+ * shift today" and "today is a rest day" are the same fact to the person standing there; the
+ * screen carries which one, the voice does not.
+ *
+ * The mapping is contract, so it is asserted directly. It used to be declared inside
+ * `+kiosk.svelte`, and this test read it out of the source text with a control feeding it the old
+ * shape — a weak instrument that only existed because the function could not be imported. It is
+ * exported from `lib/kiosk/punch.ts` now, beside the reasons it maps from, and the scan and its
+ * control are gone with it.
+ *
+ * The failure it guards is silent: an unmapped reason falls through to `unchanged`, which is
+ * exactly what the kiosk said before the schedule gate landed.
+ */
+test('a blocked punch says why: not scheduled, or too soon, and never "nothing changed"', () => {
+	assert.equal(blockedPhraseKey('not-scheduled'), 'no_shift_today');
+	assert.equal(blockedPhraseKey('not-a-work-day'), 'no_shift_today');
+	assert.equal(blockedPhraseKey('cooldown'), 'too_soon', 'the debounce keeps its own sentence');
+	// An unknown reason still falls back honestly rather than claiming a schedule it never read.
+	assert.equal(blockedPhraseKey(undefined), 'unchanged');
+	assert.equal(blockedPhraseKey('something-new'), 'unchanged');
+
+	// Every reason the punch path can produce is mapped to something other than the fallback, so a
+	// reason added without a sentence is caught here rather than spoken as "Nothing changed".
+	const reasons: readonly PunchBlockedReason[] = ['cooldown', 'not-scheduled', 'not-a-work-day'];
+	for (const reason of reasons) {
+		assert.notEqual(
+			blockedPhraseKey(reason),
+			'unchanged',
+			`${reason} has no sentence of its own and would be spoken as "Nothing changed"`
+		);
+	}
+
+	// The sentence itself, in both languages, and it must not be the fallback's.
+	const spoken = KIOSK_PHRASES['no_shift_today'];
+	assert.match(spoken.en, /not scheduled/i);
+	assert.notEqual(spoken.en, KIOSK_PHRASES['unchanged'].en);
+	assert.notEqual(spoken.zh, KIOSK_PHRASES['unchanged'].zh);
 });

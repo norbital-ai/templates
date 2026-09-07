@@ -7,7 +7,7 @@
  * Everything the run settled is read back from where it was stored and never recomputed: the
  * contracted amounts and the statutory charges are inlined on the payslip, and everything one input
  * caused is a `payslip_adjustments` row. Rows whose amount is zero are settlement claims rather than
- * figures — the run read the source and priced it at nothing — so they carry no pay component and
+ * figures — the run read the source and priced it at nothing — so they carry no component and
  * contribute no workbook line.
  */
 
@@ -126,7 +126,7 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [adjustments, employments, payComponents, terms, workDays] = yield* Effect.all(
+		const [adjustments, employments, catalogueComponents, terms, workDays] = yield* Effect.all(
 			[
 				api.db.payslip_adjustments.findMany({
 					where: { payslip_id: { in: payslipIds } },
@@ -140,7 +140,7 @@ export function loadRunExports(
 					where: { id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),
-				api.db.pay_components.findMany({ limit: PAGE_LIMIT }),
+				api.db.component_catalogue.findMany({ limit: PAGE_LIMIT }),
 				api.db.employment_terms.findMany({
 					where: { employment_id: { in: employmentIds } },
 					limit: PAGE_LIMIT
@@ -213,7 +213,7 @@ export function loadRunExports(
 
 		// The schemes charged are on the payslips themselves now, one entry per scheme with both
 		// shares on it, and named by their code — so no id-to-code join is left at all.
-		const componentByCode = new Map(payComponents.map((row) => [row.code, row]));
+		const componentByCode = new Map(catalogueComponents.map((row) => [row.code, row]));
 		const employmentById = new Map(employments.map((row) => [row.id, row]));
 		const employeeById = new Map(employees.map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
@@ -321,13 +321,13 @@ export function loadRunExports(
 					amount: number,
 					quantity: number | null
 				): ReportLine[] => {
-					const payComponent = componentByCode.get(componentCode);
-					const definition = payComponent?.definition ?? null;
+					const catalogueComponent = componentByCode.get(componentCode);
+					const definition = catalogueComponent?.definition ?? null;
 					return [
 						{
-							payComponentCode: componentCode,
-							payComponentName: componentCode,
-							nature: payComponent?.nature ?? 'INFORMATION',
+							componentCode: componentCode,
+							componentName: componentCode,
+							nature: catalogueComponent?.nature ?? 'INFORMATION',
 							calculationSource: definition?.source ?? 'DERIVED',
 							amount,
 							quantity,
@@ -346,7 +346,7 @@ export function loadRunExports(
 					),
 					...payslipAdjustments.flatMap((row): ReportLine[] => {
 						const ruleKey = row.statutory_rule_key;
-						// A derived overtime row links to no pay component, because there is none: it
+						// A derived overtime row links to no component, because there is none: it
 						// names the statutory rule that priced it, and that rule key supplies its code,
 						// its day type and the fact that it is an earning. The rule key spells the band
 						// as `OT_[EXCESS_]<day type>_<measure>_<from>` — the same shape `overtimeBandCode`
@@ -354,8 +354,8 @@ export function loadRunExports(
 						if (ruleKey != null) {
 							return [
 								{
-									payComponentCode: ruleKey,
-									payComponentName: ruleKey,
+									componentCode: ruleKey,
+									componentName: ruleKey,
 									nature: 'EARNING',
 									calculationSource: overtimeRuleKeyIsExcess(ruleKey)
 										? 'OVERTIME_EXCESS'

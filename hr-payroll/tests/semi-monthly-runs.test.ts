@@ -157,11 +157,11 @@ test('the two halves add up to what one monthly run paid, and the monthly employ
 
 test('a one-off entry settles in the half its day falls in, for a semi-monthly employment', async () => {
 	const world = createSemiMonthlyPayrollWorld();
-	const transport = world.pay_components.find((component) => component.code === 'TRANSPORT');
+	const transport = world.component_catalogue.find((component) => component.code === 'TRANSPORT');
 	const entry = (id, eventDate) => ({
 		id,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
-		pay_component_id: transport.id,
+		component_catalogue_id: transport.id,
 		amount: 100,
 		quantity: null,
 		event_date: eventDate,
@@ -229,7 +229,7 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		band('tax-band-2', 35_000, 50_000, 3, 150),
 		band('tax-band-3', 50_000, null, 8, 600)
 	);
-	for (const component of world.pay_components)
+	for (const component of world.component_catalogue)
 		component.contribution_treatments = {
 			'PUB-EPF': { kind: 'INCLUDE' },
 			'PUB-TAX': { kind: 'INCLUDE' }
@@ -256,4 +256,71 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 	assert.equal(tax(slipOf(third.built, SEMI_MONTHLY_EMPLOYMENT_ID)).employee_amount, 24);
 	assert.equal(tax(slipOf(fourth.built, SEMI_MONTHLY_EMPLOYMENT_ID)).employee_amount, 24);
 	assert.equal(tax(slipOf(fourth.built, MONTHLY_EMPLOYMENT_ID)).employee_amount, 48);
+});
+
+/**
+ * An allowance is paid once across a month that payroll settles in two halves.
+ *
+ * A semi-monthly company runs two periods inside the month an allowance covers, so the thing that
+ * must never happen is the amount landing in both. Each half prorates against the days it covers —
+ * 53.57 and 46.43 across February — and what this pins is that they add up to exactly what the
+ * entry states.
+ *
+ * **It does not distinguish `ONE_OFF` from `RECURRING`, and it is worth saying so here rather than
+ * implying otherwise.** This scenario was proposed as the proof that a one-off depletes where a
+ * recurring allowance does not. Measured, both arms pay 53.57 + 46.43, and forcing `depletes()`
+ * to return false for every allowance leaves this test green — proration alone splits the window,
+ * so the depletion ceiling never binds here. Whatever `depletes` protects for an allowance, this
+ * is not it, and nothing in the suite currently isolates it.
+ */
+test('an allowance is paid once across a semi-monthly month, not once per half', async () => {
+	const world = createSemiMonthlyPayrollWorld();
+	const transport = world.component_catalogue.find((component) => component.code === 'TRANSPORT');
+	assert.ok(transport, 'the semi-monthly world offers a component that takes entries');
+	const ONE_OFF_ID = 'once-in-february';
+	world.component_entries.push({
+		id: ONE_OFF_ID,
+		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
+		component_catalogue_id: transport.id,
+		amount: 100,
+		event_date: '2026-02-10',
+		pay_period: null,
+		event: { kind: 'ALLOWANCE', recurrence: { kind: 'ONE_OFF', period: '2026-02' } },
+		corrects_adjustment_id: null,
+		evidence_file: null,
+		approval_id: null
+	});
+
+	const firstHalf = await build(world, '2026-02-1');
+	settle(world, '2026-02-1', firstHalf.prepared, firstHalf.built);
+	const secondHalf = await build(world, '2026-02-2');
+
+	/**
+	 * An adjustment names the *capture* it was priced from, not the entry, so the entry is reached
+	 * through the junction the same run produced.
+	 */
+	const paidFor = (built, entryId) => {
+		const slip = slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID);
+		const captures = new Set(
+			slip.payslip_component_entry_input_payslip
+				.filter((row) => row.component_entry_id === entryId)
+				.map((row) => row.id)
+		);
+		return slip.payslip_adjustment_payslip
+			.filter((row) => captures.has(row.input?.id))
+			.reduce((total, row) => total + Number(row.amount), 0);
+	};
+
+	const first = paidFor(firstHalf.built, ONE_OFF_ID);
+	const second = paidFor(secondHalf.built, ONE_OFF_ID);
+	assert.ok(first > 0, `the first half pays part of the one-off: ${first}`);
+	assert.equal(
+		Math.round((first + second) * 100) / 100,
+		100,
+		`the two halves pay the entry once between them, not once each: ${first} + ${second}`
+	);
+	assert.ok(
+		first < 100 && second < 100,
+		`neither half pays the whole amount on its own: ${first} + ${second}`
+	);
 });

@@ -9,7 +9,7 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	JURISDICTION_ID,
@@ -109,7 +109,7 @@ test(
 		try {
 			// HR12: rows = eligible employments × types × the leave years each employment overlaps.
 			const employments = seedRows('employments');
-			const types = seedRows('leave_types');
+			const types = seedRows('leave_catalogue');
 			const currentYear = new Date().getUTCFullYear();
 			const overlapping = (hire: string) =>
 				[currentYear - 1, currentYear, currentYear + 1].filter((year) => hire <= `${year}-12-31`)
@@ -128,7 +128,7 @@ test(
 				'every public type is statutory and cites its authority'
 			);
 			const catalogue = (await session.query(
-				`select code, is_statutory, authority from leave_types where settings_id = $1 order by code`,
+				`select code, is_statutory, authority from leave_catalogue where settings_id = $1 order by code`,
 				[JURISDICTION_ID]
 			)) as ReadonlyArray<Row>;
 			assert.deepEqual(
@@ -148,7 +148,7 @@ test(
 			// HR12: a type that excludes someone generates nothing for them.
 			const maternityId = crypto.randomUUID();
 			await session.query(
-				`insert into leave_types (id, settings_id, code, name, is_statutory, authority, eligibility, entitlement, accrual, exit_settlement, payroll_effect)
+				`insert into leave_catalogue (id, settings_id, code, name, is_statutory, authority, eligibility, entitlement, accrual, exit_settlement, payroll_effect)
 				 values ($1, $2, 'MATERNITY', 'Maternity leave', true, 'Public fixture s.37', 'employee.gender == "FEMALE" && employment.service_months >= 3', $3, $4, $5, $6)`,
 				[
 					maternityId,
@@ -163,7 +163,7 @@ test(
 			const maternity = (await session.query(
 				`select p.gender, t.leave_year from leave_entitlements t
 				 join employments e on e.id = t.employment_id join employees p on p.id = e.employee_id
-				 where t.leave_type_id = $1`,
+				 where t.leave_catalogue_id = $1`,
 				[maternityId]
 			)) as ReadonlyArray<Row>;
 			const women = seedRows('employees').filter((row) => row.gender === 'FEMALE');
@@ -177,12 +177,12 @@ test(
 
 			// HR13: raise the ANNUAL band by two; one ADJUSTMENT of +2 per open entitlement, once.
 			await session.query(
-				`update leave_types set entitlement = $1, updated_at = now() where id = $2`,
-				[{ layers: [{ level: 'ORGANISATION', band_from: 0, days: 10 }] }, ANNUAL_LEAVE_TYPE_ID]
+				`update leave_catalogue set entitlement = $1, updated_at = now() where id = $2`,
+				[{ layers: [{ level: 'ORGANISATION', band_from: 0, days: 10 }] }, ANNUAL_LEAVE_CATALOGUE_ID]
 			);
 			const [{ updated_at: updatedAt }] = (await session.query(
-				`select updated_at from leave_types where id = $1`,
-				[ANNUAL_LEAVE_TYPE_ID]
+				`select updated_at from leave_catalogue where id = $1`,
+				[ANNUAL_LEAVE_CATALOGUE_ID]
 			)) as ReadonlyArray<{ readonly updated_at: string }>;
 			await refresh(session);
 			await refresh(session);
@@ -214,7 +214,7 @@ test(
 			// HR13, MONTHLY: the months already accrued are adjusted; the lines posted stay as they were.
 			const monthlyId = crypto.randomUUID();
 			await session.query(
-				`insert into leave_types (id, settings_id, code, name, is_statutory, authority, eligibility, entitlement, accrual, exit_settlement, payroll_effect)
+				`insert into leave_catalogue (id, settings_id, code, name, is_statutory, authority, eligibility, entitlement, accrual, exit_settlement, payroll_effect)
 				 values ($1, $2, 'MONTHLY', 'Monthly leave', false, null, '', $3, $4, $5, $6)`,
 				[
 					monthlyId,
@@ -242,7 +242,7 @@ test(
 				`one accrual per month end elapsed: ${JSON.stringify(before)}`
 			);
 			await session.query(
-				`update leave_types set entitlement = $1, updated_at = now() where id = $2`,
+				`update leave_catalogue set entitlement = $1, updated_at = now() where id = $2`,
 				[{ layers: [{ level: 'ORGANISATION', band_from: 0, days: 14 }] }, monthlyId]
 			);
 			await refresh(session);

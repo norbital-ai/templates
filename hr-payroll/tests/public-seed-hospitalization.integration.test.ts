@@ -9,7 +9,7 @@ import {
 import {
 	EMPLOYMENT_ID,
 	HOSPITALIZATION_LEAVE_ENTITLEMENT_ID,
-	HOSPITALIZATION_LEAVE_TYPE_ID,
+	HOSPITALIZATION_LEAVE_CATALOGUE_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
@@ -17,7 +17,7 @@ import {
 /**
  * HR10: hospitalization leave end-to-end on public fixtures.
  *
- * The public `leave_types.json` carries a statutory 60-day HOSPITALIZATION row; the after-seed
+ * The public `leave_catalogue.json` carries a statutory 60-day HOSPITALIZATION row; the after-seed
  * `leave_ledger_refresh` generates the entitlements (fixtures carry zero
  * `leave_entitlements`/`entries`). A founder-committed two-day request then charges the ledger
  * through the same hooks payroll reads.
@@ -68,7 +68,7 @@ test(
 							values: {
 								id: requestId,
 								employment_id: EMPLOYMENT_ID,
-								leave_type_id: HOSPITALIZATION_LEAVE_TYPE_ID,
+								leave_catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
 								leave_entitlement_id: HOSPITALIZATION_LEAVE_ENTITLEMENT_ID,
 								event: {
 									kind: 'TIME_OFF',

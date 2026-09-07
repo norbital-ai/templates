@@ -69,10 +69,10 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	// refusal ahead of the run row.
 	if (configuration.overtimeRules.length > 0 && configuration.contributions.length > 0)
 		for (const code of ['OVERTIME', 'OVERTIME_EXCESS'])
-			if (!configuration.payComponents.some((component) => component.code === code))
+			if (!configuration.catalogueComponents.some((component) => component.code === code))
 				blocker(
 					'OVERTIME_COMPONENT_MISSING',
-					`${configuration.company.name} has no ${code} pay component, so no scheme can say what ` +
+					`${configuration.company.name} has no ${code} component, so no scheme can say what ` +
 						'it does with derived overtime. Add the statutory row with a treatment for every ' +
 						`scheme ${configuration.jurisdiction.code} levies.`,
 					'companies',
@@ -80,7 +80,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				);
 
 	// Every monetary component owns a decided cell for every effective statutory scheme.
-	for (const component of configuration.payComponents) {
+	for (const component of configuration.catalogueComponents) {
 		if (component.nature === 'INFORMATION') continue;
 		for (const contribution of configuration.contributions) {
 			const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
@@ -89,7 +89,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'TREATMENT_MISSING',
 					`No ${contribution.row.code} treatment exists for ${component.code}. The component ` +
 						'states a treatment for every scheme its jurisdiction levies.',
-					'pay_components',
+					'component_catalogue',
 					component.id
 				);
 				continue;
@@ -99,7 +99,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'TREATMENT_UNSET',
 					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
 						'this kind of pay is chargeable.',
-					'pay_components',
+					'component_catalogue',
 					component.id
 				);
 			if (cell.kind === 'SPECIAL' && !contribution.row.special_rules.includes(cell.rule))
@@ -107,7 +107,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'SPECIAL_RULE_UNKNOWN',
 					`${component.code} × ${contribution.row.code} names special rule "${cell.rule}", ` +
 						`which ${contribution.row.code} does not declare.`,
-					'pay_components',
+					'component_catalogue',
 					component.id
 				);
 		}

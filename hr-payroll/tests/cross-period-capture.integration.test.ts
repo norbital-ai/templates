@@ -29,7 +29,7 @@ import {
 const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777777';
 const CREATE_PAYROLL_COMMAND = 'collections.mutate';
 
-const LEAVE_TYPE_ID = 'aaaa1111-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+const LEAVE_CATALOGUE_ID = 'aaaa1111-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 const LEAVE_REQUEST_ID = 'aaaa2222-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 const LEAVE_ENTITLEMENT_ID = 'aaaa4444-aaaa-4aaa-8aaa-aaaaaaaaaaa4';
 const LOAN_COMPONENT_ID = 'bbbb1111-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
@@ -104,8 +104,8 @@ function persistPayslip(world, options) {
 }
 
 function withSpanningLeave(world) {
-	world.leave_types.push({
-		id: LEAVE_TYPE_ID,
+	world.leave_catalogue.push({
+		id: LEAVE_CATALOGUE_ID,
 		company_id: COMPANY_ID,
 		code: 'AL',
 		name: 'Annual leave',
@@ -122,7 +122,7 @@ function withSpanningLeave(world) {
 	world.leave_entitlements.push({
 		id: LEAVE_ENTITLEMENT_ID,
 		employment_id: EMPLOYMENT_ID,
-		leave_type_id: LEAVE_TYPE_ID,
+		leave_catalogue_id: LEAVE_CATALOGUE_ID,
 		leave_code: 'AL',
 		leave_name: 'Annual leave',
 		leave_year: 2026,
@@ -138,7 +138,7 @@ function withSpanningLeave(world) {
 	world.leave_requests.push({
 		id: LEAVE_REQUEST_ID,
 		employment_id: EMPLOYMENT_ID,
-		leave_type_id: LEAVE_TYPE_ID,
+		leave_catalogue_id: LEAVE_CATALOGUE_ID,
 		leave_entitlement_id: LEAVE_ENTITLEMENT_ID,
 		event: {
 			kind: 'TIME_OFF',
@@ -155,7 +155,7 @@ function withSpanningLeave(world) {
 }
 
 function withRecoverableLoan(world) {
-	world.pay_components.push({
+	world.component_catalogue.push({
 		id: LOAN_COMPONENT_ID,
 		settings_id: JURISDICTION_ID,
 		code: 'LOAN',
@@ -178,7 +178,7 @@ function withRecoverableLoan(world) {
 	world.loans.push({
 		id: LOAN_ID,
 		employment_id: EMPLOYMENT_ID,
-		pay_component_id: LOAN_COMPONENT_ID,
+		component_catalogue_id: LOAN_COMPONENT_ID,
 		principal: 5000,
 		effective_range: { start: '2026-01-01', end: null },
 		reference: 'ADV-1',
@@ -359,7 +359,7 @@ test(
 			const repaymentId = crypto.randomUUID();
 			await session.query(
 				`insert into loans
-				 (id, employment_id, pay_component_id, principal, effective_range, reference)
+				 (id, employment_id, component_catalogue_id, principal, effective_range, reference)
 				 values ($1, $2, $3, $4, $5::jsonb, $6)`,
 				[
 					loanId,

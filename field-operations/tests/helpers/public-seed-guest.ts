@@ -69,6 +69,8 @@ export const bootPublicSeedGuest = async (options: {
 		schemaFingerprint,
 		files: session.files,
 		query: session.query,
+		/** System authority, which is how a test mints a session for somebody other than the founder. */
+		guestCommand: session.guestCommand,
 		tenantId: session.tenantId,
 		gatewaySecret: session.gatewaySecret,
 		stop: session.stop

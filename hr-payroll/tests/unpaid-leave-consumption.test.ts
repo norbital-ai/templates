@@ -75,14 +75,14 @@ const GUARANTEED_PATTERN = {
 	}
 };
 
-function configuration(leaveTypes = [NPL_TYPE]) {
+function configuration(catalogueLeaves = [NPL_TYPE]) {
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
 		leaveProfiles: [JURISDICTION],
 		contributions: [],
 		treatments: new Map(),
-		payComponents: [BASIC, NPL],
+		catalogueComponents: [BASIC, NPL],
 		overtimeRules: [],
 		overtimeLimits: [],
 		overtimeCoverageRule: null,
@@ -91,7 +91,7 @@ function configuration(leaveTypes = [NPL_TYPE]) {
 			['pattern-1', { id: 'pattern-1', code: 'ROSTER-6D-45H-WK', pattern: GUARANTEED_PATTERN }]
 		]),
 		holidays: new Map(),
-		leaveTypes,
+		catalogueLeaves,
 		hash: 'test'
 	};
 }
@@ -144,7 +144,7 @@ function bundle(ledger = []) {
 
 const leaveDay = (id, date, days = -1) => ({
 	id,
-	leave_type_id: NPL_TYPE.id,
+	leave_catalogue_id: NPL_TYPE.id,
 	entry_date: date,
 	kind: 'TAKEN',
 	days,
@@ -173,7 +173,7 @@ test('unpaid leave is an adjustment naming the leave request that caused it', ()
 	// The input replaces `LEAVE_UNPAID`'s `leave_request_ids` array. One row, one request, and the
 	// database enforces the arc: a `restrict` foreign key on the LEAVE_REQUEST arm is the lock.
 	assert.deepEqual(npl[0].input, { family: 'LEAVE_REQUEST', id: leaveRequestId });
-	assert.equal(npl[0].payComponent.id, NPL.id);
+	assert.equal(npl[0].catalogueComponent.id, NPL.id);
 	assert.equal(npl[0].quantity, 1);
 	assert.equal(npl[0].amount, 100, 'the formula’s own figure, unapportioned: there is one request');
 	// And it is not base. Base is what the contract produced; this was caused by a record somebody
@@ -219,7 +219,7 @@ test('a request that started before this window is still captured when its days 
 	const measured = measure([
 		{
 			id: leaveRequestId,
-			leave_type_id: NPL_TYPE.id,
+			leave_catalogue_id: NPL_TYPE.id,
 			entry_date: '2026-03-15',
 			through_date: '2026-04-05',
 			kind: 'TAKEN',

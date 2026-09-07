@@ -138,7 +138,9 @@ export default {
 							if (other != null && halfOpenOverlap(range, other))
 								refuse(
 									`Sealed ${String(row.code)} versions cannot overlap: ${sibling.name} already governs ` +
-										`${other.start} to ${other.end ?? 'open'}. Seal from the Settings timeline, which ` +
+										// The bound is a stored instant; the operator set a day and reads a day back.
+										`${dateKey(other.start)} to ${other.end == null ? 'open' : dateKey(other.end)}. ` +
+										'Seal from the Settings timeline, which ' +
 										'ends the previous version the day before this one begins.'
 								);
 						}

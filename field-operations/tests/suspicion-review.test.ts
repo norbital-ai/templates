@@ -1847,3 +1847,56 @@ test('a full 34-assignment pass completes with no empty-model failures', async (
 	assert.equal(result.counts.checked, 34);
 	assert.equal(result.counts.failed ?? 0, 0);
 });
+
+/**
+ * The affirmative branch: the whole point of the automation, and the one nothing asserted.
+ *
+ * Every other test in this file that drives a suspicious judgement also arranges a reason for the
+ * log *not* to be written — an open log, or a durable prior review — and then asserts `logCreates`
+ * is empty. That is the negative half of the contract asserted four times over and the positive
+ * half asserted nowhere, so an automation that had stopped writing logs altogether would have
+ * passed this suite.
+ */
+test('writes one suspicion log when the judgement is suspicious and nothing already stands', async () => {
+	const selected = assignment('assignment-suspicious');
+	const harness = automationHarness({
+		assignments: [selected],
+		decisions: { [selected.id]: { suspicious: true, reason: 'The photo contradicts the summary.' } }
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.failure_count, 0);
+	assert.equal(result.assignment_count, 1);
+	assert.equal(result.inference_count, 1);
+	assert.equal(result.counts.suspicious, 1, 'the suspicious judgement is counted as one');
+	assert.deepEqual(harness.logCreates, [selected.id], 'exactly one log, naming the assignment');
+	assert.deepEqual(harness.reviewCreateAttempts, [selected.id]);
+	assert.deepEqual(harness.updates, [selected.id], 'the assignment is stamped as checked');
+});
+
+/**
+ * A second pass over the same assignment adds nothing.
+ *
+ * The idempotency the hourly schedule depends on is "the log written by the first run is found by
+ * the second", and the sibling tests only ever prove the pre-seeded variant of that. This one
+ * writes the log for real and then re-runs against the state the first run left behind.
+ */
+test('a second run over the same suspicious assignment writes no second log', async () => {
+	const selected = assignment('assignment-suspicious-twice');
+	const decisions = {
+		[selected.id]: { suspicious: true, reason: 'The photo contradicts the summary.' }
+	};
+	const first = automationHarness({ assignments: [selected], decisions });
+	await runAutomation(first.api);
+	assert.deepEqual(first.logCreates, [selected.id]);
+
+	const second = automationHarness({
+		assignments: [selected],
+		decisions,
+		openSuspicionIds: { [selected.id]: `log-${selected.id}` }
+	});
+	const result = await runAutomation(second.api);
+
+	assert.equal(result.counts.suspicious_open_exists, 1);
+	assert.deepEqual(second.logCreates, [], 'the standing log is not duplicated');
+});

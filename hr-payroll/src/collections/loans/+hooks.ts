@@ -27,22 +27,22 @@ export default {
 					);
 					if (!(principal > 0)) refuse('A loan principal is a positive magnitude.');
 					return Effect.map(
-						api.db.pay_components.findFirst({
+						api.db.component_catalogue.findFirst({
 							where: {
-								id: { eq: String(input.pay_component_id ?? existing?.pay_component_id) }
+								id: { eq: String(input.component_catalogue_id ?? existing?.component_catalogue_id) }
 							},
 							columns: { code: true, definition: true, nature: true }
 						}),
-						(payComponent) => {
-							if (payComponent != null) {
-								const definition = payComponent.definition;
+						(catalogueComponent) => {
+							if (catalogueComponent != null) {
+								const definition = catalogueComponent.definition;
 								if (definition?.source !== 'ENTRY' || definition.settlement !== 'PAYROLL')
 									refuse(
-										`Loan recoveries settle as payroll deductions, and pay component ${payComponent.code} is not a payroll-settled entry.`
+										`Loan recoveries settle as payroll deductions, and component ${catalogueComponent.code} is not a payroll-settled entry.`
 									);
-								if (payComponent.nature !== 'DEDUCTION')
+								if (catalogueComponent.nature !== 'DEDUCTION')
 									refuse(
-										`Loan recoveries settle as deductions, and pay component ${payComponent.code} is a ${payComponent.nature}.`
+										`Loan recoveries settle as deductions, and component ${catalogueComponent.code} is a ${catalogueComponent.nature}.`
 									);
 							}
 							return input;

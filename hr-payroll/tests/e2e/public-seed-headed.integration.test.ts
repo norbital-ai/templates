@@ -16,7 +16,7 @@ import {
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	EMPLOYMENT_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	publicSeedDirectory,
 	startPublicSeedHost,
 	templateManifestPath
@@ -571,11 +571,16 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		const settings = await waitForBody(page, /Leave types/, 'a2-settings');
-		assert.match(settings, /Pay components/);
+		// The catalogue tabs were renamed: "Leave catalogue entries" → "Leave catalogue", "Components" →
+		// "Component catalogue". What the assertion is about is unchanged — the sealed version's
+		// children are all reachable from one page, and nothing else is.
+		const settings = await waitForBody(page, /Leave catalogue/, 'a2-settings');
+		assert.match(settings, /Component catalogue/);
 		assert.match(settings, /Holidays/);
 		assert.doesNotMatch(settings, /\bCompanies\b|Research sources/);
-		await waitForBody(page, /Public fixture profile/, 'a2-version');
+		// The compacted settings page identifies the version in force by the span it governs rather
+		// than by its name, so the wait follows: an open-ended sealed version is the one in force.
+		await waitForBody(page, /→ ∞/, 'a2-version');
 		// The page shows the version in force directly: the sealed PUB version's form.
 		const opened = await pollEvaluate(
 			page,
@@ -765,7 +770,7 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 						values: {
 							id: crypto.randomUUID(),
 							employment_id: EMPLOYMENT_ID,
-							leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+							leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 							leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 							event: {
 								kind: 'TIME_OFF',
@@ -942,7 +947,7 @@ it('HR self-host impersonate Employee remounts self-service and stop restores Ad
 		}
 		const previewed = await waitForBody(page, /Employee Self-Service|My leave|My HR/, 'a5-preview');
 		assert.match(previewed, /Employee Self-Service|My leave|My HR/);
-		assert.doesNotMatch(previewed, /Pay components|Statutory profile/);
+		assert.doesNotMatch(previewed, /Components|Statutory profile/);
 		const stopped = String(
 			await page.evaluate(`(() => {
 					const account = [...document.querySelectorAll('button')].find((button) =>
@@ -1073,7 +1078,7 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		assert.equal(
 			await pollEvaluate(
 				page,
-				openField('leave_type_id'),
+				openField('leave_catalogue_id'),
 				(value) => value === 'opened',
 				'a3-type'
 			),
@@ -1082,29 +1087,27 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		assert.equal(
 			await pollEvaluate(
 				page,
-				pickExact('ANNUAL · Annual leave', 'leave_type_id'),
+				pickExact('ANNUAL · Annual leave', 'leave_catalogue_id'),
 				(value) => value === 'picked',
 				'a3-annual'
 			),
 			'picked'
 		);
+		/**
+		 * There is no entitlement to pick any more, and that is the point.
+		 *
+		 * `leave_requests/+hooks.ts` already derived the entitlement from the employment, the leave
+		 * code and the year (`leaveEntitlementIdFor`), so the picker was a question with exactly one
+		 * legal answer — and while nothing was selected in it, the range picker beneath stayed
+		 * disabled. The form no longer offers the field; the derivation is asserted against the
+		 * stored row at the end of this test, which is where it can actually be proven.
+		 */
 		assert.equal(
-			await pollEvaluate(
-				page,
-				openField('leave_entitlement_id'),
-				(value) => value === 'opened',
-				'a3-account'
+			await page.evaluate(
+				`(() => (document.querySelector('[data-collection-field="leave_entitlement_id"]') === null ? 'absent' : 'present'))()`
 			),
-			'opened'
-		);
-		assert.equal(
-			await pollEvaluate(
-				page,
-				pickExact('Annual leave · 2026', 'leave_entitlement_id'),
-				(value) => value === 'picked',
-				'a3-annual-account'
-			),
-			'picked'
+			'absent',
+			'the leave form still offers an entitlement picker'
 		);
 		assert.equal(
 			await pollEvaluate(
@@ -1226,6 +1229,19 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		const open = JSON.parse(sheet) as { readonly field?: boolean; readonly submit?: boolean };
 		assert.equal(open.field, true, `A3 sheet closed: ${sheet}`);
 		assert.equal(open.submit, true, `A3 submit gone: ${sheet}`);
+
+		// The derivation the removed picker used to ask for. Nobody chose this id; the hook computed
+		// it from the employment, the leave code and the year of the range.
+
+		/**
+		 * The derived entitlement is proven where it can be: at the hook.
+		 *
+		 * A submitted request is held for approval, so nothing lands in `leave_requests` for this
+		 * test to read. `tests/hook-carried-ledger.test.ts` files a request with no
+		 * `leave_entitlement_id` and asserts the handler returns the derived one — which is the
+		 * whole reason this picker could be removed. What belongs here is the UI half, above: the
+		 * field is gone, and the form still submits without it.
+		 */
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();
@@ -1474,7 +1490,17 @@ it('HR kiosk keeps manual check-in and check-out usable when the camera is unava
 			'kiosk-manual-person'
 		);
 		await waitForBody(page, /Active employment/, 'kiosk-active-employment');
-		await clickButton('Check in');
+		/**
+		 * One button, because the day decides the direction.
+		 *
+		 * The manual tab used to offer "Check in" and "Check out" and ask the supervisor which. It
+		 * asks nothing now: the first punch of the person-day opens it and every later one moves the
+		 * departure, so the same control does both and the screen reports which it was. The FACE
+		 * cooldown does not apply here — it is keyed on the face match — and neither does the
+		 * schedule gate, because an ad hoc day entered by a supervisor is the path the model keeps
+		 * open for a call-back.
+		 */
+		await clickButton('Record punch');
 		await waitForBody(page, /Checked in at/, 'kiosk-manual-arrival');
 		const [arrival] = await session.query(
 			'select worked_intervals from work_days where employment_id = $1 order by work_date desc limit 1',
@@ -1483,7 +1509,7 @@ it('HR kiosk keeps manual check-in and check-out usable when the camera is unava
 		assert.ok(Array.isArray(arrival.worked_intervals));
 		const first = asRecord(arrival.worked_intervals[0], 'first arrival');
 		assert.equal(first.end, null);
-		await clickButton('Check out');
+		await clickButton('Record punch');
 		await waitForBody(page, /Checked out at/, 'kiosk-manual-departure');
 		const [departure] = await session.query(
 			'select worked_intervals from work_days where employment_id = $1 order by work_date desc limit 1',

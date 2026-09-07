@@ -515,7 +515,7 @@ export function payslipPdf(options: {
 		'',
 		'Line | Amount | Currency',
 		...payslip.lines.map(
-			(line) => `${line.payComponentName} | ` + `${line.amount.toFixed(2)} | ${payslip.currency}`
+			(line) => `${line.componentName} | ` + `${line.amount.toFixed(2)} | ${payslip.currency}`
 		),
 		'',
 		'Statutory | Employee | Employer',

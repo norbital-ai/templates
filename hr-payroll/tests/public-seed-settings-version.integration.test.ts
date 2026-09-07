@@ -24,8 +24,8 @@ type Row = Readonly<Record<string, unknown>>;
 
 const CHILDREN = [
 	'statutory_contributions',
-	'leave_types',
-	'pay_components',
+	'leave_catalogue',
+	'component_catalogue',
 	'company_holidays'
 ] as const;
 
@@ -125,7 +125,7 @@ test(
 			for (const table of CHILDREN)
 				assert.deepEqual(codes(table, after[table]!), codes(table, before[table]!), table);
 			// The clone is a draft: its rows are editable while the sealed original's are not.
-			const [clonedAnnual] = after.leave_types!.filter((row) => row.code === 'ANNUAL');
+			const [clonedAnnual] = after.leave_catalogue!.filter((row) => row.code === 'ANNUAL');
 			assert.ok(clonedAnnual);
 			requireAccepted(
 				(
@@ -133,7 +133,7 @@ test(
 						session,
 						{
 							action: 'mutate',
-							collection: 'leave_types',
+							collection: 'leave_catalogue',
 							rows: [
 								{
 									action: 'update',
@@ -143,8 +143,8 @@ test(
 						},
 						[
 							{
-								row: { collection: 'leave_types', recordId: String(clonedAnnual.id) },
-								rowVersion: await rowVersion(session, 'leave_types', String(clonedAnnual.id))
+								row: { collection: 'leave_catalogue', recordId: String(clonedAnnual.id) },
+								rowVersion: await rowVersion(session, 'leave_catalogue', String(clonedAnnual.id))
 							}
 						]
 					)
@@ -226,13 +226,13 @@ test(
 				session,
 				{
 					action: 'mutate',
-					collection: 'leave_types',
+					collection: 'leave_catalogue',
 					rows: [{ action: 'update', values: { id: clonedAnnual.id, name: 'no longer editable' } }]
 				},
 				[
 					{
-						row: { collection: 'leave_types', recordId: String(clonedAnnual.id) },
-						rowVersion: await rowVersion(session, 'leave_types', String(clonedAnnual.id))
+						row: { collection: 'leave_catalogue', recordId: String(clonedAnnual.id) },
+						rowVersion: await rowVersion(session, 'leave_catalogue', String(clonedAnnual.id))
 					}
 				]
 			);

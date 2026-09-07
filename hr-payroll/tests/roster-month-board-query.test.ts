@@ -38,7 +38,7 @@ test('the normal month board has a fixed ten-query and 34,400-row ceiling', () =
 		[
 			'employments',
 			'rosterCodes',
-			'leaveTypes',
+			'catalogueLeaves',
 			'payrollRuns',
 			'holidays',
 			'employees',

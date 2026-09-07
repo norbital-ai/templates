@@ -5,7 +5,7 @@
  * `payroll-report-xlsx`, `bank-files`, `payslip-pdfs`.
  *
  * The workbook's column vocabulary lives in `lib/report.ts` — in the export path, never as a column
- * on a model. A pay component knows its code, its type and how it is measured; what a spreadsheet
+ * on a model. A component knows its code, its type and how it is measured; what a spreadsheet
  * calls the resulting number is presentation, and presentation does not belong on data.
  */
 

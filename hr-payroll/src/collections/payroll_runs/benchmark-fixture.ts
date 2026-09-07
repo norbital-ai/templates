@@ -178,7 +178,7 @@ const CONTRIBUTIONS = [
 /*
  * The fixture states the columns the engine reads and no others.
  *
- * `Company`, `Jurisdiction`, `StatutoryContribution` and `PayComponent` are stored-row types, so
+ * `Company`, `Jurisdiction`, `StatutoryContribution` and `CatalogueComponent` are stored-row types, so
  * they also carry the columns storage owns — `created_at`, `updated_at`, `sys_period`,
  * `row_version`, `approval_id` — and a benchmark that invented values for them would be stating
  * facts no run ever reads while moving the fixture identity every time storage changes shape.
@@ -217,7 +217,7 @@ const CONFIGURATION = {
 			BASIC.contribution_treatments[entry.row.code as 'EPF' | 'PCB']
 		])
 	),
-	payComponents: [BASIC],
+	catalogueComponents: [BASIC],
 	overtimeRules: [],
 	overtimeLimits: [],
 	restBreakRules: [],
@@ -225,7 +225,7 @@ const CONFIGURATION = {
 	shiftById: new Map(),
 	patternById: new Map([[SHIFT_PATTERN.id, SHIFT_PATTERN]]),
 	holidays: new Map(),
-	leaveTypes: [],
+	catalogueLeaves: [],
 	hash: PAYROLL_CPU_BENCHMARK_FIXTURE.id
 } as unknown as Configuration;
 

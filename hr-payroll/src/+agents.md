@@ -10,20 +10,20 @@ corresponding tool result is present.** Keep final answers concise.
 
 - A **company** binds by `settings_code` to a **jurisdiction settings** lineage
   (`jurisdiction_settings`): sealed, shareable versions that own the payroll scalars, the schemes
-  and rate bands, the leave types, the pay components and the holidays; a seal freezes a version
+  and rate bands, the leave catalogue entries, the components and the holidays; a seal freezes a version
   and everything under it, a change of law is a new version, a wrong seal is voided. Almost
   everything else is effective-dated against it.
-- **Employment terms** carry a base salary and the pay components that apply to a person.
+- **Employment terms** carry a base salary and the components that apply to a person.
 - A **work day** is one person on one calendar day, carrying what was PLANNED for it and what was
   actually WORKED, side by side. Either half may be absent, and the absence means something: no
   roster code means the day carries no plan, and `worked_intervals` of null means nobody recorded
   attendance at all — which is not the same as an empty list, which says the day was read and
   nothing was worked. **Overtime is derived from these intervals and the jurisdiction's bands — it
-  is never a pay component somebody sets.** If asked to "add overtime", say that overtime follows
+  is never a component somebody sets.** If asked to "add overtime", say that overtime follows
   the work days and the regime, and ask what the day should say.
 - A **component entry** is one employee-specific monetary fact: a claim, a standing allowance, a
   bonus, an arrears settlement or an HR manual correction. The `event` union says WHY it exists;
-  `amount` is always a positive magnitude, and direction comes from the pay component's policy.
+  `amount` is always a positive magnitude, and direction comes from the component's policy.
 - A **loan** is the agreement; a **loan repayment** is one amount due under it. Payroll consumes
   repayment rows, never the loan master.
 - A **payroll run** covers a period and produces payslips. A run that exists asserts that a period

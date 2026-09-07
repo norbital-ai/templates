@@ -24,7 +24,6 @@ type ComponentEntryCandidate = Readonly<{
 	readonly event: unknown;
 	readonly amount?: unknown;
 	readonly pay_period?: unknown;
-	readonly effective_range?: unknown;
 	readonly corrects_adjustment_id?: unknown;
 	readonly evidence_file?: unknown;
 }>;
@@ -38,12 +37,54 @@ type ComponentEntryCandidate = Readonly<{
  */
 export const COMPONENT_ENTRY_EVENT_MISMATCH = 'COMPONENT_ENTRY_EVENT_MISMATCH' as const;
 
+/** The arms an entry may declare, which is exactly the catalogue's `entry_kind` enum. */
+export const COMPONENT_ENTRY_KINDS = [
+	'CLAIM',
+	'ALLOWANCE',
+	'BONUS',
+	'ARREARS',
+	'MANUAL_ADJUSTMENT'
+] as const;
+export type ComponentEntryKind = (typeof COMPONENT_ENTRY_KINDS)[number];
+
+/**
+ * The entry's arm must be the one its component declares.
+ *
+ * The catalogue states the shape once (`component_catalogue.entry_kind`); the entry restates it in
+ * `event.kind`, because the union is what carries the arm's payload and a discriminated union
+ * cannot read another table. This is the rule that keeps the two honest, and it is the whole reason
+ * `entry_kind` is worth having: without it the arm is a free field, and a free field with one arm
+ * requiring nothing (`BONUS`) becomes the value everything defaults to — which is how a tax
+ * deduction came to be recorded as a bonus 84 times.
+ *
+ * A component with no `entry_kind` takes no entries at all: its `definition.source` is the engine,
+ * not a person. Both directions are refused, because the silent half — an entry against a
+ * schedule-fed component — is the one nothing else would catch.
+ */
+export const componentEntryKindIssues = (
+	declared: unknown,
+	componentEntryKind: string | null | undefined,
+	componentCode?: string
+): string[] => {
+	const named = componentCode == null || componentCode === '' ? 'this component' : componentCode;
+	if (componentEntryKind == null || componentEntryKind === '')
+		return [
+			`${named} is calculated by the engine and takes no entries, so it cannot be the component of one.`
+		];
+	if (typeof declared !== 'string' || declared === '') return [];
+	if (declared !== componentEntryKind)
+		return [
+			`${named} takes ${componentEntryKind} entries, and this one declares ${declared}. The entry shape is the component's, not the entry's.`
+		];
+	return [];
+};
+
 const PAY_PERIOD = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 /** A run period: a month, or a half of one at a semi-monthly company (`YYYY-MM-1` / `YYYY-MM-2`). */
 const RUN_PERIOD = /^\d{4}-(?:0[1-9]|1[0-2])(?:-[12])?$/;
 const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** The two facts a candidate carries beside the event, so "allowed" can be subtracted. */
-const BESIDE_EVENT = ['effective_range', 'corrects_adjustment_id', 'evidence_file'] as const;
+const BESIDE_EVENT = ['corrects_adjustment_id', 'evidence_file'] as const;
 
 /** Whether an optional column is actually stated: null-ish, empty array and blank text are not. */
 const present = (value: unknown): boolean => {
@@ -69,8 +110,6 @@ export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): s
 	// be set on it, and the two columns two arms require are required there.
 	const permits = (column: (typeof BESIDE_EVENT)[number]): boolean => {
 		switch (column) {
-			case 'effective_range':
-				return event.kind === 'ALLOWANCE';
 			case 'corrects_adjustment_id':
 				return event.kind === 'MANUAL_ADJUSTMENT';
 			case 'evidence_file':
@@ -80,11 +119,9 @@ export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): s
 	for (const column of BESIDE_EVENT) {
 		if (permits(column) || !present(candidate[column])) continue;
 		issues.push(
-			column === 'effective_range'
-				? 'Only a standing allowance states the range it is effective across.'
-				: column === 'corrects_adjustment_id'
-					? 'Only a manual correction points at the settled output it corrects.'
-					: 'Only a claim carries an evidence file.'
+			column === 'corrects_adjustment_id'
+				? 'Only a manual correction points at the settled output it corrects.'
+				: 'Only a claim carries an evidence file.'
 		);
 	}
 
@@ -94,8 +131,9 @@ export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): s
 				issues.push('A claim must say the day it was incurred.');
 			break;
 		case 'ALLOWANCE':
-			if (!present(candidate.effective_range))
-				issues.push('A standing allowance must state the range it is effective across.');
+			// Nothing to check: the arm's own `recurrence` union carries the window, so an allowance
+			// without one does not decode. Two refusals died here — a range on the wrong arm, and an
+			// allowance with none — because the type made both unsayable.
 			break;
 		case 'BONUS':
 			break;
@@ -126,7 +164,7 @@ export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): s
 
 	const amount = decodeNumber(candidate.amount);
 	if (!Number.isFinite(amount) || amount <= 0)
-		issues.push('An entry amount is a positive magnitude; direction comes from the pay component.');
+		issues.push('An entry amount is a positive magnitude; direction comes from the component.');
 
 	return issues;
 };

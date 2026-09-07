@@ -133,7 +133,7 @@
 	}
 
 	type ComponentDefinitionRendererProps = RendererProps & {
-		/** The pay component being edited, which is what scopes the people a cap layer may name. */
+		/** The component being edited, which is what scopes the people a cap layer may name. */
 		readonly row?: Record<string, unknown>;
 	};
 

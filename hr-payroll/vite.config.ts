@@ -7,6 +7,7 @@ import {
 	KIOSK_VOICE_CLIP_FORMAT,
 	KIOSK_VOICE_LANGUAGES
 } from './src/lib/kiosk/phrases.ts';
+import { KIOSK_REQUIRED_MODELS } from './src/lib/kiosk/config.ts';
 
 export default defineConfig({
 	plugins: [
@@ -15,7 +16,12 @@ export default defineConfig({
 			name: 'kiosk-face-models',
 			apply: 'build',
 			buildStart() {
-				for (const model of ['antispoof', 'blazeface', 'facemesh', 'faceres', 'iris']) {
+				// The gate is the supply. `KIOSK_REQUIRED_MODELS` is what the kiosk refuses to start
+				// without, so it is exactly what the build must ship. A second hand-kept copy of the
+				// list here could drift from it, and that drift fails silently: a missing graph does
+				// not fail `load()`, it fails `detect()` on the first face, and the kiosk sits in
+				// `unavailable` having scanned nobody. One list, imported — not restated.
+				for (const model of KIOSK_REQUIRED_MODELS) {
 					for (const suffix of ['.json', '.bin']) {
 						const name = `${model}${suffix}`;
 						const source = fileURLToPath(

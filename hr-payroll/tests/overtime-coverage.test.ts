@@ -195,7 +195,7 @@ test('coverageRuleFor returns null for none and refuses two', () => {
 	assert.throws(() => coverageRuleFor([MY_RULE, MY_RULE]), /More than one overtime coverage rule/);
 });
 
-// ── the comparand: s.2 wages, classified from the pay component model ────────────────────────────
+// ── the comparand: s.2 wages, classified from the component model ────────────────────────────
 
 const component = (kind, source) => ({
 	policy: kind == null ? null : { kind },
@@ -206,7 +206,7 @@ test('the comparand classification is the statute read against what a component 
 	// s.2: basic wages AND all other cash payments for work done; para 3 lessens that by overtime
 	// payment. The component model names the first two: the schedule source is the contracted basic
 	// wage and an earning is any other cash payment. Para 3's overtime exclusion needs no category,
-	// because overtime is not a pay component at all — it is derived from the clocks and the ladder,
+	// because overtime is not a component at all — it is derived from the clocks and the ladder,
 	// so it is never in the set being classified and cannot enter the comparand to begin with.
 	assert.equal(classifyWageComparand(component('EARNING', 'SCHEDULE')), 'BASIC_WAGES');
 	assert.equal(classifyWageComparand(component('EARNING', 'ENTRY')), 'CASH_FOR_WORK');

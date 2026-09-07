@@ -1,12 +1,12 @@
 /**
  * Eligibility.
  *
- * `leave_types.eligibility`, `pay_components.eligibility` and a claim cap layer's `eligibility` are
- * one CEL boolean expression over the person, evaluated by Reckon exactly as a pay component's
+ * `leave_catalogue.eligibility`, `component_catalogue.eligibility` and a claim cap layer's `eligibility` are
+ * one CEL boolean expression over the person, evaluated by Reckon exactly as a component's
  * `FORMULA` is (`./formula.ts`). The context is emitted whole, with empty strings and zeros rather
  * than absences, because CEL has no `?.` and a missing key throws. An empty expression is
  * everyone. An ineligible component produces nothing at all: no line, no feed into a base, no zero
- * row. An ineligible leave type generates no entitlement row.
+ * row. An ineligible leave generates no entitlement row.
  *
  * ```text
  * employee.gender  employee.age  employee.citizenship

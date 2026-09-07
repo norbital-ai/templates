@@ -9,7 +9,7 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -18,8 +18,8 @@ import {
 } from './helpers/public-seed-host.ts';
 
 const MUTATE_COMMAND = 'collections.mutate';
-/** The public seed's TRANSPORT component, the one a claim is filed against. */
-const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777777';
+/** The public seed's claimable component: `entry_kind: CLAIM`, which is the arm filed below. */
+const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777701';
 
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 
@@ -58,7 +58,7 @@ const rowCount = async (session: Session, sql: string, parameters: ReadonlyArray
 
 /**
  * The life of a payroll input, end to end on a real host: an HR manager files a claim against
- * a pay component in one write; a controller applies for leave and a manager approves it; the
+ * a component in one write; a controller applies for leave and a manager approves it; the
  * March run captures both as inputs; deleting the draft run unlinks both captures and leaves the
  * claim and the leave request exactly where they were.
  */
@@ -79,7 +79,7 @@ test(
 				{
 					id: claimId,
 					employment_id: EMPLOYMENT_ID,
-					pay_component_id: TRANSPORT_COMPONENT_ID,
+					component_catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
 					event_date: '2026-03-05',
 					event: { kind: 'CLAIM', incurred_on: '2026-03-05', description: 'Client site taxi' }
@@ -107,7 +107,7 @@ test(
 				{
 					id: leaveId,
 					employment_id: EMPLOYMENT_ID,
-					leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+					leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 					leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 					event: {
 						kind: 'TIME_OFF',

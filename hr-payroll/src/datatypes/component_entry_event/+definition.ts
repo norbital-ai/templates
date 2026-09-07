@@ -8,9 +8,13 @@ import { calendarDay } from '../../lib/iso-day.js';
  * The five arms are deliberately five business facts, not one polymorphic "money" concept: a claim,
  * a standing allowance, a bonus, an arrears settlement and a manual correction have different
  * authors, different rules and different payslip semantics, and only their common shape — an
- * employment, a pay component, a positive magnitude and a date — is shared. That common shape lives
+ * employment, a component, a positive magnitude and a date — is shared. That common shape lives
  * in real columns on `component_entries`; this union owns only what one arm can say and the others
  * cannot.
+ *
+ * An allowance's window, by contrast, lives IN the union (`recurrence`), because it is arm payload
+ * and nothing else may carry it — as a column beside the event it was a nullable field three arms
+ * had to be refused for setting.
  *
  * Two facts stay OUT of the union on purpose:
  *
@@ -34,12 +38,32 @@ export const componentEntryEventValueSchema = Schema.Union([
 		description: Schema.NullOr(Schema.String)
 	}),
 	Schema.Struct({
-		kind: Schema.Literal('ALLOWANCE')
+		kind: Schema.Literal('ALLOWANCE'),
 		/**
-		 * Deliberately empty. An allowance's cadence is the payslip period and its window is the
-		 * row's own `effective_range` column; stating a cadence literal here would be a constant
-		 * written into every row, which is a fact-shaped decoration rather than a fact.
+		 * Whether this allowance is paid once or across a window, and when.
+		 *
+		 * This used to be an empty arm plus a nullable `effective_range` column that only this arm
+		 * was permitted to set — which made two illegal states representable and cost a refusal each
+		 * to forbid: a range on a bonus, and an allowance with no range. Both are now unsayable.
+		 *
+		 * A one-off is a *stated* one-off, not a range that happens to span a single month. That
+		 * distinction was previously invisible: `depletes()` reads false for every allowance, so a
+		 * one-off written as a one-month range is only one-off by arithmetic accident, and widening
+		 * that range later silently turns one payment into many.
 		 */
+		recurrence: Schema.Union([
+			Schema.Struct({
+				kind: Schema.Literal('ONE_OFF'),
+				/** The single period it is paid in, as `YYYY-MM`. */
+				period: Schema.String.check(Schema.isPattern(/^\d{4}-(?:0[1-9]|1[0-2])$/))
+			}),
+			Schema.Struct({
+				kind: Schema.Literal('RECURRING'),
+				/** Paid whole in every period this window covers. `to` null is open-ended. */
+				from: calendarDay,
+				to: Schema.NullOr(calendarDay)
+			})
+		])
 	}),
 	Schema.Struct({
 		kind: Schema.Literal('BONUS'),
