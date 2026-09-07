@@ -16,7 +16,7 @@ import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 
 const LIMIT = 10_000;
 
-export type CapSubject = {
+type CapSubject = {
 	readonly subject: PersonContext;
 	/** How a refusal names the person: their employee number, as the run's own message does. */
 	readonly label: string;

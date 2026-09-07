@@ -16,8 +16,10 @@ import type { Hooks } from './$types.js';
  * free to disagree with the first — which is exactly what happened when a one-off was written as a
  * recurring allowance whose range happened to span one month.
  *
- * Everything the catalogue decides and the settlement lock are shared with the other four request
- * collections, in `src/lib/pay_request_hooks.ts`.
+Everything the catalogue decides — that the component takes requests, that it takes *this*
+ * family, evidence, the entitlement ceiling — the two reads that answer them, and the settlement
+ * lock all live in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly what is
+ * below: the family this collection is, and which of its columns dates a row.
  */
 const recurrenceDay = (value: unknown): string | null => {
 	if (value == null || typeof value !== 'object') return null;
@@ -31,22 +33,7 @@ const GUARD: PayRequestGuard = {
 	family: 'ALLOWANCE',
 	noun: 'allowance',
 	sign: 1,
-	eventDate: (candidate) => recurrenceDay(candidate.recurrence),
-	capture: (api, id) =>
-		api.db.payslip_allowance_request_inputs.findFirst({
-			where: { allowance_request_id: { eq: id } },
-			columns: { period: true }
-		}),
-	siblings: (api, employmentId, componentId) =>
-		api.db.allowance_requests.findMany({
-			where: {
-				employment_id: { eq: employmentId },
-				component_catalogue_id: { eq: componentId },
-				approval_id: { isNull: true }
-			},
-			columns: { id: true, component_catalogue_id: true, amount: true, recurrence: true },
-			limit: 10_000
-		})
+	eventDate: (candidate) => recurrenceDay(candidate.recurrence)
 };
 
 export default {

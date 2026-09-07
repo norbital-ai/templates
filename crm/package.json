@@ -9,7 +9,7 @@
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
-		"test": "bolt sync && node --experimental-strip-types --test 'tests/*.test.ts'",
+		"test": "bolt sync && norbital-doctor && node --experimental-strip-types --test 'tests/*.test.ts'",
 		"test:e2e": "bolt sync && node --experimental-strip-types --test 'tests/e2e/*.test.ts'"
 	},
 	"dependencies": {

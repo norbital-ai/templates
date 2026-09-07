@@ -11,33 +11,15 @@ import type { Hooks } from './$types.js';
  * The day the settlement is dated to. The periods it makes good, and the reason, are `notNull` columns — the arm that required both was used zero times in 726 seeded entries, because a bonus did not have to say anything.
  *
  * Everything the catalogue decides — that the component takes requests, that it takes *this*
- * family, evidence, the entitlement ceiling — and the settlement lock are shared with the other
- * four request collections, in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly
- * the two lines below: which column dates the row, and which junction captures it.
+ * family, evidence, the entitlement ceiling — the two reads that answer them, and the settlement
+ * lock all live in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly what is
+ * below: the family this collection is, and which of its columns dates a row.
  */
 const GUARD: PayRequestGuard = {
 	family: 'ARREARS',
 	noun: 'arrears',
-	/**
-	 * Every row of this family counts against a cap in one direction.
-	 */
 	sign: 1,
-	eventDate: (candidate) => dateKey(candidate.settled_on as string | null),
-	capture: (api, id) =>
-		api.db.payslip_arrears_request_inputs.findFirst({
-			where: { arrears_request_id: { eq: id } },
-			columns: { period: true }
-		}),
-	siblings: (api, employmentId, componentId) =>
-		api.db.arrears_requests.findMany({
-			where: {
-				employment_id: { eq: employmentId },
-				component_catalogue_id: { eq: componentId },
-				approval_id: { isNull: true }
-			},
-			columns: { id: true, component_catalogue_id: true, amount: true, settled_on: true },
-			limit: 10_000
-		})
+	eventDate: (candidate) => dateKey(candidate.settled_on as string | null)
 };
 
 export default {

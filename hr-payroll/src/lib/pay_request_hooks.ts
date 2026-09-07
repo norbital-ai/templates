@@ -51,19 +51,101 @@ export type PayRequestGuard = {
 	readonly eventDate: (candidate: Readonly<Record<string, unknown>>) => string | null;
 	/** Whether this family's rows count against a cap in the same direction. */
 	readonly sign?: number;
-	/** The capture read that says a run has already consumed this row. */
-	readonly capture: (
-		api: AuthoringApi<WorkspaceSchema, unknown>,
-		id: string
-	) => Effect.Effect<{ readonly period: string } | undefined, never, never>;
-	/** Every live sibling under the same component, for the cap's running total. */
-	readonly siblings: (
-		api: AuthoringApi<WorkspaceSchema, unknown>,
-		employmentId: string,
-		componentId: string
-	) => Effect.Effect<readonly Readonly<Record<string, unknown>>[], never, never>;
 	/** A readable noun for the refusal sentences, e.g. "claim". */
 	readonly noun: string;
+};
+
+/** The cap's running total is read over live rows only; a held one is not spent yet. */
+const SIBLING_LIMIT = 10_000;
+
+/**
+ * The two reads each family makes, written once.
+ *
+ * They differ only in which table they name and which column dates a row, and five copies of that
+ * is exactly the duplication the split was supposed to remove rather than multiply. The family is
+ * already the discriminator, so the switch belongs here — beside the rule that uses it — and each
+ * arm stays typed against its own collection, which a dynamic `api.db[name]` could not be.
+ */
+const captureOf = (
+	family: PayRequestFamily,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
+	id: string
+): Effect.Effect<{ readonly period: string } | undefined, never, never> => {
+	const columns = { period: true } as const;
+	switch (family) {
+		case 'CLAIM':
+			return api.db.payslip_claim_request_inputs.findFirst({
+				where: { claim_request_id: { eq: id } },
+				columns
+			});
+		case 'ALLOWANCE':
+			return api.db.payslip_allowance_request_inputs.findFirst({
+				where: { allowance_request_id: { eq: id } },
+				columns
+			});
+		case 'BONUS':
+			return api.db.payslip_bonus_request_inputs.findFirst({
+				where: { bonus_request_id: { eq: id } },
+				columns
+			});
+		case 'ARREARS':
+			return api.db.payslip_arrears_request_inputs.findFirst({
+				where: { arrears_request_id: { eq: id } },
+				columns
+			});
+		case 'CORRECTION':
+			return api.db.payslip_correction_request_inputs.findFirst({
+				where: { correction_request_id: { eq: id } },
+				columns
+			});
+	}
+};
+
+/** Every live sibling under the same component, for the cap's running total. */
+const siblingsOf = (
+	family: PayRequestFamily,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
+	employmentId: string,
+	componentId: string
+): Effect.Effect<readonly Readonly<Record<string, unknown>>[], never, never> => {
+	const where = {
+		employment_id: { eq: employmentId },
+		component_catalogue_id: { eq: componentId },
+		approval_id: { isNull: true }
+	} as const;
+	const shared = { id: true, component_catalogue_id: true, amount: true } as const;
+	switch (family) {
+		case 'CLAIM':
+			return api.db.claim_requests.findMany({
+				where,
+				columns: { ...shared, incurred_on: true },
+				limit: SIBLING_LIMIT
+			});
+		case 'ALLOWANCE':
+			return api.db.allowance_requests.findMany({
+				where,
+				columns: { ...shared, recurrence: true },
+				limit: SIBLING_LIMIT
+			});
+		case 'BONUS':
+			return api.db.bonus_requests.findMany({
+				where,
+				columns: { ...shared, awarded_on: true },
+				limit: SIBLING_LIMIT
+			});
+		case 'ARREARS':
+			return api.db.arrears_requests.findMany({
+				where,
+				columns: { ...shared, settled_on: true },
+				limit: SIBLING_LIMIT
+			});
+		case 'CORRECTION':
+			return api.db.correction_requests.findMany({
+				where,
+				columns: { ...shared, corrected_on: true },
+				limit: SIBLING_LIMIT
+			});
+	}
 };
 
 const asRecord = (value: unknown): Readonly<Record<string, unknown>> =>
@@ -132,7 +214,7 @@ export function assertPayRequestAdmissible(
 				if (eventDate != null && employmentId !== '') {
 					const person = yield* capSubject(api, employmentId, eventDate);
 					if (person != null) {
-						const siblings = yield* guard.siblings(api, employmentId, componentId);
+						const siblings = yield* siblingsOf(guard.family, api, employmentId, componentId);
 						const sign = guard.sign ?? 1;
 						const resolved = resolveEntryCap({
 							cap: definition.cap,
@@ -165,7 +247,7 @@ export function assertPayRequestAdmissible(
 		// Only an edit can disturb a capture: a create has no prior run that consumed it.
 		if (options.existing !== undefined)
 			yield* refuseIfCaptured({
-				capture: guard.capture(api, String(options.existing.id)),
+				capture: captureOf(guard.family, api, String(options.existing.id)),
 				approvalId: null,
 				action: `Changing this ${guard.noun}`
 			});
@@ -179,7 +261,7 @@ export const assertPayRequestDeletable = (
 	id: string
 ): Effect.Effect<void, never, never> =>
 	refuseIfCaptured({
-		capture: guard.capture(api, id),
+		capture: captureOf(guard.family, api, id),
 		approvalId: null,
 		action: `Deleting this ${guard.noun}`
 	});

@@ -11,33 +11,15 @@ import type { Hooks } from './$types.js';
  * The day the expense was incurred, which is a column now: a claim that does not say when cannot be written at all, where it used to be a hook refusal over a jsonb path.
  *
  * Everything the catalogue decides — that the component takes requests, that it takes *this*
- * family, evidence, the entitlement ceiling — and the settlement lock are shared with the other
- * four request collections, in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly
- * the two lines below: which column dates the row, and which junction captures it.
+ * family, evidence, the entitlement ceiling — the two reads that answer them, and the settlement
+ * lock all live in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly what is
+ * below: the family this collection is, and which of its columns dates a row.
  */
 const GUARD: PayRequestGuard = {
 	family: 'CLAIM',
 	noun: 'claim',
-	/**
-	 * Every row of this family counts against a cap in one direction.
-	 */
 	sign: 1,
-	eventDate: (candidate) => dateKey(candidate.incurred_on as string | null),
-	capture: (api, id) =>
-		api.db.payslip_claim_request_inputs.findFirst({
-			where: { claim_request_id: { eq: id } },
-			columns: { period: true }
-		}),
-	siblings: (api, employmentId, componentId) =>
-		api.db.claim_requests.findMany({
-			where: {
-				employment_id: { eq: employmentId },
-				component_catalogue_id: { eq: componentId },
-				approval_id: { isNull: true }
-			},
-			columns: { id: true, component_catalogue_id: true, amount: true, incurred_on: true },
-			limit: 10_000
-		})
+	eventDate: (candidate) => dateKey(candidate.incurred_on as string | null)
 };
 
 export default {

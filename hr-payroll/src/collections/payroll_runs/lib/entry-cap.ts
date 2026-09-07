@@ -29,17 +29,17 @@ import { coversDate } from './effective.js';
 import { isEligible, type PersonContext } from './eligibility.js';
 import { leaveYearOf } from './leave.js';
 
-export type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
+type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
 type CapLayer = EntryCap['matrix']['layers'][number];
 
 /** The entry columns this rule reads, so a hook may pass a candidate the database has never seen. */
-export type CapEntryLike = {
+type CapEntryLike = {
 	readonly id: string;
 	readonly component_catalogue_id: string;
 	readonly amount: unknown;
 };
 
-export type ResolvedEntryCap = {
+type ResolvedEntryCap = {
 	/** The ceiling in force for this person on this day: the highest applicable layer. */
 	readonly amount: number;
 	/** The reimbursable share, which is what actually counts against the ceiling. */
@@ -48,7 +48,7 @@ export type ResolvedEntryCap = {
 	readonly exceededBy: number;
 };
 
-export type ResolveEntryCapOptions<TEntry extends CapEntryLike> = {
+type ResolveEntryCapOptions<TEntry extends CapEntryLike> = {
 	readonly cap: EntryCap;
 	readonly componentId: string;
 	readonly employmentId: string;

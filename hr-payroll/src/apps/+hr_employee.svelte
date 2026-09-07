@@ -66,6 +66,7 @@
 	} from '../lib/ui/roster/roster-month.js';
 	import { attendanceBoundary } from '../lib/attendance.js';
 	import {
+		payRequestRecordMetadata,
 		sourceLock,
 		sourceLockReason,
 		sourceLockRecordMetadata,
@@ -287,22 +288,6 @@
 		}>;
 	};
 
-	function payRequestMetadata(
-		approvalId: string | null,
-		captures: ReadonlyArray<{ readonly period: string }> | undefined
-	) {
-		const capture = captures?.[0] ?? null;
-		return sourceLockRecordMetadata(
-			sourceLock({
-				existing: true,
-				approvalId,
-				dates: [],
-				settledBy: capture == null ? null : { period: capture.period },
-				datePassed: 'IS_NOT_A_LOCK'
-			}),
-			t
-		);
-	}
 	/** The next pay date: the last day of this month, or of next month once it has passed. */
 	const nextPayDate = $derived.by(() => {
 		if (!company) return null;
@@ -1321,7 +1306,11 @@
 					description={t('app.hr_employee.my_claims_description')}
 					disabled={!employmentId}
 					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestMetadata(row.approval_id, row.payslip_claim_request_input_claim_request)}
+						payRequestRecordMetadata(
+							row.approval_id,
+							row.payslip_claim_request_input_claim_request,
+							t
+						)}
 					query={{
 						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 						orderBy: { incurred_on: 'desc' },
@@ -1346,9 +1335,10 @@
 					description={t('app.hr_employee.my_allowances_description')}
 					disabled={!employmentId}
 					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestMetadata(
+						payRequestRecordMetadata(
 							row.approval_id,
-							row.payslip_allowance_request_input_allowance_request
+							row.payslip_allowance_request_input_allowance_request,
+							t
 						)}
 					query={{
 						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
@@ -1374,7 +1364,11 @@
 					description={t('app.hr_employee.my_bonuses_description')}
 					disabled={!employmentId}
 					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestMetadata(row.approval_id, row.payslip_bonus_request_input_bonus_request)}
+						payRequestRecordMetadata(
+							row.approval_id,
+							row.payslip_bonus_request_input_bonus_request,
+							t
+						)}
 					query={{
 						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 						orderBy: { awarded_on: 'desc' },
@@ -1398,7 +1392,11 @@
 					description={t('app.hr_employee.my_arrears_description')}
 					disabled={!employmentId}
 					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestMetadata(row.approval_id, row.payslip_arrears_request_input_arrears_request)}
+						payRequestRecordMetadata(
+							row.approval_id,
+							row.payslip_arrears_request_input_arrears_request,
+							t
+						)}
 					query={{
 						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 						orderBy: { settled_on: 'desc' },

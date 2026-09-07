@@ -401,7 +401,7 @@ export function refuseIfCaptured(
 export const attendanceRecorded = (intervals: unknown): boolean => Array.isArray(intervals);
 
 /** The plan columns, which are exactly the ones attendance freezes. */
-export const PLAN_COLUMNS = [
+const PLAN_COLUMNS = [
 	'shift_definition_id',
 	'assignment_code',
 	'planned_origin',
@@ -425,3 +425,33 @@ export const planChanges = (
 		const before = existing[column] ?? null;
 		return (input[column] ?? null) !== before;
 	});
+
+/**
+ * The lock a pay request row carries, as the row metadata a table reads.
+ *
+ * Six surfaces needed this and each had written it out: the five family pages under the Events
+ * group and the employee's own view. They differed in one thing — the name of the relation the
+ * capture rides in on — which is a name the caller already holds, so the body belongs here rather
+ * than six times over.
+ *
+ * `datePassed: 'IS_NOT_A_LOCK'` is the whole reason this is not `sourceLock` called directly: a
+ * pay request dated in the past is ordinary, and only a settlement or a pending approval freezes
+ * one.
+ */
+export function payRequestRecordMetadata(
+	approvalId: string | null,
+	captures: ReadonlyArray<{ readonly period: string }> | null | undefined,
+	translate: (key: SourceLockI18nKey, vars?: SourceLockI18nParams) => string
+) {
+	const capture = captures?.[0] ?? null;
+	return sourceLockRecordMetadata(
+		sourceLock({
+			existing: true,
+			approvalId,
+			dates: [],
+			settledBy: capture == null ? null : { period: capture.period },
+			datePassed: 'IS_NOT_A_LOCK'
+		}),
+		translate
+	);
+}

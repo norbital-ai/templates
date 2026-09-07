@@ -23,7 +23,7 @@ type JurisdictionScopeRow = Pick<
 >;
 
 /** What a selected node carries back to the page, so it never re-reads the tree to find it. */
-export type JurisdictionScopeNode = Readonly<{ code: string; versionId: string | null }>;
+type JurisdictionScopeNode = Readonly<{ code: string; versionId: string | null }>;
 
 const versionsQuery = client.db.jurisdiction_settings.findMany({
 	where: { approval_id: { isNull: true } },

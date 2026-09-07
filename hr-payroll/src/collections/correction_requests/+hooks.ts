@@ -11,9 +11,9 @@ import type { Hooks } from './$types.js';
  * The day the correction is dated to. The settled line it fixes is a `notNull` foreign key, which is what every seeded correction was missing — they loaded because the seed does not cross the authorization boundary, so the only enforcement was a rule on a path the data did not take.
  *
  * Everything the catalogue decides — that the component takes requests, that it takes *this*
- * family, evidence, the entitlement ceiling — and the settlement lock are shared with the other
- * four request collections, in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly
- * the two lines below: which column dates the row, and which junction captures it.
+ * family, evidence, the entitlement ceiling — the two reads that answer them, and the settlement
+ * lock all live in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly what is
+ * below: the family this collection is, and which of its columns dates a row.
  */
 const GUARD: PayRequestGuard = {
 	family: 'CORRECTION',
@@ -23,22 +23,7 @@ const GUARD: PayRequestGuard = {
 	 * as the run signs it. Netting a negative draw against a magnitude would grow the ceiling.
 	 */
 	sign: 1,
-	eventDate: (candidate) => dateKey(candidate.corrected_on as string | null),
-	capture: (api, id) =>
-		api.db.payslip_correction_request_inputs.findFirst({
-			where: { correction_request_id: { eq: id } },
-			columns: { period: true }
-		}),
-	siblings: (api, employmentId, componentId) =>
-		api.db.correction_requests.findMany({
-			where: {
-				employment_id: { eq: employmentId },
-				component_catalogue_id: { eq: componentId },
-				approval_id: { isNull: true }
-			},
-			columns: { id: true, component_catalogue_id: true, amount: true, corrected_on: true },
-			limit: 10_000
-		})
+	eventDate: (candidate) => dateKey(candidate.corrected_on as string | null)
 };
 
 export default {
