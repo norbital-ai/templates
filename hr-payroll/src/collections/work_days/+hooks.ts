@@ -17,7 +17,9 @@ import {
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import {
+	attendanceRecorded,
 	payrollWindows,
+	planChanges,
 	assertNotSettled,
 	refuseIfCaptured,
 	type PayrollWindow
@@ -869,6 +871,23 @@ export default {
 									'Moving this work day'
 								);
 							yield* assertDayNotOwnedByLeave(api, employmentId, workDate);
+							/**
+							 * The roster is frozen once somebody has clocked in against it.
+							 *
+							 * Attendance is scored against the plan — day type, paid minutes, the overtime
+							 * threshold and every break figure come off the roster code — so changing the
+							 * code under a recorded punch silently re-prices work that already happened.
+							 * The way out is stated because there is only one: clear the attendance, move
+							 * the plan, record it again.
+							 */
+							const frozen = planChanges(input, existing);
+							if (attendanceRecorded(existing.worked_intervals) && frozen.length > 0)
+								refuse(
+									`The roster for ${dateKey(workDate)} is locked: attendance has already been ` +
+										`recorded against it, and ${frozen.join(', ')} decides how that ` +
+										`attendance is priced. Clear the recorded time first, or leave the plan ` +
+										`as it is and correct the attendance instead.`
+								);
 						} else {
 							// A create has no record to ask about, so the batch's window is the only fact
 							// there is. An employment the batch could not find has no company and therefore
