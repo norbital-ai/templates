@@ -100,7 +100,11 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
 const NO_REPRESENTATION = new Set([
 	'employee_children',
 	'loan_repayments',
-	'payslip_component_entry_inputs',
+	'payslip_allowance_request_inputs',
+	'payslip_arrears_request_inputs',
+	'payslip_bonus_request_inputs',
+	'payslip_claim_request_inputs',
+	'payslip_correction_request_inputs',
 	'payslip_leave_request_inputs',
 	'payslip_loan_repayment_inputs',
 	'payslip_work_day_inputs'
@@ -115,7 +119,15 @@ const NO_REPRESENTATION = new Set([
  * row in `tests/fixtures/seed/` is what removes a name from this list.
  */
 const UNSEEDED_COLLECTIONS = new Set([
+	// Four of the five request families: the public fixture carries a standing allowance and
+	// nothing else, so these four representations are painted by no test. The split is what made
+	// that visible — they were one collection with one row, and the four shapes it could not have
+	// were invisible.
+	'arrears_requests',
+	'bonus_requests',
+	'claim_requests',
 	'company_holidays',
+	'correction_requests',
 	'loans',
 	'payroll_runs',
 	'payslip_adjustments',
