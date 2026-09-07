@@ -93,7 +93,9 @@
 
 	const assignmentsQuery = $derived(
 		collectionClient.db.job_assignments.findMany({
-			where: { job_assignment_site_location: { project_id: { eq: projectId } } },
+			// A relation enters a predicate only under a quantifier; naming the related column
+			// directly reads as a field of `job_assignments` and is refused at decode time.
+			where: { job_assignment_site_location: { some: { project_id: { eq: projectId } } } },
 			orderBy: { updated_at: 'desc' },
 			limit: 500
 		})
