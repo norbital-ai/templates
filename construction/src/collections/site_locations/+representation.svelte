@@ -11,6 +11,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -18,6 +19,10 @@
 	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	const subtitle = $derived(
+		record == null ? undefined : `${record.location_code ?? '—'} · ${record.location_type ?? '—'}`
+	);
 </script>
 
 <svelte:head>
@@ -27,50 +32,52 @@
 	/>
 </svelte:head>
 
-<CollectionForm
-	client={workspaceClient}
-	collection="site_locations"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Grid minimum="compact">
-			<Field name="location_name" label={t('component.location_name')} />
-			<Field name="location_code" label={t('component.location_code')} />
-			<Field
-				name="project_id"
-				label={t('component.project')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.project_number;
-						const name = record.project_name;
-						if (code && name) return `${code} · ${name}`;
-						return name != null && name !== '' ? String(name) : '—';
-					},
-					orderBy: { project_number: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="parent_location_id"
-				label={t('component.parent_location')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.location_code;
-						const name = record.location_name;
-						if (code && name) return `${code} · ${name}`;
-						return name != null && name !== '' ? String(name) : '—';
-					},
-					orderBy: { location_code: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="location_type" label={t('component.location_type')} />
-			<Field name="grid_reference" label={t('component.grid_reference')} />
-			<!-- repository-health:allow UI17 -- This authored text() reference is an external BIM element label, not a system uuid. -->
-			<Field name="bim_model_element_id" label={t('component.bim_element')} />
-			<Column span="all"><Field name="description" label={t('component.description')} /></Column>
-			<Column span="all"><Field name="coordinates" label={t('component.coordinates')} /></Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.location_name ?? 'New location'} {subtitle}>
+	<CollectionForm
+		client={workspaceClient}
+		collection="site_locations"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Grid minimum="compact">
+				<Field name="location_name" label={t('component.location_name')} />
+				<Field name="location_code" label={t('component.location_code')} />
+				<Field
+					name="project_id"
+					label={t('component.project')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.project_number;
+							const name = record.project_name;
+							if (code && name) return `${code} · ${name}`;
+							return name != null && name !== '' ? String(name) : '—';
+						},
+						orderBy: { project_number: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="parent_location_id"
+					label={t('component.parent_location')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.location_code;
+							const name = record.location_name;
+							if (code && name) return `${code} · ${name}`;
+							return name != null && name !== '' ? String(name) : '—';
+						},
+						orderBy: { location_code: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="location_type" label={t('component.location_type')} />
+				<Field name="grid_reference" label={t('component.grid_reference')} />
+				<!-- repository-health:allow UI17 -- This authored text() reference is an external BIM element label, not a system uuid. -->
+				<Field name="bim_model_element_id" label={t('component.bim_element')} />
+				<Column span="all"><Field name="description" label={t('component.description')} /></Column>
+				<Column span="all"><Field name="coordinates" label={t('component.coordinates')} /></Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

@@ -5,10 +5,14 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const formDefaults = $derived(record ?? { status: 'unassigned' as const });
+	const subtitle = $derived(
+		record == null ? undefined : `${record.scheduled_for} · ${record.status ?? 'unassigned'}`
+	);
 </script>
 
 <svelte:head>
@@ -18,32 +22,34 @@
 	/>
 </svelte:head>
 
-<CollectionForm
-	client={collectionClient}
-	collection="jobs"
-	defaultValues={formDefaults}
-	submitLabel={record ? undefined : t('component.create_job')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="external_ref" hidden />
-		<Field name="status" hidden />
-		<Grid minimum="panel">
-			<Field
-				name="site_id"
-				label={t('component.site')}
-				relationOptions={{
-					label: (site) => String(site.name || '—'),
-					orderBy: { name: 'asc' },
-					limit: 500
-				}}
-			/>
-			<Field name="title" label={t('component.job_title')} />
-			<Field name="nature" label={t('component.job_nature')} />
-			<Field name="scheduled_for" label={t('component.scheduled_date')} />
-			<Column span="all">
-				<Field name="description" label={t('component.job_description_scope')} />
-			</Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.title ?? 'New job'} {subtitle}>
+	<CollectionForm
+		client={collectionClient}
+		collection="jobs"
+		defaultValues={formDefaults}
+		submitLabel={record ? undefined : t('component.create_job')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="external_ref" hidden />
+			<Field name="status" hidden />
+			<Grid minimum="panel">
+				<Field
+					name="site_id"
+					label={t('component.site')}
+					relationOptions={{
+						label: (site) => String(site.name || '—'),
+						orderBy: { name: 'asc' },
+						limit: 500
+					}}
+				/>
+				<Field name="title" label={t('component.job_title')} />
+				<Field name="nature" label={t('component.job_nature')} />
+				<Field name="scheduled_for" label={t('component.scheduled_date')} />
+				<Column span="all">
+					<Field name="description" label={t('component.job_description_scope')} />
+				</Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

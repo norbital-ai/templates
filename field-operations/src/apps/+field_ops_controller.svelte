@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { client } from '../lib/workspace-client.js';
 	import { getErrorMessage } from '@norbital-ai/std';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { Button } from '@norbital-ai/ui/button';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -241,6 +242,9 @@
 				: 'default'
 		}))
 	);
+
+	const banner =
+		'/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp';
 </script>
 
 {#snippet mapMarkerContent(_marker: StaticMapMarker, index: number)}
@@ -277,20 +281,6 @@
 		</Stack>
 	{/if}
 {/snippet}
-
-<svelte:head>
-	<title>Field Operations Controller</title>
-	<meta name="description" content="Schedule site jobs and dispatch contractors" />
-	<meta name="bolt:icon" content="lucide:building-2" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
-	/>
-</svelte:head>
 
 {#snippet dispatchControls()}
 	<!--
@@ -479,7 +469,13 @@
 	</CollectionTable>
 {/snippet}
 
-<Cover as="main">
+<AppShell
+	icon="lucide:building-2"
+	title="Field Operations Controller"
+	description="Schedule site jobs and dispatch contractors"
+	{banner}
+	variant="full"
+>
 	<Tabs
 		animate={false}
 		config={[
@@ -497,79 +493,79 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
 
-<Sheet.Root
-	open={assignContractorOpen}
-	onOpenChange={(open) => {
-		assignContractorOpen = open;
-	}}
->
-	<Sheet.Content flush class="sm:max-w-lg">
-		<Sheet.Header class="border-b border-border px-5 py-4">
-			<Sheet.Title>{t('app.field_ops_controller.sheet_title')}</Sheet.Title>
-			<Sheet.Description>
-				{t('app.field_ops_controller.sheet_description', { date: dispatchDay })}
-			</Sheet.Description>
-		</Sheet.Header>
-		<div class="p-5">
-			<CollectionForm
-				client={collectionClient}
-				collection="job_assignments"
-				defaultValues={{ status: 'assigned' }}
-				semantic={assignmentSemantic}
-				success_message={t('component.assignment_created')}
-				failure_message={t('component.assignment_create_failed')}
-				submitLabel={t('app.field_ops_controller.assign_contractor')}
-				onAfterSubmit={() => {
-					assignContractorOpen = false;
-				}}
-			>
-				{#snippet children({ Field })}
-					<Field name="dispatched_at" hidden />
-					<!-- Dispatched by this sheet; the create hook stamps the time. -->
-					<Field name="status" hidden />
-					<Field name="completed_at" hidden />
-					<Field name="amount_charged" hidden />
-					<Field name="location" hidden />
-					<Field name="summary" hidden />
-					<Field name="source_message_id" hidden />
-					<Field name="suspicion_checked_at" hidden />
-					<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
-					<Field name="search_text" hidden />
-					<Stack gap="md">
-						<Field
-							name="job_id"
-							label={t('app.field_ops_controller.job_and_site')}
-							relationOptions={{
-								label: (record) => {
-									const v = record.title;
-									return v != null && v !== '' ? String(v) : '—';
-								},
-								orderBy: { title: 'asc' },
-								limit: 500
-							}}
-						/>
-						<!--
+	<Sheet.Root
+		open={assignContractorOpen}
+		onOpenChange={(open) => {
+			assignContractorOpen = open;
+		}}
+	>
+		<Sheet.Content flush class="sm:max-w-lg">
+			<Sheet.Header class="border-b border-border px-5 py-4">
+				<Sheet.Title>{t('app.field_ops_controller.sheet_title')}</Sheet.Title>
+				<Sheet.Description>
+					{t('app.field_ops_controller.sheet_description', { date: dispatchDay })}
+				</Sheet.Description>
+			</Sheet.Header>
+			<div class="p-5">
+				<CollectionForm
+					client={collectionClient}
+					collection="job_assignments"
+					defaultValues={{ status: 'assigned' }}
+					semantic={assignmentSemantic}
+					success_message={t('component.assignment_created')}
+					failure_message={t('component.assignment_create_failed')}
+					submitLabel={t('app.field_ops_controller.assign_contractor')}
+					onAfterSubmit={() => {
+						assignContractorOpen = false;
+					}}
+				>
+					{#snippet children({ Field })}
+						<Field name="dispatched_at" hidden />
+						<!-- Dispatched by this sheet; the create hook stamps the time. -->
+						<Field name="status" hidden />
+						<Field name="completed_at" hidden />
+						<Field name="amount_charged" hidden />
+						<Field name="location" hidden />
+						<Field name="summary" hidden />
+						<Field name="source_message_id" hidden />
+						<Field name="suspicion_checked_at" hidden />
+						<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
+						<Field name="search_text" hidden />
+						<Stack gap="md">
+							<Field
+								name="job_id"
+								label={t('app.field_ops_controller.job_and_site')}
+								relationOptions={{
+									label: (record) => {
+										const v = record.title;
+										return v != null && v !== '' ? String(v) : '—';
+									},
+									orderBy: { title: 'asc' },
+									limit: 500
+								}}
+							/>
+							<!--
 							The assignee is a person, so the picker reads the identity directory directly.
 							Authored workspace code declares which relation it is editing, but never
 							receives a query handle for the platform-owned user table.
 						-->
-						<Field
-							name="assignee_user_id"
-							label={t('component.contractor')}
-							relationOptions={{
-								label: (record) => {
-									const v = record.name;
-									return v != null && v !== '' ? String(v) : '—';
-								},
-								orderBy: { name: 'asc' },
-								limit: 500
-							}}
-						/>
-					</Stack>
-				{/snippet}
-			</CollectionForm>
-		</div>
-	</Sheet.Content>
-</Sheet.Root>
+							<Field
+								name="assignee_user_id"
+								label={t('component.contractor')}
+								relationOptions={{
+									label: (record) => {
+										const v = record.name;
+										return v != null && v !== '' ? String(v) : '—';
+									},
+									orderBy: { name: 'asc' },
+									limit: 500
+								}}
+							/>
+						</Stack>
+					{/snippet}
+				</CollectionForm>
+			</div>
+		</Sheet.Content>
+	</Sheet.Root>
+</AppShell>

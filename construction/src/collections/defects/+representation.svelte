@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -13,60 +14,66 @@
 	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	const subtitle = $derived(
+		record == null ? undefined : `${record.defect_number ?? '—'} · ${record.status ?? '—'}`
+	);
 </script>
 
-<CollectionForm
-	client={workspaceClient}
-	collection="defects"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="job_id" hidden />
-		<Field name="reported_by" hidden />
-		<Field name="reported_date" hidden />
-		<Field name="photos" hidden />
-		<Grid minimum="compact">
-			<Field name="defect_number" />
-			<Field name="title" />
-			<Field
-				name="project_id"
-				label={t('component.project')}
-				relationOptions={{
-					label: (record) => {
-						const number = record.project_number;
-						const name = record.project_name;
-						if (number && name) return `${number} · ${name}`;
-						const v = record.project_name;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { project_number: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="site_location_id"
-				label={t('component.site_location')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.location_code;
-						const name = record.location_name;
-						if (code && name) return `${code} · ${name}`;
-						const v = record.location_name;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { location_code: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="category" />
-			<Field name="severity" />
-			<Field name="status" />
-			<Field name="assigned_to" />
-			<Field name="due_date" />
-			<Field name="closed_date" />
-			<Column span="all"><Field name="description" /></Column>
-			<Column span="all"><Field name="resolution_notes" /></Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.title ?? 'New defect'} {subtitle}>
+	<CollectionForm
+		client={workspaceClient}
+		collection="defects"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="job_id" hidden />
+			<Field name="reported_by" hidden />
+			<Field name="reported_date" hidden />
+			<Field name="photos" hidden />
+			<Grid minimum="compact">
+				<Field name="defect_number" />
+				<Field name="title" />
+				<Field
+					name="project_id"
+					label={t('component.project')}
+					relationOptions={{
+						label: (record) => {
+							const number = record.project_number;
+							const name = record.project_name;
+							if (number && name) return `${number} · ${name}`;
+							const v = record.project_name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { project_number: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="site_location_id"
+					label={t('component.site_location')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.location_code;
+							const name = record.location_name;
+							if (code && name) return `${code} · ${name}`;
+							const v = record.location_name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { location_code: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="category" />
+				<Field name="severity" />
+				<Field name="status" />
+				<Field name="assigned_to" />
+				<Field name="due_date" />
+				<Field name="closed_date" />
+				<Column span="all"><Field name="description" /></Column>
+				<Column span="all"><Field name="resolution_notes" /></Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

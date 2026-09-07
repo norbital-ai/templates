@@ -10,6 +10,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -19,40 +20,42 @@
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
-<CollectionForm
-	client={workspaceClient}
-	collection="permits_to_work_certification_types"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Grid minimum="compact">
-			<Field
-				name="permits_to_work_id"
-				label={t('component.permit_to_work')}
-				relationOptions={{
-					label: (record) =>
-						record.permit_number != null && record.permit_number !== ''
-							? String(record.permit_number)
-							: '—',
-					orderBy: { permit_number: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="certification_type_id"
-				label={t('component.certification')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.certification_code;
-						const name = record.certification_name;
-						if (code && name) return `${code} · ${name}`;
-						return name != null && name !== '' ? String(name) : '—';
-					},
-					orderBy: { certification_code: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record ? 'Permit certification' : 'New permit certification'}>
+	<CollectionForm
+		client={workspaceClient}
+		collection="permits_to_work_certification_types"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Grid minimum="compact">
+				<Field
+					name="permits_to_work_id"
+					label={t('component.permit_to_work')}
+					relationOptions={{
+						label: (record) =>
+							record.permit_number != null && record.permit_number !== ''
+								? String(record.permit_number)
+								: '—',
+						orderBy: { permit_number: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="certification_type_id"
+					label={t('component.certification')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.certification_code;
+							const name = record.certification_name;
+							if (code && name) return `${code} · ${name}`;
+							return name != null && name !== '' ? String(name) : '—';
+						},
+						orderBy: { certification_code: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

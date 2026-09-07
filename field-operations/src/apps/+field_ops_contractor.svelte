@@ -5,10 +5,11 @@
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Cover, Inline } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -79,21 +80,10 @@
 		orderBy: { dispatched_at: 'desc' as const },
 		...(appliedStatusFilter == null ? {} : { where: { status: { eq: appliedStatusFilter } } })
 	});
-</script>
 
-<svelte:head>
-	<title>Contractor Workspace</title>
-	<meta name="description" content="Update dispatched day jobs" />
-	<meta name="bolt:icon" content="lucide:hard-hat" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp"
-	/>
-</svelte:head>
+	const banner =
+		'/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp';
+</script>
 
 {#snippet scopeNotice()}
 	<!--
@@ -146,9 +136,14 @@
 	</Inline>
 {/snippet}
 
-<!-- App identity (title/description/icon) is rendered by the shell AppMediaHeader. -->
-<Cover as="main" gap="md" top={contractorFilters}>
-	<Bound size="full" inset>
+<AppShell
+	icon="lucide:hard-hat"
+	title="Contractor Workspace"
+	description="Update dispatched day jobs"
+	{banner}
+>
+	<Stack gap="md">
+		{@render contractorFilters()}
 		<CollectionTable
 			client={collectionClient}
 			collection="job_assignments"
@@ -214,5 +209,5 @@
 				<Column name="summary" card="subtitle" minWidth={200} />
 			{/snippet}
 		</CollectionTable>
-	</Bound>
-</Cover>
+	</Stack>
+</AppShell>

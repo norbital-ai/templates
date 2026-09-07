@@ -2,26 +2,15 @@
 	import { collectionClient } from '../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Cover } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
 	const { t } = useI18n<TenantI18nKeys>();
-</script>
 
-<svelte:head>
-	<title>Construction Workforce Settings</title>
-	<meta name="description" content="Manage workers, certifications, and job requirements." />
-	<meta name="bolt:icon" content="lucide:users" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp"
-	/>
-</svelte:head>
+	const banner =
+		'/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp';
+</script>
 
 {#snippet workers()}
 	<CollectionTable client={collectionClient} collection="workers">
@@ -63,7 +52,13 @@
 	</CollectionTable>
 {/snippet}
 
-<Cover as="main">
+<AppShell
+	icon="lucide:users"
+	title="Construction Workforce Settings"
+	description="Manage workers, certifications, and job requirements."
+	{banner}
+	variant="full"
+>
 	<Tabs
 		animate={false}
 		config={[
@@ -87,4 +82,4 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
+</AppShell>

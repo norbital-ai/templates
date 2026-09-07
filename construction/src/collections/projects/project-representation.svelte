@@ -586,6 +586,8 @@
 <Cover as="main" gap="md" top={projectSummary}>
 	<Tabs
 		animate={false}
+		contentPadding={false}
+		listClass="w-full"
 		config={[
 			{
 				name: 'coordination',

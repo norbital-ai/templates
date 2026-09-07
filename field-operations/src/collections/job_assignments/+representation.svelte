@@ -7,7 +7,8 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Cluster, Column, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Textarea } from '@norbital-ai/ui/textarea';
@@ -45,6 +46,11 @@
 	const mayReadSuspicion = $derived(visibleApps.includes('field_ops_controller'));
 	const mayResolveSuspicion = $derived(visibleApps.includes('field_ops_controller'));
 	const mayReadCommunication = $derived(visibleApps.includes('field_ops_contractor'));
+	const subtitle = $derived(
+		record == null
+			? undefined
+			: `${record.status ?? '—'} · ${record.dispatched_at ?? t('component.not_recorded')}`
+	);
 
 	const photoFileSchema = Schema.Struct({
 		file_name: Schema.String,
@@ -449,387 +455,382 @@
 	}
 </script>
 
-{#if record}
-	{#snippet suspicionHeader()}
-		{#if mayReadSuspicion && hasOpenSuspicion && firstOpenSuspicion}
-			<Inline align="start" gap="xs" class="min-w-0 px-1 text-warning" aria-live="polite">
-				<Icon icon="lucide:shield-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-				<p class="min-w-0 break-words text-sm [overflow-wrap:anywhere]">
-					<span class="font-semibold">{t('component.suspicion_open')}:</span>
-					{firstOpenSuspicion.reason}
-				</p>
-			</Inline>
-		{/if}
-	{/snippet}
-
-	{#snippet jobScopeHeader()}
-		<div>
-			<h3 id="assignment-job-scope-heading" class="text-sm font-semibold">
-				{t('component.job_scope')}
-			</h3>
-			<p class="text-sm text-muted-foreground">
-				{t('component.job_scope_description')}
+{#snippet suspicionHeader()}
+	{#if mayReadSuspicion && hasOpenSuspicion && firstOpenSuspicion}
+		<Inline align="start" gap="xs" class="min-w-0 px-1 text-warning" aria-live="polite">
+			<Icon icon="lucide:shield-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+			<p class="min-w-0 break-words text-sm [overflow-wrap:anywhere]">
+				<span class="font-semibold">{t('component.suspicion_open')}:</span>
+				{firstOpenSuspicion.reason}
 			</p>
-		</div>
-	{/snippet}
+		</Inline>
+	{/if}
+{/snippet}
 
-	{#snippet jobScope()}
-		<Scroll name={t('component.job_scope_status')}>
-			<Stack gap="md">
-				<Cover gap="md" top={jobScopeHeader}>
-					{#if jobQuery?.current?.[0]}
-						<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} />
-					{:else if jobQuery?.loading}
-						<div
-							class="h-32 rounded-md bg-muted/50 motion-safe:animate-pulse"
-							aria-label={t('component.loading_job')}
-						></div>
-					{:else}
-						<p class="text-sm text-destructive">{t('component.job_load_failed')}</p>
-					{/if}
-				</Cover>
-			</Stack>
-		</Scroll>
-	{/snippet}
+{#snippet jobScopeHeader()}
+	<div>
+		<h3 id="assignment-job-scope-heading" class="text-sm font-semibold">
+			{t('component.job_scope')}
+		</h3>
+		<p class="text-sm text-muted-foreground">
+			{t('component.job_scope_description')}
+		</p>
+	</div>
+{/snippet}
 
-	{#snippet statusAndActivity()}
-		<CollectionForm client={collectionClient} collection="job_assignments" defaultValues={record}>
-			{#snippet children({ Field })}
-				<Field name="job_id" hidden />
-				<Field name="assignee_user_id" hidden />
-				<Field name="source_message_id" hidden />
-				<Field name="suspicion_checked_at" hidden />
-				<!--
+{#snippet jobScope()}
+	<Scroll name={t('component.job_scope_status')}>
+		<Stack gap="md">
+			<Cover gap="md" top={jobScopeHeader}>
+				{#if jobQuery?.current?.[0]}
+					<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} />
+				{:else if jobQuery?.loading}
+					<div
+						class="h-32 rounded-md bg-muted/50 motion-safe:animate-pulse"
+						aria-label={t('component.loading_job')}
+					></div>
+				{:else}
+					<p class="text-sm text-destructive">{t('component.job_load_failed')}</p>
+				{/if}
+			</Cover>
+		</Stack>
+	</Scroll>
+{/snippet}
+
+{#snippet statusAndActivity()}
+	<CollectionForm
+		client={collectionClient}
+		collection="job_assignments"
+		defaultValues={record ?? undefined}
+	>
+		{#snippet children({ Field })}
+			<Field name="job_id" hidden />
+			<Field name="assignee_user_id" hidden />
+			<Field name="source_message_id" hidden />
+			<Field name="suspicion_checked_at" hidden />
+			<!--
 					Hook-owned, like the two above it. `search_text` is the job title copied onto the
 					assignment so the board can search the words an operator can actually see; `+hooks.ts`
 					derives it and strips it back out of every update, so there is nothing here for anyone
 					to edit. It is still a mutable column, so the form has to name it or refuse to render.
 				-->
-				<Field name="search_text" hidden />
-				<Stack gap="md">
-					<div>
-						<h3 id="assignment-activity-heading" class="text-sm font-semibold">
-							{t('component.assignment_and_activity')}
-						</h3>
-						<p class="text-sm text-muted-foreground">
-							{t('component.assignment_and_activity_description')}
-						</p>
-					</div>
-					<Grid minimum="panel">
-						<Field name="status" />
-						<Field name="dispatched_at" label={t('component.dispatched_at')} />
-						<Field name="completed_at" label={t('component.completed_at')} />
-						<Field name="amount_charged" label={t('component.value_charged')} />
-						<Column span="all">
-							<Field name="summary" label={t('component.completion_summary')} />
-						</Column>
-						<Column span="all"
-							><Field name="location" label={t('component.reported_location')} /></Column
-						>
-					</Grid>
-				</Stack>
-			{/snippet}
-		</CollectionForm>
-	{/snippet}
+			<Field name="search_text" hidden />
+			<Stack gap="md">
+				<div>
+					<h3 id="assignment-activity-heading" class="text-sm font-semibold">
+						{t('component.assignment_and_activity')}
+					</h3>
+					<p class="text-sm text-muted-foreground">
+						{t('component.assignment_and_activity_description')}
+					</p>
+				</div>
+				<Grid minimum="panel">
+					<Field name="status" />
+					<Field name="dispatched_at" label={t('component.dispatched_at')} />
+					<Field name="completed_at" label={t('component.completed_at')} />
+					<Field name="amount_charged" label={t('component.value_charged')} />
+					<Column span="all">
+						<Field name="summary" label={t('component.completion_summary')} />
+					</Column>
+					<Column span="all"
+						><Field name="location" label={t('component.reported_location')} /></Column
+					>
+				</Grid>
+			</Stack>
+		{/snippet}
+	</CollectionForm>
+{/snippet}
 
-	{#snippet variationHistory()}
-		<Scroll name={t('component.variation_history')}>
-			<Stack as="section" aria-labelledby="variation-history-heading" gap="md">
-				<Inline justify="between" gap="sm">
-					<div>
-						<h4 id="variation-history-heading" class="text-sm font-semibold">
-							{t('component.variations')}
-						</h4>
-						<p class="text-meta">{t('component.variations_description')}</p>
+{#snippet variationHistory()}
+	<Scroll name={t('component.variation_history')}>
+		<Stack as="section" aria-labelledby="variation-history-heading" gap="md">
+			<Inline justify="between" gap="sm">
+				<div>
+					<h4 id="variation-history-heading" class="text-sm font-semibold">
+						{t('component.variations')}
+					</h4>
+					<p class="text-meta">{t('component.variations_description')}</p>
+				</div>
+				<span class="text-meta tabular-nums">
+					{t('component.recorded_count', { count: variationsQuery?.current?.length ?? 0 })}
+				</span>
+			</Inline>
+			<Stack gap="sm">
+				{#each variationsQuery?.current ?? [] as variation (variation.id)}
+					<Stack as="section" gap="sm" class="rounded-md border border-border bg-card p-3">
+						<Inline align="start" justify="between" gap="sm">
+							<Stack gap="xs">
+								<p class="text-sm font-medium">{variation.title}</p>
+								<p class="text-sm text-muted-foreground">{variation.description}</p>
+							</Stack>
+							<span class="shrink-0 text-sm font-medium">{formatMoney(variation.amount)}</span>
+						</Inline>
+						<p class="text-meta">
+							{t('component.requested_at_instant', {
+								instant: formatSingaporeInstant(variation.requested_at, t('component.not_recorded'))
+							})}
+						</p>
+					</Stack>
+				{:else}
+					<div
+						class="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground"
+					>
+						{t('component.no_variations')}
 					</div>
-					<span class="text-meta tabular-nums">
-						{t('component.recorded_count', { count: variationsQuery?.current?.length ?? 0 })}
-					</span>
-				</Inline>
-				<Stack gap="sm">
-					{#each variationsQuery?.current ?? [] as variation (variation.id)}
-						<Stack as="section" gap="sm" class="rounded-md border border-border bg-card p-3">
-							<Inline align="start" justify="between" gap="sm">
-								<Stack gap="xs">
-									<p class="text-sm font-medium">{variation.title}</p>
-									<p class="text-sm text-muted-foreground">{variation.description}</p>
-								</Stack>
-								<span class="shrink-0 text-sm font-medium">{formatMoney(variation.amount)}</span>
+				{/each}
+			</Stack>
+		</Stack>
+	</Scroll>
+{/snippet}
+
+{#snippet suspicionLogs()}
+	<Scroll name={t('component.suspicion_logs')}>
+		<Stack gap="md">
+			<Stack gap="xs">
+				<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
+				<p class="text-tiny text-muted-foreground">
+					{t('component.suspicion_logs_description')}
+				</p>
+			</Stack>
+
+			<Grid minimum="compact" gap="md">
+				<section
+					aria-labelledby="assignment-evidence-facts-heading"
+					class="min-w-0 rounded-md border border-border bg-card p-3"
+				>
+					<Stack gap="sm">
+						<Stack gap="xs">
+							<Inline justify="between" align="center" gap="sm">
+								<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
+									{t('component.evidence_facts')}
+								</h4>
+								<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+									{t('component.recorded_count', { count: evidenceFactCards.length })}
+								</span>
 							</Inline>
-							<p class="text-meta">
-								{t('component.requested_at_instant', {
-									instant: formatSingaporeInstant(
-										variation.requested_at,
-										t('component.not_recorded')
-									)
-								})}
+							<p class="text-tiny text-muted-foreground">
+								{t('component.evidence_facts_description')}
 							</p>
 						</Stack>
-					{:else}
-						<div
-							class="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground"
-						>
-							{t('component.no_variations')}
-						</div>
-					{/each}
-				</Stack>
-			</Stack>
-		</Scroll>
-	{/snippet}
-
-	{#snippet suspicionLogs()}
-		<Scroll name={t('component.suspicion_logs')}>
-			<Stack gap="md">
-				<Stack gap="xs">
-					<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
-					<p class="text-tiny text-muted-foreground">
-						{t('component.suspicion_logs_description')}
-					</p>
-				</Stack>
-
-				<Grid minimum="compact" gap="md">
-					<section
-						aria-labelledby="assignment-evidence-facts-heading"
-						class="min-w-0 rounded-md border border-border bg-card p-3"
-					>
-						<Stack gap="sm">
-							<Stack gap="xs">
-								<Inline justify="between" align="center" gap="sm">
-									<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
-										{t('component.evidence_facts')}
-									</h4>
-									<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
-										{t('component.recorded_count', { count: evidenceFactCards.length })}
-									</span>
-								</Inline>
-								<p class="text-tiny text-muted-foreground">
-									{t('component.evidence_facts_description')}
-								</p>
-							</Stack>
-							<div class="h-52 min-h-0">
-								<Scroll name={t('component.evidence_facts')} layout="stack" gap="xs">
-									{#if evidenceLoading}
-										<p class="text-tiny text-muted-foreground">
-											{t('component.loading_evidence')}
-										</p>
-									{:else if directEvidenceQuery?.error}
-										<p class="text-tiny text-destructive" role="alert">
-											{t('component.evidence_load_failed')}
-										</p>
-									{:else if evidenceFactCards.length === 0}
-										<p class="text-tiny text-muted-foreground">
-											{t('component.evidence_facts_empty')}
-										</p>
-									{:else}
-										{#each evidenceFactCards as photo (photo.id)}
-											<Inline
-												as="article"
-												align="stretch"
-												class="rounded-md border border-border bg-background p-2"
+						<div class="h-52 min-h-0">
+							<Scroll name={t('component.evidence_facts')} layout="stack" gap="xs">
+								{#if evidenceLoading}
+									<p class="text-tiny text-muted-foreground">
+										{t('component.loading_evidence')}
+									</p>
+								{:else if directEvidenceQuery?.error}
+									<p class="text-tiny text-destructive" role="alert">
+										{t('component.evidence_load_failed')}
+									</p>
+								{:else if evidenceFactCards.length === 0}
+									<p class="text-tiny text-muted-foreground">
+										{t('component.evidence_facts_empty')}
+									</p>
+								{:else}
+									{#each evidenceFactCards as photo (photo.id)}
+										<Inline
+											as="article"
+											align="stretch"
+											class="rounded-md border border-border bg-background p-2"
+										>
+											<button
+												type="button"
+												class="size-14 shrink-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+												aria-label={t('component.open_photo', { name: photo.name })}
+												onclick={() => (openedPhoto = photo)}
 											>
-												<button
-													type="button"
-													class="size-14 shrink-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													aria-label={t('component.open_photo', { name: photo.name })}
-													onclick={() => (openedPhoto = photo)}
-												>
-													<img
-														src={photo.url}
-														alt={photo.name}
-														class="size-full object-cover"
-														loading="lazy"
-														decoding="async"
-													/>
-												</button>
-												<Stack gap="xs" class="min-w-0 py-0.5">
-													<p class="truncate text-tiny font-medium">{photo.name}</p>
-													<Cluster gap="xs">
-														{#each photo.facts as fact (fact)}
-															<span
-																class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
-																>{fact}</span
-															>
-														{/each}
-													</Cluster>
-												</Stack>
-											</Inline>
-										{/each}
-									{/if}
-								</Scroll>
-							</div>
-						</Stack>
-					</section>
+												<img
+													src={photo.url}
+													alt={photo.name}
+													class="size-full object-cover"
+													loading="lazy"
+													decoding="async"
+												/>
+											</button>
+											<Stack gap="xs" class="min-w-0 py-0.5">
+												<p class="truncate text-tiny font-medium">{photo.name}</p>
+												<Cluster gap="xs">
+													{#each photo.facts as fact (fact)}
+														<span
+															class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
+															>{fact}</span
+														>
+													{/each}
+												</Cluster>
+											</Stack>
+										</Inline>
+									{/each}
+								{/if}
+							</Scroll>
+						</div>
+					</Stack>
+				</section>
 
-					<section
-						aria-labelledby="assignment-similar-photos-heading"
-						class="min-w-0 rounded-md border border-border bg-card p-3"
-					>
+				<section
+					aria-labelledby="assignment-similar-photos-heading"
+					class="min-w-0 rounded-md border border-border bg-card p-3"
+				>
+					<Stack gap="sm">
+						<Stack gap="xs">
+							<Inline justify="between" align="center" gap="sm">
+								<Inline align="center" gap="xs" class="min-w-0">
+									<Icon
+										icon="lucide:images"
+										class="size-4 shrink-0 text-muted-foreground"
+										aria-hidden="true"
+									/>
+									<h4 id="assignment-similar-photos-heading" class="min-w-0 text-sm font-semibold">
+										{t('component.similar_photos_other_assignments')}
+									</h4>
+								</Inline>
+								<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+									{t('component.recorded_count', { count: similarPhotoPairs.length })}
+								</span>
+							</Inline>
+							<p class="text-tiny text-muted-foreground">
+								{t('component.similar_photos_other_assignments_description')}
+							</p>
+						</Stack>
+						<div class="h-52 min-h-0">
+							<Scroll
+								name={t('component.similar_photos_other_assignments')}
+								layout="stack"
+								gap="xs"
+							>
+								{#if suspicionReviewQuery?.loading || candidateEvidenceQuery?.loading || candidateAssignmentQuery?.loading}
+									<p class="text-tiny text-muted-foreground">
+										{t('component.loading_evidence')}
+									</p>
+								{:else if suspicionReviewQuery?.error || candidateEvidenceQuery?.error || candidateAssignmentQuery?.error}
+									<p class="text-tiny text-destructive" role="alert">
+										{t('component.evidence_load_failed')}
+									</p>
+								{:else if similarPhotoPairs.length === 0}
+									<p class="text-tiny text-muted-foreground">
+										{t('component.similar_photos_other_assignments_empty')}
+									</p>
+								{:else}
+									{#each similarPhotoPairs as pair (pair.id)}
+										<article class="rounded-md border border-border bg-background p-2">
+											<Stack gap="xs">
+												<Inline justify="between" align="center" gap="sm">
+													<span
+														class="truncate text-micro font-semibold uppercase tracking-wide text-muted-foreground"
+													>
+														{t('component.shown_to_review_agent')}
+													</span>
+													<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+														{t('component.similar_photo_distance', {
+															distance: pair.distance.toFixed(3)
+														})}
+													</span>
+												</Inline>
+												<Grid
+													tracks="minmax(0, 1fr) auto minmax(0, 1fr)"
+													gap="xs"
+													class="items-center"
+												>
+													<button
+														type="button"
+														class="min-w-0 rounded-md bg-muted/45 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														onclick={() => (openedPhoto = pair.submitted)}
+													>
+														<img
+															src={pair.submitted.url}
+															alt={pair.submitted.name}
+															class="h-14 w-full rounded object-cover"
+															loading="lazy"
+															decoding="async"
+														/>
+														<span class="mt-1 block truncate text-micro font-medium">
+															{pair.submitted.name}
+														</span>
+													</button>
+													<Icon
+														icon="lucide:arrow-left-right"
+														class="size-3.5 text-muted-foreground"
+														aria-hidden="true"
+													/>
+													<button
+														type="button"
+														class="min-w-0 rounded-md bg-warning/5 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														onclick={() => (openedPhoto = pair.candidate)}
+													>
+														<img
+															src={pair.candidate.url}
+															alt={pair.candidate.name}
+															class="h-14 w-full rounded object-cover"
+															loading="lazy"
+															decoding="async"
+														/>
+														<span class="mt-1 block truncate text-micro font-medium">
+															{pair.candidate.name}
+														</span>
+														<span class="block truncate text-micro text-muted-foreground">
+															{pair.assignment}
+														</span>
+													</button>
+												</Grid>
+											</Stack>
+										</article>
+									{/each}
+								{/if}
+							</Scroll>
+						</div>
+					</Stack>
+				</section>
+			</Grid>
+
+			<section aria-labelledby="assignment-judgements-heading">
+				<Stack gap="sm">
+					<h4 id="assignment-judgements-heading" class="text-sm font-semibold">
+						{t('component.suspicion_judgements')}
+					</h4>
+					{#if suspicionQuery?.loading}
+						<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
+					{:else if suspicionQuery?.error}
+						<p class="text-tiny text-destructive" role="alert">
+							{t('component.suspicion_load_failed')}
+						</p>
+					{:else if suspicionRows.length === 0}
+						<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
+					{:else}
 						<Stack gap="sm">
-							<Stack gap="xs">
-								<Inline justify="between" align="center" gap="sm">
-									<Inline align="center" gap="xs" class="min-w-0">
+							{#each suspicionRows as log (log.id)}
+								<Stack
+									gap="xs"
+									class={cn(
+										'rounded-md border p-3',
+										log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
+									)}
+								>
+									<Inline gap="sm" align="center">
 										<Icon
-											icon="lucide:images"
-											class="size-4 shrink-0 text-muted-foreground"
+											icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
+											class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
 											aria-hidden="true"
 										/>
-										<h4
-											id="assignment-similar-photos-heading"
-											class="min-w-0 text-sm font-semibold"
-										>
-											{t('component.similar_photos_other_assignments')}
-										</h4>
+										<span class="text-tiny font-semibold">
+											{log.resolved_at == null
+												? t('component.suspicion_open')
+												: t('component.suspicion_resolved')}
+										</span>
 									</Inline>
-									<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
-										{t('component.recorded_count', { count: similarPhotoPairs.length })}
-									</span>
-								</Inline>
-								<p class="text-tiny text-muted-foreground">
-									{t('component.similar_photos_other_assignments_description')}
-								</p>
-							</Stack>
-							<div class="h-52 min-h-0">
-								<Scroll
-									name={t('component.similar_photos_other_assignments')}
-									layout="stack"
-									gap="xs"
-								>
-									{#if suspicionReviewQuery?.loading || candidateEvidenceQuery?.loading || candidateAssignmentQuery?.loading}
-										<p class="text-tiny text-muted-foreground">
-											{t('component.loading_evidence')}
-										</p>
-									{:else if suspicionReviewQuery?.error || candidateEvidenceQuery?.error || candidateAssignmentQuery?.error}
-										<p class="text-tiny text-destructive" role="alert">
-											{t('component.evidence_load_failed')}
-										</p>
-									{:else if similarPhotoPairs.length === 0}
-										<p class="text-tiny text-muted-foreground">
-											{t('component.similar_photos_other_assignments_empty')}
-										</p>
-									{:else}
-										{#each similarPhotoPairs as pair (pair.id)}
-											<article class="rounded-md border border-border bg-background p-2">
-												<Stack gap="xs">
-													<Inline justify="between" align="center" gap="sm">
-														<span
-															class="truncate text-micro font-semibold uppercase tracking-wide text-muted-foreground"
-														>
-															{t('component.shown_to_review_agent')}
-														</span>
-														<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
-															{t('component.similar_photo_distance', {
-																distance: pair.distance.toFixed(3)
-															})}
-														</span>
-													</Inline>
-													<Grid
-														tracks="minmax(0, 1fr) auto minmax(0, 1fr)"
-														gap="xs"
-														class="items-center"
-													>
-														<button
-															type="button"
-															class="min-w-0 rounded-md bg-muted/45 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-															onclick={() => (openedPhoto = pair.submitted)}
-														>
-															<img
-																src={pair.submitted.url}
-																alt={pair.submitted.name}
-																class="h-14 w-full rounded object-cover"
-																loading="lazy"
-																decoding="async"
-															/>
-															<span class="mt-1 block truncate text-micro font-medium">
-																{pair.submitted.name}
-															</span>
-														</button>
-														<Icon
-															icon="lucide:arrow-left-right"
-															class="size-3.5 text-muted-foreground"
-															aria-hidden="true"
-														/>
-														<button
-															type="button"
-															class="min-w-0 rounded-md bg-warning/5 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-															onclick={() => (openedPhoto = pair.candidate)}
-														>
-															<img
-																src={pair.candidate.url}
-																alt={pair.candidate.name}
-																class="h-14 w-full rounded object-cover"
-																loading="lazy"
-																decoding="async"
-															/>
-															<span class="mt-1 block truncate text-micro font-medium">
-																{pair.candidate.name}
-															</span>
-															<span class="block truncate text-micro text-muted-foreground">
-																{pair.assignment}
-															</span>
-														</button>
-													</Grid>
-												</Stack>
-											</article>
-										{/each}
-									{/if}
-								</Scroll>
-							</div>
-						</Stack>
-					</section>
-				</Grid>
-
-				<section aria-labelledby="assignment-judgements-heading">
-					<Stack gap="sm">
-						<h4 id="assignment-judgements-heading" class="text-sm font-semibold">
-							{t('component.suspicion_judgements')}
-						</h4>
-						{#if suspicionQuery?.loading}
-							<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
-						{:else if suspicionQuery?.error}
-							<p class="text-tiny text-destructive" role="alert">
-								{t('component.suspicion_load_failed')}
-							</p>
-						{:else if suspicionRows.length === 0}
-							<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
-						{:else}
-							<Stack gap="sm">
-								{#each suspicionRows as log (log.id)}
-									<Stack
-										gap="xs"
-										class={cn(
-											'rounded-md border p-3',
-											log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
-										)}
-									>
-										<Inline gap="sm" align="center">
-											<Icon
-												icon={log.resolved_at == null
-													? 'lucide:shield-alert'
-													: 'lucide:shield-check'}
-												class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
-												aria-hidden="true"
-											/>
-											<span class="text-tiny font-semibold">
-												{log.resolved_at == null
-													? t('component.suspicion_open')
-													: t('component.suspicion_resolved')}
-											</span>
-										</Inline>
-										<p class="break-words text-tiny [overflow-wrap:anywhere]">{log.reason}</p>
-										{#if log.resolved_at != null}
-											{#if log.resolution}
-												<p
-													class="break-words text-tiny text-muted-foreground [overflow-wrap:anywhere]"
-												>
-													{log.resolution}
-												</p>
-											{:else}
-												<p class="text-tiny text-muted-foreground">
-													{t('component.suspicion_resolution_missing')}
-												</p>
-											{/if}
-										{:else if mayResolveSuspicion}
-											<!--
+									<p class="break-words text-tiny [overflow-wrap:anywhere]">{log.reason}</p>
+									{#if log.resolved_at != null}
+										{#if log.resolution}
+											<p
+												class="break-words text-tiny text-muted-foreground [overflow-wrap:anywhere]"
+											>
+												{log.resolution}
+											</p>
+										{:else}
+											<p class="text-tiny text-muted-foreground">
+												{t('component.suspicion_resolution_missing')}
+											</p>
+										{/if}
+									{:else if mayResolveSuspicion}
+										<!--
 												Closing a log by saying what was concluded.
 												`resolution`, `resolved_at`, and `resolved_by` are written together and
 												never apart: a timestamp without a sentence is a log somebody dismissed,
@@ -839,250 +840,249 @@
 												defaults. The empty draft disables the form, and a refused write leaves
 												the draft intact.
 											-->
-											<CollectionForm
-												client={collectionClient}
-												collection="suspicious_activity_logs"
-												defaultValues={{
-													...log,
-													resolved_at: new Date().toISOString(),
-													resolved_by: platform().user.id
-												}}
-												disabled={!canResolve(log)}
-												success_message={t('component.suspicion_resolution_saved')}
-												failure_message={t('component.suspicion_resolve_failed')}
-												submitLabel={t('component.suspicion_resolve')}
-												onAfterSubmit={() => afterResolve(log)}
-											>
-												{#snippet children({ Field, form })}
-													<Field name="job_assignment_id" hidden />
-													<Field name="origin" hidden />
-													<Field name="basis" hidden />
-													<Field name="review_id" hidden />
-													<Field name="evidence_id" hidden />
-													<Field name="reason" hidden />
-													<Field name="resolution" hidden />
-													<Field name="resolved_at" hidden />
-													<Field name="resolved_by" hidden />
-													<Textarea
-														rows={2}
-														placeholder={t('component.suspicion_resolution_placeholder')}
-														value={draftFor(log)}
-														oninput={(event) => {
-															const value = event.currentTarget.value;
-															resolutionDraft = { ...resolutionDraft, [log.id]: value };
-															form.setValues({ resolution: value });
-														}}
-													/>
-												{/snippet}
-											</CollectionForm>
-										{:else}
-											<p class="text-tiny text-muted-foreground">
-												{t('component.suspicion_resolve_unavailable')}
-											</p>
-										{/if}
-									</Stack>
-								{/each}
-							</Stack>
-						{/if}
-					</Stack>
-				</section>
-			</Stack>
-		</Scroll>
-	{/snippet}
-
-	{#snippet assignmentConversation()}
-		<Scroll name={t('component.conversation')}>
-			<Stack as="section" aria-labelledby="assignment-conversation-heading" gap="md">
-				<Inline justify="between" align="start" gap="sm">
-					<div>
-						<h4 id="assignment-conversation-heading" class="text-sm font-semibold">
-							{t('component.conversation')}
-						</h4>
-						<p class="text-meta">{t('component.conversation_description')}</p>
-					</div>
-					<Inline
-						align="center"
-						gap="xs"
-						class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-micro text-muted-foreground"
-					>
-						<Icon icon="lucide:lock-keyhole" class="size-3" aria-hidden="true" />
-						<span>{t('component.conversation_read_only')}</span>
-					</Inline>
-				</Inline>
-
-				{#if communicationQuery?.error}
-					<p class="text-sm text-destructive" role="alert">
-						{t('component.communication_logs_failed')}
-					</p>
-				{/if}
-				{#if directEvidenceQuery?.error}
-					<p class="text-sm text-destructive" role="alert">
-						{t('component.evidence_load_failed')}
-					</p>
-				{/if}
-
-				<div class="relative min-h-80">
-					<Scroll
-						bind:ref={conversationPort}
-						name={t('component.conversation')}
-						class="min-h-80 max-h-[28rem] rounded-lg border border-border bg-muted/25 p-3"
-						onscroll={syncConversationScroll}
-					>
-						{#if communicationTimeline.length === 0 && (communicationQuery?.loading || evidenceLoading)}
-							<Stack gap="sm" aria-label={t('component.loading')}>
-								<div
-									class="h-16 w-3/4 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
-								></div>
-								<div
-									class="h-24 w-2/3 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
-								></div>
-								<div
-									class="h-14 w-4/5 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
-								></div>
-							</Stack>
-						{:else if communicationTimeline.length === 0}
-							<div
-								class="rounded-md border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground"
-							>
-								{t('component.conversation_empty')}
-							</div>
-						{:else}
-							<Stack as="ol" gap="sm">
-								{#each communicationTimeline as item, index (item.id)}
-									{@const dayKey = timelineDayKey(item.sentAt)}
-									{#if index === 0 || dayKey !== timelineDayKey(communicationTimeline[index - 1]?.sentAt)}
-										<li class="flex justify-center py-1">
-											<span
-												class="rounded-full bg-background px-2.5 py-1 text-micro font-medium text-muted-foreground"
-											>
-												{formatTimelineDay(item.sentAt)}
-											</span>
-										</li>
-									{/if}
-									{@const recordedFlags = [
-										...new Set(item.photos.flatMap((photo) => photo.flags.map(integrityFlagLabel)))
-									]}
-									<li class={item.system ? 'flex justify-center' : 'flex justify-start'}>
-										<article
-											class={cn(
-												'min-w-0 px-2.5 py-2',
-												item.system
-													? 'w-full max-w-sm rounded-lg bg-muted'
-													: 'w-fit max-w-[min(100%,32rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
-											)}
+										<CollectionForm
+											client={collectionClient}
+											collection="suspicious_activity_logs"
+											defaultValues={{
+												...log,
+												resolved_at: new Date().toISOString(),
+												resolved_by: platform().user.id
+											}}
+											disabled={!canResolve(log)}
+											success_message={t('component.suspicion_resolution_saved')}
+											failure_message={t('component.suspicion_resolve_failed')}
+											submitLabel={t('component.suspicion_resolve')}
+											onAfterSubmit={() => afterResolve(log)}
 										>
-											<Stack gap="xs">
-												<Inline align="center" gap="xs" class="min-w-0">
-													<Icon
-														icon={item.system ? 'lucide:upload' : 'lucide:user-round'}
-														class="size-3.5 shrink-0 text-muted-foreground"
-														aria-hidden="true"
-													/>
-													<span class="min-w-0 truncate text-tiny font-semibold">{item.sender}</span
-													>
-												</Inline>
-												{#if item.text}
-													<p
-														class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]"
-													>
-														{item.text}
+											{#snippet children({ Field, form })}
+												<Field name="job_assignment_id" hidden />
+												<Field name="origin" hidden />
+												<Field name="basis" hidden />
+												<Field name="review_id" hidden />
+												<Field name="evidence_id" hidden />
+												<Field name="reason" hidden />
+												<Field name="resolution" hidden />
+												<Field name="resolved_at" hidden />
+												<Field name="resolved_by" hidden />
+												<Textarea
+													rows={2}
+													placeholder={t('component.suspicion_resolution_placeholder')}
+													value={draftFor(log)}
+													oninput={(event) => {
+														const value = event.currentTarget.value;
+														resolutionDraft = { ...resolutionDraft, [log.id]: value };
+														form.setValues({ resolution: value });
+													}}
+												/>
+											{/snippet}
+										</CollectionForm>
+									{:else}
+										<p class="text-tiny text-muted-foreground">
+											{t('component.suspicion_resolve_unavailable')}
+										</p>
+									{/if}
+								</Stack>
+							{/each}
+						</Stack>
+					{/if}
+				</Stack>
+			</section>
+		</Stack>
+	</Scroll>
+{/snippet}
+
+{#snippet assignmentConversation()}
+	<Scroll name={t('component.conversation')}>
+		<Stack as="section" aria-labelledby="assignment-conversation-heading" gap="md">
+			<Inline justify="between" align="start" gap="sm">
+				<div>
+					<h4 id="assignment-conversation-heading" class="text-sm font-semibold">
+						{t('component.conversation')}
+					</h4>
+					<p class="text-meta">{t('component.conversation_description')}</p>
+				</div>
+				<Inline
+					align="center"
+					gap="xs"
+					class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-micro text-muted-foreground"
+				>
+					<Icon icon="lucide:lock-keyhole" class="size-3" aria-hidden="true" />
+					<span>{t('component.conversation_read_only')}</span>
+				</Inline>
+			</Inline>
+
+			{#if communicationQuery?.error}
+				<p class="text-sm text-destructive" role="alert">
+					{t('component.communication_logs_failed')}
+				</p>
+			{/if}
+			{#if directEvidenceQuery?.error}
+				<p class="text-sm text-destructive" role="alert">
+					{t('component.evidence_load_failed')}
+				</p>
+			{/if}
+
+			<div class="relative min-h-80">
+				<Scroll
+					bind:ref={conversationPort}
+					name={t('component.conversation')}
+					class="min-h-80 max-h-[28rem] rounded-lg border border-border bg-muted/25 p-3"
+					onscroll={syncConversationScroll}
+				>
+					{#if communicationTimeline.length === 0 && (communicationQuery?.loading || evidenceLoading)}
+						<Stack gap="sm" aria-label={t('component.loading')}>
+							<div
+								class="h-16 w-3/4 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+							></div>
+							<div
+								class="h-24 w-2/3 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+							></div>
+							<div
+								class="h-14 w-4/5 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+							></div>
+						</Stack>
+					{:else if communicationTimeline.length === 0}
+						<div
+							class="rounded-md border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground"
+						>
+							{t('component.conversation_empty')}
+						</div>
+					{:else}
+						<Stack as="ol" gap="sm">
+							{#each communicationTimeline as item, index (item.id)}
+								{@const dayKey = timelineDayKey(item.sentAt)}
+								{#if index === 0 || dayKey !== timelineDayKey(communicationTimeline[index - 1]?.sentAt)}
+									<li class="flex justify-center py-1">
+										<span
+											class="rounded-full bg-background px-2.5 py-1 text-micro font-medium text-muted-foreground"
+										>
+											{formatTimelineDay(item.sentAt)}
+										</span>
+									</li>
+								{/if}
+								{@const recordedFlags = [
+									...new Set(item.photos.flatMap((photo) => photo.flags.map(integrityFlagLabel)))
+								]}
+								<li class={item.system ? 'flex justify-center' : 'flex justify-start'}>
+									<article
+										class={cn(
+											'min-w-0 px-2.5 py-2',
+											item.system
+												? 'w-full max-w-sm rounded-lg bg-muted'
+												: 'w-fit max-w-[min(100%,32rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
+										)}
+									>
+										<Stack gap="xs">
+											<Inline align="center" gap="xs" class="min-w-0">
+												<Icon
+													icon={item.system ? 'lucide:upload' : 'lucide:user-round'}
+													class="size-3.5 shrink-0 text-muted-foreground"
+													aria-hidden="true"
+												/>
+												<span class="min-w-0 truncate text-tiny font-semibold">{item.sender}</span>
+											</Inline>
+											{#if item.text}
+												<p class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+													{item.text}
+												</p>
+											{/if}
+											{#if item.photos.length > 0}
+												{#if item.photos.length > 1}
+													<p class="text-micro font-medium text-muted-foreground">
+														{t('component.photo_count', { count: item.photos.length })}
 													</p>
 												{/if}
-												{#if item.photos.length > 0}
-													{#if item.photos.length > 1}
-														<p class="text-micro font-medium text-muted-foreground">
-															{t('component.photo_count', { count: item.photos.length })}
-														</p>
-													{/if}
-													<div
-														class={cn(
-															'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
-															item.photos.length > 1 && 'grid-cols-2',
-															item.photos.length > 4 && 'grid-cols-3'
-														)}
-													>
-														{#each item.photos as photo (photo.id)}
-															<button
-																type="button"
-																onclick={() => (openedPhoto = photo)}
-																class="group min-w-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-																aria-label={t('component.open_photo', { name: photo.name })}
-																title={photo.name}
-															>
-																<img
-																	src={photo.url}
-																	alt={photo.name}
-																	class={cn(
-																		'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
-																		item.photos.length === 1
-																			? 'h-28'
-																			: item.photos.length > 6
-																				? 'h-16'
-																				: 'h-20'
-																	)}
-																	loading="lazy"
-																	decoding="async"
-																/>
-															</button>
-														{/each}
-													</div>
-												{/if}
-												{#if mayReadSuspicion && recordedFlags.length > 0}
-													<Inline align="start" gap="xs" class="text-micro text-muted-foreground">
-														<Icon
-															icon="lucide:scan-search"
-															class="mt-0.5 size-3 shrink-0"
-															aria-hidden="true"
-														/>
-														<span class="break-words [overflow-wrap:anywhere]">
-															{recordedFlags.join(' · ')}
-														</span>
-													</Inline>
-												{/if}
-												<Inline
-													justify="end"
-													gap="xs"
-													class="text-micro tabular-nums text-muted-foreground"
+												<div
+													class={cn(
+														'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
+														item.photos.length > 1 && 'grid-cols-2',
+														item.photos.length > 4 && 'grid-cols-3'
+													)}
 												>
-													{#if item.photos.length === 1 && item.photos[0]?.fileSize != null}
-														<span>{formatFileSize(item.photos[0].fileSize)}</span>
-														<span aria-hidden="true">·</span>
-													{/if}
-													<time datetime={item.sentAt ?? undefined}
-														>{formatTimelineTime(item.sentAt)}</time
-													>
+													{#each item.photos as photo (photo.id)}
+														<button
+															type="button"
+															onclick={() => (openedPhoto = photo)}
+															class="group min-w-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															aria-label={t('component.open_photo', { name: photo.name })}
+															title={photo.name}
+														>
+															<img
+																src={photo.url}
+																alt={photo.name}
+																class={cn(
+																	'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
+																	item.photos.length === 1
+																		? 'h-28'
+																		: item.photos.length > 6
+																			? 'h-16'
+																			: 'h-20'
+																)}
+																loading="lazy"
+																decoding="async"
+															/>
+														</button>
+													{/each}
+												</div>
+											{/if}
+											{#if mayReadSuspicion && recordedFlags.length > 0}
+												<Inline align="start" gap="xs" class="text-micro text-muted-foreground">
+													<Icon
+														icon="lucide:scan-search"
+														class="mt-0.5 size-3 shrink-0"
+														aria-hidden="true"
+													/>
+													<span class="break-words [overflow-wrap:anywhere]">
+														{recordedFlags.join(' · ')}
+													</span>
 												</Inline>
-											</Stack>
-										</article>
-									</li>
-								{/each}
-							</Stack>
-						{/if}
-					</Scroll>
-					{#if conversationAwayFromLatest && communicationTimeline.length > 0}
-						<div class="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-							<Button
-								size="sm"
-								variant="secondary"
-								class="pointer-events-auto shadow-sm"
-								onclick={scrollConversationToLatest}
-							>
-								<Icon icon="lucide:arrow-down" class="size-3.5 shrink-0" />
-								{t('component.conversation_to_latest')}
-							</Button>
-						</div>
+											{/if}
+											<Inline
+												justify="end"
+												gap="xs"
+												class="text-micro tabular-nums text-muted-foreground"
+											>
+												{#if item.photos.length === 1 && item.photos[0]?.fileSize != null}
+													<span>{formatFileSize(item.photos[0].fileSize)}</span>
+													<span aria-hidden="true">·</span>
+												{/if}
+												<time datetime={item.sentAt ?? undefined}
+													>{formatTimelineTime(item.sentAt)}</time
+												>
+											</Inline>
+										</Stack>
+									</article>
+								</li>
+							{/each}
+						</Stack>
 					{/if}
-				</div>
-			</Stack>
-		</Scroll>
-	{/snippet}
+				</Scroll>
+				{#if conversationAwayFromLatest && communicationTimeline.length > 0}
+					<div class="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+						<Button
+							size="sm"
+							variant="secondary"
+							class="pointer-events-auto shadow-sm"
+							onclick={scrollConversationToLatest}
+						>
+							<Icon icon="lucide:arrow-down" class="size-3.5 shrink-0" />
+							{t('component.conversation_to_latest')}
+						</Button>
+					</div>
+				{/if}
+			</div>
+		</Stack>
+	</Scroll>
+{/snippet}
 
-	<Cover gap="sm" top={suspicionHeader}>
-		<Tabs
-			animate={false}
-			contentPadding={false}
-			listClass="mx-0 w-full"
-			config={[
+{#if record}
+	{@render suspicionHeader()}
+{/if}
+<RecordShell
+	title={record?.search_text ?? 'New assignment'}
+	{subtitle}
+	tabs={record
+		? ([
 				{
 					name: 'scope',
 					label: t('component.job_scope'),
@@ -1093,7 +1093,8 @@
 					name: 'activity',
 					label: t('component.status_and_activity'),
 					icon: 'lucide:clipboard-check',
-					content: statusAndActivity
+					content: statusAndActivity,
+					lazyLoad: false
 				},
 				{
 					name: 'variations',
@@ -1113,67 +1114,69 @@
 								name: 'suspicions',
 								label: t('component.suspicion_logs'),
 								icon: 'lucide:shield-alert',
-								content: suspicionLogs
+								content: suspicionLogs,
+								lazyLoad: false
 							}
 						]
 					: [])
-			] satisfies TabConfig[]}
-		/>
-	</Cover>
-{:else}
-	<CollectionForm
-		client={collectionClient}
-		collection="job_assignments"
-		submitLabel={t('component.create_assignment')}
-		onAfterSubmit={close}
-	>
-		{#snippet children({ Field })}
-			<Field name="dispatched_at" hidden />
-			<Field name="status" hidden />
-			<Field name="completed_at" hidden />
-			<Field name="amount_charged" hidden />
-			<Field name="location" hidden />
-			<Field name="summary" hidden />
-			<Field name="source_message_id" hidden />
-			<Field name="suspicion_checked_at" hidden />
-			<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
-			<Field name="search_text" hidden />
-			<Grid minimum="panel">
-				<Field
-					name="job_id"
-					label={t('component.job')}
-					relationOptions={{
-						label: (record) => {
-							const v = record.title;
-							return v != null && v !== '' ? String(v) : '—';
-						},
-						orderBy: { title: 'asc' },
-						limit: 500
-					}}
-				/>
-				<!--
+			] satisfies TabConfig[])
+		: undefined}
+>
+	{#if record == null}
+		<CollectionForm
+			client={collectionClient}
+			collection="job_assignments"
+			submitLabel={t('component.create_assignment')}
+			onAfterSubmit={close}
+		>
+			{#snippet children({ Field })}
+				<Field name="dispatched_at" hidden />
+				<Field name="status" hidden />
+				<Field name="completed_at" hidden />
+				<Field name="amount_charged" hidden />
+				<Field name="location" hidden />
+				<Field name="summary" hidden />
+				<Field name="source_message_id" hidden />
+				<Field name="suspicion_checked_at" hidden />
+				<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
+				<Field name="search_text" hidden />
+				<Grid minimum="panel">
+					<Field
+						name="job_id"
+						label={t('component.job')}
+						relationOptions={{
+							label: (record) => {
+								const v = record.title;
+								return v != null && v !== '' ? String(v) : '—';
+							},
+							orderBy: { title: 'asc' },
+							limit: 500
+						}}
+					/>
+					<!--
 					The assignee is a person, so the picker reads the identity directory directly.
 
 					`user` is granted to any authenticated subject masked to `id` and
 					`name`; there is no workspace collection describing a contractor to point at, and the one
 					that used to be here carried nothing this row does not.
 				-->
-				<Field
-					name="assignee_user_id"
-					label={t('component.contractor')}
-					relationOptions={{
-						label: (record) => {
-							const v = record.name;
-							return v != null && v !== '' ? String(v) : '—';
-						},
-						orderBy: { name: 'asc' },
-						limit: 500
-					}}
-				/>
-			</Grid>
-		{/snippet}
-	</CollectionForm>
-{/if}
+					<Field
+						name="assignee_user_id"
+						label={t('component.contractor')}
+						relationOptions={{
+							label: (record) => {
+								const v = record.name;
+								return v != null && v !== '' ? String(v) : '—';
+							},
+							orderBy: { name: 'asc' },
+							limit: 500
+						}}
+					/>
+				</Grid>
+			{/snippet}
+		</CollectionForm>
+	{/if}
+</RecordShell>
 
 <!--
 	The opened photograph, over the record rather than instead of it.

@@ -17,10 +17,14 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const subtitle = $derived(
+		record == null || record.flags.length === 0 ? undefined : record.flags.join(' · ')
+	);
 	const platform = getPlatformStateContext();
 	/**
 	 * Integrity review facts are controller framing. The shell already exposes the apps this subject
@@ -37,67 +41,70 @@
 	/>
 </svelte:head>
 
-{#if record}
-	<CollectionForm
-		client={collectionClient}
-		collection="photo_evidence"
-		defaultValues={record}
-		disabled
-	>
-		{#snippet children({ Field })}
-			<Field name="source_key" hidden />
-			<Field name="sha256" hidden />
-			<Field name="perceptual_embedding" hidden />
-			<Grid minimum="compact">
-				<!-- A file() column: the value carries the file's own name, which is what DataRenderer
-				paints, so no key or id reaches the operator. -->
-				<Column span="all"><Field name="photo" label={t('component.photo')} /></Column>
-				<Field
-					name="job_assignment_id"
-					label={t('component.job_assignment')}
-					relationOptions={{
-						label: (record) => {
-							const dispatched = record.dispatched_at;
-							const when = dispatched == null ? null : String(dispatched).slice(0, 10);
-							return (
-								[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
-								'—'
-							);
-						},
-						orderBy: { dispatched_at: 'desc' },
-						limit: 500
-					}}
-				/>
-				<Field
-					name="variation_request_id"
-					label={t('component.variation_request')}
-					relationOptions={{
-						label: (record) =>
-							record.title != null && record.title !== '' ? String(record.title) : '—',
-						orderBy: { requested_at: 'desc' },
-						limit: 500
-					}}
-				/>
-				{#if mayReadReviewFacts}
-					<Column span="all"><Field name="source" label={t('component.source')} /></Column>
-					<Column span="all"><Field name="flags" label={t('component.integrity_flags')} /></Column>
-					<Column span="all">
-						<Field
-							name="matched_evidence_ids"
-							label={t('component.duplicates_of')}
-							relationOptions={{
-								label: (record) =>
-									record.summary != null && record.summary !== '' ? String(record.summary) : '—',
-								limit: 500
-							}}
-						/>
-					</Column>
-				{/if}
-			</Grid>
-		{/snippet}
-	</CollectionForm>
-{:else}
-	<p class="text-sm text-muted-foreground">
-		{t('component.evidence_write_only')}
-	</p>
-{/if}
+<RecordShell title={record?.summary ?? 'New photo evidence'} {subtitle}>
+	{#if record}
+		<CollectionForm
+			client={collectionClient}
+			collection="photo_evidence"
+			defaultValues={record}
+			disabled
+		>
+			{#snippet children({ Field })}
+				<Field name="source_key" hidden />
+				<Field name="sha256" hidden />
+				<Field name="perceptual_embedding" hidden />
+				<Grid minimum="compact">
+					<!-- A file() column: the value carries the file's own name, which is what DataRenderer
+					paints, so no key or id reaches the operator. -->
+					<Column span="all"><Field name="photo" label={t('component.photo')} /></Column>
+					<Field
+						name="job_assignment_id"
+						label={t('component.job_assignment')}
+						relationOptions={{
+							label: (record) => {
+								const dispatched = record.dispatched_at;
+								const when = dispatched == null ? null : String(dispatched).slice(0, 10);
+								return (
+									[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
+									'—'
+								);
+							},
+							orderBy: { dispatched_at: 'desc' },
+							limit: 500
+						}}
+					/>
+					<Field
+						name="variation_request_id"
+						label={t('component.variation_request')}
+						relationOptions={{
+							label: (record) =>
+								record.title != null && record.title !== '' ? String(record.title) : '—',
+							orderBy: { requested_at: 'desc' },
+							limit: 500
+						}}
+					/>
+					{#if mayReadReviewFacts}
+						<Column span="all"><Field name="source" label={t('component.source')} /></Column>
+						<Column span="all"><Field name="flags" label={t('component.integrity_flags')} /></Column
+						>
+						<Column span="all">
+							<Field
+								name="matched_evidence_ids"
+								label={t('component.duplicates_of')}
+								relationOptions={{
+									label: (record) =>
+										record.summary != null && record.summary !== '' ? String(record.summary) : '—',
+									limit: 500
+								}}
+							/>
+						</Column>
+					{/if}
+				</Grid>
+			{/snippet}
+		</CollectionForm>
+	{:else}
+		<p class="text-sm text-muted-foreground">
+			{t('component.evidence_write_only')}
+		</p>
+	{/if}
+</RecordShell>

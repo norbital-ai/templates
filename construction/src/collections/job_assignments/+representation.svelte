@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -13,64 +14,70 @@
 	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	const subtitle = $derived(
+		record == null ? undefined : `${record.role ?? '—'} · ${record.status ?? '—'}`
+	);
 </script>
 
-<CollectionForm
-	client={workspaceClient}
-	collection="job_assignments"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="required_certifications" hidden />
-		<Grid minimum="compact">
-			<Field name="assignment_code" />
-			<Field name="status" />
-			<Field
-				name="job_id"
-				label={t('component.job')}
-				relationOptions={{
-					label: (record) => {
-						const v = record.job_title;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { job_title: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="worker_id"
-				label={t('component.worker')}
-				relationOptions={{
-					label: (record) => {
-						const number = record.worker_number;
-						const name = record.worker_name;
-						if (number && name) return `${number} · ${name}`;
-						const v = record.worker_name;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { worker_number: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="site_location_id"
-				label={t('component.site_location')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.location_code;
-						const name = record.location_name;
-						if (code && name) return `${code} · ${name}`;
-						const v = record.location_name;
-						return v != null && v !== '' ? String(v) : '—';
-					},
-					orderBy: { location_code: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="role" />
-			<Field name="assignment_range" />
-			<Field name="hours_per_day" />
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.assignment_code ?? 'New assignment'} {subtitle}>
+	<CollectionForm
+		client={workspaceClient}
+		collection="job_assignments"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="required_certifications" hidden />
+			<Grid minimum="compact">
+				<Field name="assignment_code" />
+				<Field name="status" />
+				<Field
+					name="job_id"
+					label={t('component.job')}
+					relationOptions={{
+						label: (record) => {
+							const v = record.job_title;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { job_title: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="worker_id"
+					label={t('component.worker')}
+					relationOptions={{
+						label: (record) => {
+							const number = record.worker_number;
+							const name = record.worker_name;
+							if (number && name) return `${number} · ${name}`;
+							const v = record.worker_name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { worker_number: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="site_location_id"
+					label={t('component.site_location')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.location_code;
+							const name = record.location_name;
+							if (code && name) return `${code} · ${name}`;
+							const v = record.location_name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { location_code: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="role" />
+				<Field name="assignment_range" />
+				<Field name="hours_per_day" />
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>
