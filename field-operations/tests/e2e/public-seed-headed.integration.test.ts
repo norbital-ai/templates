@@ -438,6 +438,104 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 	}
 });
 
+/**
+ * A send whose turn outlives the composer's own wall.
+ *
+ * Every other conversation test here gates the provider and releases it within a second or two, so
+ * the send returns long before the composer's deadline and the deadline itself is never exercised.
+ * That is how a five-second wall survived the change that made `conversations.send` admit *and*
+ * answer in one invocation: from then on the browser aborted the request mid-reply and painted "The
+ * Task did not admit within 5 seconds" over a conversation that was still running, on every real
+ * turn. The suite stayed green because no test ever made a turn take five seconds.
+ *
+ * Eight seconds is enough to prove it — comfortably past the old wall, and far under the new one.
+ */
+it('does not give up on a turn that takes longer than the old five-second wall', async () => {
+	const SLOW_TURN_MILLIS = 8_000;
+	const encode = Schema.encodeSync(Prompt.Message);
+	let session: Awaited<ReturnType<typeof bootFieldOps>> | undefined;
+	let gateway: Awaited<ReturnType<typeof openControllerGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	const ai = makeAiBinding({
+		call: async (
+			_metadata: unknown,
+			request: { readonly _tag: string; readonly callId?: string; readonly modelId?: string }
+		) => {
+			if (request._tag === 'Catalog') {
+				return {
+					_tag: 'Catalog' as const,
+					languageModels: [{ id: 'slow/language', contextWindowTokens: 1_000_000 }],
+					defaultLanguageModelId: 'slow/language',
+					embeddingModels: [{ id: 'slow/embedding', contextWindowTokens: 1_000_000 }],
+					defaultEmbeddingModelId: 'slow/embedding'
+				};
+			}
+			await new Promise((resolve) => setTimeout(resolve, SLOW_TURN_MILLIS));
+			return {
+				_tag: 'Generated' as const,
+				result: {
+					_tag: 'Message' as const,
+					message: encode(
+						Prompt.assistantMessage({
+							content: [Prompt.textPart({ text: 'Answered after a long think.' })]
+						})
+					)
+				},
+				observation: {
+					callId: request.callId,
+					provider: 'slow',
+					model: request.modelId,
+					operation: 'language' as const,
+					usage: { inputTokens: { total: 300 }, outputTokens: { total: 20 } }
+				}
+			};
+		}
+	});
+	try {
+		session = await bootFieldOps('field-ops-slow-turn', ai);
+		gateway = await openControllerGateway(session, 'field-ops-slow-turn');
+		browser = await launchChromiumOrSkip();
+		assert.ok(browser, 'Chromium is required; this must not pass vacuously.');
+		const page = await browser.openPage(controllerUrl(gateway.address.port));
+		await page.click('[data-testid="workspace-agent-trigger"]');
+		await send(page, 'Take your time.');
+
+		/**
+		 * Checked while the turn is still running, not after it finishes.
+		 *
+		 * The reply arrives over live sync whether or not the browser abandoned its request, and the
+		 * failure the composer paints is cleared once it lands — so asserting after the reply sees a
+		 * clean panel either way and proves nothing. This assertion was written that way first and
+		 * passed against a deliberately reintroduced five-second wall. Six seconds is past the old
+		 * wall and before the provider answers: the only window in which the defect is visible.
+		 */
+		await new Promise((resolve) => setTimeout(resolve, 6_000));
+		const midTurn = String(await page.evaluate('document.body.innerText'));
+		/**
+		 * Every shape the abandonment takes, because it does not always reach the friendly sentence.
+		 * `AbortSignal.timeout` interrupts the fiber, so the panel showed "All fibers interrupted
+		 * without error" here while staging showed "The Task did not admit within 5 seconds" — the
+		 * same defect surfacing through two different failure paths. Matching only the sentence let
+		 * a deliberately reintroduced five-second wall pass this row.
+		 */
+		assert.doesNotMatch(
+			midTurn,
+			/did not admit within|did not answer within|fibers interrupted|interrupted without error/u,
+			`the composer gave up on a turn that was still running: ${midTurn.slice(-400)}`
+		);
+		assert.ok(
+			midTurn.includes('Take your time.'),
+			"the operator's message is still painted while the turn runs"
+		);
+		// And the reply still lands.
+		await waitText(page, 'Answered after a long think.');
+	} finally {
+		await browser?.close();
+		await gateway?.stop();
+		await session?.stop();
+	}
+});
+
 it('field-ops pointer drag persists completion and remains completed after opening a fresh page', async () => {
 	const session = await bootFieldOps('field-ops-drag');
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
