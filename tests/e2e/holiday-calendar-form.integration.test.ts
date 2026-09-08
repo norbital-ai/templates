@@ -215,71 +215,74 @@ it('Settings saves a Google source, imports a reviewed draft and publishes only 
 		await unlockDeferredQueries(page);
 		await clickNamed(page, '[role="tab"]', 'Holidays');
 		await clickNamed(page, '[role="tab"]', 'Google sources');
+		const sourceInput = (name: string) => `[role="tabpanel"] [data-holiday-source="${name}"]`;
 		await perform(
 			page,
-			`(() => {
-			${ACTIVATE}
-			const node = [...document.querySelectorAll('[data-collection-table-surface] button')].find((button) => /^New\\b/.test(button.textContent?.trim() ?? ''));
-			if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
-			activate(node); return true;
-		})()`,
-			'create source button'
+			`document.querySelector(${JSON.stringify(sourceInput('calendar_id'))}) != null`,
+			'source form'
 		);
-		await fill(page, fieldInput('jurisdiction_code'), 'TEST-JUR');
-		await fill(page, fieldInput('calendar_id'), 'initial-browser-fixture');
-		await fill(page, fieldInput('time_zone'), 'UTC');
+		await fill(page, sourceInput('calendar_id'), 'initial-browser-fixture');
+		await fill(page, sourceInput('time_zone'), 'UTC');
 		const sourceForm = await readFormAudit(page);
-		assertFormPresentable(sourceForm, 'Google source create', new Set<string>());
-		assert.deepEqual(sourceForm.fields.map((field) => field.name).toSorted(), [
-			'calendar_id',
-			'enabled',
-			'jurisdiction_code',
-			'time_zone'
-		]);
-		await submit(page);
+		assertFormPresentable(sourceForm, 'Google source', new Set<string>());
+		assert.deepEqual(
+			sourceForm.fields.map((field) => field.name),
+			['holiday_source']
+		);
+		const submitSource = () =>
+			perform(
+				page,
+				`(() => {
+				${ACTIVATE}
+				const node = document.querySelector('[role="tabpanel"] form button[type="submit"]');
+				if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
+				activate(node);
+				return true;
+			})()`,
+				'submit holiday source'
+			);
+		await submitSource();
+		const sourceOf = (row: unknown) =>
+			asRecord(asRecord(row, 'settings version').holiday_source, 'saved source');
 		const sources = await until(
 			() =>
 				session.query(
-					'select id, calendar_id, time_zone, enabled from jurisdiction_holiday_sources where jurisdiction_code = $1',
+					'select holiday_source from jurisdiction_settings where jurisdiction_code = $1 and holiday_source is not null',
 					['TEST-JUR']
 				),
 			(rows) => rows.length === 1,
-			'source persisted from create form'
+			'source persisted on the settings version'
 		);
-		const source = asRecord(sources[0], 'saved source');
-		assert.equal(source.calendar_id, 'initial-browser-fixture');
-		assert.equal(source.time_zone, 'UTC');
-		assert.equal(source.enabled, true);
-		await closeOverlay(page);
-		await openRecord(page, 'jurisdiction_holiday_sources', String(source.id), 'calendar_id');
-		await fill(page, fieldInput('calendar_id'), CALENDAR_ID);
-		await fill(page, fieldInput('time_zone'), 'Asia/Singapore');
+		assert.equal(sourceOf(sources[0]).calendar_id, 'initial-browser-fixture');
+		assert.equal(sourceOf(sources[0]).time_zone, 'UTC');
+		assert.equal(sourceOf(sources[0]).enabled, true);
+		await fill(page, sourceInput('calendar_id'), CALENDAR_ID);
+		await fill(page, sourceInput('time_zone'), 'Asia/Singapore');
 		await perform(
 			page,
 			`(() => {
 			${ACTIVATE}
-			const node = (${DIALOG})?.querySelector('[data-collection-field="enabled"] [role="checkbox"], [data-collection-field="enabled"] [role="switch"], [data-collection-field="enabled"] input[type="checkbox"]');
-			if (!(node instanceof HTMLElement)) return false;
-			if (node.getAttribute('aria-checked') === 'true' || node instanceof HTMLInputElement && node.checked) activate(node);
+			const node = document.querySelector(${JSON.stringify(sourceInput('enabled'))});
+			if (!(node instanceof HTMLInputElement)) return false;
+			if (node.checked) activate(node);
 			return true;
 		})()`,
 			'disable automatic source preparation'
 		);
-		await submit(page);
+		await submitSource();
 		await until(
 			() =>
 				session.query(
-					'select calendar_id, time_zone, enabled from jurisdiction_holiday_sources where id = $1',
-					[source.id]
+					'select holiday_source from jurisdiction_settings where jurisdiction_code = $1 and holiday_source is not null',
+					['TEST-JUR']
 				),
 			(rows) =>
 				rows.length === 1 &&
-				asRecord(rows[0], 'edited source').calendar_id === CALENDAR_ID &&
-				asRecord(rows[0], 'edited source').enabled === false &&
-				asRecord(rows[0], 'edited source').time_zone === 'Asia/Singapore',
+				sourceOf(rows[0]).calendar_id === CALENDAR_ID &&
+				sourceOf(rows[0]).enabled === false &&
+				sourceOf(rows[0]).time_zone === 'Asia/Singapore',
 			'source edits persisted'
 		);
-		await closeOverlay(page);
 		await navigate(page, SETTINGS);
 		await clickNamed(page, '[role="tab"]', 'Holidays');
 		await clickNamed(page, '[role="tab"]', 'Annual calendars');

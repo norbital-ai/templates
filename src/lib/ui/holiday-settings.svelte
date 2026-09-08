@@ -5,12 +5,28 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
+	import { Effect } from 'effect';
+	import { toast } from 'svelte-sonner';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
+	import HolidaySourceRenderer from '../../datatypes/holiday_source/+renderer.svelte';
 	import { Bound, Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs } from '@norbital-ai/ui/tabs';
 	import { todayKey } from './calendar.js';
 
-	let { jurisdictionCode }: { jurisdictionCode: string } = $props();
+	import type { WorkspaceRow } from '$bolt/types.js';
+
+	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
+	const jurisdictionCode = $derived(version.jurisdiction_code);
+	/**
+	 * One-column write, like the seal and the void: a whole-row form would carry `sealed_at` and
+	 * be routed to approval, while the source is operational configuration set under a seal.
+	 */
+	let sourceDraft = $state<WorkspaceRow<'jurisdiction_settings'>['holiday_source']>(null);
+	let sourceError = $state<string | null>(null);
+	$effect(() => {
+		sourceDraft = version.holiday_source;
+	});
 	const { t } = useI18n<TenantI18nKeys>();
 	let year = $state(Number(todayKey().slice(0, 4)) + 1);
 	let error = $state<string | null>(null);
@@ -99,23 +115,42 @@
 {/snippet}
 
 {#snippet sources()}
-	<CollectionTable
-		{client}
-		collection="jurisdiction_holiday_sources"
-		view="hr_controller:settings:holiday_sources"
-		title={t('holiday_source.title')}
-		description={t('holiday_source.description')}
-		query={{
-			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } }
+	<form
+		class="flex flex-col gap-3"
+		onsubmit={(event) => {
+			event.preventDefault();
+			sourceError = null;
+			Effect.runFork(
+				submitCollectionMutation(() =>
+					client.db.jurisdiction_settings.mutate([{ id: version.id, holiday_source: sourceDraft }])
+				).pipe(
+					Effect.tap(() => Effect.sync(() => toast.success(t('holiday_source.saved')))),
+					Effect.catch((cause) =>
+						Effect.sync(() => {
+							sourceError = getErrorMessage(cause);
+						})
+					)
+				)
+			);
 		}}
 	>
-		{#snippet columns({ Column })}
-			<Column name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} card="title" />
-			<Column name="calendar_id" label={t('holiday_source.calendar_id')} />
-			<Column name="time_zone" label={t('holiday_source.time_zone')} />
-			<Column name="enabled" label={t('holiday_source.enabled')} />
-		{/snippet}
-	</CollectionTable>
+		<div data-collection-field="holiday_source" class="flex flex-col gap-2">
+			<label class="text-sm font-semibold" for="holiday-source-calendar"
+				>{t('holiday_source.title')}</label
+			>
+			<HolidaySourceRenderer
+				mode="edit"
+				field={{ name: 'holiday_source', type: 'custom' }}
+				value={sourceDraft}
+				disabled={false}
+				onValueChange={(value) => {
+					sourceDraft = value;
+				}}
+			/>
+		</div>
+		{#if sourceError}<p class="text-sm text-destructive" role="alert">{sourceError}</p>{/if}
+		<Cluster><Button type="submit" size="sm">{t('holiday_source.save')}</Button></Cluster>
+	</form>
 {/snippet}
 
 <Tabs

@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import automation, { runHolidayImport } from '../src/automations/+holiday_import.ts';
+import { holidaySources } from '../src/lib/holiday-import.ts';
 
-const source = {
+const version = {
 	jurisdiction_code: 'TEST',
-	calendar_id: 'public-holidays',
-	time_zone: 'Asia/Singapore',
-	enabled: true
+	sealed_at: '2025-01-01T00:00:00.000Z',
+	voided_at: null,
+	effective_range: { start: '2025-01-01T00:00:00.000Z', end: null },
+	holiday_source: { calendar_id: 'public-holidays', time_zone: 'Asia/Singapore', enabled: true }
 };
 const event = {
 	id: 'festival',
@@ -36,7 +38,7 @@ test('the annual job reads every page before one draft write and never publishes
 			}
 		},
 		db: {
-			jurisdiction_holiday_sources: { findMany: () => Effect.succeed([source]) },
+			jurisdiction_settings: { findMany: () => Effect.succeed([version]) },
 			jurisdiction_holiday_calendars: {
 				// Nothing before the write; afterwards the draft the job reads back for its id.
 				findMany: () =>
@@ -63,13 +65,40 @@ test('the annual job reads every page before one draft write and never publishes
 	assert.equal(automation.spec.connection.authentication.value.env, 'GOOGLE_CALENDAR_API_KEY');
 });
 
+test('the source is read off the version in force; a named jurisdiction imports even when disabled', () => {
+	const draft = {
+		...version,
+		sealed_at: null,
+		effective_range: { start: '2027-01-01T00:00:00.000Z', end: null },
+		holiday_source: { calendar_id: 'draft-calendar', time_zone: 'UTC', enabled: true }
+	};
+	const older = {
+		...version,
+		effective_range: { start: '2020-01-01T00:00:00.000Z', end: '2024-12-31T23:59:59.999Z' },
+		holiday_source: { calendar_id: 'old-calendar', time_zone: 'UTC', enabled: true }
+	};
+	const off = {
+		...version,
+		jurisdiction_code: 'OTHER',
+		holiday_source: { calendar_id: 'other', time_zone: 'UTC', enabled: false }
+	};
+	assert.deepEqual(
+		holidaySources([draft, older, version, off, { ...version, holiday_source: null }]),
+		[{ jurisdiction_code: 'TEST', calendar_id: 'public-holidays', time_zone: 'Asia/Singapore' }]
+	);
+	assert.deepEqual(holidaySources([off], 'OTHER'), [
+		{ jurisdiction_code: 'OTHER', calendar_id: 'other', time_zone: 'UTC' }
+	]);
+	assert.deepEqual(holidaySources([off]), []);
+});
+
 test('a provider failure leaves existing annual drafts untouched', async () => {
 	let writes = 0;
 	const api = {
 		progress: () => Effect.void,
 		connection: { get: () => Effect.succeed({ status: 503, headers: {}, body: 'Unavailable' }) },
 		db: {
-			jurisdiction_holiday_sources: { findMany: () => Effect.succeed([source]) },
+			jurisdiction_settings: { findMany: () => Effect.succeed([version]) },
 			jurisdiction_holiday_calendars: {
 				mutate: () =>
 					Effect.sync(() => {

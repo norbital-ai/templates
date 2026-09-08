@@ -4,7 +4,7 @@ export default {
 	description:
 		'Reads configured jurisdiction holiday sources and prepares or refreshes import evidence on annual drafts. It cannot publish calendars, change observations directly or delete history.',
 	grants: {
-		jurisdiction_holiday_sources: { read: {} },
+		jurisdiction_settings: { read: {} },
 		holiday_calendar_inputs: { read: {} },
 		jurisdiction_holiday_calendars: {
 			read: {},

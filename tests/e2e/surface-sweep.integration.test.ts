@@ -89,7 +89,6 @@ const NO_REPRESENTATION = new Set([
  */
 const UNSEEDED_COLLECTIONS = new Set([
 	'claim_requests',
-	'jurisdiction_holiday_sources',
 	'loan_catalogue',
 	'loans',
 	'payment_requests',

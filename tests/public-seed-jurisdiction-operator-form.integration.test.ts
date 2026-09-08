@@ -76,7 +76,14 @@ test(
 			const catalog = mutationFieldNames(settings.fields);
 			assert.deepEqual(
 				[...JURISDICTION_OPERATOR_HIDDEN_FIELDS],
-				['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id', 'research_notes']
+				[
+					'sealed_at',
+					'voided_at',
+					'void_reason',
+					'cloned_from_id',
+					'research_notes',
+					'holiday_source'
+				]
 			);
 			assert.deepEqual(
 				[...JURISDICTION_OPERATOR_VISIBLE_FIELDS],

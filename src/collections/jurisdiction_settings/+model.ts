@@ -32,11 +32,16 @@ export default defineModel(
 		research_urls: text().array(),
 		/** Set by the statutory drift automation on the draft it proposes; the review sheet. */
 		research_notes: custom('statutory_proposal'),
+		/**
+		 * The Google holiday calendar this jurisdiction's annual drafts are read from. Operational,
+		 * not law: it may be edited on a sealed version, and the import reads the version in force.
+		 */
+		holiday_source: custom('holiday_source'),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:
-			'One version of a jurisdiction settings lineage: currency, tax year and effective period, owning its family catalogues and contribution rate bands. Holiday calendars publish separately. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
+			'One version of a jurisdiction settings lineage: currency, tax year and effective period, owning its family catalogues and schemes, and naming the Google holiday source of its jurisdiction. Holiday calendars publish separately. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
 		recordLabel: 'name',
 		icon: 'lucide:globe',
 		indexes: [{ columns: ['code'] }, { columns: ['code', 'sealed_at'] }],
