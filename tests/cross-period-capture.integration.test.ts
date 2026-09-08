@@ -126,7 +126,7 @@ async function withSpanningLeave(world) {
 			end: '2026-02-02'
 		})
 	);
-	const { holidayInputs, termsThrough, certificateRequired, ...entry } = planLeaveActivity(
+	const { certificateRequired, ...entry } = planLeaveActivity(
 		context,
 		{
 			employment_id: EMPLOYMENT_ID,

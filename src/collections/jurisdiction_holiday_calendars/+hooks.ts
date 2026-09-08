@@ -4,6 +4,7 @@ import { validateHolidayCalendar } from '../../lib/holiday-calendar.js';
 import { changedHolidayDates } from '../../lib/holiday-inputs.js';
 import { mergeHolidayImport } from '../../lib/holiday-import.js';
 import { stableJson } from '../../lib/jurisdiction_settings.js';
+import { dateKey } from '../../lib/iso-day.js';
 import type { Hooks } from './$types.js';
 
 export default {
@@ -74,23 +75,6 @@ export default {
 							revision: row.revision,
 							observations: row.observations
 						});
-						if (existing) {
-							const changed = changedHolidayDates(existing.observations, row.observations);
-							const captured =
-								changed.length === 0
-									? null
-									: yield* api.db.holiday_calendar_inputs.findFirst({
-											where: {
-												jurisdiction_code: { eq: existing.jurisdiction_code },
-												date: { in: changed },
-												approval_id: { isNull: true }
-											}
-										});
-							if (captured)
-								refuse(
-									`Holiday input ${existing.jurisdiction_code} ${captured.date} is sealed. Retain the existing observation.`
-								);
-						}
 						if (row.published_at != null) {
 							if (row.import_review?.events.some((event) => event.review_required))
 								refuse(
@@ -127,21 +111,47 @@ export default {
 								stableJson(previousEvidence) === stableJson(nextEvidence)
 							)
 								refuse('These observations are already published. No new revision is needed.');
-							// Existence, not a full scan of every employee capture, is the invariant.
-							// The read guard also protects the empty result from concurrent consumption.
-							const captured = !changed.length
-								? null
-								: yield* api.db.holiday_calendar_inputs.findFirst({
-										where: {
-											jurisdiction_code: { eq: row.jurisdiction_code },
-											date: { in: changed },
-											approval_id: { isNull: true }
-										}
-									});
-							if (captured)
-								refuse(
-									`Holiday input ${row.jurisdiction_code} ${captured.date} is sealed by a workday or payroll calculation. It cannot be changed, shifted or removed.`
-								);
+							// A changed date is sealed by the consumers that classified it: a work day pinned to
+							// any revision of this jurisdiction, or a run of this jurisdiction covering it (a
+							// draft froze its snapshot too; deleting the draft releases the date).
+							// Existence is the invariant; the read guard protects the empty result too.
+							if (changed.length) {
+								const revisions = yield* api.db.jurisdiction_holiday_calendars.findMany({
+									where: { jurisdiction_code: { eq: row.jurisdiction_code } },
+									columns: { id: true },
+									limit: 20_000
+								});
+								const pinnedDay = yield* api.db.work_days.findFirst({
+									where: {
+										work_date: { in: changed },
+										holiday_calendar_id: { in: revisions.map((revision) => revision.id) }
+									},
+									columns: { work_date: true }
+								});
+								if (pinnedDay)
+									refuse(
+										`Holiday input ${row.jurisdiction_code} ${dateKey(pinnedDay.work_date)} is sealed by a workday. It cannot be changed, shifted or removed.`
+									);
+								const versions = yield* api.db.jurisdiction_settings.findMany({
+									where: { jurisdiction_code: { eq: row.jurisdiction_code } },
+									columns: { id: true },
+									limit: 20_000
+								});
+								const paid = versions.length
+									? yield* api.db.payroll_runs.findFirst({
+											where: {
+												settings_id: { in: versions.map((version) => version.id) },
+												attendance_from: { lte: changed.at(-1)! },
+												attendance_to: { gte: changed[0]! }
+											},
+											columns: { period: true, lifecycle: true }
+										})
+									: null;
+								if (paid)
+									refuse(
+										`Holiday input ${row.jurisdiction_code} ${changed[0]} is sealed by the ${paid.lifecycle.toLowerCase()} ${paid.period} payroll calculation. It cannot be changed, shifted or removed.`
+									);
+							}
 						}
 						return {
 							...input,

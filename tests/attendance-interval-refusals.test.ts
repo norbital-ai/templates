@@ -67,7 +67,6 @@ const api = {
 					}
 				])
 		},
-		holiday_calendar_inputs: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) },
 		payslip_work_day_inputs: { findFirst: () => Effect.succeed(null) },
 		leave_entries: { findMany: () => Effect.succeed([]) }
@@ -175,19 +174,8 @@ test('a day reviewed and found empty is a legal statement, and a break on nothin
 	// first, and `unpaidBreak > 0` in the rule above is what keeps that write legal.
 	const reviewed = write({ worked_intervals: [], break_minutes: 0 });
 	assert.deepEqual(reviewed.worked_intervals, []);
-	assert.deepEqual(reviewed.work_day_holiday_input, [
-		{
-			jurisdiction_code: 'TEST-JUR',
-			date: '2026-07-01',
-			calendar_id: 'calendar-2026'
-		}
-	]);
-	assert.deepEqual(reviewed.employment_contract_input, [
-		{
-			employment_id: 'emp-1',
-			terms_through: '2026-07-01'
-		}
-	]);
+	assert.equal(reviewed.holiday_calendar_id, 'calendar-2026');
+	assert.equal(reviewed.employment_id, 'emp-1');
 	assert.doesNotThrow(() => write({ worked_intervals: null, break_minutes: 0 }));
 	assert.throws(
 		() => write({ worked_intervals: [], break_minutes: 30 }),

@@ -1,4 +1,4 @@
-import { withContractInput } from '../../lib/employment-contract.js';
+import { boundToContract } from '../../lib/employment-contract.js';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
@@ -44,7 +44,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Validates a manual Leave activity, freezes its dated charges and credit allocations, and seals its holiday evidence in the same atomic graph.',
+					'Validates a manual Leave activity and freezes its dated charges and credit allocations; each charge carries the calendar it was measured against.',
 				handler: ({ input, existing, recordId, prepared }) => {
 					if (existing != null) {
 						if (
@@ -58,7 +58,7 @@ export default {
 							refuse(
 								'Approved leave entries are immutable. Submit a linked reversal and replacement.'
 							);
-						return withContractInput(input, existing);
+						return boundToContract(input, existing);
 					}
 					if (
 						input.employment_id == null ||
@@ -120,16 +120,10 @@ export default {
 					}
 					if (selected == null)
 						refuse('The leave transaction was not present in its prepared batch.');
-					const {
-						holidayInputs,
-						termsThrough,
-						certificateRequired: _certificateRequired,
-						...entry
-					} = selected;
+					const { certificateRequired: _certificateRequired, ...entry } = selected;
 					return {
-						...withContractInput(entry, existing, termsThrough),
-						certificate_file: input.certificate_file ?? null,
-						leave_holiday_input: holidayInputs.map((row) => ({ ...row, leave_entry_id: recordId }))
+						...boundToContract(entry, existing),
+						certificate_file: input.certificate_file ?? null
 					};
 				}
 			}

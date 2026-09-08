@@ -1,4 +1,4 @@
-import { withContractInput } from '../../lib/employment-contract.js';
+import { boundToContract } from '../../lib/employment-contract.js';
 import { loanScheduleRefusals } from '../../lib/loan-schedule.js';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
@@ -56,7 +56,7 @@ export default {
 							refuse(
 								`Loan recoveries settle as deductions, and component ${catalogue.code} is a ${catalogue.nature}.`
 							);
-						return withContractInput(input, existing);
+						return boundToContract(input, existing);
 					})
 			}
 		}

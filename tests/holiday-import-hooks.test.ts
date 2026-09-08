@@ -53,7 +53,12 @@ const run = (
 			api: {
 				db: {
 					jurisdiction_holiday_calendars: { findMany: () => Effect.succeed(previous) },
-					holiday_calendar_inputs: { findFirst: () => Effect.succeed(captured) }
+					work_days: {
+						findFirst: () =>
+							Effect.succeed(captured == null ? undefined : { work_date: captured.date })
+					},
+					jurisdiction_settings: { findMany: () => Effect.succeed([]) },
+					payroll_runs: { findFirst: () => Effect.succeed(undefined) }
 				}
 			}
 		} as unknown as Parameters<typeof handler>[0])
@@ -114,7 +119,12 @@ test('published history, stale review forms and sealed draft observation changes
 		),
 		/newer holiday import/
 	);
-	await assert.rejects(run({ observations: [] }, calendar, [], { date: manual.date }), /sealed/);
+	// A draft's observation is not sealed by a pinned date: nothing consumed the draft. Publication
+	// is where a pinned date refuses (below).
+	assert.deepEqual(
+		(await run({ observations: [] }, calendar, [], { date: manual.date })).observations,
+		[]
+	);
 });
 
 test('reviewing a moved source can publish new evidence while retaining every sealed observation', async () => {

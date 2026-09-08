@@ -71,7 +71,13 @@ export default defineModel(
 		 * workbook all measure in them. The operator enters and reads hours; that is presentation,
 		 * and it never reinterprets what is stored.
 		 */
-		break_minutes: integer().notNull().default(0)
+		break_minutes: integer().notNull().default(0),
+		/**
+		 * The published jurisdiction calendar revision this day was classified against, pinned at the
+		 * first write and kept while the date stands. Payroll reads it back so a later publication
+		 * cannot retroactively change what this day was.
+		 */
+		holiday_calendar_id: uuid()
 	},
 	{
 		description:

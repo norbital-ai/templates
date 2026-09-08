@@ -32,29 +32,6 @@ export type LeaveSubmission = {
 };
 
 /** Actual approval dates consume history; annual availability remains a recomputable projection. */
-export function leaveTermsThrough(
-	event: LeaveEvent,
-	charges: readonly LeaveCharge[],
-	exit: string | null
-) {
-	if (event.kind === 'TIME_OFF')
-		return (
-			charges
-				.map((charge) => charge.date)
-				.toSorted()
-				.at(-1) ?? null
-		);
-	const date =
-		event.kind === 'ENCASHMENT'
-			? [event.effective_on, event.source_window.end].toSorted()[0]!
-			: event.kind === 'CARRY_FORWARD'
-				? event.source_window.end
-				: event.kind === 'ADJUSTMENT' && event.days < 0
-					? event.effective_on
-					: null;
-	return date == null ? null : [date, ...(exit == null ? [] : [exit])].toSorted()[0]!;
-}
-
 /** Approved reversals cancel coverage, while held reversals leave the original reservation intact. */
 export function activeTimeOff(entries: readonly LeaveActivity[]) {
 	const reversed = new Set(
@@ -172,7 +149,6 @@ export function planLeaveActivity(
 	let event = input.event;
 	const charges: LeaveCharge[] = [];
 	const allocations: LeaveAllocation[] = [];
-	const holidayInputs: { jurisdiction_code: string; date: string; calendar_id: string }[] = [];
 	let certificateRequired = false;
 	const debit = (
 		window: LeaveWindow,
@@ -201,7 +177,6 @@ export function planLeaveActivity(
 				refuse('Time off must fall within the employment dates.');
 			for (const date of daysBetween(range.start.date, range.end.date)) {
 				const day = measureLeaveDay(context, rules, date, entries);
-				holidayInputs.push(day.evidence);
 				if (!day.eligible) {
 					if (day.reason === 'HOLIDAY' || day.reason === 'REST_OR_OFF') continue;
 					refuse(`Leave on ${date} cannot be approved: ${day.reason}.`);
@@ -375,8 +350,6 @@ export function planLeaveActivity(
 		event,
 		charges,
 		allocations,
-		holidayInputs,
-		termsThrough: leaveTermsThrough(event, charges, rules.exit),
 		certificateRequired
 	};
 }

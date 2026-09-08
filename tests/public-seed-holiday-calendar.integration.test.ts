@@ -187,15 +187,6 @@ test(
 				'frozen calendars'
 			);
 			const frozen = run.holiday_calendars;
-			const capturedDates = await session.query(
-				'select calendar_id from holiday_calendar_inputs where payroll_run_id = $1',
-				[runId]
-			);
-			assert.equal(
-				capturedDates.length,
-				62,
-				'December and January dates captured atomically with payroll'
-			);
 			assert.ok(Array.isArray(frozen));
 			assert.deepEqual(
 				frozen.map((calendar) => asRecord(calendar, 'annual snapshot').year),
@@ -251,28 +242,25 @@ test(
 				(await session.query('select row_version from work_days where id = $1', [workDayId]))[0],
 				'linked workday'
 			);
-			const [workdayCapture] = await session.query(
-				'select id, calendar_id from holiday_calendar_inputs where work_day_id = $1',
+			const retainedBefore = await session.query(
+				'select holiday_calendar_id from work_days where id = $1',
 				[workDayId]
 			);
-			assert.ok(workdayCapture, 'workday and holiday capture committed together');
-			const capturedId = asRecord(workdayCapture, 'workday capture').id;
-			const retainedBefore = await session.query(
-				'select * from holiday_calendar_inputs where work_day_id = $1',
-				[workDayId]
+			assert.ok(
+				asRecord(retainedBefore[0], 'workday pin').holiday_calendar_id,
+				'workday pins its calendar revision on the write'
 			);
 			requireAccepted(
 				(await write({ id: workDayId, break_minutes: 0 }, true, 'work_days')).value,
 				'edit uncaptured workday without changing its holiday evidence'
 			);
 			const retainedAfter = await session.query(
-				'select * from holiday_calendar_inputs where work_day_id = $1',
+				'select holiday_calendar_id from work_days where id = $1',
 				[workDayId]
 			);
-			assert.equal(retainedAfter.length, 1, 'editing the same date creates no duplicate capture');
 			assert.equal(
-				asRecord(retainedAfter[0], 'retained capture').calendar_id,
-				asRecord(retainedBefore[0], 'original capture').calendar_id
+				asRecord(retainedAfter[0], 'retained pin').holiday_calendar_id,
+				asRecord(retainedBefore[0], 'original pin').holiday_calendar_id
 			);
 			const latestDay = asRecord(
 				(await session.query('select row_version from work_days where id = $1', [workDayId]))[0],
@@ -307,16 +295,10 @@ test(
 				headers
 			);
 			requireAccepted(deletedDay.value, 'remove an unconsumed workday');
-			assert.equal(
-				(await session.query('select id from holiday_calendar_inputs where id = $1', [capturedId]))
-					.length,
-				1,
-				'removing the workday retains its seal'
-			);
-			assert.equal(
-				asRecord((await write({ id: crypto.randomUUID(), ...moved })).value, 'retained seal')
-					.resolution,
-				'rejected'
+			// The pin went with the day and no run covers February: the date is free again.
+			requireAccepted(
+				(await write({ id: crypto.randomUUID(), ...moved })).value,
+				'publish once the only consumer is gone'
 			);
 			assert.deepEqual(
 				asRecord(
@@ -365,14 +347,6 @@ test(
 				(await session.query('select id from work_days where id = $1', [rollbackDay])).length,
 				0
 			);
-			assert.equal(
-				(
-					await session.query('select id from holiday_calendar_inputs where work_day_id = $1', [
-						rollbackDay
-					])
-				).length,
-				0
-			);
 
 			// Either publication wins and the workday captures it, or the empty-read guard
 			// rejects a writer. Both accepted with an obsolete classification is forbidden.
@@ -387,8 +361,8 @@ test(
 				write({
 					id: raceCalendarId,
 					...amendment,
-					revision: 3,
-					observations: [observation, raceObservation]
+					revision: 4,
+					observations: [{ ...observation, date: '2026-02-04' }, raceObservation]
 				}),
 				write(
 					{
@@ -414,12 +388,15 @@ test(
 			}
 			assert.ok(publicationResult.resolution === 'accepted' || dayResult.resolution === 'accepted');
 			const raceCaptures = await session.query(
-				'select calendar_id from holiday_calendar_inputs where work_day_id = $1',
+				'select holiday_calendar_id from work_days where id = $1',
 				[raceDayId]
 			);
 			assert.equal(raceCaptures.length, dayResult.resolution === 'accepted' ? 1 : 0);
 			if (publicationResult.resolution === 'accepted' && dayResult.resolution === 'accepted')
-				assert.equal(asRecord(raceCaptures[0], 'concurrent capture').calendar_id, raceCalendarId);
+				assert.equal(
+					asRecord(raceCaptures[0], 'concurrent pin').holiday_calendar_id,
+					raceCalendarId
+				);
 
 			const tampered = frozen.map((calendar) => ({
 				...asRecord(calendar, 'annual snapshot'),

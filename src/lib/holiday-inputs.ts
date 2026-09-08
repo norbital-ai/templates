@@ -1,15 +1,16 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { WorkspaceRow } from '../collections/holiday_calendar_inputs/$types.js';
 import type { PayrollReadApi } from '../collections/payroll_runs/lib/api.js';
 import { stableJson } from './jurisdiction_settings.js';
 import { resolveHolidayCalendars, type HolidayCalendar } from './holiday-calendar.js';
 import { dateKey } from './iso-day.js';
 
-export type PreparedHolidayInput = Pick<
-	WorkspaceRow<'holiday_calendar_inputs'>,
-	'jurisdiction_code' | 'date' | 'calendar_id'
->;
+/** One classified date: which published revision answers for it in this jurisdiction. */
+export type PreparedHolidayInput = {
+	readonly jurisdiction_code: string;
+	readonly date: string;
+	readonly calendar_id: string;
+};
 type HolidayInputApi = {
 	readonly db: Pick<PayrollReadApi['db'], 'jurisdiction_holiday_calendars'>;
 };

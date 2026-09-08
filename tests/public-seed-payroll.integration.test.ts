@@ -66,9 +66,7 @@ test(
 				'employment_statutory_facts',
 				'employment_terms',
 				'leave_entries',
-				'allowance_requests',
-				'holiday_calendar_inputs',
-				'employment_contract_inputs'
+				'allowance_requests'
 			]
 		);
 

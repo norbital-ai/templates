@@ -47,21 +47,18 @@ test('the entry hook freezes server-measured date charges and ignores caller-sup
 	assert.deepEqual(context.entries, []);
 });
 
-test('entry approval carries every holiday input and a contract seal in the same graph', () => {
+test('every charge carries the calendar it was measured against; the entry writes no side rows', () => {
 	const result = before(submission(timeOff('2026-04-01', '2026-04-02')));
 	assert.deepEqual(
-		result.leave_holiday_input,
-		['2026-04-01', '2026-04-02'].map((date) => ({
-			date,
-			jurisdiction_code: 'TEST-JUR',
-			calendar_id: id(2026),
-			leave_entry_id: id(100)
-		}))
+		result.charges.map((row) => [row.date, row.calendar_id]),
+		[
+			['2026-04-01', id(2026)],
+			['2026-04-02', id(2026)]
+		]
 	);
-	assert.deepEqual(result.employment_contract_input, [
-		{ employment_id: id(1), terms_through: '2026-04-02' }
-	]);
+	assert.equal(result.employment_id, id(1));
 	assert.equal('entry_leave_entitlement' in result, false);
+	assert.equal('employment_contract_input' in result, false);
 });
 
 test('entry creation requires complete contract-scoped facts and a supporting reference', () => {

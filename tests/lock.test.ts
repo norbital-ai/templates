@@ -346,8 +346,6 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 						}
 					])
 			},
-			holiday_calendar_inputs: { findMany: () => Effect.succeed([]) },
-			employment_contract_inputs: { findMany: () => Effect.succeed([]) },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// A capture is a `payslip_work_day_inputs` junction row naming the day. Its payslip's
 			// amount is deliberately not consulted: a zero says the run read this day and priced it

@@ -171,7 +171,6 @@ export const peopleGrants = (
 	mergeGrants(
 		grantsOn('employees', actions),
 		grantsOn('employments', actions),
-		...(actions.includes('read') ? [grantsOn('employment_contract_inputs', ['read'])] : []),
 		grantsOn('employment_terms', actions),
 		employmentStatutoryFactGrants(...actions)
 	);
@@ -229,9 +228,6 @@ const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_
  */
 export const captureLedgerGrants = (): Grants =>
 	mergeGrants(
-		grantOn('holiday_calendar_inputs', 'read', {
-			fields: ['jurisdiction_code', 'date', 'calendar_id']
-		}),
 		grantOn('payslip_work_day_inputs', 'read', { fields: WORK_DAY_CAPTURE_FIELDS }),
 		grantOn('payslip_claim_request_inputs', 'read', { fields: CLAIM_CAPTURE_FIELDS }),
 		grantOn('payslip_allowance_request_inputs', 'read', { fields: ALLOWANCE_CAPTURE_FIELDS }),

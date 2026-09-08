@@ -160,12 +160,6 @@ test(
 					})
 				).value
 			);
-			const seals = await session.query(
-				'select * from employment_contract_inputs where employment_id = $1',
-				[contractId]
-			);
-			assert.equal(seals.length, 1);
-			assert.equal(seals[0].employment_terms_id, termId);
 			const [contract] = await session.query('select * from employments where id = $1', [
 				contractId
 			]);
@@ -204,38 +198,21 @@ test(
 			);
 			assert.notEqual(asRecord(move.value, 'event move').resolution, 'accepted');
 			assert.match(JSON.stringify(move.value), /another employment contract/i);
+			// The term is the seal: while it stands the contract cannot go.
+			const remove = await command(
+				{ action: 'delete', collection: 'employments', ids: [contractId] },
+				contractBase
+			);
+			assert.notEqual(asRecord(remove.value, 'sealed delete').resolution, 'accepted');
 			requireAccepted(
 				(
 					await command(
 						{ action: 'delete', collection: 'employment_terms', ids: [termId] },
 						termBase
 					)
-				).value
+				).value,
+				'term delete'
 			);
-			assert.equal(
-				(
-					await session.query(
-						'select id from employment_contract_inputs where employment_id = $1',
-						[contractId]
-					)
-				).length,
-				1
-			);
-			const remove = await command(
-				{ action: 'delete', collection: 'employments', ids: [contractId] },
-				contractBase
-			);
-			assert.notEqual(asRecord(remove.value, 'sealed delete').resolution, 'accepted');
-			const removeSeal = await command(
-				{ action: 'delete', collection: 'employment_contract_inputs', ids: [String(seals[0].id)] },
-				[
-					{
-						row: { collection: 'employment_contract_inputs', recordId: String(seals[0].id) },
-						rowVersion: Number(seals[0].row_version)
-					}
-				]
-			);
-			assert.notEqual(asRecord(removeSeal.value, 'seal delete').resolution, 'accepted');
 			assert.equal(
 				(
 					await session.query('select id from employments where employee_id = $1', [
@@ -276,12 +253,6 @@ test(
 					})
 				).value
 			);
-			const nestedSeals = await session.query(
-				'select * from employment_contract_inputs where employment_id = $1',
-				[nestedContractId]
-			);
-			assert.equal(nestedSeals.length, 1);
-			assert.equal(nestedSeals[0].employment_terms_id, nestedTermId);
 
 			// A committed Work date keeps term history sealed even after the source is removed.
 			const workId = crypto.randomUUID();
@@ -305,11 +276,6 @@ test(
 					})
 				).value
 			);
-			const [workSeal] = await session.query(
-				"select to_char(terms_through at time zone 'Asia/Kuala_Lumpur', 'YYYY-MM-DD') as terms_through from employment_contract_inputs where work_days_id = $1",
-				[workId]
-			);
-			assert.equal(workSeal.terms_through, '2026-08-03');
 			const updateTerms = async (values: Record<string, unknown>) => {
 				const [row] = await session.query(
 					'select row_version from employment_terms where id = $1',
@@ -345,9 +311,10 @@ test(
 					])
 				).value
 			);
-			assert.match(
-				JSON.stringify((await updateTerms({ residency_status: 'FOREIGNER' })).value),
-				/consumed/
+			// No seal log: once the only consumer is gone, the terms are editable again.
+			requireAccepted(
+				(await updateTerms({ residency_status: 'FOREIGNER' })).value,
+				'terms edit after the consumer is removed'
 			);
 			requireAccepted(
 				(

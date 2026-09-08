@@ -20,7 +20,6 @@ export type PayrollWorld = {
 	readonly shift_definitions: PayrollRow[];
 	readonly shift_patterns: PayrollRow[];
 	readonly jurisdiction_holiday_calendars: PayrollRow[];
-	readonly holiday_calendar_inputs: PayrollRow[];
 	readonly leave_catalogue: PayrollRow[];
 	readonly leave_entries: PayrollRow[];
 	readonly employments: PayrollRow[];
@@ -156,7 +155,6 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			shift_definitions: collection('shift_definitions'),
 			shift_patterns: collection('shift_patterns'),
 			jurisdiction_holiday_calendars: collection('jurisdiction_holiday_calendars'),
-			holiday_calendar_inputs: collection('holiday_calendar_inputs'),
 			leave_catalogue: collection('leave_catalogue'),
 			leave_entries: collection('leave_entries'),
 			employments: collection('employments'),

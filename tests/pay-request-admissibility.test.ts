@@ -133,9 +133,7 @@ test('Payment requires a reason, seals its contract and rejects a correction fro
 		() => attempt(paymentHooks, component, { ...payment, reason: ' ' }),
 		/requires a reason/
 	);
-	assert.deepEqual(attempt(paymentHooks, component, payment).employment_contract_input, [
-		{ employment_id: 'e1' }
-	]);
+	assert.equal(attempt(paymentHooks, component, payment).employment_id, 'e1');
 	const api = apiWith(component);
 	api.db.payslip_adjustments = { findFirst: () => Effect.succeed({ payslip_id: 'old-slip' }) };
 	api.db.payslips = { findFirst: () => Effect.succeed({ employment_id: 'old-contract' }) };

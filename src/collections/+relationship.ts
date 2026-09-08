@@ -33,14 +33,9 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * docs/architecture.md (Provenance and audit).
  */
 export default ((r) => ({
+	/** Restrict: a revision a work day pinned is history and cannot be deleted. */
 	jurisdiction_holiday_calendars: {
-		holiday_input_calendar: r.many.holiday_calendar_inputs()
-	},
-	holiday_calendar_inputs: {
-		holiday_input_calendar: r.one.jurisdiction_holiday_calendars({
-			from: r.holiday_calendar_inputs.calendar_id,
-			to: r.jurisdiction_holiday_calendars.id
-		})
+		work_day_holiday_calendar: r.many.work_days()
 	},
 	/**
 	 * The sealed, shareable root. Every downstream rule row is owned by its version (`cascade`: a
@@ -160,14 +155,7 @@ export default ((r) => ({
 		employment_employee: r.many.employments()
 	},
 
-	employment_contract_inputs: {
-		contract_input_employment: r.one.employments({
-			from: r.employment_contract_inputs.employment_id,
-			to: r.employments.id
-		})
-	},
 	employments: {
-		contract_input_employment: r.many.employment_contract_inputs(),
 		employment_employee: r.one.employees({
 			from: r.employments.employee_id,
 			to: r.employees.id
@@ -189,10 +177,6 @@ export default ((r) => ({
 	},
 
 	employment_terms: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.employment_terms.id,
-			to: r.employment_contract_inputs.employment_terms_id
-		}),
 		term_employment: cascade(
 			r.one.employments({
 				from: r.employment_terms.employment_id,
@@ -207,10 +191,6 @@ export default ((r) => ({
 	},
 
 	employment_statutory_facts: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.employment_statutory_facts.id,
-			to: r.employment_contract_inputs.employment_statutory_facts_id
-		}),
 		statutory_fact_employment: cascade(
 			r.one.employments({
 				from: r.employment_statutory_facts.employment_id,
@@ -229,10 +209,6 @@ export default ((r) => ({
 	 * so. The same answer for loans: a settled repayment schedule is money history.
 	 */
 	claim_requests: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.claim_requests.id,
-			to: r.employment_contract_inputs.claim_requests_id
-		}),
 		claim_request_employment: r.one.employments({
 			from: r.claim_requests.employment_id,
 			to: r.employments.id
@@ -249,10 +225,6 @@ export default ((r) => ({
 	},
 
 	allowance_requests: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.allowance_requests.id,
-			to: r.employment_contract_inputs.allowance_requests_id
-		}),
 		allowance_request_employment: r.one.employments({
 			from: r.allowance_requests.employment_id,
 			to: r.employments.id
@@ -269,10 +241,6 @@ export default ((r) => ({
 	},
 
 	payment_requests: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.payment_requests.id,
-			to: r.employment_contract_inputs.payment_requests_id
-		}),
 		payment_request_employment: r.one.employments({
 			from: r.payment_requests.employment_id,
 			to: r.employments.id
@@ -289,10 +257,6 @@ export default ((r) => ({
 	},
 
 	leave_entries: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.leave_entries.id,
-			to: r.employment_contract_inputs.leave_entries_id
-		}),
 		leave_entry_employment: r.one.employments({
 			from: r.leave_entries.employment_id,
 			to: r.employments.id
@@ -306,22 +270,13 @@ export default ((r) => ({
 			to: r.leave_entries.id
 		}),
 		leave_original_reversals: r.many.leave_entries(),
-		payslip_leave_input_leave_entry: r.many.payslip_leave_inputs(),
-		leave_holiday_input: r.many.holiday_calendar_inputs({
-			from: r.leave_entries.id,
-			to: r.holiday_calendar_inputs.leave_entry_id
-		})
+		payslip_leave_input_leave_entry: r.many.payslip_leave_inputs()
 	},
 
 	work_days: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.work_days.id,
-			to: r.employment_contract_inputs.work_days_id
-		}),
-		// No inverse FK: a holiday seal retains its historical consumer ID after deletion.
-		work_day_holiday_input: r.many.holiday_calendar_inputs({
-			from: r.work_days.id,
-			to: r.holiday_calendar_inputs.work_day_id
+		work_day_holiday_calendar: r.one.jurisdiction_holiday_calendars({
+			from: r.work_days.holiday_calendar_id,
+			to: r.jurisdiction_holiday_calendars.id
 		}),
 		work_day_employment: r.one.employments({
 			from: r.work_days.employment_id,
@@ -335,10 +290,6 @@ export default ((r) => ({
 	},
 
 	payroll_runs: {
-		payroll_holiday_input_run: r.many.holiday_calendar_inputs({
-			from: r.payroll_runs.id,
-			to: r.holiday_calendar_inputs.payroll_run_id
-		}),
 		payroll_run_company: r.one.companies({
 			from: r.payroll_runs.company_id,
 			to: r.companies.id
@@ -356,10 +307,6 @@ export default ((r) => ({
 	},
 
 	payslips: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.payslips.id,
-			to: r.employment_contract_inputs.payslips_id
-		}),
 		payslip_payroll_run: cascade(
 			r.one.payroll_runs({
 				from: r.payslips.payroll_run_id,
@@ -468,10 +415,6 @@ export default ((r) => ({
 	},
 
 	loans: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.loans.id,
-			to: r.employment_contract_inputs.loans_id
-		}),
 		loan_employment: r.one.employments({
 			from: r.loans.employment_id,
 			to: r.employments.id
@@ -487,10 +430,6 @@ export default ((r) => ({
 		loan_repayment_employment: r.one.employments({
 			from: r.loan_repayments.employment_id,
 			to: r.employments.id
-		}),
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.loan_repayments.id,
-			to: r.employment_contract_inputs.loan_repayments_id
 		}),
 		loan_repayment_loan: cascade(
 			r.one.loans({
