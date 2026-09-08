@@ -34,20 +34,6 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	/**
-	 * The seven shapes `payslip_adjustments.input` takes, and it must be all seven: a kind this
-	 * union does not name decodes to nothing and the line prints '—' where its provenance should be.
-	 * It said `COMPONENT_ENTRY_INPUT` until the four event families each got their own capture, and
-	 * every claim, allowance, payment and arrears line on every payslip has been unattributed since.
-	 */
-	const adjustmentInputSchema = Schema.Union([
-		Schema.Struct({ kind: Schema.Literal('WORK_DAY_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('CLAIM_REQUEST_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('ALLOWANCE_REQUEST_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('PAYMENT_REQUEST_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('LEAVE_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('LOAN_REPAYMENT_INPUT'), id: Schema.String })
-	]);
 	const payslipSummarySchema = Schema.Struct({
 		payslip_employment: Schema.optional(
 			Schema.NullOr(
@@ -62,7 +48,6 @@
 	});
 	type PayslipSummary = Schema.Schema.Type<typeof payslipSummarySchema>;
 
-	const decodeAdjustmentInput = Schema.decodeUnknownResult(adjustmentInputSchema);
 	const decodePayslipSummary = Schema.decodeUnknownResult(payslipSummarySchema);
 
 	const summaryQuery = $derived(
@@ -104,26 +89,10 @@
 	const proration = $derived(record?.proration ?? []);
 	const statutory = $derived(record?.statutory ?? []);
 
-	const adjustmentsQuery = $derived(
-		record == null
-			? null
-			: client.db.payslip_adjustments.findMany({
-					where: { payslip_id: { eq: record.id } },
-					orderBy: { sequence: 'asc' },
-					columns: {
-						id: true,
-						sequence: true,
-						label: true,
-						bucket: true,
-						amount: true,
-						quantity: true,
-						rate: true,
-						input: true
-					},
-					limit: 500
-				})
+	/** The adjustments, in settlement order, keyed by their position for the list below. */
+	const adjustments = $derived(
+		(record?.adjustments ?? []).map((adjustment, index) => ({ ...adjustment, id: String(index) }))
 	);
-	const adjustments = $derived(adjustmentsQuery?.current ?? []);
 
 	type Adjustment = (typeof adjustments)[number];
 	type AdjustmentGroup = {
@@ -145,7 +114,7 @@
 	const adjustmentGroups = $derived.by((): AdjustmentGroup[] => {
 		const groups = new Map<string, AdjustmentGroup>();
 		for (const adjustment of adjustments) {
-			const kind = inputKind(adjustment.input);
+			const kind = inputKind(adjustment.family);
 			const rate = adjustment.rate == null ? '' : String(adjustment.rate);
 			const key = [adjustment.label, kind, adjustment.bucket ?? '', rate].join('\u0000');
 			const current = groups.get(key);
@@ -174,24 +143,22 @@
 		return [...groups.values()];
 	});
 
-	function inputKind(input: unknown): string {
-		const parsed = decodeAdjustmentInput(input);
-		if (!Result.isSuccess(parsed)) return '—';
-		switch (parsed.success.kind) {
-			case 'CLAIM_REQUEST_INPUT':
+	function inputKind(family: Adjustment['family']): string {
+		switch (family) {
+			case 'CLAIM':
 				return t('app.claims.title');
-			case 'ALLOWANCE_REQUEST_INPUT':
+			case 'ALLOWANCE':
 				return t('app.allowances.title');
-			case 'PAYMENT_REQUEST_INPUT':
+			case 'PAYMENT':
 				return t('app.payments.title');
-			case 'WORK_DAY_INPUT':
+			case 'WORK_DAY':
 				return t('component.attendance');
-			case 'LEAVE_INPUT':
+			case 'LEAVE':
 				return t('component.leave');
-			case 'LOAN_REPAYMENT_INPUT':
+			case 'LOAN_REPAYMENT':
 				return t('app.loans.agreements');
 			default: {
-				const _never: never = parsed.success;
+				const _never: never = family;
 				return _never;
 			}
 		}
@@ -471,7 +438,7 @@
 														<div
 															class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 py-1 text-muted-foreground"
 														>
-															<span class="pl-4">#{entry.sequence}</span>
+															<span class="pl-4">#{Number(entry.id) + 1}</span>
 															<span></span>
 															<span></span>
 															<span class="text-right">{formatNumeric(entry.quantity)}</span>

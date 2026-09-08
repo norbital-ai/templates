@@ -63,12 +63,8 @@ test('the manifest covers current source collections and stages consumers after 
 	const unseededPayrollCollections = [
 		'payroll_runs',
 		'payslips',
-		'payslip_adjustments',
-		'payslip_work_day_inputs',
 		'payslip_leave_inputs',
-		'payslip_claim_request_inputs',
 		'payslip_allowance_request_inputs',
-		'payslip_payment_request_inputs',
 		'payslip_loan_repayment_inputs'
 	];
 	assert.equal(manifest.counts.collections, collections.length);

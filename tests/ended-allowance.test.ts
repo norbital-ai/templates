@@ -9,6 +9,7 @@ import {
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { capturesOf } from './helpers/settlement.ts';
 
 const prepare = (world: ReturnType<typeof createPublicPayrollWorld>, period = '2026-02') =>
 	Effect.runPromise(
@@ -32,7 +33,8 @@ function endedWorld() {
 test('an ended contract settles its approved one-off allowance using source-month service and captures it once', async () => {
 	const world = endedWorld();
 	const prepared = await prepare(world);
-	const slips = buildPayrollRun(prepared).payslip_payroll_run;
+	const built = buildPayrollRun(prepared);
+	const slips = built.payslip_payroll_run;
 	assert.equal(slips.length, 1);
 	const slip = slips[0]!;
 	assert.deepEqual(slip.base, []);
@@ -44,7 +46,7 @@ test('an ended contract settles its approved one-off allowance using source-mont
 		['one-off']
 	);
 	assert.deepEqual(
-		slip.payslip_work_day_input_payslip,
+		capturesOf(built, slip).workDays,
 		[],
 		'calendar-day proration does not consume a roster'
 	);
@@ -164,10 +166,10 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 		);
 		assert.ok(prepared.configuration.holidayCalendars.some((row) => row.id === original.id));
 		assert.ok(prepared.configuration.holidayCalendars.some((row) => row.id === 'source-latest'));
-		const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
+		const built = buildPayrollRun(prepared);
+		const slip = built.payslip_payroll_run[0]!;
 		assert.equal(
-			slip.payslip_adjustment_payslip.find((row) => row.input.kind === 'ALLOWANCE_REQUEST_INPUT')
-				?.amount,
+			slip.adjustments.find((row) => row.family === 'ALLOWANCE')?.amount,
 			ended ? 103.57 : 196.79,
 			'290 × pinned covered days / 28 days after the unlinked new holiday'
 		);
@@ -185,11 +187,12 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 	const source = prepared.gathered.bundles[0]!.allowanceConfigurations!.get('2025-12')!;
 	assert.equal(source.work.proration.by, 'WORKING_DAYS');
 	assert.equal(source.shiftById.size, 1, 'expired shift is available in its source month');
-	const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
+	const built = buildPayrollRun(prepared);
+	const slip = built.payslip_payroll_run[0]!;
 	assert.equal(slip.gross, 100, '290 × 10 covered working days / 29 source-month working days');
 	assert.deepEqual(slip.base, []);
 	assert.equal(
-		slip.payslip_work_day_input_payslip.length,
+		capturesOf(built, slip).workDays.length,
 		11,
 		'actual historical roster inputs are captured'
 	);
@@ -270,7 +273,8 @@ test('active late approval uses the same source-month fraction without changing 
 	baseline.allowance_requests.length = 0;
 	const wages = buildPayrollRun(await prepare(baseline)).payslip_payroll_run[0]!;
 	const prepared = await prepare(world);
-	const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
+	const built = buildPayrollRun(prepared);
+	const slip = built.payslip_payroll_run[0]!;
 	assert.deepEqual(
 		slip.base,
 		wages.base,
@@ -279,12 +283,11 @@ test('active late approval uses the same source-month fraction without changing 
 	assert.deepEqual(slip.proration, wages.proration);
 	assert.equal(slip.gross, Math.round((wages.gross + 200) * 100) / 100);
 	assert.equal(
-		slip.payslip_adjustment_payslip.find((row) => row.input.kind === 'ALLOWANCE_REQUEST_INPUT')
-			?.amount,
+		slip.adjustments.find((row) => row.family === 'ALLOWANCE')?.amount,
 		200,
 		'290 × 20 covered working days / 29 source-month working days'
 	);
-	assert.equal(slip.payslip_work_day_input_payslip.length, 11);
+	assert.equal(capturesOf(built, slip).workDays.length, 11);
 	assert.equal(
 		prepared.configuration.holidayInputs.filter((row) => row.date.startsWith('2025-12')).length,
 		31

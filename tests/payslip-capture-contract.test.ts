@@ -1,18 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import work from '../src/collections/payslip_work_day_inputs/+hooks.ts';
-import claim from '../src/collections/payslip_claim_request_inputs/+hooks.ts';
 import allowance from '../src/collections/payslip_allowance_request_inputs/+hooks.ts';
-import payment from '../src/collections/payslip_payment_request_inputs/+hooks.ts';
 import leave from '../src/collections/payslip_leave_inputs/+hooks.ts';
 import loan from '../src/collections/payslip_loan_repayment_inputs/+hooks.ts';
 
+/** The three multi-capture families; single-use sources carry their pin instead of a junction. */
 const families = [
-	{ hooks: work, source: 'work_days', key: 'work_day_id' },
-	{ hooks: claim, source: 'claim_requests', key: 'claim_request_id' },
 	{ hooks: allowance, source: 'allowance_requests', key: 'allowance_request_id' },
-	{ hooks: payment, source: 'payment_requests', key: 'payment_request_id' },
 	{ hooks: leave, source: 'leave_entries', key: 'leave_entry_id' },
 	{ hooks: loan, source: 'loan_repayments', key: 'loan_repayment_id' }
 ] as const;

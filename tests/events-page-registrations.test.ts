@@ -20,12 +20,13 @@ for (const { page, family, employee } of families) {
 		assert.match(text, new RegExp(`collection="${family}_requests"`));
 		assert.match(text, new RegExp(`${family}_request_employment:`));
 		assert.match(text, new RegExp(`${family}_request_${family}_catalogue:`));
-		assert.match(
-			text,
-			new RegExp(
-				`payslip_${family}_request_input_${family}_request: \\{ columns: \\{ period: true \\} \\}`
-			)
-		);
+		// A claim or payment carries its own settlement pin; a recurring allowance keeps a capture row.
+		if (family === 'allowance')
+			assert.match(
+				text,
+				/payslip_allowance_request_input_allowance_request: \{ columns: \{ period: true \} \}/
+			);
+		else assert.match(text, /settledClaims\(row\)/);
 		assert.doesNotMatch(text, /collection="(?:component|bonus|arrears)_/);
 	});
 
@@ -34,7 +35,9 @@ for (const { page, family, employee } of families) {
 		assert.deepEqual(registrations(tab), ['CollectionTable']);
 		assert.match(tab, new RegExp(`collection="${family}_requests"`));
 		assert.match(tab, /employment_id: employmentId \? \{ eq: employmentId \}/);
-		assert.match(tab, new RegExp(`payslip_${family}_request_input_${family}_request:`));
+		if (family === 'allowance')
+			assert.match(tab, /payslip_allowance_request_input_allowance_request:/);
+		else assert.match(tab, /settledClaims\(row\)/);
 		if (family === 'claim') assert.doesNotMatch(tab, /features=\{\{ create: false \}\}/);
 		else assert.match(tab, /features=\{\{ create: false \}\}/);
 	});

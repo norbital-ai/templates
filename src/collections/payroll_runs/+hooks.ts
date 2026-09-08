@@ -8,6 +8,7 @@ import {
 	gatherPayrollRun,
 	type PreparedRun
 } from './lib/engine.js';
+import type { PayslipCaptures } from './lib/graph.js';
 import { assertPayrollPeriodAvailable } from './lib/period.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
@@ -76,10 +77,37 @@ const derivedColumns = (prepared: PreparedRun) => ({
 	attendance_to: prepared.window.attendance.end
 });
 
+/**
+ * What each new payslip settled, handed from `before` (which minted the payslip ids) to `after`
+ * (where the payslips exist and the sources can name them). In-process and per request; a missing
+ * entry in `after` is refused loudly rather than leaving a run's sources unlocked.
+ */
+const PENDING_CAPTURES = new Map<string, readonly PayslipCaptures[]>();
+const SETTLED_SOURCES = ['work_days', 'claim_requests', 'payment_requests'] as const;
+/** Four collections, one shape: the union of their clients is not callable, the reader is. */
+type SettledReader = {
+	readonly findMany: (query: {
+		readonly where: { readonly settled_payslip_id: { readonly in: readonly string[] } };
+		readonly columns: { readonly id: true };
+		readonly limit: number;
+	}) => Effect.Effect<readonly { readonly id: string }[]>;
+	readonly mutate: (
+		values: readonly {
+			readonly id: string;
+			readonly settled_payslip_id: null;
+			readonly settled_period: null;
+		}[]
+	) => Effect.Effect<void>;
+};
+
 /** Calculate, and hand back the run's columns with every payslip it produced nested under them. */
 const buildGraph = (prepared: PreparedRun) =>
 	Effect.gen(function* () {
 		const built = buildPayrollRun(prepared);
+		PENDING_CAPTURES.set(
+			runKey(prepared.configuration.company.id, prepared.period),
+			built.captures
+		);
 		if (built.warnings.length > 0)
 			yield* Effect.logWarning(`[payroll-warnings] ${prepared.period} ${built.warnings.join(' ')}`);
 		yield* Effect.log(
@@ -214,6 +242,35 @@ export default {
 							...(yield* buildGraph(facts))
 						};
 					})
+			},
+			after: {
+				description:
+					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist.',
+				handler: ({ previous, record, api }) =>
+					Effect.gen(function* () {
+						if (previous !== undefined) return;
+						const key = runKey(record.company_id, record.period);
+						const captures = PENDING_CAPTURES.get(key);
+						PENDING_CAPTURES.delete(key);
+						if (captures == null)
+							refuse(
+								`Payroll ${record.period} was created without its capture list. This is a bug.`
+							);
+						const stamp = (ids: readonly string[], payslipId: string) =>
+							ids.map((id) => ({
+								id,
+								settled_payslip_id: payslipId,
+								settled_period: record.period
+							}));
+						for (const capture of captures) {
+							if (capture.workDays.length)
+								yield* api.db.work_days.mutate(stamp(capture.workDays, capture.payslipId));
+							if (capture.claims.length)
+								yield* api.db.claim_requests.mutate(stamp(capture.claims, capture.payslipId));
+							if (capture.payments.length)
+								yield* api.db.payment_requests.mutate(stamp(capture.payments, capture.payslipId));
+						}
+					})
 			}
 		}
 	},
@@ -221,30 +278,56 @@ export default {
 	/**
 	 * Deleting a run is the settlement lock's release, and the only one.
 	 *
-	 * `payslips.payroll_run_id` is declared to cascade, and the four input junctions cascade from
-	 * their payslips with it, so the captures this run held over work days, component entries, loan
-	 * repayments and leave requests are dropped by the database in the same statement that drops the
-	 * run — and the records become editable again the moment the run stops standing. That is the
-	 * owner's rule verbatim: locked while the run stands, released only if the run is deleted.
+	 * `payslips.payroll_run_id` cascades, the two capture junctions cascade from their payslips, and
+	 * the single-use sources are unpinned by the hook below in the same transaction — so every record
+	 * this run settled becomes editable again the moment the run stops standing. That is the owner's
+	 * rule verbatim: locked while the run stands, released only if the run is deleted.
 	 */
 	delete: {
 		perRecord: {
 			before: {
 				description:
 					'Allows a payroll run to be deleted only while it is still a draft, so a period that has been paid can never be erased and the settlement locks it holds over work days, component entries, loan repayments and leave requests are never released.',
-				handler: ({ existing }) => {
-					// The refusal that makes a paid run's locks permanent. Deleting a PAID run would cascade
-					// its captured inputs away and quietly reopen every record behind money that has
-					// already left the building — so the correction path is the only path, and the message
-					// says so rather than leaving the person to find out.
-					if (existing.lifecycle !== 'DRAFT')
-						refuse(
-							`Payroll run ${existing.period} is ${existing.lifecycle} and cannot be deleted. ` +
-								'A paid run is the record of money that has been paid, and deleting it would ' +
-								'release every work day, entry, repayment and leave record it settled. Correct ' +
-								'it with a component entry in a later draft run instead.'
-						);
-				}
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						// The refusal that makes a paid run's locks permanent. Deleting a PAID run would
+						// release every record behind money that has already left the building — so the
+						// correction path is the only path, and the message says so.
+						if (existing.lifecycle !== 'DRAFT')
+							refuse(
+								`Payroll run ${existing.period} is ${existing.lifecycle} and cannot be deleted. ` +
+									'A paid run is the record of money that has been paid, and deleting it would ' +
+									'release every work day, entry, repayment and leave record it settled. Correct ' +
+									'it with a component entry in a later draft run instead.'
+							);
+						// The release: a draft's payslips cascade away with the run; the single-use sources
+						// they settled are unlocked here, in the same transaction, by clearing their pin.
+						const payslips = yield* api.db.payslips.findMany({
+							where: { payroll_run_id: { eq: existing.id } },
+							columns: { id: true },
+							limit: 20_000
+						});
+						if (payslips.length >= 20_000) refuse('Too many payslips to release safely.');
+						const ids = payslips.map((row) => row.id);
+						if (ids.length === 0) return;
+						for (const source of SETTLED_SOURCES) {
+							const reader = api.db[source] as unknown as SettledReader;
+							const rows = yield* reader.findMany({
+								where: { settled_payslip_id: { in: ids } },
+								columns: { id: true },
+								limit: 20_000
+							});
+							if (rows.length >= 20_000) refuse('Too many settled rows to release safely.');
+							if (rows.length)
+								yield* reader.mutate(
+									rows.map((row) => ({
+										id: row.id,
+										settled_payslip_id: null,
+										settled_period: null
+									}))
+								);
+						}
+					})
 			}
 		}
 	}

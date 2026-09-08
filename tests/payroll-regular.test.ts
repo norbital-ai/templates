@@ -5,6 +5,7 @@ import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_ru
 import hooks from '../src/collections/payroll_runs/+hooks.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { adjust, capturesOf, release, settle } from './helpers/settlement.ts';
 
 test('a run reads only the catalogue of the version it picked, never a sibling version’s', async () => {
 	const world = createPublicPayrollWorld();
@@ -126,37 +127,33 @@ const build = async (world: ReturnType<typeof createPublicPayrollWorld>, period 
 	const prepared = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
 	);
-	return { prepared, slip: buildPayrollRun(prepared).payslip_payroll_run[0] };
+	const built = buildPayrollRun(prepared);
+	const slip = built.payslip_payroll_run[0];
+	return { prepared, built, slip, captured: capturesOf(built, slip) };
 };
 
 test('late requests settle once, including corrections, while recurring allowances repeat', async () => {
 	const world = attendedWorld({ includePayment: true });
 	const payment = world.payment_requests[0];
 	const first = await build(world);
-	assert.deepEqual(
-		first.slip.payslip_payment_request_input_payslip.map((row) => row.payment_request_id),
-		[payment.id]
-	);
-	world.payslip_payment_request_inputs.push({
-		payment_request_id: payment.id,
-		payslip_id: 'paid-slip'
-	});
+	assert.deepEqual(first.captured.payments, [payment.id]);
+	settle(world, 'payment_requests', payment.id, 'paid-slip');
 	const next = await build(world);
-	assert.equal(next.slip.payslip_payment_request_input_payslip.length, 0);
+	assert.equal(next.captured.payments.length, 0);
 	assert.equal(
 		next.prepared.gathered.bundles[0].payRequests.find((row) => row.id === payment.id)?.captured,
 		true
 	);
 	assert.equal(next.slip.payslip_allowance_request_input_payslip.length, 1);
 	payment.as_adjustment_entry = true;
-	assert.equal((await build(world)).slip.payslip_payment_request_input_payslip.length, 0);
-	world.payslip_payment_request_inputs.length = 0;
-	assert.equal((await build(world)).slip.payslip_payment_request_input_payslip.length, 1);
+	assert.equal((await build(world)).captured.payments.length, 0);
+	release(world, 'payment_requests');
+	assert.equal((await build(world)).captured.payments.length, 1);
 	payment.pay_period = '2026-03';
-	assert.equal((await build(world)).slip.payslip_payment_request_input_payslip.length, 0);
+	assert.equal((await build(world)).captured.payments.length, 0);
 	payment.pay_period = '2026-01';
 	payment.approval_id = 'pending';
-	assert.equal((await build(world)).slip.payslip_payment_request_input_payslip.length, 0);
+	assert.equal((await build(world)).captured.payments.length, 0);
 });
 
 test('late one-off allowances retain source-month proration', async () => {
@@ -165,9 +162,7 @@ test('late one-off allowances retain source-month proration', async () => {
 	world.employments[0].effective_range = { start: '2026-01-16', end: null };
 	world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', period: '2026-01' };
 	const { slip } = await build(world);
-	const row = slip.payslip_adjustment_payslip.find(
-		(row) => row.input.kind === 'ALLOWANCE_REQUEST_INPUT'
-	);
+	const row = slip.adjustments.find((row) => row.family === 'ALLOWANCE');
 	assert.equal(row.amount, 160);
 	world.payslip_allowance_request_inputs.push({
 		allowance_request_id: world.allowance_requests[0].id,
@@ -272,18 +267,8 @@ test('captured siblings still count against the annual request cap', async () =>
 		effective_on: '2026-02-05',
 		pay_period: '2026-02'
 	});
-	world.payslip_payment_request_inputs.push({
-		id: 'prior-capture',
-		period: '2026-01',
-		payment_request_id: first.id,
-		payslip_id: 'prior-slip'
-	});
-	world.payslip_adjustments.push({
-		id: 'prior-output',
-		payslip_id: 'prior-slip',
-		input: { kind: 'PAYMENT_REQUEST_INPUT', id: 'prior-capture' },
-		amount: 100
-	});
+	settle(world, 'payment_requests', first.id, 'prior-slip', '2026-01');
+	adjust(world, 'prior-slip', { family: 'PAYMENT', source_id: first.id, amount: 100 });
 	world.payment_catalogue[0].definition.cap = {
 		period: 'CALENDAR_YEAR',
 		on_exceed: 'BLOCK',
@@ -302,7 +287,7 @@ test('captured siblings still count against the annual request cap', async () =>
 	};
 	await assert.rejects(build(world), /entitlement exceeded/);
 	world.payment_requests[1].amount = 50;
-	assert.equal((await build(world)).slip.payslip_payment_request_input_payslip.length, 1);
+	assert.equal((await build(world)).captured.payments.length, 1);
 });
 
 test('loan recovery reduces to available net and keeps the unrecovered balance at its source', async () => {
@@ -330,9 +315,7 @@ test('loan recovery reduces to available net and keeps the unrecovered balance a
 		approval_id: null
 	});
 	const { slip } = await build(world);
-	const recovery = slip.payslip_adjustment_payslip.find(
-		(row) => row.input.kind === 'LOAN_REPAYMENT_INPUT'
-	);
+	const recovery = slip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
 	assert.equal(recovery.amount, before.net);
 	assert.equal(slip.net, 0);
 	assert.equal(world.loan_repayments[0].amount_due, 10000);
@@ -365,19 +348,16 @@ test('ended contracts settle approved Payment and Claim once without reviving Wo
 		incurred_on: '2026-01-15',
 		approval_id: null
 	});
-	const { slip } = await build(world);
+	const { slip, captured } = await build(world);
 	assert.equal(slip.gross, 125);
 	assert.deepEqual(slip.base, []);
 	assert.deepEqual(slip.proration, []);
-	assert.equal(slip.payslip_work_day_input_payslip.length, 0);
+	assert.equal(captured.workDays.length, 0);
 	assert.equal(slip.payslip_allowance_request_input_payslip.length, 0);
-	assert.equal(slip.payslip_payment_request_input_payslip.length, 1);
-	assert.equal(slip.payslip_claim_request_input_payslip.length, 1);
-	world.payslip_payment_request_inputs.push({
-		payment_request_id: world.payment_requests[0].id,
-		payslip_id: 'paid'
-	});
-	world.payslip_claim_request_inputs.push({ claim_request_id: 'receipt', payslip_id: 'paid' });
+	assert.equal(captured.payments.length, 1);
+	assert.equal(captured.claims.length, 1);
+	settle(world, 'payment_requests', world.payment_requests[0].id, 'paid');
+	settle(world, 'claim_requests', 'receipt', 'paid');
 	assert.equal((await build(world, '2026-03')).slip, undefined);
 });
 
@@ -437,9 +417,7 @@ for (const family of ['payment', 'claim', 'allowance']) {
 			policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' }
 		});
 		const { slip, prepared } = await build(world);
-		const output = slip.payslip_adjustment_payslip.find(
-			(row) => row.input.kind === `${family.toUpperCase()}_REQUEST_INPUT`
-		);
+		const output = slip.adjustments.find((row) => row.family === family.toUpperCase());
 		assert.equal(output.amount, 100);
 		assert.equal(output.bucket, 'EARNING');
 		const request = prepared.gathered.bundles[0].payRequests.find(

@@ -347,13 +347,6 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 					])
 			},
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
-			// A capture is a `payslip_work_day_inputs` junction row naming the day. Its payslip's
-			// amount is deliberately not consulted: a zero says the run read this day and priced it
-			// at nothing, which locks the record exactly as hard as a row that paid overtime on it.
-			payslip_work_day_inputs: {
-				findFirst: ({ where }) =>
-					Effect.succeed(captures.find((row) => row.work_day_id === where.work_day_id.eq) ?? null)
-			},
 			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
 			// keeps its own tests.
 			leave_entries: { findMany: () => Effect.succeed([]) }
@@ -419,13 +412,16 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 		kind: 'SETTLED',
 		period: '2026-07'
 	});
-	// A claim over the same record is what refuses, and it names the period.
-	const claimed = fakeHookApi({
-		runs: monthly,
-		captures: [{ work_day_id: 'wd-1', period: '2026-07' }]
-	});
+	// The record's own settlement pin is what refuses, and it names the period. A zero-priced
+	// day carries the same pin as one that paid overtime.
+	const settled = { ...existing, settled_payslip_id: 'slip-1', settled_period: '2026-07' };
 	assert.throws(
-		() => runMutateBefore({ changes: { break_minutes: 30 }, existing, api: claimed }),
+		() =>
+			runMutateBefore({
+				changes: { break_minutes: 30 },
+				existing: settled,
+				api: fakeHookApi({ runs: monthly })
+			}),
 		/payroll 2026-07 has already taken this record into account/
 	);
 });

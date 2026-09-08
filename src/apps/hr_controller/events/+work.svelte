@@ -391,7 +391,7 @@
 	 *
 	 * The board could already say "this day is inside a paid period" — arithmetic over
 	 * `payroll_runs` windows. It could not say "a run has taken THIS record", which is the fact the
-	 * owner actually asked to see and the only one that is stored. `payslip_adjustments` answers it,
+	 * owner actually asked to see and the only one that is stored. The day's own `settled_period` answers it,
 	 * and `+hr_controller.ts` already grants the read: `settlementLedgerGrants` exists so that
 	 * a refusal can be an explanation rather than an access denial. A run that read a day and priced
 	 * it at nothing wrote a row here with amount 0, and that row is still the claim.
@@ -401,17 +401,17 @@
 	 */
 	const settlementsQuery = $derived.by(() => {
 		if (selectedCompanyId == null || workDayIds.length === 0) return null;
-		return client.db.payslip_work_day_inputs.findMany({
-			where: { ...approved, work_day_id: { in: workDayIds } },
-			columns: { id: true, work_day_id: true, period: true },
+		return client.db.work_days.findMany({
+			where: { ...approved, id: { in: workDayIds }, settled_payslip_id: { isNull: false } },
+			columns: { id: true, settled_period: true },
 			limit: MONTH_BOARD_QUERY_LIMITS.settlementClaims
 		});
 	});
 	const settlementClaims = $derived(
 		new Map<string, SettlementClaim>(
 			(settlementsQuery?.current ?? []).map((capture) => [
-				capture.work_day_id,
-				{ period: capture.period }
+				capture.id,
+				{ period: capture.settled_period ?? '' }
 			])
 		)
 	);

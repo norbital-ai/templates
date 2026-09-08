@@ -393,12 +393,15 @@ test(
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id = $1 and i.${column} = $2`;
 			assert.equal(
-				await rowCount(session, captureSql('payslip_claim_request_inputs', 'claim_request_id'), [
-					runId,
-					claimId
-				]),
+				await rowCount(
+					session,
+					`select count(*)::int as n from claim_requests c
+					 join payslips p on p.id = c.settled_payslip_id
+					 where p.payroll_run_id = $1 and c.id = $2`,
+					[runId, claimId]
+				),
 				1,
-				'the claim must be captured as an input of the March run'
+				'the claim must be settled by a payslip of the March run'
 			);
 			assert.equal(
 				await rowCount(session, captureSql('payslip_leave_inputs', 'leave_entry_id'), [
@@ -413,14 +416,18 @@ test(
 				[runId, EMPLOYMENT_ID]
 			)) as ReadonlyArray<{ readonly id: string }>;
 			assert.equal(payslips.length, 1, `one March payslip: ${JSON.stringify(payslips)}`);
-			const lines = (await session.query(
-				'select label, amount, bucket from payslip_adjustments where payslip_id = $1',
-				[payslips[0]?.id]
-			)) as ReadonlyArray<{
-				readonly label: string;
-				readonly amount: string | number;
-				readonly bucket: string;
-			}>;
+			const lines = (
+				(await session.query('select adjustments from payslips where id = $1', [
+					payslips[0]?.id
+				])) as ReadonlyArray<{ readonly adjustments: unknown }>
+			).flatMap(
+				(row) =>
+					row.adjustments as ReadonlyArray<{
+						readonly label: string;
+						readonly amount: string | number;
+						readonly bucket: string;
+					}>
+			);
 			assert.ok(
 				lines.every((line) => line.label.length > 0),
 				`every adjustment names its component or rule: ${JSON.stringify(lines)}`
@@ -466,11 +473,11 @@ test(
 			assert.equal(
 				await rowCount(
 					session,
-					'select count(*)::int as n from payslip_claim_request_inputs where claim_request_id = $1',
+					'select count(*)::int as n from claim_requests where id = $1 and settled_payslip_id is not null',
 					[claimId]
 				),
 				0,
-				'the claim capture must be unlinked'
+				'the claim must be released'
 			);
 			assert.equal(
 				await rowCount(

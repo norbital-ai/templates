@@ -77,7 +77,15 @@ export default defineModel(
 		 * first write and kept while the date stands. Payroll reads it back so a later publication
 		 * cannot retroactively change what this day was.
 		 */
-		holiday_calendar_id: uuid()
+		holiday_calendar_id: uuid(),
+		/**
+		 * The payslip that settled this row, and the period it belongs to. Set by the payroll engine
+		 * when a run captures the row, cleared when a draft run is deleted; while set, the row is
+		 * frozen. The period is written beside the id so a refusal or a badge can name it without a
+		 * `payroll_runs` read grant.
+		 */
+		settled_payslip_id: uuid(),
+		settled_period: text()
 	},
 	{
 		description:

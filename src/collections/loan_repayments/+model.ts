@@ -1,4 +1,4 @@
-import { defineModel, instant, integer, numeric, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, instant, integer, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * One amount due under an agreement, scoped to the same employment contract.

@@ -98,7 +98,7 @@
 	 *
 	 * These are history: the generator re-dates and re-prices everything else around them, and the
 	 * matrix must not offer them for editing. One junction lookup, keyed by the loan's own
-	 * repayment ids — the same shape every other settlement lookup in this workspace uses.
+	 * repayment ids — a repayment is captured once per period it is recovered in.
 	 */
 	const capturedQuery = $derived.by(() => {
 		const ids = schedule.map((row) => row.id);

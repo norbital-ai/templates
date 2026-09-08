@@ -285,7 +285,6 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 	};
 	const workApi = {
 		db: {
-			payslip_work_day_inputs: { findFirst: () => Effect.succeed(null) },
 			employments: { findFirst: () => Effect.succeed({ company_id: id(3) }) },
 			payroll_runs: { findMany: () => Effect.succeed([]) },
 			leave_entries: { findMany: () => Effect.succeed([]) }

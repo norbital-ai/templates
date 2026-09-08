@@ -94,10 +94,11 @@ async function payslipOf(session: Session, runId: string) {
 		[runId, EMPLOYMENT_ID]
 	)) as ReadonlyArray<Row>;
 	assert.ok(payslip, `a payslip for ${EMPLOYMENT_ID} on run ${runId}`);
-	const adjustments = (await session.query(
-		'select id, label, bucket, amount::text as amount from payslip_adjustments where payslip_id = $1 order by sequence',
-		[String(payslip.id)]
-	)) as ReadonlyArray<Row>;
+	const [row] = (await session.query('select adjustments from payslips where id = $1', [
+		String(payslip.id)
+	])) as ReadonlyArray<{ readonly adjustments: ReadonlyArray<Row> }>;
+	// A correction names the payslip it corrects; the line is found by label and bucket.
+	const adjustments = (row?.adjustments ?? []).map((line) => ({ ...line, id: payslip.id }));
 	return { payslip, adjustments };
 }
 
@@ -123,7 +124,7 @@ const postReversal = (
 						recurrence: { kind: 'ONE_OFF', period: FEBRUARY_2026 },
 						pay_period: FEBRUARY_2026,
 						as_adjustment_entry: true,
-						corrects_adjustment_id: correctsAdjustmentId
+						corrects_payslip_id: correctsAdjustmentId
 					}
 				}
 			]

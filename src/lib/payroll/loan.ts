@@ -178,33 +178,33 @@ export function prepareLoanConsumption(options: {
 		const db = options.api.db;
 		const priorPayslipIds = [...options.payslipIds];
 		const consumedRepayments = new Map<string, number>();
-		const repaymentLinks = yield* db.payslip_loan_repayment_inputs.findMany({
-			where: { payslip_id: { in: priorPayslipIds } },
-			columns: { id: true, loan_repayment_id: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(repaymentLinks, 'prior loan-repayment captures');
-
-		const repaymentIdByLink = new Map(repaymentLinks.map((row) => [row.id, row.loan_repayment_id]));
-		const repaymentClaims = yield* db.payslip_adjustments.findMany({
-			where: {
-				payslip_id: { in: priorPayslipIds },
-				input: { kind: { eq: 'LOAN_REPAYMENT_INPUT' } }
-			},
-			columns: { input: true, amount: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(repaymentClaims, 'prior loan-recovery adjustments');
-		for (const row of repaymentClaims) {
-			if (row.input.kind !== 'LOAN_REPAYMENT_INPUT') continue;
-			const sourceId = repaymentIdByLink.get(row.input.id);
-			if (sourceId == null) continue;
-			consumedRepayments.set(
-				sourceId,
-				(consumedRepayments.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
-			);
-		}
-
+		const [links, payslips] = yield* Effect.all(
+			[
+				db.payslip_loan_repayment_inputs.findMany({
+					where: { payslip_id: { in: priorPayslipIds } },
+					columns: { loan_repayment_id: true },
+					limit: PAGE_LIMIT
+				}),
+				db.payslips.findMany({
+					where: { id: { in: priorPayslipIds } },
+					columns: { id: true, adjustments: true },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		options.api.reads.assertComplete(links, 'prior loan-repayment captures');
+		options.api.reads.assertComplete(payslips, 'prior loan-recovery adjustments');
+		// A paid capture with no output consumed zero, rather than leaving historical usage unknown.
+		for (const row of links) consumedRepayments.set(row.loan_repayment_id, 0);
+		for (const payslip of payslips)
+			for (const row of payslip.adjustments) {
+				if (row.family !== 'LOAN_REPAYMENT') continue;
+				consumedRepayments.set(
+					row.source_id,
+					(consumedRepayments.get(row.source_id) ?? 0) + decodeNumber(row.amount ?? 0)
+				);
+			}
 		return consumedRepayments;
 	});
 }

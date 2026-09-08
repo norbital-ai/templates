@@ -47,6 +47,7 @@ import type {
 	MeasuredEmployment
 } from '../../../lib/payroll/family.js';
 import type { PayslipProration } from '../../../datatypes/payslip_proration/+definition.js';
+import type { PayslipAdjustment } from '../../../datatypes/payslip_adjustments/+definition.js';
 import type { Settlement } from './settle.js';
 
 export type PendingPayslip = {
@@ -61,23 +62,6 @@ export type PendingPayslip = {
 };
 
 /**
- * The junction an adjustment's `input` handle names, per input family.
- *
- * The four families are the four logical payslip attributes; the tags are the reference arms
- * `payslip_adjustments.input` declares. Kept beside the assembly rather than inlined as literals
- * at each emit site, so the family → junction spelling exists exactly once.
- */
-const INPUT_TAG_BY_FAMILY = {
-	WORK_DAY: 'WORK_DAY_INPUT',
-	CLAIM: 'CLAIM_REQUEST_INPUT',
-	ALLOWANCE: 'ALLOWANCE_REQUEST_INPUT',
-	PAYMENT: 'PAYMENT_REQUEST_INPUT',
-
-	LEAVE: 'LEAVE_INPUT',
-	LOAN_REPAYMENT: 'LOAN_REPAYMENT_INPUT'
-} as const;
-
-/**
  * The bucket an amount settles into, from the family pay item's `policy.kind` where there is one.
  *
  * `INFORMATION` never reaches here — MEASURE stops it, because an hourly rate is not money — so a
@@ -85,89 +69,36 @@ const INPUT_TAG_BY_FAMILY = {
  * earning. The fallback is stated rather than left to a cast so an unexpected value lands in the
  * pot it economically belongs to instead of failing a not-null column at the database.
  */
-function bucketOf(nature: MeasuredAdjustment['nature']): NonNullable<MeasuredAdjustment['nature']> {
+function bucketOf(nature: MeasuredAdjustment['nature']): PayslipAdjustment['bucket'] {
 	return nature == null || nature === 'INFORMATION' ? 'EARNING' : nature;
 }
 
-/**
- * The junction rows one captured family contributes, under the source column it stores.
- *
- * The ids are minted here and nowhere else, because an id is a graph-ordering fact: the runtime
- * layers a returned graph parent-first and resolves every reference in it, so an authored id is
- * what lets an adjustment's `input` foreign key name a junction row in the same statement.
- */
-type JunctionRow<Source extends string> = {
-	readonly id: string;
-	readonly period: string;
-} & Readonly<Record<Source, string>>;
+/** The single-use sources one payslip settled, by family — what the run stamps after the commit. */
+export type PayslipCaptures = Readonly<{
+	payslipId: string;
+	workDays: readonly string[];
+	claims: readonly string[];
+	payments: readonly string[];
+}>;
 
-function junctionRowsOf<Source extends string>(
-	ids: readonly string[],
-	period: string,
-	sourceColumn: Source
-): JunctionRow<Source>[] {
-	return ids.map((sourceId) => ({
-		id: crypto.randomUUID(),
-		[sourceColumn]: sourceId,
-		// Denormalized deliberately: the refusal that stops somebody editing a captured record is
-		// composed under that person's own subject, and a supervisor has no `payroll_runs` read
-		// grant — so joining through the payslip to the run would turn an explanation into an
-		// access denial. The engine writes it and refuses hand edits to it.
-		period
-	})) as JunctionRow<Source>[];
-}
-
-/** Every payslip in the run, with the captured inputs and the adjustments that belong to it. */
+/** Every payslip in the run with its adjustments and multi-use captures, and what each settled. */
 export function payrollRunGraph(options: {
 	readonly pending: readonly PendingPayslip[];
 	readonly period: string;
 }) {
-	return options.pending.map((payslip) => {
-		const workDayJunctions = junctionRowsOf(
-			payslip.captured.workDays,
-			options.period,
-			'work_day_id'
-		);
-		const claimJunctions = junctionRowsOf(
-			payslip.captured.payRequests.CLAIM,
-			options.period,
-			'claim_request_id'
-		);
-		const allowanceJunctions = junctionRowsOf(
-			payslip.captured.payRequests.ALLOWANCE,
-			options.period,
-			'allowance_request_id'
-		);
-		const paymentJunctions = junctionRowsOf(
-			payslip.captured.payRequests.PAYMENT,
-			options.period,
-			'payment_request_id'
-		);
-		const leaveJunctions = payslip.captured.leave.map((capture) => ({
-			...capture,
-			id: crypto.randomUUID(),
-			period: options.period
-		}));
-		const repaymentJunctions = junctionRowsOf(
-			payslip.captured.loanRepayments,
-			options.period,
-			'loan_repayment_id'
-		);
-		/**
-		 * Source id → junction id, per family. The junction rows and the adjustment handles are
-		 * joined here and nowhere else: the junction id the payslip stores is the same id the
-		 * adjustment's input handle names, which is what makes the adjustment's provenance a real
-		 * foreign key into a row its own payslip holds.
-		 */
-		const junctionIdOf = {
-			WORK_DAY: new Map(workDayJunctions.map((row) => [row.work_day_id, row.id])),
-			CLAIM: new Map(claimJunctions.map((row) => [row.claim_request_id, row.id])),
-			ALLOWANCE: new Map(allowanceJunctions.map((row) => [row.allowance_request_id, row.id])),
-			PAYMENT: new Map(paymentJunctions.map((row) => [row.payment_request_id, row.id])),
-			LEAVE: new Map(leaveJunctions.map((row) => [row.leave_entry_id, row.id])),
-			LOAN_REPAYMENT: new Map(repaymentJunctions.map((row) => [row.loan_repayment_id, row.id]))
-		} as const;
+	const captures: PayslipCaptures[] = [];
+	const rows = options.pending.map((payslip) => {
+		// The id is minted here so the run's `after` hook can stamp `settled_payslip_id` on the
+		// sources this payslip settled once the payslip row exists.
+		const id = crypto.randomUUID();
+		captures.push({
+			payslipId: id,
+			workDays: payslip.captured.workDays,
+			claims: payslip.captured.payRequests.CLAIM,
+			payments: payslip.captured.payRequests.PAYMENT
+		});
 		return {
+			id,
 			employment_id: payslip.employmentId,
 			terms_through: payslip.termsThrough,
 			base: payslip.settlement.base.map((item: MeasuredBase) => item.entry),
@@ -186,42 +117,36 @@ export function payrollRunGraph(options: {
 			net: payslip.settlement.net,
 			employer_cost: payslip.settlement.employerCost,
 			currency: payslip.currency,
-			payslip_work_day_input_payslip: workDayJunctions,
-			payslip_claim_request_input_payslip: claimJunctions,
-			payslip_allowance_request_input_payslip: allowanceJunctions,
-			payslip_payment_request_input_payslip: paymentJunctions,
-			payslip_leave_input_payslip: leaveJunctions,
-			payslip_loan_repayment_input_payslip: repaymentJunctions,
-			payslip_adjustment_payslip: payslip.settlement.adjustments.map(
-				(adjustment: MeasuredAdjustment, index: number) => {
-					// Every adjustment's causal input is in its payslip's junctions by construction —
-					// the capture sets are the union of what the adjustments name and what the span
-					// filters found. A miss is a bug to stop on, not a null to paper over: the foreign
-					// key is exactly what would catch it, and the same statement is the right place.
-					const junctionId = junctionIdOf[adjustment.input.family].get(adjustment.input.id);
-					if (junctionId == null)
-						throw new Error(
-							`Adjustment ${adjustment.label} names a ${adjustment.input.family} input ` +
-								`${adjustment.input.id} that this payslip never captured.`
-						);
-					return {
-						// Denormalized deliberately: the refusal that stops somebody editing a settled
-						// record is composed under that person's own subject, and a supervisor has no
-						// `payroll_runs` read grant — so joining to the run for its period would turn an
-						// explanation into an access denial. `payroll_runs/+hooks.ts` refuses any hand
-						// edit to `period`, so it cannot drift.
-						period: options.period,
-						input: { kind: INPUT_TAG_BY_FAMILY[adjustment.input.family], id: junctionId },
-						label: adjustment.label,
-						bucket: bucketOf(adjustment.nature),
-						amount: adjustment.amount,
-						quantity: adjustment.quantity,
-						rate: adjustment.rate,
-						statutory_rule_key: adjustment.statutoryRuleKey,
-						sequence: index + 1
-					};
-				}
-			)
+			adjustments: payslip.settlement.adjustments.map((adjustment: MeasuredAdjustment) => ({
+				family: adjustment.input.family,
+				source_id: adjustment.input.id,
+				label: adjustment.label,
+				bucket: bucketOf(adjustment.nature),
+				amount: adjustment.amount,
+				quantity: adjustment.quantity,
+				rate: adjustment.rate,
+				statutory_rule_key: adjustment.statutoryRuleKey
+			})),
+			payslip_allowance_request_input_payslip: payslip.captured.payRequests.ALLOWANCE.map(
+				(sourceId) => ({
+					id: crypto.randomUUID(),
+					allowance_request_id: sourceId,
+					// Denormalized so a refusal or a badge can name the period without a run read.
+					period: options.period
+				})
+			),
+			payslip_leave_input_payslip: payslip.captured.leave.map((capture) => ({
+				...capture,
+				id: crypto.randomUUID(),
+				period: options.period
+			})),
+			// A repayment can be recovered in part and recaptured for the remainder: many payslips.
+			payslip_loan_repayment_input_payslip: payslip.captured.loanRepayments.map((sourceId) => ({
+				id: crypto.randomUUID(),
+				loan_repayment_id: sourceId,
+				period: options.period
+			}))
 		};
 	});
+	return { rows, captures };
 }

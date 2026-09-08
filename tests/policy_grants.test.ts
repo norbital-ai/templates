@@ -248,11 +248,7 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	// controller submitting a payslip directly is refused on that claim.
 	for (const collection of [
 		'payslips',
-		'payslip_adjustments',
-		'payslip_work_day_inputs',
-		'payslip_claim_request_inputs',
 		'payslip_allowance_request_inputs',
-		'payslip_payment_request_inputs',
 		'payslip_leave_inputs',
 		'payslip_loan_repayment_inputs'
 	]) {
@@ -261,10 +257,7 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	}
 	// The Scheduling app reads the capture junctions as this subject to mark consumed days.
 	for (const collection of [
-		'payslip_work_day_inputs',
-		'payslip_claim_request_inputs',
 		'payslip_allowance_request_inputs',
-		'payslip_payment_request_inputs',
 		'payslip_leave_inputs',
 		'payslip_loan_repayment_inputs'
 	])
@@ -286,11 +279,7 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 		// so the six collections a run owns carry delete, and only delete.
 		for (const collection of [
 			'payslips',
-			'payslip_adjustments',
-			'payslip_work_day_inputs',
-			'payslip_claim_request_inputs',
 			'payslip_allowance_request_inputs',
-			'payslip_payment_request_inputs',
 			'payslip_leave_inputs',
 			'payslip_loan_repayment_inputs'
 		]) {
@@ -307,10 +296,7 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 		assert.equal(may(policy, 'payroll_runs', 'read'), true, nameOf(policy));
 		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
 		for (const collection of [
-			'payslip_work_day_inputs',
-			'payslip_claim_request_inputs',
 			'payslip_allowance_request_inputs',
-			'payslip_payment_request_inputs',
 			'payslip_leave_inputs',
 			'payslip_loan_repayment_inputs'
 		]) {
@@ -565,22 +551,9 @@ test('a rank whose app shows captures reads the settlement ledger masked to the 
 	// grant for their sake. The grants below exist for the apps: My attendance and My leave mark a
 	// day or an entry consumed by a payslip, and they read the claim as the person using them.
 	//
-	// The captured-input junctions carry nothing but the claim, so reading them is safe.
-	// The merged collection carries `amount`, and the ranks with no payroll authority must reach the
-	// claim without reaching what it paid. That is the field mask, and this is the check that it is
-	// still there — without it the merge quietly hands every employee the whole payroll.
-	for (const policy of [employee, supervisor, manager]) {
-		const [claim] = grantsFor(policy, 'payslip_adjustments', 'read');
-		assert.ok(Array.isArray(claim.fields), `${nameOf(policy)} reads the ledger unmasked`);
-		assert.deepEqual(claim.fields.toSorted(), ['id', 'input', 'payslip_id', 'period']);
-		assert.equal(claim.fields.includes('amount'), false, nameOf(policy));
-	}
-
-	// And the payroll ranks read it whole, or a payslip could not be rendered.
-	for (const policy of [hrController, hrManager, seniorManagement]) {
-		const [full] = grantsFor(policy, 'payslip_adjustments', 'read');
-		assert.equal(full.fields, undefined, `${nameOf(policy)} cannot render a payslip`);
-	}
+	// The single-use sources carry their own pin, readable with the row; nothing else is granted.
+	for (const policy of [employee, supervisor, manager])
+		assert.equal(may(policy, 'payslips', 'mutate.existing'), false, nameOf(policy));
 });
 
 test('each rank composes the rank beneath it, because nothing inherits at run time', () => {
@@ -641,7 +614,6 @@ test('the kiosk sees one app and may only key time entries and face enrollments'
 		'payslips',
 		'leave_entries',
 		'payroll_runs',
-		'payslip_work_day_inputs',
 		'leave_catalogue',
 		'leave_entitlements',
 		'leave_entries',

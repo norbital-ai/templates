@@ -11,7 +11,7 @@
 		"pay_period": null,
 		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"corrects_adjustment_id": null
+		"corrects_payslip_id": null
 	},
 	{
 		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
@@ -25,7 +25,7 @@
 		"pay_period": null,
 		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"corrects_adjustment_id": null
+		"corrects_payslip_id": null
 	},
 	{
 		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
@@ -39,6 +39,6 @@
 		"pay_period": null,
 		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"corrects_adjustment_id": null
+		"corrects_payslip_id": null
 	}
 ]

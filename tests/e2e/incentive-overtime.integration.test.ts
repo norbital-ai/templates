@@ -103,14 +103,22 @@ it(
 				`the founder lands the run: ${JSON.stringify(run)}`
 			);
 
-			const lines = (await session.query(
-				`select a.label, a.quantity::float as quantity, a.amount::float as amount
-				 from payslip_adjustments a
-				 join payslips p on p.id = a.payslip_id
-				 where p.payroll_run_id = $1 and p.employment_id = $2 and a.label like 'OT_%'
-				 order by a.label`,
-				[runId, EMPLOYMENT_ID]
-			)) as ReadonlyArray<{ label: string; quantity: number; amount: number }>;
+			const lines = (
+				(await session.query(
+					`select adjustments from payslips p where p.payroll_run_id = $1 and p.employment_id = $2`,
+					[runId, EMPLOYMENT_ID]
+				)) as ReadonlyArray<{
+					adjustments: ReadonlyArray<{ label: string; quantity: unknown; amount: unknown }>;
+				}>
+			)
+				.flatMap((row) => row.adjustments)
+				.filter((line) => line.label.startsWith('OT_'))
+				.map((line) => ({
+					label: line.label,
+					quantity: Number(line.quantity),
+					amount: Number(line.amount)
+				}))
+				.toSorted((left, right) => left.label.localeCompare(right.label));
 			assert.deepEqual(
 				lines.map((line) => [line.label, line.quantity, line.amount]),
 				[
@@ -120,9 +128,9 @@ it(
 				`overtime lines: ${JSON.stringify(lines)}`
 			);
 			const captured = (await session.query(
-				`select count(*)::int as n from payslip_work_day_inputs i
-				 join payslips p on p.id = i.payslip_id
-				 where p.payroll_run_id = $1 and i.work_day_id = $2`,
+				`select count(*)::int as n from work_days w
+				 join payslips p on p.id = w.settled_payslip_id
+				 where p.payroll_run_id = $1 and w.id = $2`,
 				[runId, workDayId]
 			)) as ReadonlyArray<{ n: number }>;
 			assert.equal(captured[0]?.n, 1, 'the punch is captured as the run input that priced it');

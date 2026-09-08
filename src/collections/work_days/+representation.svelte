@@ -38,16 +38,8 @@
 	 * not a lock on this collection, and a paid window governs days that have no record, never a
 	 * record that exists.
 	 */
-	const settlementQuery = $derived(
-		record
-			? client.db.payslip_work_day_inputs.findFirst({
-					where: { work_day_id: { eq: record.id } },
-					columns: { period: true }
-				})
-			: null
-	);
 	const settledBy = $derived(
-		settlementQuery?.current ? { period: settlementQuery.current.period } : null
+		record?.settled_period == null ? null : { period: record.settled_period }
 	);
 	const lock = $derived(
 		record
@@ -74,6 +66,8 @@
 	>
 		{#snippet children({ Field })}
 			<Field name="planned_origin" hidden />
+			<Field name="settled_payslip_id" hidden />
+			<Field name="settled_period" hidden />
 			<Stack gap="lg">
 				<Grid gap="md" minimum="panel">
 					<Field

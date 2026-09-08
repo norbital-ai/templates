@@ -8,6 +8,7 @@ import {
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { capturesOf, settle } from './helpers/settlement.ts';
 
 test('an ended contract recovers its due loan from later manual payments without reviving salary', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
@@ -67,17 +68,17 @@ test('an ended contract recovers its due loan from later manual payments without
 			payroll_run_id: runId,
 			employment_id: EMPLOYMENT_ID,
 			statutory: slip.statutory,
+			adjustments: slip.adjustments,
 			approval_id: null
 		});
-		for (const capture of slip.payslip_payment_request_input_payslip)
-			world.payslip_payment_request_inputs.push({ ...capture, payslip_id: payslipId });
+		for (const id of capturesOf(built, slip).payments)
+			settle(world, 'payment_requests', id, payslipId, period);
 		for (const capture of slip.payslip_loan_repayment_input_payslip)
 			world.payslip_loan_repayment_inputs.push({ ...capture, payslip_id: payslipId });
-		for (const adjustment of slip.payslip_adjustment_payslip)
-			world.payslip_adjustments.push({ ...adjustment, payslip_id: payslipId });
 	};
 
-	const february = buildPayrollRun(await prepare('2026-02')).payslip_payroll_run;
+	let built = buildPayrollRun(await prepare('2026-02'));
+	const february = built.payslip_payroll_run;
 	assert.equal(february.length, 1);
 	const first = february[0]!;
 	assert.equal(first.employment_id, EMPLOYMENT_ID);
@@ -85,25 +86,30 @@ test('an ended contract recovers its due loan from later manual payments without
 	assert.equal(first.gross, 100);
 	assert.equal(first.net, 0);
 	assert.equal(first.total_deductions, 100);
-	const firstRecovery = first.payslip_adjustment_payslip.find(
-		(row) => row.input.kind === 'LOAN_REPAYMENT_INPUT'
-	);
+	const firstRecovery = first.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
 	assert.ok(firstRecovery);
 	assert.equal(firstRecovery.amount, 100);
 	assert.equal(first.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id, 'repayment');
-	assert.equal(firstRecovery.input.id, first.payslip_loan_repayment_input_payslip[0]!.id);
+	assert.equal(
+		firstRecovery.source_id,
+		first.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id
+	);
 	persist(first, '2026-02');
 
+	// A copy of the settled payment must not inherit its pin.
 	world.payment_requests.push({
 		...firstPayment,
 		id: 'later-payment',
 		amount: 75,
 		effective_on: '2026-03-05',
-		pay_period: '2026-03'
+		pay_period: '2026-03',
+		settled_payslip_id: null,
+		settled_period: null
 	});
 	const preparedMarch = await prepare('2026-03');
 	assert.equal(preparedMarch.gathered.consumedRepayments.get('repayment'), 100);
-	const march = buildPayrollRun(preparedMarch).payslip_payroll_run;
+	built = buildPayrollRun(preparedMarch);
+	const march = built.payslip_payroll_run;
 	assert.equal(march.length, 1);
 	const second = march[0]!;
 	assert.equal(second.employment_id, EMPLOYMENT_ID);
@@ -111,11 +117,7 @@ test('an ended contract recovers its due loan from later manual payments without
 	assert.equal(second.gross, 75);
 	assert.equal(second.net, 25);
 	assert.equal(second.total_deductions, 50);
-	assert.equal(
-		second.payslip_adjustment_payslip.find((row) => row.input.kind === 'LOAN_REPAYMENT_INPUT')
-			?.amount,
-		50
-	);
+	assert.equal(second.adjustments.find((row) => row.family === 'LOAN_REPAYMENT')?.amount, 50);
 	assert.equal(second.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id, 'repayment');
 	assert.equal(
 		world.loan_repayments[0]!.amount_due,

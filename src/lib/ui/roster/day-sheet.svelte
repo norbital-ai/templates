@@ -655,6 +655,8 @@
 							<Field name="planned_note" hidden />
 							<Field name="worked_intervals" hidden />
 							<Field name="break_minutes" hidden />
+							<Field name="settled_payslip_id" hidden />
+							<Field name="settled_period" hidden />
 							<Stack gap="lg" class="pr-1">
 								<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
 								<Stack gap="sm">

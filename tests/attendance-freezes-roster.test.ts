@@ -27,7 +27,6 @@ const holidayInput = {
 
 const api = {
 	db: {
-		payslip_work_day_inputs: { findFirst: () => Effect.succeed(undefined) },
 		leave_entries: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) }
 	}

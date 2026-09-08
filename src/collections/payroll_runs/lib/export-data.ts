@@ -7,7 +7,7 @@ import { resolveEmployment } from '../../../lib/employment-contract.js';
  *
  * Everything the run settled is read back from where it was stored and never recomputed: the
  * contracted amounts and the statutory charges are inlined on the payslip, and everything one input
- * caused is a `payslip_adjustments` row. Rows whose amount is zero are settlement claims rather than
+ * caused is an entry of `payslips.adjustments`. Rows whose amount is zero are settlement claims rather than
  * figures — the run read the source and priced it at nothing — so they carry no component and
  * contribute no workbook line.
  */
@@ -128,55 +128,38 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [
-			adjustments,
-			employments,
-			workCatalogues,
-			leaves,
-			claims,
-			allowances,
-			payments,
-			terms,
-			workDays
-		] = yield* Effect.all(
-			[
-				api.db.payslip_adjustments.findMany({
-					where: { payslip_id: { in: payslipIds } },
-					// The repayment's own arm, hydrated through the reference rather than fetched by a
-					// second query: the workbook reports loan recovery in its own column, and the input
-					// family is the whole of what makes an adjustment one.
-					with: { input: { LOAN_REPAYMENT_INPUT: { columns: { loan_repayment_id: true } } } },
-					limit: PAGE_LIMIT
-				}),
-				api.db.employments.findMany({
-					where: { id: { in: employmentIds } },
-					limit: PAGE_LIMIT
-				}),
-				// Every catalogue: a settled payslip line names a component by code, and the code may come
-				// from any of them. Merged here for the same reason the run merges them — the export asks
-				// what a line *is*, never which table declared it.
-				api.db.work_catalogue.findMany({ limit: PAGE_LIMIT }),
-				api.db.leave_catalogue.findMany({ limit: PAGE_LIMIT }),
-				api.db.claim_catalogue.findMany({ limit: PAGE_LIMIT }),
-				api.db.allowance_catalogue.findMany({ limit: PAGE_LIMIT }),
-				api.db.payment_catalogue.findMany({ limit: PAGE_LIMIT }),
-				api.db.employment_terms.findMany({
-					where: { employment_id: { in: employmentIds } },
-					limit: PAGE_LIMIT
-				}),
-				// One read where there were two. Plan and punch are one row, so the schedule this
-				// export reports and the hours it reports come from the same query and cannot disagree
-				// about which days existed.
-				api.db.work_days.findMany({
-					where: {
-						employment_id: { in: employmentIds },
-						work_date: { gte: attendanceFrom, lte: attendanceTo }
-					},
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const [employments, workCatalogues, leaves, claims, allowances, payments, terms, workDays] =
+			yield* Effect.all(
+				[
+					api.db.employments.findMany({
+						where: { id: { in: employmentIds } },
+						limit: PAGE_LIMIT
+					}),
+					// Every catalogue: a settled payslip line names a component by code, and the code may come
+					// from any of them. Merged here for the same reason the run merges them — the export asks
+					// what a line *is*, never which table declared it.
+					api.db.work_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.leave_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.claim_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.allowance_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.payment_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.employment_terms.findMany({
+						where: { employment_id: { in: employmentIds } },
+						limit: PAGE_LIMIT
+					}),
+					// One read where there were two. Plan and punch are one row, so the schedule this
+					// export reports and the hours it reports come from the same query and cannot disagree
+					// about which days existed.
+					api.db.work_days.findMany({
+						where: {
+							employment_id: { in: employmentIds },
+							work_date: { gte: attendanceFrom, lte: attendanceTo }
+						},
+						limit: PAGE_LIMIT
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
 		for (const [name, rows] of Object.entries({
 			workCatalogues,
 			leaves,
@@ -185,7 +168,6 @@ export function loadRunExports(
 			payments
 		}))
 			readApi.reads.assertComplete<unknown>(rows, name);
-		readApi.reads.assertComplete(adjustments, 'payslip adjustments');
 		readApi.reads.assertComplete(terms, 'employment terms');
 		readApi.reads.assertComplete(workDays, 'work days');
 
@@ -243,7 +225,6 @@ export function loadRunExports(
 		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
 		const workDaysByEmployment = groupBy(workDays, (row) => row.employment_id);
 		const shiftById = new Map(shifts.map((row) => [row.id, row]));
-		const adjustmentsByPayslip = groupBy(adjustments, (row) => row.payslip_id);
 		const payslipsByRun = groupBy(payslips, (row) => row.payroll_run_id);
 
 		return runs.map((run) => {
@@ -366,9 +347,8 @@ export function loadRunExports(
 				 * working behind a base amount, and a workbook column that summed it would count the
 				 * wage twice.
 				 */
-				const payslipAdjustments = (adjustmentsByPayslip.get(payslip.id) ?? []).toSorted(
-					(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
-				);
+				// Settlement order is the array's order.
+				const payslipAdjustments = payslip.adjustments;
 				const reportLine = (
 					componentCode: string,
 					amount: number,
@@ -431,7 +411,7 @@ export function loadRunExports(
 							...line,
 							// Recovery of a loan repayment is the one adjustment a workbook reports
 							// separately, and the input family is what says so.
-							isLoanInstalment: row.input.kind === 'LOAN_REPAYMENT_INPUT'
+							isLoanInstalment: row.family === 'LOAN_REPAYMENT'
 						}));
 					})
 				];

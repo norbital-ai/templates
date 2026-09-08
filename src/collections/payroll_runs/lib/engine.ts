@@ -72,12 +72,14 @@ export const CALCULATION_VERSION = '2026-09-contract-payroll-families' as const;
 
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
 type PayrollRunGraph = {
-	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>;
+	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>['rows'];
+	/** What each payslip settled; the run's `after` hook stamps the sources with it. */
+	readonly captures: ReturnType<typeof payrollRunGraph>['captures'];
 	readonly payslipCount: number;
 	/** Inlined base entries plus the proration segments behind them. */
 	readonly baseCount: number;
 	readonly adjustmentCount: number;
-	/** Junction rows the run wrote — every captured input, zero-value ones included. */
+	/** Every captured input, zero-value ones included. */
 	readonly capturedCount: number;
 	readonly warnings: readonly string[];
 };
@@ -227,30 +229,33 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	if (blocking.length > 0) refuse(describeIssues(blocking));
 
 	// 8 — GRAPH
-	const graph = payrollRunGraph({ pending, period });
-	const adjustments = graph.flatMap((payslip) => payslip.payslip_adjustment_payslip);
+	const { rows: graph, captures } = payrollRunGraph({ pending, period });
 	return {
 		payslip_payroll_run: graph,
+		captures,
 		payslipCount: pending.length,
 		baseCount: graph.reduce(
 			(total, payslip) => total + payslip.base.length + payslip.proration.length,
 			0
 		),
-		adjustmentCount: adjustments.length,
-		// Junction rows, counted separately so the run log distinguishes "captured and priced at
-		// nothing" from "produced money". A source that calculated to zero was still consumed and is
-		// still locked — by its junction row, never by a zero-amount output.
-		capturedCount: graph.reduce(
-			(total, payslip) =>
-				total +
-				payslip.payslip_work_day_input_payslip.length +
-				payslip.payslip_claim_request_input_payslip.length +
-				payslip.payslip_allowance_request_input_payslip.length +
-				payslip.payslip_payment_request_input_payslip.length +
-				payslip.payslip_leave_input_payslip.length +
-				payslip.payslip_loan_repayment_input_payslip.length,
-			0
-		),
+		adjustmentCount: graph.reduce((total, payslip) => total + payslip.adjustments.length, 0),
+		// Captures, counted separately so the run log distinguishes "captured and priced at nothing"
+		// from "produced money". A source that calculated to zero was still consumed and is still
+		// locked — by its settled payslip, never by a zero-amount output.
+		capturedCount:
+			captures.reduce(
+				(total, capture) =>
+					total + capture.workDays.length + capture.claims.length + capture.payments.length,
+				0
+			) +
+			graph.reduce(
+				(total, payslip) =>
+					total +
+					payslip.payslip_allowance_request_input_payslip.length +
+					payslip.payslip_leave_input_payslip.length +
+					payslip.payslip_loan_repayment_input_payslip.length,
+				0
+			),
 		warnings: issues
 			.filter((issue) => issue.severity === 'WARNING')
 			.map((issue) => describeIssues([issue], 'warn'))

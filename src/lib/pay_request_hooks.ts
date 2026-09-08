@@ -10,7 +10,7 @@ import {
 	reimbursable,
 	resolveEntryCap
 } from '../collections/payroll_runs/lib/entry-cap.js';
-import { refuseIfCaptured } from './scheduling/lock.js';
+import { isSettlementWrite, refuseIfCaptured, settledClaim } from './scheduling/lock.js';
 import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
 import type { PayRequestFamily, PayRequestCapture } from './payroll/money.js';
 
@@ -35,27 +35,33 @@ function assertCapHistoryComplete(rows: readonly unknown[]): void {
 		refuse('The contract cap history exceeds the supported read limit.');
 }
 
+/** The claim a settled request carries: on its own row for the single-use families, on the allowance's capture rows. */
 const captureOf = (
 	family: PayRequestFamily,
 	api: AuthoringApi<WorkspaceSchema, unknown>,
 	id: string
 ): Effect.Effect<{ readonly period: string } | undefined, never, never> => {
-	const columns = { period: true } as const;
 	switch (family) {
 		case 'CLAIM':
-			return api.db.payslip_claim_request_inputs.findFirst({
-				where: { claim_request_id: { eq: id } },
-				columns
-			});
+			return Effect.map(
+				api.db.claim_requests.findFirst({
+					where: { id: { eq: id } },
+					columns: { settled_period: true }
+				}),
+				(row) => (row == null ? undefined : settledClaim(row))
+			);
+		case 'PAYMENT':
+			return Effect.map(
+				api.db.payment_requests.findFirst({
+					where: { id: { eq: id } },
+					columns: { settled_period: true }
+				}),
+				(row) => (row == null ? undefined : settledClaim(row))
+			);
 		case 'ALLOWANCE':
 			return api.db.payslip_allowance_request_inputs.findFirst({
 				where: { allowance_request_id: { eq: id } },
-				columns
-			});
-		case 'PAYMENT':
-			return api.db.payslip_payment_request_inputs.findFirst({
-				where: { payment_request_id: { eq: id } },
-				columns
+				columns: { period: true }
 			});
 	}
 };
@@ -164,87 +170,75 @@ function capturedUsageOf(
 ) {
 	return Effect.gen(function* () {
 		const captures = new Map<string, PayRequestCapture[]>();
-		const totals = new Map<string, number>();
 		if (ids.length === 0) return captures;
-		const links = yield* (() => {
-			switch (family) {
-				case 'CLAIM':
-					return api.db.payslip_claim_request_inputs
-						.findMany({
-							where: { claim_request_id: { in: [...ids] } },
-							columns: { id: true, period: true, payslip_id: true, claim_request_id: true },
-							limit: SIBLING_LIMIT
-						})
-						.pipe(
-							Effect.map((rows) =>
-								rows.map((row) => ({
-									id: row.id,
-									period: row.period,
-									payslipId: row.payslip_id,
-									sourceId: row.claim_request_id
-								}))
-							)
+		type Link = { readonly payslipId: string; readonly period: string; readonly sourceId: string };
+		const settledLinks = (
+			rows: readonly {
+				readonly id: string;
+				readonly settled_payslip_id: string | null;
+				readonly settled_period: string | null;
+			}[]
+		): Link[] =>
+			rows.flatMap((row) =>
+				row.settled_payslip_id == null
+					? []
+					: [
+							{
+								payslipId: row.settled_payslip_id,
+								period: row.settled_period ?? '',
+								sourceId: row.id
+							}
+						]
+			);
+		const settled = { id: true, settled_payslip_id: true, settled_period: true } as const;
+		const links: Link[] =
+			family === 'ALLOWANCE'
+				? (yield* api.db.payslip_allowance_request_inputs.findMany({
+						where: { allowance_request_id: { in: [...ids] } },
+						columns: { period: true, payslip_id: true, allowance_request_id: true },
+						limit: SIBLING_LIMIT
+					})).map((row) => ({
+						payslipId: row.payslip_id,
+						period: row.period,
+						sourceId: row.allowance_request_id
+					}))
+				: family === 'CLAIM'
+					? settledLinks(
+							yield* api.db.claim_requests.findMany({
+								where: { id: { in: [...ids] } },
+								columns: settled,
+								limit: SIBLING_LIMIT
+							})
+						)
+					: settledLinks(
+							yield* api.db.payment_requests.findMany({
+								where: { id: { in: [...ids] } },
+								columns: settled,
+								limit: SIBLING_LIMIT
+							})
 						);
-				case 'ALLOWANCE':
-					return api.db.payslip_allowance_request_inputs
-						.findMany({
-							where: { allowance_request_id: { in: [...ids] } },
-							columns: { id: true, period: true, payslip_id: true, allowance_request_id: true },
-							limit: SIBLING_LIMIT
-						})
-						.pipe(
-							Effect.map((rows) =>
-								rows.map((row) => ({
-									id: row.id,
-									period: row.period,
-									payslipId: row.payslip_id,
-									sourceId: row.allowance_request_id
-								}))
-							)
-						);
-				case 'PAYMENT':
-					return api.db.payslip_payment_request_inputs
-						.findMany({
-							where: { payment_request_id: { in: [...ids] } },
-							columns: { id: true, period: true, payslip_id: true, payment_request_id: true },
-							limit: SIBLING_LIMIT
-						})
-						.pipe(
-							Effect.map((rows) =>
-								rows.map((row) => ({
-									id: row.id,
-									period: row.period,
-									payslipId: row.payslip_id,
-									sourceId: row.payment_request_id
-								}))
-							)
-						);
-			}
-		})();
 		assertCapHistoryComplete(links);
 		if (links.length === 0) return captures;
-		const sourceByLink = new Map(links.map((row) => [row.id, row.sourceId]));
-
-		const kind = `${family}_REQUEST_INPUT` as const;
-		const adjustments = yield* api.db.payslip_adjustments.findMany({
-			where: {
-				payslip_id: { in: [...new Set(links.map((row) => row.payslipId))] },
-				input: { kind: { eq: kind } }
-			},
-			columns: { input: true, amount: true },
+		const payslips = yield* api.db.payslips.findMany({
+			where: { id: { in: [...new Set(links.map((row) => row.payslipId))] } },
+			columns: { id: true, adjustments: true },
 			limit: SIBLING_LIMIT
 		});
-		assertCapHistoryComplete(adjustments);
-		for (const adjustment of adjustments) {
-			if (sourceByLink.has(adjustment.input.id))
-				totals.set(
-					adjustment.input.id,
-					(totals.get(adjustment.input.id) ?? 0) + decodeNumber(adjustment.amount)
-				);
-		}
+		assertCapHistoryComplete(payslips);
+		const totals = new Map<string, number>();
+		for (const payslip of payslips)
+			for (const adjustment of payslip.adjustments) {
+				if (adjustment.family !== family) continue;
+				const key = `${payslip.id}:${adjustment.source_id}`;
+				totals.set(key, (totals.get(key) ?? 0) + decodeNumber(adjustment.amount));
+			}
 		for (const link of links) {
 			const rows = captures.get(link.sourceId) ?? [];
-			rows.push({ id: link.id, period: link.period, amount: totals.get(link.id) ?? 0 });
+			rows.push({
+				id: link.payslipId,
+				period: link.period,
+				amount: totals.get(`${link.payslipId}:${link.sourceId}`) ?? 0
+			});
 			captures.set(link.sourceId, rows);
 		}
 		return captures;
@@ -261,6 +255,8 @@ export function assertPayRequestAdmissible(
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		const { api } = options;
+		// The engine's capture or release of this row: the one write a settled row takes.
+		if (options.existing !== undefined && isSettlementWrite(options.input)) return;
 		// The patch merged over the stored row, so a partial update is judged as the row it would
 		// produce — the same candidate a form validates before it submits.
 		const candidate =
@@ -274,18 +270,11 @@ export function assertPayRequestAdmissible(
 
 		if (guard.family === 'PAYMENT' && String(candidate.reason ?? '').trim() === '')
 			refuse('A payment requires a reason or supporting transaction reference.');
-		if (candidate.corrects_adjustment_id != null) {
-			const adjustment = yield* api.db.payslip_adjustments.findFirst({
-				where: { id: { eq: String(candidate.corrects_adjustment_id) } },
-				columns: { payslip_id: true }
+		if (candidate.corrects_payslip_id != null) {
+			const payslip = yield* api.db.payslips.findFirst({
+				where: { id: { eq: String(candidate.corrects_payslip_id) } },
+				columns: { employment_id: true }
 			});
-			const payslip =
-				adjustment == null
-					? undefined
-					: yield* api.db.payslips.findFirst({
-							where: { id: { eq: adjustment.payslip_id } },
-							columns: { employment_id: true }
-						});
 			if (payslip == null || payslip.employment_id !== candidate.employment_id)
 				refuse('A correction must reference a payslip from the same employment contract.');
 		}

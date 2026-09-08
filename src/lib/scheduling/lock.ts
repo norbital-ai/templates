@@ -348,14 +348,29 @@ export function sourceLockRecordMetadata(
 	] as const;
 }
 
+/** The columns the payroll engine writes when it captures or releases a single-use source. */
+const SETTLEMENT_KEYS = new Set(['id', 'row_version', 'settled_payslip_id', 'settled_period']);
+
+/** Whether a write is the engine's capture or release — the one write a settled row accepts. */
+export function isSettlementWrite(input: Readonly<Record<string, unknown>>): boolean {
+	return Object.keys(input).every((key) => SETTLEMENT_KEYS.has(key));
+}
+
+/** The claim a settled source carries, read off its own row. */
+export function settledClaim(row: {
+	readonly settled_period?: string | null;
+}): { readonly period: string } | undefined {
+	return row.settled_period == null ? undefined : { period: row.settled_period };
+}
+
 /**
  * The shared settlement-lock read, for every source family's update and delete hooks.
  *
  * Each hook supplies the capture lookup over its own junction — the generated client keeps its
  * per-collection query types — and this one decision turns whatever it finds into the same refusal
  * the screens compute from the same inputs. A pending approval still answers first (the platform's
- * 409, not ours); a capture names the period that has to release the record. The four junctions
- * carry the denormalized `period` exactly so this refusal never needs a `payroll_runs` read grant.
+ * 409, not ours); a capture names the period that has to release the record. Every settled source
+ * carries `settled_period` exactly so this refusal never needs a `payroll_runs` read grant.
  */
 type RefuseIfCapturedOptions = {
 	readonly capture: Effect.Effect<{ readonly period: string } | undefined, never, never>;
@@ -438,6 +453,13 @@ export const planChanges = (
  * pay request dated in the past is ordinary, and only a settlement or a pending approval freezes
  * one.
  */
+/** The settlement claim of a single-use row, in the array shape the badge helper reads. */
+export function settledClaims(row: {
+	readonly settled_period?: string | null;
+}): ReadonlyArray<{ readonly period: string }> {
+	return row.settled_period == null ? [] : [{ period: row.settled_period }];
+}
+
 export function payRequestRecordMetadata(
 	approvalId: string | null,
 	captures: ReadonlyArray<{ readonly period: string }> | null | undefined,

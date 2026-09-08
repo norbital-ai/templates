@@ -34,10 +34,7 @@ export type PayrollWorld = {
 	readonly work_days: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
-	readonly payslip_claim_request_inputs: PayrollRow[];
 	readonly payslip_allowance_request_inputs: PayrollRow[];
-	readonly payslip_payment_request_inputs: PayrollRow[];
-	readonly payslip_adjustments: PayrollRow[];
 	readonly payslip_leave_inputs: PayrollRow[];
 	readonly payslip_loan_repayment_inputs: PayrollRow[];
 };
@@ -129,18 +126,32 @@ export function clonePayrollWorld(world: PayrollWorld): PayrollWorld {
 
 /** A read-only hook `api` whose `db` is the given world. */
 export function memoryPayrollApi(world: PayrollWorld) {
+	// A stored payslip always carries its `adjustments` array; a test that files one without it
+	// reads it back the way the database would.
+	const rows = (name: keyof PayrollWorld): readonly PayrollRow[] =>
+		name === 'payslips' ? world.payslips.map((row) => ({ adjustments: [], ...row })) : world[name];
 	const collection = (name: keyof PayrollWorld) => ({
 		findPending: (query: { where?: unknown; limit?: number }) =>
 			Effect.succeed(
 				select(
-					world[name].filter((row) => row.approval_id != null),
+					rows(name).filter((row) => row.approval_id != null),
 					query
 				)
 			),
 		findMany: (query: { where?: unknown; limit?: number }) =>
-			Effect.succeed(select(world[name], query)),
+			Effect.succeed(select(rows(name), query)),
 		findFirst: (query: { where?: unknown; limit?: number }) =>
-			Effect.succeed(select(world[name], query)[0] ?? null)
+			Effect.succeed(select(rows(name), query)[0] ?? null),
+		/** An id updates in place; no id appends. What the run's `after` hook writes onto sources. */
+		mutate: (values: readonly PayrollRow[]) =>
+			Effect.sync(() => {
+				for (const value of values) {
+					const stored =
+						value.id == null ? undefined : world[name].find((row) => row.id === value.id);
+					if (stored) Object.assign(stored, value);
+					else world[name].push({ ...value });
+				}
+			})
 	});
 	return {
 		db: {
@@ -169,10 +180,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			work_days: collection('work_days'),
 			payroll_runs: collection('payroll_runs'),
 			payslips: collection('payslips'),
-			payslip_claim_request_inputs: collection('payslip_claim_request_inputs'),
 			payslip_allowance_request_inputs: collection('payslip_allowance_request_inputs'),
-			payslip_payment_request_inputs: collection('payslip_payment_request_inputs'),
-			payslip_adjustments: collection('payslip_adjustments'),
 			payslip_leave_inputs: collection('payslip_leave_inputs'),
 			payslip_loan_repayment_inputs: collection('payslip_loan_repayment_inputs')
 		}

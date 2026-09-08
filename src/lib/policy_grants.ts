@@ -176,11 +176,7 @@ export const peopleGrants = (
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
-	mergeGrants(
-		grantsOn('payroll_runs', actions),
-		grantsOn('payslips', actions),
-		grantsOn('payslip_adjustments', actions)
-	);
+	mergeGrants(grantsOn('payroll_runs', actions), grantsOn('payslips', actions));
 
 /** Leave pickers need paid-period boundaries, without payroll inputs or results. */
 export const leaveCalendarGrants = (ownCompany = false): Grants =>
@@ -200,14 +196,7 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
  * lower rank needs. The junction collections carry no amounts, but the source id alone is the
  * settlement claim — which is the whole of what the lock refusal reads.
  */
-/** The adjustment-side claim fields: which payslip, which input link, which period. */
-const ADJUSTMENT_CLAIM_FIELDS = ['id', 'payslip_id', 'input', 'period'] as const;
-/** The work-day capture, as the lock refusal reads it. */
-const WORK_DAY_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'work_day_id'] as const;
-/** The component-entry claim, as the lock refusal reads it. */
-const CLAIM_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'claim_request_id'] as const;
 const ALLOWANCE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'allowance_request_id'] as const;
-const PAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'payment_request_id'] as const;
 /** The leave-request capture's columns. */
 const LEAVE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'leave_entry_id'] as const;
 /** The loan-repayment capture's columns. */
@@ -222,16 +211,12 @@ const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_
  * surface shows. The hooks that refuse a settled record read the same junctions as the workspace
  * and need nothing from here.
  *
- * Split from `settlementLedgerGrants` because the payroll ranks read `payslip_adjustments` whole
- * (they render payslips), so handing them the masked adjustment read too would be a duplicate
- * grant; the junction reads are the part every rank whose app shows captures still needs.
+ * The two capture junctions left: My leave marks an entry consumed by a payslip and the allowance
+ * pages mark a standing award taken; single-use sources carry their own settlement pin instead.
  */
 export const captureLedgerGrants = (): Grants =>
 	mergeGrants(
-		grantOn('payslip_work_day_inputs', 'read', { fields: WORK_DAY_CAPTURE_FIELDS }),
-		grantOn('payslip_claim_request_inputs', 'read', { fields: CLAIM_CAPTURE_FIELDS }),
 		grantOn('payslip_allowance_request_inputs', 'read', { fields: ALLOWANCE_CAPTURE_FIELDS }),
-		grantOn('payslip_payment_request_inputs', 'read', { fields: PAYMENT_CAPTURE_FIELDS }),
 		grantOn('payslip_leave_inputs', 'read', { fields: LEAVE_CAPTURE_FIELDS }),
 		grantOn('payslip_loan_repayment_inputs', 'read', { fields: REPAYMENT_CAPTURE_FIELDS })
 	);
@@ -249,20 +234,12 @@ export const captureLedgerGrants = (): Grants =>
 export const payrollRunCascadeGrants = (): Grants =>
 	mergeGrants(
 		grantsOn('payslips', ['delete']),
-		grantsOn('payslip_adjustments', ['delete']),
-		grantsOn('payslip_work_day_inputs', ['delete']),
-		grantsOn('payslip_claim_request_inputs', ['delete']),
 		grantsOn('payslip_allowance_request_inputs', ['delete']),
-		grantsOn('payslip_payment_request_inputs', ['delete']),
 		grantsOn('payslip_leave_inputs', ['delete']),
 		grantsOn('payslip_loan_repayment_inputs', ['delete'])
 	);
 
-const settlementLedgerGrants = (): Grants =>
-	mergeGrants(
-		grantOn('payslip_adjustments', 'read', { fields: ADJUSTMENT_CLAIM_FIELDS }),
-		captureLedgerGrants()
-	);
+const settlementLedgerGrants = (): Grants => captureLedgerGrants();
 
 export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
