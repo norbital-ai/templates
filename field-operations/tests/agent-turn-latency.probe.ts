@@ -25,7 +25,10 @@ const generations: Array<number> = [];
 
 /** Instant provider: the catalogue states a window, and a Generate answers with one sentence. */
 const ai = makeAiBinding({
-	call: async (_metadata: unknown, request: { readonly _tag: string; readonly callId?: string; readonly modelId?: string }) => {
+	call: async (
+		_metadata: unknown,
+		request: { readonly _tag: string; readonly callId?: string; readonly modelId?: string }
+	) => {
 		if (request._tag === 'Catalog') {
 			return {
 				_tag: 'Catalog' as const,
@@ -77,7 +80,10 @@ try {
 		{ email: 'field-ops-latency-probe@example.test' },
 		'system'
 	);
-	assert.ok(session.status < 300, `continueSession HTTP ${session.status}: ${JSON.stringify(session.value)}`);
+	assert.ok(
+		session.status < 300,
+		`continueSession HTTP ${session.status}: ${JSON.stringify(session.value)}`
+	);
 	const credential = String((session.value as { readonly credential?: unknown }).credential);
 
 	const conversationId = randomUUID();
@@ -91,7 +97,9 @@ try {
 				conversationId,
 				submissionId: randomUUID(),
 				agentId: 'web',
-				message: encodeMessage(Prompt.userMessage({ content: [Prompt.textPart({ text: `Turn ${turn + 1}.` })] })),
+				message: encodeMessage(
+					Prompt.userMessage({ content: [Prompt.textPart({ text: `Turn ${turn + 1}.` })] })
+				),
 				mode: 'agent',
 				priority: 'normal'
 			},
@@ -104,12 +112,18 @@ try {
 		sends.push(performance.now() - askedAt);
 	}
 
-	assert.equal(generations.length, TURNS, `expected ${TURNS} provider calls, saw ${generations.length}`);
+	assert.equal(
+		generations.length,
+		TURNS,
+		`expected ${TURNS} provider calls, saw ${generations.length}`
+	);
 	const line = (label: string, values: ReadonlyArray<number>) =>
 		`${label}: p50 ${percentile(values, 0.5).toFixed(1)} ms, p95 ${percentile(values, 0.95).toFixed(1)} ms, max ${Math.max(...values).toFixed(1)} ms`;
 	console.info(`PROBE ${line('send→provider', generations)}`);
 	console.info(`PROBE ${line('send→response', sends)}`);
-	console.info(`PROBE per turn send→provider: ${generations.map((v) => v.toFixed(0)).join(' ')} ms`);
+	console.info(
+		`PROBE per turn send→provider: ${generations.map((v) => v.toFixed(0)).join(' ')} ms`
+	);
 	console.info(`PROBE per turn send→response: ${sends.map((v) => v.toFixed(0)).join(' ')} ms`);
 } finally {
 	await guest.stop();
