@@ -26,7 +26,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
+import { calculateFamilies } from '../src/lib/payroll/families.ts';
 import { payrollRunGraph } from '../src/collections/payroll_runs/lib/graph.ts';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import relationships from '../src/collections/+relationship.ts';
@@ -59,6 +59,8 @@ const COMPANY = {
 
 const BASIC = {
 	id: 'pc-basic',
+	family: 'WORK',
+	output: 'salary',
 	settings_id: 'jur-my',
 	code: 'BASIC',
 	nature: 'EARNING',
@@ -95,54 +97,57 @@ const readDay = (id, date) => ({
 });
 
 function measure(overrides = {}) {
-	return measureEmployment({
-		bundle: {
-			employment: {
-				id: 'emp-1',
-				employee_id: 'ee-1',
-				employee_number: 'PUBEM0023',
-				settings_id: 'jur-my',
-				hire_date: '2021-06-01',
-				exit_date: null,
-				effective_range: { start: '2021-06-01', end: null }
-			},
-			employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
-			terms: [
-				{
-					id: 'terms-1',
-					employment_id: 'emp-1',
-					base_salary: { value: 3451, currency: 'MYR' },
-					pay_frequency: 'MONTHLY',
-					shift_pattern_id: 'pattern-1',
-					statutory_work_category: 'NON_MANUAL',
-					work_classification: 'NON_MANUAL',
-					employment_type: 'PERMANENT',
-					department: null,
-					payroll_group: null,
-					effective_range: { start: '2020-01-01', end: null }
-				}
-			],
-			statutoryFacts: [],
-			payRequests: [],
-			loans: [],
-			loanRepayments: [],
-			ledger: [],
-			leaveEntitlements: [],
-			leaveEntries: [],
-			workDays: [],
-			serviceMonths: 57,
-			age: 34,
-			employedDays: MARCH,
-			wageDays: MARCH,
-			attendance: MARCH_ATTENDANCE,
-			arrearsFor: null,
-			deferral: null,
-			extendedLeaveSettlesInOwnMonth: false,
-			...overrides
+	const bundle = {
+		employment: {
+			id: 'emp-1',
+			employee_id: 'ee-1',
+			employee_number: 'PUBEM0023',
+			settings_id: 'jur-my',
+			hire_date: '2021-06-01',
+			exit_date: null,
+			effective_range: { start: '2021-06-01', end: null }
 		},
+		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
+		terms: [
+			{
+				id: 'terms-1',
+				employment_id: 'emp-1',
+				base_salary: { value: 3451, currency: 'MYR' },
+				pay_frequency: 'MONTHLY',
+				shift_pattern_id: 'pattern-1',
+				statutory_work_category: 'NON_MANUAL',
+				work_classification: 'NON_MANUAL',
+				employment_type: 'PERMANENT',
+				department: null,
+				payroll_group: null,
+				effective_range: { start: '2020-01-01', end: null }
+			}
+		],
+		statutoryFacts: [],
+		payRequests: [],
+		loans: [],
+		loanRepayments: [],
+		leave: { entries: [], catalogues: [], captures: [], balances: {}, deductionEligibility: {} },
+		children: [],
+		payFrequency: 'MONTHLY',
+		window: { period: '2026-03', salary: MARCH, attendance: MARCH_ATTENDANCE },
+		workDays: [],
+		serviceMonths: 57,
+		age: 34,
+		employedDays: MARCH,
+		wageDays: MARCH,
+		attendance: MARCH_ATTENDANCE,
+		arrearsFor: null,
+		deferral: null,
+		...overrides
+	};
+	return calculateFamilies({
+		bundle: { ...bundle, termsHistory: bundle.terms },
 		configuration: {
 			company: COMPANY,
 			jurisdiction: JURISDICTION,
+			work: { ...JURISDICTION, jurisdiction_code: 'MY' },
+			holidayRestPrecedence: 'REST_DAY',
 			leaveProfiles: [JURISDICTION],
 			contributions: [],
 			treatments: new Map(),
@@ -230,20 +235,10 @@ test('a leaver\u2019s wage window widens the capture, because it widened the mea
 	const measured = measure({
 		attendance: { start: '2026-02-21', end: '2026-03-10' },
 		wageDays: { start: '2026-02-21', end: '2026-03-20' },
-		ledger: [
-			{
-				id: 'lr-1',
-				leave_catalogue_id: 'lt-1',
-				entry_date: '2026-03-15',
-				kind: 'TAKEN',
-				days: -1,
-				source_id: 'lr-1',
-				approval_id: null
-			}
-		]
+		workDays: [readDay('wd-late', '2026-03-15')]
 	});
-	assert.deepEqual(measured.captured.leaveRequests, ['lr-1']);
-	assert.deepEqual(measured.captured.workDays, []);
+	assert.deepEqual(measured.captured.workDays, ['wd-late']);
+	assert.deepEqual(measured.captured.leave, []);
 });
 
 // ── 2. the capture reaches the returned record ──────────────────────────────────────────────────
@@ -260,6 +255,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 		pending: [
 			{
 				employmentId: 'emp-1',
+				termsThrough: '2026-03-31',
 				currency: 'MYR',
 				proration: [
 					{
@@ -309,7 +305,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 							statutoryRuleKey: 'OT_ORDINARY_BEYOND_NORMAL_0'
 						},
 						{
-							input: { family: 'LEAVE_REQUEST', id: 'lr-1' },
+							input: { family: 'LEAVE', id: 'lr-1' },
 							catalogueComponent: null,
 							nature: 'ABSENCE',
 							label: 'NPL',
@@ -327,9 +323,16 @@ test('a run captures every record it consumed, and adjustments name the captures
 					// Each family is named even when it captured nothing: the graph emits one junction
 					// set per family, and an omitted key is a missing table rather than an empty one.
 					payRequests: Object.fromEntries(
-						['CLAIM', 'ALLOWANCE', 'BONUS', 'ARREARS', 'CORRECTION'].map((family) => [family, []])
+						['CLAIM', 'ALLOWANCE', 'PAYMENT'].map((family) => [family, []])
 					),
-					leaveRequests: ['lr-1'],
+					leave: [
+						{
+							leave_entry_id: 'lr-1',
+							charges: [],
+							pay_items: [],
+							gross_amount: { value: -25.8, currency: 'MYR' }
+						}
+					],
 					loanRepayments: ['rp-1']
 				}
 			}
@@ -344,7 +347,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 	assert.equal(payslip.proration.length, 1);
 	assert.deepEqual(payslip.statutory, []);
 
-	// The eight captured-input junctions, each with a runtime-minted id and the period holding it.
+	// The seven captured-input junctions, each with a runtime-minted id and the period holding it.
 	assert.deepEqual(
 		payslip.payslip_work_day_input_payslip.map((row) => [row.work_day_id, row.period !== '']),
 		[
@@ -353,7 +356,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 		]
 	);
 	assert.deepEqual(
-		payslip.payslip_leave_request_input_payslip.map((row) => [row.leave_request_id]),
+		payslip.payslip_leave_input_payslip.map((row) => [row.leave_entry_id]),
 		[['lr-1']]
 	);
 	assert.deepEqual(
@@ -368,7 +371,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 		[
 			['LOAN_REPAYMENT_INPUT', 80, 1],
 			['WORK_DAY_INPUT', 74.66, 2],
-			['LEAVE_REQUEST_INPUT', 25.8, 3]
+			['LEAVE_INPUT', 25.8, 3]
 		]
 	);
 	// Every adjustment's input id is one of this payslip's junction rows, and every junction id is
@@ -377,10 +380,8 @@ test('a run captures every record it consumed, and adjustments name the captures
 		...payslip.payslip_work_day_input_payslip.map((row) => row.id),
 		...payslip.payslip_claim_request_input_payslip.map((row) => row.id),
 		...payslip.payslip_allowance_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_bonus_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_arrears_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_correction_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_leave_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_payment_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_leave_input_payslip.map((row) => row.id),
 		...payslip.payslip_loan_repayment_input_payslip.map((row) => row.id)
 	]);
 	for (const row of rows) assert.ok(junctionIds.has(row.input.id), row.input.id);
@@ -553,25 +554,11 @@ test('deleting a payroll run releases its captures — the declarations that cas
 		).includes('cascade')
 	);
 	assert.ok(
-		markersOf(graph.payslip_bonus_request_inputs.payslip_bonus_request_input_payslip).includes(
+		markersOf(graph.payslip_payment_request_inputs.payslip_payment_request_input_payslip).includes(
 			'cascade'
 		)
 	);
-	assert.ok(
-		markersOf(graph.payslip_arrears_request_inputs.payslip_arrears_request_input_payslip).includes(
-			'cascade'
-		)
-	);
-	assert.ok(
-		markersOf(
-			graph.payslip_correction_request_inputs.payslip_correction_request_input_payslip
-		).includes('cascade')
-	);
-	assert.ok(
-		markersOf(graph.payslip_leave_request_inputs.payslip_leave_request_input_payslip).includes(
-			'cascade'
-		)
-	);
+	assert.ok(markersOf(graph.payslip_leave_inputs.payslip_leave_input_payslip).includes('cascade'));
 	assert.ok(
 		markersOf(graph.payslip_loan_repayment_inputs.payslip_loan_repayment_input_payslip).includes(
 			'cascade'
@@ -599,18 +586,10 @@ test('deleting a payroll run releases its captures — the declarations that cas
 			'allowance requests'
 		],
 		[
-			graph.payslip_bonus_request_inputs.payslip_bonus_request_input_bonus_request,
-			'bonus requests'
+			graph.payslip_payment_request_inputs.payslip_payment_request_input_payment_request,
+			'payment requests'
 		],
-		[
-			graph.payslip_arrears_request_inputs.payslip_arrears_request_input_arrears_request,
-			'arrears requests'
-		],
-		[
-			graph.payslip_correction_request_inputs.payslip_correction_request_input_correction_request,
-			'correction requests'
-		],
-		[graph.payslip_leave_request_inputs.leave_request_input_leave_request, 'leave requests'],
+		[graph.payslip_leave_inputs.leave_input_leave_entry, 'leave requests'],
 		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments']
 	]) {
 		assert.equal(

@@ -4,39 +4,34 @@
 
 ## 这个工作区是什么
 
-本模板是一个多国 HR 与薪资结算工作区。它把经审批的雇佣、考勤、休假与薪资事件转化为可审计的薪资结果：生效日期雇佣条款、按排班表的日分类、法定加班与缴款、还款计划、草稿重算、已发薪期锁定以及与来源关联的工资单行。它面向法律被引擎编码为数据的国家构建——马来西亚、菲律宾与印度尼西亚都有带引用的法规，以封存的法定档案版本化——而每一次发薪都能追溯到产生它的已审批输入。
+本模板是一个多国 HR 与薪资结算工作区。它把经审批的雇佣合同、考勤、休假与薪资事件转化为可审计的薪资结果：按生效日期的雇佣条款、排班日分类、法定加班与缴款、还款计划、草稿删除后重建、已发薪期锁定以及与来源关联的工资单行。各族的目录版本定义计算规则与缴款处理，每一次发薪都能追溯到产生它的已审批输入。
 
 ## 心智模型
 
-薪资是一个运行于已审批、按生效日期生效的事实之上的确定性结算引擎。它的两半从不共享同一张表：**输入**是运行读取的已审批记录，**输出**是由它们计算出的不可变值。每一条链接都是真正的外键——四个引擎拥有的输入连接集合把每张工资单与它消费的考勤日、组件条目、贷款还款和休假申请关联起来，而每项工资调整恰好指明其中一个捕获。
+薪资通过 Work、Leave、Claim、Allowance、Payment、Loan 与 Contribution 七个业务族准备输入并计算结果。每个族拥有自己的目录、业务记录和计算；目录中的规则就是政策。薪资核心组合标准结果、结算并原子保存工资单与来源捕获，不直接处理兑现或结转等具体类别。
 
-````text
-APPROVED INPUTS                          SETTLED OUTPUT
+```mermaid
+flowchart LR
+    Contract[雇佣合同] --> Prepare[按合同准备已审批输入]
+    Catalog[各族的生效目录] --> Prepare
+    Holidays[已发布的辖区年度假日日历] --> Work[Work：排班与考勤]
+    Work --> Prepare
+    Leave[Leave：手工记录与计算所得额度] --> Prepare
+    Money[Claim、Allowance、Payment 与 Loan] --> Prepare
+    Prepare --> Calculate[各族计算结果]
+    Calculate --> Contribution[Contribution：合并适用的缴款评估]
+    Contribution --> Settle[结算毛额与净额]
+    Settle --> Commit[原子保存薪资、合同工资单、来源捕获与永久封存]
+```
 
-employment_terms --+                  +-> payroll_runs [one policy + sealed statutory profile]
-work_days ----------+                 |        |
-leave_requests -----+--> calculator -+        v
-component_entries --+                          payslips
-loan_repayments ----+                          |
-                                               |- base / proration / statutory（内联）
-component_catalogue <-----------+                   |- payslip_work_day_inputs
- [policy + calculation]    |                   |- payslip_component_entry_inputs
-                           |                   |- payslip_leave_request_inputs
-loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
-                                               `- payslip_adjustments
-                                                  |- input: 一个捕获的输入链接
-                                                  |- label + bucket + amount（冻结）
-                                                  `- statutory_rule_key（仅考勤日）
+- **Work** 计算工资、加班与未解释缺勤；**Leave** 记录休假、手工兑现、结转、调整和冲销。额度按合同、生效目录及日期计算，不建立年度额度账户或定期入账台账。兑现使用已审批的天数和金额；离职与年度切换不自动创建兑现、结转或付款。
+- **Claim、Allowance、Payment** 提供已审批的金额记录。奖金、通知期付款、离职补偿及更正使用 Payment 的目录和申请；更正通过原族记录的 `as_adjustment_entry` 表达。**Loan** 管理协议与还款计划；未收回金额由到期金额减已支付捕获推导。
+- **Contribution** 根据各族结果声明的处理方式计算缴款。同一人、同一实体与同一评估期间的多份合同工资单先合并评估，再按确定性规则分配到各合同；重新入职不会清除适用的年度累计。
+- **`payroll_runs`、`payslips` 与 `payslip_adjustments`** 保存一次公司—期间结算、每份合同的结果和指向来源捕获的调整。每个公司每期只允许一次常规薪资；草稿可删除后重建，已付款结果不可修改。迟批项目与更正在后续常规期间结算，不提供临时或额外薪资运行。
 
-薪资核心由五个集合承载：
+`employments` 表示雇佣合同。每个员工事件和工资单都必须关联合同。同一员工档案在同一实体的合同服务日期不得重叠，但可同时在其他实体持有合同。首次关联永久封存合同；离职以独立、不可变的事实记录，再入职建立新合同并重新计算额度，旧记录和余额保留在旧合同。
 
-1. **`component_catalogue`** —— 一个可复用的定义，带严格的结算/法定策略与多态计算定义（`SCHEDULE`、`ENTRY`、`FORMULA`）。加班刻意不在其中：它由工作日按辖区自身的加班规则计价推导，其法定处理由征费的方案承担。
-2. **`component_entries`** —— 已审批的员工级货币事实：报销、固定津贴、奖金、补发与更正。
-3. **`payroll_runs`** —— 一次公司-期间计算，指明管辖它的封存法定档案与产出结果的计算版本。
-4. **`payslips`** —— 一次运行中某雇佣的合计、内联的输出平面及其捕获的输入。
-5. **`payslip_adjustments`** —— 每个捕获输入对应一项已结算内容，其溯源是真正的外键。
-
-核心之外：`companies` 划定法律实体并通过 `settings_code` 绑定到一个 `jurisdiction_settings` 谱系；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`work_days`、`company_holidays`、`leave_catalogue` 与 `leave_requests` 提供排班与休假事实；每一个封存的 `jurisdiction_settings` 版本是一个可共享的根对象，原子地拥有加班覆盖范围、计价、上限，以及随之封存的 `statutory_contributions`、`contribution_rates`、`component_catalogue`、`leave_catalogue` 与 `company_holidays`；`loans` 及其 `loan_repayments` 承载员工贷款与多付追回 —— 协议本身，以及其下到期的金额。
+`companies` 选择 `jurisdiction_settings` 谱系；各族目录随设置版本封存。`jurisdiction_holiday_calendars` 按辖区和年份独立发布，不属于员工、工作日事件或公司目录版本。加班必须读取完整的已发布日历。工作日关联或薪资消费会永久封存对应日期，包括「当天无假日」的分类；删除使用者也不能解除封存。
 
 两条不变量塑造了一切：
 
@@ -45,25 +40,23 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 
 ## 工作区包含什么
 
-### 应用（10 个）
+### 应用
 
 **`hr_employee`** —— 员工自助服务。员工查看自己的档案、公司与下一个发薪日，可以记录考勤、发起休假申请与报销（各自进入审批流），并查看自己的贷款协议与工资单。没有有效雇佣的人会被告知原因；有多份雇佣的人选择页面以哪份为范围。
 
 **`hr_controller`**（组）—— HR 操作界面。法律实体在**实体**页选择，并由其他页面继承。
 
-| 应用             | 用户在其中做什么                                                                                                                              |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **实体**         | 选择所有其他 HR 控制器页面使用的法律实体                                                                                                      |
-| **人员**         | 劳动力：员工档案、雇佣、按生效日期的条款、法定事实，以及劳动力结构图                                                                          |
-| **排班**         | 在月度排班板规划并发布班次，管理工作模式与节假日，并从操作菜单导入考勤                                                                          |
-| **休假**         | 复核休假申请，每条申请带其余额与锁定它的薪资采集；提交一次经理复核的例外余额更正。休假目录在「设置」中配置                          |
-| **贷款**         | 复核还款协议及其推导出的未偿余额，每期回收按工资单追踪                                                                                        |
-| **薪资组成部分** | 一个实体的条目流：报销、津贴、奖金、补发与更正，以及结算每条的薪资采集。目录在「设置」中配置                                                  |
-| **薪资核算**     | 运行薪资周期：发薪日看板（逾期/当期/即将）、创建与重算运行、锁定发薪、导出银行文件、工资单 PDF 与报告工作簿                                   |
-| **设置**         | 一个实体所属管辖地设置谱系的版本时间线：生效版本及其薪资、缴款、休假、薪资项目与假期标签；封存、作废与新版本操作；已封存版本及其下所有行只读 |
-| **考勤机**       | 通过人脸识别或人工输入打卡并登记人脸；设备账户只看到此无外壳页面                                                                                |
+| 应用            | 用户在其中做什么                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| **实体**        | 选择所有其他 HR 控制器页面使用的法律实体                                                                |
+| **人员**        | 劳动力：员工档案、雇佣、按生效日期的条款、法定事实，以及劳动力结构图                                    |
+| **事件**        | 按 Work、Leave、Claim、Allowance、Payment 与 Loan 查看和处理合同记录；HR 手工提交兑现、结转、调整和冲销 |
+| **薪资核算**    | 创建常规期间、复核结果、标记已付款，导出银行文件、工资单 PDF 与报告工作簿；草稿可删除后重建             |
+| **设置 → 目录** | 在管辖地设置谱系中查看各族定义，封存版本及其目录只读                                                    |
+| **设置 → 假日** | 配置辖区来源、导入和复核年度日期，独立发布日历                                                          |
+| **考勤机**      | 通过人脸识别或人工输入打卡并登记人脸；设备账户只看到此无外壳页面                                        |
 
-### 策略（10 条）
+### 策略
 
 - **`employee`** —— 员工自助服务及本人范围内须审批的考勤、报销与休假创建。
 - **`supervisor`** —— 查看团队并复核、记录其考勤与休假。
@@ -71,7 +64,7 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 - **`hr_controller`** —— 管理人员、排班、申请、贷款与条目；薪资可见但不可结算。
 - **`hr_manager`** —— HR 管理权限加创建、运行与删除薪资运行。
 - **`senior_management`** —— 完整人员运营视图加薪资运行权限。
-- **`leave_reconciliation_automation`**：仅供系统触碰在职雇佣，使其内联重算休假权益与台账。
+- **`holiday_import_automation`**：读取辖区来源并保存年度导入草稿，不能发布日历。
 - **`statutory_drift_automation`**：仅供系统读取设置版本及其法定行，并一次提议一个草稿版本；从不封存、编辑或删除。
 - **`kiosk`** —— 仅供考勤机打卡、人脸登记及其必要的受限读取。
 
@@ -90,9 +83,9 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 两个自动化，各有自己的策略，都可在「自动化」中手动启动：
 
 - **`statutory_drift`**（每月）：对每个谱系当前生效的版本，通过运行时的页面读取器读取该版本在 `research_urls` 中命名的官方页面，向模型询问每个法定行的官方现状（方案费率档、法定休假权益、法定薪资项目的缴款处理），与已封存的行比对；有差异时把该版本克隆为草稿，草稿携带变更后的行与复核清单（`research_notes`）。「设置」把该草稿标为「法定漂移提议」，HR 复核后由 HR 经理封存。它从不封存、从不触碰已封存版本，每个谱系同时只提议一个草稿；没有研究网址的版本不会被研究。每个无法读取的官方页面都连同原因记录在运行结果和草稿的复核清单上；所有页面都无法读取的谱系不会产生草稿，并在结果中按名称列出。
-- **`leave_ledger_refresh`**（每月 1 日）：休假对账器，以当天日期遍历每个在职雇佣：过去的月份入账、下一年开启、年度结算、离职结清。目录编辑会为该谱系的公司启动它，种子加载后启动一次。HR 不需要运行年度权益批处理。
+- **`holiday_import`**（每年 10 月 1 日）：通过 Google Calendar API 完整读取下一年的辖区假日来源，保存待复核的年度草稿。可手工指定辖区和年份刷新。重复导入保留已作决定；来源变更与取消须复核，不能覆盖已封存日期。HR 确认实际观察日期和全年完整性后发布。没有自动兑现、结转或年度额度入账任务。
 
-本模板不附带外部集成；法律变更即新增一个封存的管辖地设置版本。租户**不存在 `+seed.ts` 编译器角色**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
+假日导入使用受管 Google Calendar 连接，需要 `GOOGLE_CALENDAR_API_KEY`，并为各辖区配置日历标识与时区。年度日历独立于目录版本；计算规则变更仍通过新的管辖地设置版本处理。租户**不存在 `+seed.ts` 编译器角色**；薪资输入遵循 [`docs/data.md`](docs/data.md) 的种子与对账契约。
 
 ## 运营边界
 
@@ -107,37 +100,39 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 ```text
 src/
 ├── apps/                     # 每个应用一个 +<app>.svelte；hr_controller/+group.ts 归属组
-├── collections/              # 29 个集合：+model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
+├── collections/              # +model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
 │   └── payroll_runs/lib/     # 结算引擎（阶段、加班、覆盖、导出）
-├── datatypes/                # 结构化值（statutory_regime、ordinary_rate、component_entry_event、……）
-├── access/                   # +teams.ts、匿名限流与九个策略
+├── datatypes/                # 结构化业务值与渲染器
+├── access/                   # +teams.ts、匿名限流与策略
 ├── i18n/                     # messages.en.json / messages.zh.json（相同的键集）
-├── automations/              # 法定漂移检查与休假台账对账器
-├── lib/                      # 共享辅助：日历、显示格式化、策略授权、排班月
+├── automations/              # 法定漂移检查与年度假日导入
+├── lib/                      # 各族计算、排班、日历、显示格式化与策略授权
 └── +agents.md
-````
+```
 
 - **模型**只描述存储；呈现属于应用与 representation。`src/collections/+relationship.ts` 拥有关系图——外键由它推导，绝不在模型中声明。
 - **钩子**负责校验与推导。薪资创建钩子解析运行的考勤窗口、发薪日与配置哈希；排班钩子强制可发布性；还款钩子让分期计划与本金精确对账。
 - **流水线**（`work_days` 与 `payroll_runs` 上的 `+pipelines.ts`）塑造工作簿导入/导出：排班与考勤导入器把来源工作簿映射为行，薪资导出器生成应用提供的银行文件、工资单 PDF 与报告工作簿。
 - **Representation** 决定每个集合的创建/展示/编辑。`payroll_runs` 与 `payslips` 拒绝手工创建输出；工资单由引擎写出，绝不手工生成。
-- **i18n** —— 两个目录都承载相同的 867 个键；`<svelte:head>` 中的应用元数据保持静态英文，按语言环境的侧边栏标签来自目录。
+- **i18n** —— 英文与中文目录使用相同的键集，按语言环境的侧边栏标签来自目录。
+
+`src/lib/payroll/families.ts` 协调各族输入准备、计算及合并的 Contribution 评估。Work、金额申请、Loan 和 Contribution 在该目录中各有所属模块；Leave 的薪资边界是 `src/lib/leave/payroll.ts`。薪资核心负责共享上下文、结算和输出图，不直接查询各族所属的业务表或分派计算定义。
 
 ### 文档
 
-- [`docs/architecture.md`](docs/architecture.md) —— 实时薪资引擎：模型地图、八个计算阶段、截算与期间、排班到日类型分类、加班与 12 小时/104 小时控制、法定处理、调整与台账、溯源、锁定，以及法定法律中已编码与未编码的部分。
+- [`docs/architecture.md`](docs/architecture.md) —— 各族边界、合同范围、截算与期间、加班控制、合并缴款、手工 Leave、年度假日、来源捕获与封存，以及已有计算规则与实现限制。
 - [`docs/data.md`](docs/data.md) —— 原始来源 → 清洗来源 → 种子数据的契约、防止派生输出回流到输入的检查，以及如何把独立来源工作簿与生成的工作簿对账。
-- [`docs/leave.md`](docs/leave.md)：休假目录及其资格表达式、生成的权益、追加式台账及事实如何携带它、对账器的月度遍历、年度结算、结转、离职与薪资行为。
+- [`docs/leave.md`](docs/leave.md) —— 休假目录、按合同和日期计算的额度、手工兑现与结转、审批预留、冲销及薪资捕获。
 
 ## 验证
 
-模板内置聚焦的算术与导出检查。它们全部针对源码运行，因此 `pnpm test` 就是完整故事，而 `pnpm build` 只负责构建：
+各族的源码边界已实现；组合变更的构件同步、类型检查、完整测试及浏览器验证仍需按集成结果确认。源码修改不代表已部署到租户。模板包含算术、导出、行为及浏览器检查：
 
 ```bash
 pnpm sync     # 重新生成 .norbital（切勿手工编辑生成输出）
 pnpm lint     # prettier + svelte-check
-pnpm test     # 以下全部内容，外加还款协议与排班表单元测试
-pnpm build    # 仅生产构建
+pnpm test     # 同步、静态诊断、算术、导出及行为检查
+pnpm test:e2e # 独立 Bolt 自托管环境中的浏览器检查
 node scripts/verify-payroll-arithmetic.mjs   # 长篇算术验收运行
 node scripts/verify-fixture-shapes.mjs       # 针对真实 API 形状审计该运行的测试夹具
 ```
@@ -158,9 +153,9 @@ node scripts/verify-fixture-shapes.mjs       # 针对真实 API 形状审计该�
 ```bash
 pnpm sync     # 编辑 src/ 下的任何内容之后——重新生成 .norbital（已提交的迁移保持不变）
 pnpm lint     # 对整个工作区运行 prettier + svelte-check
-pnpm build    # 生产构建
+pnpm test     # 验证行为
 ```
 
-- **模型** —— 不要随意更改模型模式：每次模式变更都会在 `.norbital/migrations/` 下产生一条已提交的迁移。编辑 `+model.ts`、运行 `pnpm sync`，然后审阅编译器产出的迁移。
-- **种子数据** —— 测试夹具在 `tests/fixtures/seed/`。宿主演示用私有种子库远程，不是本树；不存在 `src/+seed.ts` 角色，播种也不会演进已部署的数据。对既有租户，用 `pnpm exec bolt migrate --name <name>` 写入下一条迁移谱系条目、编辑其 SQL，再经由 Colony 部署。敏感法定种子留在宿主种子库，不是测试输入。
-- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。要在本地测试 OSS 依赖，请在 Norbital 检出中运行 `pnpm run env -- link`；如需启动 Colony UI，则运行 `pnpm run env -- dev --ui`。Colony 的 dev 引导每次启动都会收敛，因此不存在单独的租户更新或环境重置步骤。
+- **模型** —— 编辑 `+model.ts` 后运行 `pnpm sync` 生成类型与 `.norbital/artifact/bundle.mjs`。使用 `pnpm exec bolt migrate --name <name>` 生成迁移，审阅生成历史，不手工修改或格式化已提交的迁移。
+- **种子数据** —— 公开测试夹具在 `tests/fixtures/seed/`。机密来源对账数据不是测试夹具；种子不包含计算所得的薪资输出。播种不能原地演进已部署的租户。
+- **发布** —— 模板在自己的 `package.json` 与锁文件中固定首方包版本。从 realm 根目录运行 `pnpm run env -- link` 可叠加本地包构建供验证。发布与租户配置属于独立流程；既有租户只通过其发布和配置流程消费模板变更，修改本地源码不会更新正在运行的租户。

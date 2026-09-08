@@ -137,11 +137,10 @@ test(
 				422,
 				`invalid roster import expected 422, got ${invalid.status}: ${JSON.stringify(invalid.value)}`
 			);
-			assert.match(
+			assert.equal(
 				commandSentence(invalid),
-				/These employee numbers are not employed by this legal entity/
+				'No approved employment contract covers PUB-EMP-9999 on 2026-03-04 in this legal entity.'
 			);
-			assert.match(commandSentence(invalid), /PUB-EMP-9999/);
 		} finally {
 			await session.stop();
 		}
@@ -189,11 +188,10 @@ test(
 				422,
 				`invalid roster xlsx import expected 422, got ${invalid.status}: ${JSON.stringify(invalid.value)}`
 			);
-			assert.match(
+			assert.equal(
 				commandSentence(invalid),
-				/These employee numbers are not employed by this legal entity/
+				'No approved employment contract covers PUB-EMP-9999 on 2026-03-04 in this legal entity.'
 			);
-			assert.match(commandSentence(invalid), /PUB-EMP-9999/);
 		} finally {
 			await session.stop();
 		}

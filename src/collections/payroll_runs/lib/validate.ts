@@ -55,24 +55,28 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		issues.push({ code, message, collection, recordId });
 	};
 
-	if (configuration.jurisdiction.proration == null)
+	if (configuration.work.proration == null)
 		blocker(
 			'PRORATION_MISSING',
 			`Jurisdiction ${configuration.jurisdiction.code} states no proration basis, so a partial ` +
 				'month cannot be paid.',
-			'jurisdiction_settings',
-			configuration.jurisdiction.id
+			'work_catalogue',
+			configuration.work.id
 		);
 
 	// A jurisdiction that prices overtime needs the two statutory rows its treatments live on.
 	// ACCUMULATE would refuse the first priced overtime line by name; refusing here keeps the
 	// refusal ahead of the run row.
 	if (configuration.overtimeRules.length > 0 && configuration.contributions.length > 0)
-		for (const code of ['OVERTIME', 'OVERTIME_EXCESS'])
-			if (!configuration.catalogueComponents.some((component) => component.code === code))
+		for (const output of ['overtime', 'overtime_excess'] as const)
+			if (
+				!configuration.catalogueComponents.some(
+					(component) => component.family === 'WORK' && component.output === output
+				)
+			)
 				blocker(
 					'OVERTIME_COMPONENT_MISSING',
-					`${configuration.company.name} has no ${code} component, so no scheme can say what ` +
+					`${configuration.company.name} has no ${output} Work output, so no scheme can say what ` +
 						'it does with derived overtime. Add the statutory row with a treatment for every ' +
 						`scheme ${configuration.jurisdiction.code} levies.`,
 					'companies',
@@ -82,6 +86,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	// Every monetary component owns a decided cell for every effective statutory scheme.
 	for (const component of configuration.catalogueComponents) {
 		if (component.nature === 'INFORMATION') continue;
+		const catalogueCollection = `${component.family.toLowerCase()}_catalogue`;
+		const catalogueId = component.catalogue_id ?? component.id;
 		for (const contribution of configuration.contributions) {
 			const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
 			if (cell == null) {
@@ -89,8 +95,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'TREATMENT_MISSING',
 					`No ${contribution.row.code} treatment exists for ${component.code}. The component ` +
 						'states a treatment for every scheme its jurisdiction levies.',
-					'component_catalogue',
-					component.id
+					catalogueCollection,
+					catalogueId
 				);
 				continue;
 			}
@@ -99,16 +105,16 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'TREATMENT_UNSET',
 					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
 						'this kind of pay is chargeable.',
-					'component_catalogue',
-					component.id
+					catalogueCollection,
+					catalogueId
 				);
 			if (cell.kind === 'SPECIAL' && !contribution.row.special_rules.includes(cell.rule))
 				blocker(
 					'SPECIAL_RULE_UNKNOWN',
 					`${component.code} × ${contribution.row.code} names special rule "${cell.rule}", ` +
 						`which ${contribution.row.code} does not declare.`,
-					'component_catalogue',
-					component.id
+					catalogueCollection,
+					catalogueId
 				);
 		}
 	}
@@ -185,8 +191,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		blocker(
 			'OVERTIME_RULE_UNBANDED',
 			`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
-			'jurisdiction_settings',
-			configuration.jurisdiction.id
+			'work_catalogue',
+			configuration.work.id
 		);
 	}
 
@@ -231,8 +237,8 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 						`${options.employeeNumber} worked ${options.monthHours} regulated overtime hours in ` +
 						`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
 						`(${limit.authority}, on_exceed=${limit.on_exceed}). ${nextStep}`,
-					collection: 'jurisdiction_settings',
-					recordId: options.configuration.jurisdiction.id
+					collection: 'work_catalogue',
+					recordId: options.configuration.work.id
 				};
 			})
 	);

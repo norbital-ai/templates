@@ -26,13 +26,22 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * Only the payslip ownership of that row is declared below.
  *
  * The remaining families deliberately have NO relation:
- *   - `leave_catalogue.payroll_effect`   -> component_id on the UNPAID arm
+ *   - `leave_catalogue.payroll_effect`   -> declares its own deduction; no pointer to follow
  *   - `payslips.base/proration/statutory` -> component codes, scheme codes, band and term keys
  * The last of those is the point of inlining: a settled payslip is a frozen statement of what was
  * paid and does not become wrong because a catalogue row was later archived. See
  * docs/architecture.md (Provenance and audit).
  */
 export default ((r) => ({
+	jurisdiction_holiday_calendars: {
+		holiday_input_calendar: r.many.holiday_calendar_inputs()
+	},
+	holiday_calendar_inputs: {
+		holiday_input_calendar: r.one.jurisdiction_holiday_calendars({
+			from: r.holiday_calendar_inputs.calendar_id,
+			to: r.jurisdiction_holiday_calendars.id
+		})
+	},
 	/**
 	 * The sealed, shareable root. Every downstream rule row is owned by its version (`cascade`: a
 	 * draft deleted takes its children; the version's own hook refuses deleting a sealed one), and
@@ -40,12 +49,24 @@ export default ((r) => ({
 	 * never touches the company row and two entities can take one root.
 	 */
 	jurisdiction_settings: {
+		work_catalogue_settings: r.many.work_catalogue(),
 		contribution_settings: r.many.statutory_contributions(),
 		leave_catalogue_settings: r.many.leave_catalogue(),
-		component_catalogue_settings: r.many.component_catalogue(),
-		holiday_settings: r.many.company_holidays(),
+		loan_catalogue_settings: r.many.loan_catalogue(),
+		claim_catalogue_settings: r.many.claim_catalogue(),
+		allowance_catalogue_settings: r.many.allowance_catalogue(),
+		payment_catalogue_settings: r.many.payment_catalogue(),
 		/** The versions runs name as the law they were calculated under. */
 		settings_payroll_run: r.many.payroll_runs()
+	},
+
+	work_catalogue: {
+		work_catalogue_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.work_catalogue.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		)
 	},
 
 	statutory_contributions: {
@@ -75,19 +96,48 @@ export default ((r) => ({
 		payroll_run_company: r.many.payroll_runs()
 	},
 
-	component_catalogue: {
-		component_catalogue_settings: cascade(
+	/**
+	 * Loans have a catalogue and no request family: a loan is not an event. The agreement is typed
+	 * once with a schedule, and the engine emits one line per period from it.
+	 */
+	loan_catalogue: {
+		loan_catalogue_settings: cascade(
 			r.one.jurisdiction_settings({
-				from: r.component_catalogue.settings_id,
+				from: r.loan_catalogue.settings_id,
 				to: r.jurisdiction_settings.id
 			})
 		),
-		claim_request_component_catalogue: r.many.claim_requests(),
-		allowance_request_component_catalogue: r.many.allowance_requests(),
-		bonus_request_component_catalogue: r.many.bonus_requests(),
-		arrears_request_component_catalogue: r.many.arrears_requests(),
-		correction_request_component_catalogue: r.many.correction_requests(),
-		loan_component_catalogue: r.many.loans()
+		loan_loan_catalogue: r.many.loans()
+	},
+
+	claim_catalogue: {
+		claim_catalogue_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.claim_catalogue.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		),
+		claim_request_claim_catalogue: r.many.claim_requests()
+	},
+
+	allowance_catalogue: {
+		allowance_catalogue_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.allowance_catalogue.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		),
+		allowance_request_allowance_catalogue: r.many.allowance_requests()
+	},
+
+	payment_catalogue: {
+		payment_catalogue_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.payment_catalogue.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		),
+		payment_request_payment_catalogue: r.many.payment_requests()
 	},
 
 	leave_catalogue: {
@@ -97,34 +147,7 @@ export default ((r) => ({
 				to: r.jurisdiction_settings.id
 			})
 		),
-		leave_request_leave_catalogue: r.many.leave_requests(),
-		leave_entitlement_leave_catalogue: r.many.leave_entitlements()
-	},
-
-	leave_entitlements: {
-		leave_entitlement_employment: r.one.employments({
-			from: r.leave_entitlements.employment_id,
-			to: r.employments.id
-		}),
-		leave_entitlement_leave_catalogue: r.one.leave_catalogue({
-			from: r.leave_entitlements.leave_catalogue_id,
-			to: r.leave_catalogue.id
-		}),
-		request_leave_entitlement: r.many.leave_requests(),
-		entry_leave_entitlement: r.many.leave_entries()
-	},
-
-	leave_entries: {
-		entry_leave_entitlement: r.one.leave_entitlements({
-			from: r.leave_entries.leave_entitlement_id,
-			to: r.leave_entitlements.id
-		}),
-		leave_entry_request: cascade(
-			r.one.leave_requests({
-				from: r.leave_entries.source_request_id,
-				to: r.leave_requests.id
-			})
-		)
+		leave_entry_leave_catalogue: r.many.leave_entries()
 	},
 
 	shift_definitions: {
@@ -143,20 +166,29 @@ export default ((r) => ({
 		term_shift_pattern: r.many.employment_terms()
 	},
 
-	company_holidays: {
-		holiday_settings: cascade(
-			r.one.jurisdiction_settings({
-				from: r.company_holidays.settings_id,
-				to: r.jurisdiction_settings.id
-			})
-		)
-	},
-
 	employees: {
 		employment_employee: r.many.employments()
 	},
 
+	employment_departures: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.employment_departures.id,
+			to: r.employment_contract_inputs.employment_departures_id
+		}),
+		employment_departure: r.one.employments({
+			from: r.employment_departures.employment_id,
+			to: r.employments.id
+		})
+	},
+	employment_contract_inputs: {
+		contract_input_employment: r.one.employments({
+			from: r.employment_contract_inputs.employment_id,
+			to: r.employments.id
+		})
+	},
 	employments: {
+		employment_departure: r.many.employment_departures(),
+		contract_input_employment: r.many.employment_contract_inputs(),
 		employment_employee: r.one.employees({
 			from: r.employments.employee_id,
 			to: r.employees.id
@@ -170,24 +202,19 @@ export default ((r) => ({
 		statutory_fact_employment: r.many.employment_statutory_facts(),
 		claim_request_employment: r.many.claim_requests(),
 		allowance_request_employment: r.many.allowance_requests(),
-		bonus_request_employment: r.many.bonus_requests(),
-		arrears_request_employment: r.many.arrears_requests(),
-		correction_request_employment: r.many.correction_requests(),
+		payment_request_employment: r.many.payment_requests(),
 		loan_employment: r.many.loans(),
-		leave_request_employment: r.many.leave_requests(),
-		/**
-		 * Not a cascade, on purpose. The employment's `before` hook returns this edge as the complete
-		 * set of the employment's generated entitlements, and `cascade(...)` would make every
-		 * omission a delete: a restatement that missed a sealed year would erase audit evidence,
-		 * and deleting an employment would take its ledger with it. Restrict refuses both.
-		 * Authority is not on the edge: what the hook returns is the workspace's own work.
-		 */
-		leave_entitlement_employment: r.many.leave_entitlements(),
+		loan_repayment_employment: r.many.loan_repayments(),
+		leave_entry_employment: r.many.leave_entries(),
 		work_day_employment: r.many.work_days(),
 		payslip_employment: r.many.payslips()
 	},
 
 	employment_terms: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.employment_terms.id,
+			to: r.employment_contract_inputs.employment_terms_id
+		}),
 		term_employment: cascade(
 			r.one.employments({
 				from: r.employment_terms.employment_id,
@@ -202,6 +229,10 @@ export default ((r) => ({
 	},
 
 	employment_statutory_facts: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.employment_statutory_facts.id,
+			to: r.employment_contract_inputs.employment_statutory_facts_id
+		}),
 		statutory_fact_employment: cascade(
 			r.one.employments({
 				from: r.employment_statutory_facts.employment_id,
@@ -215,6 +246,10 @@ export default ((r) => ({
 	},
 
 	employee_children: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.employee_children.id,
+			to: r.employment_contract_inputs.employee_children_id
+		}),
 		child_employment: cascade(
 			r.one.employments({
 				from: r.employee_children.employment_id,
@@ -238,13 +273,17 @@ export default ((r) => ({
 	 * so. The same answer for loans: a settled repayment schedule is money history.
 	 */
 	claim_requests: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.claim_requests.id,
+			to: r.employment_contract_inputs.claim_requests_id
+		}),
 		claim_request_employment: r.one.employments({
 			from: r.claim_requests.employment_id,
 			to: r.employments.id
 		}),
-		claim_request_component_catalogue: r.one.component_catalogue({
-			from: r.claim_requests.component_catalogue_id,
-			to: r.component_catalogue.id
+		claim_request_claim_catalogue: r.one.claim_catalogue({
+			from: r.claim_requests.claim_catalogue_id,
+			to: r.claim_catalogue.id
 		}),
 		/**
 		 * The capture that settled this request, when a run has. Declared so the page can carry its
@@ -254,13 +293,17 @@ export default ((r) => ({
 	},
 
 	allowance_requests: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.allowance_requests.id,
+			to: r.employment_contract_inputs.allowance_requests_id
+		}),
 		allowance_request_employment: r.one.employments({
 			from: r.allowance_requests.employment_id,
 			to: r.employments.id
 		}),
-		allowance_request_component_catalogue: r.one.component_catalogue({
-			from: r.allowance_requests.component_catalogue_id,
-			to: r.component_catalogue.id
+		allowance_request_allowance_catalogue: r.one.allowance_catalogue({
+			from: r.allowance_requests.allowance_catalogue_id,
+			to: r.allowance_catalogue.id
 		}),
 		/**
 		 * The capture that settled this request, when a run has. Declared so the page can carry its
@@ -269,90 +312,61 @@ export default ((r) => ({
 		payslip_allowance_request_input_allowance_request: r.many.payslip_allowance_request_inputs()
 	},
 
-	bonus_requests: {
-		bonus_request_employment: r.one.employments({
-			from: r.bonus_requests.employment_id,
+	payment_requests: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.payment_requests.id,
+			to: r.employment_contract_inputs.payment_requests_id
+		}),
+		payment_request_employment: r.one.employments({
+			from: r.payment_requests.employment_id,
 			to: r.employments.id
 		}),
-		bonus_request_component_catalogue: r.one.component_catalogue({
-			from: r.bonus_requests.component_catalogue_id,
-			to: r.component_catalogue.id
+		payment_request_payment_catalogue: r.one.payment_catalogue({
+			from: r.payment_requests.payment_catalogue_id,
+			to: r.payment_catalogue.id
 		}),
 		/**
 		 * The capture that settled this request, when a run has. Declared so the page can carry its
 		 * lock state on the row it lists rather than open a second live query for it (B12).
 		 */
-		payslip_bonus_request_input_bonus_request: r.many.payslip_bonus_request_inputs()
+		payslip_payment_request_input_payment_request: r.many.payslip_payment_request_inputs()
 	},
 
-	arrears_requests: {
-		arrears_request_employment: r.one.employments({
-			from: r.arrears_requests.employment_id,
+	leave_entries: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.leave_entries.id,
+			to: r.employment_contract_inputs.leave_entries_id
+		}),
+		leave_entry_employment: r.one.employments({
+			from: r.leave_entries.employment_id,
 			to: r.employments.id
 		}),
-		arrears_request_component_catalogue: r.one.component_catalogue({
-			from: r.arrears_requests.component_catalogue_id,
-			to: r.component_catalogue.id
+		leave_entry_leave_catalogue: r.one.leave_catalogue({
+			from: r.leave_entries.leave_catalogue_id,
+			to: r.leave_catalogue.id
 		}),
-		/**
-		 * The capture that settled this request, when a run has. Declared so the page can carry its
-		 * lock state on the row it lists rather than open a second live query for it (B12).
-		 */
-		payslip_arrears_request_input_arrears_request: r.many.payslip_arrears_request_inputs()
-	},
-
-	correction_requests: {
-		correction_request_employment: r.one.employments({
-			from: r.correction_requests.employment_id,
-			to: r.employments.id
+		leave_reversal_original: r.one.leave_entries({
+			from: r.leave_entries.reversal_of_id,
+			to: r.leave_entries.id
 		}),
-		correction_request_component_catalogue: r.one.component_catalogue({
-			from: r.correction_requests.component_catalogue_id,
-			to: r.component_catalogue.id
-		}),
-		/**
-		 * The capture that settled this request, when a run has. Declared so the page can carry its
-		 * lock state on the row it lists rather than open a second live query for it (B12).
-		 */
-		payslip_correction_request_input_correction_request: r.many.payslip_correction_request_inputs(),
-		/**
-		 * The settled output this corrects, held by the database. NOT a cascade: a correction is the
-		 * evidence that a settled output was fixed, so the adjustment cannot be deleted while a
-		 * correction names it, and deleting the correction never touches the adjustment.
-		 *
-		 * Declared as the `one` side only, with no `many` inverse, for the same reason a
-		 * self-reference under the removed model had none: `resolveWritableManyRelation` identifies a
-		 * writable pair by reversed collections and endpoints, and an edge that exists only to be
-		 * ambiguous is worse than one that is not declared.
-		 */
-		correction_request_corrects_adjustment: r.one.payslip_adjustments({
-			from: r.correction_requests.corrects_adjustment_id,
-			to: r.payslip_adjustments.id
+		leave_original_reversals: r.many.leave_entries(),
+		payslip_leave_input_leave_entry: r.many.payslip_leave_inputs(),
+		leave_holiday_input: r.many.holiday_calendar_inputs({
+			from: r.leave_entries.id,
+			to: r.holiday_calendar_inputs.leave_entry_id
 		})
 	},
 
-	leave_requests: {
-		leave_entry_request: r.many.leave_entries(),
-		request_leave_entitlement: r.one.leave_entitlements({
-			from: r.leave_requests.leave_entitlement_id,
-			to: r.leave_entitlements.id
-		}),
-		leave_request_employment: r.one.employments({
-			from: r.leave_requests.employment_id,
-			to: r.employments.id
-		}),
-		leave_request_leave_catalogue: r.one.leave_catalogue({
-			from: r.leave_requests.leave_catalogue_id,
-			to: r.leave_catalogue.id
-		}),
-		/**
-		 * The engine-owned captures that name this request. Not a cascade: the junction's
-		 * `leave_request_id` restrict is what refuses to delete a leave request a run has read.
-		 */
-		payslip_leave_request_input_leave_request: r.many.payslip_leave_request_inputs()
-	},
-
 	work_days: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.work_days.id,
+			to: r.employment_contract_inputs.work_days_id
+		}),
+		// No inverse FK: a holiday seal retains its historical consumer ID after deletion.
+		work_day_holiday_input: r.many.holiday_calendar_inputs({
+			from: r.work_days.id,
+			to: r.holiday_calendar_inputs.work_day_id
+		}),
 		work_day_employment: r.one.employments({
 			from: r.work_days.employment_id,
 			to: r.employments.id
@@ -365,6 +379,10 @@ export default ((r) => ({
 	},
 
 	payroll_runs: {
+		payroll_holiday_input_run: r.many.holiday_calendar_inputs({
+			from: r.payroll_runs.id,
+			to: r.holiday_calendar_inputs.payroll_run_id
+		}),
 		payroll_run_company: r.one.companies({
 			from: r.payroll_runs.company_id,
 			to: r.companies.id
@@ -382,6 +400,10 @@ export default ((r) => ({
 	},
 
 	payslips: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.payslips.id,
+			to: r.employment_contract_inputs.payslips_id
+		}),
 		payslip_payroll_run: cascade(
 			r.one.payroll_runs({
 				from: r.payslips.payroll_run_id,
@@ -396,10 +418,8 @@ export default ((r) => ({
 		payslip_work_day_input_payslip: r.many.payslip_work_day_inputs(),
 		payslip_claim_request_input_payslip: r.many.payslip_claim_request_inputs(),
 		payslip_allowance_request_input_payslip: r.many.payslip_allowance_request_inputs(),
-		payslip_bonus_request_input_payslip: r.many.payslip_bonus_request_inputs(),
-		payslip_arrears_request_input_payslip: r.many.payslip_arrears_request_inputs(),
-		payslip_correction_request_input_payslip: r.many.payslip_correction_request_inputs(),
-		payslip_leave_request_input_payslip: r.many.payslip_leave_request_inputs(),
+		payslip_payment_request_input_payslip: r.many.payslip_payment_request_inputs(),
+		payslip_leave_input_payslip: r.many.payslip_leave_inputs(),
 		payslip_loan_repayment_input_payslip: r.many.payslip_loan_repayment_inputs()
 	},
 
@@ -452,55 +472,29 @@ export default ((r) => ({
 		})
 	},
 
-	payslip_bonus_request_inputs: {
-		payslip_bonus_request_input_payslip: cascade(
+	payslip_payment_request_inputs: {
+		payslip_payment_request_input_payslip: cascade(
 			r.one.payslips({
-				from: r.payslip_bonus_request_inputs.payslip_id,
+				from: r.payslip_payment_request_inputs.payslip_id,
 				to: r.payslips.id
 			})
 		),
-		payslip_bonus_request_input_bonus_request: r.one.bonus_requests({
-			from: r.payslip_bonus_request_inputs.bonus_request_id,
-			to: r.bonus_requests.id
+		payslip_payment_request_input_payment_request: r.one.payment_requests({
+			from: r.payslip_payment_request_inputs.payment_request_id,
+			to: r.payment_requests.id
 		})
 	},
 
-	payslip_arrears_request_inputs: {
-		payslip_arrears_request_input_payslip: cascade(
+	payslip_leave_inputs: {
+		payslip_leave_input_payslip: cascade(
 			r.one.payslips({
-				from: r.payslip_arrears_request_inputs.payslip_id,
+				from: r.payslip_leave_inputs.payslip_id,
 				to: r.payslips.id
 			})
 		),
-		payslip_arrears_request_input_arrears_request: r.one.arrears_requests({
-			from: r.payslip_arrears_request_inputs.arrears_request_id,
-			to: r.arrears_requests.id
-		})
-	},
-
-	payslip_correction_request_inputs: {
-		payslip_correction_request_input_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_correction_request_inputs.payslip_id,
-				to: r.payslips.id
-			})
-		),
-		payslip_correction_request_input_correction_request: r.one.correction_requests({
-			from: r.payslip_correction_request_inputs.correction_request_id,
-			to: r.correction_requests.id
-		})
-	},
-
-	payslip_leave_request_inputs: {
-		payslip_leave_request_input_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_leave_request_inputs.payslip_id,
-				to: r.payslips.id
-			})
-		),
-		leave_request_input_leave_request: r.one.leave_requests({
-			from: r.payslip_leave_request_inputs.leave_request_id,
-			to: r.leave_requests.id
+		leave_input_leave_entry: r.one.leave_entries({
+			from: r.payslip_leave_inputs.leave_entry_id,
+			to: r.leave_entries.id
 		})
 	},
 
@@ -518,18 +512,30 @@ export default ((r) => ({
 	},
 
 	loans: {
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.loans.id,
+			to: r.employment_contract_inputs.loans_id
+		}),
 		loan_employment: r.one.employments({
 			from: r.loans.employment_id,
 			to: r.employments.id
 		}),
-		loan_component_catalogue: r.one.component_catalogue({
-			from: r.loans.component_catalogue_id,
-			to: r.component_catalogue.id
+		loan_loan_catalogue: r.one.loan_catalogue({
+			from: r.loans.loan_catalogue_id,
+			to: r.loan_catalogue.id
 		}),
 		repayment_loan: r.many.loan_repayments()
 	},
 
 	loan_repayments: {
+		loan_repayment_employment: r.one.employments({
+			from: r.loan_repayments.employment_id,
+			to: r.employments.id
+		}),
+		employment_contract_input: r.many.employment_contract_inputs({
+			from: r.loan_repayments.id,
+			to: r.employment_contract_inputs.loan_repayments_id
+		}),
 		loan_repayment_loan: cascade(
 			r.one.loans({
 				from: r.loan_repayments.loan_id,

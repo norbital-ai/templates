@@ -3,7 +3,7 @@
  *
  * A roster code is the single polymorphic scheduling vocabulary: WORK owns its clock window,
  * REST is the protected weekly rest, and OFF is another planned non-working day. Public holidays
- * are never stored as codes; they are overlaid from the observed company holiday calendar. A
+ * are never stored as codes; they are overlaid from the published jurisdiction holiday calendar. A
  * `work_days` row that names a roster code overrides the employment's embedded work pattern for
  * that date; one that names none carries only attendance and leaves the pattern in force.
  */
@@ -16,7 +16,7 @@ import {
 	type WorkWindow
 } from '../../../lib/scheduling/roster-code.js';
 import type { Configuration, ShiftDefinition } from './configuration.js';
-import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
+import { requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import type { PayrollWindow } from './period.js';
@@ -112,7 +112,7 @@ type ResolveScheduleOptions = {
 	readonly dates: readonly IsoDate[];
 	readonly terms: (date: IsoDate) => ScheduleTerms;
 	readonly workDays: readonly PlannedDay[];
-	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById'>;
+	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById' | 'holidayRestPrecedence'>;
 };
 
 /** Resolve every day of a window for one employment. */
@@ -132,7 +132,6 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 	let clampStart: string | null = null;
 	const pending: {
 		date: IsoDate;
-		baseDayType: Exclude<DayType, 'PUBLIC_HOLIDAY'>;
 		dayType: DayType;
 		shift: ScheduledShift | null;
 		normalHours: number;
@@ -155,44 +154,22 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		const dayCode = patternCode ?? assignmentCode;
 		const baseDayType = dayCode == null ? 'OFF_DAY' : dayTypeFor(dayCode.kind);
 		const holiday = options.configuration.holidays.get(date);
-		// A holiday on a statutory REST day is substituted below; the original remains REST_DAY.
-		const dayType: DayType = holiday && baseDayType !== 'REST_DAY' ? 'PUBLIC_HOLIDAY' : baseDayType;
+		// Observed dates come only from the jurisdiction calendar. The pricing rule resolves overlap.
+		let dayType: DayType = holiday ? 'PUBLIC_HOLIDAY' : baseDayType;
+		if (holiday && baseDayType === 'REST_DAY') {
+			const precedence = options.configuration.holidayRestPrecedence;
+			if (precedence !== 'REST_DAY' && precedence !== 'PUBLIC_HOLIDAY')
+				throw new Error('The Work rules must specify public-holiday/rest-day precedence.');
+			dayType = precedence;
+		}
 		if (clampStart == null && baseDayType === 'ORDINARY' && assignmentCode?.shift)
 			clampStart = assignmentCode.shift.start_time;
 		pending.push({
 			date,
-			baseDayType,
 			dayType,
 			shift: assignmentCode?.shift ?? null,
 			normalHours: terms.normal_daily_hours
 		});
-	}
-
-	/* EA 1955 s.60D(1): a holiday on the employee's rest day moves to the next working day. */
-	const explicitlySubstituted = new Set<IsoDate>();
-	for (const holiday of options.configuration.holidays.values()) {
-		const key = dateKey(holiday.substitutes_date);
-		if (key == null) continue;
-		explicitlySubstituted.add(key);
-	}
-	const substituteDates = new Set<IsoDate>();
-	for (let index = 0; index < pending.length; index += 1) {
-		const holidayDay = pending[index]!;
-		if (
-			!options.configuration.holidays.has(holidayDay.date) ||
-			holidayDay.baseDayType !== 'REST_DAY' ||
-			explicitlySubstituted.has(holidayDay.date)
-		)
-			continue;
-		for (let candidateIndex = index + 1; candidateIndex < pending.length; candidateIndex += 1) {
-			const candidate = pending[candidateIndex]!;
-			if (candidate.baseDayType !== 'ORDINARY') continue;
-			if (options.configuration.holidays.has(candidate.date) || substituteDates.has(candidate.date))
-				continue;
-			substituteDates.add(candidate.date);
-			candidate.dayType = 'PUBLIC_HOLIDAY';
-			break;
-		}
 	}
 
 	const resolved = new Map<IsoDate, ScheduledDay>();

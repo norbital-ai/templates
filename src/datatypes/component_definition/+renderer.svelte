@@ -2,12 +2,7 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { numberFrom } from '../../lib/ui/renderer-input.js';
-	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
-	import EffectiveLayerList from '../../lib/ui/policy-layers/effective-layer-list.svelte';
-	import LayerLevelPicker, {
-		type PolicyLayerLevel
-	} from '../../lib/ui/policy-layers/layer-level-picker.svelte';
+	import EntryFields from '../entry_component_definition/entry-fields.svelte';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -17,17 +12,7 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	type Source = Value['source'];
-	type EntryArm = Extract<Value, { source: 'ENTRY' }>;
-	type Cap = NonNullable<EntryArm['cap']>;
-	type CapLayer = Cap['matrix']['layers'][number];
-	type CapAward = CapLayer['award'];
-	type AwardKind = CapAward['kind'];
-	type EntryUnit = EntryArm['unit'];
-	type Evidence = EntryArm['evidence'];
-	type Settlement = EntryArm['settlement'];
 	type FormulaUnit = Extract<Value, { source: 'FORMULA' }>['unit'];
-	type CapPeriod = Cap['period'];
-	type CapOnExceed = Cap['on_exceed'];
 
 	function options<T extends string>(values: readonly T[]): { value: T; label: string }[] {
 		return values.map((value) => ({ value, label: value.replaceAll('_', ' ').toLowerCase() }));
@@ -38,99 +23,12 @@
 		{ value: 'FORMULA', label: 'Formula', description: 'CEL expression over the payslip context' },
 		{ value: 'SCHEDULE', label: 'Schedule', description: 'The contracted amount on the terms' },
 		{
-			value: 'LEAVE_PAYOUT',
-			label: 'Leave payout',
-			description: 'What the leave ledger says is owed, priced by payroll'
-		},
-		{
 			value: 'DERIVED_OVERTIME',
 			label: 'Derived overtime',
 			description: 'Priced by the overtime regime from work days, never entered'
 		}
 	];
-	const ENTRY_UNIT_OPTIONS = options<EntryUnit>(['MONEY', 'DAYS', 'HOURS']);
 	const FORMULA_UNIT_OPTIONS = options<FormulaUnit>(['MONEY', 'DAYS', 'HOURS', 'RATE']);
-	const EVIDENCE_OPTIONS = options<Evidence>(['NONE', 'OPTIONAL', 'REQUIRED']);
-	const SETTLEMENT_OPTIONS = options<Settlement>(['PAYROLL', 'COMPANY_DIRECT']);
-	const CAP_PERIOD_OPTIONS = options<CapPeriod>([
-		'CALENDAR_YEAR',
-		'LEAVE_YEAR',
-		'MONTH',
-		'LIFETIME',
-		'PER_EVENT'
-	]);
-	const CAP_ON_EXCEED_OPTIONS = options<CapOnExceed>(['BLOCK', 'ALLOW']);
-	const AWARD_OPTIONS: { value: AwardKind; label: string; description: string }[] = [
-		{ value: 'FIXED', label: 'Fixed amount', description: 'The ceiling is a number' },
-		{
-			value: 'FORMULA',
-			label: 'Formula',
-			description: 'The ceiling is a CEL expression over the payslip context'
-		}
-	];
-	/** A ceiling the policy has not withdrawn; a successor layer end-dates it. */
-	const OPEN_ENDED = '9999-12-31T00:00:00.000Z';
-
-	function newCapLayer(level: PolicyLayerLevel): CapLayer {
-		const ceiling = {
-			eligibility: '',
-			authority: '',
-			award: { kind: 'FIXED' as const, amount: 0 },
-			reimbursement_percentage: 100,
-			effective_range: {
-				start: startOfDayInstant(todayKey(), PAYROLL_TIME_ZONE),
-				end: OPEN_ENDED
-			}
-		};
-		switch (level) {
-			case 'ORGANISATION':
-				return { level: 'ORGANISATION', ...ceiling };
-			case 'EMPLOYEE':
-				return { level: 'EMPLOYEE', employment_id: '', ...ceiling };
-		}
-	}
-
-	/**
-	 * Move a cap layer to another arm, carrying everything the arms share.
-	 *
-	 * Written out rather than spread so the EMPLOYEE arm's extra field is added and dropped
-	 * explicitly: a spread would leave it behind when the arm narrows, which `strictObject`
-	 * rejects only at save time, long after the operator has moved on.
-	 */
-	function atCapLevel(layer: CapLayer, level: PolicyLayerLevel): CapLayer {
-		const { eligibility, authority, award, reimbursement_percentage, effective_range } = layer;
-		const ceiling = { eligibility, authority, award, reimbursement_percentage, effective_range };
-		switch (level) {
-			case 'ORGANISATION':
-				return { level: 'ORGANISATION', ...ceiling };
-			case 'EMPLOYEE':
-				return {
-					level: 'EMPLOYEE',
-					employment_id: layer.level === 'EMPLOYEE' ? layer.employment_id : '',
-					...ceiling
-				};
-		}
-	}
-
-	function defaultAward(kind: AwardKind): CapAward {
-		return kind === 'FIXED' ? { kind: 'FIXED', amount: 0 } : { kind: 'FORMULA', expr: '' };
-	}
-
-	/**
-	 * The cap a freshly ticked "Capped" box starts from.
-	 *
-	 * Built rather than declared as a constant because its bounds are instants resolved in the
-	 * payroll timezone. The literal this replaced read `{ start: '2026-01-01', end: null }`, which is
-	 * neither an instant nor a permitted `end` — `instantRangeSchema` requires both bounds — so
-	 * ticking the box seeded a cap the form could not save.
-	 */
-	function defaultCap(): Cap {
-		return {
-			period: 'CALENDAR_YEAR',
-			matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [newCapLayer('ORGANISATION')] },
-			on_exceed: 'BLOCK'
-		};
-	}
 
 	type ComponentDefinitionRendererProps = RendererProps & {
 		/** The component being edited, which is what scopes the people a cap layer may name. */
@@ -157,8 +55,8 @@
 				return `Formula · ${current.unit} · ${current.expr}`;
 			case 'SCHEDULE':
 				return `Schedule · ${current.reducible ? 'reducible' : 'not reducible'}`;
-			case 'LEAVE_PAYOUT':
-				return 'Leave payout · priced from the ledger';
+			case 'ABSENCE':
+				return t('work.output_absence');
 			case 'DERIVED_OVERTIME':
 				return 'Derived overtime · priced by the regime';
 		}
@@ -182,8 +80,8 @@
 				return { source: 'FORMULA', unit: 'MONEY', expr: '' };
 			case 'SCHEDULE':
 				return { source: 'SCHEDULE', unit: 'MONEY', reducible: true };
-			case 'LEAVE_PAYOUT':
-				return { source: 'LEAVE_PAYOUT', unit: 'MONEY' };
+			case 'ABSENCE':
+				return { source: 'ABSENCE', unit: 'MONEY' };
 			case 'DERIVED_OVERTIME':
 				return { source: 'DERIVED_OVERTIME', unit: 'MONEY' };
 		}
@@ -218,217 +116,15 @@
 		</label>
 
 		{#if current?.source === 'ENTRY'}
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Unit
-					<Combobox
-						options={ENTRY_UNIT_OPTIONS}
-						value={current.unit}
-						{disabled}
-						searchable={false}
-						onValueChange={(unit) => {
-							if (unit !== null) emit({ ...current, unit });
-						}}
-					/>
-				</Stack>
-			</label>
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Evidence
-					<Combobox
-						options={EVIDENCE_OPTIONS}
-						value={current.evidence}
-						{disabled}
-						searchable={false}
-						onValueChange={(evidence) => {
-							if (evidence !== null) emit({ ...current, evidence });
-						}}
-					/>
-				</Stack>
-			</label>
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Settlement
-					<Combobox
-						options={SETTLEMENT_OPTIONS}
-						value={current.settlement}
-						{disabled}
-						searchable={false}
-						onValueChange={(settlement) => {
-							if (settlement !== null) emit({ ...current, settlement });
-						}}
-					/>
-				</Stack>
-			</label>
-			<label class="self-end text-sm font-medium">
-				<Inline gap="sm">
-					<input
-						type="checkbox"
-						class="size-4"
-						checked={current.cap !== null}
-						{disabled}
-						onchange={(event) =>
-							emit({ ...current, cap: event.currentTarget.checked ? defaultCap() : null })}
-					/>
-					Capped
-				</Inline>
-			</label>
-
-			{#if current.cap !== null}
-				{@const cap = current.cap}
-				<label class="text-sm font-medium">
-					<Stack gap="xs">
-						Cap period
-						<Combobox
-							options={CAP_PERIOD_OPTIONS}
-							value={cap.period}
-							{disabled}
-							searchable={false}
-							onValueChange={(period) => {
-								if (period !== null) emit({ ...current, cap: { ...cap, period } });
-							}}
-						/>
-					</Stack>
-				</label>
-				<label class="text-sm font-medium">
-					<Stack gap="xs">
-						On exceed
-						<Combobox
-							options={CAP_ON_EXCEED_OPTIONS}
-							value={cap.on_exceed}
-							{disabled}
-							searchable={false}
-							onValueChange={(onExceed) => {
-								if (onExceed !== null) emit({ ...current, cap: { ...cap, on_exceed: onExceed } });
-							}}
-						/>
-					</Stack>
-				</label>
-				<Column span="all">
-					<EffectiveLayerList
-						layers={cap.matrix.layers}
-						{disabled}
-						emptyMessage={t('renderer.component_definition.empty')}
-						addPlaceholder={t('renderer.component_definition.add_placeholder')}
-						additions={[
-							{
-								value: 'ORGANISATION',
-								label: 'Organisation layer',
-								create: () => newCapLayer('ORGANISATION')
-							},
-							{ value: 'EMPLOYEE', label: 'Employee layer', create: () => newCapLayer('EMPLOYEE') }
-						]}
-						onChange={(layers) =>
-							emit({
-								...current,
-								cap: { ...cap, matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers } }
-							})}
-					>
-						{#snippet identity(row)}
-							<LayerLevelPicker
-								levels={['ORGANISATION', 'EMPLOYEE']}
-								level={row.layer.level}
-								employmentId={row.layer.level === 'EMPLOYEE' ? row.layer.employment_id : null}
-								{companyId}
-								disabled={row.disabled}
-								onLevelChange={(level) => row.replace(atCapLevel(row.layer, level))}
-								onEmploymentChange={(employment) => {
-									if (row.layer.level === 'EMPLOYEE')
-										row.replace({ ...row.layer, employment_id: employment });
-								}}
-							/>
-						{/snippet}
-
-						{#snippet body(row)}
-							<Grid gap="sm" minimum="compact">
-								<label class="text-sm font-medium">
-									<Stack gap="xs">
-										Ceiling
-										<Combobox
-											options={AWARD_OPTIONS}
-											value={row.layer.award.kind}
-											disabled={row.disabled}
-											searchable={false}
-											onValueChange={(kind) => {
-												if (kind !== null && kind !== row.layer.award.kind)
-													row.replace({ ...row.layer, award: defaultAward(kind) });
-											}}
-										/>
-									</Stack>
-								</label>
-								{#if row.layer.award.kind === 'FIXED'}
-									<label class="text-sm font-medium">
-										<Stack gap="xs">
-											Amount
-											<Input
-												type="number"
-												min="0"
-												step="0.01"
-												value={row.layer.award.amount}
-												disabled={row.disabled}
-												oninput={(event) =>
-													row.replace({
-														...row.layer,
-														award: {
-															kind: 'FIXED',
-															amount: numberFrom(event.currentTarget.value, 0)
-														}
-													})}
-											/>
-										</Stack>
-									</label>
-								{:else}
-									<label class="text-sm font-medium">
-										<Stack gap="xs">
-											Expression
-											<Input
-												value={row.layer.award.expr}
-												disabled={row.disabled}
-												placeholder={t('component.cel_expression')}
-												oninput={(event) =>
-													row.replace({
-														...row.layer,
-														award: { kind: 'FORMULA', expr: event.currentTarget.value }
-													})}
-											/>
-										</Stack>
-									</label>
-								{/if}
-								<label class="text-sm font-medium">
-									<Stack gap="xs">
-										Reimbursed (%)
-										<Input
-											type="number"
-											min="0"
-											max="100"
-											step="1"
-											value={row.layer.reimbursement_percentage}
-											disabled={row.disabled}
-											oninput={(event) =>
-												row.replace({
-													...row.layer,
-													reimbursement_percentage: numberFrom(event.currentTarget.value, 100)
-												})}
-										/>
-									</Stack>
-								</label>
-								<Column span="all">
-									<Stack gap="xs" class="text-sm font-medium">
-										<span>{t('component.who_this_layer_covers')}</span>
-										<Input
-											value={row.layer.eligibility}
-											placeholder={t('component.eligibility_placeholder')}
-											disabled={row.disabled}
-											oninput={(event) =>
-												row.replace({ ...row.layer, eligibility: event.currentTarget.value })}
-										/>
-									</Stack>
-								</Column>
-							</Grid>
-						{/snippet}
-					</EffectiveLayerList>
-				</Column>
-			{/if}
+			<!--
+				The ENTRY arm is `entry_component_definition` exactly, so its fields are drawn by that
+				datatype's own editor rather than by a second copy here. The five event catalogues and
+				the loan catalogue carry the narrow type and no source picker; this arm is the same
+				fields reached through one.
+			-->
+			<Column span="all">
+				<EntryFields value={current} {disabled} {companyId} onChange={emit} />
+			</Column>
 		{:else if current?.source === 'FORMULA'}
 			<label class="text-sm font-medium">
 				<Stack gap="xs">

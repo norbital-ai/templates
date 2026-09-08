@@ -1,7 +1,7 @@
 /**
  * The formula language.
  *
- * `component_catalogue.definition` on its `FORMULA` arm carries a CEL expression, evaluated by Reckon —
+ * A prepared family pay item's `FORMULA` definition carries a CEL expression, evaluated by Reckon —
  * the same declarative, auditable engine the statutory rules use. Nothing here is bespoke: the
  * expression is data, its dependencies are named, and its result is a number.
  *
@@ -14,7 +14,7 @@
  * - **numeric literals need a decimal point** when mixed with doubles: `26` is an int, `26.0` a
  *   double, and `x / 26` where `x` is a double is a type error.
  *
- * Each formula is evaluated as its own one-expression computation, in `component_catalogue.sequence`
+ * Each formula is evaluated as its own one-expression computation, in the family pay items' `sequence`
  * order. That is deliberate: `component('HOURLY_RATE')` is an opaque op call, so Reckon's
  * AST-derived topological sort cannot see through it, and evaluating the whole catalogue as one
  * graph would silently read a component before it was measured. Sequence order is the contract the

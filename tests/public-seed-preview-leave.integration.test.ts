@@ -7,8 +7,7 @@ import {
 	postGuestCommand
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	ANNUAL_LEAVE_REQUEST_ID,
+	ANNUAL_LEAVE_ENTRY_ID,
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -62,7 +61,6 @@ test(
 			const browsing = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04'
 			});
 			const availability = asAvailability(browsing.availability);
@@ -73,14 +71,13 @@ test(
 				Number(browsing.remaining_days) > 0,
 				`expected remaining days > 0, got ${JSON.stringify(browsing.remaining_days)}`
 			);
-			assert.equal(browsing.encashed, false);
+			assert.equal(browsing.remaining_days, 7);
 
 			const applyable = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04',
-				exclude_request_id: ANNUAL_LEAVE_REQUEST_ID,
+				exclude_entry_id: ANNUAL_LEAVE_ENTRY_ID,
 				range: {
 					start: { date: '2026-04-15', half: 'FIRST' },
 					end: { date: '2026-04-15', half: 'SECOND' }
@@ -93,7 +90,6 @@ test(
 			const sundayOnly = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				calendar_month: '2026-04',
 				range: {
 					start: { date: '2026-04-12', half: 'FIRST' },
@@ -102,8 +98,8 @@ test(
 			});
 			assert.equal(sundayOnly.chargeable_days, 0);
 			assert.ok(
-				asIssues(sundayOnly.issues).some((row) => row.code === 'NO_CHARGEABLE_DAYS'),
-				`expected NO_CHARGEABLE_DAYS, got ${JSON.stringify(sundayOnly.issues)}`
+				asIssues(sundayOnly.issues).some((row) => row.code === 'INVALID_INPUT'),
+				`expected an invalid empty selection, got ${JSON.stringify(sundayOnly.issues)}`
 			);
 
 			const hqHeaders = {
@@ -127,7 +123,6 @@ test(
 					input: {
 						employment_id: EMPLOYMENT_ID,
 						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-						leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 						calendar_month: '2026-09',
 						range: {
 							start: { date: '2026-09-04', half: 'FIRST' },
@@ -141,18 +136,18 @@ test(
 				hqSeptember.status >= 200 && hqSeptember.status < 300,
 				`HQ preview_leave September ${hqSeptember.status}: ${JSON.stringify(hqSeptember.value)}`
 			);
+			const unbookedEmploymentId = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2';
 			await session.query('update leave_catalogue set eligibility = $1 where id = $2', [
 				'employee.gender == "FEMALE"',
 				ANNUAL_LEAVE_CATALOGUE_ID
 			]);
 			await session.query(
 				'update employees set gender = $1 where id = (select employee_id from employments where id = $2)',
-				['MALE', EMPLOYMENT_ID]
+				['MALE', unbookedEmploymentId]
 			);
 			const input = {
-				employment_id: EMPLOYMENT_ID,
+				employment_id: unbookedEmploymentId,
 				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-				leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 				range: {
 					start: { date: '2026-04-15', half: 'FIRST' },
 					end: { date: '2026-04-15', half: 'SECOND' }
@@ -160,7 +155,7 @@ test(
 			};
 			assert.equal(
 				asIssues((await invokePreviewLeave(session, input)).issues).some(
-					(row) => row.code === 'INELIGIBLE'
+					(row) => row.code === 'INVALID_INPUT'
 				),
 				true,
 				'the row states who may take it: a man is refused a FEMALE-only type on the day'
@@ -171,15 +166,15 @@ test(
 					'collections.mutate',
 					mutationPush(session.schemaFingerprint, {
 						action: 'mutate',
-						collection: 'leave_requests',
+						collection: 'leave_entries',
 						rows: [
 							{
 								action: 'create',
 								values: {
 									id: crypto.randomUUID(),
-									employment_id: EMPLOYMENT_ID,
+									employment_id: unbookedEmploymentId,
 									leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-									leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
+									reference: 'PREVIEW-CERTIFICATE-TEST',
 									event: {
 										kind: 'TIME_OFF',
 										range: input.range,
@@ -194,7 +189,7 @@ test(
 				);
 			await session.query(
 				'update employees set gender = $1 where id = (select employee_id from employments where id = $2)',
-				['FEMALE', EMPLOYMENT_ID]
+				['FEMALE', unbookedEmploymentId]
 			);
 			await session.query(
 				'update leave_catalogue set requires_certificate_after_days = 0 where id = $1',

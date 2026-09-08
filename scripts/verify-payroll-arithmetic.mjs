@@ -75,13 +75,13 @@ const modules = await Effect.runPromise(
 				load('contribute'),
 				load('period'),
 				load('dates'),
-				load('leave'),
+				Effect.tryPromise(() => server.ssrLoadModule('/src/lib/leave/payroll.ts')),
 				load('settlement'),
 				load('overtime'),
-				load('measure'),
+				Effect.tryPromise(() => server.ssrLoadModule('/src/lib/payroll/work.ts')),
 				load('coverage'),
 				load('ordinary-rate'),
-				load('entries'),
+				Effect.tryPromise(() => server.ssrLoadModule('/src/lib/payroll/money.ts')),
 				load('settle')
 			]);
 		},
@@ -95,7 +95,7 @@ const [
 	{ contribute, scaleProgressive },
 	{ attendanceWindow, defaultPayPeriod, payPeriodsRemaining, resolveWindow },
 	{ inclusiveDays, dateKey: calendarDay },
-	{ unpaidLeaveInWindow },
+	{ leavePayrollInputs },
 	{ resolveEmploymentSettlement },
 	{
 		classifyOvertimeByCalendarMonth,
@@ -107,7 +107,7 @@ const [
 	{ isStatutoryOvertimePayCovered },
 	{ classifyWageComparand, deriveStatutoryWages },
 	{ ordinaryHourlyRate, ordinaryDayWage, absenceDayRate },
-	{ allowanceRequest, bonusRequest, claimRequest, correctionRequest, requestPayPeriod },
+	{ allowanceRequest, paymentRequest, claimRequest, requestPayPeriod },
 	{ settle }
 ] = modules;
 
@@ -410,31 +410,42 @@ const N0340 = [
 	].map((day) => `2026-01-${day}`)
 ];
 const NPL_TYPE = '00000000-0000-4000-8000-00000000000a';
-const NPL_COMPONENT = '00000000-0000-4000-8000-00000000000b';
-const catalogueLeaves = [
-	{
-		id: NPL_TYPE,
-		code: 'UNPAID_LEAVE',
-		payroll_effect: { kind: 'UNPAID', component_id: NPL_COMPONENT }
-	}
-];
-const ledger0340 = N0340.map((date, index) => ({
-	id: `ledger-${index}`,
+const leave0340 = {
+	id: 'leave:n0340',
+	employment_id: 'employment:n0340',
 	leave_catalogue_id: NPL_TYPE,
-	entry_date: date,
-	kind: 'TAKEN',
-	days: -1,
-	source_id: null,
+	leave_code: 'UNPAID_LEAVE',
+	reference: 'N0340',
+	event: {
+		kind: 'TIME_OFF',
+		range: {
+			start: { date: N0340[0], half: 'FIRST' },
+			end: { date: N0340.at(-1), half: 'SECOND' }
+		},
+		chargeable_days: N0340.length,
+		reason: 'Approved absence'
+	},
+	charges: N0340.map((date) => ({
+		date,
+		days: 1,
+		leave_catalogue_id: NPL_TYPE,
+		employment_term_id: 'terms:n0340',
+		calendar_id: 'calendar:2026',
+		shift_definition_id: 'shift:day',
+		work_day_id: null
+	})),
+	allocations: [],
 	approval_id: null
-}));
+};
 const february = companyAWindow('2026-02');
 check(
 	'the plain window drags eight January days into February',
-	unpaidLeaveInWindow({
-		ledger: ledger0340,
-		window: february.attendance,
-		configuration: { catalogueLeaves }
-	})[0]?.days,
+	leavePayrollInputs({
+		entries: [leave0340],
+		salaryWindow: february.attendance,
+		dueThrough: february.salary.end,
+		captures: []
+	}).timeOff[0]?.charges.reduce((sum, row) => sum + row.days, 0),
 	8
 );
 // ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -447,7 +458,7 @@ const terms = {
 	working_days_per_week: 6
 };
 const myJurisdiction = {
-	code: 'MY',
+	jurisdiction_code: 'MY',
 	ordinary_rate: { per: 'DAY', divisor: 26 }
 };
 check('ORP is 3,451 / 26 / 8 = 16.59', ordinaryHourlyRate(terms, myJurisdiction), 16.59);
@@ -463,7 +474,7 @@ check(
 			working_days_per_week: 5
 		},
 		{
-			code: 'PH',
+			jurisdiction_code: 'PH',
 			ordinary_rate: { per: 'DAY', divisor: 21.75 }
 		}
 	),
@@ -480,7 +491,7 @@ check(
 			working_days_per_week: 6
 		},
 		{
-			code: 'PH',
+			jurisdiction_code: 'PH',
 			ordinary_rate: { per: 'DAY', divisor: 21.75 }
 		}
 	),
@@ -526,7 +537,7 @@ check(
 check(
 	'an hours-per-month jurisdiction divides once',
 	ordinaryHourlyRate(terms, {
-		code: 'ID',
+		jurisdiction_code: 'ID',
 		ordinary_rate: { per: 'HOUR', divisor: 173 }
 	}),
 	cents(3451 / 173)
@@ -836,51 +847,58 @@ check(
 const CORE = {
 	id: 'e',
 	employment_id: 'emp-1',
-	component_catalogue_id: 'c-1',
 	amount: 100,
 	approval_id: null,
-	pay_period: null
+	pay_period: null,
+	as_adjustment_entry: false,
+	corrects_adjustment_id: null
 };
-const correctionOf = (operation) =>
-	correctionRequest({
-		...CORE,
-		corrected_on: '2026-03-02',
+const CLAIM = { ...CORE, claim_catalogue_id: 'claim-1' };
+const ALLOWANCE = { ...CORE, allowance_catalogue_id: 'allowance-1' };
+const PAYMENT = { ...CORE, payment_catalogue_id: 'payment-1' };
+const paymentAdjustment = (asAdjustmentEntry) =>
+	paymentRequest({
+		...PAYMENT,
+		effective_on: '2026-03-02',
 		corrects_adjustment_id: 'adj-1',
-		operation,
+		as_adjustment_entry: asAdjustmentEntry,
+		covers_periods: null,
 		reason: 'x'
 	});
 check(
 	'an ordinary request pays under its component',
-	claimRequest({ ...CORE, incurred_on: '2026-03-02', description: null }).sign,
+	claimRequest({ ...CLAIM, incurred_on: '2026-03-02', description: null }).sign,
 	1
 );
-check('a correction that supersedes also pays under it', correctionOf('CORRECTION').sign, 1);
+check('a replacement Payment pays under its catalogue direction', paymentAdjustment(false).sign, 1);
 check(
 	'a reversal takes back — it names the settled output it corrects',
-	correctionOf('REVERSAL').sign,
+	paymentAdjustment(true).sign,
 	-1
 );
 // A reversal is signed rather than depleted: netting a negative draw against a magnitude grows it.
-check('a reversal is signed, not depleted', correctionOf('REVERSAL').depletes, false);
-check('a correction that supersedes is depleted', correctionOf('CORRECTION').depletes, true);
+check('an adjustment Payment is signed, not depleted', paymentAdjustment(true).depletes, false);
+check('a replacement Payment is depleted', paymentAdjustment(false).depletes, true);
 check(
 	'prorating is an allowance fact and nothing else',
 	allowanceRequest({
-		...CORE,
+		...ALLOWANCE,
 		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
 	}).prorates,
 	true
 );
 check(
 	'a claim never prorates',
-	claimRequest({ ...CORE, incurred_on: '2026-03-02', description: null }).prorates,
+	claimRequest({ ...CLAIM, incurred_on: '2026-03-02', description: null }).prorates,
 	false
 );
 check(
 	'an open-ended recurring allowance states its own window, day-precision',
 	JSON.stringify(
-		allowanceRequest({ ...CORE, recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null } })
-			.window
+		allowanceRequest({
+			...ALLOWANCE,
+			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+		}).window
 	),
 	JSON.stringify({ start: '2026-01-01', end: null })
 );
@@ -889,29 +907,49 @@ check(
 check(
 	'a one-off allowance spans exactly the month it names',
 	JSON.stringify(
-		allowanceRequest({ ...CORE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).window
+		allowanceRequest({ ...ALLOWANCE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).window
 	),
 	JSON.stringify({ start: '2026-02-01', end: '2026-02-28' })
 );
 check(
 	'a recurring allowance is unbounded; a one-off is not',
 	[
-		allowanceRequest({ ...CORE, recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null } })
-			.depletes,
-		allowanceRequest({ ...CORE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).depletes
+		allowanceRequest({
+			...ALLOWANCE,
+			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+		}).depletes,
+		allowanceRequest({ ...ALLOWANCE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).depletes
 	].join(','),
 	'false,true'
 );
 check(
 	'a claim settles by its incurred date under the cutoff',
-	requestPayPeriod(claimRequest({ ...CORE, incurred_on: '2026-04-10', description: null }), 21),
+	requestPayPeriod(claimRequest({ ...CLAIM, incurred_on: '2026-04-10', description: null }), 21),
 	'2026-04'
 );
-// A bonus dates by the day it was awarded, and past the cutoff it is next period's money.
+// A Payment dates by its effective day, and past the cutoff it is next period's money.
 check(
-	'a bonus past the cutoff settles next period',
-	requestPayPeriod(bonusRequest({ ...CORE, awarded_on: '2026-04-25', note: null }), 21),
+	'a Payment past the cutoff settles next period',
+	requestPayPeriod(
+		paymentRequest({
+			...PAYMENT,
+			effective_on: '2026-04-25',
+			reason: 'Bonus',
+			covers_periods: null
+		}),
+		21
+	),
 	'2026-05'
+);
+check(
+	'a Payment retains its contract and source catalogue',
+	[paymentAdjustment(false).employment_id, paymentAdjustment(false).component_catalogue_id],
+	['emp-1', 'payment-1']
+);
+check(
+	'covered periods are optional Payment provenance',
+	paymentAdjustment(false).covers_periods,
+	null
 );
 
 /* ── Rest-day and public-holiday work is priced by statute, from the seeded rules ──────────────
@@ -1156,12 +1194,12 @@ const january = { start: '2026-01-01', end: '2026-01-31' };
 const calendarMY = {
 	// `ordinaryRateDivisor` branches on the jurisdiction code for the Philippine 313-day
 	// alternative, so a jurisdiction fixture that omits it is only ever "not PH" by accident.
-	code: 'MY',
+	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_rate: { per: 'DAY', divisor: 26 }
 };
 const absenceRate = (jurisdiction, period = january) =>
-	absenceDayRate({ terms: januaryTerms, jurisdiction, period, workingDaysIn: () => 26 });
+	absenceDayRate({ terms: januaryTerms, work: jurisdiction, period, workingDaysIn: () => 26 });
 
 check('a January absence day is basic / 31, to the cent', absenceRate(calendarMY), 111.32);
 check(
@@ -1183,7 +1221,7 @@ check(
 	'a WORKING_DAYS jurisdiction prorates on working days instead',
 	absenceDayRate({
 		terms: januaryTerms,
-		jurisdiction: {
+		work: {
 			proration: { by: 'WORKING_DAYS' },
 			ordinary_rate: { per: 'DAY', divisor: 26 }
 		},
@@ -1201,7 +1239,7 @@ check(
 			ordinary_hours_per_week: 40,
 			working_days_per_week: 5
 		},
-		jurisdiction: {
+		work: {
 			proration: { by: 'FIXED_DAYS', days: 21.75 },
 			ordinary_rate: { per: 'DAY', divisor: 21.75 }
 		},

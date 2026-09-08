@@ -1,99 +1,115 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import { stableJson } from '../../lib/jurisdiction_settings.js';
+import {
+	assertContractDoesNotOverlap,
+	assertContractUnreferenced,
+	type ContractCandidate
+} from '../../lib/employment-contract.js';
 import type { Hooks } from './$types.js';
-import { planEmploymentLedger } from '../../lib/leave/service.js';
-import { readLeaveContext, withPending, type LeaveContext } from '../../lib/leave/entitlements.js';
 
-/**
- * An employment carries its leave entitlements.
- *
- * `prepare` reads the batch's leave context once: the catalogue by company for creates, the
- * stored employment with its terms, children, requests and ledger for updates. `before` overlays
- * the row being written, runs the arithmetic for it and returns it with the complete set of its
- * entitlements and their entries nested under it, under formula ids. The hook reads and derives
- * as the workspace, so a kiosk enrolment lands the same ledger an HR hire does and the kiosk
- * holds no grant on anything the ledger is made of.
- *
- * The employment is planned as of the latest date its facts state: the hire date, an exit, the
- * start of a set of terms, a child's birth. Nothing here reads the clock, so a held graph replays
- * identically on resume; the months that pass afterwards, year closes and exits are the monthly
- * reconciler's, which touches each employment as itself with today's date.
- *
- * A write that already carries `leave_entitlement_employment` keeps it: the reconciler's monthly
- * walk and the `before` hooks of terms and children state the ledger themselves and write the
- * employment through the same door. The edge is not a cascade, so an omitted sibling is refused,
- * never deleted; what is returned here is always the whole set.
- */
-
-/** The columns the arithmetic reads; an edit that touches none of them leaves the ledger alone. */
-const LEDGER_COLUMNS = ['hire_date', 'exit_date', 'exit_reason', 'company_id', 'employee_id'];
-
-/** A write of the row as itself: the id, and nothing the person changed. */
-const isBareTouch = (input: Readonly<Record<string, unknown>>): boolean =>
-	Object.keys(input).every((column) => column === 'id' || column === 'row_version');
-
-type Prepared = { readonly context: LeaveContext };
+type Prepared = {
+	candidates: ContractCandidate[];
+	stored: ContractCandidate[];
+	pending: ContractCandidate[];
+};
+const LIMIT = 20_000;
 
 export default {
 	mutate: {
-		prepare: ({ inputs, api }): Effect.Effect<Prepared> =>
+		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
-				const context = yield* readLeaveContext(
-					api,
-					inputs.flatMap((one) => (one.id == null ? [] : [one.id])),
-					{
-						companyIds: inputs.flatMap((one) => (one.company_id == null ? [] : [one.company_id])),
-						employeeIds: inputs.flatMap((one) => (one.employee_id == null ? [] : [one.employee_id]))
-					}
-				);
-				return { context };
+				const ids = inputs.flatMap((row) => (row.id == null ? [] : [row.id]));
+				const priors = ids.length
+					? yield* api.db.employments.findMany({
+							where: { id: { in: ids } },
+							with: { employment_departure: { where: { approval_id: { isNull: true } } } },
+							limit: LIMIT
+						})
+					: [];
+				const byId = new Map(priors.map((row) => [row.id, row]));
+				const candidates = inputs.map((input) => ({ ...byId.get(input.id ?? ''), ...input }));
+				const companyIds = [
+					...new Set(candidates.flatMap((row) => (row.company_id == null ? [] : [row.company_id])))
+				];
+				const employeeIds = [
+					...new Set(
+						candidates.flatMap((row) => (row.employee_id == null ? [] : [row.employee_id]))
+					)
+				];
+				// Nested ownership is supplied to per-record hooks. Until then, retain the wider
+				// guarded read so an omitted parent foreign key cannot hide an existing contract.
+				const where = {
+					...(candidates.every((row) => row.company_id != null)
+						? { company_id: { in: companyIds } }
+						: {}),
+					...(candidates.every((row) => row.employee_id != null)
+						? { employee_id: { in: employeeIds } }
+						: {})
+				};
+				const stored = yield* api.db.employments.findMany({
+					where,
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
+					limit: LIMIT
+				});
+				const pending = yield* api.db.employments.findPending({ where, limit: LIMIT });
+				const storedById = new Map(stored.map((row) => [row.id, row]));
+				return {
+					candidates,
+					stored,
+					pending: pending.map((row) => ({ ...storedById.get(row.id), ...row }))
+				};
 			}),
 		perRecord: {
 			before: {
 				description:
-					"Returns the employment with the complete set of its leave entitlements and ledger lines, generated from the company's catalogue as of the latest date the employment's facts state.",
-				handler: ({ input, existing, recordId, relationships, prepared, api }) =>
+					'Enforce one active contract per employee and entity; permanently freeze every referenced contract.',
+				handler: ({ input, existing, recordId, prepared, parent, api }) =>
 					Effect.gen(function* () {
-						// A sibling fact's hook or the reconciler already stated the ledger; keep it.
-						if (relationships.includes('leave_entitlement_employment')) return input;
-						if (
-							existing != null &&
-							!isBareTouch(input) &&
-							!LEDGER_COLUMNS.some((column) => column in input)
-						)
-							return input;
-						const employment: Record<string, unknown> & { id: string } = {
-							...existing,
-							...input,
-							id: recordId,
-							approval_id: null
+						if (prepared.stored.length >= LIMIT || prepared.pending.length >= LIMIT)
+							refuse(
+								'The employment contract read reached its safety ceiling. Contract exclusivity cannot be verified.'
+							);
+						const parentColumn =
+							parent?.collection === 'employees' && parent.column === 'employee_id'
+								? 'employee_id'
+								: parent?.collection === 'companies' && parent.column === 'company_id'
+									? 'company_id'
+									: undefined;
+						const bindParent = (row: ContractCandidate) => {
+							if (parentColumn == null || parent == null) return row;
+							if (row[parentColumn] != null && row[parentColumn] !== parent.id)
+								refuse('A nested contract must use its enclosing employee or legal entity.');
+							return { ...row, [parentColumn]: parent.id };
 						};
-						let context = withPending(prepared.context, 'employments', employment);
-						// Nested under a person created in the same write (a kiosk enrolment), the
-						// employment has no stored employee and receives the parent key after this hook.
-						// The arithmetic then sees the catalogue's empty person, the same person the
-						// stored row shows until HR states a gender or a birth date.
-						const employeeId = employment.employee_id;
-						if (
-							typeof employeeId !== 'string' ||
-							!context.employees.some((row) => row.id === employeeId)
-						) {
-							const pendingId = typeof employeeId === 'string' ? employeeId : `pending:${recordId}`;
-							employment.employee_id = pendingId;
-							context = withPending(context, 'employees', { id: pendingId });
-						}
-						const nested = yield* planEmploymentLedger(
-							context,
-							recordId,
-							api.db.leave_requests.findPending
+						const candidates = prepared.candidates.map(bindParent);
+						for (const [index, candidate] of candidates.entries())
+							assertContractDoesNotOverlap(candidate, candidates.slice(index + 1));
+						const held = prepared.stored.find((row) => row.id === recordId);
+						const candidate = bindParent({ ...held, ...existing, ...input });
+						assertContractDoesNotOverlap(
+							candidate,
+							[...prepared.stored, ...prepared.pending].filter((row) => row.id !== recordId)
 						);
-						if (nested === undefined) return input;
-						return {
-							...input,
-							// The planner's rows are the collection's insert shape under formula ids; the
-							// runtime decodes them against it and fails loud on a column it does not know.
-							leave_entitlement_employment: nested as never
-						};
+						if (existing == null)
+							return { ...input, ...(parentColumn == null ? {} : { [parentColumn]: parent!.id }) };
+						const changed = Object.entries(input).some(
+							([key, value]) =>
+								key !== 'id' &&
+								key !== 'row_version' &&
+								stableJson(value) !== stableJson(Reflect.get(existing, key))
+						);
+						if (changed) yield* assertContractUnreferenced(api, existing.id);
+						return input;
 					})
+			}
+		}
+	},
+	delete: {
+		perRecord: {
+			before: {
+				description: 'Keep every employment contract that has ever been referenced.',
+				handler: ({ existing, api }) => assertContractUnreferenced(api, existing.id)
 			}
 		}
 	}

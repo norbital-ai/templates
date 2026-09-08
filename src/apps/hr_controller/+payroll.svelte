@@ -308,8 +308,6 @@
 			>
 				{#snippet columns({ Column })}
 					<Column name="period" label={t('app.payroll.period')} card="title" />
-					<Column name="run_kind" label={t('payroll.run_kind')} />
-					<Column name="sequence" />
 					<Column name="lifecycle" label={t('app.payroll.lifecycle')} card="badge" />
 					<Column name="pay_date" label={t('app.payroll.pay_date')} />
 					<Column name="configuration_hash" label={t('app.payroll.policy_snapshot')} />

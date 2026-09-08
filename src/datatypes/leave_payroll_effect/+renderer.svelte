@@ -1,22 +1,31 @@
 <script lang="ts">
+	/**
+	 * Whether taking this leave is paid, or unpaid and deducted through a pay line the leave
+	 * declares for itself.
+	 *
+	 * There is no component picker any more, and that is the change. UNPAID used to carry a
+	 * `component_id` into the pay catalogue — a foreign key the database cannot declare, because a
+	 * variant is one JSONB value — so this renderer opened its own query, offered every component of
+	 * the version, and printed a uuid on every row of the leave-types table when nobody chose one.
+	 * The leave row *is* the pay line now: its code names the line, an unpaid day is an ABSENCE, and
+	 * what the operator states here is the rest of what any pay line needs — how each scheme charges
+	 * it, where it sits in the reduction order, and who it covers.
+	 */
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	const { t } = useI18n<TenantI18nKeys>();
-
-	/**
-	 * `component_id` is a foreign key the database cannot declare — a variant is one JSONB value —
-	 * so the picker is built here, from a query scoped to the leave's own company. It used to
-	 * be a text box asking the operator for a uuid, and the display summary printed that uuid on
-	 * every row of the leave-types table.
-	 */
-	import { client } from '../../lib/workspace-client.js';
+	import ContributionTreatments from '../contribution_treatments/+renderer.svelte';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Input } from '@norbital-ai/ui/input';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { leavePayrollEffectSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
+	const { t } = useI18n<TenantI18nKeys>();
+
 	type EffectKind = Value['kind'];
+	type Deduction = Extract<Value, { kind: 'UNPAID' }>['deduction'];
 
 	const KIND_OPTIONS = $derived<{ value: EffectKind; label: string; description: string }[]>([
 		{
@@ -31,56 +40,37 @@
 		}
 	]);
 
-	type LeavePayrollEffectRendererProps = RendererProps & {
-		/** The leave being edited, which is what scopes the pay catalogue below. */
-		readonly row?: Record<string, unknown>;
-	};
-
-	let props: LeavePayrollEffectRendererProps = $props();
+	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(leavePayrollEffectSchema)(props.value));
 	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
-	/*
-	 * The component is named in the editor, not here. Resolving it in display mode would mount one
-	 * lookup per table row — the N+1 `controller-surfaces.md` §5 forbids — and the id itself is not
-	 * an answer to any question an operator has.
-	 */
 	const summary = $derived(
 		current === null ? '—' : current.kind === 'PAID' ? t('component.paid') : t('component.unpaid')
-	);
-
-	// The catalogue of the same settings version as the leave being edited.
-	const settingsId = $derived(
-		typeof props.row?.settings_id === 'string' ? props.row.settings_id : null
-	);
-	const componentsQuery = $derived(
-		settingsId == null
-			? null
-			: client.db.component_catalogue.findMany({
-					where: { settings_id: { eq: settingsId } },
-					orderBy: { code: 'asc' },
-					limit: 500
-				})
-	);
-	const componentOptions = $derived(
-		(componentsQuery?.current ?? []).map((component) => ({
-			value: component.id,
-			label: component.code || '—',
-			search_term: `${component.code ?? ''}`
-		}))
 	);
 
 	function emit(next: Value | null): void {
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 
+	/**
+	 * A deduction nobody has described yet: no scheme decided, first in the reduction order,
+	 * everyone covered. An empty treatment map is not an exemption — the run refuses at ACCUMULATE
+	 * naming the scheme — so this default states nothing rather than guessing.
+	 */
 	function defaultFor(kind: EffectKind): Value {
 		switch (kind) {
 			case 'PAID':
 				return { kind: 'PAID' };
 			case 'UNPAID':
-				return { kind: 'UNPAID', component_id: '' };
+				return {
+					kind: 'UNPAID',
+					deduction: { contribution_treatments: {}, sequence: 0, eligibility: '' }
+				};
 		}
+	}
+
+	function emitDeduction(deduction: Deduction): void {
+		emit({ kind: 'UNPAID', deduction });
 	}
 
 	/*
@@ -118,24 +108,48 @@
 			</Stack>
 		</label>
 		{#if current?.kind === 'UNPAID'}
+			{@const deduction = current.deduction}
 			<label class="text-sm font-medium">
 				<Stack gap="xs">
-					{t('renderer.leave_payroll_effect.deducted_on')}
-					<Combobox
-						ariaLabel={t('renderer.leave_payroll_effect.aria_deduction_component')}
-						options={componentOptions}
-						value={current.component_id === '' ? null : current.component_id}
-						disabled={disabled || settingsId == null}
-						searchPlaceholder={t('component.search_component_catalogue')}
-						emptyPlaceholder={t('renderer.leave_payroll_effect.choose_component_carries_wage')}
-						clientConfig={{
-							isLoading: componentsQuery?.loading ?? false,
-							error: componentsQuery?.error?.message ?? null
-						}}
-						onValueChange={(value) => emit({ kind: 'UNPAID', component_id: value ?? '' })}
+					{t('component.applied_at')}
+					<Input
+						type="number"
+						step="1"
+						value={deduction.sequence}
+						{disabled}
+						oninput={(event) =>
+							emitDeduction({
+								...deduction,
+								sequence: Math.trunc(numberFrom(event.currentTarget.value, 0))
+							})}
 					/>
 				</Stack>
 			</label>
+			<Column span="all">
+				<Stack gap="xs" class="text-sm font-medium">
+					<span>{t('component.who_receives')}</span>
+					<Input
+						value={deduction.eligibility}
+						placeholder={t('component.eligibility_placeholder')}
+						{disabled}
+						oninput={(event) =>
+							emitDeduction({ ...deduction, eligibility: event.currentTarget.value })}
+					/>
+				</Stack>
+			</Column>
+			<Column span="all">
+				<Stack gap="xs" class="text-sm font-medium">
+					<span>{t('renderer.leave_payroll_effect.deducted_on')}</span>
+					<ContributionTreatments
+						mode="edit"
+						field={{ name: 'contribution_treatments', type: 'contribution_treatments' }}
+						value={deduction.contribution_treatments}
+						{disabled}
+						onValueChange={(treatments) =>
+							emitDeduction({ ...deduction, contribution_treatments: treatments ?? {} })}
+					/>
+				</Stack>
+			</Column>
 		{/if}
 	</Grid>
 {/if}

@@ -58,10 +58,10 @@ test(
 			const februaryId = crypto.randomUUID();
 			await session.query(
 				`insert into payroll_runs
-				(id, company_id, period, run_kind, sequence, lifecycle, settings_id, configuration_hash,
-				 core_input_hash, calculation_version, pay_date, attendance_from, attendance_to)
-				select $1, company_id, $2, run_kind, sequence, lifecycle, settings_id, configuration_hash,
-				 core_input_hash, calculation_version, pay_date, attendance_from, attendance_to
+				(id, company_id, period, lifecycle, settings_id, configuration_hash,
+				 calculation_version, pay_date, attendance_from, attendance_to, holiday_calendars)
+				select $1, company_id, $2, lifecycle, settings_id, configuration_hash,
+				 calculation_version, pay_date, attendance_from, attendance_to, holiday_calendars
 				from payroll_runs where id = $3`,
 				[februaryId, FEBRUARY_2026, marchId]
 			);
@@ -91,23 +91,13 @@ test(
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'bonus_request', bonus_request_id
-				 from payslip_bonus_request_inputs i
+				 select 'payment_request', payment_request_id
+				 from payslip_payment_request_inputs i
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'arrears_request', arrears_request_id
-				 from payslip_arrears_request_inputs i
-				 join payslips p on p.id = i.payslip_id
-				 where p.payroll_run_id in ($1, $2)
-				 union all
-				 select 'correction_request', correction_request_id
-				 from payslip_correction_request_inputs i
-				 join payslips p on p.id = i.payslip_id
-				 where p.payroll_run_id in ($1, $2)
-				 union all
-				 select 'leave_request', leave_request_id
-				 from payslip_leave_request_inputs i
+				 select 'leave_request', leave_entry_id
+				 from payslip_leave_inputs i
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
@@ -189,20 +179,12 @@ test(
 				 from payslip_allowance_request_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
 				 union all
-				 select 'bonus_request', bonus_request_id
-				 from payslip_bonus_request_inputs
+				 select 'payment_request', payment_request_id
+				 from payslip_payment_request_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
 				 union all
-				 select 'arrears_request', arrears_request_id
-				 from payslip_arrears_request_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
-				 union all
-				 select 'correction_request', correction_request_id
-				 from payslip_correction_request_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
-				 union all
-				 select 'leave_request', leave_request_id
-				 from payslip_leave_request_inputs
+				 select 'leave_request', leave_entry_id
+				 from payslip_leave_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
 				 union all
 				 select 'loan_repayment', loan_repayment_id
@@ -220,10 +202,8 @@ test(
 				work_day: 'work_days',
 				claim_request: 'claim_requests',
 				allowance_request: 'allowance_requests',
-				bonus_request: 'bonus_requests',
-				arrears_request: 'arrears_requests',
-				correction_request: 'correction_requests',
-				leave_request: 'leave_requests',
+				payment_request: 'payment_requests',
+				leave_request: 'leave_entries',
 				loan_repayment: 'loan_repayments'
 			} as const;
 			for (const row of captured) {

@@ -43,15 +43,14 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-create-scope-narrows');
 		try {
-			// Cloned from the seeded row so every regime, rate and proration member is a real one; only
-			// the identity and the span it governs differ.
+			// Clone the settings identity from the public fixture; only the version and its span differ.
 			await session.query(
 				`insert into jurisdiction_settings
-				   (id, code, name, sealed_at, voided_at, void_reason, cloned_from_id, currency,
-				    tax_year_start_month, proration, ordinary_rate, regime, effective_range,
+				   (id, code, jurisdiction_code, name, sealed_at, voided_at, void_reason, cloned_from_id, currency,
+				    tax_year_start_month, effective_range,
 				    approval_id, created_at, updated_at)
-				 select $1, code, 'Public fixture profile (superseded)', '2018-01-01T00:00:00.000Z',
-				        null, null, id, currency, tax_year_start_month, proration, ordinary_rate, regime,
+				 select $1, code, jurisdiction_code, 'Public fixture profile (superseded)', '2018-01-01T00:00:00.000Z',
+				        null, null, id, currency, tax_year_start_month,
 				        $2::jsonb, null, created_at, updated_at
 				   from jurisdiction_settings where id = $3`,
 				[
@@ -68,11 +67,11 @@ test(
 			await session.query(
 				`insert into leave_catalogue
 				   (id, settings_id, code, name, is_statutory, authority, eligibility,
-				    requires_certificate_after_days, payroll_effect, accrual, entitlement,
-				    exit_settlement, approval_id, created_at, updated_at)
+				    requires_certificate_after_days, payroll_effect, entitlement,
+				    encashment, approval_id, created_at, updated_at)
 				 select $1, $2, code, name, is_statutory, authority, eligibility,
-				        requires_certificate_after_days, payroll_effect, accrual, entitlement,
-				        exit_settlement, null, created_at, updated_at
+				        requires_certificate_after_days, payroll_effect, entitlement,
+				        encashment, null, created_at, updated_at
 				   from leave_catalogue where code = 'ANNUAL' and settings_id = $3`,
 				[OLD_ANNUAL_ID, OLD_VERSION_ID, JURISDICTION_ID]
 			);

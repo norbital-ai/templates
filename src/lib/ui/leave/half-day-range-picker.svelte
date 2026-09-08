@@ -5,6 +5,8 @@
 
 	export type LeaveDayAvailability = {
 		readonly eligible: boolean;
+		readonly firstHalfAvailable?: boolean;
+		readonly secondHalfAvailable?: boolean;
 		readonly reason?: string;
 		/**
 		 * One character drawn on an excluded day so the exclusion reads at a glance: `R` rest,
@@ -59,7 +61,6 @@
 	let open = $state(false);
 	let anchor = $state<HalfDayPoint | null>(null);
 	let dragging = $state(false);
-	let ignoreNextClick = $state(false);
 
 	function handleOpenChange(nextOpen: boolean): void {
 		open = nextOpen;
@@ -69,7 +70,6 @@
 
 	function resetGesture(): void {
 		dragging = false;
-		ignoreNextClick = false;
 		anchor = null;
 	}
 
@@ -92,7 +92,13 @@
 	}
 
 	function isEligible(point: HalfDayPoint): boolean {
-		return availabilityFor(point.date).eligible !== false;
+		const day = availabilityFor(point.date);
+		return (
+			day.eligible &&
+			(point.half === 'FIRST'
+				? day.firstHalfAvailable !== false
+				: day.secondHalfAvailable !== false)
+		);
 	}
 
 	function availabilityFor(date: string): LeaveDayAvailability {
@@ -116,55 +122,27 @@
 		return count;
 	}
 
-	function halfFromEvent(
-		event: Pick<PointerEvent, 'currentTarget' | 'clientY'>,
-		date: string
-	): HalfDayPoint {
-		const target = event.currentTarget;
-		if (!(target instanceof HTMLElement)) return { date, half: 'FIRST' };
-		const rect = target.getBoundingClientRect();
-		return {
-			date,
-			half: event.clientY >= rect.top + rect.height / 2 ? 'SECOND' : 'FIRST'
-		};
-	}
-
 	function apply(to: HalfDayPoint): void {
 		if (disabled || !isEligible(to)) return;
 		const candidate = ordered(anchor ?? to, to);
-		if (maximumHalfDays != null && chargeableHalfDays(candidate) > maximumHalfDays) {
-			// The balance is the boundary: extend only up to what the balance can pay for. Walk the
-			// far end back to the last slot the remaining balance covers, so the gesture itself
-			// stops at the limit instead of painting an over-limit range for the server to refuse.
-			let end = pointNumber(candidate.end);
-			const start = pointNumber(candidate.start);
-			while (
-				end > start &&
-				chargeableHalfDays({ start: candidate.start, end: pointAt(end) }) > maximumHalfDays
-			) {
-				end -= 1;
-			}
-			if (
-				end > start ||
-				chargeableHalfDays({ start: candidate.start, end: pointAt(end) }) > maximumHalfDays
-			) {
-				return;
-			}
-			onValueChange({ start: candidate.start, end: pointAt(end) });
-			return;
-		}
+		if (maximumHalfDays != null && chargeableHalfDays(candidate) > maximumHalfDays) return;
 		onValueChange(candidate);
 	}
 
+	/**
+	 * Two gestures share one anchor. A drag anchors on pointerdown, extends on pointerenter and is
+	 * complete on pointerup. A click is a drag that never moved, so its anchor is kept for the
+	 * second click that closes the range — re-anchoring on every pointerdown is what made
+	 * first-half → second-half of one day land on half a day instead of one.
+	 */
 	function begin(point: HalfDayPoint): void {
 		if (disabled || !isEligible(point)) return;
-		ignoreNextClick = true;
-		dragging = true;
-		if (point.half === 'SECOND') {
-			anchor = { date: point.date, half: 'FIRST' };
+		if (anchor != null && !dragging) {
 			apply(point);
+			anchor = null;
 			return;
 		}
+		dragging = true;
 		anchor = point;
 		apply(point);
 	}
@@ -173,30 +151,18 @@
 		if (!dragging) return;
 		apply(point);
 		dragging = false;
-		anchor = null;
-		ignoreNextClick = true;
+		if (anchor != null && pointNumber(point) !== pointNumber(anchor)) anchor = null;
 	}
 
 	function clickPoint(point: HalfDayPoint): void {
-		if (ignoreNextClick) {
-			ignoreNextClick = false;
-			return;
-		}
 		if (disabled || !isEligible(point)) return;
 		if (anchor == null) {
-			if (point.half === 'SECOND') {
-				onValueChange({
-					start: { date: point.date, half: 'FIRST' },
-					end: { date: point.date, half: 'SECOND' }
-				});
-				return;
-			}
 			anchor = point;
 			apply(point);
-			return;
+		} else {
+			apply(point);
+			anchor = null;
 		}
-		apply(point);
-		anchor = null;
 	}
 
 	function shiftMonth(amount: number): void {
@@ -251,7 +217,6 @@
 <svelte:window
 	onpointerup={() => {
 		dragging = false;
-		ignoreNextClick = false;
 	}}
 />
 
@@ -327,72 +292,59 @@
 						{#each days as date (date)}
 							{@const inMonth = date.slice(0, 7) === visibleMonth}
 							{@const dayAvailability = availabilityFor(date)}
-							{@const firstOn = selected(value, { date, half: 'FIRST' })}
-							{@const secondOn = selected(value, { date, half: 'SECOND' })}
-							<button
-								type="button"
+							<div
 								class={cn(
-									'relative flex min-h-14 min-w-0 w-full flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-									date === today && 'border-primary',
-									date !== today && 'border-transparent',
-									!inMonth && 'pointer-events-none text-muted-foreground/50',
-									dayAvailability.eligible === false &&
-										'cursor-not-allowed bg-muted/60 text-muted-foreground',
-									dayAvailability.eligible !== false && 'text-foreground hover:bg-accent/60',
-									overLimit && (firstOn || secondOn) && 'ring-1 ring-destructive'
+									'relative min-h-14 min-w-0 overflow-hidden rounded-md border',
+									date === today ? 'border-primary' : 'border-transparent',
+									!inMonth && 'opacity-40'
 								)}
-								disabled={disabled || dayAvailability.eligible === false || !inMonth}
-								aria-label={`${date}${dayAvailability.shiftLabel ? ` · ${dayAvailability.shiftLabel}` : ''}${dayAvailability.reason ? ` — ${dayAvailability.reason}` : ''}`}
-								title={dayAvailability.reason ??
-									(dayAvailability.firstHalfLabel != null && dayAvailability.secondHalfLabel != null
-										? `${t('component.first_half')}: ${dayAvailability.firstHalfLabel} · ${t('component.second_half')}: ${dayAvailability.secondHalfLabel}`
-										: dayAvailability.shiftLabel)}
-								onpointerdown={(event) => {
-									event.preventDefault();
-									begin(halfFromEvent(event, date));
-								}}
-								onpointerenter={(event) => dragging && apply(halfFromEvent(event, date))}
-								onpointerup={(event) => finish(halfFromEvent(event, date))}
-								onclick={(event) => clickPoint(halfFromEvent(event, date))}
 							>
 								<span
 									class="pointer-events-none absolute top-0.5 left-0.5 z-10 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
+									>{decodeNumber(date.slice(8))}</span
 								>
-									{decodeNumber(date.slice(8))}
-								</span>
-								{#if inMonth && dayAvailability.eligible === false && dayAvailability.reasonMark != null}
+								{#if dayAvailability.reasonMark}
 									<span
-										class="pointer-events-none absolute top-0.5 right-0.5 z-10 text-[0.625rem] leading-none text-muted-foreground"
-										aria-hidden="true"
+										class="pointer-events-none absolute top-0.5 right-0.5 z-10 text-[0.625rem]"
+										aria-hidden="true">{dayAvailability.reasonMark}</span
 									>
-										{dayAvailability.reasonMark}
-									</span>
 								{/if}
-								{#if inMonth}
-									<span class="flex min-h-0 flex-1 flex-col">
-										<span
-											class={cn(
-												'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
-												firstOn && !overLimit && 'bg-primary text-primary-foreground',
-												firstOn && overLimit && 'bg-destructive text-destructive-foreground',
-												!firstOn && 'bg-muted/20 text-muted-foreground'
-											)}
-										>
-											1
-										</span>
-										<span
-											class={cn(
-												'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
-												secondOn && !overLimit && 'bg-primary/70 text-primary-foreground',
-												secondOn && overLimit && 'bg-destructive/70 text-destructive-foreground',
-												!secondOn && 'bg-muted/45 text-muted-foreground'
-											)}
-										>
-											2
-										</span>
-									</span>
-								{/if}
-							</button>
+								{#each ['FIRST', 'SECOND'] as half}
+									{@const point: HalfDayPoint = { date, half: half === 'FIRST' ? 'FIRST' : 'SECOND' }}
+									{@const on = selected(value, point)}
+									<button
+										type="button"
+										disabled={disabled || !inMonth || !isEligible(point)}
+										class={cn(
+											'block min-h-7 w-full text-[0.625rem] font-medium focus-visible:relative focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40',
+											on
+												? overLimit
+													? 'bg-destructive text-destructive-foreground'
+													: 'bg-primary text-primary-foreground'
+												: 'bg-muted/30 text-muted-foreground hover:bg-accent'
+										)}
+										aria-label={`${pointLabel(point)}${dayAvailability.reason ? ` — ${dayAvailability.reason}` : ''}`}
+										aria-pressed={on}
+										title={dayAvailability.reason ??
+											(half === 'FIRST'
+												? dayAvailability.firstHalfLabel
+												: dayAvailability.secondHalfLabel) ??
+											dayAvailability.shiftLabel}
+										onpointerdown={(event) => {
+											event.preventDefault();
+											event.currentTarget.focus();
+											begin(point);
+										}}
+										onpointerenter={() => dragging && apply(point)}
+										onpointerup={() => finish(point)}
+										onclick={(event) => {
+											if (event.detail === 0) clickPoint(point);
+										}}
+									>
+										{half === 'FIRST' ? '1' : '2'}
+									</button>
+								{/each}
+							</div>
 						{/each}
 					</Grid>
 

@@ -12,6 +12,11 @@ import { defineEnvironment } from '@norbital-ai/bolt/authoring';
  * `null` and says which key is missing rather than assuming one is present.
  */
 export default defineEnvironment({
+	GOOGLE_CALENDAR_API_KEY: {
+		label: 'Google Calendar API key',
+		description:
+			'Reads configured public jurisdiction holiday calendars through the managed Google connection. Imports are refused while this key is unset.'
+	},
 	GEOCODING_API_KEY: {
 		label: 'Geocoding API key',
 		description:

@@ -254,7 +254,7 @@ export function scaleProgressive(
  * 2  RELIEVE     personal, spouse, dependants, and the pooled statutory reliefs
  * 3  SCALE       the progressive band ladder, cumulative
  * 4  SPREAD      (annual tax − already withheld) / periods remaining
- * 5  ADDITIONAL  scale(chargeable + A) − scale(chargeable), for bonus-shaped pay
+ * 5  ADDITIONAL  scale(chargeable + A) − scale(chargeable), for payment-shaped pay
  * ```
  *
  * The relief pools are deliberately **asymmetric**, and that asymmetry is the law rather than an

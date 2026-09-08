@@ -1,3 +1,4 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 /**
  * The two ranges a payroll run spans, for each cadence the company pays on.
  *
@@ -408,4 +409,23 @@ export function taxYearOf(period: string, taxYearStartMonth: number): string {
 export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): string {
 	const start = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(taxYearStartMonth));
 	return `${taxYearOf(period, taxYearStartMonth)}-${String(start).padStart(2, '0')}`;
+}
+
+/** One company has one run per period, with each earlier run settled before the next. */
+export function assertPayrollPeriodAvailable(
+	runs: readonly { readonly period: string; readonly lifecycle: string }[],
+	period: string
+): void {
+	if (runs.some((run) => run.period === period))
+		refuse(
+			`Payroll ${period} already exists. Delete its draft to replace it, or settle later approved entries in the next payroll period.`
+		);
+	const later = runs.find((run) => run.period > period);
+	if (later)
+		refuse(
+			`Payroll ${later.period} already exists. Record corrections in the next payroll period.`
+		);
+	const draft = runs.find((run) => run.lifecycle !== 'PAID');
+	if (draft)
+		refuse(`Payroll ${draft.period} is still a draft. Settle or delete it before another run.`);
 }

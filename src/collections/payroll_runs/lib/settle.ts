@@ -1,7 +1,7 @@
 /**
  * Step 7 — SETTLE.
  *
- * Four numbers, derived entirely from `component_catalogue.policy` and the statutory charges. Nothing
+ * Four numbers, derived entirely from family pay-item policies and the statutory charges. Nothing
  * here reads a component code.
  *
  * ```
@@ -25,36 +25,18 @@
  * is instead an employer cost: the row remains on the payslip for provenance, but no cash passes
  * through the employee.
  *
- * ## The negative-net guard
- *
- * If net would fall below zero, deductions are reduced in **reverse component-type sequence** until
- * net is exactly zero. Nothing is ever reduced below zero and nothing is ever written off.
- *
- * What could not be taken **is not carried anywhere.** It used to be: a fresh `component_entries`
- * row dated next month, written one facility call per employee by a `persistShortfalls` that had to
- * delete last build's copies first so a rebuild could not make somebody owe the same money twice.
- * That was a second representation of a debt its own source already records.
- *
- * The debt now stays where it was born. The row below records what was *actually* taken, so what is
- * still owed is `source amount − Σ(what earlier paid runs took)` — read back from earlier PAID
- * runs by `gather.ts` and re-derived by `measureLoanRecoveries`. `shortfalls` is retained as a
- * statement of what this run reduced and by how much; nothing persists it, and nothing needs to.
- *
- * The plan makes reducibility a `definition.reducible` flag on the component. The schema
- * carries that flag only on the `SCHEDULE` arm, so it cannot be read for a deduction; the order is
- * therefore taken from the component policy —
- * `OTHER_DEDUCTION` first, `LOAN_REPAYMENT` next, `STATUTORY_ORDER` never, because a court order
- * cannot be shrunk by policy, and statutory contributions never, because they are not a company's
- * to reduce.
+ * Loan repayments may be reduced to protect net pay. Their outstanding amount is derived from
+ * paid captures, so partial recovery remains collectible in a later regular period. Single-use
+ * entries and statutory charges must settle in full. If those alone make net negative, refuse
+ * the payroll before any input is captured.
+
  */
 
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { ContributionCharge } from './contribute.js';
-import type { MeasuredAdjustment, MeasuredBase, PricedItem } from './measure.js';
+import type { MeasuredAdjustment, MeasuredBase, PricedItem } from '../../../lib/payroll/family.js';
 import { cents } from './rounding.js';
 import { decodeNumber } from '@norbital-ai/std/json';
-
-/** Types that a shortfall may never touch, in the order the guard would otherwise reach them. */
-const PROTECTED_DEDUCTION_TYPES = new Set(['STATUTORY_ORDER']);
 
 export type Settlement = {
 	readonly gross: number;
@@ -78,19 +60,8 @@ export type Settlement = {
  * it is an EARNING like any other.
  */
 function isCompanyDirect(item: PricedItem): boolean {
-	return (
-		item.catalogueComponent?.definition?.source === 'ENTRY' &&
-		item.catalogueComponent.definition.settlement === 'COMPANY_DIRECT'
-	);
+	return item.catalogueComponent.settlement === 'COMPANY_DIRECT';
 }
-
-/** Where a reducible deduction sits, so the guard can put the reduced amount back in place. */
-type Reducible = {
-	readonly plane: 'BASE' | 'ADJUSTMENT';
-	readonly index: number;
-	readonly amount: number;
-	readonly component: NonNullable<PricedItem['catalogueComponent']>;
-};
 
 export function settle(options: {
 	readonly base: readonly MeasuredBase[];
@@ -123,30 +94,23 @@ export function settle(options: {
 	const payments = paymentsOf(options.base) + paymentsOf(options.adjustments);
 	const employerAmounts = employerOf(options.base) + employerOf(options.adjustments);
 
-	let base = options.base;
+	const base = options.base;
 	let adjustments = options.adjustments;
 	let otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 	let net = cents(gross - statutoryEmployee - otherDeductions + payments);
 	const shortfalls: { componentCatalogueId: string; amount: number }[] = [];
 
 	if (net < 0) {
-		// Reverse type sequence: the least essential deduction gives way first.
-		// Only a configured deduction can be reduced: the guard shrinks what a company chose to
-		// deduct, and derived overtime is neither a deduction nor anyone's to shrink.
-		const collect = (items: readonly PricedItem[], plane: Reducible['plane']): Reducible[] =>
-			items.flatMap((item, index) => {
-				const component = item.catalogueComponent;
-				return item.nature === 'DEDUCTION' &&
-					component != null &&
-					!PROTECTED_DEDUCTION_TYPES.has(component.code)
-					? [{ plane, index, amount: item.amount, component }]
-					: [];
-			});
-		const reducible = [...collect(base, 'BASE'), ...collect(adjustments, 'ADJUSTMENT')].toSorted(
-			(left, right) =>
-				decodeNumber(right.component.sequence) - decodeNumber(left.component.sequence)
-		);
-		const reducedBase = [...base];
+		const reducible = adjustments
+			.flatMap((item, index) =>
+				item.input.family === 'LOAN_REPAYMENT' && item.nature === 'DEDUCTION' && item.amount > 0
+					? [{ index, amount: item.amount, component: item.catalogueComponent }]
+					: []
+			)
+			.toSorted(
+				(left, right) =>
+					decodeNumber(right.component.sequence) - decodeNumber(left.component.sequence)
+			);
 		const reducedAdjustments = [...adjustments];
 		let outstanding = -net;
 		for (const entry of reducible) {
@@ -154,24 +118,19 @@ export function settle(options: {
 			const relief = Math.min(entry.amount, outstanding);
 			if (relief <= 0) continue;
 			const amount = cents(entry.amount - relief);
-			if (entry.plane === 'BASE') {
-				const item = reducedBase[entry.index]!;
-				reducedBase[entry.index] = {
-					...item,
-					amount,
-					entry: { ...item.entry, amount }
-				};
-			} else {
-				reducedAdjustments[entry.index] = { ...reducedAdjustments[entry.index]!, amount };
-			}
+			reducedAdjustments[entry.index] = { ...reducedAdjustments[entry.index]!, amount };
 			shortfalls.push({ componentCatalogueId: entry.component.id, amount: cents(relief) });
 			outstanding = cents(outstanding - relief);
 		}
-		base = reducedBase;
 		adjustments = reducedAdjustments;
 		otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 		net = cents(gross - statutoryEmployee - otherDeductions + payments);
 	}
+
+	if (net < 0)
+		refuse(
+			'Payroll net pay is negative. Resolve the approved recovery before calculating this period.'
+		);
 
 	return {
 		gross,

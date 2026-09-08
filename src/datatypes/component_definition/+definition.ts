@@ -33,7 +33,7 @@ const capLayerSchema = Schema.Union([
 
 /** Layered cap applied to a claimable or allowance ENTRY component. */
 export const componentCapSchema = Schema.Struct({
-	period: Schema.Literals(['CALENDAR_YEAR', 'LEAVE_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']),
+	period: Schema.Literals(['CALENDAR_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']),
 	matrix: Schema.Struct({
 		merge: Schema.Literal('MAX_WITH_COMPANY_LAYERS'),
 		// At least one layer: an empty matrix is not "no cap", it is a cap every claim exceeds.
@@ -45,7 +45,7 @@ export const componentCapSchema = Schema.Struct({
 /**
  * How a component produces its amount.
  *
- * - `ENTRY`     — a person or an import supplies the number (claims, allowances, ad-hoc pay).
+ * - `ENTRY`     — a person or an import supplies the number (claims, allowances, one-off payments).
  * - `FORMULA`   — a CEL expression over the payslip context.
  * - `SCHEDULE`  — the contracted amount from `employment_terms` (basic salary).
  *
@@ -55,7 +55,7 @@ export const componentCapSchema = Schema.Struct({
  *   (`statutory_regime.overtime_rules`), never from this row.
  *
  * There is deliberately NO statutory information here: chargeability is reachable only via
- * `component_catalogue.contribution_treatments`.
+ * the family pay item's `contribution_treatments`.
  */
 export const componentDefinitionValueSchema = Schema.Union([
 	Schema.Struct({
@@ -75,14 +75,9 @@ export const componentDefinitionValueSchema = Schema.Union([
 		unit: Schema.Literal('MONEY'),
 		reducible: Schema.Boolean
 	}),
-	/**
-	 * Money the leave ledger says is owed: the COMMUTED and ENCASHED lines the run owns, priced at
-	 * the statute's basis and the terms in force on each line's date. Nobody types it; the component
-	 * only says how it is treated and reported.
-	 */
-	Schema.Struct({ source: Schema.Literal('LEAVE_PAYOUT'), unit: Schema.Literal('MONEY') }),
 	/** Derived overtime: the regime prices it from work days; nobody types it and no formula reads it. */
-	Schema.Struct({ source: Schema.Literal('DERIVED_OVERTIME'), unit: Schema.Literal('MONEY') })
+	Schema.Struct({ source: Schema.Literal('DERIVED_OVERTIME'), unit: Schema.Literal('MONEY') }),
+	Schema.Struct({ source: Schema.Literal('ABSENCE'), unit: Schema.Literal('MONEY') })
 ]);
 
 export type ComponentDefinition = Schema.Schema.Type<typeof componentDefinitionValueSchema>;
@@ -95,6 +90,6 @@ export const componentDefinitionSchema = Schema.toStandardSchemaV1(componentDefi
 export default defineCustomType({
 	name: 'component_definition',
 	description:
-		'How a component gets its number — typed in as an entry under a layered claim cap, computed from a formula, taken from the contracted salary, priced from the leave ledger, or derived from work days by the overtime regime.',
+		'How a component gets its number — typed in as an entry under a layered claim cap, computed from a formula, taken from the contracted salary, derived from work days by the overtime regime.',
 	schema: componentDefinitionSchema
 });

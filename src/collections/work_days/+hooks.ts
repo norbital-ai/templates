@@ -1,9 +1,11 @@
+import { withContractInput } from '../../lib/employment-contract.js';
 import { Effect, Result, Schema } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../lib/iso-day.js';
 import { addDays, monthBounds } from '../../lib/period.js';
 import { settingsInForce } from '../../lib/jurisdiction_settings.js';
+import { prepareHolidayInputs, type PreparedHolidayInput } from '../../lib/holiday-inputs.js';
 import {
 	statutoryRegimeSchema,
 	type StatutoryWeeklyRestRule
@@ -24,7 +26,7 @@ import {
 	refuseIfCaptured,
 	type PayrollWindow
 } from '../../lib/scheduling/lock.js';
-import type { Api, Hooks } from './$types.js';
+import type { Api, Hooks, WorkspaceRow } from './$types.js';
 import type { Api as AuthoringApi } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types';
 import { assertNoOverlap, readOverlapData, type OverlapData } from './lib/assignment-overlap.js';
@@ -48,7 +50,6 @@ type SettingsVersionRow = {
 	readonly voided_at: string | null;
 	readonly approval_id: string | null;
 	readonly effective_range: unknown;
-	readonly regime: unknown;
 };
 
 /**
@@ -395,8 +396,7 @@ function assertBatchConformsToPattern(
 											sealed_at: true,
 											voided_at: true,
 											approval_id: true,
-											effective_range: true,
-											regime: true
+											effective_range: true
 										},
 										limit: QUERY_LIMIT
 									})
@@ -470,6 +470,18 @@ function assertBatchConformsToPattern(
 		// The rest-day run is keyed by employment alone, not by employment-month: a run straddles the
 		// first of the month, and grouping it by month is exactly the seam a thirteen-day roster would
 		// slip through.
+		const workCatalogues =
+			settingsVersions.length === 0
+				? []
+				: yield* api.db.work_catalogue.findMany({
+						where: {
+							settings_id: { in: settingsVersions.map((row) => row.id) },
+							approval_id: { isNull: true }
+						},
+						limit: QUERY_LIMIT
+					});
+		if (workCatalogues.length >= QUERY_LIMIT) refuse('Work catalogue read is truncated.');
+		const workBySettings = new Map(workCatalogues.map((row) => [row.settings_id, row]));
 		const versions = settingsVersions as readonly SettingsVersionRow[];
 		const settingsCodeByCompany = new Map(
 			companies.map((company) => [company.id, company.settings_code])
@@ -487,7 +499,9 @@ function assertBatchConformsToPattern(
 			if (version == null) continue;
 			// The same strict view the settings write hook decoded this snapshot through, so a regime
 			// that would not be accepted today governs nothing rather than governing partly.
-			const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(version.regime);
+			const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(
+				workBySettings.get(version.id)?.regime
+			);
 			if (Result.isFailure(decoded)) continue;
 			const rule: StatutoryWeeklyRestRule | undefined = decoded.success.weekly_rest_rule;
 			if (rule == null) continue;
@@ -545,7 +559,7 @@ function assertDayNotOwnedByLeave(
 ): Effect.Effect<void, never, never> {
 	const date = dateKey(workDate);
 	return Effect.map(
-		api.db.leave_requests.findMany({
+		api.db.leave_entries.findMany({
 			where: {
 				employment_id: { eq: employmentId },
 				kind: { eq: 'TIME_OFF' },
@@ -687,7 +701,13 @@ function assertWorkedIntervals(
  * morning's start — which is why it reads day-1, day and day+1.
  */
 /** What `prepare` hands every record: the batch's reads, done once. */
+type HolidayCapture = Pick<
+	WorkspaceRow<'holiday_calendar_inputs'>,
+	'id' | 'work_day_id' | 'jurisdiction_code' | 'date' | 'calendar_id'
+>;
 type Prepared = {
+	readonly holidayHistory: ReadonlyMap<string, readonly HolidayCapture[]>;
+	readonly holidayByDay: ReadonlyMap<string, PreparedHolidayInput>;
 	readonly companyByEmployment: ReadonlyMap<string, string | null>;
 	readonly windowsByCompany: ReadonlyMap<string, readonly PayrollWindow[]>;
 	readonly leaveByEmployment: ReadonlyMap<string, readonly LeaveRequestLike[]>;
@@ -717,6 +737,29 @@ export default {
 							limit: QUERY_LIMIT
 						})
 					: [];
+				const holidayHistory = new Map<string, HolidayCapture[]>();
+				if (existingIds.length) {
+					const captures = yield* api.db.holiday_calendar_inputs.findMany({
+						where: { work_day_id: { in: existingIds } },
+						columns: {
+							id: true,
+							work_day_id: true,
+							jurisdiction_code: true,
+							date: true,
+							calendar_id: true
+						},
+						limit: QUERY_LIMIT
+					});
+					if (captures.length >= QUERY_LIMIT)
+						refuse('Workday holiday history exceeded its complete-read limit.');
+					for (const capture of captures) {
+						if (!capture.work_day_id) refuse('A workday holiday capture has no consumer.');
+						const rows = holidayHistory.get(capture.work_day_id) ?? [];
+						rows.push(capture);
+						holidayHistory.set(capture.work_day_id, rows);
+					}
+				}
+
 				const existingById = new Map(existingRows.map((row) => [row.id, row]));
 				const coordinates: WorkDayCoordinate[] = [];
 				for (const input of inputs) {
@@ -774,7 +817,7 @@ export default {
 				const to = dates[dates.length - 1];
 				const requests =
 					employmentIds.length && from != null && to != null
-						? yield* api.db.leave_requests.findMany({
+						? yield* api.db.leave_entries.findMany({
 								where: {
 									employment_id: { in: employmentIds },
 									kind: { eq: 'TIME_OFF' },
@@ -814,7 +857,69 @@ export default {
 				// rather than the row is what lets a two-cell swap pass while a single-cell
 				// REST-into-WORK write is refused.
 				yield* assertBatchConformsToPattern(api, inputs, existingById, employments);
+				const companies = companyIds.length
+					? yield* api.db.companies.findMany({
+							where: { id: { in: companyIds } },
+							columns: { id: true, settings_code: true },
+							limit: QUERY_LIMIT
+						})
+					: [];
+				const codes = [...new Set(companies.map((company) => company.settings_code))];
+				const versions = codes.length
+					? yield* api.db.jurisdiction_settings.findMany({
+							where: { code: { in: codes } },
+							columns: {
+								id: true,
+								code: true,
+								jurisdiction_code: true,
+								effective_range: true,
+								sealed_at: true,
+								voided_at: true,
+								approval_id: true
+							},
+							limit: QUERY_LIMIT
+						})
+					: [];
+				if (companies.length >= QUERY_LIMIT || versions.length >= QUERY_LIMIT)
+					refuse('Workday calendar resolution exceeded its complete-read limit.');
+				const companyByEmployment = new Map(
+					employments.map((employment) => [employment.id, employment.company_id])
+				);
+				const companyById = new Map(companies.map((company) => [company.id, company]));
+				const scopeByDay = new Map<string, string>();
+				const datesByJurisdiction = new Map<string, string[]>();
+				for (const coordinate of coordinates) {
+					const company = companyById.get(companyByEmployment.get(coordinate.employment_id) ?? '');
+					const version = company
+						? settingsInForce(versions, company.settings_code, coordinate.work_date)
+						: null;
+					if (!version)
+						refuse(
+							`No governing jurisdiction is configured for the workday on ${coordinate.work_date}.`
+						);
+					scopeByDay.set(
+						`${coordinate.employment_id}:${coordinate.work_date}`,
+						version.jurisdiction_code
+					);
+					const dates = datesByJurisdiction.get(version.jurisdiction_code) ?? [];
+					dates.push(coordinate.work_date);
+					datesByJurisdiction.set(version.jurisdiction_code, dates);
+				}
+				const holidayByScope = new Map<string, PreparedHolidayInput>();
+				for (const [jurisdiction, dates] of datesByJurisdiction) {
+					for (const choice of (yield* prepareHolidayInputs(api, jurisdiction, dates)).inputs)
+						holidayByScope.set(`${jurisdiction}:${choice.date}`, choice);
+				}
+				const holidayByDay = new Map<string, PreparedHolidayInput>();
+				for (const coordinate of coordinates) {
+					const key = `${coordinate.employment_id}:${coordinate.work_date}`;
+					const choice = holidayByScope.get(`${scopeByDay.get(key)}:${coordinate.work_date}`);
+					if (!choice) refuse(`No published holiday input covers ${coordinate.work_date}.`);
+					holidayByDay.set(key, choice);
+				}
 				return {
+					holidayByDay,
+					holidayHistory,
 					companyByEmployment: new Map(
 						employments.map((employment) => [employment.id, employment.company_id])
 					),
@@ -910,7 +1015,49 @@ export default {
 								...(existing === undefined ? {} : { existing_id: existing.id })
 							}
 						]);
-						return input;
+						const holiday = prepared.holidayByDay.get(`${employmentId}:${dateKey(workDate)}`);
+						if (!holiday) refuse('The workday has no prepared jurisdiction calendar input.');
+						const history =
+							existing == null ? [] : (prepared.holidayHistory.get(existing.id) ?? []);
+						const captured = history.some(
+							(row) =>
+								row.jurisdiction_code === holiday.jurisdiction_code &&
+								dateKey(row.date) === holiday.date
+						);
+						const contractInputs =
+							existing == null
+								? []
+								: yield* api.db.employment_contract_inputs.findMany({
+										where: { work_days_id: { eq: existing.id } },
+										columns: { id: true, employment_id: true, terms_through: true },
+										limit: QUERY_LIMIT
+									});
+						if (contractInputs.length >= QUERY_LIMIT)
+							refuse('Too many workday input seals to preserve employment term history.');
+						const termsThrough = dateKey(workDate);
+						const alreadySealed = contractInputs.some(
+							(row) => row.terms_through != null && dateKey(row.terms_through) >= termsThrough
+						);
+						return {
+							...withContractInput(input, existing, termsThrough),
+							...(existing != null && !alreadySealed
+								? {
+										employment_contract_input: [
+											...contractInputs,
+											{ employment_id: employmentId, terms_through: termsThrough }
+										]
+									}
+								: {}),
+							work_day_holiday_input: [
+								...history.map(({ id, jurisdiction_code, date, calendar_id }) => ({
+									id,
+									jurisdiction_code,
+									date,
+									calendar_id
+								})),
+								...(captured ? [] : [holiday])
+							]
+						};
 					})
 			}
 		}

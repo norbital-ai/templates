@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
+import { calculateFamilies } from '../src/lib/payroll/families.ts';
 import {
 	classifyOvertimeByCalendarMonth,
 	priceDay
@@ -111,10 +111,22 @@ function configuration(options) {
 	return {
 		company: company(jur.id, jur.currency),
 		jurisdiction: jur,
+		work: { ...jur, jurisdiction_code: jur.code },
+		holidayRestPrecedence: 'REST_DAY',
 		leaveProfiles: [jur],
 		contributions: [],
 		treatments: new Map(),
-		catalogueComponents: [{ ...BASIC, settings_id: jur.id }],
+		catalogueComponents: [
+			{ ...BASIC, settings_id: jur.id },
+			...['overtime', 'overtime_excess'].map((output) => ({
+				...BASIC,
+				id: `work-${output}`,
+				family: 'WORK',
+				output,
+				code: output.toUpperCase(),
+				definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
+			}))
+		],
 		overtimeRules: options.overtimeRules,
 		overtimeLimits: options.overtimeLimits,
 		overtimeCoverageRule: null,
@@ -129,7 +141,7 @@ function configuration(options) {
 }
 
 function bundle(overrides = {}) {
-	return {
+	const result = {
 		employment: {
 			id: 'emp-1',
 			employee_id: 'ee-1',
@@ -159,9 +171,10 @@ function bundle(overrides = {}) {
 		payRequests: [],
 		loans: [],
 		loanRepayments: [],
-		ledger: [],
-		leaveEntitlements: [],
-		leaveEntries: [],
+		leave: { entries: [], catalogues: [], captures: [], balances: {}, deductionEligibility: {} },
+		children: [],
+		payFrequency: 'MONTHLY',
+		window: { period: '2026-03', salary: MARCH, attendance: MARCH_ATTENDANCE },
 		workDays: overrides.workDays ?? [],
 		serviceMonths: 57,
 		age: 34,
@@ -169,13 +182,13 @@ function bundle(overrides = {}) {
 		wageDays: MARCH,
 		attendance: MARCH_ATTENDANCE,
 		arrearsFor: null,
-		deferral: null,
-		extendedLeaveSettlesInOwnMonth: false
+		deferral: null
 	};
+	return { ...result, termsHistory: result.terms };
 }
 
 function measure(world, extras = {}) {
-	return measureEmployment({
+	return calculateFamilies({
 		bundle: bundle({ workDays: extras.workDays, salary: extras.salary }),
 		configuration: configuration({
 			...world,
@@ -356,7 +369,7 @@ test('Indonesia rest-day hours past the last closed band become incentive, not a
 	assert.equal(priced.excess[0].valuedAt, 'ORDINARY_HOURLY');
 });
 
-// ── measureEmployment: clock → captured work day → OT + incentive ───────────────────────────────
+// ── calculateFamilies: clock → captured work day → OT + incentive ───────────────────────────────
 
 test('Vietnam: five ordinary OT hours pay four at 1.5× and one as incentive, and name the clock', () => {
 	const measured = measure(VN, {

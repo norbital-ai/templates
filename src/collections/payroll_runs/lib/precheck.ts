@@ -1,3 +1,5 @@
+import { resolveEmployment } from '../../../lib/employment-contract.js';
+import { employmentDates, resolveEmploymentSettlement } from './settlement.js';
 /**
  * What has to be true *before* a payroll run record exists.
  *
@@ -62,16 +64,19 @@ export function payrollRunPrecheck(options: {
 		// The same ceiling and the same truncation guard the build reads under. A precheck that could
 		// silently see a shorter page than the engine would admit exactly the run the engine then
 		// refuses, which is the state this whole file exists to prevent.
-		const employments = api.reads.assertComplete(
-			yield* db.employments.findMany({
-				where: {
-					company_id: { eq: options.configuration.company.id },
-					...approved
-				},
-				limit: PAGE_LIMIT
-			}),
-			'precheck employments'
-		);
+		const employments = api.reads
+			.assertComplete(
+				yield* db.employments.findMany({
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
+					where: {
+						company_id: { eq: options.configuration.company.id },
+						...approved
+					},
+					limit: PAGE_LIMIT
+				}),
+				'precheck employments'
+			)
+			.map(resolveEmployment);
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length > 0) {
 			const workDays = api.reads.assertComplete(
@@ -149,7 +154,14 @@ export function payrollRunPrecheck(options: {
 				const cadence = paysOn(company, payFrequency)
 					? cadenceWindow(options.window.period, company, payFrequency)
 					: options.window;
-				return cadence == null ? [] : [{ employment, terms, window: cadence.attendance }];
+				if (cadence == null) return [];
+				const settlement = resolveEmploymentSettlement({
+					dates: employmentDates(employment),
+					window: cadence
+				});
+				return settlement.employedDays == null
+					? []
+					: [{ employment, terms, window: settlement.attendance }];
 			});
 			issues.push(
 				...validateRosteredExpectations({

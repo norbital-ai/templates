@@ -25,8 +25,11 @@ type Row = Readonly<Record<string, unknown>>;
 const CHILDREN = [
 	'statutory_contributions',
 	'leave_catalogue',
-	'component_catalogue',
-	'company_holidays'
+	'work_catalogue',
+	'claim_catalogue',
+	'allowance_catalogue',
+	'payment_catalogue',
+	'loan_catalogue'
 ] as const;
 
 const command = (
@@ -76,18 +79,33 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-hr24-settings-version');
 		try {
-			await session.query(
-				`insert into company_holidays (id, settings_id, date, name, scope, is_statutory) values ($1, $2, $3, $4, $5, $6)`,
+			const before = await childRows(session, JURISDICTION_ID);
+
+			const originalWork = before.work_catalogue![0]!;
+			const forbiddenWorkEdit = await command(
+				session,
+				{
+					action: 'mutate',
+					collection: 'work_catalogue',
+					rows: [
+						{
+							action: 'update',
+							values: {
+								id: String(originalWork.id),
+								salary: { ...asRecord(originalWork.salary, 'salary metadata'), code: 'UNREVIEWED' }
+							}
+						}
+					]
+				},
 				[
-					crypto.randomUUID(),
-					JURISDICTION_ID,
-					'2026-12-25',
-					'Christmas Day',
-					{ kind: 'NATIONAL' },
-					true
+					{
+						row: { collection: 'work_catalogue', recordId: String(originalWork.id) },
+						rowVersion: await rowVersion(session, 'work_catalogue', String(originalWork.id))
+					}
 				]
 			);
-			const before = await childRows(session, JURISDICTION_ID);
+			assert.equal(asRecord(forbiddenWorkEdit.value, 'sealed Work edit').resolution, 'rejected');
+			assert.match(String(asRecord(forbiddenWorkEdit.value, 'sealed Work edit').message), /sealed/);
 
 			// (b) clone: every child count equal, every id new, every settings_id the new version's.
 			const created = requireOk(
@@ -120,8 +138,51 @@ test(
 						assert.equal(row.settings_id, newId, `${table}: under the new version`);
 				}
 			}
-			const codes = (table: string, rows: Row[]) =>
-				rows.map((row) => row[table === 'company_holidays' ? 'name' : 'code']).toSorted();
+			const clonedWork = after.work_catalogue![0]!;
+			for (const column of [
+				'proration',
+				'ordinary_rate',
+				'regime',
+				'salary',
+				'overtime',
+				'overtime_excess',
+				'absence'
+			]) {
+				assert.deepEqual(
+					clonedWork[column],
+					originalWork[column],
+					`Work ${column} survives cloning`
+				);
+			}
+			const changeWork = (salary: unknown) =>
+				command(
+					session,
+					{
+						action: 'mutate',
+						collection: 'work_catalogue',
+						rows: [{ action: 'update', values: { id: String(clonedWork.id), salary } }]
+					},
+					[
+						{
+							row: { collection: 'work_catalogue', recordId: String(clonedWork.id) },
+							rowVersion: Number(clonedWork.row_version)
+						}
+					]
+				);
+			const invalidWork = await changeWork({
+				...asRecord(clonedWork.salary, 'salary metadata'),
+				code: asRecord(clonedWork.overtime, 'overtime metadata').code
+			});
+			assert.equal(
+				asRecord(invalidWork.value, 'duplicate Work output code').resolution,
+				'rejected'
+			);
+			assert.match(
+				String(asRecord(invalidWork.value, 'duplicate Work output code').message),
+				/distinct pay-item code/
+			);
+
+			const codes = (table: string, rows: Row[]) => rows.map((row) => row.code).toSorted();
 			for (const table of CHILDREN)
 				assert.deepEqual(codes(table, after[table]!), codes(table, before[table]!), table);
 			// The clone is a draft: its rows are editable while the sealed original's are not.
@@ -255,9 +316,9 @@ test(
 							sealed_at: new Date().toISOString(),
 							currency: 'MYR',
 							tax_year_start_month: 1,
-							proration: { by: 'CALENDAR_DAYS' },
-							ordinary_rate: { per: 'DAY', divisor: 26 },
-							regime: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] },
+
+							jurisdiction_code: 'TEST-JUR',
+
 							effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
 						}
 					}

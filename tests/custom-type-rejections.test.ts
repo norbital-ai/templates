@@ -129,13 +129,10 @@ describe('allowance_recurrence', () => {
 });
 
 describe('covered_periods', () => {
-	// The periods an arrears settlement makes good. A `notNull` column now, where it was an array
-	// inside a union whose emptiness a hook refused by hand — and the arm was used zero times in
-	// 726 seeded entries, because a bonus did not have to say what it was settling.
-	it('accepts one or more months and refuses an empty or malformed list', () => {
+	it('accepts optional historical months and rejects malformed month values', () => {
+		assert.ok(accepts(coveredPeriodsSchema, []));
 		assert.ok(accepts(coveredPeriodsSchema, ['2026-01']));
 		assert.ok(accepts(coveredPeriodsSchema, ['2025-11', '2025-12', '2026-01']));
-		assert.ok(refuses(coveredPeriodsSchema, []));
 		assert.ok(refuses(coveredPeriodsSchema, ['2026-1']));
 		assert.ok(refuses(coveredPeriodsSchema, ['2026-13']));
 		assert.ok(refuses(coveredPeriodsSchema, ['2026-01-15']));
@@ -143,85 +140,61 @@ describe('covered_periods', () => {
 });
 
 describe('leave_entitlement', () => {
-	// The company's service bands, statutory or not: the band sits on the layer itself and the
-	// row that carries it says whether it is the law (`is_statutory`, `authority`).
-	const layer = {
-		level: 'ORGANISATION',
-		band_from: 0,
-		days: 8
+	const band = { band_from: 0, days: 8 };
+	const entitlement = {
+		availability: 'UPFRONT',
+		year_start_month: 1,
+		proration: 'NONE',
+		bands: [band]
 	};
-	const entitlement = { layers: [layer] };
-
-	it('accepts a company layer — a flat entitlement is band_from 0', () => {
+	it('accepts service bands and unlimited leave without a yearly account', () => {
 		assert.ok(accepts(leaveEntitlementSchema, entitlement));
-	});
-
-	it('refuses the dropped STATUTORY arm', () => {
 		assert.ok(
-			refuses(leaveEntitlementSchema, {
-				...entitlement,
-				layers: [{ ...layer, level: 'STATUTORY' }]
-			})
+			accepts(leaveEntitlementSchema, { ...entitlement, availability: 'UNLIMITED', bands: [] })
 		);
 	});
-
-	// `Schema.Number` would accept every one of these; the `z.int().check(z.minimum(0))` it replaced
-	// accepted none.
-	it('refuses a band that is not a whole non-negative count', () => {
-		for (const band_from of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+	it('refuses a band threshold that is not a whole non-negative count', () => {
+		for (const band_from of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])
 			assert.ok(
-				refuses(leaveEntitlementSchema, { ...entitlement, layers: [{ ...layer, band_from }] }),
+				refuses(leaveEntitlementSchema, { ...entitlement, bands: [{ ...band, band_from }] }),
 				`band_from=${String(band_from)}`
 			);
-		}
 	});
-
-	// `Schema.Number` admits both; `z.number()` admitted neither. A `NaN` entitlement survives every
-	// merge and comparison without failing, so the balance silently becomes unprintable.
-	it('refuses NaN, Infinity or negative days', () => {
-		for (const days of [Number.NaN, Number.POSITIVE_INFINITY, -1]) {
+	it('refuses NaN, Infinity and negative entitlement days', () => {
+		for (const days of [Number.NaN, Number.POSITIVE_INFINITY, -1])
 			assert.ok(
-				refuses(leaveEntitlementSchema, { ...entitlement, layers: [{ ...layer, days }] }),
+				refuses(leaveEntitlementSchema, { ...entitlement, bands: [{ ...band, days }] }),
 				`days=${String(days)}`
 			);
-		}
 	});
-
-	it('refuses retired person-specific, merge, key and authority members', () => {
+	it('refuses duplicate service thresholds and invalid anniversary months', () => {
+		assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, bands: [band, band] }));
+		for (const year_start_month of [0, 13, 1.5])
+			assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, year_start_month }));
+	});
+	it('monthly release requires an earning basis', () => {
+		assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, availability: 'MONTHLY' }));
 		assert.ok(
-			refuses(leaveEntitlementSchema, {
+			accepts(leaveEntitlementSchema, {
 				...entitlement,
-				layers: [{ ...layer, level: 'EMPLOYEE', employment_id: 'employment-1' }]
-			})
-		);
-		assert.ok(
-			refuses(leaveEntitlementSchema, { ...entitlement, merge: 'MAX_WITH_COMPANY_LAYERS' })
-		);
-		assert.ok(
-			refuses(leaveEntitlementSchema, {
-				...entitlement,
-				layers: [{ ...layer, key: { by: 'SERVICE_MONTHS', band_from: 0 } }]
-			})
-		);
-		assert.ok(
-			refuses(leaveEntitlementSchema, {
-				...entitlement,
-				layers: [{ ...layer, authority: 'Company policy 2026' }]
-			})
-		);
-		assert.ok(
-			refuses(leaveEntitlementSchema, {
-				...entitlement,
-				layers: [{ ...layer, effective_range: RANGE }]
+				availability: 'MONTHLY',
+				proration: 'CALENDAR_MONTHS'
 			})
 		);
 	});
-
-	it('refuses an excess key at either depth', () => {
-		assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, cap: null }));
-		assert.ok(
-			refuses(leaveEntitlementSchema, { ...entitlement, layers: [{ ...layer, days_max: 9 }] })
-		);
+	it('refuses retired layers, personal overrides and undeclared fields', () => {
+		for (const extra of [{ layers: [band] }, { merge: 'MAX_WITH_COMPANY_LAYERS' }, { cap: null }])
+			assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, ...extra }));
+		for (const extra of [
+			{ level: 'EMPLOYEE', employment_id: 'employment-1' },
+			{ key: { by: 'SERVICE_MONTHS' } },
+			{ authority: 'Company policy' },
+			{ effective_range: RANGE },
+			{ days_max: 9 }
+		])
+			assert.ok(
+				refuses(leaveEntitlementSchema, { ...entitlement, bands: [{ ...band, ...extra }] })
+			);
 	});
 });
 

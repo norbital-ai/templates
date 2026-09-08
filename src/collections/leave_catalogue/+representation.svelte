@@ -55,11 +55,7 @@
 				<Column span="all"
 					><Field name="entitlement" label={t('component.entitlement_matrix')} /></Column
 				>
-				<Column span="all"><Field name="accrual" label={t('component.accrual_and_carry')} /></Column
-				>
-				<Column span="all"
-					><Field name="exit_settlement" label={t('component.exit_settlement')} /></Column
-				>
+				<Column span="all"><Field name="encashment" label={t('leave.encashment_output')} /></Column>
 				<Column span="all"
 					><Field name="payroll_effect" label={t('component.effect_on_pay')} /></Column
 				>

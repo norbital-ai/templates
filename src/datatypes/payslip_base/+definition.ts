@@ -9,7 +9,7 @@ import { Schema } from 'effect';
  * in the adjustments table: a row with no causal input is not an adjustment, it is base.
  *
  * `component_code` is the catalogue code the amount settled under, frozen at settlement. It is
- * deliberately not a `component_catalogue` id: an output is a frozen fact, and a naked uuid that looks
+ * deliberately not a family catalogue id: an output is a frozen fact, and a naked uuid that looks
  * like a relationship but carries no foreign key is exactly what this workspace refuses to store.
  * The component the code names lives on in the run's configuration snapshot, so the settled figure
  * stays re-readable after the catalogue row is archived or renamed.

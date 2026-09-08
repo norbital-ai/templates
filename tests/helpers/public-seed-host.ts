@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
 	authoredSeedStages as stagesFromManifest,
@@ -7,26 +6,13 @@ import {
 	startSelfHostSession,
 	type WithSelfHostInput
 } from '@norbital-ai/test-utilities';
-import { leaveEntitlementIdFor } from '../../src/lib/leave/entitlements.ts';
 
 /** Kept in lockstep with `tests/fixtures/seed/` invented ids. */
 export const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
 export const EMPLOYMENT_ID = '44444444-4444-4444-8444-444444444444';
 export const ANNUAL_LEAVE_CATALOGUE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1';
 export const HOSPITALIZATION_LEAVE_CATALOGUE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff5';
-export const ANNUAL_LEAVE_REQUEST_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff2';
-/** Generated, never seeded: the fixture employment's 2026 annual entitlement, named by the one formula. */
-export const ANNUAL_LEAVE_ENTITLEMENT_ID = leaveEntitlementIdFor({
-	employment_id: EMPLOYMENT_ID,
-	leave_code: 'ANNUAL',
-	leave_year: 2026
-});
-/** Generated, never seeded: the fixture employment's 2026 hospitalization entitlement. */
-export const HOSPITALIZATION_LEAVE_ENTITLEMENT_ID = leaveEntitlementIdFor({
-	employment_id: EMPLOYMENT_ID,
-	leave_code: 'HOSPITALIZATION',
-	leave_year: 2026
-});
+export const ANNUAL_LEAVE_ENTRY_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff2';
 /** The one sealed version of the public fixture's PUB settings lineage. */
 export const JURISDICTION_ID = '22222222-2222-4222-8222-222222222222';
 export const SHIFT_WORK_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
@@ -69,7 +55,6 @@ export const startPublicSeedHost = async (
 	const session = await startSelfHostSession({
 		bundlePath,
 		tenantId: slug,
-		secretsKey: `${slug}-secrets-key`,
 		...(options?.host !== undefined ? { host: options.host } : {}),
 		...(options?.ai !== undefined ? { ai: options.ai } : {}),
 		...(options?.connector !== undefined ? { connector: options.connector } : {}),
@@ -83,28 +68,7 @@ export const startPublicSeedHost = async (
 	if (session.credential === undefined || session.credential.length === 0) {
 		throw new Error('identity.bootstrapFounder returned an empty credential');
 	}
-	// The same contract provisioning follows: the seed writes facts, then the host starts the
-	// automations the manifest names under seed.afterSeed. The leave ledger refresh generates
-	// every entitlement from the catalogue; the seed itself generates nothing. Tests see the
-	// workspace as a tenant sees it.
-	try {
-		for (const name of afterSeedAutomations(templateManifestPath)) {
-			const startedAt = Date.now();
-			const started = await session.guestCommand(
-				'automations.start',
-				{ name, input: {} },
-				'system'
-			);
-			console.log(
-				`after-seed automation ${name}: ${started.status} in ${Date.now() - startedAt} ms ${JSON.stringify(started.value)}`
-			);
-			if (started.status < 200 || started.status >= 300)
-				throw new Error(`after-seed automation ${name} failed: ${JSON.stringify(started.value)}`);
-		}
-	} catch (cause) {
-		await session.stop();
-		throw cause;
-	}
+
 	return {
 		host: { baseUrl: session.baseUrl, address: session.address, stop: session.stop },
 		credential: session.credential,
@@ -116,12 +80,4 @@ export const startPublicSeedHost = async (
 		files: session.files,
 		stop: session.stop
 	};
-};
-
-/** The automations `norbital.template.json` asks the host to start once its seed has loaded. */
-const afterSeedAutomations = (manifestPath: string): ReadonlyArray<string> => {
-	const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-		readonly seed?: { readonly afterSeed?: ReadonlyArray<string> };
-	};
-	return manifest.seed?.afterSeed ?? [];
 };

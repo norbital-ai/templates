@@ -14,8 +14,9 @@ export const TERMS_ID = '55555555-5555-4555-8555-555555555555';
 export const SHIFT_PATTERN_ID = '99999999-9999-4999-8999-999999999901';
 export const BASIC_ID = '66666666-6666-4666-8666-666666666666';
 export const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
+export const TRANSPORT_PAYMENT_ID = '77777777-7777-4777-8777-777777777778';
 export const STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
-export const BONUS_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
+export const PAYMENT_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
 
 const RANGE = { start: '2020-01-01', end: null };
 const ROSTERED = {
@@ -57,21 +58,22 @@ function rosteredWorkDays(): PayrollWorld['work_days'] {
 }
 
 const REGIME = {
+	holiday_rest_precedence: 'REST_DAY',
 	overtime_coverage: null,
 	overtime_rules: [],
 	overtime_limits: []
 };
 
 export type PublicPayrollWorldOptions = {
-	/** When true, a one-off BONUS sits beside the standing allowance. */
-	readonly includeBonus?: boolean;
+	/** When true, a one-off PAYMENT sits beside the standing allowance. */
+	readonly includePayment?: boolean;
 };
 
 export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}): PayrollWorld {
 	const standing = {
 		id: STANDING_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		component_catalogue_id: TRANSPORT_ID,
+		allowance_catalogue_id: TRANSPORT_ID,
 		amount: 310,
 		pay_period: null,
 		// A standing allowance: its window is the recurrence itself, and it pays whole in every
@@ -80,14 +82,14 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: '2026-03-31' },
 		approval_id: null
 	};
-	const bonus = {
-		id: BONUS_ENTRY_ID,
+	const payment = {
+		id: PAYMENT_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		component_catalogue_id: TRANSPORT_ID,
+		payment_catalogue_id: TRANSPORT_PAYMENT_ID,
 		amount: 100,
-		awarded_on: '2026-01-15',
+		effective_on: '2026-01-15',
 		pay_period: '2026-01',
-		note: 'one-off',
+		reason: 'one-off',
 		approval_id: null
 	};
 	return {
@@ -95,6 +97,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			{
 				id: COMPANY_ID,
 				settings_code: 'PF',
+				jurisdiction_code: 'TEST-JUR',
 				name: 'Public Fixture Co',
 				registration_number: 'PF-0001',
 				pay_cutoff_day: 21,
@@ -107,6 +110,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			{
 				id: JURISDICTION_ID,
 				code: 'PF',
+				jurisdiction_code: 'TEST-JUR',
 				name: 'Public fixture profile',
 				sealed_at: '2020-01-01T00:00:00.000Z',
 				voided_at: null,
@@ -114,30 +118,36 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				cloned_from_id: null,
 				currency: 'MYR',
 				tax_year_start_month: 1,
-				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: { per: 'DAY', divisor: 26 },
-				regime: REGIME,
 				effective_range: RANGE,
 				approval_id: null
 			}
 		],
 		statutory_contributions: [],
 		contribution_rates: [],
-		component_catalogue: [
+		work_catalogue: [
 			{
 				id: BASIC_ID,
 				settings_id: JURISDICTION_ID,
-				code: 'BASIC',
-				name: 'Basic salary',
-				nature: 'EARNING',
-				is_statutory: false,
-				policy: { kind: 'EARNING', settlement: 'ADD' },
-				contribution_treatments: {},
-				sequence: 10,
-				eligibility: '',
-				definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
+				code: 'STANDARD',
+				proration: { by: 'CALENDAR_DAYS' },
+				ordinary_rate: { per: 'DAY', divisor: 26 },
+				regime: REGIME,
+				salary: { code: 'BASIC', sequence: 100, contribution_treatments: {} },
+				overtime: { code: 'OVERTIME', sequence: 20, contribution_treatments: {} },
+				overtime_excess: { code: 'OVERTIME_EXCESS', sequence: 21, contribution_treatments: {} },
+				absence: { code: 'ABSENCE', sequence: 1000, contribution_treatments: {} },
 				approval_id: null
-			},
+			}
+		],
+
+		/**
+		 * One code, two catalogues, two rows. A standing transport allowance and a one-off transport
+		 * payment are different events with different shapes, and after the split they cannot share a
+		 * catalogue row — the foreign key each request carries points at a different table. The code
+		 * is the same because the payslip line is the same thing to the person reading it.
+		 */
+		claim_catalogue: [],
+		allowance_catalogue: [
 			{
 				id: TRANSPORT_ID,
 				settings_id: JURISDICTION_ID,
@@ -159,6 +169,29 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				approval_id: null
 			}
 		],
+		payment_catalogue: [
+			{
+				id: TRANSPORT_PAYMENT_ID,
+				settings_id: JURISDICTION_ID,
+				code: 'TRANSPORT',
+				name: 'Transport allowance',
+				nature: 'EARNING',
+				is_statutory: false,
+				policy: { kind: 'EARNING', settlement: 'ADD' },
+				contribution_treatments: {},
+				sequence: 51,
+				eligibility: '',
+				definition: {
+					source: 'ENTRY',
+					unit: 'MONEY',
+					evidence: 'NONE',
+					cap: null,
+					settlement: 'PAYROLL'
+				},
+				approval_id: null
+			}
+		],
+		loan_catalogue: [],
 		shift_definitions: [
 			{
 				id: WORK_SHIFT_ID,
@@ -181,9 +214,17 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				approval_id: null
 			}
 		],
-		company_holidays: [],
+		holiday_calendar_inputs: [],
+		jurisdiction_holiday_calendars: [2025, 2026, 2027].map((year) => ({
+			id: `public-calendar-${year}`,
+			jurisdiction_code: 'TEST-JUR',
+			year,
+			revision: 1,
+			published_at: '2024-12-01T00:00:00.000Z',
+			observations: [],
+			approval_id: null
+		})),
 		leave_catalogue: [],
-		leave_entitlements: [],
 		leave_entries: [],
 		employments: [
 			{
@@ -231,23 +272,18 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employment_statutory_facts: [],
 		claim_requests: [],
 		allowance_requests: [standing],
-		bonus_requests: options.includeBonus === true ? [bonus] : [],
-		arrears_requests: [],
-		correction_requests: [],
+		payment_requests: options.includePayment === true ? [payment] : [],
 		loans: [],
 		loan_repayments: [],
-		leave_requests: [],
 		work_days: rosteredWorkDays(),
 		employee_children: [],
 		payroll_runs: [],
 		payslips: [],
 		payslip_claim_request_inputs: [],
 		payslip_allowance_request_inputs: [],
-		payslip_bonus_request_inputs: [],
-		payslip_arrears_request_inputs: [],
-		payslip_correction_request_inputs: [],
+		payslip_payment_request_inputs: [],
 		payslip_adjustments: [],
-		payslip_leave_request_inputs: [],
+		payslip_leave_inputs: [],
 		payslip_loan_repayment_inputs: []
 	};
 }

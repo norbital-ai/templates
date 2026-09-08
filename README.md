@@ -2,289 +2,150 @@
 
 ![HR & Payroll workspace thumbnail](assets/thumbnail.svg)
 
-## What this workspace is
+This Bolt workspace calculates payroll from approved employment, attendance, Leave and monetary
+entries. Effective catalogue revisions define calculation rules and statutory treatments. Results
+retain their source captures and calculation provenance.
 
-This template is a multi-country HR and payroll settlement workspace. It turns approved employment,
-attendance, leave and money events into auditable payroll results: effective-dated employment terms,
-roster-based day classification, statutory overtime and contributions, repayment schedules, draft
-recalculation, paid-run locking and source-linked payslip lines. It is built for countries whose
-statutes the engine encodes as data — Malaysia, the Philippines and Indonesia carry cited law,
-versioned as sealed statutory profiles — and everything a run pays is traceable back to the approved
-input that produced it.
+## Payroll model
 
-## The mental model
+Exactly one payroll is permitted per company and period. A draft can be deleted and recreated;
+a paid payroll is immutable. Late approved payments and corrections settle through a later regular
+period. There is no ad hoc payroll or second run for a settled period.
 
-Payroll is a deterministic settlement engine over approved, effective-dated facts. Its two halves
-never share a table: **inputs** are the approved records a run read, and **outputs** are the
-immutable values it calculated from them. Every linkage is a real foreign key — four engine-owned
-input junctions tie each payslip to the work days, component entries, loan repayments and leave
-requests it consumed, and every payslip adjustment names exactly one of those captures.
+The domain families are Work, Leave, Claim, Allowance, Payment, Loan and Contribution. Each owns its
+catalogue and business inputs. Payment uses one catalogue and one request collection for bonuses,
+notice pay, separation payments and corrections.
 
-```text
-APPROVED INPUTS                          SETTLED OUTPUT
-
-employment_terms --+                  +-> payroll_runs [one policy + statutory snapshot]
-work_days ----------+                 |        |
-leave_requests -----+--> calculator -+        v
-component_entries --+                          payslips
-loan_repayments ----+                          |
-                                               |- base / proration / statutory (inlined)
-component_catalogue <-----------+                   |- payslip_work_day_inputs
- [policy + calculation]    |                   |- payslip_component_entry_inputs
-                           |                   |- payslip_leave_request_inputs
-loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
-                                               `- payslip_adjustments
-                                                  |- input: one captured input link
-                                                  |- label + bucket + amount (frozen)
-                                                  `- statutory_rule_key (work-day only)
+```mermaid
+flowchart LR
+    Contract[Employment contract] --> Prepare[Prepare approved inputs per contract]
+    Catalog[Effective family catalogues] --> Prepare
+    Holidays[Published jurisdiction holidays] --> Work[Work: schedules and attendance]
+    Work --> Prepare
+    Leave[Leave entries and computed entitlement] --> Prepare
+    Money[Claim, Allowance, Payment and Loan] --> Prepare
+    Prepare --> Calculate[Calculate family results]
+    Calculate --> Contribution[Calculate contributions]
+    Contribution --> Settle[Settle gross and net]
+    Settle --> Commit[Atomically store payroll, contract payslips, captures and seals]
 ```
 
-Five collections carry the payroll core:
+- **Work** owns salary, overtime and unexplained absence calculations.
+- **Leave** records time off, manual encashment, carry-forward, adjustments and reversals.
+  Entitlement is computed from effective catalogue and employment facts; balances include recorded
+  activity and pending reservations. No annual account, ledger refresh or automatic departure
+  settlement is created. Encashment pays the approved amount without repricing it from salary.
+- **Claim, Allowance and Payment** provide approved monetary entries. A single-use entry is consumed
+  once, including a signed correction. Recurring allowances remain eligible across their range.
+- **Loan** owns agreements and repayment schedules. Outstanding recovery is the amount due less
+  paid captures. Partial recovery remains at its source.
+- **Contribution** evaluates statutory schemes against the treatments supplied by calculated items.
 
-1. **`component_catalogue`** — one reusable definition with a strict settlement/statutory policy and a
-   polymorphic calculation definition (`SCHEDULE`, `ENTRY`, `FORMULA`). Overtime is deliberately
-   not among them: it is derived from work days priced against the jurisdiction's own overtime
-   rules, and its statutory treatment lives on the scheme that charges it.
-2. **`component_entries`** — approved employee-specific monetary facts: claims, standing
-   allowances, bonuses, arrears settlements and HR manual corrections.
-3. **`payroll_runs`** — one company-period calculation naming the statutory snapshot that governed
-   it and the calculation version that produced its outputs.
-4. **`payslips`** — one employment's totals, its inlined base/proration/statutory planes, and its
-   four captured-input junctions.
-5. **`payslip_adjustments`** — one settled thing per captured input, frozen so later catalogue or
-   law changes cannot rewrite history.
+The existing `employments` collection represents contracts. Every employee event and payslip names
+its contract. A person may have at most one active contract per entity on any date, including future
+dates, and may hold active contracts in other entities. Rehire creates a new contract and a fresh
+entitlement calculation. The first committed reference permanently seals the contract; departure is
+a separate immutable fact and creates no financial entries. Statutory YTD retains the aggregation
+required across contracts for the same person and entity.
 
-Around that core: `companies` scope the legal entity and bind by `settings_code` to a
-`jurisdiction_settings` lineage; `employments`, `employment_terms` and
-`employment_statutory_facts` describe a person's working facts; `shift_definitions`, `rosters`,
-`work_days` and `leave_requests` supply the schedule and leave facts; a sealed
-`jurisdiction_settings` version is the one shareable root that owns pay derivation, overtime
-coverage, pricing and limits together with its `statutory_contributions` and their
-`contribution_rates`, its `component_catalogue`, its `leave_catalogue` and its `company_holidays`, each
-flagged `is_statutory` where the law names it; and `loans` with their `loan_repayments` carry
-staff loans and overpayment recoveries — the agreement, and the amounts due under it.
+Observed holidays are annual jurisdiction inputs, independent of employment and company settings
+revisions. Published calendar coverage is required for overtime. Workday links and payroll captures
+permanently seal the dates they consume, including dates with no holiday. Deleting a consumer does
+not reopen those dates. `holiday_import` prepares next-year drafts from Google Calendar each
+1 October, with manual jurisdiction/year refreshes. HR reviews observations and annual completeness
+before publication. Source configuration and credentials are separate from annual calendars.
 
-Two invariants shape everything:
+Payroll writes `payroll_runs`, `payslips`, captured-input junctions and `payslip_adjustments` as one
+atomic graph. Payslips contain base, proration and statutory results; adjustments reference their
+causal captures. Payroll outputs are calculated rather than supplied as seed inputs.
 
-- **Overtime, contributions, gross and net are calculated, never stored or seeded.** A run derives
-  them from the input records and is compared against an independently supplied source workbook.
-- **Approval is the gate.** `approval_id` is a platform-owned system column, not authored business
-  state. `approval_id IS NULL` identifies a committed row that is not held by an approval request.
-  A held create has no domain row yet; payroll reads only committed, unheld inputs.
+Only approved, committed source rows are payable. Held creates live in the platform approval
+queue. Leave includes their debit reservations when calculating available entitlement.
 
-## What ships in the workspace
+## Applications
 
-### Apps (10)
+**Employee self-service** has Home, Events and Payslips. Events uses a family sidebar for Work,
+Leave, Claim, Allowance, Payment and Loan. Employees submit their own time-off requests; HR controls
+manual encashment, carry-forward, adjustments and reversals.
 
-**`hr_employee`** — employee self-service. A person sees their profile, company and next payday,
-and can record time entries, raise leave requests and claims (each routed for approval), and read
-their own loan agreements and payslips. A person with no active employment is told so; a person
-with several chooses which one the page scopes to.
+**Controller** shares the selected legal entity across its pages:
 
-**`hr_controller`** (group) — the HR operating surface. Legal-entity choice lives on **Entities**
-and is inherited by every sibling; boards state the active entity, they do not pick it again.
+| Area                | Purpose                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| Entities            | Select the legal entity                                              |
+| People              | Profiles, contracts, departures, effective terms and statutory facts |
+| Events              | Work, Leave, Claim, Allowance, Payment and Loan records              |
+| Payroll             | Create the regular period, review results, mark paid and export      |
+| Settings → Catalog  | Review family definitions within the settings lineage                |
+| Settings → Holidays | Configure sources, import, review and publish annual calendars       |
+| Kiosk               | Attendance clock and face enrollment                                 |
 
-| App                      | What a user does in it                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Entities**             | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                                                          |
-| **People**               | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                                                           |
-| **Scheduling**           | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                                                                |
-| **Leave**                | Review time-off applications, each carrying its balance and the payroll capture that locks it; submit exceptional balance corrections for one manager review. The leave catalogue is configured in Settings                                                                                                                                                  |
-| **Loans**                | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                                                            |
-| **Catalogue components** | The entry stream of one entity: claims, allowances, bonuses, arrears and corrections, with the payroll capture that settled each. The catalogue is configured in Settings                                                                                                                                                                                    |
-| **Payroll**              | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                                                         |
-| **Settings**             | The version timeline of the jurisdiction settings lineage one entity operates under: the version in force with tabs Payroll, Contributions, Leave catalogue entries, Catalogue components and Holidays; Seal, Void and New version actions; a sealed version and everything under it read-only (file `+settings.svelte`: a file name owns an app's identity) |
-| **Kiosk**                | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                                                             |
+Policies distinguish employee, supervisor, manager, HR controller, HR manager, senior management
+and kiosk access. Payroll writes belong to HR manager and senior management. Approved Leave entries
+are immutable; corrections use new entries. HR controller manual Leave activity requires HR manager
+or senior management review.
 
-### Policies (10)
+`src/+agents.md` supplies shared agent context. It grants no permissions; the signed-in person's
+policies remain authoritative.
 
-- **`employee`** — self-service: their own profile, employments and the child collections, plus
-  create-with-approval for time entries, claims and leave.
-- **`supervisor`** — reads the team, reviews and records their attendance and leave.
-- **`manager`** — reads people operations across the company and owns their team's time and leave.
-- **`hr_controller`** — HR administration across people, scheduling, requests, loans and
-  entries, with payroll visible but not committable.
-- **`hr_manager`** — everything HR administration covers, plus creating, running and deleting
-  payroll runs.
-- **`senior_management`** — the full people-operations view, plus creating, running and deleting
-  payroll runs.
-- **`leave_reconciliation_automation`**: system-only authority that touches active employments
-  so each one regenerates its leave entitlements and ledger inline.
-- **`statutory_drift_automation`**: system-only authority that reads settings versions and their
-  statutory rows and creates one draft version at a time; it never seals, edits or deletes.
-- **`kiosk`** — the attendance-kiosk device account: the kiosk app only, interval-only time
-  entries, face-field-only writes on people, and enrollments that always land `PENDING` for HR
-  review. Held by the `Attendance Kiosk` team (one user row per device).
+## Automation
 
-Policies name the `hr_controller` app _group_ rather than each page, so adding a controller page
-does not mean revisiting every role declaration.
+`statutory_drift` checks configured official research sources monthly. It proposes a draft settings
+revision with review notes; a person reviews and seals it. It never edits a sealed version or seals
+its own proposal. `holiday_import` uses the managed Google Calendar connection to fetch complete
+annual source pages and save review candidates; it cannot publish calendars. There are no automatic
+encashment, carry-forward or annual entitlement jobs.
 
-### Live analytics
-
-The controller's attendance chart reads its collection through `client.db`. The query stays
-current through the workspace sync engine; the component derives its eight-week attendance trend
-locally without a polling or manually refreshed query function.
-
-### Agent context
-
-`src/+agents.md` supplies the shared HR/payroll context for web and envoy turns: tool-result honesty,
-collection meanings, money/date rules, and the boundary around statutory advice. It grants nothing;
-the signed-in person's policies remain the complete authority for a web-agent turn.
-
-### Automations
-
-Two, both under their own policy, both startable by hand from Automations.
-
-- **`statutory_drift`** (monthly): for each lineage's version in force, reads the official pages
-  the version names in `research_urls` through the runtime's page reader, asks the model for the
-  official position of every statutory row (scheme band tables, statutory leave entitlements,
-  statutory component treatments), diffs it against the sealed rows, and when anything differs
-  clones the version into a draft carrying the changed rows and a review sheet
-  (`research_notes`). Settings shows the draft as "Proposed by statutory drift"; HR reviews it
-  and the HR Manager seals it. It never seals, never touches a sealed version, and offers one
-  draft per lineage at a time. A version without research URLs is never researched. Every
-  official page it could not read is recorded, with the reason, on the run result and on the
-  draft's sheet; a lineage none of whose pages answered gets no draft and is named in the result.
-- **`leave_ledger_refresh`** (first of each month): the leave reconciler. It walks every active
-  employment with today's date so the months that passed post, the next year opens, years close
-  and exits settle. A catalogue edit starts it for the lineage's companies and the seed starts it
-  once. HR does not run an annual entitlement batch.
-
-### Integrations, seed
-
-statutory and sensitive fixture seed lives in the repository seed bank (see below), and payroll inputs belong to the
-reconciliation workflow described in [`docs/data.md`](docs/data.md).
-
-## Operational boundary
-
-Seed only payroll inputs. Never seed a payroll run, payslip, calculated overtime amount, statutory
-contribution, gross, net or source incentive-overtime result. A run must calculate those values from
-the input records and then be compared with an independently supplied source workbook. This rule is
-why the engine refuses a run that cannot produce a figure rather than approximating it, and why
-paid runs are immutable — a correction is always a new approved event in a later draft.
-
-## Under the hood
-
-### Source layout
-
-Everything the compiler knows about the workspace lives in `src/`:
+## Source layout
 
 ```text
 src/
-├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 27 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
-│   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── datatypes/                # 26 structured values (statutory_regime, contribution_treatments, component_entry_event, …)
-├── access/                   # +teams.ts, anonymous limits, and eight policies
-├── i18n/                     # messages.en.json / messages.zh.json (same key set)
-├── automations/              # statutory drift check and the leave ledger reconciler
-├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
+├── apps/                     # employee, controller groups, kiosk
+├── collections/              # models, hooks, representations and import/export pipelines
+│   └── payroll_runs/lib/     # preparation, calculation, settlement and output graph
+├── datatypes/                # structured business values and renderers
+├── access/                   # policies and teams
+├── i18n/                     # matching English and Chinese message keys
+├── automations/              # statutory drift and annual holiday import
+├── lib/                      # family logic, scheduling and shared presentation
 └── +agents.md
 ```
 
-- **Models** describe storage only; presentation lives in apps and representations.
-  `src/collections/+relationship.ts` owns the relation graph — foreign keys are derived from it,
-  never declared in a model.
-- **Hooks** validate and derive. The payroll create hook resolves the run's attendance window, pay
-  date and configuration hash; the roster hooks enforce publishability; the loan hooks keep a
-  repayment schedule exactly reconciled with its principal.
-  Effective-dated overlap and repayment-sequence uniqueness are database constraints, not per-row
-  hook SELECTs: a batched `mutate` must retain one hook invocation per record without turning a
-  statutory table or derived repayment schedule into one remote database round trip per row.
-- **Pipelines** (`+pipelines.ts` on `work_days` and `payroll_runs`) shape
-  workbook import/export: the roster and attendance importers accept a month grid (or a long-form
-  person-day sheet) for one legal entity, and the payroll exporter produces the bank file, payslip
-  PDFs and report workbook the app offers.
-- **Representations** decide create/display/edit per collection. `payroll_runs` and `payslips`
-  refuse hand-created output; a payslip is written by the engine, never by hand.
-- **i18n** — both catalogs carry the same key set; app metadata in `<svelte:head>` stays static
-  English, and per-locale sidebar labels come from the catalogs.
+Models describe storage. `src/collections/+relationship.ts` declares the relation graph.
+Before hooks validate and return the complete write graph; a refusal leaves no partial payroll.
+Representations own collection forms. Pipelines import roster/attendance workbooks and export payroll
+reports, bank files and payslips.
 
-### The docs
+`src/lib/payroll/families.ts` coordinates family preparation, source calculation and grouped
+Contribution assessment. Work, monetary requests, Loan and Contribution have their own modules in
+that directory; Leave's payroll boundary is `src/lib/leave/payroll.ts`. Payroll's run core handles
+shared context, settlement and the output graph without querying family-owned source tables or
+dispatching their calculation definitions. See [Architecture](docs/architecture.md#payroll-flow).
 
-- [`docs/architecture.md`](docs/architecture.md) — the live payroll engine: the model map, the
-  eight calculation phases, cutoffs and periods, roster-to-day-type classification, overtime and
-  the 12-hour/104-hour controls, statutory treatment, adjustments and ledgers, provenance, locking,
-  and what of the statutory law is encoded (and what is not).
-- [`docs/data.md`](docs/data.md) — the raw-source → cleaned-source → seed contract, the checks that
-  prevent derived output from leaking back into inputs, and how an independent source workbook is
-  reconciled against a generated one.
-- [`docs/leave.md`](docs/leave.md): the leave catalogue and its eligibility expressions,
-  generated entitlements, the append-only ledger and how a fact carries it, the reconciler's
-  monthly walk, year close, carry, exit and payroll behaviour.
+## Verification and changes
 
-## Verification
+The family source boundary is implemented. Artifact sync, type checks, full-suite and browser
+verification of the combined change set remain in progress; local source is not a deployed tenant
+release. Holiday imports also require a configured managed `GOOGLE_CALENDAR_API_KEY` and a reviewed
+source for each jurisdiction.
 
-Product H-row acceptance is the isolated public-seed suite: `tests/fixtures/seed/` loaded through
-`@norbital-ai/test-utilities` (`withSelfHost` / `startSelfHostSession`). No Colony, no
-`seed_bank`, no `:5173`. See [`RFC/testing.md`](../../RFC/testing.md) I1–I3.
+Acceptance tests use invented public fixtures under `tests/fixtures/seed/` and the isolated Bolt
+self-host. Confidential reconciliation inputs are not test fixtures. See
+[`docs/data.md`](docs/data.md), [`docs/architecture.md`](docs/architecture.md) and
+[`docs/leave.md`](docs/leave.md).
 
 ```bash
-node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test \
-  tests/public-seed-payroll.integration.test.ts \
-  tests/public-seed-open-month.integration.test.ts \
-  tests/public-seed-attendance.integration.test.ts \
-  tests/public-seed-roster-import.integration.test.ts
+pnpm lint
+pnpm sync
+pnpm test
+pnpm test:e2e
 ```
 
-The template also includes focused arithmetic and export checks. `pnpm test` runs that suite, while
-`pnpm sync` compiles the workspace and emits its portable deployment artifact:
+`sync` generates workspace types and the portable artifact at `.norbital/artifact/bundle.mjs`.
+For model changes, generate migrations with `pnpm exec bolt migrate --name <name>`. Review generated
+history without hand-editing it. Template changes reach an existing tenant only through its release
+and provisioning workflow; editing local source does not change a running tenant.
 
-```bash
-pnpm sync     # regenerate .norbital and emit .norbital/artifact/bundle.mjs
-pnpm lint     # prettier + svelte-check
-pnpm test     # everything below, plus the loan-recovery and roster unit tests
-node scripts/verify-payroll-arithmetic.mjs   # the long-form arithmetic acceptance run
-node scripts/verify-fixture-shapes.mjs       # audits that run's fixtures against the real API shape
-```
-
-`node scripts/generate-import-templates.mjs` writes the roster and time-entry import templates to
-`~/Desktop` — one legal entity × one month, a person per row and a calendar day per column, with a
-short Settings sheet. Long-form person-day sheets still import; these files are the ones operators
-are issued. The `Read me first` sheet states only the rules the readers enforce.
-
-The arithmetic run used to be on-demand and outside `pnpm test`. It is in `pnpm test` now, because
-being outside it is what let a fixture rot unnoticed until the assertion above it stopped meaning
-anything. A check nobody runs is a check that does not exist.
-
-`verify-fixture-shapes.mjs` re-runs the arithmetic script under instrumentation and reports two
-things: fields the engine read that a fixture never supplied, and fixture keys that exist nowhere in
-`src/`. It exists because a fixture once described a response shape the API does not have — `nature`
-on an invented `componentType` — which made a passing assertion prove nothing. Deleted collections
-survive in stale build artefacts (`.norbital/dist/`), so a
-fixture written against one of those looks right and is not; check `src/collections/<name>/+model.ts`
-instead. Read that script's header before trusting a green run: it is honest about what it cannot
-see, and a green run means nothing until the mutation check described there has been done.
-
-The confidential source reconciliation is opt-in on the host; see
-[`docs/data.md`](docs/data.md#reconciliation-method).
-
-## Changing the template
-
-This is a Bolt tenant workspace: the Bolt filesystem compiler derives the registry, workspace, client
-and local types under `.norbital/` from `src/` alone. Workflow:
-
-```bash
-pnpm sync     # after any edit under src/ — regenerates .norbital (committed migrations stay put)
-pnpm lint     # prettier + svelte-check over the workspace
-```
-
-There is no separate build command. `sync` emits `.norbital/artifact/bundle.mjs`, the portable
-artifact a host deploys.
-
-- **Models** — do not change model schemas casually: each schema change produces a committed
-  migration under `.norbital/migrations/`. Edit `+model.ts`, run `pnpm sync`, then review the
-  migration the compiler emits.
-- **Seed** — tests own `tests/fixtures/seed/` (invented public ids). Host demo / reconciliation
-  uses the private seed bank remote, not this tree; there is no `src/+seed.ts` role, and
-  seeding does not evolve deployed data. For an existing tenant, write the next lineage entry
-  with `pnpm exec bolt migrate --name <name>`, edit its SQL, and deploy it through Colony.
-  Sensitive statutory seed for demo tenants stays in the host seed bank. It is not a test
-  input.
-- **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
-  After a deliberate dependency move, refresh the template lock through the repository
-  template-lock workflow. The templates release workflow advances
-  `refs/heads/templates/hr-payroll`; a remote Colony host uses that exact commit when it provisions
-  a new tenant, while an existing tenant remains on the revision it adopted. From the realm
-  root, `pnpm env -- link` only tests locally built OSS dependencies inside this template
-  and neither publishes template source nor updates Colony.
+The template pins its own first-party packages and lockfile. From the realm root,
+`pnpm run env -- link` overlays local package builds for verification. Publishing and provisioning
+remain separate operations.

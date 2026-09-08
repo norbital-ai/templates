@@ -10,8 +10,8 @@
 	 * Selecting an arm re-emits a whole default for it, so switching a window to a one-off can never
 	 * leave a `from` beside a `period` — the same rule every variant renderer in this directory
 	 * keeps, for the same reason. Nothing here decides whether the allowance as a whole is
-	 * admissible: the catalogue rules live in `lib/pay_request_hooks.ts` and the form narrows its
-	 * component picker to `entry_kind: ALLOWANCE` rather than refusing a mismatch after the fact.
+	 * admissible: the catalogue rules live in `lib/pay_request_hooks.ts` and the form's component
+	 * picker reads `allowance_catalogue`, which holds nothing an allowance may not name.
 	 *
 	 * The bounds are edited as plain calendar days and months, by `<input type="date">` and
 	 * `<input type="month">`. That is deliberate and is not the platform day-picker adapter in

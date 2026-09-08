@@ -1,55 +1,63 @@
+import { withContractInput } from '../../lib/employment-contract.js';
+import { loanScheduleRefusals } from '../../lib/loan-schedule.js';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-/**
- * The loan is the agreement, and the agreement's honesty is checked here.
- *
- * The loan form nests the schedule in a matrix, and blocks submit on any of the three things
- * `loanScheduleRefusals` states about a schedule. What this hook holds is the agreement's own
- * edges: the principal is a positive magnitude, and the component it recovers through actually
- * takes entries and settles as a payroll deduction, because a recovery is a deduction by
- * definition.
- *
- * The schedule's own shape is refused by `loan_repayments` `mutate.prepare`, which is the only
- * hook coordinate handed a whole batch. It is not restated here, and could not be: a loan write
- * is never shown the repayment rows nested under it.
- */
+/** Validate the agreement; repayment hooks validate its proposed schedule and contract link. */
 export default {
 	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a loan whose principal is not a positive magnitude, or whose recovery component is not a payroll-settled deduction entry.',
-				handler: ({ input, existing, api }) => {
-					const principal = decodeNumber(
-						input.principal != null ? input.principal : (existing?.principal ?? 0)
-					);
-					if (!(principal > 0)) refuse('A loan principal is a positive magnitude.');
-					return Effect.map(
-						api.db.component_catalogue.findFirst({
-							where: {
-								id: { eq: String(input.component_catalogue_id ?? existing?.component_catalogue_id) }
-							},
-							columns: { code: true, definition: true, nature: true }
-						}),
-						(catalogueComponent) => {
-							if (catalogueComponent != null) {
-								const definition = catalogueComponent.definition;
-								if (definition?.source !== 'ENTRY' || definition.settlement !== 'PAYROLL')
-									refuse(
-										`Loan recoveries settle as payroll deductions, and component ${catalogueComponent.code} is not a payroll-settled entry.`
-									);
-								if (catalogueComponent.nature !== 'DEDUCTION')
-									refuse(
-										`Loan recoveries settle as deductions, and component ${catalogueComponent.code} is a ${catalogueComponent.nature}.`
-									);
-							}
-							return input;
+					'Require a complete nonempty repayment schedule, preserve its agreement total and period, and accept only payroll-settled deduction catalogue entries.',
+				handler: ({ input, existing, relationshipSizes, api }) =>
+					Effect.gen(function* () {
+						const principal = decodeNumber(input.principal ?? existing?.principal ?? 0);
+						if (!(principal > 0)) refuse('A loan principal is a positive magnitude.');
+						const scheduleSize = relationshipSizes.repayment_loan;
+						if (existing == null && !(scheduleSize != null && scheduleSize > 0))
+							refuse('Create the loan together with its complete repayment schedule.');
+						if (scheduleSize === 0)
+							refuse(
+								'A loan repayment schedule cannot be empty. Delete an unused agreement instead.'
+							);
+						if (
+							existing != null &&
+							scheduleSize == null &&
+							(input.principal !== undefined || input.effective_range !== undefined)
+						) {
+							const rows = yield* api.db.loan_repayments.findMany({
+								where: { loan_id: { eq: existing.id } },
+								columns: { due_date: true, amount_due: true, sequence: true },
+								limit: 10_000
+							});
+							const refusals = loanScheduleRefusals({
+								principal,
+								effectiveRange: input.effective_range ?? existing.effective_range,
+								rows
+							});
+							if (refusals.length) refuse(refusals.map((one) => one.message).join(' '));
 						}
-					);
-				}
+						const catalogue = yield* api.db.loan_catalogue.findFirst({
+							where: { id: { eq: String(input.loan_catalogue_id ?? existing?.loan_catalogue_id) } },
+							columns: { code: true, definition: true, nature: true }
+						});
+						if (!catalogue) refuse('A loan must reference a loan catalogue entry.');
+						if (
+							catalogue.definition?.source !== 'ENTRY' ||
+							catalogue.definition.settlement !== 'PAYROLL'
+						)
+							refuse(
+								`Loan recoveries settle as payroll deductions, and component ${catalogue.code} is not a payroll-settled entry.`
+							);
+						if (catalogue.nature !== 'DEDUCTION')
+							refuse(
+								`Loan recoveries settle as deductions, and component ${catalogue.code} is a ${catalogue.nature}.`
+							);
+						return withContractInput(input, existing);
+					})
 			}
 		}
 	}

@@ -2,8 +2,7 @@ import {
 	captureLedgerGrants,
 	grantsOn,
 	grantOn,
-	leaveApproval,
-	manualLeaveAdjustmentGrant,
+	hrLeaveEntryGrant,
 	mergeGrants,
 	payrollGrants,
 	payrollRunCascadeGrants,
@@ -87,9 +86,7 @@ export default {
 		// The adjustment path. Unconditional on both read and `mutate.new` — see `+hr_controller.ts`.
 		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('bonus_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('arrears_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('correction_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('payment_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 
@@ -101,9 +98,8 @@ export default {
 		// leaves the bad row sitting in the run.
 		workDayWriteGrants(),
 
-		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
-		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		manualLeaveAdjustmentGrant(false),
+		grantsOn('leave_entries', ['read']),
+		hrLeaveEntryGrant(false),
 
 		payrollGrants('read'),
 		// The Scheduling app reads the capture junctions as this subject to mark consumed days.

@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { Result, Schema } from 'effect';
+	import { useI18n } from '@norbital-ai/ui/i18n';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	const { t } = useI18n<TenantI18nKeys>();
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
@@ -164,7 +167,12 @@
 	const current = $derived<StatutoryRegime>(
 		Result.isSuccess(parsed)
 			? parsed.success
-			: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
+			: {
+					holiday_rest_precedence: 'PUBLIC_HOLIDAY',
+					overtime_coverage: null,
+					overtime_rules: [],
+					overtime_limits: []
+				}
 	);
 	const breakRules = $derived<readonly StatutoryRestBreakRule[]>(current.rest_break_rules ?? []);
 	const summary = $derived(
@@ -259,6 +267,23 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Stack gap="lg">
+		<label class="text-sm">
+			<Stack gap="xs">
+				{t('holiday_calendar.rest_precedence')}
+				<Combobox
+					{disabled}
+					value={current.holiday_rest_precedence}
+					options={[
+						{ value: 'PUBLIC_HOLIDAY', label: t('holiday_calendar.public_holiday_rate') },
+						{ value: 'REST_DAY', label: t('holiday_calendar.rest_day_rate') }
+					]}
+					onValueChange={(value) => {
+						if (value === 'PUBLIC_HOLIDAY' || value === 'REST_DAY')
+							emit({ ...current, holiday_rest_precedence: value });
+					}}
+				/>
+			</Stack>
+		</label>
 		<Stack as="section" gap="md">
 			<Inline justify="between" align="start" gap="md">
 				<Stack gap="xs">

@@ -1,3 +1,7 @@
+import {
+	calculateFamilyAssessments,
+	finalizeFamilyConfiguration
+} from '../../../lib/payroll/families.js';
 /**
  * The payroll run — eight steps, the same eight for every country, split at the only line that
  * matters: **what reads, and what decides.**
@@ -42,31 +46,19 @@
 
 import { Clock, Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { accumulateBases } from './accumulate.js';
 import { withReadLog, type PayrollReadApi, type ReadLog } from './api.js';
 import { pickConfiguration, type Configuration } from './configuration.js';
-import { contribute, type StatutoryFactStatus } from './contribute.js';
-import { coversDate } from './effective.js';
 import { gatherRun, type GatheredRun } from './gather.js';
-import { dailyOvertimeHoursLimit, dailyTotalWorkLimit, measureEmployment } from './measure.js';
-import { payProjection, periodGrammarFault, resolveWindow, type PayrollWindow } from './period.js';
+import { periodGrammarFault, resolveWindow, type PayrollWindow } from './period.js';
 import { payrollRunGraph, type PendingPayslip } from './graph.js';
 import { settle } from './settle.js';
 import {
 	blockers,
 	describeIssues,
 	validateConfiguration,
-	validateDailyOvertimeHoursLimit,
-	validateDailyWorkLimit,
-	validateOpenWorkDays,
-	validateOvertimeLimits,
 	validatePayCalendar,
-	validateRosteredExpectations,
-	rosteredWorkCodeMaps,
 	type RunIssue
 } from './validate.js';
-import { decodeNumber } from '@norbital-ai/std/json';
-import { termPattern } from '../../../lib/scheduling/work-pattern.js';
 
 /**
  * The engine/build identity stamped on every run this code produces.
@@ -76,7 +68,7 @@ import { termPattern } from '../../../lib/scheduling/work-pattern.js';
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-09-frozen-monthly-supplements-carry' as const;
+export const CALCULATION_VERSION = '2026-09-contract-payroll-families' as const;
 
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
 type PayrollRunGraph = {
@@ -149,7 +141,12 @@ export function gatherPayrollRun(options: {
 		const t0 = yield* Clock.currentTimeMillis;
 		const { window, configuration } = yield* preparePayrollRun(options);
 		const pick = yield* Clock.currentTimeMillis;
-		const gathered = yield* gatherRun({ api, configuration, window });
+		const facts = yield* gatherRun({ api, configuration, window });
+		const { configuration: preparedConfiguration, gathered } = finalizeFamilyConfiguration(
+			configuration,
+			facts,
+			window
+		);
 		const done = yield* Clock.currentTimeMillis;
 		yield* Effect.log(
 			`[payroll-phase] ${options.period} pick=${pick - t0}ms gather=${done - pick}ms ` +
@@ -158,7 +155,7 @@ export function gatherPayrollRun(options: {
 		return {
 			period: options.period,
 			window,
-			configuration,
+			configuration: preparedConfiguration,
 			gathered,
 			readLog: api.reads
 		};
@@ -184,151 +181,18 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	// employment is measured, so the operator reads the issue that names them rather than an
 	// exception thrown out of `resolveWindow` five phases in.
 	issues.push(...validatePayCalendar({ configuration, bundles: gathered.bundles }));
-	// An open clock is caught here rather than three phases in, where `normalizedWorkedIntervals`
-	// refuses it as an "invalid interval" — true, but a long way from the record at fault. Reported
-	// as issues rather than thrown one at a time, so a month with thirty-six unclosed days yields
-	// one list instead of thirty-six consecutive builds.
-	issues.push(...validateOpenWorkDays({ bundles: gathered.bundles }));
-	// Rostered employments carry no pattern day: their guaranteed or capped load is measured here,
-	// over the pay window, with the same sentences precheck reports. A MONTHLY rostered employment
-	// with zero expected days stops here rather than deriving ordinary hours from nothing.
-	issues.push(
-		...validateRosteredExpectations({
-			period,
-			window: window.attendance,
-			employments: gathered.bundles.map((bundle) => ({
-				id: bundle.employment.id,
-				employee_number: bundle.employment.employee_number,
-				window: bundle.window.attendance,
-				terms: bundle.terms.map((term) => ({
-					id: term.id,
-					pay_frequency: term.pay_frequency,
-					work_pattern: termPattern(term, configuration.patternById),
-					effective_range: term.effective_range
-				})),
-				workDays: bundle.workDays.map((day) => ({
-					work_date: day.work_date,
-					shift_definition_id: day.shift_definition_id
-				}))
-			})),
-			...rosteredWorkCodeMaps(
-				[...configuration.shiftById].map(([id, code]) => ({ id, variant: code.variant }))
-			)
-		})
-	);
+
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 
 	const pending: PendingPayslip[] = [];
-	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.tax_year_start_month);
-
-	for (const bundle of gathered.bundles) {
-		// A skipped joining period is skipped: no payslip, no lines, no statutory charge. The days it
-		// covers are not lost — the next run derives them from this employment's own contract, which
-		// is why nothing has to be handed over here for that to work.
-		if (bundle.deferral != null) continue;
-
-		// 4 — MEASURE
-		//
-		// On the employment's own cadence: one run settles the instalment its period names for each
-		// cadence, and `gather.ts` settled this employment over exactly that window: a half month
-		// for semi-monthly terms, the cutoff window for monthly ones, never the run's envelope.
-		//
-		// The projection counts **payslips**, per cadence. A semi-monthly employment now receives one
-		// payslip per half, twenty-four before a January tax year is out; a monthly employment at the
-		// same company still receives twelve. `payProjection` also carries how much of a year each
-		// payslip stands for, so twenty-four half-month payslips project the same annual income as
-		// twelve monthly ones.
-		const projection = payProjection(period, taxYearStartMonth, bundle.window);
-		const measured = measureEmployment({
-			bundle,
-			configuration,
-			period,
-			salary: bundle.window.salary,
-			periodsRemaining: projection.payslipsRemaining,
-			headcount: gathered.headcount,
-			consumedEntries: gathered.consumedEntries,
-			consumedRepayments: gathered.consumedRepayments
-		});
-
-		for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
-			issues.push(
-				...validateOvertimeLimits({
-					configuration,
-					employeeNumber: bundle.employment.employee_number,
-					calendarMonth,
-					monthHours
-				})
-			);
-		}
-		// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
-		// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
-		// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
-		// inheriting one from a statute that does not govern it.
-		const dailyWorkLimit = dailyTotalWorkLimit(configuration);
-		if (dailyWorkLimit != null)
-			issues.push(
-				...validateDailyWorkLimit({
-					employeeNumber: bundle.employment.employee_number,
-					days: measured.overtimeDays,
-					maxWorkHours: dailyWorkLimit
-				})
-			);
-		const dailyOvertimeLimit = dailyOvertimeHoursLimit(configuration);
-		if (dailyOvertimeLimit != null)
-			issues.push(
-				...validateDailyOvertimeHoursLimit({
-					employeeNumber: bundle.employment.employee_number,
-					days: measured.overtimeDays,
-					maxOvertimeHours: dailyOvertimeLimit
-				})
-			);
-
-		// 5 — ACCUMULATE
-		//
-		// Both planes at once. A contribution base is a fact about the payslip, so which table an
-		// amount will be stored in cannot change what it is charged on; proration is deliberately
-		// absent, because it is the working behind a base amount and charging it would double the
-		// wage.
-		const bases = accumulateBases({
-			configuration,
-			items: [...measured.base, ...measured.adjustments],
-			employeeNumber: bundle.employment.employee_number
-		});
-
-		// 6 — CONTRIBUTE
-		const facts = new Map<string, StatutoryFactStatus>();
-		const statutoryAsOf = bundle.employedDays?.end ?? window.salary.end;
-		for (const fact of bundle.statutoryFacts) {
-			// A leaver's registration remains authoritative through their actual final day. Testing
-			// the calendar month's end instead would make every fact look expired and silently fall
-			// back to the scheme default during final pay.
-			if (!coversDate(fact.effective_range, statutoryAsOf)) continue;
-			const status = fact.status;
-			if (status == null) continue;
-			facts.set(fact.statutory_contribution_id, {
-				kind: status.kind,
-				rate_override: status.kind === 'REGISTERED' ? status.rate_override : null
-			});
-		}
-		const charges = contribute({
-			bases,
-			facts,
-			yearToDate: (code) =>
-				gathered.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
-					employee: 0,
-					employer: 0,
-					base: 0
-				},
-			age: bundle.age,
-			headcount: gathered.headcount,
-			riskClass: configuration.company.risk_class,
-			projection,
-			// The relief and the married scale turn on whether the spouse has income, not on
-			// `marital_status` — see employees.spouse_status.
-			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
-			dependents: decodeNumber(bundle.employee.dependents_count ?? 0)
-		});
-
+	const {
+		measuredContracts,
+		chargesByEmployment,
+		issues: familyIssues
+	} = calculateFamilyAssessments({ configuration, gathered, window, period });
+	issues.push(...familyIssues);
+	for (const { employment, measured, termsThrough } of measuredContracts) {
+		const charges = chargesByEmployment.get(employment.id)!;
 		// 7 — SETTLE
 		//
 		// A deduction the guard could not take is not carried anywhere. The adjustment records what
@@ -341,7 +205,8 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		});
 
 		pending.push({
-			employmentId: bundle.employment.id,
+			employmentId: employment.id,
+			termsThrough,
 			currency: measured.currency,
 			settlement,
 			// Evidence, not money: the segments explain the base amounts, and the negative-net guard
@@ -381,10 +246,8 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				payslip.payslip_work_day_input_payslip.length +
 				payslip.payslip_claim_request_input_payslip.length +
 				payslip.payslip_allowance_request_input_payslip.length +
-				payslip.payslip_bonus_request_input_payslip.length +
-				payslip.payslip_arrears_request_input_payslip.length +
-				payslip.payslip_correction_request_input_payslip.length +
-				payslip.payslip_leave_request_input_payslip.length +
+				payslip.payslip_payment_request_input_payslip.length +
+				payslip.payslip_leave_input_payslip.length +
 				payslip.payslip_loan_repayment_input_payslip.length,
 			0
 		),

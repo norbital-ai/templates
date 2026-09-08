@@ -1,7 +1,7 @@
 /**
  * The ordinary rate of pay, and one day's wages.
  *
- * The divisor is statutory and lives on `jurisdiction_settings.ordinary_rate` — Malaysia's 26 is EA s.60I,
+ * The divisor is statutory and lives on `work_catalogue.ordinary_rate` — Malaysia's 26 is EA s.60I,
  * Indonesia's 173 is PP 35/2021, Singapore's 190.67 is 12 × monthly ÷ (52 × 44). A company using
  * 30 where the statute says 26 underpays every overtime hour by 15%, which is why it is not a
  * company setting, and why the overtime rate is this rate and not a company-chosen alternative.
@@ -18,7 +18,7 @@
  */
 
 import { Schema } from 'effect';
-import type { Jurisdiction } from './configuration.js';
+import type { Work } from './configuration.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { countryOf } from '../../../lib/jurisdiction_settings.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -38,17 +38,17 @@ export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
 
 /**
  * The Philippines uses 261 annual days for a five-day week and 313 for a six-day week. The
- * jurisdiction row stores the common monthly divisor (261 / 12 = 21.75); the employee's stated
+ * work row stores the common monthly divisor (261 / 12 = 21.75); the employee's stated
  * working week selects the statutory 313-day alternative when it exceeds forty ordinary hours.
  *
- * This is employee-level law, so it cannot be represented by replacing the jurisdiction's one
+ * This is employee-level law, so it cannot be represented by replacing the work's one
  * divisor with a company-wide value.
  */
-function ordinaryRateDivisor(terms: RateTerms, jurisdiction: Jurisdiction): number {
-	const rate = jurisdiction.ordinary_rate;
-	if (rate == null) throw new Error('The jurisdiction states no ordinary rate.');
+function ordinaryRateDivisor(terms: RateTerms, work: Work): number {
+	const rate = work.ordinary_rate;
+	if (rate == null) throw new Error('The work states no ordinary rate.');
 	if (
-		countryOf(jurisdiction.code) === 'PH' &&
+		countryOf(work.jurisdiction_code) === 'PH' &&
 		decodeNumber(terms.ordinary_hours_per_week) > 40 &&
 		rate.per === 'DAY'
 	)
@@ -85,17 +85,16 @@ function monthlyBaseSalary(terms: RateTerms): number {
 }
 
 /** Pay for one ordinary hour, rounded to cents before any multiplication. */
-export function ordinaryHourlyRate(terms: RateTerms, jurisdiction: Jurisdiction): number {
+export function ordinaryHourlyRate(terms: RateTerms, work: Work): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
 	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'DAILY')
 		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
-	const divisor = ordinaryRateDivisor(terms, jurisdiction);
-	if (!(divisor > 0))
-		throw new Error('jurisdiction_settings.ordinary_rate.divisor must be positive.');
+	const divisor = ordinaryRateDivisor(terms, work);
+	if (!(divisor > 0)) throw new Error('work_catalogue.ordinary_rate.divisor must be positive.');
 	const monthly = monthlyBaseSalary(terms);
-	return jurisdiction.ordinary_rate?.per === 'HOUR'
+	return work.ordinary_rate?.per === 'HOUR'
 		? cents(monthly / divisor)
 		: cents(monthly / divisor / normalDailyHours(terms));
 }
@@ -107,23 +106,23 @@ export function ordinaryHourlyRate(terms: RateTerms, jurisdiction: Jurisdiction)
  * in the statute at all, so a day is the contracted daily hours priced at the hourly rate
  * (decision E28).
  */
-export function ordinaryDayWage(terms: RateTerms, jurisdiction: Jurisdiction): number {
+export function ordinaryDayWage(terms: RateTerms, work: Work): number {
 	// A DAILY contract states its day wage; an HOURLY one states it per hour, so a day is the
 	// contracted daily hours priced at that rate. Monthly staff read the divisor as before.
 	if (terms.pay_frequency === 'DAILY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'HOURLY')
 		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
-	const divisor = ordinaryRateDivisor(terms, jurisdiction);
+	const divisor = ordinaryRateDivisor(terms, work);
 	const monthly = monthlyBaseSalary(terms);
-	return jurisdiction.ordinary_rate?.per === 'HOUR'
+	return work.ordinary_rate?.per === 'HOUR'
 		? cents((monthly * normalDailyHours(terms)) / divisor)
 		: cents(monthly / divisor);
 }
 
-/** One day of withheld pay: the contract terms and the jurisdiction's proration divisor over a period. */
+/** One day of withheld pay: the contract terms and the work's proration divisor over a period. */
 type AbsenceDayRateOptions = {
 	readonly terms: RateTerms;
-	readonly jurisdiction: Jurisdiction;
+	readonly work: Work;
 	readonly period: { readonly start: string; readonly end: string };
 	readonly workingDaysIn: (range: { readonly start: string; readonly end: string }) => number;
 };
@@ -133,8 +132,8 @@ type AbsenceDayRateOptions = {
  *
  * Deliberately not `ordinaryDayWage`. That divisor answers "what is an extra day of work worth"
  * (EA s.60I: 26). Withholding pay for a day not worked is proration, and proration is configured in
- * exactly one place — `jurisdiction_settings.proration` — so an absence follows the month's calendar days,
- * its working days, or a fixed divisor, whichever that jurisdiction states.
+ * exactly one place — `work_catalogue.proration` — so an absence follows the month's calendar days,
+ * its working days, or a fixed divisor, whichever that work states.
  *
  * Conflating the two over-deducts by the ratio between the divisors: 31/26 in a 31-day Malaysian
  * month, about 19% on every employee with unpaid leave.
@@ -145,8 +144,8 @@ type AbsenceDayRateOptions = {
  */
 export function absenceDayRate(options: AbsenceDayRateOptions): number {
 	const monthly = monthlyBaseSalary(options.terms);
-	const proration = options.jurisdiction.proration;
-	if (proration == null) throw new Error('The jurisdiction states no proration basis.');
+	const proration = options.work.proration;
+	if (proration == null) throw new Error('The work states no proration basis.');
 	switch (proration.by) {
 		case 'CALENDAR_DAYS':
 			return cents(monthly / monthDays(options.period.start));

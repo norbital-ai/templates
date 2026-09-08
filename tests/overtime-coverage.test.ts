@@ -7,7 +7,7 @@ import {
 	decideOvertimeCoverage,
 	deriveStatutoryWages
 } from '../src/collections/payroll_runs/lib/coverage.ts';
-import { isStatutoryOvertimePayCovered } from '../src/collections/payroll_runs/lib/measure.ts';
+import { isStatutoryOvertimePayCovered } from '../src/lib/payroll/work.ts';
 
 /**
  * The Malaysian rule as seeded from the seed bank: Employment Act 1955 First Schedule paragraph 1A, as

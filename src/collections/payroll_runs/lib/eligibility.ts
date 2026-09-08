@@ -1,23 +1,17 @@
 /**
- * Eligibility.
+ * Shared CEL eligibility for family catalogues and claim cap layers.
  *
- * `leave_catalogue.eligibility`, `component_catalogue.eligibility` and a claim cap layer's `eligibility` are
- * one CEL boolean expression over the person, evaluated by Reckon exactly as a component's
- * `FORMULA` is (`./formula.ts`). The context is emitted whole, with empty strings and zeros rather
- * than absences, because CEL has no `?.` and a missing key throws. An empty expression is
- * everyone. An ineligible component produces nothing at all: no line, no feed into a base, no zero
- * row. An ineligible leave generates no entitlement row.
+ * Rules evaluate the person, contract terms and child facts on the input date. The context
+ * carries empty strings and zeros for missing facts. An empty expression includes everyone;
+ * an ineligible entry produces no pay item, and an ineligible date earns no leave.
  *
- * ```text
  * employee.gender  employee.age  employee.citizenship
  * employment.type  employment.classification  employment.service_months  employment.hire_date
  * terms.basic_salary  terms.workman  terms.department  terms.payroll_group
  * children.count  children.under(age)
- * ```
  *
- * A malformed expression is refused at write time by `compileEligibility`: it must parse, every
- * `root.member` it names must exist in the context, and it must evaluate to a boolean against a
- * blank person, the same way a bad formula is refused.
+ * compileEligibility validates syntax, available context members and a boolean result when
+ * the catalogue is written. Jurisdiction standing comes from the effective contract terms.
  */
 
 import { Effect } from 'effect';
@@ -73,10 +67,10 @@ type PersonInput = {
 		readonly gender?: string | null;
 		readonly date_of_birth?: string | null;
 		readonly nationality?: string | null;
-		readonly residency_status?: string | null;
 	} | null;
 	readonly employment: { readonly hire_date: string };
 	readonly terms: {
+		readonly residency_status?: string | null;
 		readonly employment_type?: string | null;
 		readonly work_classification?: string | null;
 		readonly base_salary?: unknown;
@@ -93,7 +87,7 @@ type PersonInput = {
 	readonly asOf: string;
 };
 
-/** The person context on one date, from the rows the reconciler and the engine already hold. */
+/** The person context on one date, from approved contract and personal facts. */
 export function personContext(input: PersonInput): PersonContext {
 	const hire = dateKey(input.employment.hire_date);
 	const born = dateKey(input.employee?.date_of_birth);
@@ -111,9 +105,9 @@ export function personContext(input: PersonInput): PersonContext {
 		employee: {
 			gender: input.employee?.gender ?? '',
 			age: born === '' ? 0 : completedYears(born, input.asOf),
-			// The employee's standing in this jurisdiction, never their free-text nationality: a rule
-			// written against the latter matches nobody and reports that as the answer.
-			citizenship: input.employee?.residency_status ?? ''
+			// Effective contract terms hold jurisdiction-relative standing. A concurrent contract
+			// elsewhere may have different standing; nationality is not a substitute.
+			citizenship: input.terms?.residency_status ?? ''
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',

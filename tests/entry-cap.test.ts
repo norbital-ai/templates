@@ -33,7 +33,7 @@ const PERSON: PersonContext = {
 	children: { count: 0, ages: [] }
 };
 
-const COMPONENT = 'component-1';
+const COMPONENT = { family: 'CLAIM', code: 'MEDICAL' };
 const EMPLOYMENT = 'employment-1';
 
 const layer = (over: Record<string, unknown> = {}) => ({
@@ -55,7 +55,8 @@ const cap = (over: Record<string, unknown> = {}) =>
 
 const entry = (id: string, amount: number, date: string) => ({
 	id,
-	component_catalogue_id: COMPONENT,
+	employment_id: EMPLOYMENT,
+	component: COMPONENT,
 	amount,
 	date
 });
@@ -63,13 +64,14 @@ const entry = (id: string, amount: number, date: string) => ({
 const resolve = (over: Record<string, unknown> = {}) =>
 	resolveEntryCap({
 		cap: cap(),
-		componentId: COMPONENT,
+		component: COMPONENT,
 		employmentId: EMPLOYMENT,
 		entry: entry('e2', 400, '2026-06-01'),
 		eventDate: '2026-06-01',
 		siblings: [],
 		eventDateOf: (row) => row.date,
-		signOf: () => 1,
+		componentOf: (row) => row.component,
+		usedAmountOf: (row) => row.amount,
 		subject: PERSON,
 		evaluateAward: (row) => (row.award.kind === 'FIXED' ? row.award.amount : null),
 		...over
@@ -129,13 +131,14 @@ test('a layer out of date, or one the person is not eligible for, does not apply
 				layers: [layer({ eligibility: "employee.gender == 'MALE'" })]
 			}
 		}),
-		componentId: COMPONENT,
+		component: COMPONENT,
 		employmentId: EMPLOYMENT,
 		entry: entry('e2', 400, '2026-06-01'),
 		eventDate: '2026-06-01',
 		siblings: [],
 		eventDateOf: (row) => row.date,
-		signOf: () => 1,
+		componentOf: (row) => row.component,
+		usedAmountOf: (row) => row.amount,
 		subject: { ...PERSON, employee: { ...PERSON.employee, gender: 'MALE' } },
 		evaluateAward: (row) => (row.award.kind === 'FIXED' ? row.award.amount : null)
 	} as never);
@@ -221,7 +224,8 @@ test('a reimbursement share below a hundred is what counts against the ceiling',
 				layers: [layer({ reimbursement_percentage: 80 })]
 			}
 		}),
-		siblings: [entry('e0', 500, '2026-01-10')]
+		siblings: [entry('e0', 500, '2026-01-10')],
+		usedAmountOf: (row) => row.amount * 0.8
 	});
 	assert.equal(resolved?.percentage, 80);
 	assert.equal(resolved?.exceededBy, 400, 'eighty per cent of the five hundred already claimed');

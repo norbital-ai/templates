@@ -30,9 +30,9 @@ const DAY_WAGE_RULE = {
 const configuration = (overrides = {}) => ({
 	jurisdiction: {
 		id: 'jur-my',
-		code: 'MY',
-		proration: { by: 'CALENDAR_DAYS' }
+		code: 'MY'
 	},
+	work: { id: 'work-my', proration: { by: 'CALENDAR_DAYS' } },
 	company: {
 		id: 'co-my',
 		name: 'Public Fixture Co',
@@ -68,8 +68,8 @@ test('an overtime rule with no band can never be entered, and still stops the ru
 	assert.equal(issues.length, 1);
 	assert.equal(issues[0].code, 'OVERTIME_RULE_UNBANDED');
 	assert.equal(blockers(issues).length, 1);
-	assert.equal(issues[0].collection, 'jurisdiction_settings');
-	assert.equal(issues[0].recordId, 'jur-my');
+	assert.equal(issues[0].collection, 'work_catalogue');
+	assert.equal(issues[0].recordId, 'work-my');
 });
 
 test('derived overtime is charged through the OVERTIME rows, which a priced regime must carry', () => {
@@ -84,6 +84,9 @@ test('derived overtime is charged through the OVERTIME rows, which a priced regi
 	};
 	const overtimeRow = (code, treatments) => ({
 		id: `pc-${code.toLowerCase()}`,
+		catalogue_id: 'work-my',
+		family: 'WORK',
+		output: code === 'OVERTIME_EXCESS' ? 'overtime_excess' : 'overtime',
 		code,
 		nature: 'EARNING',
 		is_statutory: true,
@@ -119,8 +122,8 @@ test('derived overtime is charged through the OVERTIME rows, which a priced regi
 	assert.equal(blockers(missing).length, 2);
 	assert.equal(missing[0].collection, 'companies');
 	assert.equal(missing[0].recordId, 'co-my');
-	assert.match(missing[0].message, /Public Fixture Co has no OVERTIME component/);
-	assert.match(missing[1].message, /no OVERTIME_EXCESS component/);
+	assert.match(missing[0].message, /Public Fixture Co has no overtime Work output/);
+	assert.match(missing[1].message, /no overtime_excess Work output/);
 
 	// Both rows present, but the excess row has not decided EPF: that cell is a missing decision.
 	const half = overtimeIssues([
@@ -129,6 +132,8 @@ test('derived overtime is charged through the OVERTIME rows, which a priced regi
 	]);
 	assert.equal(half.length, 1);
 	assert.equal(half[0].code, 'TREATMENT_MISSING');
+	assert.equal(half[0].collection, 'work_catalogue');
+	assert.equal(half[0].recordId, 'work-my');
 	assert.match(half[0].message, /No EPF treatment exists for OVERTIME_EXCESS/);
 
 	assert.deepEqual(

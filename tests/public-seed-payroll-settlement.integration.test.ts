@@ -9,13 +9,12 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	COMPANY_ID,
-	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
 test(
-	'payroll freezes inputs, refuses nested payment writes, retains paid output and pays only an ad hoc difference',
+	'payroll freezes inputs, refuses nested payment writes, retains paid output and refuses a second payroll for the same period',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-settlement');
@@ -31,19 +30,25 @@ test(
 					mutationPush(session.schemaFingerprint, body, bases),
 					headers
 				);
-			const createRun = async (id: string, run_kind: 'REGULAR' | 'AD_HOC') =>
+			const createRun = async (id: string, period = '2026-01') =>
 				command({
 					action: 'mutate',
 					collection: 'payroll_runs',
 					rows: [
 						{
 							action: 'create',
-							values: { id, company_id: COMPANY_ID, period: '2026-01', run_kind }
+							values: { id, company_id: COMPANY_ID, period }
 						}
 					]
 				});
-			const runId = crypto.randomUUID();
-			requireAccepted((await createRun(runId, 'REGULAR')).value, 'regular payroll');
+			const competingIds = [crypto.randomUUID(), crypto.randomUUID()];
+			const competing = await Promise.all(competingIds.map((id) => createRun(id)));
+			const accepted = competing.flatMap((result, index) =>
+				asRecord(result.value, 'concurrent payroll').resolution === 'accepted' ? [index] : []
+			);
+			assert.equal(accepted.length, 1, JSON.stringify(competing.map((row) => row.value)));
+			const runId = competingIds[accepted[0]];
+			assert.equal((await session.query('select id from payroll_runs')).length, 1);
 			const [run] = await session.query('select * from payroll_runs where id = $1', [runId]);
 			assert.ok(run);
 			const initial = await session.query(
@@ -115,8 +120,6 @@ test(
 			);
 			const [stored] = await session.query('select * from payroll_runs where id = $1', [runId]);
 			assert.equal(stored.lifecycle, 'PAID');
-			assert.equal(stored.core_input_hash, run.core_input_hash);
-			assert.equal(typeof stored.core_input_hash, 'string');
 			const removed = await command(
 				{ action: 'delete', collection: 'payroll_runs', ids: [runId] },
 				[
@@ -131,46 +134,195 @@ test(
 				'rejected',
 				JSON.stringify(removed.value)
 			);
-			const duplicate = await createRun(crypto.randomUUID(), 'REGULAR');
-			assert.match(JSON.stringify(duplicate.value), /ad hoc/);
-			// A fixture correction in the same month is additional monetary input, not a salary rewrite.
-			await session.query(
-				`insert into allowance_requests (employment_id, component_catalogue_id, amount, recurrence)
-			values ($1, $2, 100, $3)`,
-				[
-					EMPLOYMENT_ID,
-					'77777777-7777-4777-8777-777777777777',
-					// One stated period, so it is a one-off: a one-off depletes where a recurring
-					// allowance pays whole in every period its window covers.
-					{ kind: 'ONE_OFF', period: '2026-01' }
-				]
-			);
-			const supplementId = crypto.randomUUID();
-			const supplement = await createRun(supplementId, 'AD_HOC');
-			requireAccepted(supplement.value, `ad hoc payroll: ${JSON.stringify(supplement.value)}`);
-			const deltas = await session.query(
-				'select employment_id, gross, base, proration from payslips where payroll_run_id = $1',
-				[supplementId]
-			);
-			assert.equal(deltas.length, 4);
+			const duplicate = await createRun(crypto.randomUUID());
+			assert.match(JSON.stringify(duplicate.value), /already exists/);
 			assert.equal(
-				deltas.reduce((sum, row) => sum + Number(row.gross), 0),
-				100
+				(
+					await session.query('select id from payroll_runs where company_id = $1 and period = $2', [
+						COMPANY_ID,
+						'2026-01'
+					])
+				).length,
+				1
 			);
-			assert.ok(
-				deltas.every(
-					(row) =>
-						Array.isArray(row.base) &&
-						row.base.length === 0 &&
-						Array.isArray(row.proration) &&
-						row.proration.length === 0
-				)
+		} finally {
+			await session.stop();
+		}
+	}
+);
+
+test(
+	'departure creates no payout; approved manual encashment settles once in a later regular payroll',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const session = await startPublicSeedHost('manual-departure');
+		try {
+			const employmentId = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2';
+			const headers = bearerHeaders(session.credential);
+			const command = (
+				body: Parameters<typeof mutationPush>[1],
+				bases: Parameters<typeof mutationPush>[2] = []
+			) =>
+				postGuestCommand(
+					session.host.baseUrl,
+					'collections.mutate',
+					mutationPush(session.schemaFingerprint, body, bases),
+					headers
+				);
+			requireAccepted(
+				(
+					await command({
+						action: 'mutate',
+						collection: 'employment_departures',
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: crypto.randomUUID(),
+									employment_id: employmentId,
+									exit_date: '2026-02-10',
+									exit_reason: 'MISCONDUCT'
+								}
+							}
+						]
+					})
+				).value,
+				'record departure'
 			);
-			assert.deepEqual(
-				await session.query('select * from payslips where payroll_run_id = $1 order by id', [
-					runId
-				]),
-				initial
+
+			assert.equal(
+				(
+					await session.query('select id from leave_entries where employment_id = $1', [
+						employmentId
+					])
+				).length,
+				0
+			);
+			const entryId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await command({
+						action: 'mutate',
+						collection: 'leave_entries',
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: entryId,
+									employment_id: employmentId,
+									leave_catalogue_id: 'ffffffff-ffff-4fff-8fff-fffffffffff1',
+									reference: 'MANUAL-DEPARTURE-1',
+									certificate_file: null,
+									event: {
+										kind: 'ENCASHMENT',
+										source_window: { start: '2026-01-01', end: '2026-12-31' },
+										days: 2,
+										gross_amount: { currency: 'MYR', value: 200 },
+										rate: 100,
+										effective_on: '2026-03-01',
+										due_on: '2026-03-10',
+										reason: 'Explicit HR settlement decision'
+									}
+								}
+							}
+						]
+					})
+				).value,
+				'manual encashment'
+			);
+			const runId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await command({
+						action: 'mutate',
+						collection: 'payroll_runs',
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: runId,
+									company_id: COMPANY_ID,
+									period: '2026-03'
+								}
+							}
+						]
+					})
+				).value,
+				'March regular payroll'
+			);
+			const [slip] = await session.query(
+				'select id, gross, base from payslips where payroll_run_id = $1 and employment_id = $2',
+				[runId, employmentId]
+			);
+			assert.ok(slip);
+			assert.equal(Number(slip.gross), 200);
+			assert.deepEqual(slip.base, []);
+			assert.equal(
+				(
+					await session.query(
+						'select id from payslip_leave_inputs where leave_entry_id = $1 and payslip_id = $2',
+						[entryId, slip.id]
+					)
+				).length,
+				1
+			);
+			const [run] = await session.query('select row_version from payroll_runs where id = $1', [
+				runId
+			]);
+			requireAccepted(
+				(
+					await command(
+						{
+							action: 'mutate',
+							collection: 'payroll_runs',
+							rows: [{ action: 'update', values: { id: runId, lifecycle: 'PAID' } }]
+						},
+						[
+							{
+								row: { collection: 'payroll_runs', recordId: runId },
+								rowVersion: Number(run.row_version)
+							}
+						]
+					)
+				).value,
+				'settle March'
+			);
+			const nextId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await command({
+						action: 'mutate',
+						collection: 'payroll_runs',
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: nextId,
+									company_id: COMPANY_ID,
+									period: '2026-04'
+								}
+							}
+						]
+					})
+				).value,
+				'April regular payroll'
+			);
+			assert.equal(
+				(
+					await session.query(
+						'select id from payslips where payroll_run_id = $1 and employment_id = $2',
+						[nextId, employmentId]
+					)
+				).length,
+				0
+			);
+			assert.equal(
+				(
+					await session.query('select id from leave_entries where employment_id = $1', [
+						employmentId
+					])
+				).length,
+				1
 			);
 		} finally {
 			await session.stop();

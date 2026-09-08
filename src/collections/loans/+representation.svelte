@@ -174,15 +174,17 @@
 					relationOptions={employmentRelationOptions(scopedCompanyId)}
 				/>
 				<Field
-					name="component_catalogue_id"
+					name="loan_catalogue_id"
 					label={t('component.catalogue_component')}
 					relationOptions={{
 						label: (component) =>
 							component.code != null && component.code !== '' ? String(component.code) : '—',
-						where: {
-							nature: { eq: 'DEDUCTION' },
-							...inForceCatalogue('component_catalogue_settings', scopedSettingsCode)
-						},
+						// The loan catalogue is already the pay lines a loan recovers through, so the only
+						// condition left is the version of this entity's lineage in force today. The
+						// `nature: DEDUCTION` clause that used to sit here is gone with the merged
+						// catalogue: a recovery a company forgives, or an advance paid out through the line
+						// it is recovered on, is the company's business and not this picker's.
+						where: { ...inForceCatalogue('loan_catalogue_settings', scopedSettingsCode) },
 						orderBy: { code: 'asc' },
 						limit: 200
 					}}
@@ -238,6 +240,8 @@
 						<MatrixRenderer
 							rows={schedule}
 							columns={COLUMNS}
+							isRowDisabled={(row) => lockedIds.has(row.id)}
+							canRemoveRow={(row) => !lockedIds.has(row.id)}
 							emptyMessage={t('component.loan_schedule_empty')}
 							addRowLabel={t('component.add_repayment')}
 							createRow={() => createLoanRepaymentDraft(schedule.at(-1))}

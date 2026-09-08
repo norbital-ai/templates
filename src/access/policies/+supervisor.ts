@@ -3,7 +3,7 @@ import {
 	employeeSelfServiceGrants,
 	grantOn,
 	grantsOn,
-	leaveApproval,
+	timeOffEntryGrant,
 	mergeGrants,
 	peopleGrants,
 	leaveCalendarGrants,
@@ -67,15 +67,16 @@ export default {
 	grants: mergeGrants(
 		employeeSelfServiceGrants(),
 		referenceGrants('read'),
+		grantsOn('work_catalogue', ['read']),
 		grantsOn('leave_catalogue', ['read']),
-		grantsOn('company_holidays', ['read']),
+		grantsOn('jurisdiction_holiday_calendars', ['read']),
 		statutoryGrants('read'),
 		peopleGrants('read'),
 		leaveCalendarGrants(),
 		// The whole person-day, read. A supervisor sees the team's schedule and the team's clock;
 		// what they may *write* is the narrower half, below.
 		grantsOn('work_days', ['read']),
-		grantsOn('leave_requests', ['read']),
+		grantsOn('leave_entries', ['read']),
 		// Four families, and deliberately not the fifth. A supervisor who could see corrections could
 		// reconstruct what HR fixed about their own team's pay. This is stated here rather than
 		// subtracted higher up because one unconditional read in any policy this subject matches
@@ -83,8 +84,7 @@ export default {
 		// predicate that has to keep being right.
 		grantsOn('claim_requests', ['read']),
 		grantsOn('allowance_requests', ['read']),
-		grantsOn('bonus_requests', ['read']),
-		grantsOn('arrears_requests', ['read']),
+		grantsOn('payment_requests', ['read']),
 		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
 		// duplicate grant, which `mergeGrants` refuses.
 
@@ -103,8 +103,7 @@ export default {
 		// Raising leave is reviewed; amending one already raised is not. A supervisor amending a
 		// request is acting as its reviewer, so routing that back through review would ask them to
 		// approve themselves. Deleting is not theirs — a withdrawal at this rank goes to a manager.
-		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		grantsOn('leave_requests', ['mutate.existing'])
+		timeOffEntryGrant()
 	),
 	/**
 	 * What a holder of this policy may spend.

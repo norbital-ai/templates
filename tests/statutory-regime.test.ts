@@ -9,6 +9,7 @@ import {
 import { configurationSnapshot } from '../src/collections/payroll_runs/lib/configuration.ts';
 
 const regime = () => ({
+	holiday_rest_precedence: 'REST_DAY',
 	overtime_coverage: {
 		wage_ceiling: { value: 4_000, currency: 'MYR' },
 		ceiling_is_inclusive: true,
@@ -72,6 +73,11 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 				pay_cutoff_day: 21,
 				pay_frequency: 'MONTHLY'
 			},
+			work: {
+				proration: { by: 'CALENDAR_DAYS' },
+				ordinary_rate: { per: 'DAY', divisor: 26 },
+				regime: value
+			},
 			jurisdiction: {
 				id: 'jurisdiction-my-2026',
 				proration: { by: 'CALENDAR_DAYS' },
@@ -90,6 +96,8 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 			shiftById: new Map(),
 			patternById: new Map(),
 			holidays: new Map(),
+			holidayCalendars: [],
+			holidayInputs: [],
 			catalogueLeaves: []
 		},
 		'2026-08'

@@ -11,13 +11,29 @@
  */
 
 import { Effect } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { personContext, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
+import { resolveEmployment } from './employment-contract.js';
+import { dateKey } from './iso-day.js';
 
 const LIMIT = 10_000;
 
+/** Later obligations use the final terms of their own closed contract; in-service gaps stay gaps. */
+export function payRequestTerms<T extends { readonly effective_range: unknown }>(
+	terms: readonly T[],
+	employment: { readonly exit_date?: string | null },
+	eventDate: string
+): T | null {
+	const end = employment.exit_date == null ? null : dateKey(employment.exit_date);
+	const date = end != null && eventDate > end ? end : eventDate;
+	return terms.find((row) => coversDate(row.effective_range, date)) ?? null;
+}
+
 type CapSubject = {
 	readonly subject: PersonContext;
+	/** Reuses the approved history for each prior source's own rule date. */
+	readonly at: (date: string) => PersonContext;
 	/** How a refusal names the person: their employee number, as the run's own message does. */
 	readonly label: string;
 };
@@ -46,9 +62,17 @@ export function capSubject(
 	return Effect.gen(function* () {
 		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId }, approval_id: { isNull: true } },
-			columns: { id: true, employee_id: true, employee_number: true, hire_date: true }
+			columns: {
+				id: true,
+				employee_id: true,
+				employee_number: true,
+				hire_date: true,
+				effective_range: true
+			},
+			with: { employment_departure: { where: { approval_id: { isNull: true } } } }
 		});
 		if (employment == null) return null;
+		const contract = resolveEmployment(employment as Parameters<typeof resolveEmployment>[0]);
 		const [employee, terms, children] = yield* Effect.all(
 			[
 				api.db.employees.findFirst({
@@ -56,8 +80,7 @@ export function capSubject(
 					columns: {
 						gender: true,
 						date_of_birth: true,
-						nationality: true,
-						residency_status: true
+						nationality: true
 					}
 				}),
 				api.db.employment_terms.findMany({
@@ -71,14 +94,23 @@ export function capSubject(
 			],
 			{ concurrency: 'unbounded' }
 		);
-		return {
-			subject: personContext({
+		if (terms.length >= LIMIT || children.length >= LIMIT)
+			refuse('The contract cap eligibility history exceeds the supported read limit.');
+		const at = (date: string): PersonContext =>
+			personContext({
 				employee: employee as never,
 				employment: { hire_date: String(employment.hire_date) },
-				terms: (terms.find((row) => coversDate(row.effective_range, asOf)) ?? null) as never,
+				terms: payRequestTerms(
+					terms as readonly { effective_range: unknown }[],
+					contract,
+					date
+				) as never,
 				children: children as never,
-				asOf
-			}),
+				asOf: date
+			});
+		return {
+			subject: at(asOf),
+			at,
 			label:
 				employment.employee_number == null || employment.employee_number === ''
 					? employmentId

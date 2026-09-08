@@ -1,4 +1,12 @@
-import { boolean, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	boolean,
+	custom,
+	defineModel,
+	enums,
+	integer,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -24,7 +32,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with who pays, what keys its bands, how it rounds and which named special rules it implements. Sealed with its version; what it does with derived overtime is stated on the OVERTIME and OVERTIME_EXCESS catalogue rows like every other treatment.',
+			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with who pays, what keys its bands, how it rounds and which named special rules it implements. Sealed with its version. Source families declare the contribution treatment of their monetary outputs.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

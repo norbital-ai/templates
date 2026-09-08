@@ -17,7 +17,7 @@ const PERIOD = '2026-04';
 
 export const PAYROLL_CPU_BENCHMARK_FIXTURE = Object.freeze({
 	// Bump this identity whenever any fixture value or population rule changes.
-	id: 'hr-payroll:my-monthly-basic-epf-pcb:2026-04:290:v1',
+	id: 'hr-payroll:my-monthly-basic-epf-pcb:2026-04:290:v2',
 	employeeCount: EMPLOYEE_COUNT,
 	period: PERIOD,
 	profile:
@@ -38,6 +38,7 @@ const COMPANY = {
 const JURISDICTION = {
 	id: '00000000-0000-4000-8000-000000000002',
 	code: 'MY',
+	jurisdiction_code: 'MY',
 	name: 'Benchmark Malaysia profile',
 	sealed_at: '2020-01-01T00:00:00.000Z',
 	voided_at: null,
@@ -45,6 +46,14 @@ const JURISDICTION = {
 	cloned_from_id: null,
 	currency: 'MYR',
 	tax_year_start_month: 1,
+	effective_range: { start: '2020-01-01', end: null }
+} as const;
+
+const WORK = {
+	id: '00000000-0000-4000-8000-000000000006',
+	settings_id: JURISDICTION.id,
+	code: 'STANDARD',
+	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_rate: { per: 'DAY', divisor: 26 },
 	regime: {
@@ -52,8 +61,7 @@ const JURISDICTION = {
 		overtime_rules: [],
 		overtime_limits: [],
 		rest_break_rules: []
-	},
-	effective_range: { start: '2020-01-01', end: null }
+	}
 } as const;
 
 const EPF_ID = '00000000-0000-4000-8000-000000000003';
@@ -61,6 +69,8 @@ const PCB_ID = '00000000-0000-4000-8000-000000000004';
 const BASIC_ID = '00000000-0000-4000-8000-000000000005';
 
 const BASIC = {
+	family: 'WORK',
+	output: 'salary',
 	id: BASIC_ID,
 	settings_id: JURISDICTION.id,
 	code: 'BASIC',
@@ -210,6 +220,10 @@ const SHIFT_PATTERN = {
 const CONFIGURATION = {
 	company: COMPANY,
 	jurisdiction: JURISDICTION,
+	work: WORK,
+	holidayRestPrecedence: 'REST_DAY',
+	holidayCalendars: [],
+	holidayInputs: [],
 	contributions: CONTRIBUTIONS,
 	treatments: new Map(
 		CONTRIBUTIONS.map((entry) => [
@@ -308,6 +322,7 @@ export function makePayrollCpuBenchmarkPreparedRun(): PreparedRun {
 		gathered: {
 			bundles: Array.from({ length: EMPLOYEE_COUNT }, (_, index) => bundle(index, window)),
 			headcount: EMPLOYEE_COUNT,
+			workHolidayEvidence: { inputs: [], calendars: [] },
 			yearToDate: new Map(),
 			consumedEntries: new Map(),
 			consumedRepayments: new Map()

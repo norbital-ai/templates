@@ -39,6 +39,26 @@ type SilhouetteGeometry = Readonly<{
 
 const round = (value: number): number => Math.round(value * 100) / 100;
 
+/** The detector sees the same object-cover crop as the mirrored preview; the guide is symmetric. */
+export const faceInsideSilhouette = (
+	box: readonly [number, number, number, number],
+	image: FrameSize,
+	frame: FrameSize
+): boolean => {
+	const { head } = silhouetteGeometry(frame);
+	const [x, y, width, height] = box;
+	const halfWidth = (width * frame.width) / image.width / 2;
+	const halfHeight = (height * frame.height) / image.height / 2;
+	const dx = (((x + width / 2) * frame.width) / image.width - head.cx) / head.rx;
+	const dy = (((y + height / 2) * frame.height) / image.height - head.cy) / head.ry;
+	return (
+		halfHeight >= head.ry * 0.45 &&
+		halfWidth > 0 &&
+		(Math.abs(dx) + halfWidth / head.rx) ** 2 + dy ** 2 <= 1 &&
+		dx ** 2 + (Math.abs(dy) + halfHeight / head.ry) ** 2 <= 1
+	);
+};
+
 export const silhouetteGeometry = ({ width, height }: FrameSize): SilhouetteGeometry => {
 	const safeWidth = Math.max(1, width);
 	const safeHeight = Math.max(1, height);

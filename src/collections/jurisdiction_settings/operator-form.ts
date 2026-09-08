@@ -18,13 +18,11 @@ export const JURISDICTION_OPERATOR_HIDDEN_FIELDS = [
 
 export const JURISDICTION_OPERATOR_VISIBLE_FIELDS = [
 	'code',
+	'jurisdiction_code',
 	'name',
 	'currency',
 	'tax_year_start_month',
 	'effective_range',
-	'proration',
-	'ordinary_rate',
-	'regime',
 	'research_urls'
 ] as const;
 

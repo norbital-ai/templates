@@ -1,0 +1,56 @@
+[
+	{
+		"id": "3f8b21e3-7db5-5b24-a50a-3a5c2f2c4e25",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"employment_terms_id": "55555555-5555-4555-8555-555555555555",
+		"terms_through": null
+	},
+	{
+		"id": "ea5c5e7f-aee2-51b1-acc6-142b5c839a5d",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+		"employment_terms_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+		"terms_through": null
+	},
+	{
+		"id": "28c224de-5ca1-5d04-8eb0-d4728b6392f9",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+		"employment_terms_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd3",
+		"terms_through": null
+	},
+	{
+		"id": "08abdc5d-11c1-58e9-9fb4-dde974f89d64",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
+		"employment_terms_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd4",
+		"terms_through": null
+	},
+	{
+		"id": "49dcc096-0308-5a9d-8405-c93302c8bea4",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
+		"employment_statutory_facts_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa5",
+		"terms_through": null
+	},
+	{
+		"id": "604d52a3-505b-543e-904a-692036c21578",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"allowance_requests_id": "88888888-8888-4888-8888-888888888888",
+		"terms_through": null
+	},
+	{
+		"id": "f546382e-ed1e-552f-9282-d7c1e371a433",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+		"allowance_requests_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+		"terms_through": null
+	},
+	{
+		"id": "de17ddeb-7e01-5013-8ec9-87751f41e722",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+		"allowance_requests_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
+		"terms_through": null
+	},
+	{
+		"id": "6c0fc875-d910-52e7-81fa-a7da11b7ccc1",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"leave_entries_id": "ffffffff-ffff-4fff-8fff-fffffffffff2",
+		"terms_through": "2026-04-16"
+	}
+]

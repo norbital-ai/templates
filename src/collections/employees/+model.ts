@@ -28,23 +28,6 @@ export default defineModel(
 		 */
 		spouse_status: enums(['NONE', 'WITHOUT_INCOME', 'WITH_INCOME']),
 		nationality: text(),
-		/**
-		 * The employee's standing in the jurisdiction their employment is governed by, which is the
-		 * fact statutory eligibility actually turns on.
-		 *
-		 * `nationality` cannot answer this and is not a substitute for it. It is free text — the seed
-		 * bank alone carries `INDONESIAN`, `JAPANESE` and `Filipino` — so a rule written against it
-		 * silently matches nobody, which is the worst failure a statutory rule has: it reports the
-		 * empty answer as the correct one. And the two facts genuinely differ: a Singapore permanent
-		 * resident's nationality is Malaysian or Indian, yet they carry the same national service
-		 * liability a citizen does, so overwriting `nationality` with `PR` would corrupt the field
-		 * every people directory displays in order to answer a question it was never asked.
-		 *
-		 * Relative to the jurisdiction, not naming one: a leave row lives under a settings lineage
-		 * already, so CITIZEN under the SG lineage is a Singapore citizen and CITIZEN under MY is a
-		 * Malaysian one. `null` is unrecorded, and an unrecorded standing satisfies no rule.
-		 */
-		residency_status: enums(['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']),
 		identity_number: text(),
 		dependents_count: integer().notNull().default(0),
 		email: text(),

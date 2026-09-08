@@ -1,30 +1,31 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
-/**
- * `Finite` rather than `Number` for `days`: `Number` admits `NaN` and `Infinity`, and the
- * `z.number()` this replaced admitted neither. A `NaN` entitlement propagates through every merge
- * and comparison as `NaN` without ever failing, so the leave balance silently becomes unprintable.
- *
- * `band_from` sits on the layer itself: the band applies from that many completed months of
- * service upward, until a higher band takes over. A flat entitlement is `band_from: 0`.
- */
-const award = {
-	band_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
-	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
-} as const;
-
-/** The service bands of one leave, statutory or company policy alike: the row says which. */
-export const leaveEntitlementLayerSchema = Schema.Struct({
-	level: Schema.Literal('ORGANISATION'),
-	...award
-});
-
+/** Availability and earning belong to the leave definition, never to a yearly account. */
 export const leaveEntitlementValueSchema = Schema.Struct({
-	layers: Schema.Array(leaveEntitlementLayerSchema)
-});
-
-/** Strict standard view: a key no layer declares is refused rather than stripped. */
+	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED']),
+	year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
+	proration: Schema.Literals(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS']),
+	bands: Schema.Array(
+		Schema.Struct({
+			band_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+			days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
+		})
+	)
+}).check(
+	Schema.makeFilter(
+		(rule) =>
+			new Set(rule.bands.map((band) => band.band_from)).size === rule.bands.length ||
+			'Service band thresholds must be unique.'
+	),
+	Schema.makeFilter(
+		(rule) =>
+			rule.availability !== 'MONTHLY' ||
+			rule.proration !== 'NONE' ||
+			'Monthly release requires a monthly or daily earning basis.'
+	)
+);
+export type LeaveEntitlement = Schema.Schema.Type<typeof leaveEntitlementValueSchema>;
 export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlementValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 });
@@ -32,6 +33,6 @@ export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlement
 export default defineCustomType({
 	name: 'leave_entitlement',
 	description:
-		'The company service bands for one leave. Person-specific corrections are ledger adjustments, never policy embedded inside a leave.',
+		'Computed annual leave: service bands, availability and proration. Carry-forward and encashment are manually approved entries.',
 	schema: leaveEntitlementSchema
 });

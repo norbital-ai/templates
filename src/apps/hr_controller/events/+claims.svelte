@@ -48,10 +48,7 @@
 
 	type ClaimRow = WorkspaceRow<'claim_requests'> & {
 		readonly claim_request_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly claim_request_component_catalogue?: Pick<
-			WorkspaceRow<'component_catalogue'>,
-			'code'
-		> | null;
+		readonly claim_request_claim_catalogue?: Pick<WorkspaceRow<'claim_catalogue'>, 'code'> | null;
 		readonly payslip_claim_request_input_claim_request?: ReadonlyArray<
 			Pick<WorkspaceRow<'payslip_claim_request_inputs'>, 'period'>
 		> | null;
@@ -97,20 +94,19 @@
 					orderBy: { incurred_on: 'desc' },
 					with: {
 						claim_request_employment: { columns: { employee_number: true } },
-						claim_request_component_catalogue: { columns: { code: true } },
+						claim_request_claim_catalogue: { columns: { code: true } },
 						payslip_claim_request_input_claim_request: { columns: { period: true } }
 					}
 				}}
 			>
 				{#snippet columns({ Column })}
 					<Column
-						name="component_catalogue_id"
+						name="claim_catalogue_id"
 						label={t('component.component')}
 						card="title"
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }: { row: ClaimRow }) =>
-								row.claim_request_component_catalogue?.code ?? '—'
+							format: ({ row }: { row: ClaimRow }) => row.claim_request_claim_catalogue?.code ?? '—'
 						}}
 					/>
 					<Column
@@ -124,6 +120,12 @@
 						}}
 					/>
 					<Column name="amount" label={t('component.amount')} />
+					<!--
+						Whether this one settles against its component's declared direction. It is the whole
+						of what a correction is now, so it is a column rather than a fact you open a row to
+						find: the family that used to carry it had its own page.
+					-->
+					<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
 					<Column name="incurred_on" label={t('component.incurred_on')} />
 					<Column name="evidence_file" label={t('component.evidence_file')} />
 					<!--

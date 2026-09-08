@@ -2,7 +2,7 @@
  * Client-side scoping by jurisdiction settings lineage.
  *
  * A company binds to a lineage by `settings_code`, and every catalogue row (leave catalogue entries, pay
- * components, holidays, schemes) belongs to one version of it through `settings_id`. A page that
+ * components, schemes) belongs to one version of it through `settings_id`. A page that
  * shows an entity's catalogue therefore asks for rows whose version is on the lineage, or whose
  * version is the one in force on a day, as one relationship predicate on the child query rather
  * than a second query for the versions.

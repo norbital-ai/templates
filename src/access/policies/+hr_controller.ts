@@ -2,8 +2,7 @@ import {
 	captureLedgerGrants,
 	grantsOn,
 	grantOn,
-	leaveApproval,
-	manualLeaveAdjustmentGrant,
+	hrLeaveEntryGrant,
 	mergeGrants,
 	payrollGrants,
 	payrollRunApprovalFromController,
@@ -92,11 +91,11 @@ export default {
 		 * The request path, unconditional and stated here rather than folded into `peopleGrants`.
 		 *
 		 * This is the whole of "only HR-policy holders may add corrections": no policy on the ordinary
-		 * ladder holds any grant at all on `correction_requests`. An employee holds `mutate.new` on
-		 * `claim_requests` pinned to their own employment, and supervisor and manager hold reads on
-		 * the four families that are not corrections. There is nothing to subtract, because
-		 * correction authority was never added below this policy — and it is now the absence of a
-		 * grant rather than a jsonb predicate that has to keep being right.
+		 * ladder may raise one. An employee holds `mutate.new` on `claim_requests` alone, pinned to
+		 * their own employment, and supervisor and manager hold reads. A correction is an entry
+		 * with `as_adjustment_entry` set, so the authority to make one is the authority to write
+		 * the family it belongs to — which below this policy is a claim about oneself and nothing
+		 * else.
 		 *
 		 * Unconditional on read, too, which is the other half of the rule — a correction-hiding
 		 * predicate is absent here on purpose, so a controller sees the corrections everyone below
@@ -108,9 +107,7 @@ export default {
 		 */
 		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('bonus_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('arrears_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('correction_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('payment_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 
@@ -122,9 +119,8 @@ export default {
 		// leaves the bad row sitting in the run.
 		workDayWriteGrants(),
 
-		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
-		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		manualLeaveAdjustmentGrant(true),
+		grantsOn('leave_entries', ['read']),
+		hrLeaveEntryGrant(true),
 
 		payrollGrants('read'),
 		// The Scheduling app reads the capture junctions as this subject to mark consumed days.

@@ -1,12 +1,5 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
-/**
- * HR15: derived overtime is charged through the OVERTIME and OVERTIME_EXCESS catalogue rows.
- *
- * A derived overtime line names no component; its label is the rule key. ACCUMULATE resolves
- * the statutory row by that label and reads the scheme's cell off the row's
- * `contribution_treatments`. A catalogue without the row, or a row without the scheme's cell, is
- * refused naming the component and the scheme rather than read as EXCLUDE.
- */
+/** Work supplies output metadata; Contribution never derives a pay item from an overtime label. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { accumulateBases } from '../src/collections/payroll_runs/lib/accumulate.ts';
@@ -35,6 +28,8 @@ const EPF = {
 
 const component = (code, treatments, definition) => ({
 	id: `pc-${code.toLowerCase()}`,
+	family: 'WORK',
+	output: code === 'OVERTIME_EXCESS' ? 'overtime_excess' : 'overtime',
 	company_id: 'co-1',
 	code,
 	is_statutory: true,
@@ -55,7 +50,8 @@ const configuration = (catalogueComponents, overtimeRules = []) => {
 		}
 	return {
 		company: { id: 'co-1', name: 'Fixture Co' },
-		jurisdiction: { id: 'jur-1', code: 'MY', proration: { by: 'CALENDAR_DAYS' } },
+		jurisdiction: { id: 'jur-1', code: 'MY' },
+		work: { proration: { by: 'CALENDAR_DAYS' } },
 		leaveProfiles: [],
 		contributions: [EPF],
 		treatments,
@@ -72,32 +68,11 @@ const configuration = (catalogueComponents, overtimeRules = []) => {
 	};
 };
 
-const overtimeLine = (label, amount = 100) => ({
-	catalogueComponent: null,
+const overtimeLine = (catalogueComponent, label, amount = 100) => ({
+	catalogueComponent,
 	nature: 'EARNING',
 	label,
 	amount
-});
-
-test('ACCUMULATE refuses derived overtime when the catalogue has no OVERTIME row, naming it and the scheme', () => {
-	assert.throws(
-		() =>
-			accumulateBases({
-				configuration: configuration([]),
-				items: [overtimeLine('OT_ORDINARY_BEYOND_NORMAL_0')],
-				employeeNumber: 'EMP-1'
-			}),
-		(error) => /OVERTIME/.test(error.message) && /EPF/.test(error.message)
-	);
-	assert.throws(
-		() =>
-			accumulateBases({
-				configuration: configuration([component('OVERTIME', { EPF: { kind: 'EXCLUDE' } })]),
-				items: [overtimeLine('OT_EXCESS_ORDINARY_BEYOND_NORMAL_0')],
-				employeeNumber: 'EMP-1'
-			}),
-		(error) => /OVERTIME_EXCESS/.test(error.message) && /EPF/.test(error.message)
-	);
 });
 
 test('ACCUMULATE refuses an OVERTIME row whose map has no cell for the scheme, naming both', () => {
@@ -105,7 +80,7 @@ test('ACCUMULATE refuses an OVERTIME row whose map has no cell for the scheme, n
 		() =>
 			accumulateBases({
 				configuration: configuration([component('OVERTIME', {})]),
-				items: [overtimeLine('OT_ORDINARY_BEYOND_NORMAL_0')],
+				items: [overtimeLine(component('OVERTIME', {}), 'OT_ORDINARY_BEYOND_NORMAL_0')],
 				employeeNumber: 'EMP-1'
 			}),
 		(error) => /No EPF treatment exists for OVERTIME/.test(error.message)
@@ -120,8 +95,8 @@ test('the OVERTIME and OVERTIME_EXCESS rows decide the scheme base of derived ov
 	const [base] = accumulateBases({
 		configuration: configuration(rows),
 		items: [
-			overtimeLine('OT_ORDINARY_BEYOND_NORMAL_0', 120),
-			overtimeLine('OT_EXCESS_ORDINARY_BEYOND_NORMAL_0', 45)
+			overtimeLine(rows[0], 'OT_ORDINARY_BEYOND_NORMAL_0', 120),
+			overtimeLine(rows[1], 'OT_EXCESS_ORDINARY_BEYOND_NORMAL_0', 45)
 		],
 		employeeNumber: 'EMP-1'
 	});
@@ -144,7 +119,7 @@ test('a jurisdiction that prices overtime needs both statutory rows before the r
 	);
 	const missing = issues.filter((issue) => issue.code === 'OVERTIME_COMPONENT_MISSING');
 	assert.equal(missing.length, 1, JSON.stringify(issues));
-	assert.match(missing[0].message, /OVERTIME_EXCESS/);
+	assert.match(missing[0].message, /overtime_excess/);
 	assert.match(missing[0].message, /MY/);
 	assert.equal(
 		validateConfiguration(configuration([], [])).filter(

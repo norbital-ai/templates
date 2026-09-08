@@ -9,7 +9,6 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -53,9 +52,13 @@ test(
 				'team',
 				'jurisdiction_settings',
 				'companies',
+				'work_catalogue',
 				'statutory_contributions',
 				'leave_catalogue',
-				'component_catalogue',
+				'claim_catalogue',
+				'allowance_catalogue',
+				'payment_catalogue',
+				'jurisdiction_holiday_calendars',
 				'contribution_rates',
 				'employees',
 				'shift_definitions',
@@ -63,8 +66,10 @@ test(
 				'employments',
 				'employment_statutory_facts',
 				'employment_terms',
-				'leave_requests',
-				'allowance_requests'
+				'leave_entries',
+				'allowance_requests',
+				'holiday_calendar_inputs',
+				'employment_contract_inputs'
 			]
 		);
 
@@ -376,7 +381,7 @@ test(
 );
 
 /**
- * A3 command half. HQ Payroll HR `leave_requests.mutate.new` is approval-gated and does not expand.
+ * A3 command half. HQ Payroll HR `leave_entries.mutate.new` is approval-gated and does not expand.
  * Founder admin auto-commits (T4). Form toast remains headed.
  */
 test(
@@ -386,7 +391,7 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-a3-approval');
 		try {
 			const before = (await session.query(
-				`select count(*)::int as n from leave_requests where employment_id = $1`,
+				`select count(*)::int as n from leave_entries where employment_id = $1`,
 				[EMPLOYMENT_ID]
 			)) as ReadonlyArray<{ readonly n: number }>;
 			const previewHeaders = {
@@ -408,7 +413,7 @@ test(
 			const explained = await postGuestCommand(
 				session.host.baseUrl,
 				'access.explain',
-				{ action: 'create', resource: 'leave_requests' },
+				{ action: 'create', resource: 'leave_entries' },
 				previewHeaders
 			);
 			assert.ok(
@@ -418,14 +423,14 @@ test(
 			assert.equal(
 				asRecord(explained.value, 'access.explain').allowed,
 				true,
-				`A3 explain create leave_requests: ${JSON.stringify(explained.value)}`
+				`A3 explain create leave_entries: ${JSON.stringify(explained.value)}`
 			);
 			const created = await postGuestCommand(
 				session.host.baseUrl,
 				CREATE_PAYROLL_COMMAND,
 				mutationPush(session.schemaFingerprint, {
 					action: 'mutate',
-					collection: 'leave_requests',
+					collection: 'leave_entries',
 					rows: [
 						{
 							action: 'create',
@@ -433,7 +438,7 @@ test(
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
 								leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-								leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
+								reference: 'PUBLIC-PENDING-2026-04-15',
 								event: {
 									kind: 'TIME_OFF',
 									range: {
@@ -465,11 +470,11 @@ test(
 				`A3 expected pendingApproval, got ${JSON.stringify(created.value)}`
 			);
 			const approval = asRecord(pending, 'pendingApproval');
-			assert.equal(approval.collection, 'leave_requests');
+			assert.equal(approval.collection, 'leave_entries');
 			assert.equal(approval.action, 'create');
 			assert.equal(typeof approval.requestId, 'string');
 			const after = (await session.query(
-				`select count(*)::int as n from leave_requests where employment_id = $1`,
+				`select count(*)::int as n from leave_entries where employment_id = $1`,
 				[EMPLOYMENT_ID]
 			)) as ReadonlyArray<{ readonly n: number }>;
 			assert.equal(after[0]?.n, before[0]?.n, 'approval-gated create must not insert the row');

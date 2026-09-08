@@ -69,12 +69,10 @@ test('the model base resolves beside this chunk and names every enabled model', 
 	assert.ok(KIOSK_MODEL_BASE.endsWith('/models/human/'), KIOSK_MODEL_BASE);
 	assert.ok(!KIOSK_MODEL_BASE.startsWith('/__bolt/static/'), 'no absolute, unversioned path');
 	assert.deepEqual([...KIOSK_REQUIRED_MODELS].toSorted(), [
-		'antispoof',
 		'blazeface',
 		'facemesh',
 		'faceres',
-		'iris',
-		'liveness'
+		'iris'
 	]);
 });
 

@@ -40,7 +40,7 @@ const source = (path: string): string =>
 const QUANTIFIERS = new Set(['some', 'none', 'every']);
 
 test('a catalogue predicate reaches its version under a quantifier', () => {
-	for (const relation of ['leave_catalogue_settings', 'component_catalogue_settings'] as const) {
+	for (const relation of ['leave_catalogue_settings', 'payment_catalogue_settings'] as const) {
 		const predicate = inForceCatalogue(relation, 'PUB', '2026-03-10');
 		assert.ok(predicate !== undefined, `${relation} produced no predicate for a scoped page`);
 		const keys = Object.keys(predicate);
@@ -66,7 +66,7 @@ test('an unscoped page narrows nothing rather than showing nothing', () => {
 	// A form opened outside a scoped page — a finder result, a link — must keep working. Returning
 	// an empty predicate instead of `undefined` would filter the picker down to nothing at all.
 	assert.equal(inForceCatalogue('leave_catalogue_settings', undefined), undefined);
-	assert.equal(inForceCatalogue('component_catalogue_settings', undefined), undefined);
+	assert.equal(inForceCatalogue('payment_catalogue_settings', undefined), undefined);
 	const unscoped = employmentRelationOptions(undefined);
 	assert.equal(
 		Object.hasOwn(unscoped, 'where'),
@@ -90,13 +90,11 @@ test('every controller page sets the scope, and every form it opens reads it', (
 	// read from source. Both halves are checked: a page that stops providing it and a form that
 	// stops consuming it fail the same way — silently, back to every version of everything.
 	for (const page of [
-		'src/apps/hr_controller/+leave.svelte',
-		'src/apps/hr_controller/+loans.svelte',
+		'src/apps/hr_controller/events/+leave.svelte',
+		'src/apps/hr_controller/events/+loans.svelte',
 		'src/apps/hr_controller/events/+claims.svelte',
 		'src/apps/hr_controller/events/+allowances.svelte',
-		'src/apps/hr_controller/events/+bonuses.svelte',
-		'src/apps/hr_controller/events/+arrears.svelte',
-		'src/apps/hr_controller/events/+corrections.svelte'
+		'src/apps/hr_controller/events/+payments.svelte'
 	]) {
 		const text = source(page);
 		assert.match(
@@ -106,13 +104,11 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		);
 	}
 	for (const representation of [
-		'src/collections/leave_requests/+representation.svelte',
+		'src/collections/leave_entries/+representation.svelte',
 		'src/collections/loans/+representation.svelte',
 		'src/collections/claim_requests/+representation.svelte',
 		'src/collections/allowance_requests/+representation.svelte',
-		'src/collections/bonus_requests/+representation.svelte',
-		'src/collections/arrears_requests/+representation.svelte',
-		'src/collections/correction_requests/+representation.svelte'
+		'src/collections/payment_requests/+representation.svelte'
 	]) {
 		const text = source(representation);
 		assert.match(text, /hrCreateScope\(\)/, `${representation} does not read the create scope`);

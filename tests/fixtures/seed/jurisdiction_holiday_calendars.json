@@ -1,0 +1,26 @@
+[
+	{
+		"id": "bbbbbbbb-bbbb-4bbb-8bbb-000000002025",
+		"jurisdiction_code": "TEST-JUR",
+		"year": 2025,
+		"revision": 1,
+		"published_at": "2024-12-01T00:00:00.000Z",
+		"observations": []
+	},
+	{
+		"id": "bbbbbbbb-bbbb-4bbb-8bbb-000000002026",
+		"jurisdiction_code": "TEST-JUR",
+		"year": 2026,
+		"revision": 1,
+		"published_at": "2024-12-01T00:00:00.000Z",
+		"observations": []
+	},
+	{
+		"id": "bbbbbbbb-bbbb-4bbb-8bbb-000000002027",
+		"jurisdiction_code": "TEST-JUR",
+		"year": 2027,
+		"revision": 1,
+		"published_at": "2024-12-01T00:00:00.000Z",
+		"observations": []
+	}
+]

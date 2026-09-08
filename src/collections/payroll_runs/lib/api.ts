@@ -57,7 +57,7 @@ function createReadLog(): ReadLog {
 			if (rows.length >= PAGE_LIMIT)
 				throw new Error(
 					`Payroll reached its ${PAGE_LIMIT.toLocaleString('en')}-row ceiling loading ${what}. ` +
-						'Split the run rather than trusting a truncated read.'
+						'The complete input must be loaded before this payroll can be calculated.'
 				);
 			return rows;
 		},

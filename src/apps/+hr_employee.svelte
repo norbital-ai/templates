@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { resolveEmployment } from '../lib/employment-contract.js';
+	import { HOLIDAY_CALENDAR_QUERY_LIMIT, holidayCalendarView } from '../lib/ui/holiday-calendar.js';
+	import { settingsInForce } from '../lib/jurisdiction_settings.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
@@ -26,12 +29,10 @@
 	import {
 		formatCalendarDate,
 		formatDurationHours,
-		formatLeaveRange,
 		formatNumeric
 	} from '../lib/ui/display-formatters.js';
-	import { leaveBalanceSummary } from '../lib/leave/ledger.js';
-	import { describeExit, describeYearEnd } from '../lib/leave/rules.js';
-	import { measuredLeaveRequestDays } from '../lib/leave/pending.js';
+	import type { RemoteQuery } from '@norbital-ai/std/collection';
+	import type { LeaveBalanceSummaries } from '../lib/leave/summary.js';
 	import {
 		PAYROLL_TIME_ZONE,
 		daysBetweenKeys,
@@ -69,12 +70,11 @@
 		payRequestRecordMetadata,
 		sourceLock,
 		sourceLockReason,
-		sourceLockRecordMetadata,
 		type DayLock,
 		type SourceLock
 	} from '../lib/scheduling/lock.js';
 	import { setContext } from 'svelte';
-	import { inForceSettings } from '../lib/ui/settings-scope.js';
+	import { onLineage } from '../lib/ui/settings-scope.js';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../lib/ui/create-scope.js';
 
 	const user = getPlatformStateContext()().user;
@@ -122,15 +122,16 @@
 	const employmentsQuery = $derived(
 		employeeId
 			? client.db.employments.findMany({
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: { employee_id: { eq: employeeId }, approval_id: { isNull: true } },
 					limit: 10
 				})
 			: null
 	);
 	const activeEmployments = $derived(
-		(employmentsQuery?.current ?? []).filter((employment) =>
-			inForceOnDay(employment.effective_range, today)
-		)
+		(employmentsQuery?.current ?? [])
+			.map(resolveEmployment)
+			.filter((employment) => inForceOnDay(employment.effective_range, today))
 	);
 	let selectedEmploymentId = $state<string | null>(null);
 	const employmentOptions = $derived(
@@ -219,23 +220,6 @@
 		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
 	};
 
-	type CapturedRequest = WorkspaceRow<'leave_requests'> & {
-		readonly payslip_leave_request_input_leave_request?: ReadonlyArray<{
-			readonly period: string;
-		}>;
-	};
-
-	function leaveRowLock(row: CapturedRequest) {
-		const capture = row.payslip_leave_request_input_leave_request?.[0] ?? null;
-		return sourceLock({
-			existing: true,
-			approvalId: row.approval_id,
-			dates: [],
-			settledBy: capture == null ? null : { period: capture.period },
-			datePassed: 'IS_NOT_A_LOCK'
-		});
-	}
-
 	/**
 	 * What holds one attendance record — and, deliberately, nothing about what day it falls on.
 	 *
@@ -280,10 +264,7 @@
 		readonly payslip_allowance_request_input_allowance_request?: ReadonlyArray<{
 			readonly period: string;
 		}>;
-		readonly payslip_bonus_request_input_bonus_request?: ReadonlyArray<{
-			readonly period: string;
-		}>;
-		readonly payslip_arrears_request_input_arrears_request?: ReadonlyArray<{
+		readonly payslip_payment_request_input_payment_request?: ReadonlyArray<{
 			readonly period: string;
 		}>;
 	};
@@ -302,18 +283,13 @@
 		return row.payslip_payroll_run?.period ?? '—';
 	}
 
-	/** Fill width for a leave meter — empty when the track has no length. */
-	function leaveMeterWidth(value: number, total: number): string {
-		return `${EffectNumber.clamp({ minimum: 0, maximum: 100 })(total <= 0 ? 0 : (value / total) * 100)}%`;
-	}
-
 	/* ──────────────────────────────────────────────────────────────────────────────────────────────
 	 * MY SCHEDULE
 	 *
 	 * The controller's board and this calendar are one derived fact table drawn at two densities.
 	 * Every query below is the board's query with `company_id` swapped for `employment_id`, which is
 	 * why they are roughly 1/300th of its size and why none of them needed a policy change: the
-	 * `employee` policy already scopes `work_days`, `leave_requests` and
+	 * `employee` policy already scopes `work_days`, `leave_entries` and
 	 * `employment_terms` to the reader's own employments, and `employeeReferenceGrants` already hands
 	 * them the company-wide calendars — holidays and shift definitions — that a personal
 	 * schedule is meaningless without.
@@ -373,36 +349,38 @@
 	const scheduleLeaveQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.leave_requests.findMany({
+			: client.db.leave_entries.findMany({
 					where: {
 						...approved,
 						employment_id: { eq: employmentId },
 						kind: { eq: 'TIME_OFF' },
+						leave_original_reversals: { none: { approval_id: { isNull: true } } },
 						from_date: { lte: scheduleMonthEnd },
 						to_date: { gte: scheduleMonthStart }
 					},
-					with: { leave_request_leave_catalogue: { columns: { code: true } } },
+					with: { leave_entry_leave_catalogue: { columns: { code: true } } },
 					limit: 200
 				})
 	);
 	const schedulePendingLeaveQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.leave_requests.findMany({
+			: client.db.leave_entries.findMany({
 					where: {
 						approval_id: { isNotNull: true },
 						employment_id: { eq: employmentId },
 						kind: { eq: 'TIME_OFF' },
+						leave_original_reversals: { none: { approval_id: { isNull: true } } },
 						from_date: { lte: scheduleMonthEnd },
 						to_date: { gte: scheduleMonthStart }
 					},
-					with: { leave_request_leave_catalogue: { columns: { code: true } } },
+					with: { leave_entry_leave_catalogue: { columns: { code: true } } },
 					limit: 200
 				})
 	);
 	/** The leave codes the calendar labels, carried by the request rows themselves. */
-	type LabelledRequest = WorkspaceRow<'leave_requests'> & {
-		readonly leave_request_leave_catalogue?: Pick<WorkspaceRow<'leave_catalogue'>, 'code'> | null;
+	type LabelledRequest = WorkspaceRow<'leave_entries'> & {
+		readonly leave_entry_leave_catalogue?: Pick<WorkspaceRow<'leave_catalogue'>, 'code'> | null;
 	};
 	const leaveCodeById = $derived(
 		new Map(
@@ -410,9 +388,9 @@
 				...((scheduleLeaveQuery?.current ?? []) as LabelledRequest[]),
 				...((schedulePendingLeaveQuery?.current ?? []) as LabelledRequest[])
 			].flatMap((request) =>
-				request.leave_request_leave_catalogue == null
+				request.leave_entry_leave_catalogue == null
 					? []
-					: [[request.leave_catalogue_id, request.leave_request_leave_catalogue.code] as const]
+					: [[request.leave_catalogue_id, request.leave_entry_leave_catalogue.code] as const]
 			)
 		)
 	);
@@ -421,18 +399,47 @@
 			? null
 			: (companyById.get(activeEmployment.company_id)?.settings_code ?? null)
 	);
-	const scheduleHolidaysQuery = $derived(
+	const scheduleCalendarSettingsQuery = $derived(
 		activeSettingsCode == null
 			? null
-			: client.db.company_holidays.findMany({
-					where: {
-						...approved,
-						holiday_settings: { some: inForceSettings(activeSettingsCode, scheduleMonthStart) },
-						date: { gte: scheduleMonthStart, lte: scheduleMonthEnd }
-					},
-					limit: 200
+			: client.db.jurisdiction_settings.findMany({
+					where: onLineage(activeSettingsCode),
+					limit: HOLIDAY_CALENDAR_QUERY_LIMIT
 				})
 	);
+	const scheduleCalendarJurisdiction = $derived(
+		activeSettingsCode == null
+			? null
+			: (settingsInForce(
+					scheduleCalendarSettingsQuery?.current ?? [],
+					activeSettingsCode,
+					scheduleMonthEnd
+				)?.jurisdiction_code ?? null)
+	);
+	const scheduleHolidaysQuery = $derived(
+		scheduleCalendarJurisdiction == null
+			? null
+			: client.db.jurisdiction_holiday_calendars.findMany({
+					where: {
+						...approved,
+						jurisdiction_code: { eq: scheduleCalendarJurisdiction },
+						year: { eq: Number(scheduleMonthStart.slice(0, 4)) }
+					},
+					limit: HOLIDAY_CALENDAR_QUERY_LIMIT
+				})
+	);
+	const scheduleCalendarResolution = $derived(
+		holidayCalendarView({
+			settingsCount: scheduleCalendarSettingsQuery?.current?.length,
+			jurisdiction: scheduleCalendarJurisdiction,
+			calendars: scheduleHolidaysQuery?.current,
+			start: scheduleMonthStart,
+			end: scheduleMonthEnd,
+			noJurisdiction: t('holiday_calendar.no_jurisdiction'),
+			truncated: t('holiday_calendar.truncated')
+		})
+	);
+
 	const scheduleShiftsQuery = $derived(
 		activeEmployment == null
 			? null
@@ -496,85 +503,20 @@
 			limit: 200
 		});
 	});
-	const PENDING_LEAVE_LIMIT = 2_000;
-	/** Held applications reserve balance: committed rows and visible proposals, including requests HR raises on this employee's behalf. */
-	const myLeavePendingQuery = $derived(
-		employmentId == null
-			? null
-			: client.pending.findMany('leave_requests', {
-					where: { employment_id: { eq: employmentId } },
-					limit: PENDING_LEAVE_LIMIT
-				})
-	);
-	type EntitlementWithEntries = WorkspaceRow<'leave_entitlements'> & {
-		readonly entry_leave_entitlement?: ReadonlyArray<
-			Pick<WorkspaceRow<'leave_entries'>, 'kind' | 'days' | 'effective_on' | 'expires_on'>
-		>;
-	};
-	/** The one live query of the balance panel: entitlements open today, each with its posted ledger. */
-	const leaveEntitlementsQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.leave_entitlements.findMany({
-					where: {
-						employment_id: { eq: employmentId },
-						approval_id: { isNull: true },
-						status: { eq: 'OPEN' },
-						starts_on: { lte: today },
-						ends_on: { gte: today }
-					},
-					orderBy: { leave_code: 'asc' },
-					with: {
-						entry_leave_entitlement: {
-							columns: { kind: true, days: true, effective_on: true, expires_on: true }
-						}
-					},
-					limit: 500
-				})
-	);
-	const currentLeaveEntitlements = $derived(
-		(leaveEntitlementsQuery?.current ?? []) as EntitlementWithEntries[]
-	);
 	const settlementByWorkDayId = $derived(
 		capturesBySource(scheduleSettlementsQuery?.current, 'work_day_id')
 	);
+	const leaveBalancesQuery = $derived(
+		employmentId == null
+			? null
+			: (client.invoke.leave_balances({
+					employment_id: employmentId,
+					as_of: today
+				}) as RemoteQuery<LeaveBalanceSummaries>)
+	);
+	const leaveBalanceRows = $derived(leaveBalancesQuery?.current ?? []);
 
-	/** One generated entitlement plus its posted ledger and held applications. */
-	const leaveBalanceRowsResult = $derived.by(() => {
-		try {
-			if (myLeavePendingQuery?.error) throw myLeavePendingQuery.error;
-			if (leaveEntitlementsQuery?.error) throw leaveEntitlementsQuery.error;
-			if ((myLeavePendingQuery?.current ?? []).length >= PENDING_LEAVE_LIMIT)
-				throw new Error(t('app.hr_employee.leave_balances_pending_ceiling'));
-			const rows = currentLeaveEntitlements.map((entitlement) => {
-				const entries = entitlement.entry_leave_entitlement ?? [];
-				const pending = (myLeavePendingQuery?.current ?? [])
-					.filter(
-						(request) =>
-							request.leave_entitlement_id === entitlement.id && request.approval_id != null
-					)
-					.reduce((total, request) => total + measuredLeaveRequestDays(request), 0);
-				return {
-					entitlement,
-					carryExpiresOn:
-						entries.find((entry) => entry.kind === 'CARRY_FORWARD' && entry.expires_on != null)
-							?.expires_on ?? null,
-					summary: leaveBalanceSummary({
-						entitlement,
-						entries,
-						pendingDays: pending,
-						asOf: today
-					})
-				};
-			});
-			return { rows, error: null };
-		} catch (cause) {
-			return { rows: [], error: getErrorMessage(cause) };
-		}
-	});
-	const leaveBalanceRows = $derived(leaveBalanceRowsResult.rows);
-
-	const scheduleHolidays = $derived(scheduleHolidaysQuery?.current ?? []);
+	const scheduleHolidays = $derived(scheduleCalendarResolution.holidays);
 	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
 	const scheduleRosterCodesById = $derived(
 		new Map((scheduleShiftsQuery?.current ?? []).map((code) => [code.id, code]))
@@ -715,6 +657,7 @@
 	const scheduleSources = $derived([
 		{ label: t('app.hr_employee.source_person_days'), query: scheduleWorkDaysQuery },
 		{ label: t('app.hr_employee.source_leave'), query: scheduleLeaveQuery },
+		{ label: t('holiday_calendar.jurisdiction'), query: scheduleCalendarSettingsQuery },
 		{ label: t('app.hr_employee.source_holidays'), query: scheduleHolidaysQuery },
 		{ label: t('app.hr_employee.source_shifts'), query: scheduleShiftsQuery },
 		{ label: t('app.hr_employee.source_terms'), query: scheduleTermsQuery }
@@ -724,11 +667,12 @@
 	 * that only knows "loading" has no terminal state, so a query that errors leaves the surface on a
 	 * skeleton forever with nothing on screen saying why.
 	 */
-	const scheduleErrors = $derived(
-		scheduleSources.flatMap((source) =>
+	const scheduleErrors = $derived([
+		...(scheduleCalendarResolution.error == null ? [] : [scheduleCalendarResolution.error]),
+		...scheduleSources.flatMap((source) =>
 			source.query?.error ? [`${source.label}: ${source.query.error.message}`] : []
 		)
-	);
+	]);
 	const scheduleLoading = $derived(
 		scheduleErrors.length === 0 &&
 			scheduleSources.some((source) => source.query != null && source.query.current === undefined)
@@ -1102,175 +1046,76 @@
 {/snippet}
 
 {#snippet leave()}
-	<!--
-		Document flow, not a `Cover`. `Cover` handed its body a definite height and this body is two
-		things (the balance card and the requests table), so the card ate the height, the table was
-		clipped under it and wheel events died inside the panel: a scroll trap. The tab panel itself
-		never scrolls, so the flowing content gets the one shape the layout contract allows it: a
-		`Bound` height contract with a named `Scroll` owning the axis, exactly as Home does. The table
-		inside is unbounded so it hugs its rows and the `Scroll` stays the only scrollport.
-	-->
 	<Bound size="full">
 		<Scroll name={t('app.hr_employee.tab_leave')}>
 			<Stack gap="md">
 				{@render contextGate()}
 				{#if employmentId != null}
-					<section
-						class="overflow-hidden rounded-xl border bg-card shadow-sm"
-						aria-labelledby="my-leave-balances-heading"
-					>
-						<Stack class="px-4 py-3 sm:px-5" gap="xs">
+					<section aria-labelledby="my-leave-balances-heading">
+						<Stack gap="sm">
 							<h3 id="my-leave-balances-heading" class="text-heading">
 								{t('app.hr_employee.leave_balances')}
 							</h3>
-							<p class="max-w-prose text-sm text-muted-foreground">
+							<p class="text-meta">
 								{t('app.hr_employee.leave_balances_description', {
 									date: formatCalendarDate(today)
 								})}
 							</p>
+							{#if leaveBalancesQuery?.error}
+								<Alert variant="destructive"
+									><AlertDescription>{leaveBalancesQuery.error.message}</AlertDescription></Alert
+								>
+							{:else if leaveBalancesQuery?.loading && leaveBalancesQuery.current == null}
+								<p class="text-meta">{t('leave.loading_balances')}</p>
+							{:else if leaveBalanceRows.length === 0}
+								<p class="text-meta">{t('app.hr_employee.leave_balances_empty')}</p>
+							{:else}
+								{#each leaveBalanceRows as balance (balance.catalogue_id)}
+									<Stack gap="sm" class="border-t py-3">
+										<p class="text-sm font-medium">{balance.name} · {balance.code}</p>
+										<p class="text-meta">
+											{formatCalendarDate(balance.window.start)} → {formatCalendarDate(
+												balance.window.end
+											)}
+										</p>
+										<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+											{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
+												<div>
+													<dt class="text-meta">{item.label}</dt>
+													<dd class="text-sm font-medium tabular-nums">
+														{item.value == null
+															? t('component.accrual_unlimited')
+															: formatNumeric(item.value)}
+													</dd>
+												</div>
+											{/each}
+										</dl>
+									</Stack>
+								{/each}
+							{/if}
 						</Stack>
-						{#if leaveBalanceRowsResult.error != null}
-							<Alert variant="destructive"
-								><AlertDescription>{leaveBalanceRowsResult.error}</AlertDescription></Alert
-							>
-						{:else if leaveBalanceRows.length === 0}
-							<p class="border-t px-4 py-3 text-sm text-muted-foreground">
-								{t('app.hr_employee.leave_balances_empty')}
-							</p>
-						{:else}
-							{#each leaveBalanceRows as balance (balance.entitlement.id)}
-								{@const summary = balance.summary}
-								<div class="border-t px-4 py-3 sm:px-5">
-									<div
-										class="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(20rem,2fr)_7rem] lg:items-center"
-									>
-										<div class="min-w-0">
-											<p
-												class="truncate text-sm font-medium"
-												title={balance.entitlement.leave_name}
-											>
-												{balance.entitlement.leave_name}
-											</p>
-											<p class="text-meta">
-												{balance.entitlement.leave_code} · {balance.entitlement.leave_year}
-											</p>
-											<p class="text-meta" data-leave-rule="year-end">
-												{describeYearEnd(balance.entitlement.settlement)}
-											</p>
-											<p class="text-meta" data-leave-rule="exit">
-												{describeExit(balance.entitlement.exit_settlement)}
-											</p>
-										</div>
-										<Stack gap="xs">
-											<dl class="grid grid-cols-5 gap-3">
-												<div>
-													<dt class="text-meta">{t('app.hr_employee.leave_entitlement')}</dt>
-													<dd class="text-sm font-medium tabular-nums">
-														{formatNumeric(summary.entitlement)}
-													</dd>
-												</div>
-												<div>
-													<dt class="text-meta">{t('app.hr_employee.leave_earned')}</dt>
-													<dd class="text-sm font-medium tabular-nums">
-														{formatNumeric(summary.earned + summary.carried)}
-													</dd>
-												</div>
-												<div>
-													<dt class="text-meta">{t('app.hr_employee.leave_taken')}</dt>
-													<dd class="text-sm font-medium tabular-nums">
-														{formatNumeric(summary.taken)}
-													</dd>
-												</div>
-												<div>
-													<dt class="text-meta">{t('app.hr_employee.leave_pending')}</dt>
-													<dd class="text-sm font-medium tabular-nums">
-														{formatNumeric(summary.pending)}
-													</dd>
-												</div>
-												<div>
-													<dt class="text-meta">{t('app.hr_employee.leave_adjustments')}</dt>
-													<dd class="text-sm font-medium tabular-nums">
-														{formatNumeric(summary.adjusted)}
-													</dd>
-												</div>
-											</dl>
-											{#if balance.entitlement.accrual_kind !== 'UNLIMITED'}
-												<div
-													class="flex h-2 overflow-hidden rounded-sm bg-muted"
-													role="meter"
-													aria-valuemin={0}
-													aria-valuemax={Math.max(summary.earned + summary.carried, 1)}
-													aria-valuenow={summary.taken + summary.pending}
-													aria-label={`${formatNumeric(summary.taken)} used, ${formatNumeric(summary.pending)} pending`}
-												>
-													<div
-														class="h-full bg-primary"
-														style:width={leaveMeterWidth(
-															summary.taken,
-															summary.earned + summary.carried
-														)}
-													></div>
-													<div
-														class="h-full bg-brand"
-														style:width={leaveMeterWidth(
-															summary.pending,
-															summary.earned + summary.carried
-														)}
-													></div>
-												</div>
-											{/if}
-											{#if summary.carried > 0}
-												<p class="text-meta">
-													{t('app.hr_employee.leave_carried')}
-													{formatNumeric(summary.carried)}
-													{#if balance.carryExpiresOn != null}
-														· {t('app.hr_employee.leave_carry_use_by', {
-															date: formatCalendarDate(balance.carryExpiresOn)
-														})}
-													{/if}
-												</p>
-											{/if}
-										</Stack>
-										<div class="lg:text-right">
-											<p class="text-meta">{t('app.hr_employee.leave_available')}</p>
-											<p class="text-xl font-semibold tabular-nums text-foreground">
-												{balance.entitlement.accrual_kind === 'UNLIMITED'
-													? t('component.accrual_unlimited')
-													: formatNumeric(summary.available)}
-												<span class="text-sm font-normal text-muted-foreground"
-													>{t('component.days')}</span
-												>
-											</p>
-										</div>
-									</div>
-								</div>
-							{/each}
-						{/if}
 					</section>
 				{/if}
 				<CollectionTable
 					{client}
-					collection="leave_requests"
+					collection="leave_entries"
 					bounded={false}
 					title={t('app.hr_employee.my_leave_title')}
 					description={t('app.hr_employee.my_leave_description')}
 					disabled={!employmentId}
-					recordMetadata={(row) => sourceLockRecordMetadata(leaveRowLock(row), t)}
+					recordMetadata={() => [
+						{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+					]}
 					query={{
 						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { from_date: 'desc' },
-						with: { payslip_leave_request_input_leave_request: { columns: { period: true } } }
+						orderBy: { effective_on: 'desc' },
+						with: { payslip_leave_input_leave_entry: { columns: { period: true } } }
 					}}
 				>
 					{#snippet columns({ Column })}
 						<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
-						<Column
-							name="event"
-							label={t('component.leave_range')}
-							card="title"
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => formatLeaveRange(row.event, t) }}
-						/>
+						<Column name="event" label={t('leave.activity')} card="title" />
+						<Column name="reference" label={t('component.reference')} />
 						<Column name="days" label={t('component.days')} />
 					{/snippet}
 				</CollectionTable>
@@ -1279,141 +1124,142 @@
 	</Bound>
 {/snippet}
 
-{#snippet claims()}
-	<!--
-		Four tables, one per family this person is granted, and the grants are the whole design.
+{#snippet myClaims()}
+	<CollectionTable
+		{client}
+		collection="claim_requests"
+		bounded={false}
+		view="hr_employee:claims"
+		title={t('app.hr_employee.my_claims_title')}
+		description={t('app.hr_employee.my_claims_description')}
+		disabled={!employmentId}
+		recordMetadata={(row: CapturedPayRequest) =>
+			payRequestRecordMetadata(row.approval_id, row.payslip_claim_request_input_claim_request, t)}
+		query={{
+			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+			orderBy: { incurred_on: 'desc' },
+			with: { payslip_claim_request_input_claim_request: { columns: { period: true } } }
+		}}
+	>
+		{#snippet columns({ Column })}
+			<Column name="claim_catalogue_id" label={t('component.component')} card="title" />
+			<Column name="amount" label={t('component.amount')} />
+			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+			<Column name="incurred_on" label={t('component.incurred_on')} />
+			<Column name="description" card="subtitle" label={t('component.claim_description')} />
+			<Column name="evidence_file" label={t('component.evidence_file')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
 
-		`claim_requests` is the only one with a create button, because a claim is the one thing an
-		ordinary rank may raise — `employeeSelfServiceGrants()` grants `mutate.new` on that collection
-		and on no other. An allowance, a bonus and an arrears settlement are authority HR holds, so
-		they are read-only here rather than hidden: a person may see what they are being paid and why.
-		`correction_requests` is absent entirely, because the `employee` policy has no grant on it at
-		all — a screen showing a collection the subject cannot read is a bug, not a stricter screen.
+{#snippet myAllowances()}
+	<CollectionTable
+		{client}
+		collection="allowance_requests"
+		bounded={false}
+		features={{ create: false }}
+		view="hr_employee:allowances"
+		title={t('app.hr_employee.my_allowances_title')}
+		description={t('app.hr_employee.my_allowances_description')}
+		disabled={!employmentId}
+		recordMetadata={(row: CapturedPayRequest) =>
+			payRequestRecordMetadata(
+				row.approval_id,
+				row.payslip_allowance_request_input_allowance_request,
+				t
+			)}
+		query={{
+			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+			orderBy: { created_at: 'desc' },
+			with: {
+				payslip_allowance_request_input_allowance_request: { columns: { period: true } }
+			}
+		}}
+	>
+		{#snippet columns({ Column })}
+			<Column name="allowance_catalogue_id" label={t('component.component')} card="title" />
+			<Column name="amount" label={t('component.amount')} />
+			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+			<Column name="recurrence" card="subtitle" label={t('component.entry_cadence')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
 
-		Document flow with a `Bound`/`Scroll` pair rather than a `Cover`, for the reason the leave tab
-		states: `Cover` hands its body a definite height, and this body is four things.
-	-->
-	<Bound size="full">
-		<Scroll name={t('app.hr_employee.tab_pay_requests')}>
-			<Stack gap="md">
+{#snippet myPayments()}
+	<CollectionTable
+		{client}
+		collection="payment_requests"
+		bounded={false}
+		features={{ create: false }}
+		view="hr_employee:payments"
+		title={t('app.hr_employee.my_payments_title')}
+		description={t('app.hr_employee.my_payments_description')}
+		disabled={!employmentId}
+		recordMetadata={(row: CapturedPayRequest) =>
+			payRequestRecordMetadata(
+				row.approval_id,
+				row.payslip_payment_request_input_payment_request,
+				t
+			)}
+		query={{
+			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+			orderBy: { effective_on: 'desc' },
+			with: { payslip_payment_request_input_payment_request: { columns: { period: true } } }
+		}}
+	>
+		{#snippet columns({ Column })}
+			<Column name="payment_catalogue_id" label={t('component.component')} card="title" />
+			<Column name="amount" label={t('component.amount')} />
+			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+			<Column name="effective_on" label={t('component.effective_on')} />
+			<Column name="reason" card="subtitle" label={t('component.payment_reason')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet eventTable(content: import('svelte').Snippet)}
+	<Bound size="full"
+		><Scroll name={t('app.hr_employee.tab_events')}
+			><Stack gap="md">
 				{@render contextGate()}
-				<CollectionTable
-					{client}
-					collection="claim_requests"
-					bounded={false}
-					view="hr_employee:claims"
-					title={t('app.hr_employee.my_claims_title')}
-					description={t('app.hr_employee.my_claims_description')}
-					disabled={!employmentId}
-					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestRecordMetadata(
-							row.approval_id,
-							row.payslip_claim_request_input_claim_request,
-							t
-						)}
-					query={{
-						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { incurred_on: 'desc' },
-						with: { payslip_claim_request_input_claim_request: { columns: { period: true } } }
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
-						<Column name="amount" label={t('component.amount')} />
-						<Column name="incurred_on" label={t('component.incurred_on')} />
-						<Column name="description" card="subtitle" label={t('component.claim_description')} />
-						<Column name="evidence_file" label={t('component.evidence_file')} />
-					{/snippet}
-				</CollectionTable>
-				<CollectionTable
-					{client}
-					collection="allowance_requests"
-					bounded={false}
-					features={{ create: false }}
-					view="hr_employee:allowances"
-					title={t('app.hr_employee.my_allowances_title')}
-					description={t('app.hr_employee.my_allowances_description')}
-					disabled={!employmentId}
-					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestRecordMetadata(
-							row.approval_id,
-							row.payslip_allowance_request_input_allowance_request,
-							t
-						)}
-					query={{
-						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { created_at: 'desc' },
-						with: {
-							payslip_allowance_request_input_allowance_request: { columns: { period: true } }
-						}
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
-						<Column name="amount" label={t('component.amount')} />
-						<Column name="recurrence" card="subtitle" label={t('component.entry_cadence')} />
-					{/snippet}
-				</CollectionTable>
-				<CollectionTable
-					{client}
-					collection="bonus_requests"
-					bounded={false}
-					features={{ create: false }}
-					view="hr_employee:bonuses"
-					title={t('app.hr_employee.my_bonuses_title')}
-					description={t('app.hr_employee.my_bonuses_description')}
-					disabled={!employmentId}
-					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestRecordMetadata(
-							row.approval_id,
-							row.payslip_bonus_request_input_bonus_request,
-							t
-						)}
-					query={{
-						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { awarded_on: 'desc' },
-						with: { payslip_bonus_request_input_bonus_request: { columns: { period: true } } }
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
-						<Column name="amount" label={t('component.amount')} />
-						<Column name="awarded_on" label={t('component.awarded_on')} />
-						<Column name="note" card="subtitle" label={t('component.bonus_note')} />
-					{/snippet}
-				</CollectionTable>
-				<CollectionTable
-					{client}
-					collection="arrears_requests"
-					bounded={false}
-					features={{ create: false }}
-					view="hr_employee:arrears"
-					title={t('app.hr_employee.my_arrears_title')}
-					description={t('app.hr_employee.my_arrears_description')}
-					disabled={!employmentId}
-					recordMetadata={(row: CapturedPayRequest) =>
-						payRequestRecordMetadata(
-							row.approval_id,
-							row.payslip_arrears_request_input_arrears_request,
-							t
-						)}
-					query={{
-						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { settled_on: 'desc' },
-						with: { payslip_arrears_request_input_arrears_request: { columns: { period: true } } }
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="component_catalogue_id" label={t('component.component')} card="title" />
-						<Column name="amount" label={t('component.amount')} />
-						<Column name="settled_on" label={t('component.settled_on')} />
-						<Column name="covers_periods" label={t('component.covers_periods')} />
-						<Column name="reason" card="subtitle" label={t('component.arrears_reason')} />
-					{/snippet}
-				</CollectionTable>
-			</Stack>
-		</Scroll>
-	</Bound>
+				{@render content()}
+			</Stack></Scroll
+		></Bound
+	>
+{/snippet}
+
+{#snippet claimEvents()}{@render eventTable(myClaims)}{/snippet}
+{#snippet allowanceEvents()}{@render eventTable(myAllowances)}{/snippet}
+{#snippet paymentEvents()}{@render eventTable(myPayments)}{/snippet}
+
+{#snippet events()}
+	<Tabs
+		animate={false}
+		layout="vertical"
+		config={[
+			{ name: 'work', label: t('family.work'), icon: 'lucide:calendar-clock', content: schedule },
+			{ name: 'leave', label: t('family.leave'), icon: 'lucide:calendar-check', content: leave },
+			{
+				name: 'claim',
+				label: t('family.claim'),
+				icon: 'lucide:receipt-text',
+				content: claimEvents
+			},
+			{
+				name: 'allowance',
+				label: t('family.allowance'),
+				icon: 'lucide:calendar-clock',
+				content: allowanceEvents
+			},
+			{
+				name: 'payment',
+				label: t('family.payment'),
+				icon: 'lucide:wallet',
+				content: paymentEvents
+			},
+			{ name: 'loan', label: t('family.loan'), icon: 'lucide:landmark', content: loans }
+		] satisfies TabConfig[]}
+	/>
 {/snippet}
 
 {#snippet loans()}
@@ -1500,28 +1346,10 @@
 				content: home
 			},
 			{
-				name: 'schedule',
-				label: t('app.hr_employee.tab_schedule'),
-				icon: 'lucide:calendar-clock',
-				content: schedule
-			},
-			{
-				name: 'leave',
-				label: t('app.hr_employee.tab_leave'),
-				icon: 'lucide:calendar-check',
-				content: leave
-			},
-			{
-				name: 'claims',
-				label: t('app.hr_employee.tab_pay_requests'),
+				name: 'events',
+				label: t('app.hr_employee.tab_events'),
 				icon: 'lucide:receipt',
-				content: claims
-			},
-			{
-				name: 'loans',
-				label: t('app.hr_employee.tab_loans'),
-				icon: 'lucide:hand-coins',
-				content: loans
+				content: events
 			},
 			{
 				name: 'payslips',

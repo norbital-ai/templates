@@ -6,8 +6,8 @@ import { describeVersion } from './jurisdiction_settings.js';
 /**
  * The seal, enforced structurally on every downstream row.
  *
- * Each child collection of `jurisdiction_settings` (schemes, bands through their scheme, leave
- * types, components, holidays) calls this from its `mutate.before` and `delete.before`. It
+ * Each family catalogue under `jurisdiction_settings`, and contribution bands through their
+ * scheme, calls this from its `mutate.before` and `delete.before`. It
  * reads the root as the workspace, so no policy can bypass it: a row whose version is sealed
  * refuses to be created, changed or deleted, in one sentence naming the version. A row that moves
  * between versions is checked against both.

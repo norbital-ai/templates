@@ -1,166 +1,120 @@
-// @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateLeavePreview, previewWindowOf } from '../src/lib/leave/preview.ts';
+import { approve, id, leaveContext, timeOff } from './helpers/manual-leave-context.ts';
 
-const WORK = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
-const REST = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 const range = {
-	start: { date: '2026-04-15', half: 'FIRST' },
-	end: { date: '2026-04-15', half: 'SECOND' }
+	start: { date: '2026-04-15', half: 'FIRST' as const },
+	end: { date: '2026-04-15', half: 'SECOND' as const }
 };
-const entitlement = {
-	id: 'entitlement-2026',
-	employment_id: 'emp-1',
-	leave_code: 'ANNUAL',
-	status: 'OPEN',
-	starts_on: '2026-01-01',
-	ends_on: '2026-12-31',
-	accrual_kind: 'UPFRONT'
-};
-const catalogueLeave = {
-	id: 'lt-annual',
-	settings_id: 'settings-1',
-	code: 'ANNUAL',
-	name: 'Annual leave',
-	is_statutory: true,
-	authority: 'Fixture',
-	eligibility: '',
-	requires_certificate_after_days: null,
-	accrual: { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } },
-	entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 5 }] },
-	payroll_effect: { kind: 'PAID' }
-};
-const patternedWeek = {
-	type: 'PATTERNED',
-	anchor_date: '2021-05-31',
-	phases: [
-		{
-			duration: { kind: 'CONTINUOUS' },
-			day_cycle: [WORK, WORK, WORK, WORK, WORK, WORK, REST].map((roster_code_id) => ({
-				roster_code_id
-			}))
-		}
-	]
-};
-const facts = {
-	employee: { gender: 'FEMALE', date_of_birth: '1992-01-04', nationality: 'MY' },
-	employment: { id: 'emp-1', company_id: 'co-1', hire_date: '2021-06-01', exit_date: null },
-	catalogueLeave,
-	entitlement,
-	children: [],
-	entries: [
-		{ kind: 'OPENING_ENTITLEMENT', days: 5, effective_on: '2026-01-01', approval_id: null }
-	],
-	holidays: [],
-	terms: [
-		{
-			employment_id: 'emp-1',
-			shift_pattern_id: 'sp-week',
-			effective_range: { start: '2021-06-01', end: null },
-			employment_type: 'PERMANENT'
-		}
-	],
-	patterns: [{ id: 'sp-week', code: 'WORK-6x1', pattern: patternedWeek }],
-	workDays: [],
-	requests: [],
-	settledRuns: [],
-	rosterCodes: [
-		{
-			id: WORK,
-			variant: { kind: 'WORK', start_time: '07:30', end_time: '16:30', break_minutes: 60 }
-		},
-		{ id: REST, variant: { kind: 'REST' } }
-	]
-};
-const input = {
-	employment_id: 'emp-1',
-	leave_catalogue_id: 'lt-annual',
-	leave_entitlement_id: entitlement.id,
-	calendar_month: '2026-04',
-	range
-};
+const input = { employment_id: id(1), leave_catalogue_id: id(7), calendar_month: '2026-04', range };
 
-test('an application requires one open entitlement covering the complete range', () => {
-	const missing = evaluateLeavePreview({ ...facts, entitlement: null, entries: [] }, input);
-	assert.ok(missing.issues.some((issue) => issue.code === 'ENTITLEMENT_REQUIRED'));
-	const closed = evaluateLeavePreview(
-		{ ...facts, entitlement: { ...entitlement, status: 'CLOSED' } },
-		input
-	);
-	assert.ok(closed.issues.some((issue) => issue.code === 'ENTITLEMENT_REQUIRED'));
-});
-
-test('posted entries and held applications share the same availability check', () => {
-	const pending = {
-		id: 'pending-1',
-		approval_id: 'approval-1',
-		leave_entitlement_id: entitlement.id,
-		days: 3,
-		event: {
-			kind: 'TIME_OFF',
-			range: {
-				start: { date: '2026-05-01', half: 'FIRST' },
-				end: { date: '2026-05-03', half: 'SECOND' }
-			},
-			chargeable_days: 3
-		}
-	};
-	const preview = evaluateLeavePreview({ ...facts, requests: [pending] }, input);
-	assert.equal(preview.remaining_days, 2);
+test('preview uses computed entitlement without requiring a persisted annual account', () => {
+	const context = leaveContext();
+	const preview = evaluateLeavePreview(context, input);
+	assert.equal(preview.remaining_days, 12);
 	assert.equal(preview.chargeable_days, 1);
 	assert.deepEqual(preview.issues, []);
-	const overdrawn = evaluateLeavePreview({ ...facts, requests: [{ ...pending, days: 5 }] }, input);
-	assert.ok(overdrawn.issues.some((issue) => issue.code === 'OVERDRAW'));
+	assert.deepEqual(context.entries, []);
+	assert.throws(
+		() => evaluateLeavePreview({ ...context, employments: [] }, input),
+		/approved employment/
+	);
 });
 
-test('unmetered leave keeps entitlement, schedule, overlap and approval checks but has no balance ceiling', () => {
-	const preview = evaluateLeavePreview(
-		{
-			...facts,
-			entitlement: { ...entitlement, accrual_kind: 'UNLIMITED' },
-			entries: [],
-			catalogueLeave: { ...catalogueLeave, accrual: { kind: 'UNLIMITED' } }
-		},
-		input
-	);
-	assert.equal(preview.remaining_days, 0);
-	assert.equal(preview.chargeable_days, 1);
+test('held applications reserve availability and overdraw returns an actionable preview issue', () => {
+	const context = leaveContext();
+	const pending = approve(context, timeOff('2026-05-01', '2026-05-03'));
+	context.entries[0] = { ...pending, approval_id: id(100) };
+	assert.equal(evaluateLeavePreview(context, input).remaining_days, 9);
+	const overdrawn = evaluateLeavePreview(context, {
+		...input,
+		range: { start: range.start, end: { date: '2026-04-24', half: 'SECOND' } }
+	});
 	assert.equal(
-		preview.issues.some((issue) => issue.code === 'OVERDRAW'),
-		false
+		overdrawn.chargeable_days,
+		10,
+		'the selection remains measurable when approval would overdraw'
 	);
+	assert.match(overdrawn.issues[0]?.message ?? '', /Insufficient leave/);
 });
 
-test('eligibility and certificate policy use server-measured scheduled days', () => {
-	const restrictedType = {
-		...catalogueLeave,
-		requires_certificate_after_days: 0,
-		eligibility: 'employee.gender == "FEMALE" && employment.type == "PERMANENT"'
+test('unlimited leave keeps schedule and overlap validation without a balance ceiling', () => {
+	const context = leaveContext();
+	context.catalogues[0]!.entitlement = {
+		availability: 'UNLIMITED',
+		proration: 'NONE',
+		year_start_month: 1,
+		bands: []
 	};
-	const preview = evaluateLeavePreview(
-		{
-			...facts,
-			catalogueLeave: restrictedType
-		},
-		input
-	);
-	assert.equal(preview.certificate_required, true);
+	const preview = evaluateLeavePreview(context, input);
+	assert.equal(preview.remaining_days, null);
 	assert.equal(preview.chargeable_days, 1);
-	const ineligible = evaluateLeavePreview(
-		{ ...facts, employee: { ...facts.employee, gender: 'MALE' }, catalogueLeave: restrictedType },
-		input
-	);
-	assert.ok(ineligible.issues.some((issue) => issue.code === 'INELIGIBLE'));
+	assert.deepEqual(preview.issues, []);
+	approve(context, timeOff(range.start.date));
+	const overlap = evaluateLeavePreview(context, input);
+	assert.equal(overlap.availability[range.start.date]?.reason_code, 'OTHER_LEAVE');
+	assert.match(overlap.issues[0]?.message ?? '', /overlaps/);
 });
 
-test('preview month expands to the rendered calendar grid', () => {
+test('eligibility and certificate thresholds use server-measured scheduled days', () => {
+	const context = leaveContext();
+	context.catalogues[0]!.requires_certificate_after_days = 0;
+	context.catalogues[0]!.eligibility =
+		'employee.gender == "FEMALE" && employment.type == "PERMANENT"';
+	assert.equal(evaluateLeavePreview(context, input).certificate_required, true);
+	context.employees[0]!.gender = 'MALE';
+	const ineligible = evaluateLeavePreview(context, input);
+	assert.equal(ineligible.availability[range.start.date]?.reason_code, 'INELIGIBLE');
+	assert.match(ineligible.issues[0]?.message ?? '', /INELIGIBLE/);
+});
+
+test('preview distinguishes an occupied half from the available half on the same date', () => {
+	const context = leaveContext();
+	const held = approve(context, {
+		kind: 'TIME_OFF',
+		range: { start: range.start, end: range.start },
+		chargeable_days: null,
+		reason: null
+	});
+	context.entries[0] = { ...held, approval_id: id(100) };
+	const preview = evaluateLeavePreview(context, {
+		...input,
+		range: { start: range.end, end: range.end }
+	});
+	assert.equal(preview.availability[range.start.date]?.first_half_available, false);
+	assert.equal(preview.availability[range.start.date]?.second_half_available, true);
+	assert.equal(preview.chargeable_days, 0.5);
+	assert.deepEqual(preview.issues, []);
+});
+
+test('observed holidays remain non-chargeable in a multi-day preview', () => {
+	const context = leaveContext();
+	context.calendars.find((row) => row.year === 2026)!.observations = [
+		{ date: '2026-04-16', name: 'Observed holiday', original_date: null, source: null }
+	];
+	const preview = evaluateLeavePreview(context, {
+		...input,
+		range: { start: range.start, end: { date: '2026-04-17', half: 'SECOND' } }
+	});
+	assert.equal(preview.chargeable_days, 2);
+	assert.equal(preview.availability['2026-04-16']?.reason_code, 'HOLIDAY');
+	assert.deepEqual(preview.issues, []);
+});
+
+test('preview month expands to the rendered calendar grid and retains out-of-grid selection dates', () => {
+	assert.deepEqual(previewWindowOf({ ...input, range: undefined }), {
+		start: '2026-03-30',
+		end: '2026-05-10'
+	});
 	assert.deepEqual(
 		previewWindowOf({
-			employment_id: 'emp-1',
-			leave_catalogue_id: 'lt-1',
-			calendar_month: '2026-04'
+			...input,
+			range: {
+				start: { date: '2026-03-01', half: 'FIRST' },
+				end: { date: '2026-05-15', half: 'SECOND' }
+			}
 		}),
-		{ start: '2026-03-30', end: '2026-05-10' }
+		{ start: '2026-03-01', end: '2026-05-15' }
 	);
 });

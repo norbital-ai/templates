@@ -22,7 +22,7 @@
  * | `MIN_WITHHOLD:<amount>`      | withhold nothing when the regular part falls below this            |
  * | `ROUND:<method>`             | rounding chain, applied in order, overriding `rounding`            |
  * | `TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED` | round a paired total, floor employee, give remainder to employer |
- * | `ADDITIONAL_REMUNERATION`    | the channel a `SPECIAL` grid cell posts a bonus into               |
+ * | `ADDITIONAL_REMUNERATION`    | the channel a `SPECIAL` grid cell posts a payment into               |
  * | `PERIODIC_PROGRESSIVE`       | apply a period table directly; do not annualise or spread          |
  *
  * Reliefs and caps are annual amounts because that is how every tax authority states them. The

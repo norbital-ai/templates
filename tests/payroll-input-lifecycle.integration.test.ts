@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { approveLeave } from './helpers/public-leave.ts';
 import assert from 'node:assert/strict';
 import {
 	asRecord,
@@ -8,7 +9,6 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -18,7 +18,7 @@ import {
 } from './helpers/public-seed-host.ts';
 
 const MUTATE_COMMAND = 'collections.mutate';
-/** The public seed's claimable component: `entry_kind: CLAIM`, which is the arm filed below. */
+/** The public Claim catalogue entry used for the reimbursed taxi. */
 const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777701';
 
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
@@ -79,7 +79,7 @@ test(
 				{
 					id: claimId,
 					employment_id: EMPLOYMENT_ID,
-					component_catalogue_id: TRANSPORT_COMPONENT_ID,
+					claim_catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
 					incurred_on: '2026-03-05',
 					description: 'Client site taxi'
@@ -103,12 +103,12 @@ test(
 			const leaveId = crypto.randomUUID();
 			const applied = await create(
 				session,
-				'leave_requests',
+				'leave_entries',
 				{
 					id: leaveId,
 					employment_id: EMPLOYMENT_ID,
 					leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-					leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
+					reference: `LEAVE-${leaveId}`,
 					event: {
 						kind: 'TIME_OFF',
 						range: {
@@ -122,47 +122,9 @@ test(
 				controller
 			);
 			assert.equal(applied.resolution, 'accepted', JSON.stringify(applied));
-			const pending = asRecord(applied.pendingApproval, 'leave pendingApproval');
-			const requestId = String(pending.requestId);
-			const status = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.status',
-				{ requestId },
-				manager
-			);
-			const state = asRecord(status.value, 'leave approval status');
-			assert.equal(state._tag, 'Pending', JSON.stringify(status.value));
-			const decided = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.decide',
-				{ state, decision: 'approve' },
-				manager
-			);
+			await approveLeave(session, applied);
 			assert.equal(
-				asRecord(decided.value, 'leave decide')._tag,
-				'Approved',
-				JSON.stringify(decided.value)
-			);
-			if (
-				(await rowCount(session, 'select count(*)::int as n from leave_requests where id = $1', [
-					leaveId
-				])) === 0
-			) {
-				const resumed = await postGuestCommand(
-					session.host.baseUrl,
-					'collections.resume',
-					{ requestId },
-					manager
-				);
-				assert.ok(
-					(resumed.status >= 200 && resumed.status < 300) ||
-						(resumed.status === 422 &&
-							JSON.stringify(resumed.value).includes('identity is already in use')),
-					`collections.resume ${resumed.status}: ${JSON.stringify(resumed.value)}`
-				);
-			}
-			assert.equal(
-				await rowCount(session, 'select count(*)::int as n from leave_requests where id = $1', [
+				await rowCount(session, 'select count(*)::int as n from leave_entries where id = $1', [
 					leaveId
 				]),
 				1,
@@ -192,7 +154,7 @@ test(
 				'the claim must be captured as an input of the March run'
 			);
 			assert.equal(
-				await rowCount(session, captureSql('payslip_leave_request_inputs', 'leave_request_id'), [
+				await rowCount(session, captureSql('payslip_leave_inputs', 'leave_entry_id'), [
 					runId,
 					leaveId
 				]),
@@ -201,6 +163,15 @@ test(
 			);
 
 			// 4. Deleting the draft run releases both captures and deletes neither source.
+			const sourceBefore = await session.query(
+				'select event, charges, allocations from leave_entries where id = $1',
+				[leaveId]
+			);
+			const sealsBefore = await session.query(
+				`select i.* from employment_contract_inputs i join payslips p on p.id = i.payslips_id where p.payroll_run_id = $1 order by i.id`,
+				[runId]
+			);
+			assert.ok(sealsBefore.length > 0, 'payroll seals consumed contract history');
 			const versions = (await session.query('select row_version from payroll_runs where id = $1', [
 				runId
 			])) as ReadonlyArray<{ readonly row_version: number }>;
@@ -238,7 +209,7 @@ test(
 			assert.equal(
 				await rowCount(
 					session,
-					'select count(*)::int as n from payslip_leave_request_inputs where leave_request_id = $1',
+					'select count(*)::int as n from payslip_leave_inputs where leave_entry_id = $1',
 					[leaveId]
 				),
 				0,
@@ -252,11 +223,25 @@ test(
 				'deleting the run must not delete the claim'
 			);
 			assert.equal(
-				await rowCount(session, 'select count(*)::int as n from leave_requests where id = $1', [
+				await rowCount(session, 'select count(*)::int as n from leave_entries where id = $1', [
 					leaveId
 				]),
 				1,
 				'deleting the run must not delete the leave request'
+			);
+			assert.deepEqual(
+				await session.query('select event, charges, allocations from leave_entries where id = $1', [
+					leaveId
+				]),
+				sourceBefore
+			);
+			assert.deepEqual(
+				await session.query(
+					'select * from employment_contract_inputs where id = any($1) order by id',
+					[sealsBefore.map((row) => row.id)]
+				),
+				sealsBefore,
+				'deleting a consumer preserves its permanent contract seals'
 			);
 		} finally {
 			await session.stop();

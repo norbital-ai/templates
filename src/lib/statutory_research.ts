@@ -293,7 +293,7 @@ export const StatutoryFindingsSchema = Schema.Struct({
 			...evidence
 		})
 	),
-	component_catalogue: Schema.Array(
+	pay_component: Schema.Array(
 		Schema.Struct({
 			code: Schema.NonEmptyString,
 			contribution_treatments: contributionTreatmentsValueSchema,
@@ -318,7 +318,7 @@ export type SealedStatutoryFacts = Readonly<{
 	leave_catalogue: ReadonlyArray<
 		Readonly<{ code: string; name: string; authority: string | null; entitlement: unknown }>
 	>;
-	component_catalogue: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
+	pay_component: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
 }>;
 
 /** A band table in canonical order, so two spellings of one table compare equal. */
@@ -402,8 +402,8 @@ export function diffStatutoryFindings(
 			change('leave_catalogue', 'entitlement', finding, page, type.entitlement, finding.entitlement)
 		);
 	}
-	for (const finding of findings.component_catalogue) {
-		const component = sealed.component_catalogue.find((row) => row.code === finding.code);
+	for (const finding of findings.pay_component) {
+		const component = sealed.pay_component.find((row) => row.code === finding.code);
 		if (component == null) {
 			notes.push(`Component ${finding.code}: not a statutory component of this version`);
 			continue;
@@ -416,7 +416,7 @@ export function diffStatutoryFindings(
 		if (page == null) continue;
 		changes.push(
 			change(
-				'component_catalogue',
+				'pay_component',
 				'contribution_treatments',
 				finding,
 				page,

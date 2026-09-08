@@ -5,7 +5,7 @@ import {
 	PAYROLL_TIME_ZONE,
 	startOfDayInstant
 } from '../lib/ui/calendar.js';
-import { KIOSK_EMBEDDING_DIMENSIONS } from './+kiosk_match.js';
+import { KIOSK_EMBEDDING_DIMENSIONS } from '../lib/kiosk/embed.js';
 import type { Api } from './$types.js';
 
 const facePhotoSchema = Schema.Struct({
@@ -41,6 +41,8 @@ export default defineCommandHandler({
 				);
 			}
 			if (Number.isNaN(new Date(consent_at).getTime())) refuse('Consent instant is not valid.');
+			if (face_embedding.every((value) => value === 0))
+				refuse('Embedding must contain a face descriptor.');
 			const now = new Date(yield* Clock.currentTimeMillis).toISOString();
 			if (new Date(consent_at).getTime() > new Date(now).getTime())
 				refuse('Consent cannot be recorded in the future.');

@@ -9,6 +9,7 @@ import {
 } from '../datatypes/statutory_proposal/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsValueSchema } from '../datatypes/contribution_treatments/+definition.js';
+import { WORK_OUTPUTS, workPayItems } from '../collections/work_catalogue/pay-items.js';
 import { isInForceCandidate, settingsInForce } from '../lib/jurisdiction_settings.js';
 import {
 	createSettingsDraft,
@@ -133,7 +134,17 @@ export function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutory
 				authority: type.authority,
 				entitlement: type.entitlement
 			})),
-		component_catalogue: tree.catalogueComponents
+		// Every catalogue that can carry a statutory row, in one list. Drift is about what the law
+		// says a component is charged, and the law does not care which of the five tables declares
+		// it — only that the row is `is_statutory`.
+		pay_component: [
+			...tree.workCatalogue.flatMap(workPayItems),
+			...tree.catalogueLeaves.map((row) => ({ ...row.encashment, is_statutory: row.is_statutory })),
+			...tree.loanCatalogue,
+			...tree.claimCatalogue,
+			...tree.allowanceCatalogue,
+			...tree.paymentCatalogue
+		]
 			.filter((component) => component.is_statutory)
 			.map((component) => ({
 				code: component.code,
@@ -156,13 +167,13 @@ export function applyProposedChanges(
 	proposal: StatutoryProposal
 ): SettingsDraftWrite {
 	const schemes = (write.contribution_settings ?? []).map((scheme) => {
-		const change = changes.find(
+		const rateChange = changes.find(
 			(row) => row.collection === 'contribution_rates' && row.code === scheme.code
 		);
-		if (change == null) return scheme;
+		if (rateChange == null) return scheme;
 		return {
 			...scheme,
-			rate_contribution: decodeBands(change.proposed).map((band) => ({
+			rate_contribution: decodeBands(rateChange.proposed).map((band) => ({
 				id: crypto.randomUUID(),
 				selector: band.selector,
 				award: band.award
@@ -175,20 +186,38 @@ export function applyProposedChanges(
 		);
 		return change == null ? type : { ...type, entitlement: decodeEntitlement(change.proposed) };
 	});
-	const components = (write.component_catalogue_settings ?? []).map((component) => {
-		const change = changes.find(
-			(row) => row.collection === 'component_catalogue' && row.code === component.code
-		);
-		return change == null
-			? component
-			: { ...component, contribution_treatments: decodeTreatments(change.proposed) };
-	});
+	// One rule, applied to each catalogue's own slice of the draft. `collection` on a change row is
+	// `pay_component`, because that is what a proposal is about — a pay component, not the table
+	// that happens to hold it.
+	const applyTreatments = <T extends { readonly code?: unknown }>(rows: readonly T[]): T[] =>
+		rows.map((component) => {
+			const change = changes.find(
+				(row) => row.collection === 'pay_component' && row.code === component.code
+			);
+			return change == null
+				? component
+				: ({ ...component, contribution_treatments: decodeTreatments(change.proposed) } as T);
+		});
 	return {
 		...write,
+		work_catalogue_settings: (write.work_catalogue_settings ?? []).map((row) => {
+			const updated = { ...row };
+			for (const output of WORK_OUTPUTS) {
+				const item = row[output];
+				if (item != null) updated[output] = applyTreatments([item])[0]!;
+			}
+			return updated;
+		}),
 		research_notes: proposal,
-		contribution_settings: schemes,
-		leave_catalogue_settings: catalogueLeaves,
-		component_catalogue_settings: components
+		contribution_settings: schemes as SettingsDraftWrite['contribution_settings'],
+		leave_catalogue_settings: catalogueLeaves.map((row) => ({
+			...row,
+			...(row.encashment == null ? {} : { encashment: applyTreatments([row.encashment])[0]! })
+		})),
+		loan_catalogue_settings: applyTreatments(write.loan_catalogue_settings ?? []),
+		claim_catalogue_settings: applyTreatments(write.claim_catalogue_settings ?? []),
+		allowance_catalogue_settings: applyTreatments(write.allowance_catalogue_settings ?? []),
+		payment_catalogue_settings: applyTreatments(write.payment_catalogue_settings ?? [])
 	};
 }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveEmployment } from '../../lib/employment-contract.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	/**
 	 * One person's whole file: who they are, the engagements they hold, the terms of each engagement
@@ -162,12 +163,13 @@
 		record == null
 			? null
 			: client.db.employments.findMany({
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: { ...approved, employee_id: { eq: record.id } },
 					orderBy: { hire_date: 'desc' },
 					limit: 100
 				})
 	);
-	const employments = $derived(employmentsQuery?.current ?? []);
+	const employments = $derived((employmentsQuery?.current ?? []).map(resolveEmployment));
 	const subtitle = $derived(
 		record == null
 			? undefined
@@ -267,7 +269,6 @@
 				<Field name="phone" />
 				<Field name="date_of_birth" label={t('component.date_of_birth')} />
 				<Field name="nationality" />
-				<Field name="residency_status" label={t('component.residency_status')} />
 				<Field name="identity_number" label={t('component.identity_number')} />
 				<Field name="gender" />
 				<Field name="marital_status" label={t('component.marital_status')} />
@@ -304,8 +305,6 @@
 				/>
 				<TableColumn name="company_id" label={t('component.legal_entity')} card="subtitle" />
 				<TableColumn name="hire_date" label={t('component.hired')} />
-				<TableColumn name="exit_date" label={t('component.exited')} />
-				<TableColumn name="exit_reason" label={t('component.exit_reason')} />
 				<TableColumn name="effective_range" label={t('component.effective')} />
 			{/snippet}
 		</CollectionTable>

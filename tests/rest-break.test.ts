@@ -403,6 +403,7 @@ describe('on_exceed', () => {
 
 describe('the snapshot member', () => {
 	const REGIME = {
+		holiday_rest_precedence: 'REST_DAY',
 		overtime_coverage: null,
 		overtime_rules: [],
 		overtime_limits: []

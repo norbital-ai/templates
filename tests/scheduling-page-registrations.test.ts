@@ -1,62 +1,47 @@
-/**
- * HR20 for the Scheduling app, at the query-construction level.
- *
- * The named pattern reaches the board through the terms query's `with`, never through a live
- * query of its own, and the Shift patterns tab is one `CollectionTable`. The whole list of the
- * page's registrations is pinned so a second read cannot creep back in unnoticed.
- */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { registrations, snippet, source } from './helpers/page-source.ts';
 
-const page = readFileSync(
-	new URL('../src/apps/hr_controller/+scheduling.svelte', import.meta.url),
-	'utf8'
-);
+const page = source('apps/hr_controller/events/+work.svelte');
 
-const registrations = (text: string): ReadonlyArray<string> => [
-	...[...text.matchAll(/client\.db\.([a-z_]+)\.(findMany|findFirst)\(/g)].map(
-		(match) => `db.${match[1]}.${match[2]}`
-	),
-	...[...text.matchAll(/<CollectionTable\b/g)].map(() => 'CollectionTable')
-];
-
-/** The text of one `{#snippet name()} … {/snippet}` block, nested snippets included. */
-const snippet = (text: string, name: string): string => {
-	const start = text.indexOf(`{#snippet ${name}()}`);
-	assert.ok(start >= 0, `snippet ${name} exists`);
-	let depth = 0;
-	const tag = /\{#snippet\b|\{\/snippet\}/g;
-	tag.lastIndex = start;
-	for (let match = tag.exec(text); match != null; match = tag.exec(text)) {
-		depth += match[0] === '{/snippet}' ? -1 : 1;
-		if (depth === 0) return text.slice(start, match.index);
-	}
-	throw new Error(`snippet ${name} never closes`);
-};
-
-test('the board opens no live query for shift patterns: the pattern rides the terms read', () => {
+test('the Work board reads schedule patterns through terms and jurisdiction calendars through settings', () => {
 	const script = page.slice(0, page.indexOf('</script>'));
-	assert.deepEqual(registrations(script), [
-		'db.payroll_runs.findMany',
-		'db.employments.findMany',
-		'db.employees.findMany',
-		'db.shift_definitions.findMany',
-		'db.employment_terms.findMany',
-		'db.leave_catalogue.findMany',
-		'db.work_days.findMany',
-		'db.work_days.findMany',
-		'db.leave_requests.findMany',
-		'db.payslip_work_day_inputs.findMany',
-		'db.company_holidays.findMany'
-	]);
+	const reads = registrations(script);
+	assert.equal(reads.filter((name) => name === 'db.employment_terms.findMany').length, 1);
+	assert.ok(
+		!reads.includes('db.shift_patterns.findMany'),
+		'patterns ride the effective terms query'
+	);
 	assert.match(
 		script,
 		/with: \{ term_shift_pattern: \{ columns: \{ id: true, code: true, pattern: true \} \} \}/
 	);
+	assert.equal(reads.filter((name) => name === 'db.jurisdiction_settings.findMany').length, 1);
+	assert.equal(
+		reads.filter((name) => name === 'db.jurisdiction_holiday_calendars.findMany').length,
+		1
+	);
+	assert.ok(!reads.includes('db.company_holidays.findMany'));
+	assert.match(script, /holidayCalendarView\(/);
+	const calendarView = source('lib/ui/holiday-calendar.ts');
+	assert.match(calendarView, /resolveHolidayCalendars\(/);
+	assert.deepEqual(
+		registrations(calendarView),
+		[],
+		'the shared calendar view owns no live queries'
+	);
 });
 
-test('the Shift patterns tab opens exactly one live query: its table', () => {
-	assert.deepEqual(registrations(snippet(page, 'patterns')), ['CollectionTable']);
-	assert.match(snippet(page, 'patterns'), /collection="shift_patterns"/);
+test('the Shift patterns tab registers one table', () => {
+	const tab = snippet(page, 'patterns');
+	assert.deepEqual(registrations(tab), ['CollectionTable']);
+	assert.match(tab, /collection="shift_patterns"/);
+});
+
+test('the Work holiday view reads annual jurisdiction calendars instead of employee events', () => {
+	const tab = snippet(page, 'holidays');
+	assert.deepEqual(registrations(tab), ['CollectionTable']);
+	assert.match(tab, /collection="jurisdiction_holiday_calendars"/);
+	assert.match(tab, /jurisdiction_code/);
+	assert.doesNotMatch(tab, /collection="work_days"/);
 });
