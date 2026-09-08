@@ -54,16 +54,8 @@
 	 * requests and loan repayments. An approved claim stays editable until the capture exists:
 	 * approval is workflow, consumption is settlement.
 	 */
-	const captureQuery = $derived(
-		record
-			? client.db.payslip_claim_request_inputs.findFirst({
-					where: { claim_request_id: { eq: record.id } },
-					columns: { period: true }
-				})
-			: null
-	);
 	const settledBy = $derived(
-		captureQuery?.current ? { period: captureQuery.current.period } : null
+		record?.settled_period == null ? null : { period: record.settled_period }
 	);
 	const lock = $derived(
 		record
@@ -103,6 +95,8 @@
 						relationOptions={employmentRelationOptions(scopedCompanyId)}
 					/>
 				{/if}
+				<Field name="settled_payslip_id" hidden />
+				<Field name="settled_period" hidden />
 				<Field
 					name="claim_catalogue_id"
 					label={t('component.catalogue_component')}
@@ -124,12 +118,12 @@
 					The direction, and the line it corrects. The catalogue row declares whether this component
 					adds to pay or reduces it; ticking this settles this one entry the opposite way, which is
 					what a correction is now — a claw-back of a transport claim is a transport claim with the
-					tick, under the same component, on the same payslip line. `corrects_adjustment_id` is
+					tick, under the same component, on the same payslip line. `corrects_payslip_id` is
 					provenance only and never the direction: outputs are immutable, so an entry names the
 					settled line it fixes and there is no chain to walk.
 				-->
 				<Field name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-				<Field name="corrects_adjustment_id" label={t('component.corrects_adjustment')} />
+				<Field name="corrects_payslip_id" label={t('component.corrects_payslip')} />
 				<Column span="all">
 					<Field name="description" label={t('component.claim_description')} />
 				</Column>

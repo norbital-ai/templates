@@ -6,6 +6,7 @@ import { Effect } from 'effect';
 import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { settle, settledBy, stampRun } from './helpers/settlement.ts';
 import {
 	PAYMENT_ENTRY_ID,
 	COMPANY_ID,
@@ -111,11 +112,10 @@ test('a standing allowance is captured on two periods and two payslips', async (
 test('a captured single-use request is excluded from the next regular payroll', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	const january = await createPayrollRun(world, '2026-01');
-	const paymentCaptures = (january.payslip_payroll_run ?? []).flatMap(
-		(payslip) => payslip.payslip_payment_request_input_payslip ?? []
-	);
+	await stampRun(world, january);
+	const januaryPayslipId = january.payslip_payroll_run[0].id;
 	assert.deepEqual(
-		paymentCaptures.map((row) => row.payment_request_id),
+		settledBy(world, 'payment_requests', januaryPayslipId),
 		[PAYMENT_ENTRY_ID],
 		'January captures the payment once'
 	);
@@ -126,17 +126,12 @@ test('a captured single-use request is excluded from the next regular payroll', 
 		lifecycle: 'PAID',
 		captures: entryCaptures(january)
 	});
-	for (const capture of paymentCaptures) {
-		world.payslip_payment_request_inputs.push({
-			id: capture.id,
-			payslip_id: JAN_PAYSLIP,
-			payment_request_id: capture.payment_request_id,
-			period: capture.period
-		});
-	}
+	// The persisted January payslip is the one the payment stays settled by.
+	settle(world, 'payment_requests', PAYMENT_ENTRY_ID, JAN_PAYSLIP, '2026-01');
 
 	const february = await createPayrollRun(world, '2026-02');
-	assert.equal(february.payslip_payroll_run[0].payslip_payment_request_input_payslip.length, 0);
+	await stampRun(world, february);
+	assert.equal(settledBy(world, 'payment_requests', february.payslip_payroll_run[0].id).length, 0);
 	assert.equal(february.payslip_payroll_run[0].payslip_allowance_request_input_payslip.length, 1);
 });
 

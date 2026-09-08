@@ -15,19 +15,19 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * - `work_days` is NOT owned by its junction's inverse edge: the same day carries a plan and
  *   attendance together, and nobody's roster owns either half. The capture
  *   junction's `work_day_id` is `restrict`, which is what makes a consumed day un-deletable.
- * - the four input junctions cascade FROM their payslip — the capture has no meaning after the
- *   payslip that captured it is gone — and restrict into their business sources, which is what
- *   makes a captured source immutable while any run stands.
+ * - the three capture junctions cascade FROM their payslip — the capture has no meaning after the
+ *   payslip that captured it is gone — and restrict into their business sources. A single-use
+ *   source (work day, claim, payment) instead names the payslip that settled it in
+ *   `settled_payslip_id` — a plain pin, deliberately without a foreign key. Bolt stages a hook's
+ *   writes after the row's own statement, so a restrict edge there could never be released ahead
+ *   of the cascading payslip delete; the run's `after` hook stamps the pin and its delete hook
+ *   clears it, and the sources' own delete hooks refuse while it is set.
  *
  * ## Where an edge is not declared here
  *
- * `payslip_adjustments.input` is a `reference(...)`, and a reference owns its own target edges —
- * one real foreign key per arm, plus the exclusive-arc check that makes exactly one of them set.
- * Only the payslip ownership of that row is declared below.
- *
  * The remaining families deliberately have NO relation:
  *   - `leave_catalogue.payroll_effect`   -> declares its own deduction; no pointer to follow
- *   - `payslips.base/proration/statutory` -> component codes, scheme codes, band and term keys
+ *   - `payslips.base/proration/statutory/adjustments` -> codes, keys and source ids, never edges
  * The last of those is the point of inlining: a settled payslip is a frozen statement of what was
  * paid and does not become wrong because a catalogue row was later archived. See
  * docs/architecture.md (Provenance and audit).
@@ -216,12 +216,7 @@ export default ((r) => ({
 		claim_request_claim_catalogue: r.one.claim_catalogue({
 			from: r.claim_requests.claim_catalogue_id,
 			to: r.claim_catalogue.id
-		}),
-		/**
-		 * The capture that settled this request, when a run has. Declared so the page can carry its
-		 * lock state on the row it lists rather than open a second live query for it (B12).
-		 */
-		payslip_claim_request_input_claim_request: r.many.payslip_claim_request_inputs()
+		})
 	},
 
 	allowance_requests: {
@@ -248,12 +243,7 @@ export default ((r) => ({
 		payment_request_payment_catalogue: r.one.payment_catalogue({
 			from: r.payment_requests.payment_catalogue_id,
 			to: r.payment_catalogue.id
-		}),
-		/**
-		 * The capture that settled this request, when a run has. Declared so the page can carry its
-		 * lock state on the row it lists rather than open a second live query for it (B12).
-		 */
-		payslip_payment_request_input_payment_request: r.many.payslip_payment_request_inputs()
+		})
 	},
 
 	leave_entries: {
@@ -285,8 +275,7 @@ export default ((r) => ({
 		work_day_shift: r.one.shift_definitions({
 			from: r.work_days.shift_definition_id,
 			to: r.shift_definitions.id
-		}),
-		payslip_work_day_input_work_day: r.many.payslip_work_day_inputs()
+		})
 	},
 
 	payroll_runs: {
@@ -317,50 +306,18 @@ export default ((r) => ({
 			from: r.payslips.employment_id,
 			to: r.employments.id
 		}),
-		payslip_adjustment_payslip: r.many.payslip_adjustments(),
-		payslip_work_day_input_payslip: r.many.payslip_work_day_inputs(),
-		payslip_claim_request_input_payslip: r.many.payslip_claim_request_inputs(),
 		payslip_allowance_request_input_payslip: r.many.payslip_allowance_request_inputs(),
-		payslip_payment_request_input_payslip: r.many.payslip_payment_request_inputs(),
 		payslip_leave_input_payslip: r.many.payslip_leave_inputs(),
 		payslip_loan_repayment_input_payslip: r.many.payslip_loan_repayment_inputs()
 	},
 
 	/**
-	 * ENGINE-OWNED junctions. Engine-owned means the engine emits them inside the run's graph and
-	 * no user policy grants writes on them; the edges below are what the database enforces.
-	 *
-	 * Each junction is owned by its payslip (cascade — deleting the run releases every capture) and
-	 * restricted against its business source (plain edge — a consumed source cannot be deleted out
-	 * from under the run that read it). Each also carries the `many` inverse the payslip's writable
-	 * `many` resolves against, and the adjustment side is reached through the
-	 * `payslip_adjustments.input` reference's own per-arm edges.
+	 * ENGINE-OWNED captures. Three remain as rows because one entry is consumed by many payslips: a
+	 * recurring allowance, a Leave entry captured one date slice per period, and a loan repayment
+	 * recovered in part and recaptured for its remainder. Each is owned by
+	 * its payslip (cascade — deleting the run releases the capture) and restricted against its
+	 * source. Every single-use source carries `settled_payslip_id` instead.
 	 */
-	payslip_work_day_inputs: {
-		payslip_work_day_input_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_work_day_inputs.payslip_id,
-				to: r.payslips.id
-			})
-		),
-		payslip_work_day_input_work_day: r.one.work_days({
-			from: r.payslip_work_day_inputs.work_day_id,
-			to: r.work_days.id
-		})
-	},
-
-	payslip_claim_request_inputs: {
-		payslip_claim_request_input_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_claim_request_inputs.payslip_id,
-				to: r.payslips.id
-			})
-		),
-		payslip_claim_request_input_claim_request: r.one.claim_requests({
-			from: r.payslip_claim_request_inputs.claim_request_id,
-			to: r.claim_requests.id
-		})
-	},
 
 	payslip_allowance_request_inputs: {
 		payslip_allowance_request_input_payslip: cascade(
@@ -372,19 +329,6 @@ export default ((r) => ({
 		payslip_allowance_request_input_allowance_request: r.one.allowance_requests({
 			from: r.payslip_allowance_request_inputs.allowance_request_id,
 			to: r.allowance_requests.id
-		})
-	},
-
-	payslip_payment_request_inputs: {
-		payslip_payment_request_input_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_payment_request_inputs.payslip_id,
-				to: r.payslips.id
-			})
-		),
-		payslip_payment_request_input_payment_request: r.one.payment_requests({
-			from: r.payslip_payment_request_inputs.payment_request_id,
-			to: r.payment_requests.id
 		})
 	},
 
@@ -438,25 +382,5 @@ export default ((r) => ({
 			})
 		),
 		payslip_loan_repayment_input_loan_repayment: r.many.payslip_loan_repayment_inputs()
-	},
-
-	/**
-	 * Owned by its payslip, which is owned by its run.
-	 *
-	 * That chain is what makes a recalculation a REPLACEMENT rather than a merge: a nested `many`
-	 * in a `mutate` treats the array it is given as the child relationship's complete desired state
-	 * and removes every row left out of it, and a parent delete only reaches children through a
-	 * cascade edge. Without this an adjustment would outlive the payslip that computed it and the
-	 * capture it holds would never be released.
-	 *
-	 * `input: reference(...)` owns its four target edges; only payslip ownership is declared here.
-	 */
-	payslip_adjustments: {
-		payslip_adjustment_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_adjustments.payslip_id,
-				to: r.payslips.id
-			})
-		)
 	}
 })) satisfies Relationships;

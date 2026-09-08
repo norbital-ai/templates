@@ -1,21 +1,21 @@
-import { custom, defineModel, instant, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	custom,
+	defineModel,
+	instant,
+	numeric,
+	sql,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /**
  * One person's settlement for one run.
  *
- * A payslip comprises four things, and the kind of each is DERIVED from what it points at rather
- * than declared on it:
- *
- *     BASE        from the contract - employment_terms x period.        points at nothing
- *     PRORATION   what the calendar did to base.                        points at nothing
- *     STATUTORY   calculated FROM the two above.                        points at a scheme
- *     ADJUSTMENT  caused by exactly ONE input.                          points at a source
- *
- * The first three are inlined here, because none of them is caused by a record anybody can edit:
- * base is the contract, proration is the calendar, and statutory is arithmetic over the sum of the
- * two. There is nothing to link to, nothing to freeze, and no junction to keep honest. Only
- * `payslip_adjustments` is a relation, and it is the polymorphic one - every row there names the
- * one input that caused it.
+ * Base, proration, statutory and the adjustments are all inlined: base is the contract, proration
+ * is the calendar, statutory is arithmetic over the two, and an adjustment names the one captured
+ * input that caused it by family and source id. The lock over a captured source is the source's
+ * own `settled_payslip_id`; a recurring allowance and a per-period Leave slice keep their capture
+ * rows because one entry is consumed by many payslips.
  *
  * The inlined shape is the stored shape. Nothing reshapes it on the way in or out.
  */
@@ -35,6 +35,13 @@ export default defineModel(
 		proration: custom('payslip_proration', { multiple: true }).notNull(),
 		/** One entry per scheme charged, employee and employer share on the same entry. */
 		statutory: custom('payslip_statutory', { multiple: true }).notNull(),
+		/**
+		 * Everything one captured input caused, in settlement order. Provenance is family + source
+		 * id; the source row's `settled_payslip_id` is the lock, this is the money.
+		 */
+		adjustments: custom('payslip_adjustments')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		gross: numeric().notNull(),
 		total_deductions: numeric().notNull(),
 		net: numeric().notNull(),
@@ -43,7 +50,7 @@ export default defineModel(
 	},
 	{
 		description:
-			"One person's settlement for one run. Contracted base, the proration segments the calendar produced and the statutory charges over their sum are held here; anything caused by one editable input is an adjustment. Year-to-date is a SUM over payslips, never a stored column.",
+			"One person's settlement for one run. Contracted base, the proration segments the calendar produced, the statutory charges over their sum and every adjustment one captured input caused are held here. Year-to-date is a SUM over payslips, never a stored column.",
 		recordLabel: ['currency', 'net'],
 		icon: 'lucide:receipt',
 		indexes: [{ columns: ['payroll_run_id', 'employment_id'], unique: true }]

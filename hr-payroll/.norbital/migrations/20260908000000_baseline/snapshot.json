@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "70d724d0-222f-480b-900b-652a2633ae18",
+  "id": "381e87d6-822c-4602-87b5-61967419dbd3",
   "prevIds": [
-    "d35c2c5d-99d7-41a8-9caf-06d2b5d4b43d"
+    "bd72092d-6ca6-4903-8882-399ab77fc2f3"
   ],
   "version": "8",
   "ddl": [
@@ -122,19 +122,7 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "payslip_adjustments",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
       "name": "payslip_allowance_request_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "payslip_claim_request_inputs",
       "entityType": "tables",
       "schema": "public"
     },
@@ -147,18 +135,6 @@
     {
       "isRlsEnabled": false,
       "name": "payslip_loan_repayment_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "payslip_payment_request_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "payslip_work_day_inputs",
       "entityType": "tables",
       "schema": "public"
     },
@@ -563,7 +539,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "corrects_adjustment_id",
+      "name": "corrects_payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "allowance_requests"
@@ -972,7 +948,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "corrects_adjustment_id",
+      "name": "corrects_payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_requests"
@@ -986,6 +962,32 @@
       "generated": null,
       "identity": null,
       "name": "pay_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_payslip_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_requests"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_period",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_requests"
@@ -4134,7 +4136,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "corrects_adjustment_id",
+      "name": "corrects_payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "payment_requests"
@@ -4148,6 +4150,32 @@
       "generated": null,
       "identity": null,
       "name": "pay_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payment_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_payslip_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payment_requests"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_period",
       "entityType": "columns",
       "schema": "public",
       "table": "payment_requests"
@@ -4387,295 +4415,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "tsvector",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce(\"label\", ''))",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "search_document",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "input__work_day_input_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "input__claim_request_input_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "input__allowance_request_input_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "input__payment_request_input_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "input__leave_input_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "input__loan_repayment_input_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "label",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "bucket",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "amount",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "quantity",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "rate",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "statutory_rule_key",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "sequence",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "payslip_allowance_request_inputs"
     },
     {
@@ -4781,123 +4520,6 @@
       "entityType": "columns",
       "schema": "public",
       "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "claim_request_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
     },
     {
       "type": "uuid",
@@ -5183,240 +4805,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payment_request_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "work_day_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "payslips"
     },
     {
@@ -5574,6 +4962,19 @@
       "generated": null,
       "identity": null,
       "name": "statutory",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "adjustments",
       "entityType": "columns",
       "schema": "public",
       "table": "payslips"
@@ -6613,6 +6014,32 @@
       "generated": null,
       "identity": null,
       "name": "holiday_calendar_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "work_days"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_payslip_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "work_days"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_period",
       "entityType": "columns",
       "schema": "public",
       "table": "work_days"
@@ -7961,216 +7388,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "statutory_rule_key",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"statutory_rule_key\" IS NOT NULL",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_statutory_rule_key_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_payslip_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "search_document",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payslip_adjustments_search_document_gin_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "(coalesce(\"label\", '')) gin_trgm_ops",
-          "isExpression": true,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payslip_adjustments_search_text_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "input__work_day_input_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"input__work_day_input_id\" is not null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_input_work_day_input_ref_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "input__claim_request_input_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"input__claim_request_input_id\" is not null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_input_claim_request_input_ref_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "input__allowance_request_input_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"input__allowance_request_input_id\" is not null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_input_allowance_request_input_ref_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "input__payment_request_input_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"input__payment_request_input_id\" is not null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_input_payment_request_input_ref_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "input__leave_input_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"input__leave_input_id\" is not null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_input_leave_input_ref_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "input__loan_repayment_input_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": "\"input__loan_repayment_input_id\" is not null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_input_loan_repayment_input_ref_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "payslip_id",
           "isExpression": false,
           "asc": true,
@@ -8194,55 +7411,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "claim_request_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_claim_request_inputs_payslip_id_claim_request_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "claim_request_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_claim_request_inputs_claim_request_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
     },
     {
       "nameExplicit": false,
@@ -8299,104 +7467,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "payment_request_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_payment_request_inputs_payslip_id_payment_request_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payment_request_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_payment_request_inputs_payment_request_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "work_day_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_work_day_inputs_payslip_id_work_day_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "work_day_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_work_day_inputs_work_day_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
     },
     {
       "nameExplicit": false,
@@ -9235,125 +8305,6 @@
     {
       "nameExplicit": true,
       "columns": [
-        "input__work_day_input_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslip_work_day_inputs",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_input_work_day_input_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "input__claim_request_input_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslip_claim_request_inputs",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_input_claim_request_input_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "input__allowance_request_input_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslip_allowance_request_inputs",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_input_allowance_request_input_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "input__payment_request_input_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslip_payment_request_inputs",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_input_payment_request_input_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "input__leave_input_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslip_leave_inputs",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_input_leave_input_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "input__loan_repayment_input_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslip_loan_repayment_inputs",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_input_loan_repayment_input_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_adjustments_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
         "payslip_id"
       ],
       "schemaTo": "public",
@@ -9384,40 +8335,6 @@
       "entityType": "fks",
       "schema": "public",
       "table": "payslip_allowance_request_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_claim_request_inputs_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "claim_request_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "claim_requests",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payslip_claim_request_inputs_claim_request_id_claim_requests_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs"
     },
     {
       "nameExplicit": true,
@@ -9486,74 +8403,6 @@
       "entityType": "fks",
       "schema": "public",
       "table": "payslip_loan_repayment_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_payment_request_inputs_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payment_request_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payment_requests",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payslip_payment_request_inputs_payment_request_id_payment_requests_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "payslip_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "payslips",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "payslip_work_day_inputs_payslip_id_payslips_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "work_day_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "work_days",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "payslip_work_day_inputs_work_day_id_work_days_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "payslip_work_day_inputs"
     },
     {
       "nameExplicit": true,
@@ -9903,29 +8752,9 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "payslip_adjustments_pkey",
-      "schema": "public",
-      "table": "payslip_adjustments",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "payslip_allowance_request_inputs_pkey",
       "schema": "public",
       "table": "payslip_allowance_request_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "payslip_claim_request_inputs_pkey",
-      "schema": "public",
-      "table": "payslip_claim_request_inputs",
       "entityType": "pks"
     },
     {
@@ -9946,26 +8775,6 @@
       "name": "payslip_loan_repayment_inputs_pkey",
       "schema": "public",
       "table": "payslip_loan_repayment_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "payslip_payment_request_inputs_pkey",
-      "schema": "public",
-      "table": "payslip_payment_request_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "payslip_work_day_inputs_pkey",
-      "schema": "public",
-      "table": "payslip_work_day_inputs",
       "entityType": "pks"
     },
     {
@@ -10027,13 +8836,6 @@
       "schema": "public",
       "table": "work_days",
       "entityType": "pks"
-    },
-    {
-      "value": "num_nonnulls(\"input__work_day_input_id\", \"input__claim_request_input_id\", \"input__allowance_request_input_id\", \"input__payment_request_input_id\", \"input__leave_input_id\", \"input__loan_repayment_input_id\") = 1",
-      "name": "payslip_adjustments_input_reference_check",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "payslip_adjustments"
     }
   ],
   "renames": []

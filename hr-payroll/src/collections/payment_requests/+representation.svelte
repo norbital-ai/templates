@@ -20,16 +20,8 @@
 	const scopedCompanyId = $derived(createScope?.companyId());
 	const scopedSettingsCode = $derived(createScope?.settingsCode());
 
-	const captureQuery = $derived(
-		record
-			? client.db.payslip_payment_request_inputs.findFirst({
-					where: { payment_request_id: { eq: record.id } },
-					columns: { period: true }
-				})
-			: null
-	);
 	const settledBy = $derived(
-		captureQuery?.current ? { period: captureQuery.current.period } : null
+		record?.settled_period == null ? null : { period: record.settled_period }
 	);
 	const lock = $derived(
 		record
@@ -79,10 +71,12 @@
 					}}
 				/>
 				<Field name="amount" label={t('component.entry_amount')} />
+				<Field name="settled_payslip_id" hidden />
+				<Field name="settled_period" hidden />
 				<Field name="effective_on" label={t('component.effective_on')} />
 				<Field name="pay_period" label={t('component.pay_period_override')} />
 				<Field name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-				<Field name="corrects_adjustment_id" label={t('component.corrects_adjustment')} />
+				<Field name="corrects_payslip_id" label={t('component.corrects_payslip')} />
 				<Column span="all">
 					<Field name="covers_periods" label={t('component.covers_periods')} />
 				</Column>

@@ -7,15 +7,9 @@ import {
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
 
-type CaptureSource =
-	| 'work_days'
-	| 'claim_requests'
-	| 'allowance_requests'
-	| 'payment_requests'
-	| 'leave_entries'
-	| 'loan_repayments';
+type CaptureSource = 'allowance_requests' | 'leave_entries' | 'loan_repayments';
 type Parent = MutateBeforeContext<
-	CollectionHooks<WorkspaceSchema, 'payslip_work_day_inputs'>
+	CollectionHooks<WorkspaceSchema, 'payslip_leave_inputs'>
 >['parent'];
 
 export type PreparedCaptureContracts = {
@@ -40,10 +34,7 @@ export function prepareCaptureContracts(
 		} as const;
 		const sources = ids.length
 			? yield* {
-					work_days: () => api.db.work_days.findMany(sourceQuery),
-					claim_requests: () => api.db.claim_requests.findMany(sourceQuery),
 					allowance_requests: () => api.db.allowance_requests.findMany(sourceQuery),
-					payment_requests: () => api.db.payment_requests.findMany(sourceQuery),
 					leave_entries: () => api.db.leave_entries.findMany(sourceQuery),
 					loan_repayments: () => api.db.loan_repayments.findMany(sourceQuery)
 				}[source]()

@@ -10,6 +10,7 @@ import {
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { adjust, settle } from './helpers/settlement.ts';
 
 type Family = 'claim' | 'payment' | 'allowance';
 const periodCap = (percentage: number, amount = 1000) => ({
@@ -128,7 +129,7 @@ for (const family of ['claim', 'payment', 'allowance'] as const) {
 		);
 		world[`${family}_requests`].push(candidate);
 		const result = await build(world);
-		const outputs = result.payslip_payroll_run[0].payslip_adjustment_payslip.filter(
+		const outputs = result.payslip_payroll_run[0].adjustments.filter(
 			(row) => row.label === 'BENEFIT'
 		);
 		assert.deepEqual(
@@ -185,19 +186,9 @@ test('paid captured amounts, including zero, replace source estimates without ch
 			payroll_run_id: 'paid-run',
 			statutory: []
 		});
-		world.payslip_claim_request_inputs.push({
-			id: 'capture',
-			payslip_id: 'paid-slip',
-			claim_request_id: 'prior',
-			period: '2026-01'
-		});
+		settle(world, 'claim_requests', 'prior', 'paid-slip', '2026-01');
 		if (captured !== 0)
-			world.payslip_adjustments.push({
-				id: 'paid-output',
-				payslip_id: 'paid-slip',
-				amount: captured,
-				input: { kind: 'CLAIM_REQUEST_INPUT', id: 'capture' }
-			});
+			adjust(world, 'paid-slip', { family: 'CLAIM', source_id: 'prior', amount: captured });
 		candidate.amount = 1000 - captured;
 		await admit('claim', world, candidate);
 		await assert.rejects(
@@ -205,7 +196,7 @@ test('paid captured amounts, including zero, replace source estimates without ch
 			/1001\.00 requested/
 		);
 		world.claim_requests.push(candidate);
-		const outputs = (await build(world)).payslip_payroll_run[0].payslip_adjustment_payslip.filter(
+		const outputs = (await build(world)).payslip_payroll_run[0].adjustments.filter(
 			(row) => row.label === 'BENEFIT'
 		);
 		assert.deepEqual(
@@ -286,7 +277,7 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 	] as const) {
 		const slip = (await build(world, period)).payslip_payroll_run[0];
 		assert.equal(
-			slip.payslip_adjustment_payslip.find((row) => row.label === 'BENEFIT')?.amount ?? 0,
+			slip.adjustments.find((row) => row.label === 'BENEFIT')?.amount ?? 0,
 			expected,
 			period
 		);
@@ -309,9 +300,6 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 				payslip_id: payslipId
 			}))
 		);
-		world.payslip_adjustments.push(
-			...slip.payslip_adjustment_payslip.map((row) => ({ ...row, payslip_id: payslipId }))
-		);
 		const repeated = (await build(world, period)).payslip_payroll_run[0];
 		assert.equal(
 			repeated.payslip_allowance_request_input_payslip.length,
@@ -319,7 +307,7 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 			'same-period occurrence is already consumed'
 		);
 		assert.equal(
-			repeated.payslip_adjustment_payslip.some((row) => row.label === 'BENEFIT'),
+			repeated.adjustments.some((row) => row.label === 'BENEFIT'),
 			false
 		);
 	}
@@ -331,7 +319,7 @@ test('a recurring declaration is accepted and its cap is applied to each payroll
 	candidate.amount = 1200;
 	await admit('allowance', world, candidate);
 	world.allowance_requests.push(candidate);
-	const outputs = (await build(world)).payslip_payroll_run[0].payslip_adjustment_payslip.filter(
+	const outputs = (await build(world)).payslip_payroll_run[0].adjustments.filter(
 		(row) => row.label === 'BENEFIT'
 	);
 	assert.deepEqual(
@@ -373,7 +361,7 @@ test('post-departure Payment uses final terms from its own contract for eligibil
 	const slip = (await build(world)).payslip_payroll_run[0];
 	assert.deepEqual(slip.base, []);
 	assert.deepEqual(
-		slip.payslip_adjustment_payslip
+		slip.adjustments
 			.filter((row) => row.label === 'BENEFIT')
 			.map((row) => row.amount)
 			.sort((a, b) => a - b),
@@ -392,7 +380,7 @@ test('payroll cap usage values a due one-off Allowance using its actual source-m
 	// The write guard conservatively reserves the stated source magnitude before payroll prices it.
 	await assert.rejects(admit('allowance', world, candidate), /1140\.00 requested/);
 	world.allowance_requests.push(candidate);
-	const outputs = (await build(world)).payslip_payroll_run[0].payslip_adjustment_payslip.filter(
+	const outputs = (await build(world)).payslip_payroll_run[0].adjustments.filter(
 		(row) => row.label === 'BENEFIT'
 	);
 	assert.deepEqual(

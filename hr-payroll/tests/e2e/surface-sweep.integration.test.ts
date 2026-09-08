@@ -72,11 +72,8 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
 const NO_REPRESENTATION = new Set([
 	'loan_repayments',
 	'payslip_allowance_request_inputs',
-	'payslip_payment_request_inputs',
-	'payslip_claim_request_inputs',
 	'payslip_leave_inputs',
-	'payslip_loan_repayment_inputs',
-	'payslip_work_day_inputs'
+	'payslip_loan_repayment_inputs'
 ]);
 
 /**
@@ -91,7 +88,6 @@ const UNSEEDED_COLLECTIONS = new Set([
 	'loans',
 	'payment_requests',
 	'payroll_runs',
-	'payslip_adjustments',
 	'payslips',
 	'work_days'
 ]);

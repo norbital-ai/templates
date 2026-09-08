@@ -68,6 +68,7 @@
 	import { attendanceBoundary } from '../lib/attendance.js';
 	import {
 		payRequestRecordMetadata,
+		settledClaims,
 		sourceLock,
 		sourceLockReason,
 		type DayLock,
@@ -88,17 +89,6 @@
 	 * The three settlement lookups on this screen — attendance, leave, entries — share one shape,
 	 * so the index is built once here and each junction read stays a one-expression query.
 	 */
-	function capturesBySource(
-		rows: readonly { readonly period: string }[] | undefined,
-		sourceColumn: string
-	): Map<string, { readonly period: string }> {
-		const byId = new Map<string, { readonly period: string }>();
-		if (rows == null) return byId;
-		for (const row of rows)
-			byId.set(String(Reflect.get(row, sourceColumn)), { period: row.period });
-		return byId;
-	}
-
 	/** Every catalogue read on this page skips rows still held under an approval request. */
 	const approved = { approval_id: { isNull: true } } as const;
 
@@ -204,7 +194,7 @@
 	 * employee can honestly know about a lock is exactly two things, and both are readable:
 	 *
 	 *   - PENDING  — `approval_id` on their own row. The platform's own stamp.
-	 *   - CONSUMED — a `payslip_adjustments` row naming the payslip that took the record. Granted by
+	 *   - CONSUMED — the row's own `settled_payslip_id`, naming the payslip that took the record. Granted by
 	 *                `settlementLedgerGrants()`, exact, stored, per-record. It is strictly better
 	 *                than the window inference it replaces: the window guessed from a date, this
 	 *                names the period.
@@ -257,13 +247,8 @@
 	 */
 	type CapturedPayRequest = {
 		readonly approval_id: string | null;
-		readonly payslip_claim_request_input_claim_request?: ReadonlyArray<{
-			readonly period: string;
-		}>;
+		readonly settled_period?: string | null;
 		readonly payslip_allowance_request_input_allowance_request?: ReadonlyArray<{
-			readonly period: string;
-		}>;
-		readonly payslip_payment_request_input_payment_request?: ReadonlyArray<{
 			readonly period: string;
 		}>;
 	};
@@ -295,7 +280,7 @@
 	 *
 	 * ONE THING IS DELIBERATELY ABSENT, and it is a ruling rather than a gap: `payroll_runs` is not
 	 * readable by an employee, so this calendar has no day axis at all. It draws the record axis —
-	 * pending, and consumed-by-payslip from `payslip_adjustments` — and nothing else. See the note above
+	 * pending, and consumed-by-payslip from the row's own `settled_period` — and nothing else. See the note above
 	 * `NO_DAY_LOCKS`, and the ladder note in `roster-month-calendar.svelte` for why a rung that
 	 * could never light was removed instead of being left dark.
 	 * ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -496,14 +481,19 @@
 	const scheduleSettlementsQuery = $derived.by(() => {
 		const ids = scheduleWorkDays.map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_work_day_inputs.findMany({
-			where: { work_day_id: { in: ids } },
-			columns: { work_day_id: true, period: true },
+		return client.db.work_days.findMany({
+			where: { id: { in: ids }, settled_payslip_id: { isNull: false } },
+			columns: { id: true, settled_period: true },
 			limit: 200
 		});
 	});
 	const settlementByWorkDayId = $derived(
-		capturesBySource(scheduleSettlementsQuery?.current, 'work_day_id')
+		new Map(
+			(scheduleSettlementsQuery?.current ?? []).map((row) => [
+				row.id,
+				{ period: row.settled_period ?? '' }
+			])
+		)
 	);
 	const leaveBalancesQuery = $derived(
 		employmentId == null
@@ -1133,11 +1123,10 @@
 		description={t('app.hr_employee.my_claims_description')}
 		disabled={!employmentId}
 		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(row.approval_id, row.payslip_claim_request_input_claim_request, t)}
+			payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
 		query={{
 			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-			orderBy: { incurred_on: 'desc' },
-			with: { payslip_claim_request_input_claim_request: { columns: { period: true } } }
+			orderBy: { incurred_on: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
@@ -1195,15 +1184,10 @@
 		description={t('app.hr_employee.my_payments_description')}
 		disabled={!employmentId}
 		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(
-				row.approval_id,
-				row.payslip_payment_request_input_payment_request,
-				t
-			)}
+			payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
 		query={{
 			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-			orderBy: { effective_on: 'desc' },
-			with: { payslip_payment_request_input_payment_request: { columns: { period: true } } }
+			orderBy: { effective_on: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
@@ -1412,6 +1396,8 @@
 					<Field name="planned_note" hidden />
 					<Field name="worked_intervals" hidden />
 					<Field name="break_minutes" hidden />
+					<Field name="settled_payslip_id" hidden />
+					<Field name="settled_period" hidden />
 					<Stack gap="sm">
 						<Inline gap="sm" align="end">
 							<label class="flex-1 text-sm font-medium">

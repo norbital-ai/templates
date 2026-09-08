@@ -39,14 +39,14 @@ export default defineModel(
 		 */
 		as_adjustment_entry: boolean().notNull().default(false),
 		/**
-		 * The settled payslip line this entry corrects, when it corrects one.
+		 * The settled payslip this entry corrects, when it corrects one.
 		 *
 		 * Optional, and provenance only: the direction comes from `as_adjustment_entry` above, never
 		 * from walking a chain. Outputs are immutable, so a correction names one and there is
 		 * nothing to walk — the removed `obligations` model carried a `reverses` walk whose single
 		 * flip silently doubled a negative on a reversal of a reversal.
 		 */
-		corrects_adjustment_id: uuid(),
+		corrects_payslip_id: uuid(),
 		/**
 		 * The period a one-off settles in, overriding the cutoff's answer. A recurring allowance
 		 * ignores it: its window already names every period it is paid in.

@@ -223,7 +223,33 @@ const PAYSLIPS = [
 		net: 3454.03,
 		employer_cost: 515.15,
 		base: [{ component_code: BASIC.code, amount: 3451 }],
-		statutory: []
+		statutory: [],
+		/**
+		 * Two adjustments link to no component at all: the statutory rest-day day-wage award and the
+		 * hours the daily ceiling reclassified out of it. Contracted basic pay is inlined in `base`.
+		 */
+		adjustments: [
+			{
+				family: 'WORK_DAY',
+				source_id: 'capture:ot-rest-day',
+				label: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
+				bucket: 'EARNING',
+				statutory_rule_key: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
+				amount: 132.73,
+				quantity: 8,
+				rate: null
+			},
+			{
+				family: 'WORK_DAY',
+				source_id: 'capture:ot-excess',
+				label: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
+				bucket: 'EARNING',
+				statutory_rule_key: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
+				amount: 33.18,
+				quantity: 1,
+				rate: null
+			}
+		]
 	},
 	{
 		id: 'payslip:leaver',
@@ -235,49 +261,21 @@ const PAYSLIPS = [
 		net: 740,
 		employer_cost: 0,
 		base: [{ component_code: BASIC.code, amount: 690 }],
-		statutory: []
+		statutory: [],
+		adjustments: [
+			{
+				family: 'PAYMENT',
+				source_id: 'capture:final-payment',
+				label: FINAL_PAYMENT.code,
+				bucket: 'EARNING',
+				statutory_rule_key: null,
+				amount: 50,
+				quantity: null,
+				rate: null
+			}
+		]
 	}
 ];
-/**
- * Two adjustments link to no component at all: the statutory rest-day day-wage award and the
- * hours the daily ceiling reclassified out of it. Contracted basic pay is inlined in `payslips.base`.
- */
-const PAYSLIP_ADJUSTMENTS = [
-	{
-		id: 'adjustment:final-payment',
-		payslip_id: 'payslip:leaver',
-		input: { kind: 'PAYMENT_REQUEST_INPUT', id: 'capture:final-payment' },
-		label: FINAL_PAYMENT.code,
-		bucket: 'EARNING',
-		statutory_rule_key: null,
-		amount: 50,
-		quantity: null,
-		sequence: 50
-	},
-	{
-		id: 'adjustment:ot-rest-day',
-		payslip_id: 'payslip:pattern',
-		input: { kind: 'WORK_DAY_INPUT', id: 'capture:ot-rest-day' },
-		label: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
-		bucket: 'EARNING',
-		statutory_rule_key: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
-		amount: 132.73,
-		quantity: 8,
-		sequence: 2
-	},
-	{
-		id: 'adjustment:ot-excess',
-		payslip_id: 'payslip:pattern',
-		input: { kind: 'WORK_DAY_INPUT', id: 'capture:ot-excess' },
-		label: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
-		bucket: 'EARNING',
-		statutory_rule_key: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
-		amount: 33.18,
-		quantity: 1,
-		sequence: 3
-	}
-];
-
 function matches(row, where = {}) {
 	return Object.entries(where).every(([column, condition]) => {
 		if (condition == null) return true;
@@ -320,7 +318,6 @@ Effect.runPromise(
 
 			const api = stubApi({
 				payslips: PAYSLIPS,
-				payslip_adjustments: PAYSLIP_ADJUSTMENTS,
 				employments: EMPLOYMENTS,
 				work_catalogue: [WORK],
 				leave_catalogue: [],

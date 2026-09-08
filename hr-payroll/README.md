@@ -55,8 +55,8 @@ not reopen those dates. `holiday_import` prepares next-year drafts from Google C
 1 October, with manual jurisdiction/year refreshes. HR reviews observations and annual completeness
 before publication. Source configuration and credentials are separate from annual calendars.
 
-Payroll writes `payroll_runs`, `payslips`, captured-input junctions and `payslip_adjustments` as one
-atomic graph. Payslips contain base, proration and statutory results; adjustments reference their
+Payroll writes `payroll_runs`, `payslips` (adjustments inlined), the three capture junctions
+(allowance, leave, loan repayment) and the single-use sources' settlement pins as one atomic graph. Payslips contain base, proration and statutory results; adjustments reference their
 causal captures. Payroll outputs are calculated rather than supplied as seed inputs.
 
 Only approved, committed source rows are payable. Held creates live in the platform approval

@@ -76,14 +76,14 @@ test(
 			);
 
 			const captured = (await session.query(
-				`select 'work_day' as kind, work_day_id as source_id
-				 from payslip_work_day_inputs i
-				 join payslips p on p.id = i.payslip_id
+				`select 'work_day' as kind, w.id as source_id
+				 from work_days w
+				 join payslips p on p.id = w.settled_payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'claim_request', claim_request_id
-				 from payslip_claim_request_inputs i
-				 join payslips p on p.id = i.payslip_id
+				 select 'claim_request', c.id
+				 from claim_requests c
+				 join payslips p on p.id = c.settled_payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
 				 select 'allowance_request', allowance_request_id
@@ -91,9 +91,9 @@ test(
 				 join payslips p on p.id = i.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'payment_request', payment_request_id
-				 from payslip_payment_request_inputs i
-				 join payslips p on p.id = i.payslip_id
+				 select 'payment_request', r.id
+				 from payment_requests r
+				 join payslips p on p.id = r.settled_payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
 				 select 'leave_request', leave_entry_id
@@ -167,21 +167,21 @@ test(
 			);
 
 			const leftoverCaptures = (await session.query(
-				`select 'work_day' as kind, work_day_id as source_id
-				 from payslip_work_day_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				`select 'work_day' as kind, id as source_id
+				 from work_days
+				 where settled_payslip_id is not null and id = any($3::uuid[])
 				 union all
-				 select 'claim_request', claim_request_id
-				 from payslip_claim_request_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 select 'claim_request', id
+				 from claim_requests
+				 where settled_payslip_id is not null and id = any($3::uuid[])
 				 union all
 				 select 'allowance_request', allowance_request_id
 				 from payslip_allowance_request_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
 				 union all
-				 select 'payment_request', payment_request_id
-				 from payslip_payment_request_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 select 'payment_request', id
+				 from payment_requests
+				 where settled_payslip_id is not null and id = any($3::uuid[])
 				 union all
 				 select 'leave_request', leave_entry_id
 				 from payslip_leave_inputs
@@ -190,7 +190,7 @@ test(
 				 select 'loan_repayment', loan_repayment_id
 				 from payslip_loan_repayment_inputs
 				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))`,
-				[februaryId, marchId]
+				[februaryId, marchId, captured.map((row) => row.source_id)]
 			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
 			assert.deepEqual(
 				leftoverCaptures,

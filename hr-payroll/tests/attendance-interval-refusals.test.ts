@@ -68,7 +68,6 @@ const api = {
 				])
 		},
 		payroll_runs: { findMany: () => Effect.succeed([]) },
-		payslip_work_day_inputs: { findFirst: () => Effect.succeed(null) },
 		leave_entries: { findMany: () => Effect.succeed([]) }
 	}
 };

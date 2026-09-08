@@ -135,12 +135,11 @@ test('Payment requires a reason, seals its contract and rejects a correction fro
 	);
 	assert.equal(attempt(paymentHooks, component, payment).employment_id, 'e1');
 	const api = apiWith(component);
-	api.db.payslip_adjustments = { findFirst: () => Effect.succeed({ payslip_id: 'old-slip' }) };
 	api.db.payslips = { findFirst: () => Effect.succeed({ employment_id: 'old-contract' }) };
 	assert.throws(
 		() =>
 			Effect.runSync(
-				guardOf(paymentHooks)({ input: { ...payment, corrects_adjustment_id: 'old-line' }, api })
+				guardOf(paymentHooks)({ input: { ...payment, corrects_payslip_id: 'old-line' }, api })
 			),
 		/same employment contract/
 	);

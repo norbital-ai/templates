@@ -14,13 +14,6 @@ type PaymentRequest = WorkspaceRow<'payment_requests'>;
 export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ALLOWANCE', 'PAYMENT'] as const;
 export type PayRequestFamily = (typeof PAY_REQUEST_FAMILIES)[number];
 
-/** The five arms of `payslip_adjustments.input` that name a pay request, for a read that wants them all. */
-const REQUEST_INPUT_KINDS = [
-	'CLAIM_REQUEST_INPUT',
-	'ALLOWANCE_REQUEST_INPUT',
-	'PAYMENT_REQUEST_INPUT'
-] as const;
-
 /** The window a standing allowance is live across; `end` null is open-ended. */
 type RequestWindow = { readonly start: IsoDate; readonly end: IsoDate | null };
 
@@ -58,7 +51,7 @@ export type PayRequest = {
 	/** A standing payslip already captured this single-use request. */
 	readonly captured: boolean;
 	/** The settled output this corrects, when it names one. Provenance; never a source of sign. */
-	readonly corrects_adjustment_id: string | null;
+	readonly corrects_payslip_id: string | null;
 	/** The past periods an entered payment makes good, when specified. */
 	readonly covers_periods: readonly string[] | null;
 };
@@ -82,7 +75,7 @@ const magnitudeBase = (
 		readonly approval_id?: string | null;
 		readonly pay_period?: string | null;
 		readonly as_adjustment_entry?: boolean;
-		readonly corrects_adjustment_id?: string | null;
+		readonly corrects_payslip_id?: string | null;
 	},
 	family: PayRequestFamily,
 	eventDate: IsoDate,
@@ -114,7 +107,7 @@ const magnitudeBase = (
 	depletes: row.as_adjustment_entry !== true,
 	recurring: false,
 	captured: false,
-	corrects_adjustment_id: row.corrects_adjustment_id ?? null,
+	corrects_payslip_id: row.corrects_payslip_id ?? null,
 	covers_periods: null
 });
 
@@ -356,11 +349,12 @@ function requestCaptures(options: {
 		const idsOf = (family: PayRequestFamily) =>
 			options.requests.filter((request) => request.family === family).map((request) => request.id);
 		const db = options.api.db;
+		const settled = { id: true, settled_payslip_id: true, settled_period: true } as const;
 		const [claims, allowances, payments] = yield* Effect.all(
 			[
-				db.payslip_claim_request_inputs.findMany({
-					where: { claim_request_id: { in: idsOf('CLAIM') } },
-					columns: { id: true, period: true, claim_request_id: true, payslip_id: true },
+				db.claim_requests.findMany({
+					where: { id: { in: idsOf('CLAIM') }, settled_payslip_id: { isNull: false } },
+					columns: settled,
 					limit: PAGE_LIMIT
 				}),
 				db.payslip_allowance_request_inputs.findMany({
@@ -368,9 +362,9 @@ function requestCaptures(options: {
 					columns: { id: true, period: true, allowance_request_id: true, payslip_id: true },
 					limit: PAGE_LIMIT
 				}),
-				db.payslip_payment_request_inputs.findMany({
-					where: { payment_request_id: { in: idsOf('PAYMENT') } },
-					columns: { id: true, period: true, payment_request_id: true, payslip_id: true },
+				db.payment_requests.findMany({
+					where: { id: { in: idsOf('PAYMENT') }, settled_payslip_id: { isNull: false } },
+					columns: settled,
 					limit: PAGE_LIMIT
 				})
 			],
@@ -380,33 +374,46 @@ function requestCaptures(options: {
 		options.api.reads.assertComplete(allowances, 'allowance captures');
 		options.api.reads.assertComplete(payments, 'payment captures');
 		const links = [
-			...claims.map((row) => ({ ...row, sourceId: row.claim_request_id })),
-			...allowances.map((row) => ({ ...row, sourceId: row.allowance_request_id })),
-			...payments.map((row) => ({ ...row, sourceId: row.payment_request_id }))
+			...claims.map((row) => ({
+				family: 'CLAIM' as const,
+				payslipId: row.settled_payslip_id!,
+				period: row.settled_period ?? '',
+				sourceId: row.id
+			})),
+			...allowances.map((row) => ({
+				family: 'ALLOWANCE' as const,
+				payslipId: row.payslip_id,
+				period: row.period,
+				sourceId: row.allowance_request_id
+			})),
+			...payments.map((row) => ({
+				family: 'PAYMENT' as const,
+				payslipId: row.settled_payslip_id!,
+				period: row.settled_period ?? '',
+				sourceId: row.id
+			}))
 		];
 		if (links.length === 0) return captures;
+		const payslips = yield* db.payslips.findMany({
+			where: { id: { in: [...new Set(links.map((row) => row.payslipId))] } },
+			columns: { id: true, adjustments: true },
+			limit: PAGE_LIMIT
+		});
+		options.api.reads.assertComplete(payslips, 'captured pay-request outputs');
 		const amounts = new Map<string, number>();
-		const outputs = yield* Effect.all(
-			REQUEST_INPUT_KINDS.map((kind) =>
-				db.payslip_adjustments.findMany({
-					where: {
-						payslip_id: { in: [...new Set(links.map((row) => row.payslip_id))] },
-						input: { kind: { eq: kind } }
-					},
-					columns: { input: true, amount: true },
-					limit: PAGE_LIMIT
-				})
-			),
-			{ concurrency: 'unbounded' }
-		);
-		for (const rows of outputs) {
-			options.api.reads.assertComplete(rows, 'captured pay-request outputs');
-			for (const row of rows)
-				amounts.set(row.input.id, (amounts.get(row.input.id) ?? 0) + decodeNumber(row.amount));
-		}
+		for (const payslip of payslips)
+			for (const row of payslip.adjustments) {
+				if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
+				const key = `${payslip.id}:${row.source_id}`;
+				amounts.set(key, (amounts.get(key) ?? 0) + decodeNumber(row.amount));
+			}
 		for (const link of links) {
 			const rows = captures.get(link.sourceId) ?? [];
-			rows.push({ id: link.id, period: link.period, amount: amounts.get(link.id) ?? 0 });
+			rows.push({
+				id: link.payslipId,
+				period: link.period,
+				amount: amounts.get(`${link.payslipId}:${link.sourceId}`) ?? 0
+			});
 			captures.set(link.sourceId, rows);
 		}
 		return captures;
@@ -865,11 +872,11 @@ export function prepareMoneyConsumption(options: {
 		const db = options.api.db;
 		const priorPayslipIds = [...options.payslipIds];
 		const consumedEntries = new Map<string, number>();
-		const [claimLinks, allowanceLinks, paymentLinks] = yield* Effect.all(
+		const [claims, allowanceLinks, payments, payslips] = yield* Effect.all(
 			[
-				db.payslip_claim_request_inputs.findMany({
-					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true, claim_request_id: true },
+				db.claim_requests.findMany({
+					where: { settled_payslip_id: { in: priorPayslipIds } },
+					columns: { id: true },
 					limit: PAGE_LIMIT
 				}),
 				db.payslip_allowance_request_inputs.findMany({
@@ -877,50 +884,35 @@ export function prepareMoneyConsumption(options: {
 					columns: { id: true, allowance_request_id: true },
 					limit: PAGE_LIMIT
 				}),
-				db.payslip_payment_request_inputs.findMany({
-					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true, payment_request_id: true },
+				db.payment_requests.findMany({
+					where: { settled_payslip_id: { in: priorPayslipIds } },
+					columns: { id: true },
+					limit: PAGE_LIMIT
+				}),
+				db.payslips.findMany({
+					where: { id: { in: priorPayslipIds } },
+					columns: { id: true, adjustments: true },
 					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
-		options.api.reads.assertComplete(claimLinks, 'prior claim captures');
+		options.api.reads.assertComplete(claims, 'prior claim captures');
 		options.api.reads.assertComplete(allowanceLinks, 'prior allowance captures');
-		options.api.reads.assertComplete(paymentLinks, 'prior payment captures');
-		const requestIdByLink = new Map<string, string>([
-			...claimLinks.map((row) => [row.id, row.claim_request_id] as const),
-			...allowanceLinks.map((row) => [row.id, row.allowance_request_id] as const),
-			...paymentLinks.map((row) => [row.id, row.payment_request_id] as const)
-		]);
+		options.api.reads.assertComplete(payments, 'prior payment captures');
+		options.api.reads.assertComplete(payslips, 'prior payslips');
 		// A paid capture with no output consumed zero, rather than leaving historical usage unknown.
-		for (const sourceId of requestIdByLink.values()) consumedEntries.set(sourceId, 0);
-
-		// One read per arm rather than one over all of them: `input.kind` filters by equality only,
-		// and widening to every adjustment on these payslips would read a month of attendance and a
-		// month of leave in order to sum neither.
-		const requestClaims = yield* Effect.all(
-			REQUEST_INPUT_KINDS.map((kind) =>
-				db.payslip_adjustments.findMany({
-					where: { payslip_id: { in: priorPayslipIds }, input: { kind: { eq: kind } } },
-					columns: { input: true, amount: true },
-					limit: PAGE_LIMIT
-				})
-			),
-			{ concurrency: 'unbounded' }
-		);
-		for (const rows of requestClaims) {
-			options.api.reads.assertComplete(rows, 'prior pay-request adjustments');
-			for (const row of rows) {
-				const sourceId = requestIdByLink.get(row.input.id);
-				if (sourceId == null) continue;
+		for (const row of claims) consumedEntries.set(row.id, 0);
+		for (const row of allowanceLinks) consumedEntries.set(row.allowance_request_id, 0);
+		for (const row of payments) consumedEntries.set(row.id, 0);
+		for (const payslip of payslips)
+			for (const row of payslip.adjustments) {
+				if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
 				consumedEntries.set(
-					sourceId,
-					(consumedEntries.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
+					row.source_id,
+					(consumedEntries.get(row.source_id) ?? 0) + decodeNumber(row.amount ?? 0)
 				);
 			}
-		}
-
 		return consumedEntries;
 	});
 }

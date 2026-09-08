@@ -30,7 +30,7 @@ CREATE TABLE "allowance_requests" (
 	"amount" numeric NOT NULL,
 	"recurrence" jsonb NOT NULL,
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
-	"corrects_adjustment_id" uuid,
+	"corrects_payslip_id" uuid,
 	"pay_period" text
 );
 
@@ -69,8 +69,10 @@ CREATE TABLE "claim_requests" (
 	"description" text,
 	"evidence_file" jsonb,
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
-	"corrects_adjustment_id" uuid,
-	"pay_period" text
+	"corrects_payslip_id" uuid,
+	"pay_period" text,
+	"settled_payslip_id" uuid,
+	"settled_period" text
 );
 
 --> statement-breakpoint
@@ -370,8 +372,10 @@ CREATE TABLE "payment_requests" (
 	"covers_periods" jsonb,
 	"reason" text NOT NULL,
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
-	"corrects_adjustment_id" uuid,
-	"pay_period" text
+	"corrects_payslip_id" uuid,
+	"pay_period" text,
+	"settled_payslip_id" uuid,
+	"settled_period" text
 );
 
 --> statement-breakpoint
@@ -396,33 +400,6 @@ CREATE TABLE "payroll_runs" (
 );
 
 --> statement-breakpoint
-CREATE TABLE "payslip_adjustments" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("label", ''))) STORED,
-	"payslip_id" uuid NOT NULL,
-	"period" text NOT NULL,
-	"input__work_day_input_id" uuid,
-	"input__claim_request_input_id" uuid,
-	"input__allowance_request_input_id" uuid,
-	"input__payment_request_input_id" uuid,
-	"input__leave_input_id" uuid,
-	"input__loan_repayment_input_id" uuid,
-	"label" text NOT NULL,
-	"bucket" text NOT NULL,
-	"amount" numeric NOT NULL,
-	"quantity" numeric,
-	"rate" numeric,
-	"statutory_rule_key" text,
-	"sequence" integer NOT NULL,
-	CONSTRAINT "payslip_adjustments_input_reference_check" CHECK (num_nonnulls("input__work_day_input_id", "input__claim_request_input_id", "input__allowance_request_input_id", "input__payment_request_input_id", "input__leave_input_id", "input__loan_repayment_input_id") = 1)
-);
-
---> statement-breakpoint
 CREATE TABLE "payslip_allowance_request_inputs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -432,19 +409,6 @@ CREATE TABLE "payslip_allowance_request_inputs" (
 	"approval_id" uuid,
 	"payslip_id" uuid NOT NULL,
 	"allowance_request_id" uuid NOT NULL,
-	"period" text NOT NULL
-);
-
---> statement-breakpoint
-CREATE TABLE "payslip_claim_request_inputs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"payslip_id" uuid NOT NULL,
-	"claim_request_id" uuid NOT NULL,
 	"period" text NOT NULL
 );
 
@@ -478,32 +442,6 @@ CREATE TABLE "payslip_loan_repayment_inputs" (
 );
 
 --> statement-breakpoint
-CREATE TABLE "payslip_payment_request_inputs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"payslip_id" uuid NOT NULL,
-	"payment_request_id" uuid NOT NULL,
-	"period" text NOT NULL
-);
-
---> statement-breakpoint
-CREATE TABLE "payslip_work_day_inputs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"payslip_id" uuid NOT NULL,
-	"work_day_id" uuid NOT NULL,
-	"period" text NOT NULL
-);
-
---> statement-breakpoint
 CREATE TABLE "payslips" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -518,6 +456,7 @@ CREATE TABLE "payslips" (
 	"base" jsonb NOT NULL,
 	"proration" jsonb NOT NULL,
 	"statutory" jsonb NOT NULL,
+	"adjustments" jsonb DEFAULT '[]' NOT NULL,
 	"gross" numeric NOT NULL,
 	"total_deductions" numeric NOT NULL,
 	"net" numeric NOT NULL,
@@ -616,7 +555,9 @@ CREATE TABLE "work_days" (
 	"planned_note" text,
 	"worked_intervals" jsonb,
 	"break_minutes" integer DEFAULT 0 NOT NULL,
-	"holiday_calendar_id" uuid
+	"holiday_calendar_id" uuid,
+	"settled_payslip_id" uuid,
+	"settled_period" text
 );
 
 --> statement-breakpoint
@@ -734,43 +675,11 @@ CREATE INDEX "payroll_runs_search_document_gin_idx" ON "payroll_runs" USING gin 
 --> statement-breakpoint
 CREATE INDEX "payroll_runs_search_text_trgm_idx" ON "payroll_runs" USING gin ((coalesce("period", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "payslip_adjustments_statutory_rule_key_index" ON "payslip_adjustments" ("statutory_rule_key") WHERE "statutory_rule_key" IS NOT NULL;
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_payslip_id_idx" ON "payslip_adjustments" ("payslip_id");
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_search_document_gin_idx" ON "payslip_adjustments" USING gin ("search_document");
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_search_text_trgm_idx" ON "payslip_adjustments" USING gin ((coalesce("label", '')) gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_input_work_day_input_ref_idx" ON "payslip_adjustments" ("input__work_day_input_id") WHERE "input__work_day_input_id" is not null;
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_input_claim_request_input_ref_idx" ON "payslip_adjustments" ("input__claim_request_input_id") WHERE "input__claim_request_input_id" is not null;
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_input_allowance_request_input_ref_idx" ON "payslip_adjustments" ("input__allowance_request_input_id") WHERE "input__allowance_request_input_id" is not null;
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_input_payment_request_input_ref_idx" ON "payslip_adjustments" ("input__payment_request_input_id") WHERE "input__payment_request_input_id" is not null;
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_input_leave_input_ref_idx" ON "payslip_adjustments" ("input__leave_input_id") WHERE "input__leave_input_id" is not null;
---> statement-breakpoint
-CREATE INDEX "payslip_adjustments_input_loan_repayment_input_ref_idx" ON "payslip_adjustments" ("input__loan_repayment_input_id") WHERE "input__loan_repayment_input_id" is not null;
---> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_allowance_request_inputs_payslip_id_allowance_request_id_index" ON "payslip_allowance_request_inputs" ("payslip_id","allowance_request_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "payslip_claim_request_inputs_payslip_id_claim_request_id_index" ON "payslip_claim_request_inputs" ("payslip_id","claim_request_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "payslip_claim_request_inputs_claim_request_id_index" ON "payslip_claim_request_inputs" ("claim_request_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_leave_inputs_payslip_id_leave_entry_id_index" ON "payslip_leave_inputs" ("payslip_id","leave_entry_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_loan_repayment_inputs_payslip_id_loan_repayment_id_index" ON "payslip_loan_repayment_inputs" ("payslip_id","loan_repayment_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "payslip_payment_request_inputs_payslip_id_payment_request_id_index" ON "payslip_payment_request_inputs" ("payslip_id","payment_request_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "payslip_payment_request_inputs_payment_request_id_index" ON "payslip_payment_request_inputs" ("payment_request_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "payslip_work_day_inputs_payslip_id_work_day_id_index" ON "payslip_work_day_inputs" ("payslip_id","work_day_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "payslip_work_day_inputs_work_day_id_index" ON "payslip_work_day_inputs" ("work_day_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslips_payroll_run_id_employment_id_index" ON "payslips" ("payroll_run_id","employment_id");
 --> statement-breakpoint
@@ -858,27 +767,9 @@ ALTER TABLE "payroll_runs" ADD CONSTRAINT "payroll_runs_company_id_companies_fk"
 --> statement-breakpoint
 ALTER TABLE "payroll_runs" ADD CONSTRAINT "payroll_runs_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id");
 --> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_input_work_day_input_fk" FOREIGN KEY ("input__work_day_input_id") REFERENCES "payslip_work_day_inputs"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_input_claim_request_input_fk" FOREIGN KEY ("input__claim_request_input_id") REFERENCES "payslip_claim_request_inputs"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_input_allowance_request_input_fk" FOREIGN KEY ("input__allowance_request_input_id") REFERENCES "payslip_allowance_request_inputs"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_input_payment_request_input_fk" FOREIGN KEY ("input__payment_request_input_id") REFERENCES "payslip_payment_request_inputs"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_input_leave_input_fk" FOREIGN KEY ("input__leave_input_id") REFERENCES "payslip_leave_inputs"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_input_loan_repayment_input_fk" FOREIGN KEY ("input__loan_repayment_input_id") REFERENCES "payslip_loan_repayment_inputs"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_adjustments" ADD CONSTRAINT "payslip_adjustments_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
---> statement-breakpoint
 ALTER TABLE "payslip_allowance_request_inputs" ADD CONSTRAINT "payslip_allowance_request_inputs_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 ALTER TABLE "payslip_allowance_request_inputs" ADD CONSTRAINT "payslip_allowance_request_inputs_allowance_request_id_allowance_requests_fk" FOREIGN KEY ("allowance_request_id") REFERENCES "allowance_requests"("id");
---> statement-breakpoint
-ALTER TABLE "payslip_claim_request_inputs" ADD CONSTRAINT "payslip_claim_request_inputs_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_claim_request_inputs" ADD CONSTRAINT "payslip_claim_request_inputs_claim_request_id_claim_requests_fk" FOREIGN KEY ("claim_request_id") REFERENCES "claim_requests"("id");
 --> statement-breakpoint
 ALTER TABLE "payslip_leave_inputs" ADD CONSTRAINT "payslip_leave_inputs_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
 --> statement-breakpoint
@@ -887,14 +778,6 @@ ALTER TABLE "payslip_leave_inputs" ADD CONSTRAINT "payslip_leave_inputs_leave_en
 ALTER TABLE "payslip_loan_repayment_inputs" ADD CONSTRAINT "payslip_loan_repayment_inputs_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 ALTER TABLE "payslip_loan_repayment_inputs" ADD CONSTRAINT "payslip_loan_repayment_inputs_loan_repayment_id_loan_repayments_fk" FOREIGN KEY ("loan_repayment_id") REFERENCES "loan_repayments"("id");
---> statement-breakpoint
-ALTER TABLE "payslip_payment_request_inputs" ADD CONSTRAINT "payslip_payment_request_inputs_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_payment_request_inputs" ADD CONSTRAINT "payslip_payment_request_inputs_payment_request_id_payment_requests_fk" FOREIGN KEY ("payment_request_id") REFERENCES "payment_requests"("id");
---> statement-breakpoint
-ALTER TABLE "payslip_work_day_inputs" ADD CONSTRAINT "payslip_work_day_inputs_payslip_id_payslips_fk" FOREIGN KEY ("payslip_id") REFERENCES "payslips"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "payslip_work_day_inputs" ADD CONSTRAINT "payslip_work_day_inputs_work_day_id_work_days_fk" FOREIGN KEY ("work_day_id") REFERENCES "work_days"("id");
 --> statement-breakpoint
 ALTER TABLE "payslips" ADD CONSTRAINT "payslips_payroll_run_id_payroll_runs_fk" FOREIGN KEY ("payroll_run_id") REFERENCES "payroll_runs"("id") ON DELETE CASCADE;
 --> statement-breakpoint

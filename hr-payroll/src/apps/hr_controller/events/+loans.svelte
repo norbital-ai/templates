@@ -58,7 +58,7 @@
 	/**
 	 * The recovery ledger, in three reads rather than a nested one.
 	 *
-	 * `payslip_adjustments.input` is a `reference(...)` to the repayment-input junction, so the
+	 * The payslip's adjustments name the repayment by family and source id, so the
 	 * repayment ids are read first and the claims scoped by them — the same shape every other
 	 * settlement lookup in this workspace uses, and bounded by the company rather than by the whole
 	 * ledger. The loans table carries the plan's count; the repayments carry their amounts.
@@ -96,37 +96,32 @@
 		}
 		return new Map(Object.entries(grouped));
 	});
-	const recoveriesQuery = $derived.by(() => {
+	const capturesQuery = $derived.by(() => {
 		const ids = (repaymentsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: {
-				input: { in: ids.map((id) => ({ kind: 'LOAN_REPAYMENT_INPUT' as const, id })) }
-			},
-			columns: { input: true, amount: true },
-			with: {
-				payslip_adjustment_payslip: {
-					columns: { id: true },
-					with: { payslip_payroll_run: { columns: { lifecycle: true } } }
-				}
-			},
+		return client.db.payslip_loan_repayment_inputs.findMany({
+			where: { loan_repayment_id: { in: ids } },
+			columns: { payslip_id: true },
+			limit: 10_000
+		});
+	});
+	const recoveriesQuery = $derived.by(() => {
+		const ids = [...new Set((capturesQuery?.current ?? []).map((row) => row.payslip_id))];
+		if (ids.length === 0) return null;
+		return client.db.payslips.findMany({
+			where: { id: { in: ids } },
+			columns: { id: true, adjustments: true },
+			with: { payslip_payroll_run: { columns: { lifecycle: true } } },
 			limit: 10_000
 		});
 	});
 
 	const recoveryRowSchema = Schema.Struct({
-		amount: Schema.Unknown,
-		input: Schema.Struct({ kind: Schema.String, id: Schema.String }),
-		payslip_adjustment_payslip: Schema.optional(
-			Schema.NullOr(
-				Schema.Struct({
-					payslip_payroll_run: Schema.optional(
-						Schema.NullOr(
-							Schema.Struct({ lifecycle: Schema.optional(Schema.NullOr(Schema.String)) })
-						)
-					)
-				})
-			)
+		adjustments: Schema.Array(
+			Schema.Struct({ family: Schema.String, source_id: Schema.String, amount: Schema.Unknown })
+		),
+		payslip_payroll_run: Schema.optional(
+			Schema.NullOr(Schema.Struct({ lifecycle: Schema.optional(Schema.NullOr(Schema.String)) }))
 		)
 	});
 	const decodeRecoveryRow = Schema.decodeUnknownResult(recoveryRowSchema);
@@ -136,12 +131,13 @@
 		for (const row of recoveriesQuery?.current ?? []) {
 			const parsed = decodeRecoveryRow(row);
 			if (!Result.isSuccess(parsed)) continue;
-			const claim = parsed.success;
-			if (claim.input.kind !== 'LOAN_REPAYMENT_INPUT') continue;
-			if (claim.payslip_adjustment_payslip?.payslip_payroll_run?.lifecycle !== 'PAID') continue;
-			const amount = decodeNumber(claim.amount);
-			if (!Number.isFinite(amount)) continue;
-			totals[claim.input.id] = (totals[claim.input.id] ?? 0) + amount;
+			if (parsed.success.payslip_payroll_run?.lifecycle !== 'PAID') continue;
+			for (const claim of parsed.success.adjustments) {
+				if (claim.family !== 'LOAN_REPAYMENT') continue;
+				const amount = decodeNumber(claim.amount);
+				if (!Number.isFinite(amount)) continue;
+				totals[claim.source_id] = (totals[claim.source_id] ?? 0) + amount;
+			}
 		}
 		return new Map(Object.entries(totals));
 	});

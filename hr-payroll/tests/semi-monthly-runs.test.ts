@@ -18,6 +18,7 @@ import test from 'node:test';
 import { Effect } from 'effect';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
 import { memoryPayrollApi, refusalMessage } from './fixtures/memory-payroll-api.ts';
+import { capturesOf, settle as settleSource } from './helpers/settlement.ts';
 import {
 	COMPANY_ID,
 	JURISDICTION_ID,
@@ -61,13 +62,16 @@ function settle(world, period, prepared, built) {
 	});
 	for (const slip of built.payslip_payroll_run) {
 		world.payslips.push({ ...slip, payroll_run_id: runId, approval_id: null });
-		for (const family of ['claim', 'allowance', 'payment'])
-			world[`payslip_${family}_request_inputs`].push(
-				...slip[`payslip_${family}_request_input_payslip`].map((row) => ({
-					...row,
-					payslip_id: slip.id
-				}))
-			);
+		world.payslip_allowance_request_inputs.push(
+			...slip.payslip_allowance_request_input_payslip.map((row) => ({
+				...row,
+				payslip_id: slip.id
+			}))
+		);
+		const captured = capturesOf(built, slip);
+		for (const id of captured.claims) settleSource(world, 'claim_requests', id, slip.id, period);
+		for (const id of captured.payments)
+			settleSource(world, 'payment_requests', id, slip.id, period);
 	}
 }
 
@@ -182,10 +186,7 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
 	const first = await build(world, '2026-02-1');
 	settle(world, '2026-02-1', first.prepared, first.built);
 	const second = await build(world, '2026-02-2');
-	const captured = (built) =>
-		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).payslip_payment_request_input_payslip.map(
-			(row) => row.payment_request_id
-		);
+	const captured = (built) => capturesOf(built, slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)).payments;
 	assert.deepEqual(captured(first.built), ['payment-on-the-15th']);
 	assert.deepEqual(captured(second.built), ['payment-on-the-16th']);
 });
@@ -301,17 +302,10 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 	 * An adjustment names the *capture* it was priced from, not the entry, so the entry is reached
 	 * through the junction the same run produced.
 	 */
-	const paidFor = (built, entryId) => {
-		const slip = slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID);
-		const captures = new Set(
-			slip.payslip_allowance_request_input_payslip
-				.filter((row) => row.allowance_request_id === entryId)
-				.map((row) => row.id)
-		);
-		return slip.payslip_adjustment_payslip
-			.filter((row) => captures.has(row.input?.id))
+	const paidFor = (built, entryId) =>
+		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)
+			.adjustments.filter((row) => row.family === 'ALLOWANCE' && row.source_id === entryId)
 			.reduce((total, row) => total + Number(row.amount), 0);
-	};
 
 	const first = paidFor(firstHalf.built, ONE_OFF_ID);
 	const second = paidFor(secondHalf.built, ONE_OFF_ID);

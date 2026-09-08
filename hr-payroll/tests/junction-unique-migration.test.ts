@@ -28,27 +28,11 @@ const FEB_PAYSLIP = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2';
 
 const JUNCTIONS = [
 	{
-		name: 'payslip_claim_request_inputs',
-		singleUse: true,
-		source: 'claim_request_id',
-		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc1001',
-		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc1002',
-		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc1003'
-	},
-	{
 		name: 'payslip_allowance_request_inputs',
 		source: 'allowance_request_id',
 		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2001',
 		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2002',
 		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2003'
-	},
-	{
-		name: 'payslip_payment_request_inputs',
-		singleUse: true,
-		source: 'payment_request_id',
-		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3001',
-		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3002',
-		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3003'
 	},
 	{
 		name: 'payslip_leave_inputs',
@@ -181,14 +165,9 @@ test('recurring captures can reach another payslip while single-use inputs canno
 /**
  * `quantity` counts something, and a component entry does not.
  *
- * The column was on the entries table and nothing multiplied by it — the engine copied it onto the
- * payslip adjustment and used it nowhere — so it was dropped, and none of the five request families
- * that replaced that table carries it. `payslip_adjustments` keeps its own, because that one is fed
- * by sources that genuinely count: leave days, work hours.
- *
- * Two tables, one word, opposite answers. Written down here because the asymmetry reads as an
- * oversight otherwise, and the cheap "fix" is to put the column back on the input where a form
- * would then offer a number nothing consumes.
+ * The column was on the entries table and nothing multiplied by it, so it was dropped, and none of
+ * the request families carries it. A payslip adjustment keeps its own inside the `adjustments`
+ * array, because that one is fed by sources that genuinely count: leave days, work hours.
  */
 test('an entry states an amount; only a calculated line states a quantity', () => {
 	const folders = readdirSync(MIGRATIONS_ROOT).toSorted();
@@ -209,9 +188,8 @@ test('an entry states an amount; only a calculated line states a quantity', () =
 			`${family} carries a quantity, and nothing multiplies by it`
 		);
 	}
-	const adjustment = columnsOf('payslip_adjustments');
-	assert.ok(
-		adjustment.includes('quantity'),
-		'a calculated line lost the quantity its leave days and work hours are counted in'
-	);
+	// The single-use sources carry their settlement pin; the multi-capture families keep rows.
+	for (const source of ['work_days', 'claim_requests', 'payment_requests'])
+		assert.ok(columnsOf(source).includes('settled_payslip_id'), `${source} pins its payslip`);
+	assert.ok(columnsOf('payslips').includes('adjustments'));
 });

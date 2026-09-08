@@ -94,13 +94,11 @@ async function calculate(world: ReturnType<typeof mixedFamilies>) {
 test('family preparation and calculation preserve mixed source capture and cross-family sequence', async () => {
 	const result = await calculate(mixedFamilies());
 	const payslip = result.payslip_payroll_run[0]!;
-	const amounts = new Map(
-		payslip.payslip_adjustment_payslip.map((line) => [line.input.kind, line.amount])
-	);
-	assert.equal(amounts.get('CLAIM_REQUEST_INPUT'), 300);
-	assert.equal(amounts.get('ALLOWANCE_REQUEST_INPUT'), 310);
-	assert.equal(amounts.get('PAYMENT_REQUEST_INPUT'), 100);
-	assert.equal(amounts.get('LOAN_REPAYMENT_INPUT'), 50);
+	const amounts = new Map(payslip.adjustments.map((line) => [line.family, line.amount]));
+	assert.equal(amounts.get('CLAIM'), 300);
+	assert.equal(amounts.get('ALLOWANCE'), 310);
+	assert.equal(amounts.get('PAYMENT'), 100);
+	assert.equal(amounts.get('LOAN_REPAYMENT'), 50);
 	assert.equal(payslip.base.find((line) => line.component_code === 'BASIC')?.amount, 3451);
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 });

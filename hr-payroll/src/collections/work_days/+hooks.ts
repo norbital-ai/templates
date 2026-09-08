@@ -19,11 +19,13 @@ import {
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import {
+	assertNotSettled,
 	attendanceRecorded,
+	isSettlementWrite,
 	payrollWindows,
 	planChanges,
-	assertNotSettled,
 	refuseIfCaptured,
+	settledClaim,
 	type PayrollWindow
 } from '../../lib/scheduling/lock.js';
 import type { Api, Hooks, WorkspaceRow } from './$types.js';
@@ -908,6 +910,8 @@ export default {
 					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose scheduled attendance that run already settled, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, and refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects.',
 				handler: ({ input, existing, prepared, api }) =>
 					Effect.gen(function* () {
+						// The engine's capture or release of this row: the one write a settled row takes.
+						if (existing !== undefined && isSettlementWrite(input)) return input;
 						const employmentId = input.employment_id ?? existing?.employment_id;
 						if (employmentId == null) refuse('A work day must reference an employment on file.');
 						const workDate = input.work_date ?? existing?.work_date;
@@ -926,10 +930,7 @@ export default {
 						// no prior row for a run to have consumed.
 						if (existing !== undefined) {
 							yield* refuseIfCaptured({
-								capture: api.db.payslip_work_day_inputs.findFirst({
-									where: { work_day_id: { eq: existing.id } },
-									columns: { period: true }
-								}),
+								capture: Effect.succeed(settledClaim(existing)),
 								approvalId: existing.approval_id,
 								action: 'Changing this work day'
 							});
@@ -1013,10 +1014,7 @@ export default {
 				 */
 				handler: ({ existing, api }) =>
 					refuseIfCaptured({
-						capture: api.db.payslip_work_day_inputs.findFirst({
-							where: { work_day_id: { eq: existing.id } },
-							columns: { period: true }
-						}),
+						capture: Effect.succeed(settledClaim(existing)),
 						approvalId: existing.approval_id,
 						action: 'Deleting this work day'
 					})

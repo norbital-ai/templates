@@ -851,7 +851,7 @@ const CORE = {
 	approval_id: null,
 	pay_period: null,
 	as_adjustment_entry: false,
-	corrects_adjustment_id: null
+	corrects_payslip_id: null
 };
 const CLAIM = { ...CORE, claim_catalogue_id: 'claim-1' };
 const ALLOWANCE = { ...CORE, allowance_catalogue_id: 'allowance-1' };
@@ -860,7 +860,7 @@ const paymentAdjustment = (asAdjustmentEntry) =>
 	paymentRequest({
 		...PAYMENT,
 		effective_on: '2026-03-02',
-		corrects_adjustment_id: 'adj-1',
+		corrects_payslip_id: 'adj-1',
 		as_adjustment_entry: asAdjustmentEntry,
 		covers_periods: null,
 		reason: 'x'

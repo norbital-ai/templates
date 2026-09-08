@@ -6,10 +6,7 @@ import claimRequestHooks from '../src/collections/claim_requests/+hooks.ts';
 import allowanceRequestHooks from '../src/collections/allowance_requests/+hooks.ts';
 import paymentRequestHooks from '../src/collections/payment_requests/+hooks.ts';
 import loanRepaymentHooks from '../src/collections/loan_repayments/+hooks.ts';
-import workDayInputHooks from '../src/collections/payslip_work_day_inputs/+hooks.ts';
-import claimRequestInputHooks from '../src/collections/payslip_claim_request_inputs/+hooks.ts';
 import allowanceRequestInputHooks from '../src/collections/payslip_allowance_request_inputs/+hooks.ts';
-import paymentRequestInputHooks from '../src/collections/payslip_payment_request_inputs/+hooks.ts';
 import leaveRequestInputHooks from '../src/collections/payslip_leave_inputs/+hooks.ts';
 import loanRepaymentInputHooks from '../src/collections/payslip_loan_repayment_inputs/+hooks.ts';
 
@@ -23,8 +20,16 @@ const PERIOD = '2026-07';
  */
 const capturedBy = (family: Family, captured: boolean) => ({
 	db: {
+		// A single-use source answers with its own pin; a multi-capture family with its junction.
 		[family.junction]: {
-			findFirst: () => Effect.succeed(captured ? { period: PERIOD } : undefined)
+			findFirst: () =>
+				Effect.succeed(
+					family.pinned
+						? { settled_period: captured ? PERIOD : null }
+						: captured
+							? { period: PERIOD }
+							: undefined
+				)
 		},
 		// A pay request's capture guard runs *after* the catalogue checks, so the candidate has to
 		// survive them to reach it — a component with no evidence requirement and no cap is the
@@ -61,7 +66,9 @@ const run = <A>(effect: Effect.Effect<A, unknown, never> | A): A =>
 
 type Family = {
 	readonly label: string;
+	/** The collection whose `findFirst` the guard asks: the source itself, or its capture junction. */
 	readonly junction: string;
+	readonly pinned?: boolean;
 	/** Which of the three request families this row drives, and therefore which catalogue it reads. */
 	readonly family?: string;
 	readonly update: (api: unknown) => unknown;
@@ -82,7 +89,8 @@ const repayment = {
 const families: readonly Family[] = [
 	{
 		label: 'claim',
-		junction: 'payslip_claim_request_inputs',
+		junction: 'claim_requests',
+		pinned: true,
 		family: 'CLAIM',
 		// The update handler asks this last, after the catalogue reads — which is why the api below
 		// answers every read with nothing: a family that reached the capture check by accident,
@@ -138,7 +146,8 @@ const families: readonly Family[] = [
 	},
 	{
 		label: 'payment',
-		junction: 'payslip_payment_request_inputs',
+		junction: 'payment_requests',
+		pinned: true,
 		family: 'PAYMENT',
 		// The update handler asks this last, after the catalogue reads — which is why the api below
 		// answers every read with nothing: a family that reached the capture check by accident,
@@ -234,10 +243,7 @@ for (const family of families) {
  * update is always somebody moving the settlement lock a run holds over its own inputs.
  */
 const junctionHooks = {
-	payslip_work_day_inputs: workDayInputHooks,
-	payslip_claim_request_inputs: claimRequestInputHooks,
 	payslip_allowance_request_inputs: allowanceRequestInputHooks,
-	payslip_payment_request_inputs: paymentRequestInputHooks,
 	payslip_leave_inputs: leaveRequestInputHooks,
 	payslip_loan_repayment_inputs: loanRepaymentInputHooks
 };

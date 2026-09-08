@@ -97,12 +97,6 @@ function persistPayslip(world, options) {
 			period: capture.period
 		});
 	}
-	for (const adjustment of options.adjustments ?? []) {
-		world.payslip_adjustments.push({
-			...adjustment,
-			payslip_id: options.payslipId
-		});
-	}
 }
 
 async function withSpanningLeave(world) {
@@ -244,9 +238,7 @@ test('a part-recovered loan repayment is recaptured on the next period for the r
 		januaryCaptures.map((row) => row.loan_repayment_id),
 		[REPAYMENT_ID]
 	);
-	const januaryRecovery = januaryPayslip.payslip_adjustment_payslip.find(
-		(row) => row.input?.kind === 'LOAN_REPAYMENT_INPUT'
-	);
+	const januaryRecovery = januaryPayslip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
 	assert.ok(januaryRecovery, 'January must recover part of the repayment');
 	assert.ok(
 		januaryRecovery.amount < 5000,
@@ -258,8 +250,7 @@ test('a part-recovered loan repayment is recaptured on the next period for the r
 		payslipId: JAN_PAYSLIP,
 		period: '2026-01',
 		lifecycle: 'PAID',
-		repaymentCaptures: januaryCaptures,
-		adjustments: januaryPayslip.payslip_adjustment_payslip
+		repaymentCaptures: januaryCaptures
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
@@ -269,8 +260,8 @@ test('a part-recovered loan repayment is recaptured on the next period for the r
 		februaryCaptures.map((row) => row.loan_repayment_id),
 		[REPAYMENT_ID]
 	);
-	const februaryRecovery = februaryPayslip.payslip_adjustment_payslip.find(
-		(row) => row.input?.kind === 'LOAN_REPAYMENT_INPUT'
+	const februaryRecovery = februaryPayslip.adjustments.find(
+		(row) => row.family === 'LOAN_REPAYMENT'
 	);
 	assert.ok(februaryRecovery, 'February must recover the outstanding remainder');
 	assert.ok(februaryRecovery.amount > 0);

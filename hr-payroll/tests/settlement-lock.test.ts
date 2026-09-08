@@ -23,6 +23,7 @@
  * What is *not* exercised is the cascade itself, because Postgres performs it. What is checked is
  * that it is declared, which is the only thing this workspace controls.
  */
+import { Effect } from 'effect';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -250,7 +251,7 @@ test('a leaver\u2019s wage window widens the capture, because it widened the mea
  * fake database to observe is observed by reading the return.
  */
 test('a run captures every record it consumed, and adjustments name the captures', () => {
-	const graph = payrollRunGraph({
+	const built = payrollRunGraph({
 		period: '2026-03',
 		pending: [
 			{
@@ -338,6 +339,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 			}
 		]
 	});
+	const graph = built.rows;
 
 	assert.equal(graph.length, 1);
 	const payslip = graph[0];
@@ -347,52 +349,44 @@ test('a run captures every record it consumed, and adjustments name the captures
 	assert.equal(payslip.proration.length, 1);
 	assert.deepEqual(payslip.statutory, []);
 
-	// The seven captured-input junctions, each with a runtime-minted id and the period holding it.
+	// What the payslip settled: single-use sources by id (stamped after the commit), the
+	// multi-capture families as junction rows with the period holding them.
+	const captured = built.captures.find((row) => row.payslipId === payslip.id);
+	assert.deepEqual(captured.workDays, ['wd-1', 'wd-zero']);
 	assert.deepEqual(
-		payslip.payslip_work_day_input_payslip.map((row) => [row.work_day_id, row.period !== '']),
-		[
-			['wd-1', true],
-			['wd-zero', true]
-		]
-	);
-	assert.deepEqual(
-		payslip.payslip_leave_input_payslip.map((row) => [row.leave_entry_id]),
-		[['lr-1']]
+		payslip.payslip_leave_input_payslip.map((row) => [row.leave_entry_id, row.period !== '']),
+		[['lr-1', true]]
 	);
 	assert.deepEqual(
 		payslip.payslip_loan_repayment_input_payslip.map((row) => [row.loan_repayment_id]),
 		[['rp-1']]
 	);
 
-	const rows = payslip.payslip_adjustment_payslip;
+	const rows = payslip.adjustments;
 	for (const row of rows) assert.equal(Object.hasOwn(row, 'payslip_id'), false);
 	assert.deepEqual(
-		rows.map((row) => [row.input.kind, row.amount, row.sequence]),
+		rows.map((row) => [row.family, row.amount]),
 		[
-			['LOAN_REPAYMENT_INPUT', 80, 1],
-			['WORK_DAY_INPUT', 74.66, 2],
-			['LEAVE_INPUT', 25.8, 3]
+			['LOAN_REPAYMENT', 80],
+			['WORK_DAY', 74.66],
+			['LEAVE', 25.8]
 		]
 	);
-	// Every adjustment's input id is one of this payslip's junction rows, and every junction id is
-	// held by exactly the payslip that stored it.
-	const junctionIds = new Set([
-		...payslip.payslip_work_day_input_payslip.map((row) => row.id),
-		...payslip.payslip_claim_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_allowance_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_payment_request_input_payslip.map((row) => row.id),
-		...payslip.payslip_leave_input_payslip.map((row) => row.id),
-		...payslip.payslip_loan_repayment_input_payslip.map((row) => row.id)
+	// Every adjustment names a source this payslip captured, by family and source id.
+	const capturedIds = new Set([
+		...captured.workDays,
+		...captured.claims,
+		...captured.payments,
+		...payslip.payslip_allowance_request_input_payslip.map((row) => row.allowance_request_id),
+		...payslip.payslip_leave_input_payslip.map((row) => row.leave_entry_id),
+		...payslip.payslip_loan_repayment_input_payslip.map((row) => row.loan_repayment_id)
 	]);
-	for (const row of rows) assert.ok(junctionIds.has(row.input.id), row.input.id);
-	assert.equal(junctionIds.size, 4);
+	for (const row of rows) assert.ok(capturedIds.has(row.source_id), row.source_id);
+	assert.equal(capturedIds.size, 4);
 
 	// Zero-value sources are captured and produce no output at all — "consumed nothing" and "was
-	// never read" are different claims, and only the first is a junction row.
-	const workDayCaptured = new Set(
-		payslip.payslip_work_day_input_payslip.map((row) => row.work_day_id)
-	);
-	assert.ok(workDayCaptured.has('wd-zero'));
+	// never read" are different claims, and only the first is a capture.
+	assert.ok(captured.workDays.includes('wd-zero'));
 	// The work-day adjustment carries the rule key that priced it and no catalogue id; the recovery
 	// names no rule at all.
 	assert.deepEqual(
@@ -403,9 +397,6 @@ test('a run captures every record it consumed, and adjustments name the captures
 			['NPL', null]
 		]
 	);
-	// The period travels with every row: two runs of different periods can each hold their own
-	// captures, and a release names the payslip rather than sweeping a collection.
-	assert.deepEqual([...new Set(rows.map((row) => row.period))], ['2026-03']);
 });
 
 /**
@@ -422,7 +413,7 @@ test('a run captures every record it consumed, and adjustments name the captures
  * calculate, with captures over records it did not read. Stating an empty list is what deletes them.
  */
 test('a build always states its payslips, so a rebuild that produces none releases them all', () => {
-	assert.deepEqual(payrollRunGraph({ pending: [], period: '2026-03' }), []);
+	assert.deepEqual(payrollRunGraph({ pending: [], period: '2026-03' }).rows, []);
 });
 
 // ── 3. how a claim reads as a refusal ───────────────────────────────────────────────────────────
@@ -480,12 +471,17 @@ test('a pending approval still answers first, because it is the platform\u2019s 
 
 // ── 4. the refusal that makes a paid run's captures permanent ───────────────────────────────────
 
+const releaseApi = { db: { payslips: { findMany: () => Effect.succeed([]) } } };
+
 test('a PAID payroll run refuses deletion', () => {
 	assert.throws(
 		() =>
-			payrollRunHooks.delete.perRecord.before.handler({
-				existing: { id: 'run-1', period: '2026-03', lifecycle: 'PAID' }
-			}),
+			Effect.runSync(
+				payrollRunHooks.delete.perRecord.before.handler({
+					existing: { id: 'run-1', period: '2026-03', lifecycle: 'PAID' },
+					api: releaseApi
+				})
+			),
 		(error) => {
 			assert.match(error.message, /2026-03/);
 			assert.match(error.message, /PAID/);
@@ -500,9 +496,12 @@ test('a PAID payroll run refuses deletion', () => {
 
 test('a DRAFT payroll run may be deleted, which is the only release the lock has', () => {
 	assert.doesNotThrow(() =>
-		payrollRunHooks.delete.perRecord.before.handler({
-			existing: { id: 'run-1', period: '2026-03', lifecycle: 'DRAFT' }
-		})
+		Effect.runSync(
+			payrollRunHooks.delete.perRecord.before.handler({
+				existing: { id: 'run-1', period: '2026-03', lifecycle: 'DRAFT' },
+				api: releaseApi
+			})
+		)
 	);
 });
 
@@ -535,35 +534,15 @@ test('deleting a payroll run releases its captures — the declarations that cas
 	const markersOf = (edge) =>
 		Object.getOwnPropertySymbols(edge).map((symbol) => Reflect.get(edge, symbol));
 
-	assert.ok(
-		markersOf(graph.payslip_adjustments.payslip_adjustment_payslip).includes('cascade'),
-		'payslip_adjustments must cascade from payslips, or deleting a run leaves its outputs standing'
-	);
-	assert.ok(
-		markersOf(graph.payslip_work_day_inputs.payslip_work_day_input_payslip).includes('cascade'),
-		'work-day captures must cascade from payslips, or deleting a run leaves the source locked'
-	);
-	assert.ok(
-		markersOf(graph.payslip_claim_request_inputs.payslip_claim_request_input_payslip).includes(
-			'cascade'
-		)
-	);
-	assert.ok(
-		markersOf(
-			graph.payslip_allowance_request_inputs.payslip_allowance_request_input_payslip
-		).includes('cascade')
-	);
-	assert.ok(
-		markersOf(graph.payslip_payment_request_inputs.payslip_payment_request_input_payslip).includes(
-			'cascade'
-		)
-	);
-	assert.ok(markersOf(graph.payslip_leave_inputs.payslip_leave_input_payslip).includes('cascade'));
-	assert.ok(
-		markersOf(graph.payslip_loan_repayment_inputs.payslip_loan_repayment_input_payslip).includes(
-			'cascade'
-		)
-	);
+	for (const [edge, name] of [
+		[graph.payslip_allowance_request_inputs.payslip_allowance_request_input_payslip, 'allowance'],
+		[graph.payslip_leave_inputs.payslip_leave_input_payslip, 'leave'],
+		[graph.payslip_loan_repayment_inputs.payslip_loan_repayment_input_payslip, 'loan repayment']
+	])
+		assert.ok(
+			markersOf(edge).includes('cascade'),
+			`${name} captures must cascade from payslips, or deleting a run leaves the source locked`
+		);
 	// The first hop, asserted beside it so the chain is visibly one chain.
 	assert.ok(markersOf(graph.payslips.payslip_payroll_run).includes('cascade'));
 
@@ -572,22 +551,13 @@ test('deleting a payroll run releases its captures — the declarations that cas
 	 *
 	 * The junction's source edge is `restrict`: a captured work day, pay request, loan repayment or
 	 * leave request cannot be deleted out from under the run that read it. That restrict is the
-	 * settlement lock's second half, and it has to hold on all five request families — one of them
+	 * settlement lock's second half, and it has to hold on every request family — one of them
 	 * cascading would erase a consumed record when its payslip went.
 	 */
 	for (const [edge, name] of [
-		[graph.payslip_work_day_inputs.payslip_work_day_input_work_day, 'work days'],
-		[
-			graph.payslip_claim_request_inputs.payslip_claim_request_input_claim_request,
-			'claim requests'
-		],
 		[
 			graph.payslip_allowance_request_inputs.payslip_allowance_request_input_allowance_request,
 			'allowance requests'
-		],
-		[
-			graph.payslip_payment_request_inputs.payslip_payment_request_input_payment_request,
-			'payment requests'
 		],
 		[graph.payslip_leave_inputs.leave_input_leave_entry, 'leave requests'],
 		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments']

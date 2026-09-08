@@ -15,7 +15,7 @@
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
-	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
+	import { payRequestRecordMetadata, settledClaims } from '../../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -34,9 +34,6 @@
 		readonly payment_request_payment_catalogue?: Pick<
 			WorkspaceRow<'payment_catalogue'>,
 			'code'
-		> | null;
-		readonly payslip_payment_request_input_payment_request?: ReadonlyArray<
-			Pick<WorkspaceRow<'payslip_payment_request_inputs'>, 'period'>
 		> | null;
 	};
 </script>
@@ -68,11 +65,7 @@
 				view={`hr_controller:events:payments:${selectedCompanyId}`}
 				title={t('app.payments.title')}
 				recordMetadata={(row: PaymentRow) =>
-					payRequestRecordMetadata(
-						row.approval_id,
-						row.payslip_payment_request_input_payment_request,
-						t
-					)}
+					payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
 				query={{
 					where: {
 						payment_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
@@ -80,8 +73,7 @@
 					orderBy: { effective_on: 'desc' },
 					with: {
 						payment_request_employment: { columns: { employee_number: true } },
-						payment_request_payment_catalogue: { columns: { code: true } },
-						payslip_payment_request_input_payment_request: { columns: { period: true } }
+						payment_request_payment_catalogue: { columns: { code: true } }
 					}
 				}}
 			>

@@ -183,9 +183,12 @@ regular period. New runs require existing company runs to be paid so YTD does no
 the calculation.
 
 `payroll_runs` stores configuration and calculation identity once per run. Each `payslip` belongs to
-one contract and holds base, proration and statutory arrays. `payslip_adjustments` names its causal
-capture; the family-specific `payslip_*_inputs` relations retain source identity, including sources
-that produced zero money. The source and capture must belong to the payslip's contract.
+one contract and holds base, proration, statutory and adjustment arrays; an adjustment names its
+causal input by family and source id. A single-use source (work day, claim, payment) carries
+`settled_payslip_id` and `settled_period` while a run stands; recurring allowances, per-period Leave
+slices and loan repayments (recoverable in parts across runs) keep their capture rows, which retain
+source identity, including sources that produced zero money. The source and capture must belong to
+the payslip's contract.
 
 Single-use monetary entries settle once. Loan instalments may be recovered partially; their
 outstanding amount is the scheduled amount less paid recoveries. Other monetary obligations and

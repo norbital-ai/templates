@@ -277,10 +277,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		work_days: rosteredWorkDays(),
 		payroll_runs: [],
 		payslips: [],
-		payslip_claim_request_inputs: [],
 		payslip_allowance_request_inputs: [],
-		payslip_payment_request_inputs: [],
-		payslip_adjustments: [],
 		payslip_leave_inputs: [],
 		payslip_loan_repayment_inputs: []
 	};

@@ -4,7 +4,7 @@
 	 * capture that settled each.
 	 *
 	 * One live query. The capture rides the claim row through
-	 * `payslip_claim_request_input_claim_request`, so the lock state is a column of the row it locks
+	 * the row's own `settled_period`, so the lock state is a column of the row it locks
 	 * rather than a second subscription (B12).
 	 *
 	 * Rows still held under an approval are listed rather than filtered out, and wear the pending
@@ -30,7 +30,7 @@
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
-	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
+	import { payRequestRecordMetadata, settledClaims } from '../../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -49,9 +49,6 @@
 	type ClaimRow = WorkspaceRow<'claim_requests'> & {
 		readonly claim_request_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
 		readonly claim_request_claim_catalogue?: Pick<WorkspaceRow<'claim_catalogue'>, 'code'> | null;
-		readonly payslip_claim_request_input_claim_request?: ReadonlyArray<
-			Pick<WorkspaceRow<'payslip_claim_request_inputs'>, 'period'>
-		> | null;
 	};
 </script>
 
@@ -82,11 +79,7 @@
 				view={`hr_controller:events:claims:${selectedCompanyId}`}
 				title={t('app.claims.title')}
 				recordMetadata={(row: ClaimRow) =>
-					payRequestRecordMetadata(
-						row.approval_id,
-						row.payslip_claim_request_input_claim_request,
-						t
-					)}
+					payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
 				query={{
 					where: {
 						claim_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
@@ -94,8 +87,7 @@
 					orderBy: { incurred_on: 'desc' },
 					with: {
 						claim_request_employment: { columns: { employee_number: true } },
-						claim_request_claim_catalogue: { columns: { code: true } },
-						payslip_claim_request_input_claim_request: { columns: { period: true } }
+						claim_request_claim_catalogue: { columns: { code: true } }
 					}
 				}}
 			>

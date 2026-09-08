@@ -10,6 +10,7 @@ import test from 'node:test';
 import { Effect } from 'effect';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { settledBy, stampRun } from './helpers/settlement.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -17,8 +18,9 @@ import {
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
 
+let world;
 async function createJanuary() {
-	const world = createPublicPayrollWorld();
+	world = createPublicPayrollWorld();
 	for (const day of world.work_days) {
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
@@ -41,6 +43,8 @@ async function createJanuary() {
 			api
 		})
 	);
+	// The after hook stamps the single-use sources once the payslips exist.
+	await stampRun(world, created);
 	return created;
 }
 
@@ -61,9 +65,9 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 		[STANDING_ENTRY_ID]
 	);
 	// And nothing from the families this month has no rows in.
-	for (const family of ['claim', 'payment'])
-		assert.deepEqual(payslip[`payslip_${family}_request_input_payslip`], [], family);
-	assert.equal(payslip.payslip_work_day_input_payslip.length, 42);
+	for (const source of ['claim_requests', 'payment_requests'])
+		assert.deepEqual(settledBy(world, source, payslip.id), [], source);
+	assert.equal(settledBy(world, 'work_days', payslip.id).length, 42);
 	assert.equal(payslip.payslip_loan_repayment_input_payslip.length, 0);
 	assert.equal(payslip.payslip_leave_input_payslip.length, 0);
 	assert.equal(payslip.statutory.length, 0);
@@ -78,9 +82,7 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 		'BASIC schedule is the 3,451 contract'
 	);
 	assert.ok(
-		payslip.payslip_adjustment_payslip.some(
-			(line) => line.label === 'TRANSPORT' && line.amount === 310
-		),
+		payslip.adjustments.some((line) => line.label === 'TRANSPORT' && line.amount === 310),
 		'standing TRANSPORT 310 lands as an adjustment'
 	);
 });
