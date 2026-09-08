@@ -284,8 +284,10 @@ it('Settings saves a Google source, imports a reviewed draft and publishes only 
 			'source edits persisted'
 		);
 		await navigate(page, SETTINGS);
+		// The import controls sit above the observed holidays; the inner strip still remembers the
+		// Google sources panel from the save above, so the panel is named rather than assumed.
 		await clickNamed(page, '[role="tab"]', 'Holidays');
-		await clickNamed(page, '[role="tab"]', 'Annual calendars');
+		await clickNamed(page, '[role="tab"]', 'Observed holidays');
 		await fill(page, '[role="tabpanel"] input[type="number"]', String(YEAR));
 		await clickNamed(page, 'button', 'Import selected year');
 		const drafts = await until(

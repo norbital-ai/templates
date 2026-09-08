@@ -6,14 +6,14 @@ export default {
 	mutate: {
 		perRecord: {
 			before: {
-				description: 'Preserve Payment catalogue rows belonging to sealed settings versions.',
+				description: 'Preserve Adhoc catalogue rows belonging to sealed settings versions.',
 				handler: ({ input, existing, api }) =>
 					Effect.as(
 						refuseUnlessDraftOnBoth(
 							api,
 							existing?.settings_id,
 							input.settings_id,
-							`Payment ${String(input.code ?? existing?.code ?? '')}`
+							`Adhoc ${String(input.code ?? existing?.code ?? '')}`
 						),
 						input
 					)
@@ -23,10 +23,9 @@ export default {
 	delete: {
 		perRecord: {
 			before: {
-				description:
-					'Refuse deleting Payment catalogue rows belonging to sealed settings versions.',
+				description: 'Refuse deleting Adhoc catalogue rows belonging to sealed settings versions.',
 				handler: ({ existing, api }) =>
-					refuseUnlessDraftOnBoth(api, existing.settings_id, undefined, `Payment ${existing.code}`)
+					refuseUnlessDraftOnBoth(api, existing.settings_id, undefined, `Adhoc ${existing.code}`)
 			}
 		}
 	}

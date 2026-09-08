@@ -22,7 +22,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The payment catalogue of one jurisdiction settings version: code, economic direction, the treatment every statutory scheme gives it, eligibility, and the unit, evidence and entitlement ceiling of the payment raised against it. Sealed with its version; the run cites the version it priced against.',
+			'The Adhoc catalogue of one jurisdiction settings version: code, economic direction, the treatment every statutory scheme gives it, eligibility, and the unit, evidence and entitlement ceiling of the payment raised against it. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code'],
 		icon: 'lucide:wallet',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

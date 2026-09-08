@@ -12,8 +12,8 @@ Exactly one payroll is permitted per company and period. A draft can be deleted 
 a paid payroll is immutable. Late approved payments and corrections settle through a later regular
 period. There is no ad hoc payroll or second run for a settled period.
 
-The domain families are Work, Leave, Claim, Allowance, Payment, Loan and Contribution. Each owns its
-catalogue and business inputs. Payment uses one catalogue and one request collection for bonuses,
+The domain families are Work, Leave, Claim, Allowance, Adhoc, Loan and Contribution. Each owns its
+catalogue and business inputs. Adhoc uses one catalogue and one request collection for bonuses,
 notice pay, separation payments and corrections.
 
 ```mermaid
@@ -23,7 +23,7 @@ flowchart LR
     Holidays[Published jurisdiction holidays] --> Work[Work: schedules and attendance]
     Work --> Prepare
     Leave[Leave entries and computed entitlement] --> Prepare
-    Money[Claim, Allowance, Payment and Loan] --> Prepare
+    Money[Claim, Allowance, Adhoc and Loan] --> Prepare
     Prepare --> Calculate[Calculate family results]
     Calculate --> Contribution[Calculate contributions]
     Contribution --> Settle[Settle gross and net]
@@ -35,7 +35,7 @@ flowchart LR
   Entitlement is computed from effective catalogue and employment facts; balances include recorded
   activity and pending reservations. No annual account, ledger refresh or automatic departure
   settlement is created. Encashment pays the approved amount without repricing it from salary.
-- **Claim, Allowance and Payment** provide approved monetary entries. A single-use entry is consumed
+- **Claim, Allowance and Adhoc** provide approved monetary entries. A single-use entry is consumed
   once, including a signed correction. Recurring allowances remain eligible across their range.
 - **Loan** owns agreements and repayment schedules. Outstanding recovery is the amount due less
   paid captures. Partial recovery remains at its source.
@@ -65,7 +65,7 @@ queue. Leave includes their debit reservations when calculating available entitl
 ## Applications
 
 **Employee self-service** has Home, Events and Payslips. Events uses a family sidebar for Work,
-Leave, Claim, Allowance, Payment and Loan. Employees submit their own time-off requests; HR controls
+Leave, Claim, Allowance, Adhoc and Loan. Employees submit their own time-off requests; HR controls
 manual encashment, carry-forward, adjustments and reversals.
 
 **Controller** shares the selected legal entity across its pages:
@@ -74,7 +74,7 @@ manual encashment, carry-forward, adjustments and reversals.
 | ------------------- | -------------------------------------------------------------------- |
 | Entities            | Select the legal entity                                              |
 | People              | Profiles, contracts, departures, effective terms and statutory facts |
-| Events              | Work, Leave, Claim, Allowance, Payment and Loan records              |
+| Events              | Work, Leave, Claim, Allowance, Adhoc and Loan records                |
 | Payroll             | Create the regular period, review results, mark paid and export      |
 | Settings → Catalog  | Review family definitions within the settings lineage                |
 | Settings → Holidays | Configure sources, import, review and publish annual calendars       |

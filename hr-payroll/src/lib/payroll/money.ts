@@ -292,7 +292,7 @@ function prepareRequestCatalogues(
 		);
 		options.api.reads.assertComplete(claims, 'source Claim catalogue');
 		options.api.reads.assertComplete(allowances, 'source Allowance catalogue');
-		options.api.reads.assertComplete(payments, 'source Payment catalogue');
+		options.api.reads.assertComplete(payments, 'source Adhoc catalogue');
 		const components: CatalogueComponent[] = [
 			...claims.map((row) => ({
 				...row,
