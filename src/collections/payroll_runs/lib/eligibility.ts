@@ -78,11 +78,7 @@ type PersonInput = {
 		readonly department?: string | null;
 		readonly payroll_group?: string | null;
 	} | null;
-	readonly children?: ReadonlyArray<{
-		readonly id: string;
-		readonly child_birthdate: string;
-		readonly supersedes_id?: string | null;
-	}>;
+	readonly children?: ReadonlyArray<{ readonly child_birthdate: string }>;
 	/** The rule date: service, age and children are measured on it. */
 	readonly asOf: string;
 };
@@ -92,12 +88,7 @@ export function personContext(input: PersonInput): PersonContext {
 	const hire = dateKey(input.employment.hire_date);
 	const born = dateKey(input.employee?.date_of_birth);
 	const salary = input.terms?.base_salary as { value?: unknown } | null | undefined;
-	const children = input.children ?? [];
-	const superseded = new Set(
-		children.flatMap((child) => (child.supersedes_id == null ? [] : [child.supersedes_id]))
-	);
-	const ages = children
-		.filter((child) => !superseded.has(child.id))
+	const ages = (input.children ?? [])
 		.map((child) => dateKey(child.child_birthdate))
 		.filter((birth) => birth !== '' && birth <= input.asOf)
 		.map((birth) => completedYears(birth, input.asOf));

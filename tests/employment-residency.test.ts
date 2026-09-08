@@ -85,11 +85,11 @@ test('claim caps use the same effective contract standing as Leave and payroll',
 	const api = {
 		db: {
 			employments: {
-				findFirst: () => Effect.succeed({ id: id(1), employee_id: id(2), hire_date: '2025-01-01' })
+				findFirst: () =>
+					Effect.succeed({ id: id(1), employee_id: id(2), hire_date: '2025-01-01', children: [] })
 			},
 			employees: { findFirst: () => Effect.succeed({ gender: 'MALE', nationality: 'MY' }) },
-			employment_terms: { findMany: () => Effect.succeed(terms) },
-			employee_children: { findMany: () => Effect.succeed([]) }
+			employment_terms: { findMany: () => Effect.succeed(terms) }
 		}
 	};
 	assert.equal(

@@ -312,7 +312,7 @@ test('new consumed seals guard term reads and cannot substitute a different Work
 					reads.push('contract');
 					return Effect.succeed({
 						effective_range: { start: '2025-01-01', end: null },
-						employment_departure: []
+						exit_date: null
 					});
 				}
 			},

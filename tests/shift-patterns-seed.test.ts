@@ -116,9 +116,7 @@ test('the manifest covers current source collections and stages consumers after 
 	}
 	for (const consumer of [
 		'employment_terms',
-		'employment_departures',
 		'employment_statutory_facts',
-		'employee_children',
 		'work_days',
 		'leave_entries',
 		'claim_requests',

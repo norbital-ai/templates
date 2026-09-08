@@ -149,7 +149,6 @@ export function loadRunExports(
 					limit: PAGE_LIMIT
 				}),
 				api.db.employments.findMany({
-					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: { id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),

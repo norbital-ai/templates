@@ -84,24 +84,27 @@ test(
 					})
 				).value
 			);
-			requireAccepted(
-				(
-					await command({
+			const recordDeparture = async (id: string, exit_date: string) => {
+				const [row] = await session.query('select row_version from employments where id = $1', [
+					id
+				]);
+				return command(
+					{
 						action: 'mutate',
-						collection: 'employment_departures',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									id: crypto.randomUUID(),
-									employment_id: contracts[0].id,
-									exit_date: '2026-05-31',
-									exit_reason: 'RESIGNATION'
-								}
-							}
-						]
-					})
-				).value
+						collection: 'employments',
+						rows: [{ action: 'update', values: { id, exit_date, exit_reason: 'RESIGNATION' } }]
+					},
+					[
+						{
+							row: { collection: 'employments', recordId: id },
+							rowVersion: Number(row.row_version)
+						}
+					]
+				);
+			};
+			requireAccepted(
+				(await recordDeparture(String(contracts[0].id), '2026-05-31')).value,
+				'departure'
 			);
 			const batched = await command({
 				action: 'mutate',
@@ -241,25 +244,10 @@ test(
 				).length,
 				3
 			);
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'employment_departures',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									id: crypto.randomUUID(),
-									employment_id: contractId,
-									exit_date: '2026-07-31',
-									exit_reason: 'RESIGNATION'
-								}
-							}
-						]
-					})
-				).value
-			);
+			requireAccepted((await recordDeparture(contractId, '2026-07-31')).value, 'sealed departure');
+			const redeparture = await recordDeparture(contractId, '2026-08-15');
+			assert.notEqual(asRecord(redeparture.value, 'edit departure').resolution, 'accepted');
+			assert.match(JSON.stringify(redeparture.value), /departure cannot be edited/i);
 			const nestedContractId = crypto.randomUUID();
 			const nestedTermId = crypto.randomUUID();
 			const { employment_id: _oldContract, id: _oldTerm, ...nestedTerms } = terms[0];

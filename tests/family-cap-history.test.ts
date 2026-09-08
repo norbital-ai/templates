@@ -342,16 +342,16 @@ test('a recurring declaration is accepted and its cap is applied to each payroll
 
 test('post-departure Payment uses final terms from its own contract for eligibility', async () => {
 	const { world, candidate } = capWorld('payment');
-	world.employments[0].employment_departure = [
-		{ exit_date: '2026-01-31', exit_reason: 'RESIGNED' }
-	];
+	world.employments[0].exit_date = '2026-01-31';
+	world.employments[0].exit_reason = 'RESIGNATION';
 	world.employment_terms[0].effective_range = { start: '2020-01-01', end: '2026-01-31' };
 	world.employment_terms[0].employment_type = 'PERMANENT';
 	world.employments.push({
 		...world.employments[0],
 		id: 'concurrent-contract',
 		company_id: 'another-entity',
-		employment_departure: []
+		exit_date: null,
+		exit_reason: null
 	});
 	world.employment_terms.push({
 		...world.employment_terms[0],

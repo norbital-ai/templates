@@ -17,9 +17,8 @@ const prepare = (world: ReturnType<typeof createPublicPayrollWorld>, period = '2
 
 function endedWorld() {
 	const world = createPublicPayrollWorld();
-	world.employments[0]!.employment_departure = [
-		{ exit_date: '2026-01-20', exit_reason: 'RESIGNATION' }
-	];
+	world.employments[0]!.exit_date = '2026-01-20';
+	world.employments[0]!.exit_reason = 'RESIGNATION';
 	world.employment_terms[0]!.effective_range.end = '2026-01-20';
 	world.allowance_requests.push({
 		...world.allowance_requests[0],
@@ -71,9 +70,8 @@ test('pending, future and recurring allowances do not restart a departed contrac
 function historicalWorkingDaysWorld() {
 	const world = endedWorld();
 	world.employments[0]!.hire_date = '2025-12-10';
-	world.employments[0]!.employment_departure = [
-		{ exit_date: '2025-12-20', exit_reason: 'RESIGNATION' }
-	];
+	world.employments[0]!.exit_date = '2025-12-20';
+	world.employments[0]!.exit_reason = 'RESIGNATION';
 	world.employment_terms[0]!.effective_range = { start: '2025-12-10', end: '2025-12-20' };
 	const oneOff = world.allowance_requests.find((row) => row.id === 'one-off')!;
 	oneOff.recurrence = { kind: 'ONE_OFF', period: '2025-12' };
@@ -126,7 +124,7 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 		const world = historicalWorkingDaysWorld();
 		world.allowance_requests.splice(0, 1);
 		if (!ended) {
-			world.employments[0]!.employment_departure = [];
+			world.employments[0]!.exit_date = null;
 			world.employment_terms[0]!.effective_range.end = null;
 			world.shift_definitions[0]!.effective_range.end = null;
 		}
@@ -252,7 +250,7 @@ test('working-day Allowance refuses missing source-year calendars or incomplete 
 
 test('active late approval uses the same source-month fraction without changing current wages', async () => {
 	const world = historicalWorkingDaysWorld();
-	world.employments[0]!.employment_departure = [];
+	world.employments[0]!.exit_date = null;
 	world.employments[0]!.effective_range = { start: '2025-12-10', end: null };
 	world.employment_terms[0]!.effective_range.end = '2025-12-31';
 	const currentShift = {

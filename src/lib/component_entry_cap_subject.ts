@@ -14,7 +14,8 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { personContext, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { resolveEmployment } from './employment-contract.js';
+import { childrenOn, resolveEmployment } from './employment-contract.js';
+import type { WorkspaceRow } from '$bolt/types.js';
 import { dateKey } from './iso-day.js';
 
 const LIMIT = 10_000;
@@ -51,9 +52,6 @@ export function capSubject(
 			readonly employment_terms: {
 				readonly findMany: (input: unknown) => Effect.Effect<readonly Record<string, unknown>[]>;
 			};
-			readonly employee_children: {
-				readonly findMany: (input: unknown) => Effect.Effect<readonly Record<string, unknown>[]>;
-			};
 		};
 	},
 	employmentId: string,
@@ -67,13 +65,15 @@ export function capSubject(
 				employee_id: true,
 				employee_number: true,
 				hire_date: true,
-				effective_range: true
-			},
-			with: { employment_departure: { where: { approval_id: { isNull: true } } } }
+				effective_range: true,
+				exit_date: true,
+				exit_reason: true,
+				children: true
+			}
 		});
 		if (employment == null) return null;
 		const contract = resolveEmployment(employment as Parameters<typeof resolveEmployment>[0]);
-		const [employee, terms, children] = yield* Effect.all(
+		const [employee, terms] = yield* Effect.all(
 			[
 				api.db.employees.findFirst({
 					where: { id: { eq: String(employment.employee_id) } },
@@ -86,15 +86,11 @@ export function capSubject(
 				api.db.employment_terms.findMany({
 					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
 					limit: LIMIT
-				}),
-				api.db.employee_children.findMany({
-					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
-					limit: LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
-		if (terms.length >= LIMIT || children.length >= LIMIT)
+		if (terms.length >= LIMIT)
 			refuse('The contract cap eligibility history exceeds the supported read limit.');
 		const at = (date: string): PersonContext =>
 			personContext({
@@ -105,7 +101,10 @@ export function capSubject(
 					contract,
 					date
 				) as never,
-				children: children as never,
+				children: childrenOn(
+					(employment.children ?? []) as WorkspaceRow<'employments'>['children'],
+					date
+				),
 				asOf: date
 			});
 		return {

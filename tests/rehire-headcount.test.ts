@@ -8,14 +8,16 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 test('two contract stints for one employee in the same entity count as one person', async () => {
 	const world = createPublicPayrollWorld();
 	const first = world.employments[0]!;
-	first.employment_departure = [{ exit_date: '2026-01-10', exit_reason: 'RESIGNATION' }];
+	first.exit_date = '2026-01-10';
+	first.exit_reason = 'RESIGNATION';
 	world.employments.push({
 		...structuredClone(first),
 		id: 'return-contract',
 		employee_number: 'RETURN',
 		hire_date: '2026-01-15',
 		effective_range: { start: '2026-01-15', end: null },
-		employment_departure: []
+		exit_date: null,
+		exit_reason: null
 	});
 	world.employment_terms.push({
 		...structuredClone(world.employment_terms[0]),
@@ -27,7 +29,8 @@ test('two contract stints for one employee in the same entity count as one perso
 		...structuredClone(first),
 		id: 'other-entity-contract',
 		company_id: 'other-company',
-		employment_departure: []
+		exit_date: null,
+		exit_reason: null
 	});
 	const prepared = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })

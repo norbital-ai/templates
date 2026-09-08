@@ -126,7 +126,8 @@ const EMPLOYMENTS = [
 		company_id: 'company:1',
 		hire_date: '2021-06-01',
 		effective_range: range('2021-06-01', null),
-		employment_departure: [],
+		exit_date: null,
+		exit_reason: null,
 		bank: {
 			bank_account_name: 'Public Fixture Employee',
 			bank_code: 'MBBEMYKL',
@@ -141,9 +142,8 @@ const EMPLOYMENTS = [
 		company_id: 'company:1',
 		hire_date: '2024-07-10',
 		effective_range: range('2024-07-10', null),
-		employment_departure: [
-			{ exit_date: '2026-03-05', exit_reason: 'RESIGNATION', approval_id: null }
-		],
+		exit_date: '2026-03-05',
+		exit_reason: 'RESIGNATION',
 		bank: null
 	}
 ];

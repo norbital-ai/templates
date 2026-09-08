@@ -27,8 +27,7 @@ export default {
 							return input;
 						}
 						const employment = yield* api.db.employments.findFirst({
-							where: { id: { eq: input.employment_id! } },
-							with: { employment_departure: { where: { approval_id: { isNull: true } } } }
+							where: { id: { eq: input.employment_id! } }
 						});
 						if (
 							parent != null &&

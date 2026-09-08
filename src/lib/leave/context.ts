@@ -1,4 +1,4 @@
-import { resolveEmployment, type ResolvedEmployment } from '../employment-contract.js';
+import { childrenOn, resolveEmployment, type ResolvedEmployment } from '../employment-contract.js';
 import { Effect } from 'effect';
 import { refuse, type Api } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
@@ -18,7 +18,6 @@ type ReadTables =
 	| 'jurisdiction_settings'
 	| 'leave_catalogue'
 	| 'employment_terms'
-	| 'employee_children'
 	| 'work_days'
 	| 'shift_patterns'
 	| 'shift_definitions'
@@ -41,7 +40,7 @@ function complete<T>(rows: T[], name: string): T[] {
 export type LeaveContext = {
 	employments: Pick<
 		ResolvedEmployment,
-		'id' | 'employee_id' | 'company_id' | 'hire_date' | 'exit_date'
+		'id' | 'employee_id' | 'company_id' | 'hire_date' | 'exit_date' | 'children'
 	>[];
 	companies: Pick<WorkspaceRow<'companies'>, 'id' | 'settings_code'>[];
 	employees: Pick<WorkspaceRow<'employees'>, 'id' | 'gender' | 'date_of_birth' | 'nationality'>[];
@@ -58,10 +57,6 @@ export type LeaveContext = {
 		| 'statutory_work_category'
 		| 'department'
 		| 'payroll_group'
-	>[];
-	children: Pick<
-		WorkspaceRow<'employee_children'>,
-		'id' | 'employment_id' | 'child_birthdate' | 'supersedes_id' | 'effective_range'
 	>[];
 	entries: LeaveActivity[];
 	versions: Pick<
@@ -124,13 +119,15 @@ export function readLeaveContext(
 		const employments = complete(
 			yield* api.db.employments.findMany({
 				where: { id: { in: ids }, approval_id: { isNull: true } },
-				with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 				columns: {
 					id: true,
 					employee_id: true,
 					company_id: true,
 					hire_date: true,
-					effective_range: true
+					effective_range: true,
+					exit_date: true,
+					exit_reason: true,
+					children: true
 				},
 				limit: LIMIT
 			}),
@@ -138,7 +135,7 @@ export function readLeaveContext(
 		).map(resolveEmployment);
 		const companyIds = [...new Set(employments.map((row) => row.company_id))];
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-		const [companies, employees, terms, children, stored, workDays, runs, patterns, shifts] =
+		const [companies, employees, terms, stored, workDays, runs, patterns, shifts] =
 			yield* Effect.all(
 				[
 					api.db.companies.findMany({
@@ -170,17 +167,6 @@ export function readLeaveContext(
 							statutory_work_category: true,
 							department: true,
 							payroll_group: true
-						},
-						limit: LIMIT
-					}),
-					api.db.employee_children.findMany({
-						where: { employment_id: { in: ids }, approval_id: { isNull: true } },
-						columns: {
-							id: true,
-							employment_id: true,
-							child_birthdate: true,
-							supersedes_id: true,
-							effective_range: true
 						},
 						limit: LIMIT
 					}),
@@ -243,7 +229,6 @@ export function readLeaveContext(
 			[companies, 'companies'],
 			[employees, 'employees'],
 			[terms, 'terms'],
-			[children, 'child facts'],
 			[stored, 'leave entries'],
 			[workDays, 'workdays'],
 			[runs, 'payroll runs'],
@@ -357,7 +342,6 @@ export function readLeaveContext(
 			companies,
 			employees,
 			terms,
-			children,
 			entries,
 			versions,
 			catalogues,
@@ -389,10 +373,6 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 	const employee = context.employees.find((row) => row.id === employment.employee_id);
 	if (!employee) refuse('The employee is not available.');
 	const terms = context.terms.filter((row) => row.employment_id === employmentId);
-	const children = context.children.filter((row) => row.employment_id === employmentId);
-	const superseded = new Set(
-		children.flatMap((row) => (row.supersedes_id == null ? [] : [row.supersedes_id]))
-	);
 	const hire = dateKey(employment.hire_date);
 	const exit = employment.exit_date == null ? null : dateKey(employment.exit_date);
 	const settingsOn = (date: string) => {
@@ -432,11 +412,7 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 					employee,
 					employment,
 					terms: term,
-					children: children.filter(
-						(row) =>
-							!superseded.has(row.id) &&
-							(row.effective_range == null || coversDate(row.effective_range, date))
-					),
+					children: childrenOn(employment.children, date),
 					asOf: date
 				})
 			);

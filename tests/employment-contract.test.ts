@@ -44,9 +44,7 @@ test('contracts for other entities or other employees remain independent', () =>
 });
 
 test('departure is the last active day; a same-entity rehire starts on the following day', () => {
-	const previous = contract({
-		employment_departure: [{ exit_date: '2026-05-31', exit_reason: 'RESIGNATION' }]
-	});
+	const previous = contract({ exit_date: '2026-05-31', exit_reason: 'RESIGNATION' });
 	assert.throws(
 		() => assertContractDoesNotOverlap(contract({ id: 'b', hire_date: '2026-05-31' }), [previous]),
 		/already has an active/
@@ -77,9 +75,7 @@ test('fixed service periods permit a later contract and refuse inverted dates', 
 });
 
 test('departure resolves the service window without editing the signed contract', () => {
-	const original = contract({
-		employment_departure: [{ exit_date: '2026-05-31', exit_reason: 'MISCONDUCT' }]
-	});
+	const original = contract({ exit_date: '2026-05-31', exit_reason: 'MISCONDUCT' });
 	const resolved = resolveEmployment({ ...original, effective_range: original.effective_range });
 	assert.equal(resolved.exit_date, '2026-05-31');
 	assert.deepEqual(original.effective_range, { start: '2026-01-01T00:00:00.000Z', end: null });

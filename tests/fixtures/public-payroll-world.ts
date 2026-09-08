@@ -235,6 +235,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				hire_date: '2021-06-01',
 				exit_date: null,
 				exit_reason: null,
+				children: [],
 				bank: null,
 				effective_range: { start: '2021-06-01', end: null },
 				approval_id: null
@@ -276,7 +277,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		loans: [],
 		loan_repayments: [],
 		work_days: rosteredWorkDays(),
-		employee_children: [],
 		payroll_runs: [],
 		payslips: [],
 		payslip_claim_request_inputs: [],

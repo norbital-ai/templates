@@ -169,23 +169,29 @@ test(
 					mutationPush(session.schemaFingerprint, body, bases),
 					headers
 				);
+			const [contract] = await session.query('select row_version from employments where id = $1', [
+				employmentId
+			]);
 			requireAccepted(
 				(
-					await command({
-						action: 'mutate',
-						collection: 'employment_departures',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									id: crypto.randomUUID(),
-									employment_id: employmentId,
-									exit_date: '2026-02-10',
-									exit_reason: 'MISCONDUCT'
+					await command(
+						{
+							action: 'mutate',
+							collection: 'employments',
+							rows: [
+								{
+									action: 'update',
+									values: { id: employmentId, exit_date: '2026-02-10', exit_reason: 'MISCONDUCT' }
 								}
+							]
+						},
+						[
+							{
+								row: { collection: 'employments', recordId: employmentId },
+								rowVersion: Number(contract.row_version)
 							}
 						]
-					})
+					)
 				).value,
 				'record departure'
 			);

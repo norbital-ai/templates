@@ -23,8 +23,9 @@ old activity and unpaid obligations stay on the old contract.
 The first committed reference permanently seals the contract through `employment_contract_inputs`.
 Deleting the referring event or draft payroll does not remove that evidence. Pending references also
 prevent conflicting contract edits. A sealed contract cannot be edited, reassigned, reopened or
-deleted. `employment_departures` records an immutable departure date and reason without rewriting
-the signed contract. It generates no encashment, carry or departure package.
+deleted. Departure is recorded once on the contract (`exit_date`, `exit_reason`, `exit_note`);
+once set, those three columns are immutable and the sealed contract terms stay unchanged. It
+generates no encashment, carry or departure package.
 
 Effective terms amendments belong to the same stint and do not reset service. Contribution retains
 any person/entity/year aggregation required by its scheme; a new contract does not erase paid YTD.

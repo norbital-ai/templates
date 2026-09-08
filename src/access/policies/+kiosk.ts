@@ -21,7 +21,6 @@ export default {
 	capabilities: { apps: ['hr_controller/kiosk'] },
 
 	grants: mergeGrants(
-		grantsOn('employment_departures', ['read']),
 		grantOn('employees', 'read', {
 			fields: [
 				'id',

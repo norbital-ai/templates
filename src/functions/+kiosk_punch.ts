@@ -30,13 +30,14 @@ export default defineCommandHandler({
 		Effect.gen(function* () {
 			const now = new Date(yield* Clock.currentTimeMillis).toISOString();
 			const contract = yield* api.db.employments.findFirst({
-				with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 				where: { id: { eq: employment_id } },
 				columns: {
 					id: true,
 					employee_id: true,
 					hire_date: true,
-					effective_range: true
+					effective_range: true,
+					exit_date: true,
+					exit_reason: true
 				}
 			});
 			if (contract === undefined) refuse('Employment does not exist.');

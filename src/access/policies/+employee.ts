@@ -51,7 +51,6 @@ const ownPaymentRequest = {
 } as const;
 const ownLoan = { loan_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownLeaveRequest = { leave_entry_employment: { some: OWN_EMPLOYMENT } } as const;
-const ownEmployeeChild = { child_employment: { some: OWN_EMPLOYMENT } } as const;
 
 const ownLoanNotTheirChildren = ownLoan;
 
@@ -75,9 +74,6 @@ export default {
 	grants: mergeGrants(
 		grantOn('employees', 'read', { where: ownEmployeeRecord }),
 		grantOn('employments', 'read', { where: ownEmployment }),
-		grantOn('employment_departures', 'read', {
-			where: { employment_departure: { some: ownEmployment } }
-		}),
 		grantOn('employment_terms', 'read', {
 			where: ownEmploymentTerm
 		}),
@@ -106,9 +102,6 @@ export default {
 		grantOn('loans', 'read', { where: ownLoanNotTheirChildren }),
 		grantOn('leave_entries', 'read', {
 			where: ownLeaveRequest
-		}),
-		grantOn('employee_children', 'read', {
-			where: ownEmployeeChild
 		}),
 		employeeWorkDayNewGrant(),
 		employeeWorkDayExistingGrant(),

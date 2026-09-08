@@ -1,15 +1,13 @@
 import { refuse, type Api } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import { readRange } from '../collections/payroll_runs/lib/effective.js';
+import { coversDate, readRange } from '../collections/payroll_runs/lib/effective.js';
 import { dateKey } from './iso-day.js';
 import type { WorkspaceRow } from '$bolt/types.js';
 import type { WorkspaceSchema } from '$bolt/types.js';
 
 const CONTRACT_INPUT_SOURCES = [
-	'employment_departures',
 	'employment_terms',
 	'employment_statutory_facts',
-	'employee_children',
 	'claim_requests',
 	'allowance_requests',
 	'payment_requests',
@@ -30,7 +28,7 @@ export function assertContractUnreferenced(api: Api<WorkspaceSchema>, employment
 		});
 		if (seal)
 			refuse(
-				'This employment contract is sealed by a linked input. Record departure separately; create a new contract for a rehire.'
+				'This employment contract is sealed by a linked input. Record its departure; create a new contract for a rehire.'
 			);
 		for (const source of CONTRACT_INPUT_SOURCES) {
 			const pending = yield* api.db[source].findPending({
@@ -93,24 +91,31 @@ export function consumedTermsThrough(api: Api<WorkspaceSchema>, employmentId: st
 	});
 }
 
-/** Service dates are a projection of the signed contract and its separately recorded departure. */
+/** The child facts whose legal span holds on `date`; a null span is born → ongoing. */
+export function childrenOn<T extends { readonly effective_range: unknown }>(
+	children: readonly T[],
+	date: string
+) {
+	return children.filter(
+		(row) => row.effective_range == null || coversDate(row.effective_range, date)
+	);
+}
+
+/** Service dates are a projection of the signed contract and its recorded departure. */
 export function resolveEmployment<
 	T extends {
 		readonly effective_range: unknown;
-		readonly employment_departure?: readonly {
-			readonly exit_date: string;
-			readonly exit_reason: string;
-		}[];
+		readonly exit_date?: string | null;
+		readonly exit_reason?: string | null;
 	}
 >(contract: T) {
 	const range = readRange(contract.effective_range);
-	const departure = contract.employment_departure?.[0];
-	const ends = [range?.end, departure?.exit_date].filter((value): value is string => value != null);
+	const ends = [range?.end, contract.exit_date].filter((value): value is string => value != null);
 	const end = ends.toSorted((a, b) => dateKey(a).localeCompare(dateKey(b)))[0] ?? null;
 	return {
 		...contract,
 		exit_date: end,
-		exit_reason: departure?.exit_reason ?? null,
+		exit_reason: contract.exit_reason ?? null,
 		effective_range: range == null ? null : { ...range, end }
 	};
 }
@@ -120,14 +125,16 @@ export type ResolvedEmployment = ReturnType<typeof resolveEmployment<WorkspaceRo
 export type ContractCandidate = Partial<
 	Pick<
 		WorkspaceRow<'employments'>,
-		'id' | 'employee_id' | 'company_id' | 'hire_date' | 'effective_range'
+		| 'id'
+		| 'employee_id'
+		| 'company_id'
+		| 'hire_date'
+		| 'effective_range'
+		| 'exit_date'
+		| 'exit_reason'
+		| 'exit_note'
 	>
-> & {
-	readonly employment_departure?: readonly {
-		readonly exit_date: string;
-		readonly exit_reason: string;
-	}[];
-};
+>;
 
 /** Inclusive service windows are exclusive only within the same person/entity pair. */
 export function assertContractDoesNotOverlap(

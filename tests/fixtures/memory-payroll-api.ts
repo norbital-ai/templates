@@ -34,7 +34,6 @@ export type PayrollWorld = {
 	readonly loans: PayrollRow[];
 	readonly loan_repayments: PayrollRow[];
 	readonly work_days: PayrollRow[];
-	readonly employee_children: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
 	readonly payslip_claim_request_inputs: PayrollRow[];
@@ -172,7 +171,6 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			loans: collection('loans'),
 			loan_repayments: collection('loan_repayments'),
 			work_days: collection('work_days'),
-			employee_children: collection('employee_children'),
 			payroll_runs: collection('payroll_runs'),
 			payslips: collection('payslips'),
 			payslip_claim_request_inputs: collection('payslip_claim_request_inputs'),

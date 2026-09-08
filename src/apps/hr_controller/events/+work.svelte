@@ -187,7 +187,6 @@
 	const employmentsQuery = $derived.by(() => {
 		if (selectedCompanyId == null) return null;
 		return client.db.employments.findMany({
-			with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
 			orderBy: { employee_number: 'asc' },
 			limit: MONTH_BOARD_QUERY_LIMITS.employments

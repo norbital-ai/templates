@@ -121,21 +121,6 @@ CREATE TABLE "contribution_rates" (
 );
 
 --> statement-breakpoint
-CREATE TABLE "employee_children" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"employment_id" uuid NOT NULL,
-	"child_birthdate" timestamp with time zone NOT NULL,
-	"relationship" text NOT NULL,
-	"effective_range" jsonb,
-	"supersedes_id" uuid
-);
-
---> statement-breakpoint
 CREATE TABLE "employees" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -175,10 +160,8 @@ CREATE TABLE "employment_contract_inputs" (
 	"approval_id" uuid,
 	"employment_id" uuid NOT NULL,
 	"terms_through" timestamp with time zone,
-	"employment_departures_id" uuid,
 	"employment_terms_id" uuid,
 	"employment_statutory_facts_id" uuid,
-	"employee_children_id" uuid,
 	"claim_requests_id" uuid,
 	"allowance_requests_id" uuid,
 	"payment_requests_id" uuid,
@@ -187,20 +170,6 @@ CREATE TABLE "employment_contract_inputs" (
 	"leave_entries_id" uuid,
 	"work_days_id" uuid,
 	"payslips_id" uuid
-);
-
---> statement-breakpoint
-CREATE TABLE "employment_departures" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"employment_id" uuid NOT NULL,
-	"exit_date" timestamp with time zone NOT NULL,
-	"exit_reason" text NOT NULL,
-	"note" text
 );
 
 --> statement-breakpoint
@@ -266,7 +235,11 @@ CREATE TABLE "employments" (
 	"employee_number" text NOT NULL,
 	"hire_date" timestamp with time zone NOT NULL,
 	"bank" jsonb,
-	"effective_range" jsonb NOT NULL
+	"effective_range" jsonb NOT NULL,
+	"exit_date" timestamp with time zone,
+	"exit_reason" text,
+	"exit_note" text,
+	"children" jsonb DEFAULT '[]' NOT NULL
 );
 
 --> statement-breakpoint
@@ -758,23 +731,15 @@ CREATE INDEX "contribution_rates_search_document_gin_idx" ON "contribution_rates
 --> statement-breakpoint
 CREATE INDEX "contribution_rates_search_text_trgm_idx" ON "contribution_rates" USING gin ((coalesce("summary", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "employee_children_supersedes_id_index" ON "employee_children" ("supersedes_id") WHERE "supersedes_id" IS NOT NULL;
---> statement-breakpoint
-CREATE INDEX "employee_children_employment_id_idx" ON "employee_children" ("employment_id");
---> statement-breakpoint
 CREATE INDEX "employees_face_embedding_hnsw" ON "employees" USING hnsw ("face_embedding" vector_cosine_ops);
 --> statement-breakpoint
 CREATE INDEX "employees_search_document_gin_idx" ON "employees" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "employees_search_text_trgm_idx" ON "employees" USING gin ((coalesce("name", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_employment_departures_id_index" ON "employment_contract_inputs" ("employment_departures_id");
---> statement-breakpoint
 CREATE UNIQUE INDEX "employment_contract_inputs_employment_terms_id_index" ON "employment_contract_inputs" ("employment_terms_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "employment_contract_inputs_employment_statutory_facts_id_index" ON "employment_contract_inputs" ("employment_statutory_facts_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_employee_children_id_index" ON "employment_contract_inputs" ("employee_children_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "employment_contract_inputs_claim_requests_id_index" ON "employment_contract_inputs" ("claim_requests_id");
 --> statement-breakpoint
@@ -793,8 +758,6 @@ CREATE UNIQUE INDEX "employment_contract_inputs_work_days_id_terms_through_index
 CREATE UNIQUE INDEX "employment_contract_inputs_payslips_id_index" ON "employment_contract_inputs" ("payslips_id");
 --> statement-breakpoint
 CREATE INDEX "employment_contract_inputs_employment_id_idx" ON "employment_contract_inputs" ("employment_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_departures_employment_id_index" ON "employment_departures" ("employment_id");
 --> statement-breakpoint
 CREATE INDEX "employment_statutory_facts_search_document_gin_idx" ON "employment_statutory_facts" USING gin ("search_document");
 --> statement-breakpoint
@@ -970,13 +933,7 @@ ALTER TABLE "claim_requests" ADD CONSTRAINT "claim_requests_claim_catalogue_id_c
 --> statement-breakpoint
 ALTER TABLE "contribution_rates" ADD CONSTRAINT "contribution_rates_statutory_contribution_id_statutory_contributions_fk" FOREIGN KEY ("statutory_contribution_id") REFERENCES "statutory_contributions"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-ALTER TABLE "employee_children" ADD CONSTRAINT "employee_children_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id") ON DELETE CASCADE;
---> statement-breakpoint
-ALTER TABLE "employee_children" ADD CONSTRAINT "employee_children_supersedes_id_employee_children_fk" FOREIGN KEY ("supersedes_id") REFERENCES "employee_children"("id");
---> statement-breakpoint
 ALTER TABLE "employment_contract_inputs" ADD CONSTRAINT "employment_contract_inputs_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
---> statement-breakpoint
-ALTER TABLE "employment_departures" ADD CONSTRAINT "employment_departures_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
 --> statement-breakpoint
 ALTER TABLE "employment_statutory_facts" ADD CONSTRAINT "employment_statutory_facts_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id") ON DELETE CASCADE;
 --> statement-breakpoint

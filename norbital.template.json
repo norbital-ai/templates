@@ -6,7 +6,7 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 38,
+		"collections": 36,
 		"apps": 12,
 		"automations": 2
 	},
@@ -32,12 +32,7 @@
 			["contribution_rates", "employees", "shift_definitions"],
 			["shift_patterns"],
 			["employments"],
-			[
-				"employee_children",
-				"employment_statutory_facts",
-				"employment_terms",
-				"employment_departures"
-			],
+			["employment_statutory_facts", "employment_terms"],
 			["work_days"],
 			["leave_entries", "claim_requests", "allowance_requests", "payment_requests", "loans"],
 			["loan_repayments", "holiday_calendar_inputs"],

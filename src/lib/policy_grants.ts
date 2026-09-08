@@ -172,19 +172,9 @@ export const peopleGrants = (
 	mergeGrants(
 		grantsOn('employees', actions),
 		grantsOn('employments', actions),
-		grantsOn(
-			'employment_departures',
-			actions.filter((action) => action === 'read' || action === 'mutate.new')
-		),
 		...(actions.includes('read') ? [grantsOn('employment_contract_inputs', ['read'])] : []),
 		grantsOn('employment_terms', actions),
-		employmentStatutoryFactGrants(...actions),
-		// Child facts are what `children.under(age)` counts. `preview_leave` is a function and runs
-		// as the person calling it; a policy that can create leave without this read turns that
-		// preview into AccessDenied instead of a picker. (The write hook reads as the workspace.)
-		...(actions.includes('read') ? [grantsOn('employee_children', ['read'])] : []),
-		// Child facts are appended. Their effective history informs computed leave eligibility.
-		...(actions.includes('mutate.new') ? [grantsOn('employee_children', ['mutate.new'])] : [])
+		employmentStatutoryFactGrants(...actions)
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>

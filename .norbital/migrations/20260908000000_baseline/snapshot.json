@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "c7ee3b1c-b896-4051-826c-c3b3473363aa",
+  "id": "b0b77427-4a33-4368-ae8d-9dcad608a265",
   "prevIds": [
-    "6373157e-6fe9-4a94-a2d2-1fe8f55f7e84"
+    "5a3fdbd4-d75e-4afc-b9cc-c7b10d8a0be4"
   ],
   "version": "8",
   "ddl": [
@@ -44,12 +44,6 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "employee_children",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
       "name": "employees",
       "entityType": "tables",
       "schema": "public"
@@ -57,12 +51,6 @@
     {
       "isRlsEnabled": false,
       "name": "employment_contract_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "employment_departures",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1371,149 +1359,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employment_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "child_birthdate",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "relationship",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "effective_range",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "supersedes_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "employees"
     },
     {
@@ -1956,19 +1801,6 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "employment_departures_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
       "name": "employment_terms_id",
       "entityType": "columns",
       "schema": "public",
@@ -1983,19 +1815,6 @@
       "generated": null,
       "identity": null,
       "name": "employment_statutory_facts_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employee_children_id",
       "entityType": "columns",
       "schema": "public",
       "table": "employment_contract_inputs"
@@ -2103,136 +1922,6 @@
       "entityType": "columns",
       "schema": "public",
       "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employment_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "exit_date",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "exit_reason",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "note",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_departures"
     },
     {
       "type": "uuid",
@@ -2843,6 +2532,58 @@
       "generated": null,
       "identity": null,
       "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exit_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exit_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exit_note",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "children",
       "entityType": "columns",
       "schema": "public",
       "table": "employments"
@@ -7910,48 +7651,6 @@
       "table": "contribution_rates"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "supersedes_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": "\"supersedes_id\" IS NOT NULL",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employee_children_supersedes_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employee_children_employment_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
       "nameExplicit": true,
       "columns": [
         {
@@ -8021,27 +7720,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "employment_departures_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_employment_departures_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "employment_terms_id",
           "isExpression": false,
           "asc": true,
@@ -8076,27 +7754,6 @@
       "method": "btree",
       "concurrently": false,
       "name": "employment_contract_inputs_employment_statutory_facts_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employee_children_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_employee_children_id_index",
       "entityType": "indexes",
       "schema": "public",
       "table": "employment_contract_inputs"
@@ -8296,27 +7953,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_departures_employment_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_departures"
     },
     {
       "nameExplicit": true,
@@ -10359,62 +9995,11 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "employee_children_employment_id_employments_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "supersedes_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "employee_children",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "employee_children_supersedes_id_employee_children_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "employment_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "employments",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "employment_contract_inputs_employment_id_employments_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "employment_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "employments",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "employment_departures_employment_id_employments_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "employment_departures"
     },
     {
       "nameExplicit": true,
@@ -11297,16 +10882,6 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "employee_children_pkey",
-      "schema": "public",
-      "table": "employee_children",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "employees_pkey",
       "schema": "public",
       "table": "employees",
@@ -11320,16 +10895,6 @@
       "name": "employment_contract_inputs_pkey",
       "schema": "public",
       "table": "employment_contract_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "employment_departures_pkey",
-      "schema": "public",
-      "table": "employment_departures",
       "entityType": "pks"
     },
     {

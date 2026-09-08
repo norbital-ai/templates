@@ -1,6 +1,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { stableJson } from '../../lib/jurisdiction_settings.js';
+import { dateKey } from '../../lib/iso-day.js';
 import {
 	assertContractDoesNotOverlap,
 	assertContractUnreferenced,
@@ -14,6 +15,7 @@ type Prepared = {
 	pending: ContractCandidate[];
 };
 const LIMIT = 20_000;
+const DEPARTURE = ['exit_date', 'exit_reason', 'exit_note'] as const;
 
 export default {
 	mutate: {
@@ -23,7 +25,6 @@ export default {
 				const priors = ids.length
 					? yield* api.db.employments.findMany({
 							where: { id: { in: ids } },
-							with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 							limit: LIMIT
 						})
 					: [];
@@ -49,7 +50,6 @@ export default {
 				};
 				const stored = yield* api.db.employments.findMany({
 					where,
-					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					limit: LIMIT
 				});
 				const pending = yield* api.db.employments.findPending({ where, limit: LIMIT });
@@ -63,7 +63,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Enforce one active contract per employee and entity; permanently freeze every referenced contract.',
+					'Enforce one active contract per employee and entity; permanently freeze every referenced contract; record departure once.',
 				handler: ({ input, existing, recordId, prepared, parent, api }) =>
 					Effect.gen(function* () {
 						if (prepared.stored.length >= LIMIT || prepared.pending.length >= LIMIT)
@@ -87,19 +87,40 @@ export default {
 							assertContractDoesNotOverlap(candidate, candidates.slice(index + 1));
 						const held = prepared.stored.find((row) => row.id === recordId);
 						const candidate = bindParent({ ...held, ...existing, ...input });
+						if (candidate.exit_date != null) {
+							if (!candidate.exit_reason)
+								refuse('Departure requires a last employment date and reason.');
+							if (dateKey(candidate.exit_date) < dateKey(candidate.hire_date ?? ''))
+								refuse('Departure cannot precede the contract hire date.');
+						} else if (candidate.exit_reason != null || candidate.exit_note != null)
+							refuse('Departure requires a last employment date and reason.');
 						assertContractDoesNotOverlap(
 							candidate,
 							[...prepared.stored, ...prepared.pending].filter((row) => row.id !== recordId)
 						);
 						if (existing == null)
 							return { ...input, ...(parentColumn == null ? {} : { [parentColumn]: parent!.id }) };
-						const changed = Object.entries(input).some(
-							([key, value]) =>
-								key !== 'id' &&
-								key !== 'row_version' &&
-								stableJson(value) !== stableJson(Reflect.get(existing, key))
-						);
-						if (changed) yield* assertContractUnreferenced(api, existing.id);
+						if (input.children != null) {
+							const prior = existing.children ?? [];
+							if (
+								input.children.length < prior.length ||
+								prior.some((row, index) => stableJson(row) !== stableJson(input.children![index]))
+							)
+								refuse(
+									'Child facts are append-only. Close a wrong fact with its effective period and append the correction.'
+								);
+						}
+						const differs = ([key, value]: [string, unknown]) =>
+							key !== 'id' &&
+							key !== 'row_version' &&
+							stableJson(value) !== stableJson(Reflect.get(existing, key));
+						const entries = Object.entries(input);
+						const isDeparture = (key: string) => (DEPARTURE as readonly string[]).includes(key);
+						// Departure is recorded once on the sealed contract; the contract itself stays frozen.
+						if (existing.exit_date != null && entries.some((e) => isDeparture(e[0]) && differs(e)))
+							refuse('A recorded departure cannot be edited.');
+						if (entries.some((e) => !isDeparture(e[0]) && e[0] !== 'children' && differs(e)))
+							yield* assertContractUnreferenced(api, existing.id);
 						return input;
 					})
 			}

@@ -163,7 +163,6 @@
 		record == null
 			? null
 			: client.db.employments.findMany({
-					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: { ...approved, employee_id: { eq: record.id } },
 					orderBy: { hire_date: 'desc' },
 					limit: 100
