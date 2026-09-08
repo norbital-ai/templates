@@ -168,9 +168,9 @@ test(
 				const tables = [
 					'bolt_envoy_inbound',
 					'bolt_task',
-					'agent_task',
-					'agent_run',
-					'agent_message'
+					'conversation',
+					'turn',
+					'conversation_message'
 				];
 				const parts: string[] = [];
 				for (const table of tables) {
@@ -194,8 +194,10 @@ test(
 			});
 			assert.equal(inbound.status, 'answered');
 
-			const task = rows(await guest.query(`select status, agent_id, audience from agent_task`))[0];
-			assert.deepEqual(task, { status: 'done', agent_id: ENVOY, audience: 'workbench' });
+			const conversation = rows(
+				await guest.query(`select status, agent_id, audience from conversation`)
+			)[0];
+			assert.deepEqual(conversation, { status: 'done', agent_id: ENVOY, audience: 'workbench' });
 
 			const after = rows(
 				await guest.query(`select status, completed_at from job_assignments where id = $1::uuid`, [

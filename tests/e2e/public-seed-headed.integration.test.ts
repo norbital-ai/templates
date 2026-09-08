@@ -378,13 +378,13 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 			const records = await postGuestCommand(
 				session.baseUrl,
 				'collections.findMany',
-				{ collection: 'agent_message', limit: 20 },
+				{ collection: 'conversation_message', limit: 20 },
 				bearerHeaders(session.credential)
 			);
 			const runs = await postGuestCommand(
 				session.baseUrl,
 				'collections.findMany',
-				{ collection: 'agent_run', limit: 20 },
+				{ collection: 'turn', limit: 20 },
 				bearerHeaders(session.credential)
 			);
 			const frames = await page.evaluate('JSON.stringify(window.__agentFrames)');
@@ -409,7 +409,7 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 		const runRows = await postGuestCommand(
 			session.baseUrl,
 			'collections.findMany',
-			{ collection: 'agent_run', limit: 20 },
+			{ collection: 'turn', limit: 20 },
 			bearerHeaders(session.credential)
 		);
 		assert.equal(
@@ -420,7 +420,7 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 		const tasks = await postGuestCommand(
 			session.baseUrl,
 			'collections.findMany',
-			{ collection: 'agent_task', where: { parent_id: { isNull: true } }, limit: 20 },
+			{ collection: 'conversation', where: { parent_id: { isNull: true } }, limit: 20 },
 			bearerHeaders(session.credential)
 		);
 		assert.equal(tasks.status, 200, JSON.stringify(tasks.value));
@@ -1123,7 +1123,7 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 		const result = await postGuestCommand(
 			session.baseUrl,
 			'collections.findMany',
-			{ collection: 'agent_run', orderBy: { created_at: 'asc' } },
+			{ collection: 'turn', orderBy: { created_at: 'asc' } },
 			bearerHeaders(session.credential)
 		);
 		assert.equal(result.status, 200, JSON.stringify(result.value));
