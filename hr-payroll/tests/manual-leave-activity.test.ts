@@ -15,7 +15,14 @@ const span = { start: '2025-01-01', end: null };
 function facts(): LeaveContext {
 	return {
 		employments: [
-			{ id: id(1), employee_id: id(2), company_id: id(3), hire_date: '2025-01-01', exit_date: null }
+			{
+				id: id(1),
+				employee_id: id(2),
+				company_id: id(3),
+				hire_date: '2025-01-01',
+				exit_date: null,
+				children: []
+			}
 		],
 		companies: [{ id: id(3), settings_code: 'TEST' }],
 		employees: [{ id: id(2), gender: null, date_of_birth: null, nationality: null }],
@@ -34,7 +41,6 @@ function facts(): LeaveContext {
 				payroll_group: null
 			}
 		],
-		children: [],
 		entries: [],
 		versions: [
 			{

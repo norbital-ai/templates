@@ -170,16 +170,6 @@ export default ((r) => ({
 		employment_employee: r.many.employments()
 	},
 
-	employment_departures: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.employment_departures.id,
-			to: r.employment_contract_inputs.employment_departures_id
-		}),
-		employment_departure: r.one.employments({
-			from: r.employment_departures.employment_id,
-			to: r.employments.id
-		})
-	},
 	employment_contract_inputs: {
 		contract_input_employment: r.one.employments({
 			from: r.employment_contract_inputs.employment_id,
@@ -187,13 +177,11 @@ export default ((r) => ({
 		})
 	},
 	employments: {
-		employment_departure: r.many.employment_departures(),
 		contract_input_employment: r.many.employment_contract_inputs(),
 		employment_employee: r.one.employees({
 			from: r.employments.employee_id,
 			to: r.employees.id
 		}),
-		child_employment: r.many.employee_children(),
 		employment_company: r.one.companies({
 			from: r.employments.company_id,
 			to: r.companies.id
@@ -242,28 +230,6 @@ export default ((r) => ({
 		statutory_fact_contribution: r.one.statutory_contributions({
 			from: r.employment_statutory_facts.statutory_contribution_id,
 			to: r.statutory_contributions.id
-		})
-	},
-
-	employee_children: {
-		employment_contract_input: r.many.employment_contract_inputs({
-			from: r.employee_children.id,
-			to: r.employment_contract_inputs.employee_children_id
-		}),
-		child_employment: cascade(
-			r.one.employments({
-				from: r.employee_children.employment_id,
-				to: r.employments.id
-			})
-		),
-		/**
-		 * A correction supersedes the fact it fixes; the superseded row stays as the record of what
-		 * was believed. Declared one-side only (self-reference): the writable-pair resolution would
-		 * be ambiguous with a `many` inverse, and nothing nests "the corrections of this fact".
-		 */
-		child_fact_supersedes: r.one.employee_children({
-			from: r.employee_children.supersedes_id,
-			to: r.employee_children.id
 		})
 	},
 

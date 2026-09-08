@@ -175,7 +175,8 @@ function employments() {
 		company_id: COMPANY_ID,
 		hire_date: '2020-01-01',
 		effective_range: { start: '2020-01-01', end: null },
-		employment_departure: [],
+		exit_date: null,
+		exit_reason: null,
 		approval_id: null
 	}));
 }

@@ -29,9 +29,8 @@ function importWorld() {
 		employee_number: 'PERSON',
 		hire_date: '2026-01-01',
 		effective_range: { start: '2026-01-01', end: null },
-		employment_departure: [
-			{ exit_date: '2026-01-15', exit_reason: 'RESIGNATION', approval_id: null }
-		]
+		exit_date: '2026-01-15',
+		exit_reason: 'RESIGNATION'
 	};
 	world.employments = [
 		{
@@ -39,9 +38,16 @@ function importWorld() {
 			id: REHIRE,
 			hire_date: '2026-01-16',
 			effective_range: { start: '2026-01-16', end: null },
-			employment_departure: []
+			exit_date: null,
+			exit_reason: null
 		},
-		{ ...original, id: OTHER_CONTRACT, company_id: OTHER_COMPANY, employment_departure: [] },
+		{
+			...original,
+			id: OTHER_CONTRACT,
+			company_id: OTHER_COMPANY,
+			exit_date: null,
+			exit_reason: null
+		},
 		original
 	];
 	return world;
@@ -53,35 +59,7 @@ function runImport(
 	dates: readonly string[],
 	legalEntity: string | null = 'Public Fixture Co'
 ) {
-	const base = memoryPayrollApi(world);
-	const api = {
-		...base,
-		db: {
-			...base.db,
-			employments: {
-				...base.db.employments,
-				findMany: (
-					query: Parameters<typeof base.db.employments.findMany>[0] & {
-						with?: { employment_departure?: { where?: unknown } };
-					}
-				) => {
-					assert.deepEqual(
-						query.with?.employment_departure?.where,
-						{ approval_id: { isNull: true } },
-						'only approved departures govern contract selection'
-					);
-					return Effect.map(base.db.employments.findMany(query), (rows) =>
-						rows.map((row) => ({
-							...row,
-							employment_departure: (
-								(row.employment_departure ?? []) as Array<{ approval_id?: string | null }>
-							).filter((departure) => departure.approval_id == null)
-						}))
-					);
-				}
-			}
-		}
-	};
+	const api = memoryPayrollApi(world);
 	const input = {
 		sheet,
 		legal_entity: legalEntity ?? undefined,
@@ -148,12 +126,8 @@ for (const sheet of ['ROSTER', 'ATTENDANCE'] as const) {
 			/More than one employment contract.*overlapping/
 		);
 	});
-	test(`${sheet} ignores an unapproved rehire and an unapproved departure`, async () => {
+	test(`${sheet} ignores an unapproved rehire`, async () => {
 		const world = importWorld();
-		world.employments.find((row) => row.id === EMPLOYMENT_ID)!.employment_departure = [
-			{ exit_date: '2026-01-14', exit_reason: 'RESIGNATION', approval_id: 'pending' },
-			{ exit_date: '2026-01-15', exit_reason: 'RESIGNATION', approval_id: null }
-		];
 		world.employments.push({
 			...world.employments.find((row) => row.id === REHIRE)!,
 			id: 'pending-rehire',

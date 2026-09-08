@@ -65,18 +65,15 @@ test('matching requires an explicit entity before a face probe can be submitted'
 	assert.throws(() => Schema.decodeUnknownSync(match.schema)({ probe }), /company_id/);
 });
 
-const activeContract = (
-	id: string,
-	company_id = companyId,
-	employment_departure: readonly { exit_date: string; exit_reason: string }[] = []
-) => ({
+const activeContract = (id: string, company_id = companyId, exit_date: string | null = null) => ({
 	id,
 	employee_id: 'person',
 	company_id,
 	employee_number: id,
 	hire_date: '2000-01-01',
 	effective_range: { start: '2000-01-01T00:00:00.000Z', end: null },
-	employment_departure
+	exit_date,
+	exit_reason: exit_date == null ? null : 'RESIGNATION'
 });
 
 const matchingApi = (
@@ -112,10 +109,7 @@ test('one profile active in two entities matches only the explicitly selected co
 });
 
 test('another entity contract never substitutes for an ended selected contract', async () => {
-	const ended = {
-		...activeContract('departed'),
-		employment_departure: [{ exit_date: '2001-01-01', exit_reason: 'RESIGNATION' }]
-	};
+	const ended = activeContract('departed', companyId, '2001-01-01');
 	const contracts = [activeContract('other', otherCompanyId), ended];
 	const result = await Effect.runPromise(
 		match.handler({ company_id: companyId, probe }, matchingApi(contracts))

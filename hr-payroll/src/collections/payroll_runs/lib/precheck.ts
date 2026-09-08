@@ -67,7 +67,6 @@ export function payrollRunPrecheck(options: {
 		const employments = api.reads
 			.assertComplete(
 				yield* db.employments.findMany({
-					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: {
 						company_id: { eq: options.configuration.company.id },
 						...approved

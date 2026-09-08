@@ -71,8 +71,9 @@ approved Leave charges or debit valuations, and payroll dependencies. Future ent
 do not advance that date. Simple references and sources without retained dated evidence keep it
 null; moving or deleting a consumer cannot erase an earlier dated seal.
 
-Departure is a separate immutable `employment_departures` fact. It preserves the signed
-contract and does not generate any payment. A missing departure reason remains unresolved.
+Departure is the contract's own `exit_date`, `exit_reason` and `exit_note`, recorded once and
+immutable afterwards. It preserves the signed contract and does not generate any payment. A missing
+departure reason remains unresolved.
 
 | Family       | Source inputs                                                             | Preservation requirement                                                                            |
 | ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |

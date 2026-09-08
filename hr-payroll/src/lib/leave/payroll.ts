@@ -1,3 +1,4 @@
+import { childrenOn } from '../employment-contract.js';
 import { PAGE_LIMIT } from '../../collections/payroll_runs/lib/api.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { fromMinorUnits, toMinorUnits, type MoneyValue } from '@norbital-ai/std/finance';
@@ -73,8 +74,6 @@ export function prepareLeavePayroll(options: {
 						entitlementAt: rules.entitlementAt
 					}).balance ?? 0;
 			}
-			const children = context.children.filter((row) => row.employment_id === employment.id);
-			const superseded = new Set(children.map((row) => row.supersedes_id));
 			const deductionEligibility: Record<string, boolean> = {};
 			for (const entry of activeTimeOff(entries))
 				for (const charge of entry.charges) {
@@ -93,11 +92,7 @@ export function prepareLeavePayroll(options: {
 							employment,
 							terms: term,
 							asOf: charge.date,
-							children: children.filter(
-								(row) =>
-									!superseded.has(row.id) &&
-									(row.effective_range == null || coversDate(row.effective_range, charge.date))
-							)
+							children: childrenOn(employment.children, charge.date)
 						})
 					);
 				}

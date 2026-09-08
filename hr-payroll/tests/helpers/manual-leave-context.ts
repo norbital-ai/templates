@@ -10,7 +10,14 @@ const span = { start: '2025-01-01', end: null };
 export function leaveContext(): LeaveContext {
 	return {
 		employments: [
-			{ id: id(1), employee_id: id(2), company_id: id(3), hire_date: span.start, exit_date: null }
+			{
+				id: id(1),
+				employee_id: id(2),
+				company_id: id(3),
+				hire_date: span.start,
+				exit_date: null,
+				children: []
+			}
 		],
 		companies: [{ id: id(3), settings_code: 'TEST' }],
 		employees: [
@@ -36,7 +43,6 @@ export function leaveContext(): LeaveContext {
 				payroll_group: null
 			}
 		],
-		children: [],
 		entries: [],
 		workDays: [],
 		runs: [],

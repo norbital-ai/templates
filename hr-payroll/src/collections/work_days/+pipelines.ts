@@ -193,9 +193,10 @@ function readImportContracts(
 				company_id: true,
 				employee_number: true,
 				hire_date: true,
-				effective_range: true
+				effective_range: true,
+				exit_date: true,
+				exit_reason: true
 			},
-			with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 			limit: QUERY_LIMIT
 		});
 		if (employments.length >= QUERY_LIMIT)

@@ -43,7 +43,6 @@
 		chosen === null || companyId == null
 			? null
 			: client.db.employments.findMany({
-					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: {
 						employee_id: { eq: chosen.id },
 						company_id: { eq: companyId },
@@ -54,7 +53,9 @@
 						company_id: true,
 						employee_number: true,
 						hire_date: true,
-						effective_range: true
+						effective_range: true,
+						exit_date: true,
+						exit_reason: true
 					},
 					limit: 1_000
 				})

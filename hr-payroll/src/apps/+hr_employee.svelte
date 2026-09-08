@@ -122,7 +122,6 @@
 	const employmentsQuery = $derived(
 		employeeId
 			? client.db.employments.findMany({
-					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: { employee_id: { eq: employeeId }, approval_id: { isNull: true } },
 					limit: 10
 				})

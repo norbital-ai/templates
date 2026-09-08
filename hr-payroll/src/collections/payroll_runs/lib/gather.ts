@@ -98,7 +98,7 @@ export type EmploymentBundle = {
 	/** Source-month Work and calendar facts for due one-off allowances. */
 	readonly allowanceConfigurations?: ReadonlyMap<string, Configuration>;
 	/** The employment's child facts — what `children.under(age)` counts. */
-	readonly children: readonly WorkspaceRow<'employee_children'>[];
+	readonly children: WorkspaceRow<'employments'>['children'];
 	/** The loan agreements this employment carries. Payroll consumes their repayments, not these. */
 	readonly loans: readonly Loan[];
 	/** The amounts due under those agreements — one of the four input families. */
@@ -182,7 +182,6 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const employmentRows = live(
 			yield* db.employments.findMany({
 				where: { company_id: { eq: companyId }, ...approved },
-				with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 				limit: PAGE_LIMIT
 			})
 		).map(resolveEmployment);
@@ -333,23 +332,12 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			window,
 			complianceSpan
 		});
-		const [employeeRows, childRows] = yield* Effect.all(
-			[
-				db.employees.findMany({
-					where: { id: { in: employeeIds }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.employee_children.findMany({
-					where: { employment_id: { in: employmentIds } },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const employeeRows = yield* db.employees.findMany({
+			where: { id: { in: employeeIds }, ...approved },
+			limit: PAGE_LIMIT
+		});
 		options.api.reads.assertComplete(employeeRows, 'employees');
-		options.api.reads.assertComplete(childRows, 'child facts');
 		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
-		const childrenByEmployment = groupBy(live(childRows), (row) => row.employment_id);
 
 		const bundles: EmploymentBundle[] = [];
 		for (const employment of employments) {
@@ -384,7 +372,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 							)
 						}
 					: {}),
-				children: childrenByEmployment.get(employment.id) ?? [],
+				children: employment.children,
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
 				leave: leaveByEmployment.get(employment.id)!,

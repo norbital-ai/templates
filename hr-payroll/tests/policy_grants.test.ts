@@ -561,13 +561,6 @@ test('no human policy may author the system-only statutory predecessor instructi
 	}
 });
 
-test('every policy that may create leave can read employee_children, or preview becomes an access denial', () => {
-	for (const policy of policies) {
-		if (!may(policy, 'leave_entries', 'mutate.new')) continue;
-		assert.equal(may(policy, 'employee_children', 'read'), true, nameOf(policy));
-	}
-});
-
 test('a rank whose app shows captures reads the settlement ledger masked to the claim', () => {
 	// The hooks that refuse a settled record read the ledger as the workspace, so no policy holds a
 	// grant for their sake. The grants below exist for the apps: My attendance and My leave mark a

@@ -166,13 +166,13 @@ test('a catalogue can allow unlimited leave by gender and jurisdiction residency
 test('effective child facts open computed eligibility on the relevant date without emitting leave', () => {
 	const context = leaveContext();
 	context.catalogues[0]!.eligibility = 'children.under(7) > 0';
-	context.children.push({
-		id: id(30),
-		employment_id: id(1),
-		child_birthdate: '2026-07-10',
-		supersedes_id: null,
-		effective_range: { start: '2026-07-10', end: null }
-	});
+	context.employments[0]!.children = [
+		{
+			child_birthdate: '2026-07-10',
+			relationship: 'CHILD',
+			effective_range: { start: '2026-07-10', end: null }
+		}
+	];
 	const rules = leaveRules(context, id(1), id(7));
 	assert.equal(rules.eligibleOn('2026-07-09'), false);
 	assert.equal(rules.eligibleOn('2026-07-10'), true);

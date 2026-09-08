@@ -11,9 +11,8 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
 test('an ended contract recovers its due loan from later manual payments without reviving salary', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
-	world.employments[0]!.employment_departure = [
-		{ exit_date: '2026-01-20', exit_reason: 'RESIGNATION' }
-	];
+	world.employments[0]!.exit_date = '2026-01-20';
+	world.employments[0]!.exit_reason = 'RESIGNATION';
 	world.allowance_requests.length = 0;
 	const firstPayment = world.payment_requests[0]!;
 	firstPayment.effective_on = '2026-02-05';
