@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "9b9f0bc4-9d87-4962-80c5-e0a5e535c9e8",
+  "id": "38e536f2-8961-48b2-a75f-5cb5c2afc043",
   "prevIds": [
-    "77e0295b-ba08-4cd1-b434-3351c18ade6c"
+    "50f89f30-d202-40b3-a025-73f7501a80e2"
   ],
   "version": "8",
   "ddl": [
@@ -75,12 +75,6 @@
     {
       "isRlsEnabled": false,
       "name": "jurisdiction_holiday_calendars",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "jurisdiction_holiday_sources",
       "entityType": "tables",
       "schema": "public"
     },
@@ -2756,136 +2750,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "jurisdiction_code",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "calendar_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "time_zone",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "true",
-      "generated": null,
-      "identity": null,
-      "name": "enabled",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "jurisdiction_settings"
     },
     {
@@ -3108,6 +2972,19 @@
       "generated": null,
       "identity": null,
       "name": "research_notes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_settings"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "holiday_source",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_settings"
@@ -8103,27 +7980,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "jurisdiction_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "jurisdiction_holiday_sources_jurisdiction_code_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "code",
           "isExpression": false,
           "asc": true,
@@ -10734,16 +10590,6 @@
       "name": "jurisdiction_holiday_calendars_pkey",
       "schema": "public",
       "table": "jurisdiction_holiday_calendars",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "jurisdiction_holiday_sources_pkey",
-      "schema": "public",
-      "table": "jurisdiction_holiday_sources",
       "entityType": "pks"
     },
     {

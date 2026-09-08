@@ -6,7 +6,11 @@ import {
 } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
 import { calendarDateInTimeZone } from '../lib/iso-day.js';
-import { mergeHolidayImport, readGoogleHolidayYear } from '../lib/holiday-import.js';
+import {
+	holidaySources,
+	mergeHolidayImport,
+	readGoogleHolidayYear
+} from '../lib/holiday-import.js';
 import { stableJson } from '../lib/jurisdiction_settings.js';
 
 const outcomeSchema = Schema.Struct({
@@ -22,17 +26,24 @@ export const runHolidayImport = (
 	options: { readonly jurisdiction_code?: string; readonly year?: number } = {}
 ) =>
 	Effect.gen(function* () {
-		const sources = yield* api.db.jurisdiction_holiday_sources.findMany({
+		const versions = yield* api.db.jurisdiction_settings.findMany({
 			where: {
 				...(options.jurisdiction_code == null
-					? { enabled: { eq: true } }
+					? {}
 					: { jurisdiction_code: { eq: options.jurisdiction_code } }),
 				approval_id: { isNull: true }
 			},
-			orderBy: { jurisdiction_code: 'asc' },
+			columns: {
+				jurisdiction_code: true,
+				sealed_at: true,
+				voided_at: true,
+				effective_range: true,
+				holiday_source: true
+			},
 			limit: 1_000
 		});
-		if (sources.length >= 1_000) refuse('Holiday import exceeded its jurisdiction read limit.');
+		if (versions.length >= 1_000) refuse('Holiday import exceeded its jurisdiction read limit.');
+		const sources = holidaySources(versions, options.jurisdiction_code);
 		if (options.jurisdiction_code != null && sources.length === 0)
 			refuse(
 				`Configure a Google holiday source for ${options.jurisdiction_code} before importing.`

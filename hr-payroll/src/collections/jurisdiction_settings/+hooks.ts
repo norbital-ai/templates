@@ -7,6 +7,8 @@ import type { Hooks, WorkspaceRow } from './$types.js';
 
 /** The two columns a sealed version may still take: the void, once. */
 const VOID_COLUMNS = ['voided_at', 'void_reason'] as const;
+/** Operational configuration, not law: the holiday source may change under a sealed version. */
+const OPERATIONAL = ['holiday_source'] as const;
 /** Columns the runtime carries on every write and no rule reads. */
 const CARRIED = ['id', 'row_version'] as const;
 
@@ -58,6 +60,7 @@ export default {
 							for (const column of Object.keys(input)) {
 								if ((CARRIED as readonly string[]).includes(column)) continue;
 								if ((VOID_COLUMNS as readonly string[]).includes(column)) continue;
+								if ((OPERATIONAL as readonly string[]).includes(column)) continue;
 								if (
 									stableJson(input[column as keyof typeof input]) ===
 									stableJson(existing[column as keyof typeof existing])

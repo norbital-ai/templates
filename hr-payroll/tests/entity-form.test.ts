@@ -73,6 +73,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'code',
 		'currency',
 		'effective_range',
+		'holiday_source',
 		'jurisdiction_code',
 		'name',
 		'research_notes',
@@ -87,7 +88,8 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'voided_at',
 		'void_reason',
 		'cloned_from_id',
-		'research_notes'
+		'research_notes',
+		'holiday_source'
 	])
 		assert.match(form, new RegExp(`<Field name="${hidden}" hidden />`), `${hidden} is hidden`);
 	assert.match(form, /disabled=\{sealed\}/, 'a sealed version renders read-only');
@@ -124,13 +126,16 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		assert.deepEqual(registrations(snippet(settings, tab!)), [], tab);
 		assert.match(snippet(settings, tab!), new RegExp(`catalogueTable\\(\\s*'${collection}'`));
 	}
-	assert.match(
-		snippet(settings, 'holidays'),
-		/<HolidaySettings jurisdictionCode=\{selectedVersion\.jurisdiction_code\}/
-	);
+	assert.match(snippet(settings, 'holidays'), /<HolidaySettings version=\{selectedVersion\}/);
 	const holidays = source('../src/lib/ui/holiday-settings.svelte');
-	for (const tab of ['calendars', 'sources'])
-		assert.deepEqual(registrations(snippet(holidays, tab)), ['CollectionTable'], tab);
+	assert.deepEqual(registrations(snippet(holidays, 'calendars')), ['CollectionTable']);
+	// The source is the version's own column, so its tab is a form over the version, not a query.
+	assert.deepEqual(registrations(snippet(holidays, 'sources')), []);
+	// One-column write, like the seal: a whole-row form would carry sealed_at into approval.
+	assert.match(
+		snippet(holidays, 'sources'),
+		/client\.db\.jurisdiction_settings\.mutate\(\[\{ id: version\.id, holiday_source: sourceDraft \}\]\)/
+	);
 	assert.match(snippet(holidays, 'calendars'), /jurisdiction_code: \{ eq: jurisdictionCode \}/);
 	assert.deepEqual(
 		registrations(snippet(settings, 'payroll')),

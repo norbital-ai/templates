@@ -46,6 +46,7 @@
 				<Field name="void_reason" hidden />
 				<Field name="cloned_from_id" hidden />
 				<Field name="research_notes" hidden />
+				<Field name="holiday_source" hidden />
 				<Stack gap="lg">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">

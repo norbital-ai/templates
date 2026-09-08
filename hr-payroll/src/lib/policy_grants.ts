@@ -311,9 +311,22 @@ const settingsSealApproval = {
 	superceded_by: [SENIOR_MANAGEMENT_TEAM]
 } as const;
 
-/** A write that leaves the version a draft: the controller's whole authority over the root. */
-const draftOnly = ({ record }: { readonly record: { sealed_at?: unknown; voided_at?: unknown } }) =>
-	Effect.succeed(record.sealed_at == null && record.voided_at == null);
+/**
+ * A write that leaves the version a draft: the controller's whole authority over the root. The one
+ * exception is the holiday source, operational configuration a controller may set under a seal.
+ */
+const draftOnly = ({
+	record,
+	changes
+}: {
+	readonly record: { sealed_at?: unknown; voided_at?: unknown };
+	readonly changes?: Readonly<Record<string, unknown>>;
+}) =>
+	Effect.succeed(
+		(record.sealed_at == null && record.voided_at == null) ||
+			(changes != null &&
+				Object.keys(changes).every((key) => ['id', 'row_version', 'holiday_source'].includes(key)))
+	);
 
 /**
  * The jurisdiction settings root, in two authorities.
@@ -356,8 +369,7 @@ export const settingsCatalogueGrants = (
 		grantsOn('allowance_catalogue', actions),
 		grantsOn('payment_catalogue', actions),
 		grantsOn('loan_catalogue', actions),
-		grantsOn('jurisdiction_holiday_calendars', actions),
-		grantsOn('jurisdiction_holiday_sources', actions)
+		grantsOn('jurisdiction_holiday_calendars', actions)
 	);
 };
 

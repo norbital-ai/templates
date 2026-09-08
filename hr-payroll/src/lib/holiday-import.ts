@@ -15,6 +15,52 @@ type HolidaySource = {
 	readonly time_zone: string;
 };
 
+type SourceVersion = {
+	readonly jurisdiction_code: string;
+	readonly sealed_at: string | null;
+	readonly voided_at: string | null;
+	readonly effective_range: unknown;
+	readonly holiday_source: {
+		readonly calendar_id: string;
+		readonly time_zone: string;
+		readonly enabled: boolean;
+	} | null;
+};
+
+/**
+ * One Google source per jurisdiction, read off its settings versions: the sealed, unvoided version
+ * with the latest start wins, then the latest draft. A named jurisdiction is imported whether or
+ * not its source is enabled; the yearly job takes only enabled ones.
+ */
+export function holidaySources(
+	versions: readonly SourceVersion[],
+	jurisdictionCode?: string
+): HolidaySource[] {
+	const start = (row: SourceVersion) =>
+		String((row.effective_range as { start?: unknown } | null)?.start ?? '');
+	const rank = (row: SourceVersion) =>
+		`${row.sealed_at != null && row.voided_at == null ? 1 : 0}:${start(row)}`;
+	const byJurisdiction = new Map<string, SourceVersion>();
+	for (const row of versions) {
+		if (row.holiday_source == null) continue;
+		if (
+			jurisdictionCode == null
+				? !row.holiday_source.enabled
+				: row.jurisdiction_code !== jurisdictionCode
+		)
+			continue;
+		const held = byJurisdiction.get(row.jurisdiction_code);
+		if (held == null || rank(row) > rank(held)) byJurisdiction.set(row.jurisdiction_code, row);
+	}
+	return [...byJurisdiction.values()]
+		.toSorted((a, b) => a.jurisdiction_code.localeCompare(b.jurisdiction_code))
+		.map((row) => ({
+			jurisdiction_code: row.jurisdiction_code,
+			calendar_id: row.holiday_source!.calendar_id,
+			time_zone: row.holiday_source!.time_zone
+		}));
+}
+
 export function validateHolidaySource(source: HolidaySource): void {
 	if (
 		!source.jurisdiction_code.trim() ||

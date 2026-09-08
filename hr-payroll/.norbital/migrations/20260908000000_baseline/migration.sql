@@ -246,20 +246,6 @@ CREATE TABLE "jurisdiction_holiday_calendars" (
 );
 
 --> statement-breakpoint
-CREATE TABLE "jurisdiction_holiday_sources" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"jurisdiction_code" text NOT NULL,
-	"calendar_id" text NOT NULL,
-	"time_zone" text NOT NULL,
-	"enabled" boolean DEFAULT true NOT NULL
-);
-
---> statement-breakpoint
 CREATE TABLE "jurisdiction_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -279,6 +265,7 @@ CREATE TABLE "jurisdiction_settings" (
 	"tax_year_start_month" integer NOT NULL,
 	"research_urls" text[],
 	"research_notes" jsonb,
+	"holiday_source" jsonb,
 	"effective_range" jsonb NOT NULL
 );
 
@@ -750,8 +737,6 @@ CREATE UNIQUE INDEX "holiday_calendar_inputs_payroll_run_id_jurisdiction_code_da
 CREATE UNIQUE INDEX "holiday_calendar_inputs_leave_entry_id_jurisdiction_code_date_index" ON "holiday_calendar_inputs" ("leave_entry_id","jurisdiction_code","date");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "jurisdiction_holiday_calendars_jurisdiction_code_year_revision_index" ON "jurisdiction_holiday_calendars" ("jurisdiction_code","year","revision");
---> statement-breakpoint
-CREATE UNIQUE INDEX "jurisdiction_holiday_sources_jurisdiction_code_index" ON "jurisdiction_holiday_sources" ("jurisdiction_code");
 --> statement-breakpoint
 CREATE INDEX "jurisdiction_settings_code_sealed_at_index" ON "jurisdiction_settings" ("code","sealed_at");
 --> statement-breakpoint

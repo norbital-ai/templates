@@ -6,7 +6,7 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 35,
+		"collections": 34,
 		"apps": 12,
 		"automations": 2
 	},
@@ -26,8 +26,7 @@
 				"claim_catalogue",
 				"allowance_catalogue",
 				"payment_catalogue",
-				"jurisdiction_holiday_calendars",
-				"jurisdiction_holiday_sources"
+				"jurisdiction_holiday_calendars"
 			],
 			["employees", "shift_definitions"],
 			["shift_patterns"],

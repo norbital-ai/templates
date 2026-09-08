@@ -66,7 +66,6 @@ export default {
 		grantsOn('work_catalogue', ['read']),
 		grantsOn('leave_catalogue', ['read']),
 		grantsOn('jurisdiction_holiday_calendars', ['read']),
-		grantsOn('jurisdiction_holiday_sources', ['read']),
 		statutoryGrants('read'),
 		peopleGrants('read'),
 		leaveCalendarGrants(),

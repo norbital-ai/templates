@@ -286,7 +286,7 @@
 
 {#snippet holidays()}
 	{#if selectedVersion}
-		<HolidaySettings jurisdictionCode={selectedVersion.jurisdiction_code} />
+		<HolidaySettings version={selectedVersion} />
 	{/if}
 {/snippet}
 

@@ -67,8 +67,10 @@ entries that cite it. A wrong version can be voided through its supported path; 
 notes and retrieval evidence. It cannot seal its proposal or edit sealed rules. Unreachable sources
 remain visible in the outcome; a failed retrieval is not evidence that the law is unchanged.
 
-Holidays have their own annual publication lifecycle. `jurisdiction_holiday_sources` configures a
-Google calendar identifier and time zone for a jurisdiction. `jurisdiction_holiday_calendars` stores
+Holidays have their own annual publication lifecycle. `jurisdiction_settings.holiday_source` names
+the Google calendar identifier and time zone of a jurisdiction; it is operational configuration,
+editable under a sealed version, and the import reads it off the version in force.
+`jurisdiction_holiday_calendars` stores
 a year, revision, observed dates, provenance and import review. Holiday publication does not require
 a new catalogue version. Company closures remain schedule decisions and receive no public-holiday
 classification merely because the company is closed.
