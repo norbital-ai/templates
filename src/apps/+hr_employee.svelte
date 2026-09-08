@@ -1034,90 +1034,89 @@
 	</Cover>
 {/snippet}
 
+{#snippet leaveChrome()}
+	<Stack gap="md">
+		{@render contextGate()}
+		{#if employmentId != null}
+			<section aria-labelledby="my-leave-balances-heading">
+				<Stack gap="sm">
+					<h3 id="my-leave-balances-heading" class="text-heading">
+						{t('app.hr_employee.leave_balances')}
+					</h3>
+					<p class="text-meta">
+						{t('app.hr_employee.leave_balances_description', {
+							date: formatCalendarDate(today)
+						})}
+					</p>
+					{#if leaveBalancesQuery?.error}
+						<Alert variant="destructive"
+							><AlertDescription>{leaveBalancesQuery.error.message}</AlertDescription></Alert
+						>
+					{:else if leaveBalancesQuery?.loading && leaveBalancesQuery.current == null}
+						<p class="text-meta">{t('leave.loading_balances')}</p>
+					{:else if leaveBalanceRows.length === 0}
+						<p class="text-meta">{t('app.hr_employee.leave_balances_empty')}</p>
+					{:else}
+						{#each leaveBalanceRows as balance (balance.catalogue_id)}
+							<Stack gap="sm" class="border-t py-3">
+								<p class="text-sm font-medium">{balance.name} · {balance.code}</p>
+								<p class="text-meta">
+									{formatCalendarDate(balance.window.start)} → {formatCalendarDate(
+										balance.window.end
+									)}
+								</p>
+								<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+									{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
+										<div>
+											<dt class="text-meta">{item.label}</dt>
+											<dd class="text-sm font-medium tabular-nums">
+												{item.value == null
+													? t('component.accrual_unlimited')
+													: formatNumeric(item.value)}
+											</dd>
+										</div>
+									{/each}
+								</dl>
+							</Stack>
+						{/each}
+					{/if}
+				</Stack>
+			</section>
+		{/if}
+	</Stack>
+{/snippet}
+
 {#snippet leave()}
-	<Bound size="full">
-		<Scroll name={t('app.hr_employee.tab_leave')}>
-			<Stack gap="md">
-				{@render contextGate()}
-				{#if employmentId != null}
-					<section aria-labelledby="my-leave-balances-heading">
-						<Stack gap="sm">
-							<h3 id="my-leave-balances-heading" class="text-heading">
-								{t('app.hr_employee.leave_balances')}
-							</h3>
-							<p class="text-meta">
-								{t('app.hr_employee.leave_balances_description', {
-									date: formatCalendarDate(today)
-								})}
-							</p>
-							{#if leaveBalancesQuery?.error}
-								<Alert variant="destructive"
-									><AlertDescription>{leaveBalancesQuery.error.message}</AlertDescription></Alert
-								>
-							{:else if leaveBalancesQuery?.loading && leaveBalancesQuery.current == null}
-								<p class="text-meta">{t('leave.loading_balances')}</p>
-							{:else if leaveBalanceRows.length === 0}
-								<p class="text-meta">{t('app.hr_employee.leave_balances_empty')}</p>
-							{:else}
-								{#each leaveBalanceRows as balance (balance.catalogue_id)}
-									<Stack gap="sm" class="border-t py-3">
-										<p class="text-sm font-medium">{balance.name} · {balance.code}</p>
-										<p class="text-meta">
-											{formatCalendarDate(balance.window.start)} → {formatCalendarDate(
-												balance.window.end
-											)}
-										</p>
-										<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-											{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
-												<div>
-													<dt class="text-meta">{item.label}</dt>
-													<dd class="text-sm font-medium tabular-nums">
-														{item.value == null
-															? t('component.accrual_unlimited')
-															: formatNumeric(item.value)}
-													</dd>
-												</div>
-											{/each}
-										</dl>
-									</Stack>
-								{/each}
-							{/if}
-						</Stack>
-					</section>
-				{/if}
-				<CollectionTable
-					{client}
-					collection="leave_entries"
-					bounded={false}
-					title={t('app.hr_employee.my_leave_title')}
-					description={t('app.hr_employee.my_leave_description')}
-					disabled={!employmentId}
-					recordMetadata={() => [
-						{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
-					]}
-					query={{
-						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { effective_on: 'desc' },
-						with: { payslip_leave_input_leave_entry: { columns: { period: true } } }
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
-						<Column name="event" label={t('leave.activity')} card="title" />
-						<Column name="reference" label={t('component.reference')} />
-						<Column name="days" label={t('component.days')} />
-					{/snippet}
-				</CollectionTable>
-			</Stack>
-		</Scroll>
-	</Bound>
+	<Cover gap="md" top={leaveChrome}>
+		<CollectionTable
+			{client}
+			collection="leave_entries"
+			title={t('app.hr_employee.my_leave_title')}
+			description={t('app.hr_employee.my_leave_description')}
+			disabled={!employmentId}
+			recordMetadata={() => [
+				{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+			]}
+			query={{
+				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+				orderBy: { effective_on: 'desc' },
+				with: { payslip_leave_input_leave_entry: { columns: { period: true } } }
+			}}
+		>
+			{#snippet columns({ Column })}
+				<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
+				<Column name="event" label={t('leave.activity')} card="title" />
+				<Column name="reference" label={t('component.reference')} />
+				<Column name="days" label={t('component.days')} />
+			{/snippet}
+		</CollectionTable>
+	</Cover>
 {/snippet}
 
 {#snippet myClaims()}
 	<CollectionTable
 		{client}
 		collection="claim_requests"
-		bounded={false}
 		view="hr_employee:claims"
 		title={t('app.hr_employee.my_claims_title')}
 		description={t('app.hr_employee.my_claims_description')}
@@ -1144,7 +1143,6 @@
 	<CollectionTable
 		{client}
 		collection="allowance_requests"
-		bounded={false}
 		features={{ create: false }}
 		view="hr_employee:allowances"
 		title={t('app.hr_employee.my_allowances_title')}
@@ -1177,7 +1175,6 @@
 	<CollectionTable
 		{client}
 		collection="payment_requests"
-		bounded={false}
 		features={{ create: false }}
 		view="hr_employee:payments"
 		title={t('app.hr_employee.my_payments_title')}
@@ -1200,15 +1197,11 @@
 	</CollectionTable>
 {/snippet}
 
+<!-- The panel never scrolls: the gate is the chrome of a `Cover`, the table is its body and scrolls. -->
 {#snippet eventTable(content: import('svelte').Snippet)}
-	<Bound size="full"
-		><Scroll name={t('app.hr_employee.tab_events')}
-			><Stack gap="md">
-				{@render contextGate()}
-				{@render content()}
-			</Stack></Scroll
-		></Bound
-	>
+	<Cover gap="md" top={contextGate}>
+		{@render content()}
+	</Cover>
 {/snippet}
 
 {#snippet claimEvents()}{@render eventTable(myClaims)}{/snippet}

@@ -8,7 +8,7 @@
 
 ## 心智模型
 
-薪资通过 Work、Leave、Claim、Allowance、Payment、Loan 与 Contribution 七个业务族准备输入并计算结果。每个族拥有自己的目录、业务记录和计算；目录中的规则就是政策。薪资核心组合标准结果、结算并原子保存工资单与来源捕获，不直接处理兑现或结转等具体类别。
+薪资通过 Work、Leave、Claim、Allowance、Adhoc、Loan 与 Contribution 七个业务族准备输入并计算结果。每个族拥有自己的目录、业务记录和计算；目录中的规则就是政策。薪资核心组合标准结果、结算并原子保存工资单与来源捕获，不直接处理兑现或结转等具体类别。
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
     Holidays[已发布的辖区年度假日日历] --> Work[Work：排班与考勤]
     Work --> Prepare
     Leave[Leave：手工记录与计算所得额度] --> Prepare
-    Money[Claim、Allowance、Payment 与 Loan] --> Prepare
+    Money[Claim、Allowance、Adhoc 与 Loan] --> Prepare
     Prepare --> Calculate[各族计算结果]
     Calculate --> Contribution[Contribution：合并适用的缴款评估]
     Contribution --> Settle[结算毛额与净额]

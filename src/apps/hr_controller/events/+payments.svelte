@@ -40,7 +40,7 @@
 
 <AppShell
 	icon="lucide:wallet"
-	title="Payments"
+	title="Adhoc"
 	description="Entered one-off earnings, deductions and corrections against employment contracts"
 	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
 >

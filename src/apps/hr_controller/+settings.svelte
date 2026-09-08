@@ -16,11 +16,11 @@
 	 * burying Payroll rules and Holidays among them; a second grouping level under Catalogues would
 	 * have been a level to explain.
 	 *
-	 * Layout is one `AppShell` (variant `full`) with a single page `Scroll`: a sticky tab strip
-	 * scrolls with the content. Tab panels are natural height — the payroll form flows inside the
-	 * page scrollport and each catalogue table is a bounded `CollectionTable` owning its own rows —
-	 * so a tab owns exactly one vertical scrollport and wheel events never die inside a clipped
-	 * panel or over chrome.
+	 * Layout is one `AppShell` (variant `full`) and no page scroll: a tab panel never scrolls, the
+	 * thing inside it does. The payroll form owns a `Scroll` of its own; every catalogue table is a
+	 * bounded `CollectionTable` owning its rows; the holidays tab does the same one level down. So a
+	 * tab owns exactly one vertical scrollport and wheel events never die inside a clipped panel or
+	 * over chrome.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
@@ -30,7 +30,7 @@
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, INSET_MX_CLASS, Inline, Scroll } from '@norbital-ai/ui/layout';
+	import { Bound, Inline, Scroll } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
@@ -84,7 +84,9 @@
 
 {#snippet payroll()}
 	{#if selectedVersion}
-		<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
+		<Scroll name={t('app.settings.general')}>
+			<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
+		</Scroll>
 	{/if}
 {/snippet}
 
@@ -229,14 +231,11 @@
 {/snippet}
 
 {#snippet catalogues()}
-	<!--
-		The inner strip is not sticky and adds no scrollport of its own: the page already owns one,
-		and a second sticky bar under the first is two rows of chrome the content slides behind.
-	-->
+	<!-- Seven catalogues down the left, one table on the right; the table scrolls, the rail does not. -->
 	<Tabs
 		animate={false}
-		layout="responsive"
-		class="h-auto"
+		layout="vertical"
+		variant="underline"
 		config={[
 			{
 				name: 'contribution_catalogue',
@@ -351,44 +350,29 @@
 			</p>
 		</Bound>
 	{:else}
-		<!--
-			One page scrollport for the whole lineage view: the tab strip scrolls with the
-			content and sticks to the top. Tab panels are natural
-			height — the payroll form's own scroll region stays inert in flow and the
-			catalogue tables keep their bounded row scrolls — so a tab owns exactly one
-			vertical scrollport and the wheel never dies over chrome or inside a nested
-			region. Inset parity with the hero comes from the strip's INSET_MX and the
-			panels' own padding; no content adds its own.
-			No edge fade: the mask would wash out the sticky strip as content slides
-			under it; the stable scrollbar gutter marks the scrollport instead.
-		-->
-		<Scroll name={t('app.settings.header_title')} layout="stack" gap="md" fade={false}>
-			<Tabs
-				animate={false}
-				layout="responsive"
-				class="h-auto"
-				listClass={`sticky top-0 z-10 ${INSET_MX_CLASS} w-auto`}
-				config={[
-					{
-						name: 'general',
-						label: t('app.settings.general'),
-						icon: 'lucide:scale',
-						content: payroll
-					},
-					{
-						name: 'catalog',
-						label: t('app.settings.catalogues'),
-						icon: 'lucide:library',
-						content: catalogues
-					},
-					{
-						name: 'holidays',
-						label: t('app.settings.holidays'),
-						icon: 'lucide:calendar-x',
-						content: holidays
-					}
-				] satisfies TabConfig[]}
-			/>
-		</Scroll>
+		<Tabs
+			animate={false}
+			layout="responsive"
+			config={[
+				{
+					name: 'general',
+					label: t('app.settings.general'),
+					icon: 'lucide:scale',
+					content: payroll
+				},
+				{
+					name: 'catalog',
+					label: t('app.settings.catalogues'),
+					icon: 'lucide:library',
+					content: catalogues
+				},
+				{
+					name: 'holidays',
+					label: t('app.settings.holidays'),
+					icon: 'lucide:calendar-x',
+					content: holidays
+				}
+			] satisfies TabConfig[]}
+		/>
 	{/if}
 </AppShell>
