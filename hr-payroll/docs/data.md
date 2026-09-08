@@ -40,10 +40,11 @@ retired collections or invent missing business facts. Optional reconciliation fi
 when their fixture stage is explicitly selected.
 
 An incomplete source migration records its unresolved originals and a
-`source_review/migration-blockers.json` file in the configured source bundle. The host refuses the
-seed before any database operation while that file contains blockers. Collection filters and
-schema-drift overrides cannot turn an incomplete history into a usable seed. Review files preserve
-evidence; they are not workspace collections or permission to omit approved activity.
+`source_review/migration-blockers.json` file in the configured source bundle. The host seeds what
+the bank holds and prints every blocker group in its provisioning output, so the review debt is
+visible on every reset rather than a gate in front of the workspace (owner direction,
+2026-09-09). Nothing is invented for a blocked group: the rows that exist are true, and the review
+files preserve the evidence still owed. They are not workspace collections.
 
 ## Contract and family scope
 
