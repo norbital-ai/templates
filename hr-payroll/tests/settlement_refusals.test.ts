@@ -8,9 +8,7 @@ import {
 	entryOverConsumedMessage,
 	overConsumesEntry,
 	overRecoversRepayment,
-	repaymentOverRecoveredMessage,
-	entryAlreadyCapturedMessage,
-	ENTRY_ALREADY_CAPTURED
+	repaymentOverRecoveredMessage
 } from '../src/lib/settlement_refusals.js';
 
 /**
@@ -71,11 +69,4 @@ test('the repayment refusal names the due date and the overrun', () => {
 	const message = repaymentOverRecoveredMessage(repaymentConsumption(60, 41));
 	assert.match(message, new RegExp(REPAYMENT_OVER_RECOVERED));
 	assert.match(message, /due 2026-03/);
-});
-
-test('the capture refusal tells the person a one-off settles once', () => {
-	const message = entryAlreadyCapturedMessage({ capturedBy: '2026-02', period: '2026-03' });
-	assert.match(message, new RegExp(ENTRY_ALREADY_CAPTURED));
-	assert.match(message, /2026-02/);
-	assert.match(message, /new component entry/);
 });

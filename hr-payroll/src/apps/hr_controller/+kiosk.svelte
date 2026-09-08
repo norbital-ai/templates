@@ -4,6 +4,7 @@
 	import type Human from '@vladmandic/human';
 	import { workspaceSession } from '@norbital-ai/bolt/client';
 	import { Button } from '@norbital-ai/ui/button';
+	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { LocaleToggle } from '@norbital-ai/ui/locale-toggle';
 	import { Bound, Cover, Stack } from '@norbital-ai/ui/layout';
@@ -14,32 +15,39 @@
 	import {
 		createAnalyseCanvas,
 		drawVideoFrame,
-		largestFace,
 		missingFaceModels,
 		showStream,
+		unpaddedFaceBox,
 		warmFaceEngine
 	} from '../../lib/kiosk/face.js';
 	import {
 		KIOSK_CAPTURE_HEIGHT,
 		KIOSK_CAPTURE_WIDTH,
-		KIOSK_CONFIRMATION_SECONDS,
-		KIOSK_LOOP_MS,
-		KIOSK_MATCH_THRESHOLD,
-		KIOSK_LIVE_MIN,
-		KIOSK_REAL_MIN
+		KIOSK_LOOP_MS
 	} from '../../lib/kiosk/config.js';
+	import { KIOSK_MATCH_THRESHOLD } from '../../lib/kiosk/embed.js';
 	import { readKioskSettings, writeKioskSettings } from '../../lib/kiosk/settings.js';
 	import { browserNarratorPlatform, createKioskNarrator } from '../../lib/kiosk/voice.js';
 	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../lib/kiosk/phrases.js';
 	import { blockedPhraseKey } from '../../lib/kiosk/punch.js';
-	import { silhouetteGeometry, type FrameSize } from '../../lib/kiosk/silhouette.js';
+	import {
+		faceInsideSilhouette,
+		silhouetteGeometry,
+		type FrameSize
+	} from '../../lib/kiosk/silhouette.js';
+	import { loadAntiSpoof, scoreAntiSpoof } from '../../lib/kiosk/anti-spoof.js';
+	import {
+		observeKioskHold,
+		kioskSecondsLeft,
+		sameKioskPerson,
+		type KioskHold
+	} from '../../lib/kiosk/hold.js';
 
 	type Tab = 'scan' | 'manual';
 	type Direction = 'in' | 'out';
 	type Phase =
 		| 'boot'
 		| 'scan'
-		| 'matching'
 		| 'challenge'
 		| 'working'
 		| 'done'
@@ -50,7 +58,7 @@
 		| 'error';
 	type StatusTone = 'neutral' | 'success' | 'warning' | 'error';
 	/** What the loop tells a person it can see but cannot read, or cannot see at all. */
-	type Hint = 'move_closer' | 'no_face';
+	type Hint = 'move_closer' | 'no_face' | 'live_face_required';
 
 	type Candidate = Readonly<{
 		employeeName: string;
@@ -84,6 +92,8 @@
 	const settings = readKioskSettings();
 
 	let tab = $state<Tab>('scan');
+	let selectedCompanyId = $state<string | null>(null);
+	let manualWorking = $state(false);
 	let phase = $state<Phase>('boot');
 	let fatal = $state<string | null>(null);
 	/** The enabled face models the engine failed to load; non-empty is the `unavailable` phase. */
@@ -92,7 +102,8 @@
 	let punch = $state<PunchResult | null>(null);
 	let notice = $state<KioskStatus | null>(null);
 	let hint = $state<Hint | null>(null);
-	let challengeLeft = $state(0);
+	let hold = $state.raw<KioskHold | null>(null);
+	const challengeLeft = $derived(hold === null ? 0 : kioskSecondsLeft(hold));
 	let voiceEnabled = $state(settings.voiceEnabled);
 	let now = $state(new Date());
 	let organizationName = $state('');
@@ -104,13 +115,17 @@
 	let videoNode: HTMLVideoElement | null = null;
 	let stream: MediaStream | null = null;
 	let human: Human | null = null;
+	let antiSpoof: Awaited<ReturnType<typeof loadAntiSpoof>> | null = null;
+	let cropCanvas: HTMLCanvasElement | null = null;
 	let analyseCanvas: HTMLCanvasElement | null = null;
 	let loopTimer: ReturnType<typeof setInterval> | null = null;
 	let clockTimer: ReturnType<typeof setInterval> | null = null;
 	let resetTimer: ReturnType<typeof setTimeout> | null = null;
 	let inFlight = false;
-	let challengeDeadline = 0;
-	let lastFaceSeenAt = 0;
+	let lastFrameTime = -1;
+	let scanSession = {};
+	let completedProbe: readonly number[] | null = null;
+	let disposed = false;
 	/**
 	 * Everything the kiosk says goes through here: pre-generated clips, one phrase at a time, never
 	 * two at once. Created at init so the voice toggle and the locale effect below can reach it.
@@ -123,7 +138,6 @@
 	let absentSince = 0;
 	const spokenHints = new Set<Hint>();
 
-	const FACE_LOST_GRACE_MS = 700;
 	/** A face that stays in frame without an embedding this long is too small or unclear to read. */
 	const MOVE_CLOSER_AFTER_MS = 2000;
 	/** No face at all for this long. */
@@ -137,11 +151,19 @@
 	};
 
 	const companiesQuery = client.db.companies.findMany({
+		where: { approval_id: { isNull: true } },
 		columns: { id: true, name: true },
+		orderBy: { name: 'asc' },
 		limit: 200
 	});
 	const companyById = $derived(
 		new Map((companiesQuery.current ?? []).map((company) => [company.id, company.name]))
+	);
+	const companyId = $derived(
+		selectedCompanyId != null && companyById.has(selectedCompanyId) ? selectedCompanyId : null
+	);
+	const companyOptions = $derived(
+		(companiesQuery.current ?? []).map((company) => ({ value: company.id, label: company.name }))
 	);
 	const candidateCompany = $derived(
 		candidate === null
@@ -216,22 +238,36 @@
 	};
 
 	const hintStatus = (kind: Hint): KioskStatus =>
-		kind === 'move_closer'
+		kind === 'live_face_required'
 			? {
 					tone: 'warning',
-					icon: 'lucide:scan-face',
-					title: t('kiosk.move_closer'),
-					detail: t('kiosk.move_closer_detail')
+					icon: 'lucide:shield-alert',
+					title: t('kiosk.live_face_required'),
+					detail: t('kiosk.live_face_required_detail')
 				}
-			: {
-					tone: 'warning',
-					icon: 'lucide:user-round-search',
-					title: t('kiosk.no_face'),
-					detail: t('kiosk.no_face_detail')
-				};
+			: kind === 'move_closer'
+				? {
+						tone: 'warning',
+						icon: 'lucide:scan-face',
+						title: t('kiosk.move_closer'),
+						detail: t('kiosk.move_closer_detail')
+					}
+				: {
+						tone: 'warning',
+						icon: 'lucide:user-round-search',
+						title: t('kiosk.no_face'),
+						detail: t('kiosk.no_face_detail')
+					};
 
 	const status = $derived.by((): KioskStatus => {
 		if (notice !== null) return notice;
+		if (companyId == null)
+			return {
+				tone: 'neutral',
+				icon: 'lucide:building-2',
+				title: t('component.choose_legal_entity'),
+				detail: companiesQuery.error?.message ?? t('kiosk.choose_entity_before_punch')
+			};
 		if (tab === 'manual')
 			return {
 				tone: 'neutral',
@@ -260,11 +296,14 @@
 				title: t('kiosk.engine_unavailable'),
 				detail: t('kiosk.engine_unavailable_detail', { models: engineMissing.join(', ') })
 			};
-		if (phase === 'challenge' && candidate !== null)
+		if (phase === 'challenge')
 			return {
 				tone: 'neutral',
 				icon: 'lucide:scan-face',
-				title: t('kiosk.identity_confirmed', { name: candidate.employeeName }),
+				title:
+					candidate === null
+						? t('kiosk.reading_face')
+						: t('kiosk.identity_confirmed', { name: candidate.employeeName }),
 				detail: t('kiosk.countdown_detail', { seconds: challengeLeft })
 			};
 		if (phase === 'working')
@@ -273,13 +312,6 @@
 				icon: 'lucide:loader-circle',
 				title: t('kiosk.recording'),
 				detail: t('kiosk.recording_detail')
-			};
-		if (phase === 'matching')
-			return {
-				tone: 'neutral',
-				icon: 'lucide:scan-face',
-				title: t('kiosk.reading_face'),
-				detail: t('kiosk.reading_face_detail')
 			};
 		if (phase === 'done' && candidate !== null)
 			return {
@@ -373,6 +405,8 @@
 
 	const resumeScan = () => {
 		clearResetTimer();
+		scanSession = {};
+		hold = null;
 		candidate = null;
 		punch = null;
 		notice = null;
@@ -400,7 +434,7 @@
 		hint = kind;
 		if (spokenHints.has(kind)) return;
 		spokenHints.add(kind);
-		narrator.say(kind);
+		narrator.say(kind === 'live_face_required' ? 'enroll_straight' : kind);
 	};
 
 	const toggleVoice = () => {
@@ -411,6 +445,8 @@
 
 	const openTab = (next: Tab) => {
 		clearResetTimer();
+		scanSession = {};
+		hold = null;
 		tab = next;
 		candidate = null;
 		punch = null;
@@ -423,14 +459,13 @@
 		if (phase === 'boot' || phase === 'unavailable' || fatal !== null) return;
 		resumeScan();
 	};
-
-	/**
-	 * Whether this face reads as a living person rather than a print or a screen, from the two
-	 * independent Human graphs. Both must clear; they fail on different attacks, which is why there
-	 * are two. A face the engine could not score at all reads as not live, never as live by default.
-	 */
-	const isLiveFace = (face: { readonly real?: number; readonly live?: number }): boolean =>
-		(face.real ?? 0) >= KIOSK_REAL_MIN && (face.live ?? 0) >= KIOSK_LIVE_MIN;
+	const selectCompany = (id: string | null) => {
+		if (phase === 'working' || manualWorking) return;
+		selectedCompanyId = id;
+		completedProbe = null;
+		narrator.stop();
+		openTab(tab);
+	};
 
 	/**
 	 * Camera, then engine, then the gate: every enabled model must have loaded before the loop may
@@ -444,9 +479,24 @@
 		engineMissing = [];
 		try {
 			await startCamera();
-			human = await warmFaceEngine();
+			if (disposed) {
+				stopCamera();
+				return;
+			}
+			const [engine, spoof] = await Promise.allSettled([warmFaceEngine(false), loadAntiSpoof()]);
+			if (engine.status === 'fulfilled') human = engine.value;
+			if (spoof.status === 'fulfilled') antiSpoof = spoof.value;
+			if (disposed) {
+				human?.reset();
+				await antiSpoof?.release();
+				return;
+			}
+			if (engine.status === 'rejected') throw engine.reason;
 			analyseCanvas = createAnalyseCanvas();
-			engineMissing = missingFaceModels(human);
+			cropCanvas = document.createElement('canvas');
+			cropCanvas.width = cropCanvas.height = 80;
+			engineMissing = missingFaceModels(engine.value);
+			if (spoof.status === 'rejected') engineMissing.push('MiniFASNet');
 			phase = engineMissing.length > 0 ? 'unavailable' : 'scan';
 			if (phase === 'unavailable') narrator.say('engine_unavailable');
 		} catch (error) {
@@ -483,6 +533,7 @@
 		phrase: KioskPhraseKey | null,
 		preserveIdentity = false
 	) => {
+		hold = null;
 		phase = 'rejected';
 		if (!preserveIdentity) candidate = null;
 		announce(next, phrase);
@@ -494,7 +545,7 @@
 	 * A direction-free punch has one way to be blocked — the debounce — so the three contradiction
 	 * phrases went with the question that produced them.
 	 */
-	const acceptPunch = (result: PunchCommandResult, matchedCandidate: Candidate) => {
+	const acceptPunch = (result: PunchCommandResult) => {
 		if (tab !== 'scan' || phase !== 'working') return;
 		punch = {
 			status: result.status,
@@ -505,6 +556,8 @@
 			plannedCode: 'plannedCode' in result ? String(result.plannedCode) : undefined
 		};
 		phase = result.status === 'blocked' ? 'blocked' : 'done';
+		completedProbe = hold?.probe ?? null;
+		hold = null;
 		narrator.say(
 			phase === 'blocked'
 				? blockedPhraseKey(punch.reason)
@@ -512,8 +565,6 @@
 					? 'checked_out'
 					: 'checked_in'
 		);
-		void matchedCandidate;
-		scheduleResume(5000);
 	};
 
 	const failPunch = (error: unknown) => {
@@ -530,21 +581,32 @@
 		);
 	};
 
-	const acceptMatch = (matched: MatchResult) => {
-		if (tab !== 'scan' || phase !== 'matching') return;
+	const acceptMatch = (
+		matched: MatchResult,
+		probe: readonly number[],
+		requestedCompanyId: string
+	) => {
+		if (
+			tab !== 'scan' ||
+			phase !== 'challenge' ||
+			hold?.probe !== probe ||
+			companyId !== requestedCompanyId
+		)
+			return;
 		if (matched.status === 'unenrolled') {
 			rejectFace(
 				{
 					tone: 'warning',
 					icon: 'lucide:badge-alert',
 					title: matched.employee.name,
-					detail: t('kiosk.no_active_employment')
+					detail: t('kiosk.no_active_contract_in_entity')
 				},
 				'no_active_employment'
 			);
 			return;
 		}
 		if (matched.status !== 'match') {
+			hold = null;
 			phase = 'unknown';
 			narrator.say('identity_unknown');
 			scheduleResume(5500);
@@ -556,97 +618,54 @@
 			employeeNumber: matched.employment.employee_number,
 			companyId: matched.employment.company_id
 		};
-		// The hold, and nothing asked of the person: standing there is the confirmation, and it is
-		// also what gives the two presentation-attack graphs a run of frames instead of one lucky
-		// one. Silent on purpose — the countdown in the silhouette is the whole instruction.
-		phase = 'challenge';
-		challengeDeadline = Date.now() + KIOSK_CONFIRMATION_SECONDS * 1000;
-		challengeLeft = KIOSK_CONFIRMATION_SECONDS;
-		lastFaceSeenAt = Date.now();
 	};
 
 	onMount(() => {
 		void boot();
 		void loadOrganizationBrand();
 		clockTimer = setInterval(() => (now = new Date()), 1000);
-		/**
-		 * The loop runs whenever the engine is ready and the tab is the clock. There is nothing to
-		 * choose first: a readable, live face is matched, held for the confirmation window, and
-		 * written — the clock decides whether that punch was the arrival or the departure.
-		 */
+		// Recognition runs during the live-face hold; only a fresh passing frame may submit it.
 		loopTimer = setInterval(async () => {
+			const activeCompanyId = companyId;
 			if (
+				activeCompanyId == null ||
 				tab !== 'scan' ||
 				human === null ||
+				antiSpoof === null ||
+				cropCanvas === null ||
 				analyseCanvas === null ||
 				videoNode === null ||
 				inFlight ||
-				(phase !== 'scan' && phase !== 'challenge') ||
-				!drawVideoFrame(videoNode, analyseCanvas)
+				videoNode.currentTime === lastFrameTime ||
+				(phase !== 'scan' && phase !== 'challenge' && phase !== 'done' && phase !== 'blocked') ||
+				!drawVideoFrame(videoNode, analyseCanvas, frame)
 			)
 				return;
+			lastFrameTime = videoNode.currentTime;
 			inFlight = true;
+			const activeSession = scanSession;
 			try {
+				const detectStart = performance.now();
 				const result = await human.detect(analyseCanvas);
-				const face = largestFace(result.face ?? []);
-				const present = face !== undefined;
-				const faceVisible = face !== undefined && face.embedding !== undefined;
-				const nowMs = Date.now();
-
-				if (phase === 'challenge') {
-					if (faceVisible) lastFaceSeenAt = nowMs;
-					if (nowMs - lastFaceSeenAt > FACE_LOST_GRACE_MS) {
-						rejectFace(
-							{
-								tone: 'warning',
-								icon: 'lucide:scan-face',
-								title: t('kiosk.face_lost'),
-								detail: t('kiosk.face_lost_detail')
-							},
-							'face_lost',
-							true
-						);
-						return;
-					}
-					// Every frame of the hold must read as live, not just the one that started it: a
-					// print swapped in front of a real face mid-countdown fails here.
-					if (faceVisible && !isLiveFace(face)) {
-						rejectFace(
-							{
-								tone: 'error',
-								icon: 'lucide:shield-alert',
-								title: t('kiosk.live_face_required'),
-								detail: t('kiosk.live_face_required_detail')
-							},
-							'live_face_required',
-							true
-						);
-						return;
-					}
-					challengeLeft = Math.max(0, Math.ceil((challengeDeadline - nowMs) / 1000));
-					if (faceVisible && nowMs >= challengeDeadline) {
-						const matchedCandidate = candidate;
-						if (matchedCandidate === null) return;
-						phase = 'working';
-						try {
-							const punchResult = await client.invoke.kiosk_punch({
-								employment_id: matchedCandidate.employmentId,
-								kind: 'FACE'
-							});
-							acceptPunch(punchResult, matchedCandidate);
-						} catch (error) {
-							failPunch(error);
-						}
-					}
+				if (
+					disposed ||
+					activeSession !== scanSession ||
+					(phase !== 'scan' && phase !== 'challenge' && phase !== 'done' && phase !== 'blocked')
+				)
 					return;
-				}
-
-				// Scanning: a face the engine cannot read (a box with no embedding: too small, turned
-				// away, or a description graph that never loaded) is "move closer" after two
-				// seconds; nobody at all is "no face detected" after five. Each is said once per
-				// attempt so the kiosk is never mute at a person.
-				if (!faceVisible) {
-					if (present) {
+				performance.clearMeasures('kiosk.face');
+				performance.measure('kiosk.face', { start: detectStart });
+				const faces = result.face
+					.map((face) => ({ ...face, box: unpaddedFaceBox(face.box) }))
+					.filter((face) => faceInsideSilhouette(face.box, analyseCanvas!, frame));
+				const face = faces.length === 1 ? faces[0] : undefined;
+				const nowMs = performance.now();
+				if (face?.embedding === undefined) {
+					completedProbe = null;
+					hold = null;
+					candidate = null;
+					phase = 'scan';
+					if (result.face.length > 0) {
 						absentSince = 0;
 						if (unreadableSince === 0) unreadableSince = nowMs;
 						else if (nowMs - unreadableSince >= MOVE_CLOSER_AFTER_MS) showHint('move_closer');
@@ -657,28 +676,87 @@
 					}
 					return;
 				}
+				// One arrival per visit to the outline. A new person can use it immediately.
+				if (completedProbe !== null && sameKioskPerson(completedProbe, face.embedding)) return;
+				completedProbe = null;
+				const scoreStart = performance.now();
+				const liveScore = await scoreAntiSpoof(antiSpoof, analyseCanvas, face.box, cropCanvas);
+				if (
+					disposed ||
+					activeSession !== scanSession ||
+					(phase !== 'scan' && phase !== 'challenge' && phase !== 'done' && phase !== 'blocked')
+				)
+					return;
+				performance.clearMeasures('kiosk.liveness');
+				performance.measure('kiosk.liveness', {
+					start: scoreStart,
+					detail: { score: liveScore, box: face.box }
+				});
+				const previousProbe = hold?.probe;
+				hold = observeKioskHold(hold, { embedding: face.embedding, liveScore }, performance.now());
+				if (hold === null) {
+					candidate = null;
+					phase = 'scan';
+					showHint('live_face_required');
+					return;
+				}
 				unreadableSince = 0;
 				absentSince = 0;
 				hint = null;
-				if (!isLiveFace(face)) {
-					rejectFace(
-						{
-							tone: 'error',
-							icon: 'lucide:shield-alert',
-							title: t('kiosk.live_face_required'),
-							detail: t('kiosk.live_face_required_detail')
-						},
-						'live_face_required'
-					);
-					return;
+				phase = 'challenge';
+				if (hold.probe !== previousProbe) {
+					candidate = null;
+					const probe = hold.probe;
+					const matchStart = performance.now();
+					void client.invoke
+						.kiosk_match({
+							company_id: activeCompanyId,
+							probe: [...probe],
+							threshold: KIOSK_MATCH_THRESHOLD
+						})
+						.then(
+							(matched) => {
+								performance.clearMeasures('kiosk.match');
+								performance.measure('kiosk.match', { start: matchStart });
+								if (activeSession === scanSession) acceptMatch(matched, probe, activeCompanyId);
+							},
+							(error: unknown) => {
+								if (hold?.probe !== probe || disposed) return;
+								rejectFace(
+									{
+										tone: 'error',
+										icon: 'lucide:triangle-alert',
+										title: t('kiosk.read_failed'),
+										detail: error instanceof Error ? error.message : String(error)
+									},
+									'try_again'
+								);
+							}
+						);
 				}
-				phase = 'matching';
-				const matched = await client.invoke.kiosk_match({
-					probe: face.embedding,
-					threshold: KIOSK_MATCH_THRESHOLD
-				});
-				acceptMatch(matched);
+				if (
+					candidate !== null &&
+					candidate.companyId === activeCompanyId &&
+					kioskSecondsLeft(hold) === 0
+				) {
+					phase = 'working';
+					const punchStart = performance.now();
+					performance.clearMeasures('kiosk.hold');
+					performance.measure('kiosk.hold', { start: hold.startedAt });
+					try {
+						const result = await client.invoke.kiosk_punch({
+							employment_id: candidate.employmentId,
+							kind: 'FACE'
+						});
+						performance.clearMeasures('kiosk.punch');
+						performance.measure('kiosk.punch', { start: punchStart });
+						if (!disposed && activeSession === scanSession) acceptPunch(result);
+					} catch (error) {
+						if (!disposed && activeSession === scanSession) failPunch(error);
+					}
+				}
 			} catch (error) {
+				if (disposed || activeSession !== scanSession) return;
 				rejectFace(
 					{
 						tone: 'error',
@@ -693,9 +771,13 @@
 			}
 		}, KIOSK_LOOP_MS);
 		return () => {
+			disposed = true;
+			scanSession = {};
+			hold = null;
 			stopTimers();
 			stopCamera();
 			human?.reset();
+			void antiSpoof?.release();
 			narrator.stop();
 		};
 	});
@@ -710,7 +792,7 @@
 
 {#snippet header()}
 	<header
-		class="flex min-h-16 items-center justify-between gap-4 border-b bg-card px-4 py-3 sm:px-6"
+		class="flex min-h-16 flex-wrap items-center justify-between gap-4 border-b bg-card px-4 py-3 sm:px-6"
 	>
 		<div class="flex min-w-0 items-center gap-3">
 			<div
@@ -730,6 +812,20 @@
 				<p class="truncate text-heading">{organizationDisplayName}</p>
 				<p class="text-meta">{t('kiosk.title')}</p>
 			</div>
+		</div>
+
+		<div data-kiosk-company>
+			<Combobox
+				options={companyOptions}
+				value={companyId}
+				onValueChange={selectCompany}
+				disabled={phase === 'working' || manualWorking || companiesQuery.loading}
+				allowClear={false}
+				ariaLabel={t('component.legal_entity')}
+				searchPlaceholder={t('component.search_companies')}
+				emptyPlaceholder={t('component.choose_legal_entity')}
+				class="w-64 max-w-full"
+			/>
 		</div>
 
 		<div class="hidden text-right sm:block">
@@ -1009,10 +1105,18 @@
 									</div>
 									<div>
 										<p class="text-base font-medium">
-											{hint !== null ? hintStatus(hint).title : t('kiosk.waiting_for_face')}
+											{companyId == null
+												? t('component.choose_legal_entity')
+												: hint !== null
+													? hintStatus(hint).title
+													: t('kiosk.waiting_for_face')}
 										</p>
 										<p class="mt-1 text-sm text-muted-foreground">
-											{hint !== null ? hintStatus(hint).detail : t('kiosk.waiting_for_face_hint')}
+											{companyId == null
+												? t('kiosk.choose_entity_before_punch')
+												: hint !== null
+													? hintStatus(hint).detail
+													: t('kiosk.waiting_for_face_hint')}
 										</p>
 									</div>
 								</div>
@@ -1023,7 +1127,15 @@
 			</div>
 		{:else}
 			<div class="h-full overflow-y-auto bg-muted/40">
-				<ManualTab ondone={toScan} />
+				{#key companyId}
+					<ManualTab
+						{companyId}
+						ondone={toScan}
+						onworkingchange={(value) => {
+							manualWorking = value;
+						}}
+					/>
+				{/key}
 			</div>
 		{/if}
 	</Cover>

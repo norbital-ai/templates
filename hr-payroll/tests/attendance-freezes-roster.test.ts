@@ -18,16 +18,30 @@ import workDayHooks from '../src/collections/work_days/+hooks.ts';
 
 const WORK = 'shift-work';
 const REST = 'shift-rest';
+const holidayInput = {
+	id: 'holiday-input-1',
+	jurisdiction_code: 'TEST-JUR',
+	date: '2026-03-10',
+	calendar_id: 'calendar-2026'
+};
 
 const api = {
 	db: {
 		payslip_work_day_inputs: { findFirst: () => Effect.succeed(undefined) },
-		leave_requests: { findMany: () => Effect.succeed([]) },
+		employment_contract_inputs: {
+			findMany: () =>
+				Effect.succeed([
+					{ id: 'contract-input-1', employment_id: 'emp-1', terms_through: '2026-03-10' }
+				])
+		},
+		leave_entries: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) }
 	}
 };
 
 const prepared = {
+	holidayByDay: new Map([['emp-1:2026-03-10', holidayInput]]),
+	holidayHistory: new Map([['day-1', [holidayInput]]]),
 	companyByEmployment: new Map([['emp-1', 'co-1']]),
 	windowsByCompany: new Map(),
 	leaveByEmployment: new Map(),
@@ -125,8 +139,19 @@ test('the same day with no attendance shifts freely', () => {
  * plan; if the rule read the candidate it would refuse the first punch of every rostered day.
  */
 test('recording attendance is never a plan change, and correcting it stays possible', () => {
-	write({ worked_intervals: PUNCHED, break_minutes: 30 }, stored());
-	write({ worked_intervals: PUNCHED, break_minutes: 45 }, stored({ worked_intervals: PUNCHED }));
+	for (const [existing, break_minutes] of [
+		[stored(), 30],
+		[stored({ worked_intervals: PUNCHED }), 45]
+	]) {
+		const result = write({ worked_intervals: PUNCHED, break_minutes }, existing);
+		assert.deepEqual(result.worked_intervals, PUNCHED);
+		assert.equal(result.break_minutes, break_minutes);
+		assert.deepEqual(
+			result.work_day_holiday_input,
+			[holidayInput],
+			'attendance corrections retain the linked holiday input'
+		);
+	}
 });
 
 test('a day with no plan at all cannot be given one after the fact', () => {

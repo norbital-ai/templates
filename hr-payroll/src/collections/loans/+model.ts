@@ -25,7 +25,14 @@ import {
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		component_catalogue_id: uuid().notNull(),
+		/**
+		 * The pay line this loan recovers through, from the loan catalogue.
+		 *
+		 * Loans have a catalogue and no request family, because a loan is not an event: the agreement
+		 * is typed once with a schedule, and the engine emits one line per period from it. This
+		 * collection and `loan_repayments` are the request side already.
+		 */
+		loan_catalogue_id: uuid().notNull(),
 		/** A positive magnitude, stated once here rather than repeated across the schedule. */
 		principal: numeric().notNull(),
 		/**
@@ -34,8 +41,7 @@ export default defineModel(
 		 *
 		 * Its last repayment falls inside it, judged by day head so an instalment dated ON the end
 		 * day is inside — the same boundary `loanInstalmentDays` generates against. `loan_repayments`
-		 * `mutate.prepare` refuses a write that would break it, alongside the schedule's other two
-		 * properties; see `loan_repayments/+model.ts` for the paths that reach.
+		 * validates this window alongside the schedule amount and date order.
 		 */
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
@@ -45,7 +51,7 @@ export default defineModel(
 		 * tables by `effective_range` passed planning and then failed every row, and the page sat on
 		 * "Reconnecting to live updates". The tables order by this column instead; `bolt_instant`
 		 * anchors the canonical day at UTC midnight through the immutable function the platform installs
-		 * before migrations run, as `leave_requests.from_date` already does.
+		 * before migrations run, as `leave_entries.from_date` already does.
 		 */
 		effective_from: instant({ precision: 'day' }).generatedAlwaysAs(
 			sql`bolt_instant(effective_range ->> 'start')`
@@ -60,6 +66,6 @@ export default defineModel(
 			'One staff loan, salary advance or overpayment recovery agreement. The loan is the agreement; the amounts due under it are loan_repayments rows, which is what payroll consumes.',
 		recordLabel: ['reference', 'principal'],
 		icon: 'lucide:hand-coins',
-		indexes: [{ columns: ['employment_id'] }, { columns: ['component_catalogue_id'] }]
+		indexes: [{ columns: ['employment_id'] }, { columns: ['loan_catalogue_id'] }]
 	}
 );

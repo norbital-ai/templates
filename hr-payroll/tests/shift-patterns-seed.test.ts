@@ -1,15 +1,10 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * The shape the seed conversion left behind, and the surfaces that consume it.
- *
- * The public fixture is the one seed this repository can see; the bank's five entities were
- * converted by the same script and are checked by the bank's own tests. What is pinned here is the
- * contract every loader relies on: terms point at a pattern row that exists, patterns are unique
- * per company and decode as the `work_pattern` type, and the manifest stages them before the terms
- * that reference them.
+ * Public fixture references and manifest dependency ordering. Only directories with an authored
+ * model are collections; leftover directories for retired collections do not define the schema.
  */
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import { Schema } from 'effect';
 import { workPatternSchema } from '../src/datatypes/work_pattern/+definition.ts';
@@ -53,16 +48,86 @@ test('pattern rows are unique per company and code, and decode as the work_patte
 	}
 });
 
-test('the manifest stages patterns after companies and before the terms that point at them', () => {
-	const stages = manifest.seed.stages.map((stage) => [...stage]);
-	const stageOf = (name) => stages.findIndex((stage) => stage.includes(name));
-	assert.ok(stageOf('shift_patterns') > stageOf('companies'));
-	assert.ok(stageOf('shift_patterns') < stageOf('employment_terms'));
+test('the manifest covers current source collections and stages consumers after their dependencies', () => {
+	const stages = manifest.seed.stages;
+	const seeded = stages.flat();
 	const collections = readdirSync(new URL('../src/collections/', import.meta.url), {
 		withFileTypes: true
-	}).filter((entry) => entry.isDirectory()).length;
-	assert.equal(manifest.counts.collections, collections);
-	assert.ok(
-		readdirSync(new URL('../src/collections/shift_patterns/', import.meta.url)).length >= 2
+	})
+		.filter(
+			(entry) =>
+				entry.isDirectory() &&
+				existsSync(new URL(`../src/collections/${entry.name}/+model.ts`, import.meta.url))
+		)
+		.map((entry) => entry.name);
+	const unseededPayrollCollections = [
+		'payroll_runs',
+		'payslips',
+		'payslip_adjustments',
+		'payslip_work_day_inputs',
+		'payslip_leave_inputs',
+		'payslip_claim_request_inputs',
+		'payslip_allowance_request_inputs',
+		'payslip_payment_request_inputs',
+		'payslip_loan_repayment_inputs'
+	];
+	assert.equal(manifest.counts.collections, collections.length);
+	for (const name of unseededPayrollCollections) assert.ok(collections.includes(name), name);
+	assert.equal(new Set(seeded).size, seeded.length, 'a collection must be seeded only once');
+	assert.deepEqual(
+		seeded.toSorted(),
+		[
+			'team',
+			'user',
+			...collections.filter((name) => !unseededPayrollCollections.includes(name))
+		].toSorted()
 	);
+	const before = (dependency, consumer) => {
+		const dependencyStage = stages.findIndex((stage) => stage.includes(dependency));
+		const consumerStage = stages.findIndex((stage) => stage.includes(consumer));
+		assert.ok(dependencyStage >= 0, `${dependency} needs a seed stage`);
+		assert.ok(consumerStage > dependencyStage, `${dependency} must precede ${consumer}`);
+	};
+	for (const [dependency, consumer] of [
+		['companies', 'shift_definitions'],
+		['shift_definitions', 'shift_patterns'],
+		['shift_patterns', 'employment_terms'],
+		['companies', 'employments'],
+		['employees', 'employments'],
+		['employment_terms', 'work_days'],
+		['jurisdiction_holiday_calendars', 'work_days'],
+		['work_days', 'leave_entries'],
+		['loans', 'loan_repayments'],
+		['work_days', 'holiday_calendar_inputs'],
+		['leave_entries', 'holiday_calendar_inputs']
+	])
+		before(dependency, consumer);
+	for (const [catalogue, consumer] of [
+		['work_catalogue', 'work_days'],
+		['leave_catalogue', 'leave_entries'],
+		['claim_catalogue', 'claim_requests'],
+		['allowance_catalogue', 'allowance_requests'],
+		['payment_catalogue', 'payment_requests'],
+		['loan_catalogue', 'loans'],
+		['statutory_contributions', 'contribution_rates']
+	]) {
+		before('jurisdiction_settings', catalogue);
+		before(catalogue, consumer);
+	}
+	for (const consumer of [
+		'employment_terms',
+		'employment_departures',
+		'employment_statutory_facts',
+		'employee_children',
+		'work_days',
+		'leave_entries',
+		'claim_requests',
+		'allowance_requests',
+		'payment_requests',
+		'loans',
+		'loan_repayments'
+	]) {
+		before('employments', consumer);
+		before(consumer, 'employment_contract_inputs');
+	}
 });

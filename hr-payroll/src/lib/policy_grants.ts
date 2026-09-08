@@ -172,21 +172,18 @@ export const peopleGrants = (
 	mergeGrants(
 		grantsOn('employees', actions),
 		grantsOn('employments', actions),
+		grantsOn(
+			'employment_departures',
+			actions.filter((action) => action === 'read' || action === 'mutate.new')
+		),
+		...(actions.includes('read') ? [grantsOn('employment_contract_inputs', ['read'])] : []),
 		grantsOn('employment_terms', actions),
 		employmentStatutoryFactGrants(...actions),
 		// Child facts are what `children.under(age)` counts. `preview_leave` is a function and runs
 		// as the person calling it; a policy that can create leave without this read turns that
 		// preview into AccessDenied instead of a picker. (The write hook reads as the workspace.)
-		...(actions.includes('read')
-			? [
-					grantsOn('employee_children', ['read']),
-					grantsOn('leave_entitlements', ['read']),
-					grantsOn('leave_entries', ['read'])
-				]
-			: []),
-		// A child fact is appended, never edited or deleted (its hook refuses both), so the one
-		// write the people ranks hold on it is the append. The entitlement the child opens is the
-		// hook's own restatement of the employment, which needs no grant of theirs.
+		...(actions.includes('read') ? [grantsOn('employee_children', ['read'])] : []),
+		// Child facts are appended. Their effective history informs computed leave eligibility.
 		...(actions.includes('mutate.new') ? [grantsOn('employee_children', ['mutate.new'])] : [])
 	);
 
@@ -222,11 +219,9 @@ const WORK_DAY_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'work_day_id'] as
 /** The component-entry claim, as the lock refusal reads it. */
 const CLAIM_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'claim_request_id'] as const;
 const ALLOWANCE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'allowance_request_id'] as const;
-const BONUS_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'bonus_request_id'] as const;
-const ARREARS_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'arrears_request_id'] as const;
-const CORRECTION_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'correction_request_id'] as const;
+const PAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'payment_request_id'] as const;
 /** The leave-request capture's columns. */
-const LEAVE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'leave_request_id'] as const;
+const LEAVE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'leave_entry_id'] as const;
 /** The loan-repayment capture's columns. */
 const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_id'] as const;
 
@@ -245,13 +240,14 @@ const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_
  */
 export const captureLedgerGrants = (): Grants =>
 	mergeGrants(
+		grantOn('holiday_calendar_inputs', 'read', {
+			fields: ['jurisdiction_code', 'date', 'calendar_id']
+		}),
 		grantOn('payslip_work_day_inputs', 'read', { fields: WORK_DAY_CAPTURE_FIELDS }),
 		grantOn('payslip_claim_request_inputs', 'read', { fields: CLAIM_CAPTURE_FIELDS }),
 		grantOn('payslip_allowance_request_inputs', 'read', { fields: ALLOWANCE_CAPTURE_FIELDS }),
-		grantOn('payslip_bonus_request_inputs', 'read', { fields: BONUS_CAPTURE_FIELDS }),
-		grantOn('payslip_arrears_request_inputs', 'read', { fields: ARREARS_CAPTURE_FIELDS }),
-		grantOn('payslip_correction_request_inputs', 'read', { fields: CORRECTION_CAPTURE_FIELDS }),
-		grantOn('payslip_leave_request_inputs', 'read', { fields: LEAVE_CAPTURE_FIELDS }),
+		grantOn('payslip_payment_request_inputs', 'read', { fields: PAYMENT_CAPTURE_FIELDS }),
+		grantOn('payslip_leave_inputs', 'read', { fields: LEAVE_CAPTURE_FIELDS }),
 		grantOn('payslip_loan_repayment_inputs', 'read', { fields: REPAYMENT_CAPTURE_FIELDS })
 	);
 
@@ -272,10 +268,8 @@ export const payrollRunCascadeGrants = (): Grants =>
 		grantsOn('payslip_work_day_inputs', ['delete']),
 		grantsOn('payslip_claim_request_inputs', ['delete']),
 		grantsOn('payslip_allowance_request_inputs', ['delete']),
-		grantsOn('payslip_bonus_request_inputs', ['delete']),
-		grantsOn('payslip_arrears_request_inputs', ['delete']),
-		grantsOn('payslip_correction_request_inputs', ['delete']),
-		grantsOn('payslip_leave_request_inputs', ['delete']),
+		grantsOn('payslip_payment_request_inputs', ['delete']),
+		grantsOn('payslip_leave_inputs', ['delete']),
 		grantsOn('payslip_loan_repayment_inputs', ['delete'])
 	);
 
@@ -288,11 +282,15 @@ const settlementLedgerGrants = (): Grants =>
 export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('companies', actions),
-		grantsOn('company_holidays', actions),
+		grantsOn('jurisdiction_holiday_calendars', actions),
 		grantsOn('shift_definitions', actions),
 		// The base an employee's own days are projected from; read in full, like the codes it names.
 		grantsOn('shift_patterns', actions),
-		grantsOn('component_catalogue', actions),
+		grantsOn('claim_catalogue', actions),
+		grantsOn('allowance_catalogue', actions),
+		grantsOn('payment_catalogue', actions),
+		grantsOn('loan_catalogue', actions),
+		grantsOn('work_catalogue', actions),
 		grantsOn('leave_catalogue', actions)
 	);
 
@@ -351,12 +349,9 @@ export const settingsGrants = (authority: 'draft' | 'seal'): Grants =>
 			);
 
 /**
- * Every row under a settings version: schemes, bands, leave catalogue entries, components, holidays.
- *
- * Edited freely while the version is a draft, by anyone who holds this; the seal is what reviews
- * them, once, as one version, and after it the hooks refuse every write. There is no per-row
- * approval any more: a statutory row and a company-rule row are told apart by `is_statutory` for
- * reading, not for authority.
+ * Settings authority over family catalogues and independent jurisdiction holiday inputs.
+ * Catalogue hooks enforce their parent version's seal; holiday calendars enforce publication and
+ * consumption seals. Holiday source configuration is editable independently of either lifecycle.
  */
 export const settingsCatalogueGrants = (
 	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
@@ -367,9 +362,14 @@ export const settingsCatalogueGrants = (
 	return mergeGrants(
 		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
 		...(writes.length === 0 ? [] : [grantsOn('contribution_rates', writes)]),
+		grantsOn('work_catalogue', actions),
 		grantsOn('leave_catalogue', actions),
-		grantsOn('component_catalogue', actions),
-		grantsOn('company_holidays', actions)
+		grantsOn('claim_catalogue', actions),
+		grantsOn('allowance_catalogue', actions),
+		grantsOn('payment_catalogue', actions),
+		grantsOn('loan_catalogue', actions),
+		grantsOn('jurisdiction_holiday_calendars', actions),
+		grantsOn('jurisdiction_holiday_sources', actions)
 	);
 };
 
@@ -511,22 +511,39 @@ export const workDayWriteGrants = (): Grants =>
 		grantsOn('work_days', ['delete'])
 	);
 
-export const leaveApproval = {
+const leaveApproval = {
 	flow: () => approveBy(L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
 	superceded_by: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM]
 } as const;
 
-const leaveBalanceCorrectionApproval = {
-	flow: () => approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
-	superceded_by: [SENIOR_MANAGEMENT_TEAM]
-} as const;
+const LEAVE_ENTRY_FIELDS = [
+	'employment_id',
+	'leave_catalogue_id',
+	'event',
+	'reference',
+	'certificate_file'
+] as const;
 
-/** Exceptional balance correction only; every operational and policy movement remains system-owned. */
-export const manualLeaveAdjustmentGrant = (reviewed: boolean): Grants =>
+/** One grant owns every HR Leave category; its approval route depends on the submitted activity. */
+export const hrLeaveEntryGrant = (reviewManual: boolean): Grants =>
 	grantOn('leave_entries', 'mutate.new', {
-		fields: ['leave_entitlement_id', 'kind', 'effective_on', 'days', 'reason', 'source_key'],
-		authorize: ({ record }) => Effect.succeed(record.kind === 'MANUAL_ADJUSTMENT'),
-		...(reviewed ? { approval: leaveBalanceCorrectionApproval } : {})
+		fields: LEAVE_ENTRY_FIELDS,
+		approval: {
+			flow: ({ record }) =>
+				isLeaveTimeOffEvent(record)
+					? approveBy(L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM)
+					: reviewManual
+						? approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM)
+						: noApproval,
+			superceded_by: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM]
+		}
+	});
+
+export const timeOffEntryGrant = (): Grants =>
+	grantOn('leave_entries', 'mutate.new', {
+		fields: LEAVE_ENTRY_FIELDS,
+		authorize: ({ record }) => Effect.succeed(isLeaveTimeOffEvent(record)),
+		approval: leaveApproval
 	});
 
 const claimApproval = {
@@ -591,7 +608,8 @@ function isLeaveTimeOffEvent(record: { readonly event?: unknown }): boolean {
 }
 
 export const employeeLeaveRequestNewGrant = (): Grants =>
-	grantOn('leave_requests', 'mutate.new', {
+	grantOn('leave_entries', 'mutate.new', {
+		fields: LEAVE_ENTRY_FIELDS,
 		// The one request an ordinary rank may raise: time off, about themselves.
 		authorize: ({ record }, api) =>
 			isLeaveTimeOffEvent(record)
@@ -608,7 +626,7 @@ export const employeeSelfServiceGrants = (): Grants =>
 		}),
 		grantOn('claim_requests', 'mutate.new', {
 			// The one thing an ordinary rank may raise: a claim, about themselves. A standing
-			// allowance, a bonus, an arrears settlement and an HR correction are authority the HR
+			// allowance, a payment, an arrears settlement and an HR correction are authority the HR
 			// policies hold and this one never adds — and now that each is its own collection, that
 			// is a grant on a collection, which is what the access system is for. It used to be a
 			// `Reflect.get(event, 'kind') === 'CLAIM'` reach into a jsonb discriminator, because the

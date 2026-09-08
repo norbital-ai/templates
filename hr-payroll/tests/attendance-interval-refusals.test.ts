@@ -28,13 +28,49 @@ const api = {
 		work_days: { findMany: () => Effect.succeed([]) },
 		shift_definitions: { findMany: () => Effect.succeed([]) },
 		shift_patterns: { findMany: () => Effect.succeed([]) },
-		// The company's law lineage, and the versions of it. Empty here: these fixtures are about
-		// attendance, and a company that binds to no jurisdiction has no rest-day rule to break.
-		companies: { findMany: () => Effect.succeed([]) },
-		jurisdiction_settings: { findMany: () => Effect.succeed([]) },
+		// A complete jurisdiction calendar is required even when this fixture has no holidays or
+		// weekly rest rule. Preparation must reach interval validation with legitimate inputs.
+		companies: { findMany: () => Effect.succeed([{ id: 'co-1', settings_code: 'TEST' }]) },
+		jurisdiction_settings: {
+			findMany: () =>
+				Effect.succeed([
+					{
+						id: 'settings-1',
+						code: 'TEST',
+						jurisdiction_code: 'TEST-JUR',
+						sealed_at: '2020-01-01T00:00:00.000Z',
+						voided_at: null,
+						approval_id: null,
+						effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
+					}
+				])
+		},
+		work_catalogue: {
+			findMany: () =>
+				Effect.succeed([
+					{
+						settings_id: 'settings-1',
+						regime: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
+					}
+				])
+		},
+		jurisdiction_holiday_calendars: {
+			findMany: () =>
+				Effect.succeed([
+					{
+						id: 'calendar-2026',
+						jurisdiction_code: 'TEST-JUR',
+						year: 2026,
+						revision: 1,
+						published_at: '2025-12-01T00:00:00.000Z',
+						observations: []
+					}
+				])
+		},
+		holiday_calendar_inputs: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) },
 		payslip_work_day_inputs: { findFirst: () => Effect.succeed(null) },
-		leave_requests: { findMany: () => Effect.succeed([]) }
+		leave_entries: { findMany: () => Effect.succeed([]) }
 	}
 };
 
@@ -137,7 +173,21 @@ test('a day reviewed and found empty is a legal statement, and a break on nothin
 	// `[]` is not `null`: one says the day was read and produced no work, the other that no
 	// attendance was recorded at all. The day sheet's "reviewed, nothing worked" action writes the
 	// first, and `unpaidBreak > 0` in the rule above is what keeps that write legal.
-	assert.doesNotThrow(() => write({ worked_intervals: [], break_minutes: 0 }));
+	const reviewed = write({ worked_intervals: [], break_minutes: 0 });
+	assert.deepEqual(reviewed.worked_intervals, []);
+	assert.deepEqual(reviewed.work_day_holiday_input, [
+		{
+			jurisdiction_code: 'TEST-JUR',
+			date: '2026-07-01',
+			calendar_id: 'calendar-2026'
+		}
+	]);
+	assert.deepEqual(reviewed.employment_contract_input, [
+		{
+			employment_id: 'emp-1',
+			terms_through: '2026-07-01'
+		}
+	]);
 	assert.doesNotThrow(() => write({ worked_intervals: null, break_minutes: 0 }));
 	assert.throws(
 		() => write({ worked_intervals: [], break_minutes: 30 }),

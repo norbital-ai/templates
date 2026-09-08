@@ -4,9 +4,17 @@
 	 * lineage (MY, SG, …) in force today, shared by every entity bound to it. It reads the lineage
 	 * scope the header provides (the jurisdiction picker at the top right,
 	 * `jurisdiction-scope.svelte.ts`), opens one live query for the lineage's versions, and shows
-	 * the version in force (the newest otherwise) under five tabs: Payroll (the root scalars),
-	 * Contributions (schemes and bands), Leave catalogue entries, Components and Holidays, one live table
-	 * each. Sealing, voiding and cloning versions are not surfaced here.
+	 * the version in force (the newest otherwise) under four tabs: Payroll (the root scalars),
+	 * Contributions (schemes and bands), Catalogues and Holidays. Sealing, voiding and cloning
+	 * versions are not surfaced here.
+	 *
+	 * Catalogues is one tab with seven of its own, because there are seven catalogue tables where
+	 * there used to be two. Six of them are the same nine columns — a code, a direction, the
+	 * treatment every scheme gives it, its place in the reduction order, who it covers and how it
+	 * produces its amount — and what tells them apart is which table a row is in, which is exactly
+	 * what a tab strip says. Seven tabs at the top level would have said the same thing while
+	 * burying Payroll rules and Holidays among them; a second grouping level under Catalogues would
+	 * have been a level to explain.
 	 *
 	 * Layout is one `AppShell` (variant `full`) with a single page `Scroll`: a sticky tab strip
 	 * scrolls with the content. Tab panels are natural height — the payroll form flows inside the
@@ -15,6 +23,7 @@
 	 * panel or over chrome.
 	 */
 	import { client } from '../../lib/workspace-client.js';
+	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
@@ -104,40 +113,25 @@
 	{/if}
 {/snippet}
 
-{#snippet catalogueLeaves()}
+{#snippet catalogueTable(
+	collection: 'claim_catalogue' | 'allowance_catalogue' | 'payment_catalogue' | 'loan_catalogue',
+	title: string,
+	description: string
+)}
+	<!--
+		Six catalogues, one table. They carry the same nine columns because they are the same kind of
+		thing — a pay line definition — and the family is the table rather than a column on it. Six
+		copies of this markup would be six places for the sequence column to go missing from one.
+		`leave_catalogue` is not one of them: its row is a leave first and a pay line second, so it
+		has its own snippet below.
+	-->
 	{#if selectedVersion}
 		<CollectionTable
 			{client}
-			collection="leave_catalogue"
-			view="hr_controller:settings:leave_catalogue"
-			title={t('app.settings.leave_catalogue')}
-			description={t('app.settings.leave_catalogue_description')}
-			query={{
-				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
-				orderBy: { code: 'asc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="code" label={t('component.code')} card="title" />
-				<Column name="name" label={t('component.name')} card="subtitle" />
-				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
-				<Column name="accrual" label={t('component.accrual_and_carry')} />
-				<Column name="entitlement" label={t('component.entitlement_bands')} />
-				<Column name="eligibility" label={t('component.who_may_take_it')} />
-				<Column name="exit_settlement" label={t('component.on_exit')} />
-			{/snippet}
-		</CollectionTable>
-	{/if}
-{/snippet}
-
-{#snippet catalogueComponents()}
-	{#if selectedVersion}
-		<CollectionTable
-			{client}
-			collection="component_catalogue"
-			view="hr_controller:settings:component_catalogue"
-			title={t('app.settings.component_catalogue')}
-			description={t('app.settings.component_catalogue_description')}
+			{collection}
+			view={`hr_controller:settings:${collection}`}
+			{title}
+			{description}
 			query={{
 				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
@@ -155,27 +149,144 @@
 	{/if}
 {/snippet}
 
-{#snippet holidays()}
+{#snippet catalogueWork()}
 	{#if selectedVersion}
 		<CollectionTable
 			{client}
-			collection="company_holidays"
-			view="hr_controller:settings:holidays"
-			title={t('app.settings.holidays')}
-			description={t('app.settings.holidays_description')}
+			collection="work_catalogue"
+			view="hr_controller:settings:work_catalogue"
+			title={t('app.settings.work_catalogue')}
+			description={t('app.settings.work_catalogue_description')}
+			query={{ where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } } }}
+		>
+			{#snippet columns({ Column })}
+				<Column name="code" label={t('component.code')} card="title" />
+				<Column name="proration" label={t('component.proration_basis')} />
+				<Column name="ordinary_rate" label={t('component.ordinary_rate')} />
+				<Column name="salary" label={t('work.output_salary')} />
+				<Column name="overtime" label={t('work.output_overtime')} />
+				<Column name="overtime_excess" label={t('work.output_overtime_excess')} />
+				<Column name="absence" label={t('work.output_absence')} />
+			{/snippet}
+		</CollectionTable>
+	{/if}
+{/snippet}
+
+{#snippet catalogueClaims()}
+	{@render catalogueTable(
+		'claim_catalogue',
+		t('app.settings.claim_catalogue'),
+		t('app.settings.claim_catalogue_description')
+	)}
+{/snippet}
+
+{#snippet catalogueAllowances()}
+	{@render catalogueTable(
+		'allowance_catalogue',
+		t('app.settings.allowance_catalogue'),
+		t('app.settings.allowance_catalogue_description')
+	)}
+{/snippet}
+
+{#snippet cataloguePayments()}
+	{@render catalogueTable(
+		'payment_catalogue',
+		t('app.settings.payment_catalogue'),
+		t('app.settings.payment_catalogue_description')
+	)}
+{/snippet}
+
+{#snippet catalogueLoans()}
+	{@render catalogueTable(
+		'loan_catalogue',
+		t('app.settings.loan_catalogue'),
+		t('app.settings.loan_catalogue_description')
+	)}
+{/snippet}
+
+{#snippet catalogueLeaves()}
+	{#if selectedVersion}
+		<CollectionTable
+			{client}
+			collection="leave_catalogue"
+			view="hr_controller:settings:leave_catalogue"
+			title={t('app.settings.leave_catalogue')}
+			description={t('app.settings.leave_catalogue_description')}
 			query={{
 				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
-				orderBy: { date: 'asc' }
+				orderBy: { code: 'asc' }
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column name="date" label={t('component.observed_on')} card="title" />
-				<Column name="name" label={t('component.holiday')} card="subtitle" />
+				<Column name="code" label={t('component.code')} card="title" />
+				<Column name="name" label={t('component.name')} card="subtitle" />
 				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
-				<Column name="substitutes_date" label={t('component.substitute_for')} />
-				<Column name="scope" label={t('component.who_observes_it')} />
+				<Column name="entitlement" label={t('component.entitlement_bands')} />
+				<Column name="eligibility" label={t('component.who_may_take_it')} />
 			{/snippet}
 		</CollectionTable>
+	{/if}
+{/snippet}
+
+{#snippet catalogues()}
+	<!--
+		The inner strip is not sticky and adds no scrollport of its own: the page already owns one,
+		and a second sticky bar under the first is two rows of chrome the content slides behind.
+	-->
+	<Tabs
+		animate={false}
+		layout="responsive"
+		class="h-auto"
+		config={[
+			{
+				name: 'contribution_catalogue',
+				label: t('app.settings.contribution_catalogue'),
+				icon: 'lucide:landmark',
+				content: contributions
+			},
+			{
+				name: 'work_catalogue',
+				label: t('app.settings.work_catalogue'),
+				icon: 'lucide:receipt',
+				content: catalogueWork
+			},
+			{
+				name: 'leave_catalogue',
+				label: t('app.settings.leave_catalogue'),
+				icon: 'lucide:calendar-days',
+				content: catalogueLeaves
+			},
+			{
+				name: 'claim_catalogue',
+				label: t('app.settings.claim_catalogue'),
+				icon: 'lucide:receipt-text',
+				content: catalogueClaims
+			},
+			{
+				name: 'allowance_catalogue',
+				label: t('app.settings.allowance_catalogue'),
+				icon: 'lucide:calendar-clock',
+				content: catalogueAllowances
+			},
+			{
+				name: 'payment_catalogue',
+				label: t('app.settings.payment_catalogue'),
+				icon: 'lucide:gift',
+				content: cataloguePayments
+			},
+			{
+				name: 'loan_catalogue',
+				label: t('app.settings.loan_catalogue'),
+				icon: 'lucide:landmark',
+				content: catalogueLoans
+			}
+		] satisfies TabConfig[]}
+	/>
+{/snippet}
+
+{#snippet holidays()}
+	{#if selectedVersion}
+		<HolidaySettings jurisdictionCode={selectedVersion.jurisdiction_code} />
 	{/if}
 {/snippet}
 
@@ -259,28 +370,16 @@
 				listClass={`sticky top-0 z-10 ${INSET_MX_CLASS} w-auto`}
 				config={[
 					{
-						name: 'payroll',
-						label: t('component.payroll_rules'),
+						name: 'general',
+						label: t('app.settings.general'),
 						icon: 'lucide:scale',
 						content: payroll
 					},
 					{
-						name: 'contributions',
-						label: t('component.statutory_contributions'),
-						icon: 'lucide:landmark',
-						content: contributions
-					},
-					{
-						name: 'leave_catalogue',
-						label: t('app.settings.leave_catalogue'),
-						icon: 'lucide:calendar-days',
-						content: catalogueLeaves
-					},
-					{
-						name: 'component_catalogue',
-						label: t('app.settings.component_catalogue'),
-						icon: 'lucide:receipt',
-						content: catalogueComponents
+						name: 'catalog',
+						label: t('app.settings.catalogues'),
+						icon: 'lucide:library',
+						content: catalogues
 					},
 					{
 						name: 'holidays',

@@ -99,12 +99,16 @@ it('HR self-host loan create nests repayments and blocks an unbalanced schedule'
 	let browser: HeadedBrowser | undefined;
 	try {
 		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
-		gateway = await openHrGateway(session, 'hr-payroll-loan-form', '/app/hr_controller/loans');
+		gateway = await openHrGateway(
+			session,
+			'hr-payroll-loan-form',
+			'/app/hr_controller/events/loans'
+		);
 		browser = await launchChromiumOrSkip();
 		if (browser === undefined) return;
 
 		const page = await browser.openPage(
-			guestPageUrl(gateway.address.port, '/app/hr_controller/loans')
+			guestPageUrl(gateway.address.port, '/app/hr_controller/events/loans')
 		);
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`

@@ -25,7 +25,7 @@ type Row = Readonly<Record<string, unknown>>;
  */
 const sealedCopy = async (session: Session, overrides: Row): Promise<Row> => {
 	const [pub] = (await session.query(
-		'select code, name, currency, tax_year_start_month, proration, ordinary_rate, regime from jurisdiction_settings where id = $1',
+		'select code, jurisdiction_code, name, currency, tax_year_start_month from jurisdiction_settings where id = $1',
 		[JURISDICTION_ID]
 	)) as ReadonlyArray<Row>;
 	assert.ok(pub, 'the public PUB profile is seeded');
@@ -66,8 +66,8 @@ test(
 			// The same row through raw SQL never meets the hook; the database exclusion is the backstop.
 			await assert.rejects(
 				session.query(
-					`insert into jurisdiction_settings (id, code, name, sealed_at, currency, tax_year_start_month, proration, ordinary_rate, regime, effective_range)
-					 select gen_random_uuid(), code, 'PUB by sql', now(), currency, tax_year_start_month, proration, ordinary_rate, regime,
+					`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, effective_range)
+					 select gen_random_uuid(), code, jurisdiction_code, 'PUB by sql', now(), currency, tax_year_start_month,
 					        '{"start":"2026-04-01","end":null}'::jsonb
 					   from jurisdiction_settings where id = $1`,
 					[JURISDICTION_ID]

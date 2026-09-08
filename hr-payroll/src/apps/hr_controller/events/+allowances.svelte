@@ -8,7 +8,7 @@
 	 * period it names and a recurring allowance's is the day its window opens, so a stored date
 	 * would be a second statement of the same fact, free to disagree with the first.
 	 *
-	 * One live query, and the same shape as its four siblings in this group: the entity's own rows,
+	 * One live query, and the same shape as its three siblings in this group: the entity's own rows,
 	 * each carrying its employment, its component and the payroll capture that may lock it. Rows
 	 * held under an approval are listed and wear the pending badge rather than being filtered away
 	 * — see `+claims.svelte` for why that clause is gone.
@@ -46,8 +46,8 @@
 			WorkspaceRow<'employments'>,
 			'employee_number'
 		> | null;
-		readonly allowance_request_component_catalogue?: Pick<
-			WorkspaceRow<'component_catalogue'>,
+		readonly allowance_request_allowance_catalogue?: Pick<
+			WorkspaceRow<'allowance_catalogue'>,
 			'code'
 		> | null;
 		readonly payslip_allowance_request_input_allowance_request?: ReadonlyArray<
@@ -95,20 +95,20 @@
 					orderBy: { created_at: 'desc' },
 					with: {
 						allowance_request_employment: { columns: { employee_number: true } },
-						allowance_request_component_catalogue: { columns: { code: true } },
+						allowance_request_allowance_catalogue: { columns: { code: true } },
 						payslip_allowance_request_input_allowance_request: { columns: { period: true } }
 					}
 				}}
 			>
 				{#snippet columns({ Column })}
 					<Column
-						name="component_catalogue_id"
+						name="allowance_catalogue_id"
 						label={t('component.component')}
 						card="title"
 						renderer={FormattedValueRenderer}
 						rendererProps={{
 							format: ({ row }: { row: AllowanceRow }) =>
-								row.allowance_request_component_catalogue?.code ?? '—'
+								row.allowance_request_allowance_catalogue?.code ?? '—'
 						}}
 					/>
 					<Column
@@ -122,6 +122,12 @@
 						}}
 					/>
 					<Column name="amount" label={t('component.amount')} />
+					<!--
+						Whether this one settles against its component's declared direction. It is the whole
+						of what a correction is now, so it is a column rather than a fact you open a row to
+						find: the family that used to carry it had its own page.
+					-->
+					<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
 					<Column name="recurrence" label={t('component.entry_cadence')} />
 				{/snippet}
 			</CollectionTable>

@@ -80,32 +80,6 @@ export const entryOverConsumedMessage = (consumption: EntryConsumption): string 
 /** The refusal raised when paid recovery across payslips would exceed a repayment's amount due. */
 export const REPAYMENT_OVER_RECOVERED = 'REPAYMENT_OVER_RECOVERED' as const;
 
-/**
- * The refusal raised when a one-off entry is already captured by another standing payroll.
- *
- * Single-use means one standing/paid payslip — not "until output amounts add up to the requested
- * amount". A $100 claim reimbursed at 80% is fully settled by one $80 output and must not leave an
- * invented $20 balance behind for a later run to "catch up". Declared here beside the other
- * ceilings because it is the same shape: a rule the junction unique indexes cannot state alone.
- */
-export const ENTRY_ALREADY_CAPTURED = 'ENTRY_ALREADY_CAPTURED' as const;
-
-/** What the engine knows when a one-off entry is already held by a standing run. */
-const entryCaptureSchema = Schema.Struct({
-	/** The period of the run that already holds the entry. */
-	capturedBy: Schema.String,
-	/** The period of the run that asked to capture it. */
-	period: Schema.String
-});
-
-type EntryCapture = Schema.Schema.Type<typeof entryCaptureSchema>;
-
-export const entryAlreadyCapturedMessage = (capture: EntryCapture): string =>
-	`${ENTRY_ALREADY_CAPTURED}: this one-off entry is already captured by payroll ` +
-	`${capture.capturedBy}. A one-off claim, bonus, arrears settlement or correction settles in ` +
-	'one standing payroll; correct a settled payslip with a new component entry, not by ' +
-	'capturing the same one twice.';
-
 /** What the engine knows when a recovery would overrun a repayment. */
 const repaymentConsumptionSchema = Schema.Struct({
 	/** The `loan_repayments` row being recovered. */

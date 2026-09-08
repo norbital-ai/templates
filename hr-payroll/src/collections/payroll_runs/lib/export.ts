@@ -71,7 +71,7 @@ const HUMAN_HEADERS: Readonly<Record<string, string>> = {
  *
  * The fallback used to uppercase any word of three letters or fewer, on the theory that short
  * tokens are acronyms. `pay`, `day` and `no` are three letters and are not, so the salary listing a
- * payroll clerk reads printed `Back PAY Bonus`, `NO PAY Leave` and `Last DAY`. Length cannot tell
+ * payroll clerk reads printed `Back PAY Payment`, `NO PAY Leave` and `Last DAY`. Length cannot tell
  * `pcb` from `pay`; only a list can, so this is the list.
  *
  * A token ending in `x` after digits — `1x`, `2x` — is an overtime multiple and stays uppercase, so

@@ -35,6 +35,31 @@ export default defineConfig({
 						});
 					}
 				}
+				for (const [name, relative] of [
+					['minifasnet.onnx', './assets/models/minifasnet.onnx'],
+					['LICENSE.minivision', './assets/models/LICENSE.minivision'],
+					['LICENSE.onnxruntime', './assets/models/LICENSE.onnxruntime'],
+					[
+						'ThirdPartyNotices.onnxruntime.txt',
+						'./assets/models/ThirdPartyNotices.onnxruntime.txt'
+					],
+					[
+						'ort-wasm-simd-threaded.wasm',
+						'./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm'
+					],
+					[
+						'ort-wasm-simd-threaded.mjs',
+						'./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs'
+					]
+				] as const) {
+					const source = fileURLToPath(new URL(relative, import.meta.url));
+					this.addWatchFile(source);
+					this.emitFile({
+						type: 'asset',
+						fileName: `models/minifas/${name}`,
+						source: readFileSync(source)
+					});
+				}
 			}
 		},
 		{

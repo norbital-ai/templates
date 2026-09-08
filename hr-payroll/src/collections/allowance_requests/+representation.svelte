@@ -6,7 +6,7 @@
 	 * The only one of the five request forms with no date field, and the only one whose form asks a
 	 * question with two shapes. `recurrence` is `notNull`, so an allowance that states nothing about
 	 * when it is live cannot be written at all — where its predecessor had a nullable window column
-	 * beside a five-armed union and needed a refusal each to forbid a bonus carrying a window and an
+	 * beside a five-armed union and needed a refusal each to forbid a payment carrying a window and an
 	 * allowance carrying none.
 	 *
 	 * There is also no cadence toggle beside the value. The old form drew one, read from the arm and
@@ -85,14 +85,14 @@
 					relationOptions={employmentRelationOptions(scopedCompanyId)}
 				/>
 				<Field
-					name="component_catalogue_id"
+					name="allowance_catalogue_id"
 					label={t('component.catalogue_component')}
 					relationOptions={{
 						label: (component) => String(component.code ?? '') || '—',
-						where: {
-							entry_kind: { eq: 'ALLOWANCE' },
-							...inForceCatalogue('component_catalogue_settings', scopedSettingsCode)
-						},
+						// The family is the table. Narrowing to it used to be an `entry_kind` clause on one
+						// merged catalogue; the only condition left is the version of this entity's lineage in
+						// force today.
+						where: { ...inForceCatalogue('allowance_catalogue_settings', scopedSettingsCode) },
 						orderBy: { code: 'asc' },
 						limit: 500
 					}}
@@ -103,6 +103,16 @@
 					anything to a one-off: a recurring window already names every period it is paid in.
 				-->
 				<Field name="pay_period" label={t('component.pay_period_override')} />
+				<!--
+					The direction, and the line it corrects. The catalogue row declares whether this component
+					adds to pay or reduces it; ticking this settles this one entry the opposite way, which is
+					what a correction is now — a claw-back of a transport claim is a transport claim with the
+					tick, under the same component, on the same payslip line. `corrects_adjustment_id` is
+					provenance only and never the direction: outputs are immutable, so an entry names the
+					settled line it fixes and there is no chain to walk.
+				-->
+				<Field name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+				<Field name="corrects_adjustment_id" label={t('component.corrects_adjustment')} />
 				<Column span="all">
 					<Field name="recurrence" label={t('component.entry_cadence')} />
 				</Column>

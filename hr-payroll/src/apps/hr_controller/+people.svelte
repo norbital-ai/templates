@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveEmployment } from '../../lib/employment-contract.js';
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
@@ -27,6 +28,7 @@
 		selectedCompanyId == null
 			? null
 			: client.db.employments.findMany({
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: {
 						approval_id: { isNull: true },
 						company_id: { eq: selectedCompanyId }
@@ -46,13 +48,14 @@
 	const currentEmployeeIds = $derived(
 		new Set(
 			(employmentsQuery?.current ?? [])
+				.map(resolveEmployment)
 				.filter((employment) => inForceOnDay(employment.effective_range, today))
 				.map((employment) => employment.employee_id)
 		)
 	);
 	const currentEmployees = $derived(currentEmployeeIds.size);
 	const workforceTrend = $derived.by(() => {
-		const ranges = (employmentsQuery?.current ?? []).flatMap((employment) =>
+		const ranges = (employmentsQuery?.current ?? []).map(resolveEmployment).flatMap((employment) =>
 			employment.effective_range?.start
 				? [
 						{

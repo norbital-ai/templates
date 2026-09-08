@@ -6,8 +6,7 @@
 		"gender": "FEMALE",
 		"marital_status": "SINGLE",
 		"spouse_status": "NONE",
-		"dependents_count": 0,
-		"residency_status": "CITIZEN"
+		"dependents_count": 0
 	},
 	{
 		"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
@@ -16,8 +15,7 @@
 		"gender": "MALE",
 		"marital_status": "SINGLE",
 		"spouse_status": "NONE",
-		"dependents_count": 0,
-		"residency_status": "CITIZEN"
+		"dependents_count": 0
 	},
 	{
 		"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3",
@@ -26,8 +24,7 @@
 		"gender": "FEMALE",
 		"marital_status": "MARRIED",
 		"spouse_status": "WITHOUT_INCOME",
-		"dependents_count": 0,
-		"residency_status": "CITIZEN"
+		"dependents_count": 0
 	},
 	{
 		"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb4",
@@ -36,7 +33,6 @@
 		"gender": "MALE",
 		"marital_status": "SINGLE",
 		"spouse_status": "NONE",
-		"dependents_count": 0,
-		"residency_status": "FOREIGNER"
+		"dependents_count": 0
 	}
 ]

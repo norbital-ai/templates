@@ -43,6 +43,7 @@ const viteResource = Effect.acquireRelease(
 /** The window a Malaysian cutoff of 21 gives March, and the day it pays. */
 const RUN = {
 	id: 'run:2026-03',
+	settings_id: 'settings:test',
 	period: '2026-03',
 	pay_date: '2026-03-28',
 	attendance_from: '2026-02-21',
@@ -124,7 +125,8 @@ const EMPLOYMENTS = [
 		employee_number: 'PUBEM0002',
 		company_id: 'company:1',
 		hire_date: '2021-06-01',
-		exit_date: null,
+		effective_range: range('2021-06-01', null),
+		employment_departure: [],
 		bank: {
 			bank_account_name: 'Public Fixture Employee',
 			bank_code: 'MBBEMYKL',
@@ -138,7 +140,10 @@ const EMPLOYMENTS = [
 		employee_number: 'PUBEM0400',
 		company_id: 'company:1',
 		hire_date: '2024-07-10',
-		exit_date: '2026-03-05',
+		effective_range: range('2024-07-10', null),
+		employment_departure: [
+			{ exit_date: '2026-03-05', exit_reason: 'RESIGNATION', approval_id: null }
+		],
 		bank: null
 	}
 ];
@@ -189,10 +194,22 @@ const WORK_DAYS = [
 ];
 
 const BASIC = {
-	id: 'component:basic',
 	code: 'BASIC',
+	sequence: 1,
+	contribution_treatments: {}
+};
+const WORK = { id: 'work:test', settings_id: RUN.settings_id, salary: BASIC };
+const FINAL_PAYMENT = {
+	id: 'payment:final',
+	settings_id: RUN.settings_id,
+	code: 'FINAL_PAYMENT',
 	nature: 'EARNING',
-	definition: { source: 'SCHEDULE' }
+	policy: { kind: 'EARNING', settlement: 'ADD' },
+	is_statutory: false,
+	sequence: 50,
+	eligibility: '',
+	contribution_treatments: {},
+	definition: { source: 'ENTRY', unit: 'MONEY', evidence: 'NONE', cap: null, settlement: 'PAYROLL' }
 };
 
 const PAYSLIPS = [
@@ -213,9 +230,9 @@ const PAYSLIPS = [
 		payroll_run_id: RUN.id,
 		employment_id: 'employment:leaver',
 		currency: 'MYR',
-		gross: 690,
+		gross: 740,
 		total_deductions: 0,
-		net: 690,
+		net: 740,
 		employer_cost: 0,
 		base: [{ component_code: BASIC.code, amount: 690 }],
 		statutory: []
@@ -226,6 +243,17 @@ const PAYSLIPS = [
  * hours the daily ceiling reclassified out of it. Contracted basic pay is inlined in `payslips.base`.
  */
 const PAYSLIP_ADJUSTMENTS = [
+	{
+		id: 'adjustment:final-payment',
+		payslip_id: 'payslip:leaver',
+		input: { kind: 'PAYMENT_REQUEST_INPUT', id: 'capture:final-payment' },
+		label: FINAL_PAYMENT.code,
+		bucket: 'EARNING',
+		statutory_rule_key: null,
+		amount: 50,
+		quantity: null,
+		sequence: 50
+	},
 	{
 		id: 'adjustment:ot-rest-day',
 		payslip_id: 'payslip:pattern',
@@ -294,7 +322,11 @@ Effect.runPromise(
 				payslips: PAYSLIPS,
 				payslip_adjustments: PAYSLIP_ADJUSTMENTS,
 				employments: EMPLOYMENTS,
-				component_catalogue: [BASIC],
+				work_catalogue: [WORK],
+				leave_catalogue: [],
+				claim_catalogue: [],
+				allowance_catalogue: [],
+				payment_catalogue: [FINAL_PAYMENT],
 				employment_terms: TERMS,
 				work_days: WORK_DAYS,
 				employees: [
@@ -375,6 +407,13 @@ Effect.runPromise(
 			);
 			assert.equal(leaver.section, 'Warehouse');
 			assert.equal(leaver.group, 'MY-MONTHLY');
+			assert.deepEqual(
+				leaver.lines.map((line) => line.componentCode),
+				['BASIC', 'FINAL_PAYMENT']
+			);
+			assert.equal(leaver.lines[1].nature, 'EARNING');
+			assert.equal(leaver.lines[1].calculationSource, 'ENTRY');
+			assert.equal(leaver.lines[1].amount, 50, 'a settled Payment stays on its ended contract');
 			assert.equal(
 				leaver.attendance.normalHours,
 				PATTERNED_WORK_DAYS.filter((date) => date <= '2026-03-05').length * DAY_PAID_HOURS,

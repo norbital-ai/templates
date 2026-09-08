@@ -3,12 +3,15 @@ import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/a
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
+		/** Standing in this contract's jurisdiction on the effective dates; null is unrecorded. */
+		residency_status: enums(['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']),
 		base_salary: custom('money').notNull(),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
 		work_classification: enums(['EA_COVERED', 'NON_EA', 'MANAGERIAL']).notNull(),
 		/**
 		 * First Schedule work category used to decide whether the RM4,000 exclusion from statutory
-		 * OT/rest-day/public-holiday pay applies. Seeded values are inferred and remain editable.
+		 * OT/rest-day/public-holiday pay applies. Inferred seed values are editable until these terms
+		 * are consumed; later changes require a future effective amendment.
 		 */
 		statutory_work_category: enums([
 			'NON_MANUAL',
@@ -52,7 +55,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The effective-dated pay, classification and shift pattern of one employment. Schedule hours, workdays, rest days and off days are derived from the named pattern the terms point at rather than duplicated.',
+			'The effective-dated pay, jurisdiction residency, classification and shift pattern of one employment contract. Schedule hours, workdays, rest days and off days derive from the named pattern.',
 		recordLabel: 'summary',
 		icon: 'lucide:file-signature',
 		// Plan 02 §7: employment =, effective range &&. One employment has exactly one set of terms
@@ -62,7 +65,10 @@ export default defineModel(
 				name: 'employment_terms_no_overlap',
 				elements: [
 					{ expr: 'employment_id', with: '=' },
-					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
+					{
+						expr: "daterange(lower(bolt_daterange(effective_range - 'end')), upper(bolt_daterange(effective_range - 'start')), '[]')",
+						with: '&&'
+					}
 				]
 			}
 		]

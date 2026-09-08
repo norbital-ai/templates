@@ -44,7 +44,6 @@ export const KIOSK_PHRASES = {
 	too_soon: { en: 'Too soon. Try again shortly.', zh: '请稍后再试。' },
 	no_shift_today: { en: 'You are not scheduled today.', zh: '您今天没有排班。' },
 	unchanged: { en: 'Nothing changed.', zh: '没有变化。' },
-	live_face_required: { en: 'Look at the camera and blink.', zh: '请看镜头并眨眼。' },
 	face_lost: { en: 'Face lost. Try again.', zh: '人脸丢失，请重试。' },
 	try_again: { en: 'Something went wrong. Try again.', zh: '出错了，请重试。' },
 	engine_unavailable: {

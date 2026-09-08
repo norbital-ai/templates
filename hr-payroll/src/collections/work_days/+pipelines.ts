@@ -1,3 +1,6 @@
+import { resolveEmployment } from '../../lib/employment-contract.js';
+import { resolveHolidayCalendars } from '../../lib/holiday-calendar.js';
+import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 /**
  * The `work_days` import: one pipeline, two sheets, one row per person-day.
  *
@@ -44,7 +47,10 @@ import type { Api, Pipelines, WorkspaceRow } from './$types.js';
 const QUERY_LIMIT = 20_000;
 const PH_TOKENS = new Set(['PH', 'PUBLIC_HOLIDAY']);
 
-type CompanyIdentity = Pick<WorkspaceRow<'companies'>, 'id' | 'name' | 'registration_number'>;
+type CompanyIdentity = Pick<
+	WorkspaceRow<'companies'>,
+	'id' | 'name' | 'registration_number' | 'settings_code'
+>;
 
 /**
  * Resolve one `legal_entity` cell to its company row, or refuse.
@@ -168,6 +174,63 @@ function readExistingDays(
 	);
 }
 
+/** Resolve each imported person-day against its approved contract's actual service window. */
+function readImportContracts(
+	api: Api,
+	rows: readonly Pick<RosterRow, 'employee_number' | 'work_date'>[],
+	companyId?: string
+) {
+	return Effect.gen(function* () {
+		const employments = yield* api.db.employments.findMany({
+			where: {
+				employee_number: { in: [...new Set(rows.map((row) => row.employee_number))] },
+				...(companyId == null ? {} : { company_id: { eq: companyId } }),
+				approval_id: { isNull: true }
+			},
+			columns: {
+				id: true,
+				employee_id: true,
+				company_id: true,
+				employee_number: true,
+				hire_date: true,
+				effective_range: true
+			},
+			with: { employment_departure: { where: { approval_id: { isNull: true } } } },
+			limit: QUERY_LIMIT
+		});
+		if (employments.length >= QUERY_LIMIT)
+			refuse('Employment contract history is incomplete; the import cannot choose safely.');
+		const contracts = employments.map(resolveEmployment);
+		const byPersonDay = new Map(
+			rows.map((row) => {
+				const matches = contracts.filter(
+					(contract) =>
+						contract.employee_number === row.employee_number &&
+						dateKey(contract.hire_date) <= row.work_date &&
+						coversDate(contract.effective_range, row.work_date)
+				);
+				if (matches.length === 0)
+					refuse(
+						`No approved employment contract covers ${row.employee_number} on ${row.work_date}` +
+							(companyId == null ? '.' : ' in this legal entity.')
+					);
+				if (matches.length > 1) {
+					const companies = new Set(matches.map((contract) => contract.company_id));
+					refuse(
+						`More than one employment contract covers ${row.employee_number} on ${row.work_date}. ` +
+							(companies.size > 1
+								? 'Set legal_entity on the Settings sheet to the employing entity this file is for.'
+								: 'Resolve the overlapping contracts or employee-number ambiguity before importing.')
+					);
+				}
+				return [personDayKey(row.employee_number, row.work_date), matches[0]!] as const;
+			})
+		);
+		return (row: Pick<RosterRow, 'employee_number' | 'work_date'>) =>
+			byPersonDay.get(personDayKey(row.employee_number, row.work_date))!;
+	});
+}
+
 // ── the roster sheet ───────────────────────────────────────────────────────────────────────────
 
 function dateInMonth(date: string, month: string): boolean {
@@ -194,7 +257,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		}
 		const month: string = fileMonth;
 		const companies = yield* api.db.companies.findMany({
-			columns: { id: true, name: true, registration_number: true },
+			columns: { id: true, name: true, registration_number: true, settings_code: true },
 			limit: QUERY_LIMIT
 		});
 		const company = resolveLegalEntity(companies, legalEntity);
@@ -223,40 +286,40 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 			refuse(`The import repeats person-days:\n${formatNamedList(duplicates)}`);
 		}
 
-		const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
-		const employments = yield* api.db.employments.findMany({
-			where: {
-				company_id: { eq: companyId },
-				employee_number: { in: employeeNumbers }
-			},
-			columns: { id: true, employee_number: true },
-			limit: QUERY_LIMIT
-		});
-		const employmentByNumber = new Map(
-			employments.map((employment) => [employment.employee_number, employment.id])
-		);
-		const unknownEmployees = employeeNumbers.filter((number) => !employmentByNumber.has(number));
-		if (unknownEmployees.length > 0) {
-			refuse(
-				`These employee numbers are not employed by this legal entity:\n${formatNamedList(unknownEmployees)}`
-			);
-		}
+		const contractFor = yield* readImportContracts(api, rows, companyId);
 
 		const [holidayRows, assignments] = Array.partition(rows, (row) =>
 			PH_TOKENS.has(row.shift_code.toUpperCase()) ? Result.fail(row) : Result.succeed(row)
 		);
 		if (holidayRows.length > 0) {
 			const dates = [...new Set(holidayRows.map((row) => row.work_date))];
-			const holidays = yield* api.db.company_holidays.findMany({
-				where: { company_id: { eq: companyId }, date: { in: dates } },
-				columns: { date: true },
+			const versions = yield* api.db.jurisdiction_settings.findMany({
+				where: { code: { eq: company.settings_code }, approval_id: { isNull: true } },
 				limit: QUERY_LIMIT
 			});
-			const configured = new Set(holidays.map((holiday) => dateKey(holiday.date)));
+			if (versions.length >= QUERY_LIMIT) refuse('Jurisdiction history is incomplete.');
+			const last = dates.toSorted().at(-1)!;
+			const jurisdiction = settingsInForce(versions, company.settings_code, last);
+			if (jurisdiction == null) refuse('No published settings cover this roster month.');
+			const calendars = yield* api.db.jurisdiction_holiday_calendars.findMany({
+				where: {
+					jurisdiction_code: { eq: jurisdiction.jurisdiction_code },
+					year: { eq: Number(last.slice(0, 4)) },
+					approval_id: { isNull: true }
+				},
+				limit: QUERY_LIMIT
+			});
+			if (calendars.length >= QUERY_LIMIT) refuse('Holiday calendar history is incomplete.');
+			const configured = resolveHolidayCalendars(
+				calendars,
+				jurisdiction.jurisdiction_code,
+				dates.toSorted()[0]!,
+				last
+			).holidays;
 			const unknown = holidayRows.filter((row) => !configured.has(row.work_date));
 			if (unknown.length > 0) {
 				refuse(
-					`These PH rows are not observed holidays for the legal entity:\n${formatNamedList(formatRosterRows(unknown))}\nConfigure the holiday calendar first.`
+					`These PH rows are not published observed holidays for the jurisdiction:\n${formatNamedList(formatRosterRows(unknown))}\nPublish the jurisdiction holiday calendar first.`
 				);
 			}
 		}
@@ -285,12 +348,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		}
 		for (const code of rosterCodes) Schema.decodeUnknownSync(rosterCodeVariantSchema)(code.variant);
 
-		const employmentId = (number: string): string => {
-			const id = employmentByNumber.get(number);
-			if (id == null) refuse(`No employment resolved for ${number}.`);
-			return id;
-		};
-		const employmentIds = [...new Set(assignments.map((row) => employmentId(row.employee_number)))];
+		const employmentIds = [...new Set(assignments.map((row) => contractFor(row).id))];
 		const workDates = [...new Set(assignments.map((row) => row.work_date))];
 		const existing = yield* readExistingDays(api, employmentIds, workDates);
 
@@ -300,7 +358,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		 * on the row the punch already made.
 		 */
 		const alreadyAssigned = assignments.filter(
-			(row) => existing.get(personDayKey(employmentId(row.employee_number), row.work_date))?.planned
+			(row) => existing.get(personDayKey(contractFor(row).id, row.work_date))?.planned
 		);
 		if (alreadyAssigned.length > 0) {
 			refuse(
@@ -327,7 +385,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 				const code = codeByName.get(row.shift_code);
 				if (code == null) refuse(`No roster code resolved for ${row.shift_code}.`);
 				return {
-					employment_id: employmentId(row.employee_number),
+					employment_id: contractFor(row).id,
 					work_date: row.work_date,
 					values: {
 						shift_definition_id: code.id,
@@ -458,7 +516,7 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 		let companyId: string | undefined;
 		if (legalEntity != null) {
 			const companies = yield* api.db.companies.findMany({
-				columns: { id: true, name: true, registration_number: true },
+				columns: { id: true, name: true, registration_number: true, settings_code: true },
 				limit: QUERY_LIMIT
 			});
 			companyId = resolveLegalEntity(companies, legalEntity).id;
@@ -505,47 +563,8 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			);
 		}
 
-		const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
-		const employments = yield* api.db.employments.findMany({
-			where: {
-				employee_number: { in: employeeNumbers },
-				...(companyId == null ? {} : { company_id: { eq: companyId } })
-			},
-			columns: { id: true, employee_number: true, company_id: true },
-			limit: QUERY_LIMIT
-		});
-		const idsByNumber = new Map<string, string[]>();
-		for (const employment of employments) {
-			const ids = idsByNumber.get(employment.employee_number) ?? [];
-			ids.push(employment.id);
-			idsByNumber.set(employment.employee_number, ids);
-		}
-		const ambiguous = employeeNumbers.filter(
-			(number) => (idsByNumber.get(number)?.length ?? 0) > 1
-		);
-		if (ambiguous.length > 0) {
-			refuse(
-				`These employee numbers exist in more than one company:\n${formatNamedList(ambiguous)}\nSet legal_entity on the Settings sheet to the employing entity this file is for.`
-			);
-		}
-		const idByNumber = new Map(
-			employments.map((employment) => [employment.employee_number, employment.id])
-		);
-		const unknown = employeeNumbers.filter((number) => !idByNumber.has(number));
-		if (unknown.length > 0) {
-			refuse(
-				companyId == null
-					? `These employee numbers are not on file:\n${formatNamedList(unknown)}`
-					: `These employee numbers are not employed by this legal entity:\n${formatNamedList(unknown)}`
-			);
-		}
-		const employmentIdFor = (number: string): string => {
-			const id = idByNumber.get(number);
-			if (id == null) refuse(`No employment resolved for ${number}.`);
-			return id;
-		};
-
-		const employmentIds = [...new Set(rows.map((row) => employmentIdFor(row.employee_number)))];
+		const contractFor = yield* readImportContracts(api, rows, companyId);
+		const employmentIds = [...new Set(rows.map((row) => contractFor(row).id))];
 		const workDates = [...new Set(rows.map((row) => row.work_date))].toSorted();
 		const existing = yield* readExistingDays(api, employmentIds, workDates);
 
@@ -555,10 +574,7 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 		 * answer about that day, and an import silently replacing it would lose it.
 		 */
 		const present = rows
-			.filter(
-				(row) =>
-					existing.get(personDayKey(employmentIdFor(row.employee_number), row.work_date))?.attended
-			)
+			.filter((row) => existing.get(personDayKey(contractFor(row).id, row.work_date))?.attended)
 			.map((row) => `${row.employee_number} on ${row.work_date}`);
 		if (present.length > 0) {
 			refuse(
@@ -570,17 +586,30 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 		// leave already owns, or onto a day a paid payroll run settled.
 		const first = workDates[0]!;
 		const last = workDates.at(-1)!;
-		const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
+		const companyIds = [...new Set(rows.map((row) => contractFor(row).company_id))];
 		if (companyIds.length > 0) {
 			const runs = yield* api.db.payroll_runs.findMany({
 				where: { company_id: { in: companyIds } },
-				columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+				columns: {
+					company_id: true,
+					period: true,
+					lifecycle: true,
+					attendance_from: true,
+					attendance_to: true
+				},
 				limit: QUERY_LIMIT
 			});
-			const windows = payrollWindows(runs);
-			for (const row of rows) assertNotSettled(windows, row.work_date, 'Importing attendance');
+			const windowsByCompany = new Map(
+				companyIds.map((id) => [id, payrollWindows(runs.filter((run) => run.company_id === id))])
+			);
+			for (const row of rows)
+				assertNotSettled(
+					windowsByCompany.get(contractFor(row).company_id)!,
+					row.work_date,
+					'Importing attendance'
+				);
 		}
-		const leaveRows = yield* api.db.leave_requests.findMany({
+		const leaveRows = yield* api.db.leave_entries.findMany({
 			where: {
 				employment_id: { in: employmentIds },
 				kind: { eq: 'TIME_OFF' },
@@ -598,7 +627,7 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			limit: QUERY_LIMIT
 		});
 		for (const row of rows) {
-			const employmentId = employmentIdFor(row.employee_number);
+			const employmentId = contractFor(row).id;
 			const covering = leaveRows
 				.filter((request) => request.employment_id === employmentId)
 				.find((request) => leaveCoverage(request, row.work_date).fullDay);
@@ -614,7 +643,7 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 		return personDayMutations(
 			existing,
 			rows.map((row) => ({
-				employment_id: employmentIdFor(row.employee_number),
+				employment_id: contractFor(row).id,
 				work_date: row.work_date,
 				values: attendanceValues(row, timezone)
 			})),

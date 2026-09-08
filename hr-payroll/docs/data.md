@@ -1,218 +1,164 @@
-# Clean payroll data: source-to-seed and reconciliation
+# Payroll source inputs and reconciliation
 
-## Pipeline
-
-```mermaid
-flowchart LR
-  RAW["Raw XLSX/PDF/email evidence\nunaltered archive"] --> CLEAN["cleaned_source_data\nformat-normalised only"]
-  CLEAN --> INPUT["Seed input records\n1:1 business facts"]
-  INPUT --> RUN["Fresh payroll run"]
-  RUN --> OUT["Generated XLSX"]
-  CLEAN -->|"source payslip remains independent"| COMPARE["Variance comparison"]
-  OUT --> COMPARE
-```
-
-`cleaned_source_data` is a navigable representation of supplied source material. It is not a place
-to repair unexplained values or manufacture a cohesive dataset. Formatting, merged cells, repeated
-headers and employee grouping may be normalised; business values remain unchanged.
-
-When a source conflict is resolved with explicit business approval, record the correction in the
-cleaned archive and document it in the seed audit. All other conflicts and omissions remain visible.
-
-## Seed bank layout
-
-The repository seed bank (`seed_bank/norbital_hr`) is what a hosted workspace is provisioned from;
-the template's own `tests/fixtures/seed` is the public fixture its suites run on and carries no
-client data.
-
-| Directory            | Rows                                                                                                                                                                                                                                                     | Loaded by                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `records/<entity>/`  | One entity's rows per collection: company, employees, employments, terms, statutory facts, shifts, work days, requests, entries, loans. Five entities: `kdit`, `nihon`, `norbital`, `opsph`, `opssg`.                                                    | The demo bootstrap, every entity, ordered by table across all five                                          |
-| `statutory/`         | The jurisdiction settings lineages: `jurisdiction_settings` versions and the rows sealed under each (`statutory_contributions`, `contribution_rates`, `leave_catalogue`, `component_catalogue`, `company_holidays`), plus reference data no loader reads | The demo bootstrap, before `records/`; the three law tables merge a base file with an `id_` Indonesian file |
-| `statutory_fixture/` | One `STAT-<CC>-2026` company per jurisdiction with its people, each on a forked lineage (`MY-fixture`, `SG-fixture`, `VN-fixture`, `TW-fixture`) cloned from the base lineage with its own schemes, rates and remapped facts                             | Only the private reconciliation suite, by naming the `statutory-fixture` stage; never the demo tenant       |
-
-Two consequences of the layout. Leave catalogue entries, catalogue components and holidays belong to a settings
-version, so they live under `statutory/` and not under an entity: both Singapore entities bind to
-one `SG` lineage and share one catalogue. And the entity picker shows the five demo entities and
-nothing else, because the fixture companies are not in a stage the demo loads. A company row whose
-source supplied no registration number carries the literal `SOURCE_NOT_PROVIDED`; source material
-is not altered, so the loader maps it to `null` and the picker shows no subtitle.
-
-The loader is a pure projection onto the live tables: a key with no column, or a row missing a
-column the table requires, is collected as drift and the whole seed is refused.
-
-## What a reconciliation dataset contains
-
-A typical private reconciliation exercise supplies the following input families. Counts vary by
-engagement; the audit must report exact coverage for the dataset under test, not assumed totals.
-
-| Input family                    | Seed rule                                                                           | Typical audit question                                  |
-| ------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Medical claims                  | One seeded row per approved cleaned claim                                           | Does every tracker row map 1:1?                         |
-| Loan repayment plan             | The loan's `loan_repayments` rows, provisioned equal with the remainder on the last | Are unsupported schedules excluded rather than altered? |
-| Direct allowances               | Source-backed money entries only                                                    | Are calculated incentive columns excluded?              |
-| Component entries               | Claims, allowances, bonuses, arrears and corrections                                | Is any payslip output copied back as input?             |
-| Leave requests                  | Approved cleaned requests linked to employments                                     | Do quantities and dates match the source?               |
-| Employee master and employments | Codes, hire dates, terms, statutory facts                                           | Are incomplete master gaps disclosed?                   |
-| Attendance                      | Dated rows per employment                                                           | Are rows without a complete master left unseeded?       |
-
-Calculated payslip columns — basic earned, overtime amounts, incentive overtime, unpaid-leave
-deductions, contributions, tax, gross, net and year-to-date totals — never enter seed. They are
-produced by a fresh run and compared against the independent source workbook.
-
-## Seed hygiene principles
-
-- Remove placeholder employments when the employee master is incomplete; retain cleaned attendance
-  rows so the missing-data boundary stays visible.
-- Exclude loans whose principal and repayment plan disagree; keep period recoveries
-  that the source states explicitly.
-- Do not seed business incentive overtime from a payslip column when no input policy or event exists.
-- Do not seed derived late-joiner basic arrears; let the engine calculate them from hire date and
-  contract salary.
-- Retain source-stated closed-period corrections and prior-year statutory adjustments whose causal
-  periods cannot be reconstructed inside the test horizon.
-
-## Known missing-evidence categories
-
-The seed audit must list every source record that cannot be seeded. Common categories:
-
-| Missing source                                                      | Payroll impact                                                                                      |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Employee master for a population with attendance only               | Attendance cannot form complete employments or money inputs                                         |
-| Payslips withheld for blind testing                                 | Output can run but cannot yet be reconciled                                                         |
-| Payslip amount that disagrees with the specialist tracker           | Remains an input gap until HR confirms the paid amount; then seed the paid value with that evidence |
-| Incomplete June joiner master while attendance exists               | Keep cleaned attendance; key master/terms in UI for testing — do not invent                         |
-| Loan whose principal does not equal its repayment plan              | Period recoveries may pay, but the agreement cannot be represented consistently                     |
-| Shift catalogue, roster definitions or independent medical register | Identity, schedule and claim provenance remain incomplete                                           |
-| Loan disbursement dates                                             | Valid schedules exist, but origination-date audit is incomplete                                     |
-
-## Source-to-seed contract
-
-### Three field classes
-
-| Class                     | Examples                                                                                                      | Seed rule                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Supplied input            | employee master, terms, shift assignment, attendance, approved leave, claim, allowance, loan and its schedule | Map one-to-one with provenance; normalise representation only                           |
-| Derivable input structure | roster day generated from a supplied shift assignment and calendar                                            | Generate only when the governing source rule is present and retain the source code/date |
-| Payroll output            | basic earned, OT amount, incentive OT, NPL amount, contributions, tax, gross, net, YTD                        | Never seed; calculate and compare                                                       |
-
-The source payslip is test evidence, not seed. A matching output amount is not permission to copy it
-back into an input table.
-
-### Allowed cleaning
-
-- unmerge cells and repeat employee identifiers on every dated row;
-- use consistent sheet names and headers;
-- preserve numbers as numbers, dates as dates and codes as text;
-- remove decorative, empty and repeated-header rows;
-- split a visually grouped block into one row per business record; and
-- record original workbook, sheet, cell/row and file hash.
-
-Cleaning must not calculate OT, infer a missing shift, convert leave, change a claim amount, invent a
-transaction date or silently fill an employee master field. If source files conflict, both facts are
-retained and the conflict is reported.
-
-### Explicitly authorised entries when trackers disagree
-
-An amount may appear on a source payslip but disagree with its specialist tracker. Prefer the
-tracker when it matches the paid listing. When HR confirms a different paid amount with supporting
-evidence, seed the **paid** amount and document the reason — do not invent a tracker receipt date
-and do not leave the payslip amount as an unexplained gap.
-
-Example: employee `PUBEM0053` has January medical RM93.50 on the salary listing (`JAN 2026!X5`).
-The medical tracker also lists RM158 for January 2026 and RM215 for December 2025. The supporting
-medical claim form shows the original claim RM158 struck through and replaced with RM93.50 because
-the **2025 annual medical balance** remaining was RM93.50. Seed RM93.50 with that provenance; do
-not invent a missing receipt date beyond the settlement window.
-
-### Cutoff representation
-
-Preserve both the event date and settlement assignment:
-
-```text
-event_date = when the attendance, claim, leave or repayment occurred
-pay_period = explicit payroll assignment, when supplied
-```
-
-Do not move an event date to force it through a cutoff. Attendance is selected by the configured
-21st–20th window. Component entries use explicit `pay_period` when present; otherwise their default
-cutoff rule applies.
-
-### Source-specific boundaries
-
-- Paper January OT claims are corroborating evidence. Attendance remains the time input; a paper
-  form never seeds an OT amount.
-- Shift codes `01` and `10` remain source codes. Their roster/OT behaviour must come from the
-  confirmed shift definition, not from a guessed label.
-- OIL is calculated from holiday/rest-day rules when applicable. No missing OIL award transaction
-  is fabricated.
-- A late-joiner backpay derived from hire date and salary is output. A separately supplied historical
-  statutory correction is input.
-- Unsupported loan schedules are excluded rather than altered to make the totals fit.
-
-### Completeness rule
-
-The audit report must list every source record that cannot be seeded and every required payroll
-input family that was not supplied. "No discrepancy" means exact cleaned-to-seed coverage within the
-declared boundary; it does not mean that missing business documents were guessed.
-
-## Reconciliation method
-
-### Independence rule
-
-The expected side is read directly from `cleaned_source_data` XLSX workbooks. Generated XLSX files
-are actual results only. Cached JSON, old `output` folders, previous reports and generated workbooks
-must never supply expected values.
+## Source-to-result flow
 
 ```mermaid
 flowchart LR
-  S["Source XLSX cells"] --> N["Canonical comparison rows"]
-  R["Fresh paid runs"] --> G["Generated XLSX cells"]
-  G --> N
-  N --> V["Cell variance + population variance"]
-  A["Attendance/leave/claim/loan source sheets"] --> X["Independent explanation"]
-  V --> X
+  RAW["Original source evidence"] --> CLEAN["Normalised source records"]
+  CLEAN --> REVIEW["Verify contract identity and input evidence"]
+  REVIEW --> INPUT["Family catalogues and approved entries"]
+  HOLIDAY["Published jurisdiction holiday calendar"] --> RUN
+  INPUT --> RUN["One regular run per entity and period"]
+  RUN --> OUT["One payslip per employment contract"]
+  OUT --> EXPORT["Generated workbook"]
+  CLEAN -->|"Independent source payslip"| COMPARE["Population and value comparison"]
+  EXPORT --> COMPARE
 ```
 
-### Refresh sequence
+Normalisation preserves business values. It may unmerge cells, repeat identifying fields, remove
+repeated headers and use consistent date, number and code representations. Retain the original
+file hash, workbook, sheet and row or cell supporting each source record. A confirmed correction
+keeps both the original evidence and the approval explaining the change.
 
-1. Reset the local test tenant from the current HR template and current seed.
-2. Create and calculate periods chronologically; mark each period paid so later YTD is stable.
-3. Export one generated workbook per period.
-4. Hash every source and generated workbook.
-5. Compare unique `(month, employee_code)` rows field by field.
-6. Separately report missing and extra employee-month rows.
-7. Audit source relationships for consumed events and deferred entries.
-8. Explain representative variances from source attendance, leave, claim, loan and master workbooks;
-   do not use a generated workbook to explain its own expected result.
+Cleaning must not infer employment dates, manufacture a shift, adjust a claim amount, generate
+encashment or carry-forward, or copy a calculated payslip amount into an input family.
 
-### Comparison contract
+## Fixtures and provisioning boundary
 
-For every field:
+The template's `tests/fixtures/seed` contains synthetic fixtures for its public suites. Customer
+source records, identities and reconciliation results do not belong in the template or its tests.
+
+The host provisions from an explicitly configured source bundle and the collection stages declared
+in `norbital.template.json`. It does not discover source data by scanning sibling checkouts. Shared
+catalogues load before the events referencing them; contracts load before their terms and events;
+Work assignments load before dated Leave evidence; source captures and permanent contract seals
+load after their consumers.
+
+Fixture rows use the current authored model and datatype shapes. The seed adapter reports unknown
+columns and missing required values instead of silently dropping them. It does not translate
+retired collections or invent missing business facts. Optional reconciliation fixtures load only
+when their fixture stage is explicitly selected.
+
+An incomplete source migration records its unresolved originals and a
+`source_review/migration-blockers.json` file in the configured source bundle. The host refuses the
+seed before any database operation while that file contains blockers. Collection filters and
+schema-drift overrides cannot turn an incomplete history into a usable seed. Review files preserve
+evidence; they are not workspace collections or permission to omit approved activity.
+
+## Contract and family scope
+
+`employments` represents one employment contract: one employee profile, one legal entity and one
+uninterrupted stint. A profile may hold active contracts with different entities, but two service
+windows for the same profile/entity cannot overlap. Rehire creates a new contract and a fresh
+contract-scoped entitlement calculation. Source identifiers must distinguish those stints.
+
+Every employee event, generated loan instalment and payslip carries its contract's `employment_id`.
+An entry, its correction and its payslip captures must agree on that contract. Do not move an old
+obligation to a rehire contract or combine two entities' payouts. Contribution may aggregate a
+person's settled amounts across contracts within the same entity/year when its scheme requires it;
+that does not merge their leave balances or source obligations.
+
+Jurisdiction-relative residency status belongs to effective employment terms. Move an existing
+status only when its contract's jurisdiction is evidenced; a profile shared across jurisdictions
+must not propagate one global status to every contract. Unknown remains unknown and does not
+satisfy citizenship eligibility.
+
+The first committed reference seals the contract. Imported history must include permanent
+`employment_contract_inputs` evidence, including references whose original consumer was later
+removed. Its `terms_through` date protects the effective terms consumed by actual Work dates,
+approved Leave charges or debit valuations, and payroll dependencies. Future entitlement projections
+do not advance that date. Simple references and sources without retained dated evidence keep it
+null; moving or deleting a consumer cannot erase an earlier dated seal.
+
+Departure is a separate immutable `employment_departures` fact. It preserves the signed
+contract and does not generate any payment. A missing departure reason remains unresolved.
+
+| Family       | Source inputs                                                             | Preservation requirement                                                                            |
+| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Work         | Work catalogue, effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
+| Leave        | Leave catalogue and manual `leave_entries`                                | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
+| Claim        | Claim catalogue and approved claims                                       | Preserve entered amount, original dates, receipts, caps and settlement assignment                   |
+| Allowance    | Allowance catalogue and approved awards or recurring assignments          | Preserve recurrence, amount and the original eligibility window                                     |
+| Payment      | Payment catalogue and approved one-off payments or deductions             | Preserve source and catalogue IDs, entered amount, effective date, reason and any covered periods   |
+| Loan         | Loan catalogue, agreement and `loan_repayments`                           | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
+| Contribution | Scheme catalogues, rates and contract facts                               | Preserve effective applicability and the explicit treatments declared by source-family outputs      |
+
+Bonuses, notice pay and separation payments are Payment catalogue definitions. Encashment and
+carry-forward remain manual Leave categories. No annual account rows, accrual scheduler, automatic
+departure payments or automatic carry-forward policies are seeded.
+
+## Leave and holiday evidence
+
+Consecutive Leave dates may be collapsed only when contract, leave type, reason, approval context
+and other source metadata agree, with no missing dates or half-days. Preserve total charges and
+source identity. A range crossing payroll periods retains each dated charge so each period captures
+only its own dates. Approved activity must not be rewritten to fit today's schedule or entitlement.
+
+A TIME_OFF entry retains the exact catalogue, employment term, shift, calendar and optional Work
+assignment supporting every charged date. Historical Work overrides must come from source evidence
+and retain their original assignment code and origin. Missing evidence is not permission to choose
+an arbitrary shift or distribute a range's quantity across dates.
+
+Leave quantities reconcile against computed entitlement and explicit manual entries. Compare
+usage on the dates it occurs, because service bands, eligibility and released entitlement can
+change within a year. Distinguish missing policy on an actual activity date from an unavailable
+future year-end valuation. Do not invent opening adjustments or carry-forward credits merely to
+make an old usage total fit a formula.
+
+Holiday calendars are standalone jurisdiction/year inputs. Company closures and personal roster
+labels do not establish jurisdiction-observed holidays. Preserve imported observation identities
+and provenance, review annual completeness and publish the calendar explicitly. Missing coverage
+must not be converted into a published empty calendar.
+
+Work and Leave references retain permanent `holiday_calendar_inputs`, including non-holiday dates.
+A link or committed consumption seals the input. Removing its consumer cannot permit a later
+calendar edit, date shift or retroactive holiday addition to change the captured classification.
+
+## Monetary inputs and cutoff dates
+
+Preserve both the original event date and any explicitly supplied settlement assignment. Do not
+move an event date to force a cutoff. The configured attendance window determines which Work dates
+are measured; the family determines when an approved monetary entry is due.
+
+Exactly one payroll is allowed per entity and period. Late approved obligations remain attached
+to their original contract and become eligible for a later regular run, including after departure.
+A paid period is not reopened and no ad hoc run is created. A correction retains its original source
+and capture evidence rather than making the original obligation payable again.
+
+Calculated salary, overtime, unpaid-leave reductions, contributions, tax, gross, net and YTD totals
+are outputs. Do not seed a second monetary copy. A manual historical correction is an input only
+when the source explicitly supplies the transaction and its cause cannot already be reconstructed
+from the supplied terms, attendance, Leave or other family entries.
+
+Loan agreements whose principal and instalments disagree require reconciliation. Do not alter the
+schedule to force equality or create an unapproved replacement deduction. Conflicting trackers and
+paid listings similarly require explicit evidence of the approved amount and transaction dates.
+
+## Reconciliation
+
+Use an isolated local test database with the current template and verified source inputs. Calculate
+regular periods chronologically and settle them in order so later contribution and YTD inputs are
+stable. Export the resulting workbooks and record the source and generated file hashes.
+
+Expected values come directly from the independent source workbooks. Generated output, previous
+reports and cached calculated values must not supply expected results.
+
+Compare by entity, employment contract and payroll period. A source keyed only by employee code
+must first resolve that code to the correct stint; ambiguous rehires or concurrent entity payouts
+remain unresolved. Report missing and extra contract/period rows separately from value variances.
+
+For every compared field:
 
 ```text
-delta = generated amount − source XLSX amount
+delta = generated amount − independently sourced amount
 ```
 
-Zero and blank are not interchangeable unless the source schema explicitly says so. Totals are
-reported as both signed delta and absolute delta; otherwise positive and negative errors can cancel.
+Zero and blank are distinct unless the source contract says otherwise. Report signed and absolute
+variance totals so opposite errors cannot cancel. Each assessed variance identifies the contract,
+period, field, source cell and amount, generated cell and amount, arithmetic difference and supporting
+input evidence. Gross, contribution and net consequences of one input error are not separate causes.
 
-Each assessed example must include month, employee code, field, source amount and cell, generated
-amount and cell, arithmetic delta, evidence used, conclusion and whether the cause is proven or
-still unresolved.
-
-### No-hallucination controls
-
-- Expected values are loaded at runtime from XLSX, not copied into test code.
-- The cleaned source file hash is recorded.
-- A claim unsupported by the named source file is labelled unresolved.
-- A mathematical match is necessary but not sufficient: the dated quantity, rate basis, day type
-  and rounding order must also match.
-- Downstream gross, contribution and net differences are not counted as independent root causes.
-- The report is regenerated after any template, seed, source-cleaning or export change.
-
-The current audited snapshot is maintained privately alongside the real source workbooks. This
-document describes how to produce one; it deliberately embeds no client variance evidence, because a
-public template that carried dated figures from one engagement would invite a reader to treat them
-as the expected answer. Dated variance evidence against real source workbooks is maintained in the
-private reconciliation suite, not in this public template.
+A numerical match alone is insufficient: dated quantity, rate basis, day classification, rounding,
+source selection and permanent captures must also agree. List every unresolved source record and
+required input that was not supplied. Passing fixture shape or coverage checks does not establish
+private payroll parity or authorize loading incomplete approved history.

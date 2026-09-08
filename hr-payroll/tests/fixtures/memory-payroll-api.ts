@@ -13,12 +13,16 @@ export type PayrollWorld = {
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
 	readonly contribution_rates: PayrollRow[];
-	readonly component_catalogue: PayrollRow[];
+	readonly work_catalogue: PayrollRow[];
+	readonly loan_catalogue: PayrollRow[];
+	readonly claim_catalogue: PayrollRow[];
+	readonly allowance_catalogue: PayrollRow[];
+	readonly payment_catalogue: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly shift_patterns: PayrollRow[];
-	readonly company_holidays: PayrollRow[];
+	readonly jurisdiction_holiday_calendars: PayrollRow[];
+	readonly holiday_calendar_inputs: PayrollRow[];
 	readonly leave_catalogue: PayrollRow[];
-	readonly leave_entitlements: PayrollRow[];
 	readonly leave_entries: PayrollRow[];
 	readonly employments: PayrollRow[];
 	readonly employees: PayrollRow[];
@@ -26,23 +30,18 @@ export type PayrollWorld = {
 	readonly employment_statutory_facts: PayrollRow[];
 	readonly claim_requests: PayrollRow[];
 	readonly allowance_requests: PayrollRow[];
-	readonly bonus_requests: PayrollRow[];
-	readonly arrears_requests: PayrollRow[];
-	readonly correction_requests: PayrollRow[];
+	readonly payment_requests: PayrollRow[];
 	readonly loans: PayrollRow[];
 	readonly loan_repayments: PayrollRow[];
-	readonly leave_requests: PayrollRow[];
 	readonly work_days: PayrollRow[];
 	readonly employee_children: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
 	readonly payslip_claim_request_inputs: PayrollRow[];
 	readonly payslip_allowance_request_inputs: PayrollRow[];
-	readonly payslip_bonus_request_inputs: PayrollRow[];
-	readonly payslip_arrears_request_inputs: PayrollRow[];
-	readonly payslip_correction_request_inputs: PayrollRow[];
+	readonly payslip_payment_request_inputs: PayrollRow[];
 	readonly payslip_adjustments: PayrollRow[];
-	readonly payslip_leave_request_inputs: PayrollRow[];
+	readonly payslip_leave_inputs: PayrollRow[];
 	readonly payslip_loan_repayment_inputs: PayrollRow[];
 };
 
@@ -134,6 +133,13 @@ export function clonePayrollWorld(world: PayrollWorld): PayrollWorld {
 /** A read-only hook `api` whose `db` is the given world. */
 export function memoryPayrollApi(world: PayrollWorld) {
 	const collection = (name: keyof PayrollWorld) => ({
+		findPending: (query: { where?: unknown; limit?: number }) =>
+			Effect.succeed(
+				select(
+					world[name].filter((row) => row.approval_id != null),
+					query
+				)
+			),
 		findMany: (query: { where?: unknown; limit?: number }) =>
 			Effect.succeed(select(world[name], query)),
 		findFirst: (query: { where?: unknown; limit?: number }) =>
@@ -145,12 +151,16 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
 			contribution_rates: collection('contribution_rates'),
-			component_catalogue: collection('component_catalogue'),
+			work_catalogue: collection('work_catalogue'),
+			loan_catalogue: collection('loan_catalogue'),
+			claim_catalogue: collection('claim_catalogue'),
+			allowance_catalogue: collection('allowance_catalogue'),
+			payment_catalogue: collection('payment_catalogue'),
 			shift_definitions: collection('shift_definitions'),
 			shift_patterns: collection('shift_patterns'),
-			company_holidays: collection('company_holidays'),
+			jurisdiction_holiday_calendars: collection('jurisdiction_holiday_calendars'),
+			holiday_calendar_inputs: collection('holiday_calendar_inputs'),
 			leave_catalogue: collection('leave_catalogue'),
-			leave_entitlements: collection('leave_entitlements'),
 			leave_entries: collection('leave_entries'),
 			employments: collection('employments'),
 			employees: collection('employees'),
@@ -158,23 +168,18 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employment_statutory_facts: collection('employment_statutory_facts'),
 			claim_requests: collection('claim_requests'),
 			allowance_requests: collection('allowance_requests'),
-			bonus_requests: collection('bonus_requests'),
-			arrears_requests: collection('arrears_requests'),
-			correction_requests: collection('correction_requests'),
+			payment_requests: collection('payment_requests'),
 			loans: collection('loans'),
 			loan_repayments: collection('loan_repayments'),
-			leave_requests: collection('leave_requests'),
 			work_days: collection('work_days'),
 			employee_children: collection('employee_children'),
 			payroll_runs: collection('payroll_runs'),
 			payslips: collection('payslips'),
 			payslip_claim_request_inputs: collection('payslip_claim_request_inputs'),
 			payslip_allowance_request_inputs: collection('payslip_allowance_request_inputs'),
-			payslip_bonus_request_inputs: collection('payslip_bonus_request_inputs'),
-			payslip_arrears_request_inputs: collection('payslip_arrears_request_inputs'),
-			payslip_correction_request_inputs: collection('payslip_correction_request_inputs'),
+			payslip_payment_request_inputs: collection('payslip_payment_request_inputs'),
 			payslip_adjustments: collection('payslip_adjustments'),
-			payslip_leave_request_inputs: collection('payslip_leave_request_inputs'),
+			payslip_leave_inputs: collection('payslip_leave_inputs'),
 			payslip_loan_repayment_inputs: collection('payslip_loan_repayment_inputs')
 		}
 	};

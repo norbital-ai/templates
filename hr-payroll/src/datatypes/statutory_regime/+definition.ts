@@ -135,6 +135,7 @@ export type StatutoryWeeklyRestRule = Schema.Schema.Type<typeof statutoryWeeklyR
  * from one revision and pricing or limits from another.
  */
 export const statutoryRegimeValueSchema = Schema.Struct({
+	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY']),
 	overtime_coverage: Schema.NullOr(overtimeCoverageValueSchema),
 	overtime_rules: Schema.Array(statutoryOvertimeRuleValueSchema),
 	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema),

@@ -11,27 +11,28 @@
 		"payroll_effect": {
 			"kind": "PAID"
 		},
-		"accrual": {
-			"kind": "UPFRONT",
-			"settlement": {
-				"settlement": "CARRY",
-				"limit_days": 5,
-				"expiry_months": 3
-			}
-		},
 		"entitlement": {
-			"layers": [
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
 				{
-					"level": "ORGANISATION",
 					"band_from": 0,
 					"days": 8
 				}
 			]
 		},
-		"exit_settlement": {
-			"exit": "PAY_OUT",
-			"pay_basis": "ORDINARY_DIV26",
-			"misconduct_forfeits": true
+		"encashment": {
+			"code": "ANNUAL_ENCASHMENT",
+			"sequence": 110,
+			"contribution_treatments": {
+				"PUB-EPF": {
+					"kind": "INCLUDE"
+				},
+				"PUB-EPF-NC": {
+					"kind": "INCLUDE"
+				}
+			}
 		}
 	},
 	{
@@ -46,23 +47,28 @@
 		"payroll_effect": {
 			"kind": "PAID"
 		},
-		"accrual": {
-			"kind": "UPFRONT",
-			"settlement": {
-				"settlement": "FORFEIT"
-			}
-		},
 		"entitlement": {
-			"layers": [
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
 				{
-					"level": "ORGANISATION",
 					"band_from": 0,
 					"days": 60
 				}
 			]
 		},
-		"exit_settlement": {
-			"exit": "FORFEIT"
+		"encashment": {
+			"code": "HOSPITALIZATION_ENCASHMENT",
+			"sequence": 110,
+			"contribution_treatments": {
+				"PUB-EPF": {
+					"kind": "INCLUDE"
+				},
+				"PUB-EPF-NC": {
+					"kind": "INCLUDE"
+				}
+			}
 		}
 	},
 	{
@@ -77,14 +83,23 @@
 		"payroll_effect": {
 			"kind": "PAID"
 		},
-		"accrual": {
-			"kind": "UNLIMITED"
-		},
 		"entitlement": {
-			"layers": []
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
 		},
-		"exit_settlement": {
-			"exit": "FORFEIT"
+		"encashment": {
+			"code": "NS_ENCASHMENT",
+			"sequence": 110,
+			"contribution_treatments": {
+				"PUB-EPF": {
+					"kind": "INCLUDE"
+				},
+				"PUB-EPF-NC": {
+					"kind": "INCLUDE"
+				}
+			}
 		}
 	}
 ]

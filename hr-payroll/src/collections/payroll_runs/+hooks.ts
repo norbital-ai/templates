@@ -8,13 +8,10 @@ import {
 	gatherPayrollRun,
 	type PreparedRun
 } from './lib/engine.js';
-import {
-	storedCumulativePayroll,
-	supplementalPayroll,
-	corePayrollInputHash
-} from './lib/supplemental.js';
+import { assertPayrollPeriodAvailable } from './lib/period.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
+import { stableJson } from '../../lib/jurisdiction_settings.js';
 
 /**
  * What a person actually chooses when creating a run: a company and a period. Everything else on the
@@ -31,7 +28,6 @@ import { describeIssues } from './lib/validate.js';
  */
 const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
-	run_kind: Schema.optional(Schema.Literals(['REGULAR', 'AD_HOC'])),
 	lifecycle: Schema.optional(Schema.Literal('PAID')),
 	/**
 	 * A month for a monthly company, a half for a semi-monthly one. The grammar is checked against
@@ -46,12 +42,10 @@ const createPayrollRunInput = Schema.Struct({
 
 /** Columns the engine owns; a person may not edit them. */
 const DERIVED_COLUMNS = [
-	'run_kind',
-	'sequence',
 	'company_id',
 	'period',
 	'configuration_hash',
-	'core_input_hash',
+	'holiday_calendars',
 	'settings_id',
 	'calculation_version',
 	'pay_date',
@@ -74,7 +68,7 @@ type PreparedRuns = ReadonlyMap<string, PreparedRun>;
  */
 const derivedColumns = (prepared: PreparedRun) => ({
 	configuration_hash: prepared.configuration.hash,
-	core_input_hash: corePayrollInputHash(prepared),
+	holiday_calendars: prepared.configuration.holidayCalendars,
 	settings_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
 	pay_date: prepared.window.payDate,
@@ -83,7 +77,7 @@ const derivedColumns = (prepared: PreparedRun) => ({
 });
 
 /** Calculate, and hand back the run's columns with every payslip it produced nested under them. */
-const buildGraph = (prepared: PreparedRun, baseline?: unknown) =>
+const buildGraph = (prepared: PreparedRun) =>
 	Effect.gen(function* () {
 		const built = buildPayrollRun(prepared);
 		if (built.warnings.length > 0)
@@ -95,10 +89,8 @@ const buildGraph = (prepared: PreparedRun, baseline?: unknown) =>
 		);
 		return {
 			...derivedColumns(prepared),
-			payslip_payroll_run:
-				baseline === undefined
-					? built.payslip_payroll_run
-					: supplementalPayroll(built.payslip_payroll_run, baseline)
+			payroll_holiday_input_run: prepared.configuration.holidayInputs,
+			payslip_payroll_run: built.payslip_payroll_run
 		};
 	});
 
@@ -133,17 +125,28 @@ export default {
 					companies.add(one.company_id!);
 				}
 				const entries = yield* Effect.forEach(creates, (one) =>
-					Effect.map(
-						gatherPayrollRun({ api, companyId: one.company_id!, period: one.period! }),
-						(run) => [runKey(one.company_id!, one.period!), run] as const
-					)
+					Effect.gen(function* () {
+						const runs = yield* api.db.payroll_runs.findMany({
+							where: { company_id: { eq: one.company_id! } },
+							columns: { period: true, lifecycle: true },
+							limit: 20_000
+						});
+						if (runs.length >= 20_000) refuse('Too many payrolls to verify settlement order.');
+						assertPayrollPeriodAvailable(runs, one.period!);
+						const run = yield* gatherPayrollRun({
+							api,
+							companyId: one.company_id!,
+							period: one.period!
+						});
+						return [runKey(one.company_id!, one.period!), run] as const;
+					})
 				);
 				return new Map(entries);
 			}),
 		perRecord: {
 			before: {
 				description:
-					'Freezes inputs, enforces payment order and calculates regular payroll or a same-period supplemental difference and returns the run together with every payslip, every captured input junction and every adjustment it produced.',
+					'Freezes inputs, enforces payment order and calculates the company’s single payroll for the period and returns the run together with every payslip, every captured input junction and every adjustment it produced.',
 				handler: ({ input, existing, prepared, api, relationships }) =>
 					Effect.gen(function* () {
 						// `existing` is undefined on a create and is the only thing that tells the two apart —
@@ -160,7 +163,7 @@ export default {
 										'Correct it with a component entry in a later draft run.'
 								);
 							for (const column of DERIVED_COLUMNS)
-								if (input[column] != null && String(input[column]) !== String(existing[column]))
+								if (column in input && stableJson(input[column]) !== stableJson(existing[column]))
 									refuse(
 										`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
 									);
@@ -179,10 +182,7 @@ export default {
 							// 2026-03-1` and `2026-02 < 2026-03` are the chronological orders, so the comparison
 							// reads a semi-monthly company's halves exactly as it reads a monthly company's months.
 							const blocked = previous.find(
-								(run) =>
-									run.id !== existing.id &&
-									(run.period < existing.period ||
-										(run.period === existing.period && run.sequence < existing.sequence))
+								(run) => run.id !== existing.id && run.period < existing.period
 							);
 							if (blocked != null)
 								refuse(
@@ -203,79 +203,16 @@ export default {
 						const facts = prepared.get(runKey(companyId, period));
 						if (facts == null)
 							refuse(`Payroll ${period} was not prepared. This is a bug, not a data fault.`);
-						const runs = yield* api.db.payroll_runs.findMany({
-							where: { company_id: { eq: companyId } },
-							limit: 20_000
-						});
-						if (runs.length >= 20_000) refuse('Too many payrolls to verify settlement order.');
-						const later = runs.find((run) => run.period > period);
-						if (later != null)
-							refuse(
-								`Payroll ${later.period} already exists. Record this correction in the current payroll period.`
-							);
-						const unsettled = runs.find((run) => run.lifecycle !== 'PAID');
-						if (unsettled != null)
-							refuse(
-								`Payroll ${unsettled.period} is still a draft. Settle or delete it before another run.`
-							);
-						const samePeriod = runs
-							.filter((run) => run.period === period)
-							.toSorted((a, b) => b.sequence - a.sequence);
-						const previous = samePeriod[0];
-						const runKind = input.run_kind ?? 'REGULAR';
-						if (runKind === 'REGULAR' && previous != null)
-							refuse(
-								`Payroll ${period} already exists. Use an ad hoc run for same-period adjustments.`
-							);
-						if (runKind === 'AD_HOC' && previous == null)
-							refuse('An ad hoc payroll needs a paid regular payroll in the same period.');
-						if (previous != null && previous.core_input_hash == null)
-							refuse(
-								'This paid payroll predates input fingerprints. Record adjustments in a later regular payroll.'
-							);
-						if (
-							previous != null &&
-							(previous.configuration_hash !== facts.configuration.hash ||
-								previous.calculation_version !== CALCULATION_VERSION ||
-								previous.core_input_hash !== corePayrollInputHash(facts))
-						)
-							refuse(
-								'The paid payroll inputs or calculation version changed. An ad hoc run may only add monetary entries; record other corrections in a later regular payroll.'
-							);
 						const blocking = yield* payrollRunPrecheck({
 							api,
 							configuration: facts.configuration,
 							window: facts.window
 						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
-						// The paid month's cumulative baseline is read back from its payslips, never from a
-						// copy on the run: the stored amounts are the settled facts.
-						const baseline =
-							previous == null
-								? undefined
-								: storedCumulativePayroll(
-										yield* api.db.payslips.findMany({
-											where: { payroll_run_id: { eq: previous.id } },
-											with: {
-												payslip_adjustment_payslip: true,
-												payslip_work_day_input_payslip: true,
-												payslip_claim_request_input_payslip: true,
-												payslip_allowance_request_input_payslip: true,
-												payslip_bonus_request_input_payslip: true,
-												payslip_arrears_request_input_payslip: true,
-												payslip_correction_request_input_payslip: true,
-												payslip_leave_request_input_payslip: true,
-												payslip_loan_repayment_input_payslip: true
-											},
-											limit: 10_000
-										})
-									);
 						return {
 							...input,
 							lifecycle: 'DRAFT' as const,
-							run_kind: runKind,
-							sequence: previous == null ? 0 : previous.sequence + 1,
-							...(yield* buildGraph(facts, baseline))
+							...(yield* buildGraph(facts))
 						};
 					})
 			}

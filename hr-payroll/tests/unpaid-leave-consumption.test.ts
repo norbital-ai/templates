@@ -1,36 +1,17 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	bonusRequest,
-	claimRequest,
-	requestPayPeriod
-} from '../src/collections/payroll_runs/lib/entries.ts';
-import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
+import { paymentRequest, claimRequest, requestPayPeriod } from '../src/lib/payroll/money.ts';
+import { calculateFamilies } from '../src/lib/payroll/families.ts';
 
-const JURISDICTION = {
-	id: 'jur-my',
-	code: 'MY',
-	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: { per: 'DAY', divisor: 26 },
-	tax_year_start_month: 1,
-	effective_range: { start: '2020-01-01', end: null }
-};
-
-const COMPANY = {
-	id: 'co-pub-my',
-	name: 'Public Fixture Co',
-	settings_code: 'MY',
-	pay_cutoff_day: 21,
-	risk_class: null,
-	effective_range: { start: '2020-01-01', end: null }
-};
-
+const APRIL = { start: '2026-04-01', end: '2026-04-30' };
+const ATTENDANCE = { start: '2026-03-21', end: '2026-04-20' };
 const BASIC = {
-	id: 'pc-basic',
-	settings_id: 'jur-my',
+	id: 'work-salary',
+	settings_id: 'settings',
+	family: 'WORK',
+	output: 'salary',
 	code: 'BASIC',
-	name: 'Basic salary',
 	nature: 'EARNING',
 	is_statutory: false,
 	policy: { kind: 'EARNING', settlement: 'ADD' },
@@ -39,129 +20,153 @@ const BASIC = {
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 };
-
 const NPL = {
-	id: '00000000-0000-4000-8000-0000000000n1',
-	settings_id: 'jur-my',
-	code: 'NPL',
-	name: 'Unpaid leave',
-	nature: 'ABSENCE',
-	is_statutory: false,
-	policy: { kind: 'ABSENCE', settlement: 'DEDUCT' },
-	contribution_treatments: {},
-	sequence: 20,
-	eligibility: '',
-	definition: { source: 'FORMULA', unit: 'MONEY', expr: '100.0' }
-};
-
-const NPL_TYPE = {
-	id: '00000000-0000-4000-8000-0000000000t1',
-	settings_id: 'jur-my',
+	id: 'leave-unpaid',
+	settings_id: 'settings',
 	code: 'NPL',
 	name: 'Unpaid leave',
 	is_statutory: false,
-	authority: null,
 	eligibility: '',
-	exit_settlement: { exit: 'FORFEIT' },
 	requires_certificate_after_days: null,
-	accrual: { kind: 'UNLIMITED' },
-	entitlement: { layers: [] },
-	payroll_effect: { kind: 'UNPAID', component_id: NPL.id }
+	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
+	payroll_effect: {
+		kind: 'UNPAID',
+		deduction: { sequence: 20, eligibility: '', contribution_treatments: {} }
+	},
+	encashment: { code: 'NPL_CASH', sequence: 30, contribution_treatments: {} }
 };
-
-const GUARANTEED_PATTERN = {
-	type: 'ROSTERED',
-	expectation: {
-		kind: 'GUARANTEED_SCHEDULE',
-		period: 'WEEK',
-		required_work_days: 6,
-		required_paid_minutes: 2700
-	}
+const TERM = {
+	id: 'terms-1',
+	employment_id: 'employment-1',
+	base_salary: { value: 3000, currency: 'MYR' },
+	pay_frequency: 'MONTHLY',
+	shift_pattern_id: 'pattern-1',
+	statutory_work_category: 'NON_MANUAL',
+	employment_type: 'PERMANENT',
+	work_classification: 'NON_MANUAL',
+	department: null,
+	payroll_group: null,
+	effective_range: { start: '2021-01-01', end: null }
 };
-
-function configuration(catalogueLeaves = [NPL_TYPE]) {
+function leaveEntry(id, dates) {
+	const charges = dates.map((date) => ({
+		date,
+		days: 1,
+		leave_catalogue_id: NPL.id,
+		employment_term_id: TERM.id,
+		calendar_id: 'calendar',
+		shift_definition_id: null,
+		work_day_id: null
+	}));
 	return {
-		company: COMPANY,
-		jurisdiction: JURISDICTION,
-		leaveProfiles: [JURISDICTION],
-		contributions: [],
-		treatments: new Map(),
-		catalogueComponents: [BASIC, NPL],
-		overtimeRules: [],
-		overtimeLimits: [],
-		overtimeCoverageRule: null,
-		shiftById: new Map(),
-		patternById: new Map([
-			['pattern-1', { id: 'pattern-1', code: 'ROSTER-6D-45H-WK', pattern: GUARANTEED_PATTERN }]
-		]),
-		holidays: new Map(),
-		catalogueLeaves,
-		hash: 'test'
-	};
-}
-
-function bundle(ledger = []) {
-	return {
-		employment: {
-			id: 'emp-nhpmy0290',
-			employee_id: 'ee-1',
-			employee_number: 'PUBEM0290',
-			settings_id: 'jur-my',
-			hire_date: '2021-06-01',
-			exit_date: null,
-			department: null,
-			payroll_group: null,
-			employment_type: 'PERMANENT',
-			work_classification: 'NON_MANUAL',
-			effective_range: { start: '2021-06-01', end: null }
+		id,
+		employment_id: TERM.employment_id,
+		leave_catalogue_id: NPL.id,
+		leave_code: NPL.code,
+		reference: id,
+		event: {
+			kind: 'TIME_OFF',
+			range: {
+				start: { date: dates[0], half: 'FIRST' },
+				end: { date: dates.at(-1), half: 'SECOND' }
+			},
+			chargeable_days: dates.length,
+			reason: 'Approved absence'
 		},
-		employee: { id: 'ee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
-		terms: [
-			{
-				id: 'terms-1',
-				employment_id: 'emp-nhpmy0290',
-				base_salary: { value: 3000, currency: 'MYR' },
-				pay_frequency: 'MONTHLY',
-				shift_pattern_id: 'pattern-1',
-				statutory_work_category: 'NON_MANUAL',
-				effective_range: { start: '2020-01-01', end: null }
-			}
-		],
-		statutoryFacts: [],
-		payRequests: [],
-		loans: [],
-		loanRepayments: [],
-		ledger,
-		leaveEntitlements: [],
-		leaveEntries: [],
-		workDays: [],
-		serviceMonths: 58,
-		age: 36,
-		employedDays: { start: '2026-04-01', end: '2026-04-30' },
-		wageDays: { start: '2026-04-01', end: '2026-04-30' },
-		attendance: { start: '2026-03-21', end: '2026-04-20' },
-		arrearsFor: null,
-		deferral: null,
-		extendedLeaveSettlesInOwnMonth: false
+		charges,
+		allocations: [],
+		approval_id: null
 	};
 }
-
-const leaveDay = (id, date, days = -1) => ({
-	id,
-	leave_catalogue_id: NPL_TYPE.id,
-	entry_date: date,
-	kind: 'TAKEN',
-	days,
-	source_id: id,
-	approval_id: null
-});
-
-function measure(ledger) {
-	return measureEmployment({
-		bundle: bundle(ledger),
-		configuration: configuration(),
+function measure(entries) {
+	const leave = {
+		entries,
+		catalogues: [NPL],
+		captures: [],
+		balances: {},
+		deductionEligibility: Object.fromEntries(
+			entries.flatMap((entry) =>
+				entry.charges.map((charge) => [`${entry.id}/${charge.date}`, true])
+			)
+		)
+	};
+	return calculateFamilies({
+		bundle: {
+			employment: {
+				id: TERM.employment_id,
+				employee_id: 'employee-1',
+				employee_number: 'TEST',
+				company_id: 'company',
+				hire_date: '2021-01-01',
+				exit_date: null,
+				effective_range: { start: '2021-01-01', end: null }
+			},
+			employee: { id: 'employee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
+			terms: [TERM],
+			termsHistory: [TERM],
+			children: [],
+			statutoryFacts: [],
+			payRequests: [],
+			loans: [],
+			loanRepayments: [],
+			leave,
+			workDays: [],
+			serviceMonths: 63,
+			age: 36,
+			employedDays: APRIL,
+			wageDays: APRIL,
+			attendance: ATTENDANCE,
+			payFrequency: 'MONTHLY',
+			window: { period: '2026-04', salary: APRIL, attendance: ATTENDANCE },
+			arrearsFor: null,
+			deferral: null
+		},
+		configuration: {
+			company: {
+				id: 'company',
+				name: 'Fixture',
+				settings_code: 'TEST',
+				pay_cutoff_day: 21,
+				risk_class: null
+			},
+			jurisdiction: { id: 'settings', code: 'TEST', currency: 'MYR', tax_year_start_month: 1 },
+			work: {
+				jurisdiction_code: 'TEST',
+				proration: { by: 'CALENDAR_DAYS' },
+				ordinary_rate: { per: 'DAY', divisor: 26 }
+			},
+			holidayRestPrecedence: 'REST_DAY',
+			contributions: [],
+			treatments: new Map(),
+			catalogueComponents: [BASIC],
+			overtimeRules: [],
+			overtimeLimits: [],
+			overtimeCoverageRule: null,
+			shiftById: new Map(),
+			patternById: new Map([
+				[
+					'pattern-1',
+					{
+						id: 'pattern-1',
+						code: 'GUARANTEED',
+						pattern: {
+							type: 'ROSTERED',
+							expectation: {
+								kind: 'GUARANTEED_SCHEDULE',
+								period: 'WEEK',
+								required_work_days: 6,
+								required_paid_minutes: 2700
+							}
+						}
+					}
+				]
+			]),
+			holidays: new Map(),
+			catalogueLeaves: [NPL],
+			hash: 'test'
+		},
 		period: '2026-04',
-		salary: { start: '2026-04-01', end: '2026-04-30' },
+		salary: APRIL,
 		periodsRemaining: 9,
 		headcount: 1,
 		consumedEntries: new Map(),
@@ -169,108 +174,92 @@ function measure(ledger) {
 	});
 }
 
-test('unpaid leave is an adjustment naming the leave request that caused it', () => {
-	const leaveRequestId = '00000000-0000-4000-8000-0000000000r1';
-	const measured = measure([leaveDay(leaveRequestId, '2026-04-10')]);
-	const npl = measured.adjustments.filter((row) => row.label === 'NPL');
-	assert.equal(npl.length, 1);
-	// The input replaces `LEAVE_UNPAID`'s `leave_request_ids` array. One row, one request, and the
-	// database enforces the arc: a `restrict` foreign key on the LEAVE_REQUEST arm is the lock.
-	assert.deepEqual(npl[0].input, { family: 'LEAVE_REQUEST', id: leaveRequestId });
-	assert.equal(npl[0].catalogueComponent.id, NPL.id);
-	assert.equal(npl[0].quantity, 1);
-	assert.equal(npl[0].amount, 100, 'the formula’s own figure, unapportioned: there is one request');
-	// And it is not base. Base is what the contract produced; this was caused by a record somebody
-	// can edit, and that is the whole of what makes it an adjustment.
+test('unpaid leave names the approved entry and exact day that caused the deduction', () => {
+	const measured = measure([leaveEntry('leave-1', ['2026-04-10'])]);
+	const [deduction] = measured.adjustments;
+	assert.deepEqual(deduction.input, { family: 'LEAVE', id: 'leave-1' });
+	assert.equal(deduction.catalogueComponent.catalogue_id, NPL.id);
+	assert.equal(deduction.quantity, 1);
+	assert.equal(deduction.amount, 100, '3000 monthly salary / 30 calendar days');
 	assert.deepEqual(
-		measured.base.map((item) => item.label),
+		measured.base.map((row) => row.label),
 		['BASIC']
 	);
+	assert.deepEqual(
+		measured.captured.leave[0].charges.map((row) => row.date),
+		['2026-04-10']
+	);
+	assert.equal(measured.captured.leave[0].gross_amount.value, -100);
 });
 
-test('one absence across three requests is three rows that sum to the formula’s amount', () => {
-	// `unique(source, payslip_id)` means a row cannot name three requests, and the old
-	// `leave_request_ids` array is exactly the shape that had to go. The amount is apportioned by
-	// the days each request contributed and the rounding residue lands on the last, so the parts sum
-	// to what the formula produced and the quantities sum to the days it was produced from.
+test('three approved entries retain three dated deductions and their exact total', () => {
 	const measured = measure([
-		leaveDay('lr-a', '2026-04-08'),
-		leaveDay('lr-b', '2026-04-09'),
-		leaveDay('lr-c', '2026-04-10')
+		leaveEntry('leave-a', ['2026-04-08']),
+		leaveEntry('leave-b', ['2026-04-09']),
+		leaveEntry('leave-c', ['2026-04-10'])
 	]);
-	const npl = measured.adjustments.filter((row) => row.label === 'NPL');
 	assert.deepEqual(
-		npl.map((row) => row.input.id),
-		['lr-a', 'lr-b', 'lr-c']
-	);
-	assert.equal(
-		Math.round(npl.reduce((total, row) => total + row.amount, 0) * 100) / 100,
-		100,
-		'100.00 over three days is 33.33 + 33.33 + 33.34, never 99.99'
+		measured.adjustments.map((row) => row.input.id),
+		['leave-a', 'leave-b', 'leave-c']
 	);
 	assert.deepEqual(
-		npl.map((row) => row.amount),
-		[33.33, 33.33, 33.34]
+		measured.adjustments.map((row) => row.amount),
+		[100, 100, 100]
 	);
 	assert.equal(
-		npl.reduce((total, row) => total + row.quantity, 0),
+		measured.adjustments.reduce((total, row) => total + row.amount, 0),
+		300
+	);
+	assert.equal(
+		measured.adjustments.reduce((total, row) => total + row.quantity, 0),
 		3
 	);
 });
 
-test('a request that started before this window is still captured when its days reach this window', () => {
-	const leaveRequestId = '00000000-0000-4000-8000-0000000000r2';
+test('an entry spanning the cutoff captures only its approved dates inside this payroll window', () => {
 	const measured = measure([
-		{
-			id: leaveRequestId,
-			leave_catalogue_id: NPL_TYPE.id,
-			entry_date: '2026-03-15',
-			through_date: '2026-04-05',
-			kind: 'TAKEN',
-			days: -12,
-			source_id: leaveRequestId,
-			approval_id: null
-		}
+		leaveEntry('leave-spanning', ['2026-03-20', '2026-03-21', '2026-04-05', '2026-04-21'])
 	]);
-	assert.ok(
-		measured.captured.leaveRequests.includes(leaveRequestId),
-		'April must capture a 15 Mar–5 Apr request for the April days, not only when the start sits in lockSpan'
-	);
-});
-
-test('a formula component with no unpaid leave in the window is base, because nothing caused it', () => {
-	const measured = measure([]);
-	const npl = measured.base.filter((item) => item.label === 'NPL');
-	assert.equal(npl.length, 1);
-	assert.deepEqual(npl[0].entry, { component_code: 'NPL', amount: 100 });
-	// No adjustment at all: an amount with no source is not an adjustment, it is base — and there is
-	// no `kind` column anywhere to declare which, because the kind is derived from what it points at.
+	assert.equal(measured.captured.leave.length, 1);
+	assert.equal(measured.captured.leave[0].leave_entry_id, 'leave-spanning');
 	assert.deepEqual(
-		measured.adjustments.filter((row) => row.label === 'NPL'),
-		[]
+		measured.captured.leave[0].charges.map((row) => row.date),
+		['2026-03-21', '2026-04-05']
+	);
+	assert.deepEqual(
+		measured.adjustments.map((row) => row.amount),
+		[96.77, 100],
+		'each date uses its own salary month denominator'
 	);
 });
 
-test('a claim settles by the day it was incurred, and a bonus by the day it was awarded', () => {
-	// Each family dates itself from its own column, and the builder settles that once. There is no
-	// fallback any more, because there is no shared `event_date` for a family to fall back to — a
-	// claim that does not say when it was incurred cannot be written at all.
-	const core = { id: 'r-1', employment_id: 'emp-1', component_catalogue_id: 'c-1', amount: 42 };
+test('without approved unpaid dates Leave produces neither money nor captures', () => {
+	const measured = measure([]);
+	assert.deepEqual(measured.adjustments, []);
+	assert.deepEqual(measured.captured.leave, []);
+	assert.deepEqual(
+		measured.base.map((row) => row.label),
+		['BASIC']
+	);
+});
+
+test('Claim uses its incurred day and Payment its effective day to select the default period', () => {
+	const core = { id: 'request', employment_id: 'employment-1', amount: 42, pay_period: null };
 	const claim = claimRequest({
 		...core,
+		claim_catalogue_id: 'claim',
 		incurred_on: '2026-04-10',
-		description: null,
-		pay_period: null
+		description: null
 	});
 	assert.equal(claim.event_date, '2026-04-10');
 	assert.equal(requestPayPeriod(claim, 21), '2026-04');
-
-	// The same money entered on the same day as a bonus lands in the next period, because the day
-	// it dates from is a different day.
-	const bonus = bonusRequest({ ...core, awarded_on: '2026-04-25', note: null, pay_period: null });
-	assert.equal(bonus.event_date, '2026-04-25');
-	assert.equal(requestPayPeriod(bonus, 21), '2026-05');
-
-	// And a stored override beats the cutoff on either.
-	assert.equal(requestPayPeriod({ ...bonus, pay_period: '2026-04' }, 21), '2026-04');
+	const payment = paymentRequest({
+		...core,
+		payment_catalogue_id: 'payment',
+		effective_on: '2026-04-25',
+		reason: 'Agreed payment'
+	});
+	assert.equal(payment.event_date, '2026-04-25');
+	assert.equal(requestPayPeriod(payment, 21), '2026-05');
+	assert.equal(requestPayPeriod({ ...payment, pay_period: '2026-04' }, 21), '2026-04');
 });

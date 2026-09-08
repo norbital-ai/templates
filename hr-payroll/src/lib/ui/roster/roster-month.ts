@@ -24,6 +24,7 @@
  */
 
 import { Schema } from 'effect';
+import { leaveChargesValueSchema } from '../../../datatypes/leave_charges/+definition.js';
 import {
 	PAYROLL_TIME_ZONE,
 	daysInMonth,
@@ -146,7 +147,7 @@ const dayFactsSchema = Schema.Struct({
 	assignmentCode: Schema.NullOr(Schema.String),
 	/** Where the plan came from, or null when the day carries no explicit plan. */
 	plannedOrigin: Schema.NullOr(Schema.Literals(['IMPORT', 'MANUAL'])),
-	/** Overlaid from `company_holidays`, never stored on the entry. */
+	/** Overlaid from `jurisdiction_holiday_calendars`, never stored on the entry. */
 	holidayName: Schema.NullOr(Schema.String),
 	leaveCode: Schema.NullOr(Schema.String),
 	halfDayLeave: Schema.Boolean,
@@ -299,7 +300,8 @@ const leaveRequestLikeSchema = Schema.Struct({
 	from_date: Schema.NullOr(calendarInstantSchema),
 	to_date: Schema.NullOr(calendarInstantSchema),
 	half_day_start: Schema.NullOr(Schema.Boolean),
-	half_day_end: Schema.NullOr(Schema.Boolean)
+	half_day_end: Schema.NullOr(Schema.Boolean),
+	charges: leaveChargesValueSchema
 });
 type LeaveRequestLike = Schema.Schema.Type<typeof leaveRequestLikeSchema>;
 
@@ -467,12 +469,11 @@ type DayIndexes = Schema.Schema.Type<typeof dayIndexesSchema>;
 /**
  * The month's per-day indexes: every employment/day lookup the fact assembly does.
  *
- * `leaveRequests` are expanded across their whole range here rather than in the query, because a
- * request is stored once at its `from_date` and a calendar needs every day it covers.
+ * Leave is drawn from approved dated charges. A range can include weekends and holidays that
+ * consumed no leave; two separately approved halves combine into one covered day.
  */
 function buildDayIndexes(
 	options: BuildRosterMonthOptions,
-	days: readonly string[],
 	first: string,
 	last: string
 ): DayIndexes {
@@ -480,39 +481,28 @@ function buildDayIndexes(
 
 	const workDay = indexWorkDaysByPersonDay(options.workDays);
 
-	const leave = new Map<string, { code: string; halfDay: boolean }>();
+	const leave = new Map<string, { code: string; halfDay: boolean; days: number }>();
 	for (const request of options.leaveRequests) {
-		if (request.kind !== 'TIME_OFF' || request.from_date == null || request.to_date == null)
-			continue;
-		const from = formatDateISO(request.from_date);
-		const to = formatDateISO(request.to_date);
-		if (to < first || from > last) continue;
+		if (request.kind !== 'TIME_OFF') continue;
 		const code = options.leaveCodeById.get(request.leave_catalogue_id) ?? 'LEAVE';
-		const halfStart = request.half_day_start === true;
-		const halfEnd = request.half_day_end === true;
-		const fromIndex = days.findIndex((date) => date >= from);
-		const toIndex = days.findLastIndex((date) => date <= to);
-		for (let index = fromIndex; index >= 0 && index <= toIndex && index < days.length; index += 1) {
-			const date = days[index]!;
-			leave.set(personDayKey(request.employment_id, date), {
-				code,
-				halfDay: (halfStart && date === from) || (halfEnd && date === to)
+		for (const charge of request.charges) {
+			if (charge.date < first || charge.date > last) continue;
+			const key = personDayKey(request.employment_id, charge.date);
+			const prior = leave.get(key);
+			const quantity = (prior?.days ?? 0) + charge.days;
+			leave.set(key, {
+				code: prior != null && prior.code !== code ? `${prior.code} + ${code}` : code,
+				halfDay: quantity < 1,
+				days: quantity
 			});
 		}
 	}
-
 	const pendingLeave = new Map<string, boolean>();
 	for (const request of options.pendingLeaveRequests) {
-		if (request.kind !== 'TIME_OFF' || request.from_date == null || request.to_date == null)
-			continue;
-		const from = formatDateISO(request.from_date);
-		const to = formatDateISO(request.to_date);
-		if (to < first || from > last) continue;
-		const fromIndex = days.findIndex((date) => date >= from);
-		const toIndex = days.findLastIndex((date) => date <= to);
-		for (let index = fromIndex; index >= 0 && index <= toIndex && index < days.length; index += 1) {
-			pendingLeave.set(personDayKey(request.employment_id, days[index]!), true);
-		}
+		if (request.kind !== 'TIME_OFF') continue;
+		for (const charge of request.charges)
+			if (charge.date >= first && charge.date <= last)
+				pendingLeave.set(personDayKey(request.employment_id, charge.date), true);
 	}
 
 	return { workDay, leave, pendingLeave, holidayByDate };
@@ -638,7 +628,7 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 	const days = monthDays(options.month);
 	const first = days[0]!;
 	const last = days[days.length - 1]!;
-	const indexes = buildDayIndexes(options, days, first, last);
+	const indexes = buildDayIndexes(options, first, last);
 	const dayStartMs = new Map(
 		days.map((date) => [date, Date.parse(startOfDayInstant(date, PAYROLL_TIME_ZONE))])
 	);

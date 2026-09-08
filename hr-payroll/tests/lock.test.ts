@@ -307,10 +307,47 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 			work_days: { findMany: () => Effect.succeed([]) },
 			shift_definitions: { findMany: () => Effect.succeed([]) },
 			shift_patterns: { findMany: () => Effect.succeed([]) },
-			// The company's law lineage, and the versions of it. Empty here: these fixtures are about
-			// attendance, and a company that binds to no jurisdiction has no rest-day rule to break.
-			companies: { findMany: () => Effect.succeed([]) },
-			jurisdiction_settings: { findMany: () => Effect.succeed([]) },
+			// A published, reviewed-empty calendar supplies the jurisdiction input independently of
+			// the payroll windows and captures whose lock behavior these cases exercise.
+			companies: { findMany: () => Effect.succeed([{ id: 'co-1', settings_code: 'TEST' }]) },
+			jurisdiction_settings: {
+				findMany: () =>
+					Effect.succeed([
+						{
+							id: 'settings-1',
+							code: 'TEST',
+							jurisdiction_code: 'TEST-JUR',
+							sealed_at: '2020-01-01T00:00:00.000Z',
+							voided_at: null,
+							approval_id: null,
+							effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
+						}
+					])
+			},
+			work_catalogue: {
+				findMany: () =>
+					Effect.succeed([
+						{
+							settings_id: 'settings-1',
+							regime: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
+						}
+					])
+			},
+			jurisdiction_holiday_calendars: {
+				findMany: () =>
+					Effect.succeed([
+						{
+							id: 'calendar-2026',
+							jurisdiction_code: 'TEST-JUR',
+							year: 2026,
+							revision: 1,
+							published_at: '2025-12-01T00:00:00.000Z',
+							observations: []
+						}
+					])
+			},
+			holiday_calendar_inputs: { findMany: () => Effect.succeed([]) },
+			employment_contract_inputs: { findMany: () => Effect.succeed([]) },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// A capture is a `payslip_work_day_inputs` junction row naming the day. Its payslip's
 			// amount is deliberately not consulted: a zero says the run read this day and priced it
@@ -321,7 +358,7 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 			},
 			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
 			// keeps its own tests.
-			leave_requests: { findMany: () => Effect.succeed([]) }
+			leave_entries: { findMany: () => Effect.succeed([]) }
 		}
 	};
 }

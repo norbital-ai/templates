@@ -31,7 +31,7 @@
  * a record anybody can edit: base is the contract, proration is the calendar, and statutory is
  * arithmetic over their sum. There is nothing to link to, nothing to freeze and no junction to
  * keep honest. `payslip_adjustments` is the one output relation, and every row in it names the one
- * captured input that caused it. The junctions carry no calculated values and never may: an input
+ * captured input that caused it. Leave captures retain their settled outputs for exact reversals. An input
  * that prices to nothing is still a row, because "consumed nothing" and "was never read" are
  * different claims.
  *
@@ -41,12 +41,17 @@
  */
 
 import type { ContributionCharge } from './contribute.js';
-import type { MeasuredAdjustment, MeasuredBase, MeasuredEmployment } from './measure.js';
+import type {
+	MeasuredAdjustment,
+	MeasuredBase,
+	MeasuredEmployment
+} from '../../../lib/payroll/family.js';
 import type { PayslipProration } from '../../../datatypes/payslip_proration/+definition.js';
 import type { Settlement } from './settle.js';
 
 export type PendingPayslip = {
 	readonly employmentId: string;
+	readonly termsThrough: string;
 	readonly currency: string;
 	readonly settlement: Settlement;
 	readonly proration: readonly PayslipProration[];
@@ -66,16 +71,14 @@ const INPUT_TAG_BY_FAMILY = {
 	WORK_DAY: 'WORK_DAY_INPUT',
 	CLAIM: 'CLAIM_REQUEST_INPUT',
 	ALLOWANCE: 'ALLOWANCE_REQUEST_INPUT',
-	BONUS: 'BONUS_REQUEST_INPUT',
-	ARREARS: 'ARREARS_REQUEST_INPUT',
-	CORRECTION: 'CORRECTION_REQUEST_INPUT',
+	PAYMENT: 'PAYMENT_REQUEST_INPUT',
 
-	LEAVE_REQUEST: 'LEAVE_REQUEST_INPUT',
+	LEAVE: 'LEAVE_INPUT',
 	LOAN_REPAYMENT: 'LOAN_REPAYMENT_INPUT'
 } as const;
 
 /**
- * The bucket an amount settles into, which is `component_catalogue.policy.kind` where there is one.
+ * The bucket an amount settles into, from the family pay item's `policy.kind` where there is one.
  *
  * `INFORMATION` never reaches here — MEASURE stops it, because an hourly rate is not money — so a
  * nature that is null or informational is a derived overtime row, and derived overtime is an
@@ -135,26 +138,16 @@ export function payrollRunGraph(options: {
 			options.period,
 			'allowance_request_id'
 		);
-		const bonusJunctions = junctionRowsOf(
-			payslip.captured.payRequests.BONUS,
+		const paymentJunctions = junctionRowsOf(
+			payslip.captured.payRequests.PAYMENT,
 			options.period,
-			'bonus_request_id'
+			'payment_request_id'
 		);
-		const arrearsJunctions = junctionRowsOf(
-			payslip.captured.payRequests.ARREARS,
-			options.period,
-			'arrears_request_id'
-		);
-		const correctionJunctions = junctionRowsOf(
-			payslip.captured.payRequests.CORRECTION,
-			options.period,
-			'correction_request_id'
-		);
-		const leaveJunctions = junctionRowsOf(
-			payslip.captured.leaveRequests,
-			options.period,
-			'leave_request_id'
-		);
+		const leaveJunctions = payslip.captured.leave.map((capture) => ({
+			...capture,
+			id: crypto.randomUUID(),
+			period: options.period
+		}));
 		const repaymentJunctions = junctionRowsOf(
 			payslip.captured.loanRepayments,
 			options.period,
@@ -170,14 +163,15 @@ export function payrollRunGraph(options: {
 			WORK_DAY: new Map(workDayJunctions.map((row) => [row.work_day_id, row.id])),
 			CLAIM: new Map(claimJunctions.map((row) => [row.claim_request_id, row.id])),
 			ALLOWANCE: new Map(allowanceJunctions.map((row) => [row.allowance_request_id, row.id])),
-			BONUS: new Map(bonusJunctions.map((row) => [row.bonus_request_id, row.id])),
-			ARREARS: new Map(arrearsJunctions.map((row) => [row.arrears_request_id, row.id])),
-			CORRECTION: new Map(correctionJunctions.map((row) => [row.correction_request_id, row.id])),
-			LEAVE_REQUEST: new Map(leaveJunctions.map((row) => [row.leave_request_id, row.id])),
+			PAYMENT: new Map(paymentJunctions.map((row) => [row.payment_request_id, row.id])),
+			LEAVE: new Map(leaveJunctions.map((row) => [row.leave_entry_id, row.id])),
 			LOAN_REPAYMENT: new Map(repaymentJunctions.map((row) => [row.loan_repayment_id, row.id]))
 		} as const;
 		return {
 			employment_id: payslip.employmentId,
+			employment_contract_input: [
+				{ employment_id: payslip.employmentId, terms_through: payslip.termsThrough }
+			],
 			base: payslip.settlement.base.map((item: MeasuredBase) => item.entry),
 			proration: payslip.proration,
 			statutory: payslip.charges.map((charge) => ({
@@ -197,10 +191,8 @@ export function payrollRunGraph(options: {
 			payslip_work_day_input_payslip: workDayJunctions,
 			payslip_claim_request_input_payslip: claimJunctions,
 			payslip_allowance_request_input_payslip: allowanceJunctions,
-			payslip_bonus_request_input_payslip: bonusJunctions,
-			payslip_arrears_request_input_payslip: arrearsJunctions,
-			payslip_correction_request_input_payslip: correctionJunctions,
-			payslip_leave_request_input_payslip: leaveJunctions,
+			payslip_payment_request_input_payslip: paymentJunctions,
+			payslip_leave_input_payslip: leaveJunctions,
 			payslip_loan_repayment_input_payslip: repaymentJunctions,
 			payslip_adjustment_payslip: payslip.settlement.adjustments.map(
 				(adjustment: MeasuredAdjustment, index: number) => {

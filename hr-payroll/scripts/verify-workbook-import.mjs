@@ -155,27 +155,61 @@ function companies() {
 		{
 			id: COMPANY_ID,
 			name: 'Public Fixture Co',
-			registration_number: '1234567-A'
+			registration_number: '1234567-A',
+			settings_code: 'TEST'
 		},
 		{
 			id: 'company:ph',
 			name: 'Public Fixture PH',
-			registration_number: 'SOURCE_NOT_PROVIDED'
+			registration_number: 'SOURCE_NOT_PROVIDED',
+			settings_code: 'TEST'
 		}
 	];
+}
+
+function employments() {
+	return ['2', '23'].map((id) => ({
+		id: `employment:${id}`,
+		employee_id: `employee:${id}`,
+		employee_number: `PUBEM${id.padStart(4, '0')}`,
+		company_id: COMPANY_ID,
+		hire_date: '2020-01-01',
+		effective_range: { start: '2020-01-01', end: null },
+		employment_departure: [],
+		approval_id: null
+	}));
 }
 
 function rosterApi(overrides = {}) {
 	return stubApi({
 		companies: companies(),
 		payroll_runs: overrides.payrollRuns ?? [],
-		company_holidays: overrides.holidays ?? [
-			{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }
+		jurisdiction_settings: [
+			{
+				id: 'settings:test',
+				code: 'TEST',
+				jurisdiction_code: 'TEST-JUR',
+				sealed_at: '2020-01-01T00:00:00Z',
+				voided_at: null,
+				effective_range: { start: '2020-01-01', end: null }
+			}
 		],
-		employments: [
-			{ id: 'employment:2', employee_number: 'PUBEM0002', company_id: COMPANY_ID },
-			{ id: 'employment:23', employee_number: 'PUBEM0023', company_id: COMPANY_ID }
+		jurisdiction_holiday_calendars: [
+			{
+				id: 'calendar:test',
+				jurisdiction_code: 'TEST-JUR',
+				year: 2026,
+				revision: 1,
+				published_at: '2025-12-01T00:00:00Z',
+				observations: (overrides.holidays ?? [{ date: '2026-05-08' }]).map((row) => ({
+					date: row.date,
+					name: 'Fixture holiday',
+					original_date: null,
+					source: null
+				}))
+			}
 		],
+		employments: employments(),
 		shift_definitions: [
 			{
 				id: 'shift:75',
@@ -220,13 +254,10 @@ function rosterApi(overrides = {}) {
 function attendanceApi(overrides = {}) {
 	return stubApi({
 		companies: companies(),
-		employments: [
-			{ id: 'employment:2', employee_number: 'PUBEM0002', company_id: COMPANY_ID },
-			{ id: 'employment:23', employee_number: 'PUBEM0023', company_id: COMPANY_ID }
-		],
+		employments: employments(),
 		work_days: overrides.existingDays ?? [],
 		payroll_runs: overrides.payrollRuns ?? [],
-		leave_requests: overrides.leaveRequests ?? []
+		leave_entries: overrides.leaveRequests ?? []
 	});
 }
 
@@ -366,7 +397,10 @@ const program = Effect.gen(function* () {
 				);
 			})
 		);
-		assert.match(unobservedPh, /These PH rows are not observed holidays for the legal entity/);
+		assert.match(
+			unobservedPh,
+			/These PH rows are not published observed holidays for the jurisdiction/
+		);
 		assert.match(unobservedPh, /PUBEM0023 on 2026-05-08/);
 
 		const observedPh = yield* runHandler(
@@ -425,7 +459,10 @@ const program = Effect.gen(function* () {
 				);
 			})
 		);
-		assert.match(unknownEmployee, /not employed by this legal entity/);
+		assert.match(
+			unknownEmployee,
+			/No approved employment contract covers PUBEM9999 on 2026-05-06 in this legal entity/
+		);
 		assert.match(unknownEmployee, /PUBEM9999/);
 		assert.doesNotMatch(
 			unknownEmployee,
@@ -765,8 +802,7 @@ const program = Effect.gen(function* () {
 				);
 			})
 		);
-		assert.match(unknownPuncher, /not on file/);
-		assert.match(unknownPuncher, /• PUBEM9999/);
+		assert.match(unknownPuncher, /No approved employment contract covers PUBEM9999 on 2026-05-04/);
 
 		const noTimezone = yield* refusal(() =>
 			tryMap(gridsOf([['Time entries', [TIME_ENTRY_HEADERS, ...TIME_ENTRY_ROWS]]]), (workbook) =>
@@ -888,7 +924,7 @@ const program = Effect.gen(function* () {
 				)
 			)
 		);
-		assert.match(wrongEntity, /not employed by this legal entity/);
+		assert.match(wrongEntity, /No approved employment contract covers .* in this legal entity/);
 
 		console.log('workbook import: roster and time-entry templates round trip, and refuse by row.');
 	});

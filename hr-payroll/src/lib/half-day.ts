@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 /**
  * A leave date as two half-days, and the integer positions they line up in.
  *
- * Both sides of a half-day leave range use these two functions: the `leave_requests` hooks
+ * Both sides of a half-day leave range use these two functions: the `leave_entries` hooks
  * validate an event's range and the range picker draws the same arithmetic, and the only way they
  * can disagree is twice. The point is an index into the day/half grid — `pointNumber` maps a half
  * to `2n + (1 for SECOND)` — and `pointAt` is its exact inverse.

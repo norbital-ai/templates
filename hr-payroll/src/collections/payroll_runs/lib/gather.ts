@@ -1,3 +1,4 @@
+import { resolveEmployment, type ResolvedEmployment } from '../../../lib/employment-contract.js';
 /**
  * Step 3 — GATHER.
  *
@@ -16,17 +17,21 @@
  * crossed. `approval_id` was also being read as a write lock, so one column stood for both
  * "payroll may consume this row" and "nobody may edit this row" — which meant the workspace had no
  * way at all to record that a row *had* been consumed. Consumption is now a captured input: the
- * engine writes a row in one of the four `payslip_*_inputs` junctions, and that row is the
- * settlement lock. Deliberately not here: a source this run settled must still be readable by this
- * run's next rebuild, so a captured input is not, and must never become, a filter on these queries.
+ * engine writes a captured input in the source family's junction. All approved siblings remain
+ * available for cap accounting; a standing capture excludes a single-use entry from settlement.
+ * Recurring allowances remain eligible in each period their range covers.
  */
 
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import { entryAlreadyCapturedMessage } from '../../../lib/settlement_refusals.js';
 import type { WorkspaceRow } from '../$types.js';
 import { groupBy, PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
+import {
+	prepareFamilyObligations,
+	prepareFamilyInputs,
+	prepareFamilyHistory
+} from '../../../lib/payroll/families.js';
 import {
 	completedMonths,
 	completedYears,
@@ -36,21 +41,10 @@ import {
 	periodMonth,
 	type IsoDate
 } from './dates.js';
-import {
-	allowanceRequest,
-	arrearsRequest,
-	bonusRequest,
-	claimRequest,
-	correctionRequest,
-	REQUEST_INPUT_KINDS,
-	type Loan,
-	type LoanRepayment,
-	type PayRequest,
-	type PayRequestFamily
-} from './entries.js';
+import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/money.js';
+import type { Loan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
-import { realignStatutoryFacts } from './statutory-facts.js';
-import type { ChildFact, LedgerRow } from './leave.js';
+import { hasLeavePayment, type PreparedLeavePayroll } from '../../../lib/leave/payroll.js';
 import {
 	cadenceWindow,
 	employmentPayFrequency,
@@ -67,13 +61,13 @@ import {
 	type EmploymentSettlement
 } from './settlement.js';
 import { decodeNumber } from '@norbital-ai/std/json';
+import type { HolidayCalendar } from '../../../lib/holiday-calendar.js';
+import type { PreparedHolidayInput } from '../../../lib/holiday-inputs.js';
 
-type Employment = WorkspaceRow<'employments'>;
+type Employment = ResolvedEmployment;
 type Employee = WorkspaceRow<'employees'>;
 type EmploymentTerms = WorkspaceRow<'employment_terms'>;
 type StatutoryFact = WorkspaceRow<'employment_statutory_facts'>;
-type LeaveEntitlement = WorkspaceRow<'leave_entitlements'>;
-type LeaveEntry = WorkspaceRow<'leave_entries'>;
 
 /**
  * One person-day as payroll reads it: the plan, the punch and the break, on one row.
@@ -99,19 +93,18 @@ export type EmploymentBundle = {
 	/** Every terms row touching the pay period, in effective order — a mid-month raise is two rows. */
 	readonly terms: readonly EmploymentTerms[];
 	readonly statutoryFacts: readonly StatutoryFact[];
-	/** Claims, standing allowances, bonuses, arrears settlements and corrections, as one view. */
-	readonly payRequests: readonly PayRequest[];
+	/** Claims, standing allowances, payments, arrears settlements and corrections, as one view. */
+	readonly payRequests: readonly PreparedPayRequest[];
+	/** Source-month Work and calendar facts for due one-off allowances. */
+	readonly allowanceConfigurations?: ReadonlyMap<string, Configuration>;
 	/** The employment's child facts — what `children.under(age)` counts. */
-	readonly children: readonly ChildFact[];
+	readonly children: readonly WorkspaceRow<'employee_children'>[];
 	/** The loan agreements this employment carries. Payroll consumes their repayments, not these. */
 	readonly loans: readonly Loan[];
 	/** The amounts due under those agreements — one of the four input families. */
 	readonly loanRepayments: readonly LoanRepayment[];
-	readonly ledger: readonly LedgerRow[];
-	/** Generated entitlements and their immutable movements, for formula balances and leave money. */
-	readonly leaveEntitlements: readonly LeaveEntitlement[];
-	readonly leaveEntries: readonly LeaveEntry[];
-	/** Every terms row of the employment, so a ledger line dated outside the period can be priced at the terms then in force. */
+	readonly leave: PreparedLeavePayroll;
+	/** Effective history also covers attendance and approved leave outside the salary window. */
 	readonly termsHistory: readonly EmploymentTerms[];
 	/** Plan and punch together. */
 	readonly workDays: readonly WorkDay[];
@@ -143,13 +136,17 @@ export type GatheredRun = {
 	readonly bundles: readonly EmploymentBundle[];
 	/** Active employments in the company at the period end — the HEADCOUNT band selector. */
 	readonly headcount: number;
+	readonly workHolidayEvidence: {
+		readonly inputs: readonly PreparedHolidayInput[];
+		readonly calendars: readonly HolidayCalendar[];
+	};
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 	/**
 	 * pay request id → what earlier PAID runs actually took from it.
 	 *
-	 * A one-off entry is single-use — one standing/paid payslip captures it, and the guard below
-	 * refuses a second — so this map is the defence-in-depth ceiling rather than the working answer.
+	 * A one-off entry is single-use — one standing/paid payslip captures it and later runs
+	 * exclude it — so this map is the defence-in-depth ceiling rather than the working answer.
 	 * The cap arithmetic inside the one capturing payslip is where a claim settles for less than it
 	 * asked for, and a capped claim leaves no invented balance behind.
 	 */
@@ -185,17 +182,32 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const employmentRows = live(
 			yield* db.employments.findMany({
 				where: { company_id: { eq: companyId }, ...approved },
+				with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 				limit: PAGE_LIMIT
 			})
-		);
+		).map(resolveEmployment);
 		options.api.reads.assertComplete(employmentRows, 'employments');
 
-		// Someone is in the run if their employment touches the pay period at all — and then
-		// `settlement.ts` says which run that period actually settles in. A leaver paid to the 10th is
-		// still paid here; a joiner who started after this run's window closed has a period to settle
-		// but no attendance to settle it against, so their money is deferred rather than guessed.
-		const touching = employmentRows.filter((row) =>
+		const begun = employmentRows.filter((row) => employmentDates(row).hire <= salary.end);
+		const { leaveByEmployment, requestsByEmployment } = yield* prepareFamilyObligations({
+			api: options.api,
+			configuration: options.configuration,
+			employmentIds: begun.map((row) => row.id),
+			period,
+			asOf: salary.end
+		});
+		const touching = begun.filter((row) =>
 			overlapsRange(row.effective_range, salary.start, salary.end)
+		);
+		const hasOutstandingRequest = (employmentId: string) =>
+			(requestsByEmployment.get(employmentId) ?? []).some(
+				(request) => !request.recurring && !request.captured
+			);
+		const candidates = begun.filter(
+			(row) =>
+				touching.includes(row) ||
+				hasLeavePayment(leaveByEmployment.get(row.id)!, salary.end) ||
+				hasOutstandingRequest(row.id)
 		);
 		// Terms are read first, because the cadence decides the window each employment is settled
 		// on. A semi-monthly employment is settled over the half the period names; a monthly one over
@@ -203,7 +215,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// first half the monthly cadence has no window and its people are simply not in the run.
 		// A cadence the company cannot pay falls back to the run's own window, so the bundle exists
 		// for `validatePayCalendar` to refuse by name rather than throwing here.
-		const touchingIds = touching.map((row) => row.id);
+		const touchingIds = candidates.map((row) => row.id);
 		const termRows =
 			touchingIds.length === 0
 				? []
@@ -219,8 +231,12 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			{ readonly window: PayrollWindow; readonly payFrequency: PayFrequency }
 		>();
 		const settlementByEmployment = new Map<string, EmploymentSettlement>();
-		for (const row of touching) {
-			const payFrequency = employmentPayFrequency(termsByEmployment.get(row.id) ?? [], salary.end);
+		for (const row of candidates) {
+			const exit = employmentDates(row).exit;
+			const payFrequency = employmentPayFrequency(
+				termsByEmployment.get(row.id) ?? [],
+				exit != null && exit < salary.end ? exit : salary.end
+			);
 			const cadence = paysOn(company, payFrequency)
 				? cadenceWindow(period, company, payFrequency)
 				: window;
@@ -232,25 +248,51 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			);
 		}
 
-		const employments = touching.filter((row) => {
+		const employments = candidates.filter((row) => {
 			const settlement = settlementByEmployment.get(row.id);
-			return settlement != null && (settlement.runs || settlement.deferral != null);
+			const cadence = cadenceByEmployment.get(row.id);
+			const dueRequest =
+				cadence != null &&
+				(requestsByEmployment.get(row.id) ?? []).some(
+					(request) =>
+						!request.recurring &&
+						requestIsDue(
+							request,
+							period,
+							cadence.window.salary,
+							decodeNumber(company.pay_cutoff_day),
+							{ company, payFrequency: cadence.payFrequency }
+						)
+				);
+			return (
+				settlement != null &&
+				(settlement.runs ||
+					settlement.deferral != null ||
+					hasLeavePayment(leaveByEmployment.get(row.id)!, salary.end) ||
+					dueRequest)
+			);
 		});
 		// Headcount is who the company employs in the month, not who this run pays: a monthly
 		// employment is on the books in the first half of a semi-monthly month even though that run
 		// pays it nothing, and a headcount-banded contribution for everyone else must not move
 		// between the halves. A deferred joining period pays nobody and is not counted.
 		const month = monthBounds(periodMonth(period));
-		const headcount = touching.filter((row) => {
-			const dates = employmentDates(row);
-			if (dates.hire > month.end || (dates.exit != null && dates.exit < month.start)) return false;
-			return settlementByEmployment.get(row.id)?.deferral == null;
-		}).length;
+		const headcount = new Set(
+			touching
+				.filter((row) => {
+					const dates = employmentDates(row);
+					if (dates.hire > month.end || (dates.exit != null && dates.exit < month.start))
+						return false;
+					return settlementByEmployment.get(row.id)?.deferral == null;
+				})
+				.map((row) => row.employee_id)
+		).size;
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length === 0)
 			return {
 				bundles: [],
 				headcount,
+				workHolidayEvidence: { inputs: [], calendars: [] },
 				yearToDate: new Map(),
 				consumedEntries: new Map(),
 				consumedRepayments: new Map()
@@ -274,42 +316,27 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		};
 
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-		const inEmployments = { employment_id: { in: employmentIds }, ...approved } as const;
-
-		const [
-			employeeRows,
-			factRows,
-			claimRows,
-			allowanceRows,
-			bonusRows,
-			arrearsRows,
-			correctionRows,
-			loanRows,
-			requestRows,
-			leaveEntitlementRows,
-			workDayRows,
-			childRows
-		] = yield* Effect.all(
+		const {
+			allowanceConfigurations,
+			allowanceMonthsByEmployment,
+			factsByEmployment,
+			loansByEmployment,
+			repaymentsByLoan,
+			workDaysByEmployment,
+			workHolidayEvidence
+		} = yield* prepareFamilyInputs({
+			api: options.api,
+			configuration: options.configuration,
+			employments,
+			requestsByEmployment,
+			cadenceByEmployment,
+			window,
+			complianceSpan
+		});
+		const [employeeRows, childRows] = yield* Effect.all(
 			[
 				db.employees.findMany({
 					where: { id: { in: employeeIds }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.claim_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.allowance_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.bonus_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.arrears_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.correction_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.loans.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.leave_entitlements.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.work_days.findMany({
-					where: {
-						employment_id: { in: employmentIds },
-						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
-						...approved
-					},
 					limit: PAGE_LIMIT
 				}),
 				db.employee_children.findMany({
@@ -319,100 +346,9 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			],
 			{ concurrency: 'unbounded' }
 		);
-		// Every read above pages to the same ceiling, so every one of them is checked. A silently
-		// truncated page is the one failure mode that produces a wrong payroll rather than no payroll:
-		// a missing person-day changes a day type, a missing terms row changes a wage, and neither
-		// leaves a trace. Work days are the closest to the ceiling of the lot.
 		options.api.reads.assertComplete(employeeRows, 'employees');
-		options.api.reads.assertComplete(factRows, 'statutory facts');
-		options.api.reads.assertComplete(claimRows, 'claim requests');
-		options.api.reads.assertComplete(allowanceRows, 'allowance requests');
-		options.api.reads.assertComplete(bonusRows, 'bonus requests');
-		options.api.reads.assertComplete(arrearsRows, 'arrears requests');
-		options.api.reads.assertComplete(correctionRows, 'correction requests');
-		options.api.reads.assertComplete(loanRows, 'loans');
-		options.api.reads.assertComplete(requestRows, 'leave requests');
-		options.api.reads.assertComplete(leaveEntitlementRows, 'leave entitlements');
-		options.api.reads.assertComplete(workDayRows, 'work days');
 		options.api.reads.assertComplete(childRows, 'child facts');
-
-		// The loan's schedule is read directly, in one query over every agreement just read. The
-		// removed `obligations` model copied the schedule into money rows so payroll could find them;
-		// the schedule owning its own rows is what makes that copy unnecessary.
-		const loanIds = [...new Set(live(loanRows).map((row) => row.id))];
-		const repaymentRows =
-			loanIds.length > 0
-				? yield* db.loan_repayments.findMany({
-						where: { loan_id: { in: loanIds } },
-						limit: PAGE_LIMIT
-					})
-				: [];
-		options.api.reads.assertComplete(repaymentRows, 'loan repayments');
-		const leaveEntitlementIds = live(leaveEntitlementRows).map((row) => row.id);
-		const leaveEntryRows =
-			leaveEntitlementIds.length === 0
-				? []
-				: yield* db.leave_entries.findMany({
-						where: { leave_entitlement_id: { in: leaveEntitlementIds }, ...approved },
-						limit: PAGE_LIMIT
-					});
-		options.api.reads.assertComplete(leaveEntryRows, 'leave entries');
-
 		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
-		const factsByEmployment = groupBy(
-			yield* realignStatutoryFacts(db, live(factRows), options.configuration),
-			(row) => row.employment_id
-		);
-		/**
-		 * The five request collections, read as one. Each row is normalised by its own family's
-		 * builder at the boundary — which day it belongs to, how it settles, whether it prorates or
-		 * depletes — so nothing downstream re-derives economics from a storage shape.
-		 */
-		const payRequests: readonly PayRequest[] = [
-			...live(claimRows).map(claimRequest),
-			...live(allowanceRows).map(allowanceRequest),
-			...live(bonusRows).map(bonusRequest),
-			...live(arrearsRows).map(arrearsRequest),
-			...live(correctionRows).map(correctionRequest)
-		];
-		const requestsByEmployment = groupBy(payRequests, (row) => row.employment_id);
-		const leaveEntitlementsByEmployment = groupBy(
-			live(leaveEntitlementRows),
-			(row) => row.employment_id
-		);
-		const leaveEntriesByEntitlement = groupBy(
-			live(leaveEntryRows),
-			(row) => row.leave_entitlement_id
-		);
-		const repaymentsByLoan = groupBy(live(repaymentRows), (row) => row.loan_id);
-		const loansByEmployment = groupBy(live(loanRows), (row) => row.employment_id);
-		/** Approved applications are payroll attendance inputs. Entitlement movements stay in the
-		 * account ledger and never become absence deductions. */
-		const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(
-			requestRows
-		).flatMap((request) => {
-			const event = request.event;
-			if (event == null) refuse(`Leave request ${request.id} has no event payload.`);
-			const base = {
-				id: request.id,
-				employment_id: request.employment_id,
-				leave_catalogue_id: request.leave_catalogue_id,
-				source_id: request.id,
-				approval_id: null
-			};
-			return [
-				{
-					...base,
-					entry_date: event.range.start.date,
-					through_date: event.range.end.date,
-					kind: 'TAKEN',
-					days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
-					source_id: request.id
-				}
-			];
-		});
-		const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
-		const workDaysByEmployment = groupBy(live(workDayRows), (row) => row.employment_id);
 		const childrenByEmployment = groupBy(live(childRows), (row) => row.employment_id);
 
 		const bundles: EmploymentBundle[] = [];
@@ -438,15 +374,21 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				terms: effectiveWithin(termsByEmployment.get(employment.id) ?? [], paid.start, paid.end),
 				statutoryFacts,
 				payRequests: requestsByEmployment.get(employment.id) ?? [],
+				...(allowanceMonthsByEmployment.has(employment.id)
+					? {
+							allowanceConfigurations: new Map(
+								[...allowanceMonthsByEmployment.get(employment.id)!].map((month) => [
+									month,
+									allowanceConfigurations.get(month)!
+								])
+							)
+						}
+					: {}),
 				children: childrenByEmployment.get(employment.id) ?? [],
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
-				ledger: ledgerByEmployment.get(employment.id) ?? [],
-				leaveEntitlements: leaveEntitlementsByEmployment.get(employment.id) ?? [],
+				leave: leaveByEmployment.get(employment.id)!,
 				termsHistory: termsByEmployment.get(employment.id) ?? [],
-				leaveEntries: (leaveEntitlementsByEmployment.get(employment.id) ?? []).flatMap(
-					(entitlement) => leaveEntriesByEntitlement.get(entitlement.id) ?? []
-				),
 				workDays: workDaysByEmployment.get(employment.id) ?? [],
 				serviceMonths: completedMonths(hire, paid.end),
 				age: dob == null ? null : completedYears(dob, paid.end),
@@ -458,15 +400,10 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			});
 		}
 
-		yield* refuseAlreadyCapturedEntries({
-			api: options.api,
-			requests: payRequests,
-			period
-		});
-
 		return {
 			bundles,
 			headcount,
+			workHolidayEvidence,
 			...(yield* gatherPriorSettlement({
 				api: options.api,
 				configuration: options.configuration,
@@ -475,100 +412,6 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				companyId
 			}))
 		};
-	});
-}
-
-/**
- * A one-off entry is captured by at most one standing payroll, and this is where that is refused.
- *
- * The junction rows are the capture: any row over these entries names a run that still stands
- * (deleting a draft releases its captures, so a standing junction is a live one). The period being
- * rebuilt is exempt — a recalculation replaces its own graph, and the replacement is one statement.
- * A standing allowance is exempt because it states an amount per period and is meant to feed every
- * period its range covers.
- */
-type RefuseAlreadyCapturedEntriesOptions = {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly requests: readonly PayRequest[];
-	readonly period: string;
-};
-
-function refuseAlreadyCapturedEntries(
-	options: RefuseAlreadyCapturedEntriesOptions
-): Effect.Effect<void, never, never> {
-	const singleUse = options.requests.filter((request) => request.depletes);
-	if (singleUse.length === 0) return Effect.void;
-	const idsOf = (family: PayRequestFamily) =>
-		singleUse.filter((request) => request.family === family).map((request) => request.id);
-	return Effect.gen(function* () {
-		const db = options.api.db;
-		// One read per family, because each family's capture is a real foreign key into its own
-		// junction. The four single-use junctions carry a unique on their source, so this guard is
-		// now the *period-aware* half of a rule the database also holds: it names the run that is
-		// still standing, which a unique violation could not.
-		const [claims, allowances, bonuses, arrears, corrections] = yield* Effect.all(
-			[
-				db.payslip_claim_request_inputs.findMany({
-					where: { claim_request_id: { in: idsOf('CLAIM') } },
-					columns: { claim_request_id: true, payslip_id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payslip_allowance_request_inputs.findMany({
-					where: { allowance_request_id: { in: idsOf('ALLOWANCE') } },
-					columns: { allowance_request_id: true, payslip_id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payslip_bonus_request_inputs.findMany({
-					where: { bonus_request_id: { in: idsOf('BONUS') } },
-					columns: { bonus_request_id: true, payslip_id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payslip_arrears_request_inputs.findMany({
-					where: { arrears_request_id: { in: idsOf('ARREARS') } },
-					columns: { arrears_request_id: true, payslip_id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payslip_correction_request_inputs.findMany({
-					where: { correction_request_id: { in: idsOf('CORRECTION') } },
-					columns: { correction_request_id: true, payslip_id: true },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(claims, 'claim captures');
-		options.api.reads.assertComplete(allowances, 'allowance captures');
-		options.api.reads.assertComplete(bonuses, 'bonus captures');
-		options.api.reads.assertComplete(arrears, 'arrears captures');
-		options.api.reads.assertComplete(corrections, 'correction captures');
-		const captures: readonly { readonly payslip_id: string }[] = [
-			...claims,
-			...allowances,
-			...bonuses,
-			...arrears,
-			...corrections
-		];
-		if (captures.length === 0) return;
-		const holdingPayslips = yield* db.payslips.findMany({
-			where: { id: { in: captures.map((row) => row.payslip_id) } },
-			columns: { id: true, payroll_run_id: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(holdingPayslips, 'capturing payslips');
-		const runIds = [...new Set(holdingPayslips.map((row) => row.payroll_run_id))];
-		const holdingRuns = yield* db.payroll_runs.findMany({
-			where: { id: { in: runIds } },
-			columns: { id: true, period: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(holdingRuns, 'capturing runs');
-		const periodByRun = new Map(holdingRuns.map((row) => [row.id, row.period]));
-		for (const capture of captures) {
-			const payslip = holdingPayslips.find((row) => row.id === capture.payslip_id);
-			const capturePeriod = payslip == null ? null : periodByRun.get(payslip.payroll_run_id);
-			if (capturePeriod == null || capturePeriod === options.period) continue;
-			refuse(entryAlreadyCapturedMessage({ capturedBy: capturePeriod, period: options.period }));
-		}
 	});
 }
 
@@ -672,144 +515,12 @@ function gatherPriorSettlement(
 		});
 		options.api.reads.assertComplete(priorPayslips, 'prior payslips');
 		if (priorPayslips.length === 0) return empty;
-		const priorPayslipIds = priorPayslips.map((row) => row.id);
 
-		const contributionCodeById = new Map(
-			options.configuration.contributions.map((entry) => [entry.row.id, entry.row.code])
-		);
-		/**
-		 * Year-to-date, summed off the payslips themselves.
-		 *
-		 * `payslips.statutory` holds one entry per scheme charged, with the employee share, the
-		 * employer share and the wage they were charged on together on that entry. The scheme is
-		 * named by its code — a frozen output carries a code, not a naked id — so there is no
-		 * id-to-code join left at all.
-		 */
-		for (const payslip of priorPayslips) {
-			if (!inTaxYear.has(payslip.payroll_run_id)) continue;
-			const employeeId = employmentToEmployee.get(payslip.employment_id);
-			if (employeeId == null) continue;
-			for (const charge of payslip.statutory) {
-				const key = `${employeeId}:${charge.scheme_code}`;
-				const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0 };
-				totals.set(key, {
-					employee: running.employee + decodeNumber(charge.employee_amount),
-					employer: running.employer + decodeNumber(charge.employer_amount),
-					base: running.base + decodeNumber(charge.base_amount)
-				});
-			}
-		}
-
-		/**
-		 * What every earlier paid run took from each depleting source.
-		 *
-		 * Summed rather than counted, because a row may hold less than the source asked for: SETTLE
-		 * reduces a deduction that would have driven net below zero, and the reduced figure is what
-		 * was actually taken. The difference is not written anywhere — it is simply still
-		 * outstanding, and it is outstanding *here*, in the gap between the source and this sum.
-		 *
-		 * The captured inputs are read first and the claims scoped by them, because an adjustment
-		 * names a junction row, and the junction row names the business source. Two arms only: a work
-		 * day or a leave request is a settlement claim, not a draw on a balance, and reading them
-		 * would be reading a month of attendance to sum nothing.
-		 */
-		const [claimLinks, allowanceLinks, bonusLinks, arrearsLinks, correctionLinks] =
-			yield* Effect.all(
-				[
-					db.payslip_claim_request_inputs.findMany({
-						where: { payslip_id: { in: priorPayslipIds } },
-						columns: { id: true, claim_request_id: true },
-						limit: PAGE_LIMIT
-					}),
-					db.payslip_allowance_request_inputs.findMany({
-						where: { payslip_id: { in: priorPayslipIds } },
-						columns: { id: true, allowance_request_id: true },
-						limit: PAGE_LIMIT
-					}),
-					db.payslip_bonus_request_inputs.findMany({
-						where: { payslip_id: { in: priorPayslipIds } },
-						columns: { id: true, bonus_request_id: true },
-						limit: PAGE_LIMIT
-					}),
-					db.payslip_arrears_request_inputs.findMany({
-						where: { payslip_id: { in: priorPayslipIds } },
-						columns: { id: true, arrears_request_id: true },
-						limit: PAGE_LIMIT
-					}),
-					db.payslip_correction_request_inputs.findMany({
-						where: { payslip_id: { in: priorPayslipIds } },
-						columns: { id: true, correction_request_id: true },
-						limit: PAGE_LIMIT
-					})
-				],
-				{ concurrency: 'unbounded' }
-			);
-		options.api.reads.assertComplete(claimLinks, 'prior claim captures');
-		options.api.reads.assertComplete(allowanceLinks, 'prior allowance captures');
-		options.api.reads.assertComplete(bonusLinks, 'prior bonus captures');
-		options.api.reads.assertComplete(arrearsLinks, 'prior arrears captures');
-		options.api.reads.assertComplete(correctionLinks, 'prior correction captures');
-		const repaymentLinks = yield* db.payslip_loan_repayment_inputs.findMany({
-			where: { payslip_id: { in: priorPayslipIds } },
-			columns: { id: true, loan_repayment_id: true },
-			limit: PAGE_LIMIT
+		return yield* prepareFamilyHistory({
+			api: options.api,
+			payslips: priorPayslips,
+			inTaxYear,
+			employmentToEmployee
 		});
-		options.api.reads.assertComplete(repaymentLinks, 'prior loan-repayment captures');
-		// Junction row id → the request it captured, across all five families. Request ids are uuids,
-		// so one map still answers "what did prior runs take from this request".
-		const requestIdByLink = new Map<string, string>([
-			...claimLinks.map((row) => [row.id, row.claim_request_id] as const),
-			...allowanceLinks.map((row) => [row.id, row.allowance_request_id] as const),
-			...bonusLinks.map((row) => [row.id, row.bonus_request_id] as const),
-			...arrearsLinks.map((row) => [row.id, row.arrears_request_id] as const),
-			...correctionLinks.map((row) => [row.id, row.correction_request_id] as const)
-		]);
-		const repaymentIdByLink = new Map(repaymentLinks.map((row) => [row.id, row.loan_repayment_id]));
-
-		// One read per arm rather than one over all of them: `input.kind` filters by equality only,
-		// and widening to every adjustment on these payslips would read a month of attendance and a
-		// month of leave in order to sum neither.
-		const requestClaims = yield* Effect.all(
-			REQUEST_INPUT_KINDS.map((kind) =>
-				db.payslip_adjustments.findMany({
-					where: { payslip_id: { in: priorPayslipIds }, input: { kind: { eq: kind } } },
-					columns: { input: true, amount: true },
-					limit: PAGE_LIMIT
-				})
-			),
-			{ concurrency: 'unbounded' }
-		);
-		for (const rows of requestClaims) {
-			options.api.reads.assertComplete(rows, 'prior pay-request adjustments');
-			for (const row of rows) {
-				const sourceId = requestIdByLink.get(row.input.id);
-				if (sourceId == null) continue;
-				consumedEntries.set(
-					sourceId,
-					(consumedEntries.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
-				);
-			}
-		}
-
-		const repaymentClaims = yield* db.payslip_adjustments.findMany({
-			where: {
-				payslip_id: { in: priorPayslipIds },
-				input: { kind: { eq: 'LOAN_REPAYMENT_INPUT' } }
-			},
-			columns: { input: true, amount: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(repaymentClaims, 'prior loan-recovery adjustments');
-		for (const row of repaymentClaims) {
-			if (row.input.kind !== 'LOAN_REPAYMENT_INPUT') continue;
-			const sourceId = repaymentIdByLink.get(row.input.id);
-			if (sourceId == null) continue;
-			consumedRepayments.set(
-				sourceId,
-				(consumedRepayments.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
-			);
-		}
-
-		return { yearToDate: totals, consumedEntries, consumedRepayments };
 	});
 }

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { approveLeave } from './helpers/public-leave.ts';
 import assert from 'node:assert/strict';
 import {
 	asRecord,
@@ -10,11 +11,9 @@ import {
 } from '@norbital-ai/test-utilities';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 import {
-	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
-	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	MARCH_2026,
 	SHIFT_OFF_ID,
@@ -24,8 +23,7 @@ import {
 } from './helpers/public-seed-host.ts';
 
 const MUTATE_COMMAND = 'collections.mutate';
-/** The public seed's TRANSPORT component, the one a claim is filed against. */
-/** The claimable component: `entry_kind: CLAIM`, which is the arm this test files. */
+/** The public Claim catalogue entry used for the reimbursed taxi. */
 const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777701';
 
 const SATURDAY = '2026-03-07';
@@ -84,7 +82,7 @@ const fileTimeOff = (
 		MUTATE_COMMAND,
 		mutationPush(session.schemaFingerprint, {
 			action: 'mutate',
-			collection: 'leave_requests',
+			collection: 'leave_entries',
 			rows: [
 				{
 					action: 'create',
@@ -92,7 +90,7 @@ const fileTimeOff = (
 						id,
 						employment_id: EMPLOYMENT_ID,
 						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-						leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
+						reference: `LEAVE-${id}`,
 						event: {
 							kind: 'TIME_OFF',
 							range: {
@@ -221,8 +219,7 @@ test(
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
 								work_date: SATURDAY,
-								shift_definition_id: SHIFT_WORK_ID,
-								planned_origin: 'MANUAL'
+								shift_definition_id: SHIFT_WORK_ID
 							}
 						},
 						{
@@ -231,8 +228,7 @@ test(
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
 								work_date: SUNDAY,
-								shift_definition_id: SHIFT_REST_ID,
-								planned_origin: 'MANUAL'
+								shift_definition_id: SHIFT_REST_ID
 							}
 						},
 						{
@@ -241,8 +237,7 @@ test(
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
 								work_date: MONDAY,
-								shift_definition_id: SHIFT_WORK_ID,
-								planned_origin: 'MANUAL'
+								shift_definition_id: SHIFT_WORK_ID
 							}
 						}
 					]
@@ -302,20 +297,24 @@ test(
 
 			// 4. Leave on a rest day, on the swapped-off Monday, and on a holiday is no leave at
 			// all. (The swapped Sunday carries Monday's WORK code now, so the rest-day case moves a
-			// week on, to a Sunday nobody touched.) The holiday lands by SQL: the public PUB settings
-			// version is sealed, so the guest refuses adding a calendar day under it.
-			await session.query(
-				`insert into company_holidays (id, settings_id, date, name, scope, is_statutory)
-				 values ($1, $2, $3, $4, $5, $6)`,
-				[
-					crypto.randomUUID(),
-					JURISDICTION_ID,
-					HOLIDAY_TUESDAY,
-					'Lane D fixture holiday',
-					{ kind: 'NATIONAL' },
-					true
-				]
+			// week on, to a Sunday nobody touched.) Publish a successor holiday calendar before
+			// its newly observed Tuesday is consumed. Existing captured dates remain unchanged.
+			const holiday = await create(
+				session,
+				'jurisdiction_holiday_calendars',
+				{
+					id: crypto.randomUUID(),
+					jurisdiction_code: 'TEST-JUR',
+					year: 2026,
+					revision: 2,
+					observations: [
+						{ date: HOLIDAY_TUESDAY, name: 'Fixture holiday', original_date: null, source: null }
+					],
+					published_at: '2026-01-01T00:00:00Z'
+				},
+				founder
 			);
+			requireAccepted(holiday, 'publish successor holiday calendar');
 			for (const date of [QUIET_SUNDAY, MONDAY, HOLIDAY_TUESDAY]) {
 				const noOp = await fileTimeOff(session, crypto.randomUUID(), date, controller);
 				assert.equal(
@@ -341,51 +340,11 @@ test(
 				typeof asRecord(applied.value, 'leave file').pendingApproval === 'object',
 				`leave file must be held for approval: ${JSON.stringify(applied.value)}`
 			);
-			const pending = asRecord(
-				asRecord(applied.value, 'leave file').pendingApproval,
-				'leave pendingApproval'
-			);
-			const requestId = String(pending.requestId);
-			const status = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.status',
-				{ requestId },
-				manager
-			);
-			const state = asRecord(status.value, 'leave approval status');
-			assert.equal(state._tag, 'Pending', JSON.stringify(status.value));
-			const decided = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.decide',
-				{ state, decision: 'approve' },
-				manager
-			);
-			assert.equal(
-				asRecord(decided.value, 'leave decide')._tag,
-				'Approved',
-				JSON.stringify(decided.value)
-			);
-			if (
-				(await rowCount(session, 'select count(*)::int as n from leave_requests where id = $1', [
-					leaveId
-				])) === 0
-			) {
-				const resumed = await postGuestCommand(
-					session.host.baseUrl,
-					'collections.resume',
-					{ requestId },
-					manager
-				);
-				assert.ok(
-					(resumed.status >= 200 && resumed.status < 300) ||
-						(resumed.status === 422 &&
-							JSON.stringify(resumed.value).includes('identity is already in use')),
-					`collections.resume ${resumed.status}: ${JSON.stringify(resumed.value)}`
-				);
-			}
-			const charged = (await session.query('select days from leave_requests where id = $1', [
-				leaveId
-			])) as ReadonlyArray<{ readonly days: string | number }>;
+			await approveLeave(session, applied.value);
+			const charged = (await session.query(
+				"select event ->> 'chargeable_days' as days from leave_entries where id = $1",
+				[leaveId]
+			)) as ReadonlyArray<{ readonly days: string | number }>;
 			assert.equal(Number(charged[0]?.days), 1, 'the Tuesday absence charges one day');
 
 			// 6. The same Tuesday twice is an overlap, not a second day.
@@ -395,11 +354,7 @@ test(
 				'rejected',
 				`overlapping leave must refuse, got ${overlap.status}: ${JSON.stringify(overlap.value)}`
 			);
-			assert.match(
-				commandSentence(overlap),
-				/overlaps another leave request/i,
-				JSON.stringify(overlap.value)
-			);
+			assert.match(commandSentence(overlap), /overlap/i, JSON.stringify(overlap.value));
 
 			// 7. A claim is one write, landed directly — no approval, no second step.
 			const claimId = crypto.randomUUID();
@@ -409,7 +364,7 @@ test(
 				{
 					id: claimId,
 					employment_id: EMPLOYMENT_ID,
-					component_catalogue_id: TRANSPORT_COMPONENT_ID,
+					claim_catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
 					incurred_on: '2026-03-05',
 					description: 'Client site taxi'
@@ -446,7 +401,7 @@ test(
 				'the claim must be captured as an input of the March run'
 			);
 			assert.equal(
-				await rowCount(session, captureSql('payslip_leave_request_inputs', 'leave_request_id'), [
+				await rowCount(session, captureSql('payslip_leave_inputs', 'leave_entry_id'), [
 					runId,
 					leaveId
 				]),
@@ -479,6 +434,15 @@ test(
 			);
 
 			// 9. Deleting the draft run releases both captures and deletes neither source.
+			const sourceBefore = await session.query(
+				'select event, charges, allocations from leave_entries where id = $1',
+				[leaveId]
+			);
+			const sealsBefore = await session.query(
+				`select i.* from employment_contract_inputs i join payslips p on p.id = i.payslips_id where p.payroll_run_id = $1 order by i.id`,
+				[runId]
+			);
+			assert.ok(sealsBefore.length > 0, 'payroll seals consumed contract history');
 			const versions = (await session.query('select row_version from payroll_runs where id = $1', [
 				runId
 			])) as ReadonlyArray<{ readonly row_version: number }>;
@@ -516,7 +480,7 @@ test(
 			assert.equal(
 				await rowCount(
 					session,
-					'select count(*)::int as n from payslip_leave_request_inputs where leave_request_id = $1',
+					'select count(*)::int as n from payslip_leave_inputs where leave_entry_id = $1',
 					[leaveId]
 				),
 				0,
@@ -530,11 +494,25 @@ test(
 				'deleting the run must not delete the claim'
 			);
 			assert.equal(
-				await rowCount(session, 'select count(*)::int as n from leave_requests where id = $1', [
+				await rowCount(session, 'select count(*)::int as n from leave_entries where id = $1', [
 					leaveId
 				]),
 				1,
 				'deleting the run must not delete the leave request'
+			);
+			assert.deepEqual(
+				await session.query('select event, charges, allocations from leave_entries where id = $1', [
+					leaveId
+				]),
+				sourceBefore
+			);
+			assert.deepEqual(
+				await session.query(
+					'select * from employment_contract_inputs where id = any($1) order by id',
+					[sealsBefore.map((row) => row.id)]
+				),
+				sealsBefore,
+				'deleting a consumer preserves its permanent contract seals'
 			);
 		} finally {
 			await session.stop();

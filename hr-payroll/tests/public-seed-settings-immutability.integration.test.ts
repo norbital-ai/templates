@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
 	asRecord,
 	bearerHeaders,
@@ -9,7 +10,6 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_CATALOGUE_ID,
-	BASIC_COMPONENT_CATALOGUE_ID,
 	COMPANY_ID,
 	JANUARY_2026,
 	JURISDICTION_ID,
@@ -92,7 +92,38 @@ const refusedWith = (response: { readonly value: unknown }, what: string, patter
 	);
 };
 
-/** The rows a create on each child collection would need, all valid but for the seal. */
+const seedRow = (collection: string): Row => {
+	const rows = JSON.parse(
+		readFileSync(new URL(`./fixtures/seed/${collection}.json`, import.meta.url), 'utf8')
+	) as Row[];
+	assert.ok(rows[0], `${collection} has a public fixture`);
+	return rows[0];
+};
+const LOAN_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01';
+const CATALOGUES = [
+	'work_catalogue',
+	'leave_catalogue',
+	'claim_catalogue',
+	'allowance_catalogue',
+	'payment_catalogue',
+	'loan_catalogue'
+] as const;
+const catalogueRows = new Map<string, Row>(
+	CATALOGUES.map((collection) => [
+		collection,
+		collection === 'loan_catalogue'
+			? {
+					...seedRow('claim_catalogue'),
+					id: LOAN_ID,
+					code: 'FIXTURE_LOAN',
+					policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' }
+				}
+			: seedRow(collection)
+	])
+);
+const HOLIDAY = seedRow('jurisdiction_holiday_calendars');
+
+/** Valid source shapes from the synthetic seed, with new codes so only the seal prevents creation. */
 const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row }> = [
 	{
 		collection: 'statutory_contributions',
@@ -118,58 +149,19 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 			award: { kind: 'PERCENT', employee: 1, employer: 1 }
 		}
 	},
-	{
-		collection: 'leave_catalogue',
-		values: {
-			settings_id: JURISDICTION_ID,
-			code: 'STUDY',
-			name: 'Study leave',
-			is_statutory: false,
-			eligibility: '',
-			entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 3 }] },
-			accrual: { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } },
-			exit_settlement: { exit: 'FORFEIT' },
-			payroll_effect: { kind: 'PAID' }
-		}
-	},
-	{
-		collection: 'component_catalogue',
-		values: {
-			settings_id: JURISDICTION_ID,
-			code: 'PHONE',
-			is_statutory: false,
-			policy: { kind: 'EARNING', settlement: 'ADD' },
-			contribution_treatments: {},
-			sequence: 60,
-			eligibility: '',
-			definition: {
-				source: 'ENTRY',
-				unit: 'MONEY',
-				evidence: 'NONE',
-				cap: null,
-				settlement: 'PAYROLL'
-			}
-		}
-	},
-	{
-		collection: 'company_holidays',
-		values: {
-			settings_id: JURISDICTION_ID,
-			date: '2026-08-31',
-			substitutes_date: null,
-			name: 'National Day',
-			scope: { kind: 'NATIONAL' },
-			is_statutory: true
-		}
-	}
+	...CATALOGUES.map((collection) => {
+		const { id: _id, ...values } = catalogueRows.get(collection)!;
+		return { collection, values: { ...values, code: `NEW_${collection.toUpperCase()}` } };
+	})
 ];
 
-/** One stored row per child collection to edit and delete under the seal. */
-const HOLIDAY_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff0';
+const WORK_ID = String(catalogueRows.get('work_catalogue')!.id);
+/** Every family is edited and deleted under its version seal; published calendars own their seal. */
 const STORED: ReadonlyArray<{
 	readonly collection: string;
 	readonly id: string;
 	readonly change: Row;
+	readonly pattern?: RegExp;
 }> = [
 	{ collection: 'statutory_contributions', id: STATUTORY_PUB_EPF_ID, change: { sequence: 99 } },
 	{
@@ -182,26 +174,58 @@ const STORED: ReadonlyArray<{
 		id: ANNUAL_LEAVE_CATALOGUE_ID,
 		change: { name: 'Annual leave (edited)' }
 	},
-	{ collection: 'component_catalogue', id: BASIC_COMPONENT_CATALOGUE_ID, change: { sequence: 11 } },
-	{ collection: 'company_holidays', id: HOLIDAY_ID, change: { name: 'Christmas (edited)' } }
+	{ collection: 'work_catalogue', id: WORK_ID, change: { proration: { by: 'WORKING_DAYS' } } },
+	{
+		collection: 'work_catalogue',
+		id: WORK_ID,
+		change: { ordinary_rate: { per: 'HOUR', divisor: 173 } }
+	},
+	{
+		collection: 'work_catalogue',
+		id: WORK_ID,
+		change: {
+			regime: {
+				overtime_coverage: null,
+				overtime_rules: [],
+				overtime_limits: [],
+				rest_break_rules: [],
+				holiday_rest_precedence: 'REST_DAY'
+			}
+		}
+	},
+	...(
+		['claim_catalogue', 'allowance_catalogue', 'payment_catalogue', 'loan_catalogue'] as const
+	).map((collection) => ({
+		collection,
+		id: String(catalogueRows.get(collection)!.id),
+		change: { sequence: 99 }
+	})),
+	{
+		collection: 'jurisdiction_holiday_calendars',
+		id: String(HOLIDAY.id),
+		change: { year: 2032 },
+		pattern: /Published holiday calendars/
+	}
 ];
+
+const COUNTED = [
+	'statutory_contributions',
+	'contribution_rates',
+	...CATALOGUES,
+	'jurisdiction_holiday_calendars'
+];
+const counts = (session: Session) =>
+	session.query(
+		`select ${COUNTED.map((collection) => `(select count(*) from ${collection})::int as ${collection}`).join(', ')}`
+	);
 
 /** Every root column, with a value that differs from the seeded one. */
 const ROOT_CHANGES: ReadonlyArray<Row> = [
 	{ code: 'PUB2' },
+	{ jurisdiction_code: 'TEST-OTHER' },
 	{ name: 'Public fixture profile (edited)' },
 	{ currency: 'SGD' },
 	{ tax_year_start_month: 7 },
-	{ proration: { by: 'WORKING_DAYS' } },
-	{ ordinary_rate: { per: 'HOUR', divisor: 173 } },
-	{
-		regime: {
-			overtime_coverage: null,
-			overtime_rules: [],
-			overtime_limits: [],
-			rest_break_rules: []
-		}
-	},
 	{ research_urls: ['https://example.test/law'] },
 	{ effective_range: { start: '2019-01-01T00:00:00.000Z', end: null } },
 	{ cloned_from_id: '22222222-2222-4222-8222-222222222299' },
@@ -222,13 +246,46 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-hr24-settings-immutability');
 		try {
-			// A holiday to edit and delete: the fixture seeds none, so one lands under the seal by SQL,
-			// which never meets a hook.
+			// Loan has no agreement fixture; install a valid catalogue sibling beneath the existing seal.
+			const loan = catalogueRows.get('loan_catalogue')!;
 			await session.query(
-				`insert into company_holidays (id, settings_id, date, name, scope, is_statutory)
-				 values ($1, $2, $3, $4, $5, $6)`,
-				[HOLIDAY_ID, JURISDICTION_ID, '2026-12-25', 'Christmas Day', { kind: 'NATIONAL' }, true]
+				`insert into loan_catalogue (id, settings_id, code, is_statutory, policy, contribution_treatments, sequence, eligibility, definition) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+				[
+					loan.id,
+					loan.settings_id,
+					loan.code,
+					loan.is_statutory,
+					loan.policy,
+					loan.contribution_treatments,
+					loan.sequence,
+					loan.eligibility,
+					loan.definition
+				]
 			);
+			// Annual calendars are independent of settings: both operators can create drafts even here.
+			for (const [index, team] of [CONTROLLER, MANAGER].entries()) {
+				const id = crypto.randomUUID();
+				requireAccepted(
+					(
+						await write(session, teamHeaders(session, team), 'jurisdiction_holiday_calendars', {
+							action: 'create',
+							values: {
+								id,
+								jurisdiction_code: HOLIDAY.jurisdiction_code,
+								year: 2030 + index,
+								revision: 1,
+								observations: []
+							}
+						})
+					).value,
+					`${team} creates an independent holiday draft`
+				);
+				assert.equal(
+					(await stored(session, 'jurisdiction_holiday_calendars', id)).published_at,
+					null
+				);
+			}
+			const countsBefore = await counts(session);
 			const before = new Map<string, Row>();
 			for (const { collection, id } of STORED)
 				before.set(`${collection}:${id}`, await stored(session, collection, id));
@@ -243,7 +300,7 @@ test(
 					});
 					refusedWith(created, `${team} create ${collection}`, SEALED);
 				}
-				for (const { collection, id, change } of STORED) {
+				for (const { collection, id, change, pattern } of STORED) {
 					const version = await rowVersion(session, collection, id);
 					const edited = await write(
 						session,
@@ -252,9 +309,9 @@ test(
 						{ action: 'update', values: { id, ...change } },
 						version
 					);
-					refusedWith(edited, `${team} update ${collection}`, SEALED);
+					refusedWith(edited, `${team} update ${collection}`, pattern ?? SEALED);
 					const deleted = await remove(session, headers, collection, id);
-					refusedWith(deleted, `${team} delete ${collection}`, SEALED);
+					refusedWith(deleted, `${team} delete ${collection}`, pattern ?? SEALED);
 				}
 				for (const change of ROOT_CHANGES) {
 					const version = await rowVersion(session, 'jurisdiction_settings', JURISDICTION_ID);
@@ -287,17 +344,11 @@ test(
 					key === 'root' ? ['jurisdiction_settings', JURISDICTION_ID] : key.split(':');
 				assert.deepEqual(await stored(session, collection!, id!), row, `${key} unchanged`);
 			}
-			const counts = (await session.query(
-				`select (select count(*) from statutory_contributions)::int as schemes,
-				        (select count(*) from contribution_rates)::int as rates,
-				        (select count(*) from leave_catalogue)::int as types,
-				        (select count(*) from component_catalogue)::int as components,
-				        (select count(*) from company_holidays)::int as holidays`
-			)) as ReadonlyArray<Row>;
-			// Seven components: five the engine feeds, plus the two entry-taking ones the arm-pairing
-			// rule needs — a CLAIM component and a MANUAL_ADJUSTMENT one, since an entry may only be
-			// raised against a component declaring its own arm.
-			assert.deepEqual(counts[0], { schemes: 2, rates: 2, types: 3, components: 7, holidays: 1 });
+			assert.deepEqual(
+				await counts(session),
+				countsBefore,
+				'refused writes create or delete no family or calendar rows'
+			);
 
 			// A paid run cites the version, so voiding it states a reason.
 			const founder = teamHeaders(session);

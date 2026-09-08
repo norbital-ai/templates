@@ -4,7 +4,7 @@ import { Schema } from 'effect';
 /**
  * The economic direction of a component: one closed union whose arm fixes the settlement.
  *
- * Statutory chargeability is not here. It is `component_catalogue.contribution_treatments`, one cell per
+ * Statutory chargeability is in the family pay item's `contribution_treatments`, one cell per
  * scheme code, because "what does EPF do with this money" is a fact about the component and the
  * scheme, not about which way the money settles.
  *

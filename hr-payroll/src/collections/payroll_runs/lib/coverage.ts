@@ -43,8 +43,8 @@ type CategoryBasis = Schema.Schema.Type<typeof CategoryBasisSchema>;
  * filtering it back out.
  *
  * Two para 3 exclusions the component model cannot express: **commissions and subsistence
- * allowance have no category of their own.** Nothing on `component_catalogue.policy` or
- * `component_catalogue.definition` distinguishes a commission from any other earning, so a commission
+ * allowance have no category of their own.** A family pay item's policy and calculation definition
+ * do not distinguish a commission from any other earning, so a commission
  * paid through an `EARNING` component is counted in the comparand even though the statute takes it
  * out. The seeded catalogues contain no commission or subsistence component, so no shipped
  * population is affected by the gap — but a company that adds one must know the comparand will

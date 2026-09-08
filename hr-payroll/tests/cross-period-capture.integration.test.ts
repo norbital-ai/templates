@@ -10,6 +10,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
+import { readLeaveContext } from '../src/lib/leave/context.ts';
+import { planLeaveActivity } from '../src/lib/leave/activity.ts';
+import { createLeave } from './helpers/public-leave.ts';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import {
@@ -19,19 +22,17 @@ import {
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
 import {
-	ANNUAL_LEAVE_REQUEST_ID,
+	HOSPITALIZATION_LEAVE_CATALOGUE_ID,
 	FEBRUARY_2026,
 	JANUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
-const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777777';
 const CREATE_PAYROLL_COMMAND = 'collections.mutate';
 
 const LEAVE_CATALOGUE_ID = 'aaaa1111-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 const LEAVE_REQUEST_ID = 'aaaa2222-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
-const LEAVE_ENTITLEMENT_ID = 'aaaa4444-aaaa-4aaa-8aaa-aaaaaaaaaaa4';
 const LOAN_COMPONENT_ID = 'bbbb1111-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
 const LOAN_ID = 'bbbb2222-bbbb-4bbb-8bbb-bbbbbbbbbbb2';
 const REPAYMENT_ID = 'bbbb3333-bbbb-4bbb-8bbb-bbbbbbbbbbb3';
@@ -66,6 +67,7 @@ function firstPayslip(created) {
 
 function persistPayslip(world, options) {
 	world.payroll_runs.push({
+		...options.created,
 		id: options.runId,
 		company_id: COMPANY_ID,
 		period: options.period,
@@ -73,23 +75,23 @@ function persistPayslip(world, options) {
 		approval_id: null
 	});
 	world.payslips.push({
+		...firstPayslip(options.created),
 		id: options.payslipId,
 		payroll_run_id: options.runId,
 		employment_id: EMPLOYMENT_ID,
-		statutory: [],
 		approval_id: null
 	});
 	for (const capture of options.leaveCaptures ?? []) {
-		world.payslip_leave_request_inputs.push({
-			id: capture.id,
+		world.payslip_leave_inputs.push({
+			...capture,
 			payslip_id: options.payslipId,
-			leave_request_id: capture.leave_request_id,
+			leave_entry_id: capture.leave_entry_id,
 			period: capture.period
 		});
 	}
 	for (const capture of options.repaymentCaptures ?? []) {
 		world.payslip_loan_repayment_inputs.push({
-			id: capture.id,
+			...capture,
 			payslip_id: options.payslipId,
 			loan_repayment_id: capture.loan_repayment_id,
 			period: capture.period
@@ -103,59 +105,58 @@ function persistPayslip(world, options) {
 	}
 }
 
-function withSpanningLeave(world) {
+async function withSpanningLeave(world) {
 	world.leave_catalogue.push({
 		id: LEAVE_CATALOGUE_ID,
-		company_id: COMPANY_ID,
-		code: 'AL',
+		settings_id: JURISDICTION_ID,
+		code: 'ANNUAL',
 		name: 'Annual leave',
 		is_statutory: false,
 		authority: null,
 		eligibility: '',
-		exit_settlement: { exit: 'FORFEIT' },
 		requires_certificate_after_days: null,
-		accrual: { kind: 'UNLIMITED' },
-		entitlement: { layers: [] },
+		entitlement: { availability: 'UNLIMITED', proration: 'NONE', year_start_month: 1, bands: [] },
 		payroll_effect: { kind: 'PAID' },
+		encashment: { code: 'ANNUAL_CASH', sequence: 110, contribution_treatments: {} },
 		approval_id: null
 	});
-	world.leave_entitlements.push({
-		id: LEAVE_ENTITLEMENT_ID,
-		employment_id: EMPLOYMENT_ID,
-		leave_catalogue_id: LEAVE_CATALOGUE_ID,
-		leave_code: 'AL',
-		leave_name: 'Annual leave',
-		leave_year: 2026,
-		starts_on: '2026-01-01',
-		ends_on: '2026-12-31',
-		status: 'OPEN',
-		entitlement_days: 0,
-		accrual_kind: 'UNLIMITED',
-		settlement: { settlement: 'FORFEIT' },
-		exit_settlement: { exit: 'FORFEIT' },
-		approval_id: null
-	});
-	world.leave_requests.push({
-		id: LEAVE_REQUEST_ID,
-		employment_id: EMPLOYMENT_ID,
-		leave_catalogue_id: LEAVE_CATALOGUE_ID,
-		leave_entitlement_id: LEAVE_ENTITLEMENT_ID,
-		event: {
-			kind: 'TIME_OFF',
-			range: {
-				start: { date: '2026-01-15', half: 'FIRST' },
-				end: { date: '2026-02-10', half: 'SECOND' }
-			},
-			chargeable_days: 18,
-			reason: 'spans January and February'
+	const context = await Effect.runPromise(
+		readLeaveContext(memoryPayrollApi(world), [EMPLOYMENT_ID], {
+			start: '2026-01-19',
+			end: '2026-02-02'
+		})
+	);
+	const { holidayInputs, termsThrough, certificateRequired, ...entry } = planLeaveActivity(
+		context,
+		{
+			employment_id: EMPLOYMENT_ID,
+			leave_catalogue_id: LEAVE_CATALOGUE_ID,
+			reference: 'CROSS-PERIOD-LEAVE',
+			event: {
+				kind: 'TIME_OFF',
+				range: {
+					start: { date: '2026-01-19', half: 'FIRST' },
+					end: { date: '2026-02-02', half: 'SECOND' }
+				},
+				chargeable_days: null,
+				reason: 'Spanning leave'
+			}
 		},
-		approval_id: null
-	});
+		LEAVE_REQUEST_ID
+	);
+	world.leave_entries.push({ id: LEAVE_REQUEST_ID, ...entry, approval_id: null });
 	return world;
 }
 
 function withRecoverableLoan(world) {
-	world.component_catalogue.push({
+	// Fully worked shifts isolate loan recovery from unrelated absence deductions.
+	for (const row of world.work_days) {
+		row.worked_intervals = [
+			{ start: `${row.work_date}T07:30:00+08:00`, end: `${row.work_date}T16:30:00+08:00` }
+		];
+		row.break_minutes = 60;
+	}
+	world.loan_catalogue.push({
 		id: LOAN_COMPONENT_ID,
 		settings_id: JURISDICTION_ID,
 		code: 'LOAN',
@@ -178,7 +179,7 @@ function withRecoverableLoan(world) {
 	world.loans.push({
 		id: LOAN_ID,
 		employment_id: EMPLOYMENT_ID,
-		component_catalogue_id: LOAN_COMPONENT_ID,
+		loan_catalogue_id: LOAN_COMPONENT_ID,
 		principal: 5000,
 		effective_range: { start: '2026-01-01', end: null },
 		reference: 'ADV-1',
@@ -188,6 +189,7 @@ function withRecoverableLoan(world) {
 	world.loan_repayments.push({
 		id: REPAYMENT_ID,
 		loan_id: LOAN_ID,
+		employment_id: EMPLOYMENT_ID,
 		due_date: '2026-01-15',
 		amount_due: 5000,
 		sequence: 1
@@ -195,15 +197,16 @@ function withRecoverableLoan(world) {
 	return world;
 }
 
-test('a leave request spanning January and February is captured on both payslips', async () => {
-	const world = withSpanningLeave(createPublicPayrollWorld());
+test('a Leave range spanning the attendance cutoff is captured as disjoint slices by January and February payroll', async () => {
+	const world = await withSpanningLeave(createPublicPayrollWorld());
 	const january = await createPayrollRun(world, '2026-01');
-	const januaryCaptures = firstPayslip(january).payslip_leave_request_input_payslip ?? [];
+	const januaryCaptures = firstPayslip(january).payslip_leave_input_payslip ?? [];
 	assert.deepEqual(
-		januaryCaptures.map((row) => row.leave_request_id),
+		januaryCaptures.map((row) => row.leave_entry_id),
 		[LEAVE_REQUEST_ID]
 	);
 	persistPayslip(world, {
+		created: january,
 		runId: JAN_RUN,
 		payslipId: JAN_PAYSLIP,
 		period: '2026-01',
@@ -212,13 +215,24 @@ test('a leave request spanning January and February is captured on both payslips
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
-	const februaryCaptures = firstPayslip(february).payslip_leave_request_input_payslip ?? [];
+	const februaryCaptures = firstPayslip(february).payslip_leave_input_payslip ?? [];
 	assert.deepEqual(
-		februaryCaptures.map((row) => row.leave_request_id),
+		februaryCaptures.map((row) => row.leave_entry_id),
 		[LEAVE_REQUEST_ID]
 	);
 	assert.equal(januaryCaptures[0].period, '2026-01');
 	assert.equal(februaryCaptures[0].period, '2026-02');
+	assert.deepEqual(
+		januaryCaptures[0].charges.map((row) => row.date),
+		['2026-01-19', '2026-01-20']
+	);
+	assert.equal(februaryCaptures[0].charges.length, 13);
+	assert.equal(februaryCaptures[0].charges[0].date, '2026-01-21');
+	assert.equal(februaryCaptures[0].charges.at(-1).date, '2026-02-02');
+	assert.deepEqual(
+		[...januaryCaptures[0].charges, ...februaryCaptures[0].charges],
+		world.leave_entries[0].charges
+	);
 });
 
 test('a part-recovered loan repayment is recaptured on the next period for the remainder', async () => {
@@ -239,6 +253,7 @@ test('a part-recovered loan repayment is recaptured on the next period for the r
 		'net-pay protection must leave a remainder for February'
 	);
 	persistPayslip(world, {
+		created: january,
 		runId: JAN_RUN,
 		payslipId: JAN_PAYSLIP,
 		period: '2026-01',
@@ -270,6 +285,26 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-cross-period-capture');
 		try {
+			const leaveId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await createLeave(session, {
+						id: leaveId,
+						reference: 'CROSS-PERIOD-PUBLIC',
+						leave_catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
+						event: {
+							kind: 'TIME_OFF',
+							range: {
+								start: { date: '2026-01-19', half: 'FIRST' },
+								end: { date: '2026-02-02', half: 'SECOND' }
+							},
+							chargeable_days: null,
+							reason: 'Spanning leave'
+						}
+					})
+				).value,
+				'spanning Leave'
+			);
 			for (const period of [JANUARY_2026, FEBRUARY_2026]) {
 				const created = await postGuestCommand(
 					session.host.baseUrl,
@@ -321,50 +356,71 @@ test(
 			const februaryPayslip = payslips.find((row) => row.period === FEBRUARY_2026);
 			assert.ok(januaryPayslip && februaryPayslip);
 
-			await session.query(
-				`insert into payslip_leave_request_inputs
-				 (id, payslip_id, leave_request_id, period)
-				 values ($1, $2, $3, $4), ($5, $6, $7, $8)`,
-				[
-					crypto.randomUUID(),
-					januaryPayslip.id,
-					ANNUAL_LEAVE_REQUEST_ID,
-					JANUARY_2026,
-					crypto.randomUUID(),
-					februaryPayslip.id,
-					ANNUAL_LEAVE_REQUEST_ID,
-					FEBRUARY_2026
-				]
+			const leaveCaptures = await session.query(
+				`select period, charges from payslip_leave_inputs where leave_entry_id = $1 order by period`,
+				[leaveId]
 			);
-			const leaveCaptures = (await session.query(
-				`select period from payslip_leave_request_inputs
-				 where leave_request_id = $1
-				 order by period`,
-				[ANNUAL_LEAVE_REQUEST_ID]
-			)) as ReadonlyArray<{ readonly period: string }>;
 			assert.deepEqual(
 				leaveCaptures.map((row) => row.period),
 				[JANUARY_2026, FEBRUARY_2026]
 			);
-			await assert.rejects(() =>
-				session.query(
-					`insert into payslip_leave_request_inputs
-					 (id, payslip_id, leave_request_id, period)
-					 values ($1, $2, $3, $4)`,
-					[crypto.randomUUID(), januaryPayslip.id, ANNUAL_LEAVE_REQUEST_ID, JANUARY_2026]
-				)
+			assert.deepEqual(
+				leaveCaptures.map((row) => row.charges.map((charge) => charge.date)),
+				[
+					['2026-01-19', '2026-01-20'],
+					[
+						'2026-01-21',
+						'2026-01-22',
+						'2026-01-23',
+						'2026-01-24',
+						'2026-01-26',
+						'2026-01-27',
+						'2026-01-28',
+						'2026-01-29',
+						'2026-01-30',
+						'2026-01-31',
+						'2026-02-02'
+					]
+				]
+			);
+			await assert.rejects(
+				() =>
+					session.query(
+						`insert into payslip_leave_inputs (id, payslip_id, leave_entry_id, period, charges, gross_amount, pay_items)
+    select $1, payslip_id, leave_entry_id, period, charges, gross_amount, pay_items from payslip_leave_inputs where payslip_id = $2 and leave_entry_id = $3`,
+						[crypto.randomUUID(), januaryPayslip.id, leaveId]
+					),
+				/duplicate key/
+			);
+			// A standalone schedule fixture isolates the per-payslip capture uniqueness constraint.
+			const loanCatalogueId = crypto.randomUUID();
+			await session.query(
+				`insert into loan_catalogue (id, settings_id, code, policy, contribution_treatments, sequence, eligibility, definition)
+    values ($1, $2, 'CROSS_PERIOD_LOAN', $3::jsonb, '{}'::jsonb, 80, '', $4::jsonb)`,
+				[
+					loanCatalogueId,
+					JURISDICTION_ID,
+					JSON.stringify({ kind: 'DEDUCTION', settlement: 'DEDUCT' }),
+					JSON.stringify({
+						source: 'ENTRY',
+						unit: 'MONEY',
+						evidence: 'NONE',
+						cap: null,
+						settlement: 'PAYROLL'
+					})
+				]
 			);
 
 			const loanId = crypto.randomUUID();
 			const repaymentId = crypto.randomUUID();
 			await session.query(
 				`insert into loans
-				 (id, employment_id, component_catalogue_id, principal, effective_range, reference)
+				 (id, employment_id, loan_catalogue_id, principal, effective_range, reference)
 				 values ($1, $2, $3, $4, $5::jsonb, $6)`,
 				[
 					loanId,
 					EMPLOYMENT_ID,
-					TRANSPORT_COMPONENT_ID,
+					loanCatalogueId,
 					5000,
 					JSON.stringify({ start: '2026-01-01', end: null }),
 					'ADV-PUBLIC'
@@ -372,9 +428,9 @@ test(
 			);
 			await session.query(
 				`insert into loan_repayments
-				 (id, loan_id, due_date, amount_due, sequence)
-				 values ($1, $2, $3::timestamptz, $4, $5)`,
-				[repaymentId, loanId, '2026-01-15T00:00:00Z', 5000, 1]
+				 (id, loan_id, employment_id, due_date, amount_due, sequence)
+				 values ($1, $2, $3, $4::timestamptz, $5, $6)`,
+				[repaymentId, loanId, EMPLOYMENT_ID, '2026-01-15T00:00:00Z', 5000, 1]
 			);
 			await session.query(
 				`insert into payslip_loan_repayment_inputs

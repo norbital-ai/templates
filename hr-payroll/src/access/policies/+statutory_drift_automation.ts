@@ -14,9 +14,12 @@ export default {
 		jurisdiction_settings: { read: {}, mutate: { new: {} } },
 		statutory_contributions: { read: {}, mutate: { new: {} } },
 		contribution_rates: { read: {}, mutate: { new: {} } },
+		work_catalogue: { read: {}, mutate: { new: {} } },
 		leave_catalogue: { read: {}, mutate: { new: {} } },
-		component_catalogue: { read: {}, mutate: { new: {} } },
-		company_holidays: { read: {}, mutate: { new: {} } }
+		loan_catalogue: { read: {}, mutate: { new: {} } },
+		claim_catalogue: { read: {}, mutate: { new: {} } },
+		allowance_catalogue: { read: {}, mutate: { new: {} } },
+		payment_catalogue: { read: {}, mutate: { new: {} } }
 	},
 	limits: {
 		'collections.*': { window: '1 min', limit: 600, key: 'subject' }

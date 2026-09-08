@@ -29,8 +29,8 @@ import {
  * explicitly records AWOL.
  *
  * There is no `PUBLIC_HOLIDAY` roster code. A holiday is a property of the calendar, not of one
- * person's day: `company_holidays` is overlaid at calculation time, so a newly gazetted day reaches
- * payroll without rewriting a single row.
+ * person's day. The write captures its published jurisdiction calendar as immutable input evidence.
+ * Subsequent publications preserve dates already linked to workdays or consumed by payroll.
  */
 export default defineModel(
 	{
@@ -75,7 +75,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One person-day, carrying the planned assignment and the actual attendance side by side. Either side may be absent. Schedule variance, premium work and overtime are derived from the two together with the company calendar and the effective statutory rules.',
+			'One person-day, carrying the planned assignment and the actual attendance side by side. Either side may be absent. Schedule variance, premium work and overtime are derived from the two together with the jurisdiction calendar and the effective statutory rules.',
 		recordLabel: 'work_date',
 		icon: 'lucide:calendar-clock',
 		indexes: [

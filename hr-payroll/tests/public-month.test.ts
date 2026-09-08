@@ -19,6 +19,12 @@ import {
 
 async function createJanuary() {
 	const world = createPublicPayrollWorld();
+	for (const day of world.work_days) {
+		day.worked_intervals = [
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+		];
+		day.break_minutes = 60;
+	}
 	const api = memoryPayrollApi(world);
 	const prepared = await Effect.runPromise(
 		payrollRunHooks.mutate.prepare({
@@ -54,12 +60,12 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 		(payslip.payslip_allowance_request_input_payslip ?? []).map((row) => row.allowance_request_id),
 		[STANDING_ENTRY_ID]
 	);
-	// And nothing from the four families this month has no rows in.
-	for (const family of ['claim', 'bonus', 'arrears', 'correction'])
-		assert.deepEqual(payslip[`payslip_${family}_request_input_payslip`] ?? [], [], family);
-	assert.equal(payslip.payslip_work_day_input_payslip.length, 0);
+	// And nothing from the families this month has no rows in.
+	for (const family of ['claim', 'payment'])
+		assert.deepEqual(payslip[`payslip_${family}_request_input_payslip`], [], family);
+	assert.equal(payslip.payslip_work_day_input_payslip.length, 42);
 	assert.equal(payslip.payslip_loan_repayment_input_payslip.length, 0);
-	assert.equal(payslip.payslip_leave_request_input_payslip.length, 0);
+	assert.equal(payslip.payslip_leave_input_payslip.length, 0);
 	assert.equal(payslip.statutory.length, 0);
 
 	// Observed on this public world (no schemes, one standing allowance).

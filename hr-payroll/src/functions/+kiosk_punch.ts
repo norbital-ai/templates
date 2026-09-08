@@ -1,3 +1,4 @@
+import { resolveEmployment } from '../lib/employment-contract.js';
 import { defineCommandHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
 import {
@@ -28,17 +29,18 @@ export default defineCommandHandler({
 	handler: ({ employment_id, kind }, api: Api) =>
 		Effect.gen(function* () {
 			const now = new Date(yield* Clock.currentTimeMillis).toISOString();
-			const employment = yield* api.db.employments.findFirst({
+			const contract = yield* api.db.employments.findFirst({
+				with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 				where: { id: { eq: employment_id } },
 				columns: {
 					id: true,
 					employee_id: true,
 					hire_date: true,
-					exit_date: true,
 					effective_range: true
 				}
 			});
-			if (employment === undefined) refuse('Employment does not exist.');
+			if (contract === undefined) refuse('Employment does not exist.');
+			const employment = resolveEmployment(contract);
 			const dayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
 			if (
 				!inForceOnDay(employment.effective_range, dayKey) ||
@@ -77,11 +79,14 @@ export default defineCommandHandler({
 			 * would freeze it, and the day would stop following its own pattern; the plan is read to
 			 * decide whether the punch may happen, and the projection stays a projection.
 			 */
-			const terms = yield* api.db.employment_terms.findMany({
-				where: { employment_id: { eq: employment_id }, approval_id: { isNull: true } },
-				columns: { shift_pattern_id: true, effective_range: true },
-				limit: 200
-			});
+			const terms =
+				kind !== 'FACE' || stored?.shift_definition_id != null
+					? []
+					: yield* api.db.employment_terms.findMany({
+							where: { employment_id: { eq: employment_id }, approval_id: { isNull: true } },
+							columns: { shift_pattern_id: true, effective_range: true },
+							limit: 200
+						});
 			const term = terms.find((candidate) => coversDate(candidate.effective_range, dayKey));
 			// Terms that name no pattern are rostered as assigned: there is no base to project, so
 			// only an explicit roster entry can put the person on this day.
@@ -107,7 +112,7 @@ export default defineCommandHandler({
 			}
 			const plannedCodeId = stored?.shift_definition_id ?? projectedCodeId;
 			const plannedCode =
-				plannedCodeId == null
+				kind !== 'FACE' || plannedCodeId == null
 					? undefined
 					: yield* api.db.shift_definitions.findFirst({
 							where: { id: { eq: plannedCodeId } },

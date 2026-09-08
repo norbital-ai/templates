@@ -1,122 +1,72 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand
-} from '@norbital-ai/test-utilities';
+import { requireAccepted } from '@norbital-ai/test-utilities';
 import {
 	EMPLOYMENT_ID,
-	HOSPITALIZATION_LEAVE_ENTITLEMENT_ID,
 	HOSPITALIZATION_LEAVE_CATALOGUE_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { createLeave, leaveBalances } from './helpers/public-leave.ts';
 
-/**
- * HR10: hospitalization leave end-to-end on public fixtures.
- *
- * The public `leave_catalogue.json` carries a statutory 60-day HOSPITALIZATION row; the after-seed
- * `leave_ledger_refresh` generates the entitlements (fixtures carry zero
- * `leave_entitlements`/`entries`). A founder-committed two-day request then charges the ledger
- * through the same hooks payroll reads.
- */
 test(
-	'public seed hospitalization leave generates its account and charges taken days',
+	'hospitalization availability is computed and one approved entry retains its exact dated charges',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
-		const session = await startPublicSeedHost('hr-payroll-hospitalization');
+		const session = await startPublicSeedHost('hr-hospitalization');
 		try {
-			const entitlements = await session.query(
-				`select id, employment_id, leave_code, leave_year, entitlement_days
-				 from leave_entitlements where leave_code = 'HOSPITALIZATION' and leave_year = 2026`
-			);
-			assert.equal(
-				entitlements.length,
-				4,
-				`every public employment gets a 2026 hospitalization entitlement: ${JSON.stringify(entitlements)}`
-			);
-			const entitlement = asRecord(
-				entitlements.find(
-					(row) => String(asRecord(row, 'row').id) === HOSPITALIZATION_LEAVE_ENTITLEMENT_ID
-				),
-				'fixture hospitalization entitlement'
-			);
-			assert.equal(Number(entitlement.entitlement_days), 60);
-
-			const openings = await session.query(
-				`select kind, days, source_key from leave_entries where leave_entitlement_id = $1`,
-				[HOSPITALIZATION_LEAVE_ENTITLEMENT_ID]
-			);
-			assert.equal(openings.length, 1, JSON.stringify(openings));
-			const opening = asRecord(openings[0], 'hospitalization opening entry');
-			assert.equal(opening.kind, 'OPENING_ENTITLEMENT');
-			assert.equal(Number(opening.days), 60);
-			assert.equal(opening.source_key, 'opening');
-
-			const requestId = crypto.randomUUID();
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'leave_requests',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: requestId,
-								employment_id: EMPLOYMENT_ID,
-								leave_catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
-								leave_entitlement_id: HOSPITALIZATION_LEAVE_ENTITLEMENT_ID,
-								event: {
-									kind: 'TIME_OFF',
-									range: {
-										start: { date: '2026-06-03', half: 'FIRST' },
-										end: { date: '2026-06-04', half: 'SECOND' }
-									},
-									chargeable_days: null,
-									reason: 'Hospitalization fixture admission'
-								}
-							}
-						}
-					]
-				}),
-				bearerHeaders(session.credential)
-			);
-			assert.ok(
-				created.status >= 200 && created.status < 300,
-				`leave_requests.mutate ${created.status}: ${JSON.stringify(created.value)}`
-			);
-			const stored = await session.query(`select event from leave_requests where id = $1`, [
-				requestId
+			const balances = await leaveBalances(session, EMPLOYMENT_ID, '2026-06-30');
+			assert.equal(balances.find((row) => row.code === 'HOSPITALIZATION')?.balance, 60);
+			const before = await session.query('select id from leave_entries where employment_id = $1', [
+				EMPLOYMENT_ID
 			]);
-			assert.equal(stored.length, 1, 'founder-committed request must land');
+			const id = crypto.randomUUID();
+			const created = await createLeave(session, {
+				id,
+				reference: 'HOSPITAL-ADMISSION',
+				leave_catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
+				event: {
+					kind: 'TIME_OFF',
+					range: {
+						start: { date: '2026-06-03', half: 'FIRST' },
+						end: { date: '2026-06-04', half: 'SECOND' }
+					},
+					chargeable_days: null,
+					reason: 'Admission'
+				}
+			});
+			requireAccepted(created.value, 'hospitalization Leave');
+			const [stored] = await session.query(
+				'select event, charges, allocations from leave_entries where id = $1',
+				[id]
+			);
+			assert.equal(stored.event.chargeable_days, 2);
+			assert.deepEqual(
+				stored.charges.map((row: { date: string; days: number }) => [row.date, row.days]),
+				[
+					['2026-06-03', 1],
+					['2026-06-04', 1]
+				]
+			);
 			assert.equal(
-				Number(asRecord(stored[0], 'stored request').event.chargeable_days),
-				2,
-				'two scheduled work days normalized by the request hook'
+				stored.allocations.reduce((sum: number, row: { days: number }) => sum + row.days, 0),
+				-2
 			);
-
-			const entries = await session.query(
-				`select kind, days, source_key from leave_entries
-				 where leave_entitlement_id = $1 order by effective_on, kind`,
-				[HOSPITALIZATION_LEAVE_ENTITLEMENT_ID]
+			assert.equal(
+				(
+					await session.query('select id from leave_entries where employment_id = $1', [
+						EMPLOYMENT_ID
+					])
+				).length,
+				before.length + 1,
+				'approval stores the manual entry without generated opening or debit entries'
 			);
-			const taken = entries.filter(
-				(row) => String(asRecord(row, 'entry').source_key) === `request:${requestId}`
+			assert.equal(
+				(await leaveBalances(session, EMPLOYMENT_ID, '2026-06-30')).find(
+					(row) => row.code === 'HOSPITALIZATION'
+				)?.balance,
+				58
 			);
-			assert.equal(taken.length, 1, JSON.stringify(entries));
-			assert.equal(asRecord(taken[0], 'taken entry').kind, 'TAKEN');
-			assert.equal(Number(asRecord(taken[0], 'taken entry').days), -2);
-
-			const balance = await session.query(
-				`select coalesce(sum(days), 0) as remaining from leave_entries
-				 where leave_entitlement_id = $1 and effective_on <= '2026-12-31'`,
-				[HOSPITALIZATION_LEAVE_ENTITLEMENT_ID]
-			);
-			assert.equal(Number(asRecord(balance[0], 'balance').remaining), 58);
 		} finally {
 			await session.stop();
 		}

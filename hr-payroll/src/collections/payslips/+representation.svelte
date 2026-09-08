@@ -34,10 +34,18 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
+	/**
+	 * The seven shapes `payslip_adjustments.input` takes, and it must be all seven: a kind this
+	 * union does not name decodes to nothing and the line prints '—' where its provenance should be.
+	 * It said `COMPONENT_ENTRY_INPUT` until the four event families each got their own capture, and
+	 * every claim, allowance, payment and arrears line on every payslip has been unattributed since.
+	 */
 	const adjustmentInputSchema = Schema.Union([
 		Schema.Struct({ kind: Schema.Literal('WORK_DAY_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('COMPONENT_ENTRY_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('LEAVE_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('CLAIM_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('ALLOWANCE_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('PAYMENT_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('LEAVE_INPUT'), id: Schema.String }),
 		Schema.Struct({ kind: Schema.Literal('LOAN_REPAYMENT_INPUT'), id: Schema.String })
 	]);
 	const payslipSummarySchema = Schema.Struct({
@@ -170,11 +178,15 @@
 		const parsed = decodeAdjustmentInput(input);
 		if (!Result.isSuccess(parsed)) return '—';
 		switch (parsed.success.kind) {
-			case 'COMPONENT_ENTRY_INPUT':
-				return t('component.entry_kind');
+			case 'CLAIM_REQUEST_INPUT':
+				return t('app.claims.title');
+			case 'ALLOWANCE_REQUEST_INPUT':
+				return t('app.allowances.title');
+			case 'PAYMENT_REQUEST_INPUT':
+				return t('app.payments.title');
 			case 'WORK_DAY_INPUT':
 				return t('component.attendance');
-			case 'LEAVE_REQUEST_INPUT':
+			case 'LEAVE_INPUT':
 				return t('component.leave');
 			case 'LOAN_REPAYMENT_INPUT':
 				return t('app.loans.agreements');

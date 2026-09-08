@@ -87,8 +87,6 @@
 		})
 	);
 
-	let runKind = $state<'REGULAR' | 'AD_HOC'>('REGULAR');
-
 	let companyId = $state<string | null>(null);
 	let period = $state<string | null>(null);
 
@@ -132,15 +130,7 @@
 	function isPeriodDisabled(candidate: string): boolean {
 		const company = selectedCompany;
 		if (company == null) return true;
-		if (runKind === 'REGULAR' && settledPeriods.has(candidate)) return true;
-		if (
-			runKind === 'AD_HOC' &&
-			!(runsQuery.current ?? []).some(
-				(run) =>
-					run.company_id === company.id && run.period === candidate && run.lifecycle === 'PAID'
-			)
-		)
-			return true;
+		if (settledPeriods.has(candidate)) return true;
 		return windowFor(candidate, company) == null;
 	}
 
@@ -251,7 +241,6 @@
 						{#snippet children({ Field, form })}
 							<Field name="company_id" hidden />
 							<Field name="period" hidden />
-							<Field name="run_kind" hidden />
 							<Field name="lifecycle" hidden />
 							<p
 								class="text-sm"
@@ -340,26 +329,8 @@
 				<Field name="company_id" hidden />
 				<Field name="period" hidden />
 				<Field name="lifecycle" hidden />
-				<Field name="run_kind" hidden />
 				<Stack gap="lg">
 					<Grid gap="md" minimum="compact">
-						<Stack gap="xs">
-							<span class="text-sm font-medium">{t('payroll.run_kind')}</span>
-							<Combobox
-								ariaLabel={t('payroll.run_kind')}
-								value={runKind}
-								options={[
-									{ value: 'REGULAR', label: t('payroll.regular') },
-									{ value: 'AD_HOC', label: t('payroll.ad_hoc') }
-								]}
-								onValueChange={(value) => {
-									if (value !== 'REGULAR' && value !== 'AD_HOC') return;
-									runKind = value;
-									period = null;
-									form.setValues({ run_kind: value, period: undefined });
-								}}
-							/>
-						</Stack>
 						<label class="text-sm font-medium">
 							<Stack gap="xs">
 								{t('component.legal_entity')}

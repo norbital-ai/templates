@@ -1,3 +1,4 @@
+import { resolveEmployment } from '../../../lib/employment-contract.js';
 /**
  * Loading a settled run back out for export.
  *
@@ -13,6 +14,7 @@
 
 import { Effect, Schema } from 'effect';
 import type { PayrollReadApi } from './api.js';
+import { workPayItems } from '../../work_catalogue/pay-items.js';
 import { PAGE_LIMIT, groupBy, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
@@ -54,7 +56,7 @@ type BankDestination = Schema.Schema.Type<typeof BankDestinationSchema>;
 
 type RunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
-	'id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
+	'id' | 'settings_id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
 >;
 
 function timestampHours(row: WorkDayLike): number {
@@ -126,7 +128,17 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [adjustments, employments, catalogueComponents, terms, workDays] = yield* Effect.all(
+		const [
+			adjustments,
+			employments,
+			workCatalogues,
+			leaves,
+			claims,
+			allowances,
+			payments,
+			terms,
+			workDays
+		] = yield* Effect.all(
 			[
 				api.db.payslip_adjustments.findMany({
 					where: { payslip_id: { in: payslipIds } },
@@ -137,10 +149,18 @@ export function loadRunExports(
 					limit: PAGE_LIMIT
 				}),
 				api.db.employments.findMany({
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
 					where: { id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),
-				api.db.component_catalogue.findMany({ limit: PAGE_LIMIT }),
+				// Every catalogue: a settled payslip line names a component by code, and the code may come
+				// from any of them. Merged here for the same reason the run merges them — the export asks
+				// what a line *is*, never which table declared it.
+				api.db.work_catalogue.findMany({ limit: PAGE_LIMIT }),
+				api.db.leave_catalogue.findMany({ limit: PAGE_LIMIT }),
+				api.db.claim_catalogue.findMany({ limit: PAGE_LIMIT }),
+				api.db.allowance_catalogue.findMany({ limit: PAGE_LIMIT }),
+				api.db.payment_catalogue.findMany({ limit: PAGE_LIMIT }),
 				api.db.employment_terms.findMany({
 					where: { employment_id: { in: employmentIds } },
 					limit: PAGE_LIMIT
@@ -158,6 +178,14 @@ export function loadRunExports(
 			],
 			{ concurrency: 'unbounded' }
 		);
+		for (const [name, rows] of Object.entries({
+			workCatalogues,
+			leaves,
+			claims,
+			allowances,
+			payments
+		}))
+			readApi.reads.assertComplete<unknown>(rows, name);
 		readApi.reads.assertComplete(adjustments, 'payslip adjustments');
 		readApi.reads.assertComplete(terms, 'employment terms');
 		readApi.reads.assertComplete(workDays, 'work days');
@@ -211,10 +239,7 @@ export function loadRunExports(
 		readApi.reads.assertComplete(employees, 'employees');
 		readApi.reads.assertComplete(shifts, 'shift definitions');
 
-		// The schemes charged are on the payslips themselves now, one entry per scheme with both
-		// shares on it, and named by their code — so no id-to-code join is left at all.
-		const componentByCode = new Map(catalogueComponents.map((row) => [row.code, row]));
-		const employmentById = new Map(employments.map((row) => [row.id, row]));
+		const employmentById = new Map(employments.map(resolveEmployment).map((row) => [row.id, row]));
 		const employeeById = new Map(employees.map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
 		const workDaysByEmployment = groupBy(workDays, (row) => row.employment_id);
@@ -223,6 +248,35 @@ export function loadRunExports(
 		const payslipsByRun = groupBy(payslips, (row) => row.payroll_run_id);
 
 		return runs.map((run) => {
+			const componentByCode = new Map(
+				[
+					...workCatalogues
+						.filter((row) => row.settings_id === run.settings_id)
+						.flatMap(workPayItems),
+					...leaves
+						.filter((row) => row.settings_id === run.settings_id)
+						.flatMap((row) => [
+							{
+								...row.encashment,
+								nature: 'EARNING',
+								definition: null
+							},
+							...(row.payroll_effect.kind === 'UNPAID'
+								? [
+										{
+											code: row.code,
+											nature: 'ABSENCE',
+											definition: null
+										}
+									]
+								: [])
+						]),
+					...[...claims, ...allowances, ...payments].filter(
+						(row) => row.settings_id === run.settings_id
+					)
+				].map((row) => [row.code, row])
+			);
+
 			const runPayslips = payslipsByRun.get(run.id) ?? [];
 			const runAttendanceFrom = requiredDateKey(
 				run.attendance_from,

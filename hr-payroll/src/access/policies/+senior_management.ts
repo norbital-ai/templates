@@ -2,8 +2,7 @@ import {
 	captureLedgerGrants,
 	grantsOn,
 	grantOn,
-	leaveApproval,
-	manualLeaveAdjustmentGrant,
+	hrLeaveEntryGrant,
 	mergeGrants,
 	payrollGrants,
 	payrollRunCascadeGrants,
@@ -31,12 +30,9 @@ import type { Policy } from './$types.js';
  * `src/lib/policy_grants.ts`: there is no `extends` in the authoring surface and no rank in the
  * runtime, so a subject carrying only `senior_management` is granted exactly what this file lists.
  *
- * **Adjustments are visible here, and the ladder below cannot see them.** The owner scoped
- * adjustment visibility to `hr_controller`/`hr_manager`; senior management is included because this
- * role is one of the two the controller's `payroll_runs.mutate.new` grant escalates to, and approving
- * a run whose corrections you are forbidden to read is a signature on a figure you cannot check. That is a
- * choice, and the narrower reading — HR only — is one line away: drop the `correction_requests`
- * grant below, exactly as `+manager.ts` and `+supervisor.ts` do.
+ * Corrections use `as_adjustment_entry` on Claim, Allowance and Payment requests. Their collection
+ * grants below include these entries; no separate correction collection grant exists. Senior
+ * management also reads payroll outputs so it can review the figures it is asked to approve.
  */
 export default {
 	description:
@@ -83,13 +79,10 @@ export default {
 		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
 
-		// Unconditional, so corrections are visible. See the note above for why this rank and not the
-		// one below it.
+		// These family grants include corrections marked with `as_adjustment_entry`.
 		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('bonus_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('arrears_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('correction_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('payment_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 
@@ -101,9 +94,8 @@ export default {
 		// leaves the bad row sitting in the run.
 		workDayWriteGrants(),
 
-		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
-		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		manualLeaveAdjustmentGrant(false),
+		grantsOn('leave_entries', ['read']),
+		hrLeaveEntryGrant(false),
 
 		// The payroll authority, identical to `hr_manager`'s. Stated as the same builder calls so
 		// that a change to what "running payroll" costs in permissions lands on both policies at once.

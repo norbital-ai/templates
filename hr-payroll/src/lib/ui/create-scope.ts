@@ -55,11 +55,13 @@ export const employmentRelationOptions = (companyId: string | undefined) => ({
  * The catalogue predicate for a scoped page: rows belonging to the version of the entity's lineage
  * in force today. Undefined without a scope, which leaves the picker unnarrowed.
  *
- * `leave_catalogue` and `component_catalogue` both reach their version through a one-relation, so the shape
- * is the same for both and only the relation name differs.
+ * Every catalogue reaches its version through a one-relation named `<catalogue>_settings`, so the
+ * shape is the same for all of them and only the relation name differs. The parameter names that
+ * shape rather than enumerating the tables: there are seven catalogues now where there were two,
+ * and a list would have to be edited every time one is added.
  */
 export const inForceCatalogue = (
-	relation: 'leave_catalogue_settings' | 'component_catalogue_settings',
+	relation: `${string}_catalogue_settings`,
 	settingsCode: string | undefined,
 	day: string = todayKey()
 ) =>

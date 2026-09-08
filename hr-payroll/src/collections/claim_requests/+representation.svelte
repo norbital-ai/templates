@@ -11,14 +11,15 @@
 	 * evidence — are `notNull` and a column that exists nowhere else now, kept by the database on
 	 * every path including the seed.
 	 *
-	 * There is no semantic rule attached either. The one remaining catalogue-side pairing rule —
-	 * a component declares which family may name it — is enforced by narrowing the picker to
-	 * `entry_kind: CLAIM` rather than by refusing a mismatch after it was offered. A choice the form
-	 * never presents is a refusal that never has to be written, in the form or in the hook.
+	 * There is no semantic rule attached either. Which components a claim may name used to be an
+	 * `entry_kind: CLAIM` clause over one merged catalogue; the picker now reads `claim_catalogue`,
+	 * a table that holds nothing else. A choice the form never presents is a refusal that never has
+	 * to be written, in the form or in the hook — and a table that cannot hold the wrong row is a
+	 * clause that never has to be written either.
 	 *
 	 * Self-service opens this same form. `employment_id` is prefilled and hidden when the create
 	 * scope names the person, because an employee raising their own claim is not choosing whose it
-	 * is — the same arrangement `leave_requests` uses.
+	 * is — the same arrangement `leave_entries` uses.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -103,16 +104,14 @@
 					/>
 				{/if}
 				<Field
-					name="component_catalogue_id"
+					name="claim_catalogue_id"
 					label={t('component.catalogue_component')}
 					relationOptions={{
 						label: (component) => String(component.code ?? '') || '—',
-						// The component must both take claims and belong to the version of this entity's
-						// lineage in force today. Two conditions, one picker, no refusal afterwards.
-						where: {
-							entry_kind: { eq: 'CLAIM' },
-							...inForceCatalogue('component_catalogue_settings', scopedSettingsCode)
-						},
+						// The family is the table. Narrowing to it used to be an `entry_kind` clause on one
+						// merged catalogue; the only condition left is the version of this entity's lineage in
+						// force today.
+						where: { ...inForceCatalogue('claim_catalogue_settings', scopedSettingsCode) },
 						orderBy: { code: 'asc' },
 						limit: 500
 					}}
@@ -121,6 +120,16 @@
 				<Field name="incurred_on" label={t('component.incurred_on')} />
 				<Field name="evidence_file" label={t('component.evidence_file')} />
 				<Field name="pay_period" label={t('component.pay_period_override')} />
+				<!--
+					The direction, and the line it corrects. The catalogue row declares whether this component
+					adds to pay or reduces it; ticking this settles this one entry the opposite way, which is
+					what a correction is now — a claw-back of a transport claim is a transport claim with the
+					tick, under the same component, on the same payslip line. `corrects_adjustment_id` is
+					provenance only and never the direction: outputs are immutable, so an entry names the
+					settled line it fixes and there is no chain to walk.
+				-->
+				<Field name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+				<Field name="corrects_adjustment_id" label={t('component.corrects_adjustment')} />
 				<Column span="all">
 					<Field name="description" label={t('component.claim_description')} />
 				</Column>

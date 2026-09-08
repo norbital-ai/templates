@@ -27,7 +27,7 @@ export const SEMI_MONTHLY_BASE = 4100;
 
 const WORK_SHIFT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 
-/** Plan-only roster rows for the semi-monthly employment from the December cutoff to the end of February. */
+/** Roster rows for the semi-monthly employment from the December cutoff to the end of February. */
 function rosteredWorkDays(employmentId: string, start: string, end: string) {
 	const rows: PayrollWorld['work_days'] = [];
 	let date = start;
@@ -71,8 +71,22 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		award: { kind: 'PERCENT', employee: 11, employer: 13 },
 		approval_id: null
 	});
-	for (const component of world.component_catalogue)
-		component.contribution_treatments = { 'PUB-EPF': { kind: 'INCLUDE' } };
+	// Every catalogue at once, and the scheme's own answer for the four the engine produces —
+	// which is where a bucket's treatment lives now that the buckets have no rows.
+	for (const catalogue of [
+		world.claim_catalogue,
+		world.allowance_catalogue,
+		world.payment_catalogue,
+		world.loan_catalogue
+	])
+		for (const component of catalogue)
+			component.contribution_treatments = { 'PUB-EPF': { kind: 'INCLUDE' } };
+	for (const work of world.work_catalogue)
+		for (const output of ['salary', 'overtime', 'overtime_excess', 'absence'])
+			work[output].contribution_treatments = {
+				'PUB-EPF': { kind: output === 'absence' ? 'REDUCE' : 'INCLUDE' }
+			};
+
 	world.employees.push({
 		id: SEMI_MONTHLY_EMPLOYEE_ID,
 		name: 'Semi-monthly Fixture Employee',
@@ -105,5 +119,11 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		effective_range: { start: '2022-03-01', end: null }
 	});
 	world.work_days.push(...rosteredWorkDays(SEMI_MONTHLY_EMPLOYMENT_ID, '2025-12-21', '2026-02-28'));
+	for (const day of world.work_days) {
+		day.worked_intervals = [
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+		];
+		day.break_minutes = 60;
+	}
 	return world;
 }

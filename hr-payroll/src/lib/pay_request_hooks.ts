@@ -4,68 +4,37 @@ import type { WorkspaceSchema } from '$bolt/types';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { capSubject } from './component_entry_cap_subject.js';
 import {
+	capOccurrenceDate,
 	entryCapRefusal,
+	entryReimbursementPercentage,
 	reimbursable,
 	resolveEntryCap
 } from '../collections/payroll_runs/lib/entry-cap.js';
 import { refuseIfCaptured } from './scheduling/lock.js';
-import type { PayRequestFamily } from '../collections/payroll_runs/lib/entries.js';
+import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
+import type { PayRequestFamily, PayRequestCapture } from './payroll/money.js';
 
-/**
- * What every pay request must satisfy before it is a payroll input at all.
- *
- * The five request collections each state their own shape in columns — a claim's incurred date, an
- * allowance's recurrence, the periods arrears cover, the settled line a correction names — and the
- * database keeps those. This is the remainder: the rules that need the *catalogue*, which no column
- * can reach, plus the settlement lock.
- *
- * It is one function with five callers rather than five copies for the reason the old arm rule was
- * one function with three: a form, an import and a hook that disagree about whether a claim is
- * admissible are three different workspaces.
- *
- * ## What the catalogue decides
- *
- * - **The component must take entries at all.** A schedule is the contract and a formula is
- *   arithmetic; neither consumes a person's number, so a request naming one is a misstatement the
- *   catalogue's own definition refuses.
- * - **The component must take *this* family.** `entry_kind` is the catalogue's declaration of which
- *   request collection may name the row. It used to be checked against a discriminator the entry
- *   restated — and could therefore contradict — and is now checked against the collection the write
- *   arrived at, which cannot be misstated because it is not stated at all.
- * - **A component that demands evidence gets it.** Only claims carry evidence, and only the claim
- *   collection has a column for one, so this reads `definition.evidence` and looks no further.
- * - **The entitlement ceiling.** See `entryCapRefusal` below.
- *
- * ## The settlement lock
- *
- * The family's capture junction is what freezes a consumed request: any row over it names a run
- * that still stands, and the same `refuseIfCaptured` sentence the other source families use
- * explains how to release it. Corrections do not bypass it — a settled payslip is corrected with a
- * new `correction_requests` row naming the settled adjustment, never by editing the row that was
- * consumed.
- */
 export type PayRequestGuard = {
-	/** The collection this hook guards, named the way a refusal should read. */
 	readonly family: PayRequestFamily;
-	/** How to read the day this request's economics belong to, off its own columns. */
 	readonly eventDate: (candidate: Readonly<Record<string, unknown>>) => string | null;
-	/** Whether this family's rows count against a cap in the same direction. */
 	readonly sign?: number;
-	/** A readable noun for the refusal sentences, e.g. "claim". */
 	readonly noun: string;
 };
 
-/** The cap's running total is read over live rows only; a held one is not spent yet. */
+type CapSource = Readonly<Record<string, unknown>> & {
+	readonly id: string;
+	readonly employment_id: string;
+	readonly event_date: string | null;
+	readonly captured_amount: number | null;
+};
+
 const SIBLING_LIMIT = 10_000;
 
-/**
- * The two reads each family makes, written once.
- *
- * They differ only in which table they name and which column dates a row, and five copies of that
- * is exactly the duplication the split was supposed to remove rather than multiply. The family is
- * already the discriminator, so the switch belongs here — beside the rule that uses it — and each
- * arm stays typed against its own collection, which a dynamic `api.db[name]` could not be.
- */
+function assertCapHistoryComplete(rows: readonly unknown[]): void {
+	if (rows.length >= SIBLING_LIMIT)
+		refuse('The contract cap history exceeds the supported read limit.');
+}
+
 const captureOf = (
 	family: PayRequestFamily,
 	api: AuthoringApi<WorkspaceSchema, unknown>,
@@ -83,73 +52,204 @@ const captureOf = (
 				where: { allowance_request_id: { eq: id } },
 				columns
 			});
-		case 'BONUS':
-			return api.db.payslip_bonus_request_inputs.findFirst({
-				where: { bonus_request_id: { eq: id } },
-				columns
-			});
-		case 'ARREARS':
-			return api.db.payslip_arrears_request_inputs.findFirst({
-				where: { arrears_request_id: { eq: id } },
-				columns
-			});
-		case 'CORRECTION':
-			return api.db.payslip_correction_request_inputs.findFirst({
-				where: { correction_request_id: { eq: id } },
+		case 'PAYMENT':
+			return api.db.payslip_payment_request_inputs.findFirst({
+				where: { payment_request_id: { eq: id } },
 				columns
 			});
 	}
 };
 
-/** Every live sibling under the same component, for the cap's running total. */
+const catalogueRowOf = (
+	family: PayRequestFamily,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
+	id: string
+) => {
+	const columns = {
+		id: true,
+		settings_id: true,
+		code: true,
+		definition: true,
+		eligibility: true
+	} as const;
+	const where = { id: { eq: id } } as const;
+	switch (family) {
+		case 'CLAIM':
+			return api.db.claim_catalogue.findFirst({ where, columns });
+		case 'ALLOWANCE':
+			return api.db.allowance_catalogue.findFirst({ where, columns });
+		case 'PAYMENT':
+			return api.db.payment_catalogue.findFirst({ where, columns });
+	}
+};
+
 const siblingsOf = (
 	family: PayRequestFamily,
 	api: AuthoringApi<WorkspaceSchema, unknown>,
 	employmentId: string,
-	componentId: string
+	componentIds: readonly string[]
 ): Effect.Effect<readonly Readonly<Record<string, unknown>>[], never, never> => {
 	const where = {
 		employment_id: { eq: employmentId },
-		component_catalogue_id: { eq: componentId },
 		approval_id: { isNull: true }
 	} as const;
-	const shared = { id: true, component_catalogue_id: true, amount: true } as const;
+	const shared = {
+		id: true,
+		employment_id: true,
+		amount: true,
+		as_adjustment_entry: true
+	} as const;
 	switch (family) {
 		case 'CLAIM':
 			return api.db.claim_requests.findMany({
-				where,
-				columns: { ...shared, incurred_on: true },
+				where: { ...where, claim_catalogue_id: { in: [...componentIds] } },
+				columns: { ...shared, claim_catalogue_id: true, incurred_on: true },
 				limit: SIBLING_LIMIT
 			});
 		case 'ALLOWANCE':
 			return api.db.allowance_requests.findMany({
-				where,
-				columns: { ...shared, recurrence: true },
+				where: { ...where, allowance_catalogue_id: { in: [...componentIds] } },
+				columns: { ...shared, allowance_catalogue_id: true, recurrence: true },
 				limit: SIBLING_LIMIT
 			});
-		case 'BONUS':
-			return api.db.bonus_requests.findMany({
-				where,
-				columns: { ...shared, awarded_on: true },
-				limit: SIBLING_LIMIT
-			});
-		case 'ARREARS':
-			return api.db.arrears_requests.findMany({
-				where,
-				columns: { ...shared, settled_on: true },
-				limit: SIBLING_LIMIT
-			});
-		case 'CORRECTION':
-			return api.db.correction_requests.findMany({
-				where,
-				columns: { ...shared, corrected_on: true },
+		case 'PAYMENT':
+			return api.db.payment_requests.findMany({
+				where: { ...where, payment_catalogue_id: { in: [...componentIds] } },
+				columns: { ...shared, payment_catalogue_id: true, effective_on: true },
 				limit: SIBLING_LIMIT
 			});
 	}
 };
 
-const asRecord = (value: unknown): Readonly<Record<string, unknown>> =>
-	value == null || typeof value !== 'object' ? {} : (value as Readonly<Record<string, unknown>>);
+/** Only revisions of this family/code in the same settings lineage share a contract's cap. */
+function catalogueRevisionsOf(
+	family: PayRequestFamily,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
+	component: NonNullable<Effect.Success<ReturnType<typeof catalogueRowOf>>>
+) {
+	return Effect.gen(function* () {
+		const settings = yield* api.db.jurisdiction_settings.findFirst({
+			where: { id: { eq: component.settings_id }, approval_id: { isNull: true } },
+			columns: { code: true }
+		});
+		if (settings == null) refuse('A capped request must reference approved jurisdiction settings.');
+		const versions = yield* api.db.jurisdiction_settings.findMany({
+			where: { code: { eq: settings.code }, approval_id: { isNull: true } },
+			columns: { id: true },
+			limit: SIBLING_LIMIT
+		});
+		assertCapHistoryComplete(versions);
+		const where = {
+			settings_id: { in: versions.map((row) => row.id) },
+			code: { eq: component.code },
+			approval_id: { isNull: true }
+		} as const;
+		const columns = { id: true, definition: true, eligibility: true } as const;
+		switch (family) {
+			case 'CLAIM':
+				return yield* api.db.claim_catalogue.findMany({ where, columns, limit: SIBLING_LIMIT });
+			case 'ALLOWANCE':
+				return yield* api.db.allowance_catalogue.findMany({ where, columns, limit: SIBLING_LIMIT });
+			case 'PAYMENT':
+				return yield* api.db.payment_catalogue.findMany({ where, columns, limit: SIBLING_LIMIT });
+		}
+	});
+}
+
+/** Captured sources retain the output actually settled, including a captured zero. */
+function capturedUsageOf(
+	family: PayRequestFamily,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
+	ids: readonly string[]
+) {
+	return Effect.gen(function* () {
+		const captures = new Map<string, PayRequestCapture[]>();
+		const totals = new Map<string, number>();
+		if (ids.length === 0) return captures;
+		const links = yield* (() => {
+			switch (family) {
+				case 'CLAIM':
+					return api.db.payslip_claim_request_inputs
+						.findMany({
+							where: { claim_request_id: { in: [...ids] } },
+							columns: { id: true, period: true, payslip_id: true, claim_request_id: true },
+							limit: SIBLING_LIMIT
+						})
+						.pipe(
+							Effect.map((rows) =>
+								rows.map((row) => ({
+									id: row.id,
+									period: row.period,
+									payslipId: row.payslip_id,
+									sourceId: row.claim_request_id
+								}))
+							)
+						);
+				case 'ALLOWANCE':
+					return api.db.payslip_allowance_request_inputs
+						.findMany({
+							where: { allowance_request_id: { in: [...ids] } },
+							columns: { id: true, period: true, payslip_id: true, allowance_request_id: true },
+							limit: SIBLING_LIMIT
+						})
+						.pipe(
+							Effect.map((rows) =>
+								rows.map((row) => ({
+									id: row.id,
+									period: row.period,
+									payslipId: row.payslip_id,
+									sourceId: row.allowance_request_id
+								}))
+							)
+						);
+				case 'PAYMENT':
+					return api.db.payslip_payment_request_inputs
+						.findMany({
+							where: { payment_request_id: { in: [...ids] } },
+							columns: { id: true, period: true, payslip_id: true, payment_request_id: true },
+							limit: SIBLING_LIMIT
+						})
+						.pipe(
+							Effect.map((rows) =>
+								rows.map((row) => ({
+									id: row.id,
+									period: row.period,
+									payslipId: row.payslip_id,
+									sourceId: row.payment_request_id
+								}))
+							)
+						);
+			}
+		})();
+		assertCapHistoryComplete(links);
+		if (links.length === 0) return captures;
+		const sourceByLink = new Map(links.map((row) => [row.id, row.sourceId]));
+
+		const kind = `${family}_REQUEST_INPUT` as const;
+		const adjustments = yield* api.db.payslip_adjustments.findMany({
+			where: {
+				payslip_id: { in: [...new Set(links.map((row) => row.payslipId))] },
+				input: { kind: { eq: kind } }
+			},
+			columns: { input: true, amount: true },
+			limit: SIBLING_LIMIT
+		});
+		assertCapHistoryComplete(adjustments);
+		for (const adjustment of adjustments) {
+			if (sourceByLink.has(adjustment.input.id))
+				totals.set(
+					adjustment.input.id,
+					(totals.get(adjustment.input.id) ?? 0) + decodeNumber(adjustment.amount)
+				);
+		}
+		for (const link of links) {
+			const rows = captures.get(link.sourceId) ?? [];
+			rows.push({ id: link.id, period: link.period, amount: totals.get(link.id) ?? 0 });
+			captures.set(link.sourceId, rows);
+		}
+		return captures;
+	});
+}
 
 export function assertPayRequestAdmissible(
 	guard: PayRequestGuard,
@@ -172,21 +272,28 @@ export function assertPayRequestAdmissible(
 		if (!Number.isFinite(amount) || amount <= 0)
 			refuse(`A ${guard.noun} amount is a positive magnitude; direction comes from the component.`);
 
-		const componentId = String(candidate.component_catalogue_id ?? '');
-		const component = yield* api.db.component_catalogue.findFirst({
-			where: { id: { eq: componentId } },
-			columns: { code: true, definition: true, entry_kind: true }
-		});
+		if (guard.family === 'PAYMENT' && String(candidate.reason ?? '').trim() === '')
+			refuse('A payment requires a reason or supporting transaction reference.');
+		if (candidate.corrects_adjustment_id != null) {
+			const adjustment = yield* api.db.payslip_adjustments.findFirst({
+				where: { id: { eq: String(candidate.corrects_adjustment_id) } },
+				columns: { payslip_id: true }
+			});
+			const payslip =
+				adjustment == null
+					? undefined
+					: yield* api.db.payslips.findFirst({
+							where: { id: { eq: adjustment.payslip_id } },
+							columns: { employment_id: true }
+						});
+			if (payslip == null || payslip.employment_id !== candidate.employment_id)
+				refuse('A correction must reference a payslip from the same employment contract.');
+		}
+
+		const componentId = String(candidate[`${guard.family.toLowerCase()}_catalogue_id`] ?? '');
+		const component = yield* catalogueRowOf(guard.family, api, componentId);
 		if (component != null) {
 			const definition = component.definition;
-			if (definition?.source !== 'ENTRY')
-				refuse(
-					`Component ${component.code} is calculated by the engine and takes no requests, so nothing can be raised against it.`
-				);
-			if (component.entry_kind !== guard.family)
-				refuse(
-					`Component ${component.code} takes ${component.entry_kind ?? 'no'} requests, and this is a ${guard.family} one. The request shape is the component's, not the request's.`
-				);
 			if (
 				guard.family === 'CLAIM' &&
 				definition.evidence === 'REQUIRED' &&
@@ -194,39 +301,79 @@ export function assertPayRequestAdmissible(
 			)
 				refuse(`Component ${component.code} requires evidence for its claims. Attach a receipt.`);
 
-			/**
-			 * The entitlement ceiling, refused here rather than mid-run.
-			 *
-			 * The cap used to be enforced only by MEASURE, so a twelfth claim against an annual limit
-			 * of ten was accepted, sat in the workspace, and took down the whole company's payroll
-			 * weeks later — refusing the run, not the request, at a moment when the person who made
-			 * the mistake was no longer looking at it.
-			 *
-			 * `resolveEntryCap` is the run's own rule. A `FORMULA` layer is priced over the payslip
-			 * context, which does not exist at write time, so this caller answers `null` for one and
-			 * the resolver then states no ceiling at all — the merge takes the highest layer, and
-			 * omitting one would understate it and refuse a legal request. Such a cap stays the run's
-			 * to enforce, because its number is not knowable before the payslip.
-			 */
-			if (definition.cap != null) {
+			// A recurring declaration is an award per period; payroll bounds each occurrence by the cap.
+			const recurring =
+				guard.family === 'ALLOWANCE' &&
+				(candidate.recurrence as { kind?: unknown } | null)?.kind === 'RECURRING';
+			if (definition.cap != null && !recurring) {
 				const eventDate = guard.eventDate(candidate);
 				const employmentId = String(candidate.employment_id ?? '');
 				if (eventDate != null && employmentId !== '') {
 					const person = yield* capSubject(api, employmentId, eventDate);
 					if (person != null) {
-						const siblings = yield* siblingsOf(guard.family, api, employmentId, componentId);
-						const sign = guard.sign ?? 1;
+						const revisions = yield* catalogueRevisionsOf(guard.family, api, component);
+						assertCapHistoryComplete(revisions);
+						const catalogueById = new Map(revisions.map((row) => [row.id, row]));
+						const siblings = yield* siblingsOf(guard.family, api, employmentId, [
+							...catalogueById.keys()
+						]);
+						assertCapHistoryComplete(siblings);
+						const captured = yield* capturedUsageOf(
+							guard.family,
+							api,
+							siblings.map((row) => String(row.id))
+						);
+						const signOf = (row: Readonly<Record<string, unknown>>) =>
+							(guard.sign ?? 1) * (row.as_adjustment_entry === true ? -1 : 1);
+						const identity = { family: guard.family, code: component.code };
 						const resolved = resolveEntryCap({
 							cap: definition.cap,
-							componentId,
+							component: identity,
 							employmentId,
-							entry: candidate as never,
+							entry: { id: String(candidate.id ?? '\uffff'), employment_id: employmentId },
 							eventDate,
-							siblings: siblings as never,
-							eventDateOf: (row) => guard.eventDate(asRecord(row)),
-							signOf: () => sign,
+							siblings: siblings.flatMap<CapSource>((row) => {
+								const recurring =
+									guard.family === 'ALLOWANCE' &&
+									(row.recurrence as { kind?: unknown } | null)?.kind === 'RECURRING';
+								const prior = captured.get(String(row.id)) ?? [];
+								const common = {
+									...row,
+									id: String(row.id),
+									employment_id: String(row.employment_id)
+								};
+								return prior.length || recurring
+									? prior.map((capture) => ({
+											...common,
+											id: recurring ? `${row.id}:${capture.id}` : String(row.id),
+											event_date: recurring
+												? capOccurrenceDate(capture.period)
+												: guard.eventDate(row),
+											captured_amount: capture.amount
+										}))
+									: [{ ...common, event_date: guard.eventDate(row), captured_amount: null }];
+							}),
+							eventDateOf: (row) => row.event_date,
+							componentOf: () => identity,
+							usedAmountOf: (row) => {
+								if (row.captured_amount != null) return signOf(row) * row.captured_amount;
+								const source = catalogueById.get(
+									String(row[`${guard.family.toLowerCase()}_catalogue_id`])
+								);
+								if (source == null) refuse('A capped request has no source catalogue definition.');
+								const date = row.event_date!;
+								const subject = person.at(date);
+								if (!isEligible(source.eligibility, subject)) return 0;
+								const percentage = entryReimbursementPercentage({
+									cap: source.definition.cap,
+									employmentId,
+									eventDate: date,
+									subject
+								});
+								return signOf(row) * reimbursable(decodeNumber(row.amount), { percentage });
+							},
 							subject: person.subject,
-							// FIXED is knowable now; a formula is not. See above.
+							// FIXED is knowable now; a payslip formula is not.
 							evaluateAward: (layer) => (layer.award.kind === 'FIXED' ? layer.award.amount : null)
 						});
 						if (resolved != null) {
@@ -235,7 +382,7 @@ export function assertPayRequestAdmissible(
 								resolved,
 								componentCode: String(component.code),
 								subject: person.label,
-								proposed: reimbursable(amount, resolved)
+								proposed: signOf(candidate) * reimbursable(amount, resolved)
 							});
 							if (refusal !== null) refuse(refusal);
 						}
@@ -254,7 +401,6 @@ export function assertPayRequestAdmissible(
 	});
 }
 
-/** The delete half: a request a run has captured is money history, and corrections are new rows. */
 export const assertPayRequestDeletable = (
 	guard: PayRequestGuard,
 	api: AuthoringApi<WorkspaceSchema, unknown>,

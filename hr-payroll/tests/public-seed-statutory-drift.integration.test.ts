@@ -120,7 +120,7 @@ const driftAi = (failPub2: () => boolean) => {
 										{ code: 'PUB-EPF', bands: [proposedBand], source_url: url, quote: pubQuote }
 									],
 									leave_catalogue: [],
-									component_catalogue: [],
+									pay_component: [],
 									notes: []
 								}
 							: {
@@ -128,7 +128,7 @@ const driftAi = (failPub2: () => boolean) => {
 										{ code: 'PUB2-EPF', bands: [pub2Band], source_url: url, quote: pub2Quote }
 									],
 									leave_catalogue: [],
-									component_catalogue: [],
+									pay_component: [],
 									notes: ['No change announced.']
 								}
 				},
@@ -177,16 +177,9 @@ test(
 				[PUB_URL, PUB_DOWN_URL, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into jurisdiction_settings (id, code, name, sealed_at, currency, tax_year_start_month, proration, ordinary_rate, regime, research_urls, effective_range)
-				 values ($1, 'PUB2', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, $2, $3, $4, array[$5]::text[], $6)`,
-				[
-					PUB2_ID,
-					{ by: 'CALENDAR_DAYS' },
-					{ per: 'DAY', divisor: 26 },
-					{ overtime_coverage: null, overtime_rules: [], overtime_limits: [] },
-					PUB2_URL,
-					{ start: '2020-01-01', end: null }
-				]
+				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, research_urls, effective_range)
+				 values ($1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, array[$2]::text[], $3)`,
+				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }]
 			);
 			await session.query(
 				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, payer, keyed_by, rounding, relief_for, sequence, special_rules)
@@ -320,11 +313,11 @@ test(
 				]
 			);
 			const draftChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from component_catalogue where settings_id = $1)::int as component_catalogue`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from work_catalogue where settings_id = $1)::int as work_catalogue, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
 				[draft.id]
 			)) as Row[];
 			const sourceChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from component_catalogue where settings_id = $1)::int as component_catalogue`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from work_catalogue where settings_id = $1)::int as work_catalogue, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
 				[JURISDICTION_ID]
 			)) as Row[];
 			assert.deepEqual(draftChildren, sourceChildren, 'every child row was cloned');

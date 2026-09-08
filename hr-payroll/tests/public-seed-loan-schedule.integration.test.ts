@@ -8,6 +8,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
+	COMPANY_ID,
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
@@ -23,8 +24,8 @@ import {
  * the guest, against a real database.
  *
  * The unit suite (`loan-schedule-invariants.test.ts`) drives the arithmetic and the hook directly.
- * What only a host can answer is whether `mutate.prepare` is reached at all on this path, and
- * whether a batch of four rows is judged as a schedule rather than four times as a row.
+ * What only a host can answer is whether preparation and validation receive the proposed parent on nested writes,
+ * while direct repayment writes are judged against their complete stored schedule.
  */
 
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
@@ -101,17 +102,17 @@ test(
 			// A recovery settles as a payroll deduction, and the public seed carries no deduction
 			// component. Written in SQL, the way provisioning writes facts.
 			const [settings] = (await session.query(
-				`select settings_id from component_catalogue limit 1`
+				`select id as settings_id from jurisdiction_settings limit 1`
 			)) as ReadonlyArray<{ readonly settings_id: string }>;
 			assert.ok(settings, 'the public seed carries a component catalogue');
 			await session.query(
-				`insert into component_catalogue
-				 (id, settings_id, code, is_statutory, policy, contribution_treatments, sequence, eligibility, definition, entry_kind)
-				 values ($1, $2, 'LOAN_RECOVERY', false, $3::jsonb, '{}'::jsonb, 90, '', $4::jsonb, null)`,
+				`insert into loan_catalogue
+				 (id, settings_id, code, is_statutory, policy, contribution_treatments, sequence, eligibility, definition)
+				 values ($1, $2, 'LOAN_RECOVERY', false, $3::jsonb, '{}'::jsonb, 90, '', $4::jsonb)`,
 				[
 					COMPONENT_ID,
 					settings.settings_id,
-					JSON.stringify({ kind: 'DEDUCTION', settlement: 'SUBTRACT' }),
+					JSON.stringify({ kind: 'DEDUCTION', settlement: 'DEDUCT' }),
 					JSON.stringify({
 						source: 'ENTRY',
 						unit: 'MONEY',
@@ -122,7 +123,7 @@ test(
 				]
 			);
 			await session.query(
-				`insert into loans (id, employment_id, component_catalogue_id, principal, effective_range, reference)
+				`insert into loans (id, employment_id, loan_catalogue_id, principal, effective_range, reference)
 				 values ($1, $2, $3, $4, $5::jsonb, $6)`,
 				[
 					LOAN_ID,
@@ -139,6 +140,7 @@ test(
 				values: {
 					id: `cccccccc-cccc-4ccc-8ccc-cccccccccc1${index}`,
 					loan_id: LOAN_ID,
+					employment_id: EMPLOYMENT_ID,
 					due_date: day(dueDay),
 					amount_due: amountDue,
 					sequence: index
@@ -198,11 +200,47 @@ test(
 					['2026-06-01', 400]
 				]
 			);
+			assert.deepEqual(
+				await session.query(
+					`select distinct employment_id::text as employment_id from loan_repayments where loan_id = $1`,
+					[LOAN_ID]
+				),
+				[{ employment_id: EMPLOYMENT_ID }]
+			);
+			const [sealed] = await session.query(
+				`select count(*)::int as count from employment_contract_inputs s
+				 join loan_repayments r on r.id = s.loan_repayments_id
+				 where r.loan_id = $1 and s.employment_id = r.employment_id`,
+				[LOAN_ID]
+			);
+			assert.equal(sealed?.count, 3, 'every repayment permanently seals its contract');
 
 			// A partial update is judged as the row it would produce, against the whole schedule it
 			// would leave — the two columns it carries are not the schedule.
 			const [first, second] = await schedule(session);
 			assert.ok(first && second);
+			refusedWith(
+				await write(
+					session,
+					[
+						{
+							action: 'update',
+							values: {
+								id: first.id,
+								employment_id: '44444444-4444-4444-8444-444444444445'
+							}
+						}
+					],
+					[
+						{
+							row: { collection: 'loan_repayments', recordId: first.id },
+							rowVersion: await rowVersion(session, first.id)
+						}
+					]
+				),
+				'repayment contract mismatch',
+				/same employment contract/
+			);
 			refusedWith(
 				await write(
 					session,
@@ -246,22 +284,34 @@ test(
 				[300, 500, 400]
 			);
 
-			/**
-			 * The other half of the guard: the edits it must NOT refuse.
-			 *
-			 * A loan write nests its schedule, and raising the principal alongside a regenerated
-			 * plan — or dropping a line the relationship reconciliation deletes — is the loans
-			 * screen's ordinary flow. Neither is visible to this hook (the nested child is never
-			 * told its loan, and the new principal is unwritten while the children are judged), and
-			 * an earlier draft of this guard refused both. That is what this case stands on: a
-			 * schedule guard that refuses the form is worse than none.
-			 */
+			// An edited parent and its complete nested schedule are judged together. The child
+			// receives the proposed agreement, including principal changes and omitted repayments.
+
 			const loanVersion = async () => {
 				const [row] = (await session.query(`select row_version from loans where id = $1`, [
 					LOAN_ID
 				])) as ReadonlyArray<{ readonly row_version: number }>;
 				assert.ok(row);
 				return row.row_version;
+			};
+			const remove = async (collection: 'loans' | 'loan_repayments', ids: readonly string[]) => {
+				const versions = await session.query(
+					`select id, row_version from ${collection} where id = any($1::uuid[])`,
+					[ids]
+				);
+				return postGuestCommand(
+					session.host.baseUrl,
+					'collections.mutate',
+					mutationPush(
+						session.schemaFingerprint,
+						{ action: 'delete', collection, ids: [...ids] },
+						versions.map((row) => ({
+							row: { collection, recordId: String(row.id) },
+							rowVersion: Number(row.row_version)
+						}))
+					),
+					headers(session)
+				);
 			};
 			const nested = async (rows: ReadonlyArray<Row>, principal: number) => {
 				const current = await schedule(session);
@@ -291,6 +341,43 @@ test(
 				);
 			};
 			const lines = await schedule(session);
+			refusedWith(await nested([], PRINCIPAL), 'empty schedule replacement', /cannot be empty/);
+			refusedWith(
+				await remove('loan_repayments', [lines[0]!.id]),
+				'standalone repayment deletion',
+				/complete repayment schedule instead/
+			);
+			refusedWith(
+				await remove(
+					'loan_repayments',
+					lines.map((row) => row.id)
+				),
+				'standalone whole schedule deletion',
+				/complete repayment schedule instead/
+			);
+			refusedWith(
+				await postGuestCommand(
+					session.host.baseUrl,
+					'collections.mutate',
+					mutationPush(
+						session.schemaFingerprint,
+						{
+							action: 'mutate',
+							collection: 'loans',
+							rows: [{ action: 'update', values: { id: LOAN_ID, principal: 1250 } }]
+						},
+						[{ row: { collection: 'loans', recordId: LOAN_ID }, rowVersion: await loanVersion() }]
+					),
+					headers(session)
+				),
+				'principal-only amendment',
+				/SCHEDULE_IMBALANCED/
+			);
+			assert.deepEqual(
+				await schedule(session),
+				lines,
+				'invalid deletions and principal edits preserve the original schedule'
+			);
 			requireAccepted(
 				(
 					await nested(
@@ -323,6 +410,194 @@ test(
 				(await schedule(session)).map((row) => row.amount_due),
 				[750, 750],
 				'the dropped line is gone and the rest stand'
+			);
+
+			const newLoanId = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2';
+			const createNestedLoan = (employmentId?: string, amount = 600, empty = false) =>
+				postGuestCommand(
+					session.host.baseUrl,
+					'collections.mutate',
+					mutationPush(
+						session.schemaFingerprint,
+						{
+							action: 'mutate',
+							collection: 'loans',
+							rows: [
+								{
+									action: 'create',
+									values: {
+										id: newLoanId,
+										employment_id: EMPLOYMENT_ID,
+										loan_catalogue_id: COMPONENT_ID,
+										principal: 600,
+										effective_range: { start: day('2026-04-01'), end: day('2026-09-01') },
+										reference: 'NESTED-CONTRACT',
+										repayment_loan: empty
+											? []
+											: [
+													{
+														due_date: day('2026-05-01'),
+														amount_due: amount,
+														sequence: 1,
+														...(employmentId === undefined ? {} : { employment_id: employmentId })
+													}
+												]
+									}
+								}
+							]
+						},
+						[]
+					),
+					headers(session)
+				);
+			refusedWith(
+				await createNestedLoan(undefined, 600, true),
+				'empty new agreement schedule',
+				/complete repayment schedule/
+			);
+			refusedWith(
+				await createNestedLoan('44444444-4444-4444-8444-444444444445'),
+				'new nested loan contract mismatch',
+				/same employment contract/
+			);
+			refusedWith(
+				await createNestedLoan(undefined, 599),
+				'new nested loan schedule mismatch',
+				/SCHEDULE_IMBALANCED/
+			);
+			assert.deepEqual(
+				await session.query('select id from loans where id = $1', [newLoanId]),
+				[],
+				'refused nested graph leaves no agreement'
+			);
+			requireAccepted(
+				(await createNestedLoan()).value,
+				'new nested loan derives contract without reading an unwritten agreement'
+			);
+			const [nestedRepayment] = await session.query(
+				`select r.employment_id::text as employment_id, r.loan_id::text as loan_id,
+				 s.employment_id::text as sealed_contract from loan_repayments r
+				 join employment_contract_inputs s on s.loan_repayments_id = r.id where r.loan_id = $1`,
+				[newLoanId]
+			);
+			assert.deepEqual(nestedRepayment, {
+				employment_id: EMPLOYMENT_ID,
+				loan_id: newLoanId,
+				sealed_contract: EMPLOYMENT_ID
+			});
+			requireAccepted(
+				(await remove('loans', [newLoanId])).value,
+				'whole unused agreement deletion'
+			);
+			assert.deepEqual(
+				await session.query('select id from loan_repayments where loan_id = $1', [newLoanId]),
+				[]
+			);
+			assert.equal(
+				(
+					await session.query('select id from employment_contract_inputs where loans_id = $1', [
+						newLoanId
+					])
+				).length,
+				1,
+				'deleting an unused agreement preserves its permanent contract seal'
+			);
+
+			// Seed a previously captured input; the mutations below still traverse the real hooks.
+			const captured = (await schedule(session))[0]!;
+			const runId = crypto.randomUUID();
+			const payslipId = crypto.randomUUID();
+			await session.query(
+				`insert into payroll_runs
+				(id, company_id, period, lifecycle, settings_id, configuration_hash, holiday_calendars, calculation_version, pay_date, attendance_from, attendance_to)
+				values ($1, $2, '2026-04', 'DRAFT', $3, 'loan-capture-fixture', '[]'::jsonb, 'loan-capture-fixture', '2026-04-30', '2026-04-01', '2026-04-30')`,
+				[runId, COMPANY_ID, settings.settings_id]
+			);
+			await session.query(
+				`insert into payslips (id, payroll_run_id, employment_id, base, proration, statutory, gross, total_deductions, net, employer_cost, currency)
+				values ($1, $2, $3, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, 0, 0, 0, 0, 'MYR')`,
+				[payslipId, runId, EMPLOYMENT_ID]
+			);
+			await session.query(
+				`insert into employment_contract_inputs (id, employment_id, payslips_id) values ($1, $2, $3)`,
+				[crypto.randomUUID(), EMPLOYMENT_ID, payslipId]
+			);
+			await session.query(
+				`insert into payslip_loan_repayment_inputs (id, payslip_id, loan_repayment_id, period) values ($1, $2, $3, '2026-04')`,
+				[crypto.randomUUID(), payslipId, captured.id]
+			);
+			const [capturePreimage] = await session.query(
+				`select to_jsonb(r) as record, current_setting('TimeZone') as time_zone
+				 from loan_repayments r where id = $1`,
+				[captured.id]
+			);
+			const restatedSchedule = (await schedule(session)).map((row) => ({
+				id: row.id,
+				due_date: day(row.due_day),
+				amount_due: row.id === captured.id ? row.amount_due : 500,
+				sequence: row.sequence
+			}));
+			requireAccepted(
+				(await nested(restatedSchedule, 1250)).value,
+				`captured repayment restatement while amending the remaining schedule: ${JSON.stringify({
+					preimage: capturePreimage,
+					submitted: restatedSchedule.find((row) => row.id === captured.id)
+				})}`
+			);
+			const [captureAfter] = await session.query(
+				`select to_jsonb(r) as record from loan_repayments r where id = $1`,
+				[captured.id]
+			);
+			const beforeFacts = asRecord(capturePreimage?.record, 'captured repayment preimage');
+			const afterFacts = asRecord(captureAfter?.record, 'captured repayment after restatement');
+			for (const column of ['loan_id', 'employment_id', 'due_date', 'amount_due', 'sequence'])
+				assert.equal(afterFacts[column], beforeFacts[column], `captured ${column} is unchanged`);
+			refusedWith(
+				await write(
+					session,
+					[
+						{
+							action: 'update',
+							values: { id: captured.id, due_date: `${captured.due_day}T00:00:01.000Z` }
+						}
+					],
+					[
+						{
+							row: { collection: 'loan_repayments', recordId: captured.id },
+							rowVersion: await rowVersion(session, captured.id)
+						}
+					]
+				),
+				'captured repayment instant change',
+				/payroll 2026-04 has already taken/
+			);
+			refusedWith(
+				await write(
+					session,
+					[{ action: 'update', values: { id: captured.id, amount_due: 749 } }],
+					[
+						{
+							row: { collection: 'loan_repayments', recordId: captured.id },
+							rowVersion: await rowVersion(session, captured.id)
+						}
+					]
+				),
+				'captured repayment edit',
+				/payroll 2026-04 has already taken/
+			);
+			refusedWith(
+				await remove('loan_repayments', [captured.id]),
+				'captured repayment deletion',
+				/payroll 2026-04 has already taken/
+			);
+			refusedWith(
+				await remove('loans', [LOAN_ID]),
+				'captured agreement deletion',
+				/payroll 2026-04 has already taken/
+			);
+			assert.deepEqual(
+				(await schedule(session)).map((row) => row.amount_due),
+				[750, 500]
 			);
 		} finally {
 			await session.stop();

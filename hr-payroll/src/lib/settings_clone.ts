@@ -54,9 +54,12 @@ type SettingsCloneApi = Readonly<{
 		| 'jurisdiction_settings'
 		| 'statutory_contributions'
 		| 'contribution_rates'
+		| 'work_catalogue'
 		| 'leave_catalogue'
-		| 'component_catalogue'
-		| 'company_holidays'
+		| 'loan_catalogue'
+		| 'claim_catalogue'
+		| 'allowance_catalogue'
+		| 'payment_catalogue'
 	>;
 }>;
 
@@ -67,9 +70,12 @@ export type SettingsVersionTree = Readonly<{
 	source: Row<'jurisdiction_settings'>;
 	schemes: ReadonlyArray<Row<'statutory_contributions'>>;
 	rates: ReadonlyArray<Row<'contribution_rates'>>;
+	workCatalogue: ReadonlyArray<Row<'work_catalogue'>>;
 	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
-	catalogueComponents: ReadonlyArray<Row<'component_catalogue'>>;
-	holidays: ReadonlyArray<Row<'company_holidays'>>;
+	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
+	claimCatalogue: ReadonlyArray<Row<'claim_catalogue'>>;
+	allowanceCatalogue: ReadonlyArray<Row<'allowance_catalogue'>>;
+	paymentCatalogue: ReadonlyArray<Row<'payment_catalogue'>>;
 }>;
 
 /** The nested write that creates a draft: the root and every child row under it. */
@@ -86,16 +92,35 @@ export const readSettingsVersionTree = (
 		});
 		if (source == null) refuse('The jurisdiction settings version to clone does not exist.');
 		const under = { settings_id: { eq: source.id }, approval_id: { isNull: true } } as const;
-		const [schemes, catalogueLeaves, catalogueComponents, holidays] = yield* Effect.all(
+		const [
+			schemes,
+			workCatalogue,
+			catalogueLeaves,
+			loanCatalogue,
+			claimCatalogue,
+			allowanceCatalogue,
+			paymentCatalogue
+		] = yield* Effect.all(
 			[
 				api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
+				api.db.work_catalogue.findMany({ where: under, limit: LIMIT }),
 				api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.component_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.company_holidays.findMany({ where: under, limit: LIMIT })
+				api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.allowance_catalogue.findMany({ where: under, limit: LIMIT }),
+				api.db.payment_catalogue.findMany({ where: under, limit: LIMIT })
 			],
 			{ concurrency: 'unbounded' }
 		);
-		for (const rows of [schemes, catalogueLeaves, catalogueComponents, holidays])
+		for (const rows of [
+			schemes,
+			workCatalogue,
+			catalogueLeaves,
+			loanCatalogue,
+			claimCatalogue,
+			allowanceCatalogue,
+			paymentCatalogue
+		])
 			if (rows.length >= LIMIT) refuse('The version is too large to clone safely.');
 		const rates =
 			schemes.length === 0
@@ -108,7 +133,17 @@ export const readSettingsVersionTree = (
 						limit: LIMIT
 					});
 		if (rates.length >= LIMIT) refuse('The version is too large to clone safely.');
-		return { source, schemes, rates, catalogueLeaves, catalogueComponents, holidays };
+		return {
+			source,
+			schemes,
+			rates,
+			workCatalogue,
+			catalogueLeaves,
+			loanCatalogue,
+			claimCatalogue,
+			allowanceCatalogue,
+			paymentCatalogue
+		};
 	});
 
 type SettingsDraftOptions = Readonly<{
@@ -125,7 +160,17 @@ export function settingsDraftWrite(
 	tree: SettingsVersionTree,
 	options: SettingsDraftOptions
 ): Readonly<{ name: string; write: SettingsDraftWrite }> {
-	const { source, schemes, rates, catalogueLeaves, catalogueComponents, holidays } = tree;
+	const {
+		source,
+		schemes,
+		rates,
+		workCatalogue,
+		catalogueLeaves,
+		loanCatalogue,
+		claimCatalogue,
+		allowanceCatalogue,
+		paymentCatalogue
+	} = tree;
 	const sourceRange = readRange(source.effective_range);
 	if (sourceRange != null && options.starts_on <= sourceRange.start.slice(0, 10))
 		refuse(
@@ -169,15 +214,30 @@ export function settingsDraftWrite(
 						id: crypto.randomUUID()
 					}))
 			})),
+			work_catalogue_settings: workCatalogue.map((row) => ({
+				...cloneRow(row),
+				id: crypto.randomUUID()
+			})),
 			leave_catalogue_settings: catalogueLeaves.map((row) => ({
 				...cloneRow(row),
 				id: crypto.randomUUID()
 			})),
-			component_catalogue_settings: catalogueComponents.map((row) => ({
+			loan_catalogue_settings: loanCatalogue.map((row) => ({
 				...cloneRow(row, ['nature']),
 				id: crypto.randomUUID()
 			})),
-			holiday_settings: holidays.map((row) => ({ ...cloneRow(row), id: crypto.randomUUID() }))
+			claim_catalogue_settings: claimCatalogue.map((row) => ({
+				...cloneRow(row, ['nature']),
+				id: crypto.randomUUID()
+			})),
+			allowance_catalogue_settings: allowanceCatalogue.map((row) => ({
+				...cloneRow(row, ['nature']),
+				id: crypto.randomUUID()
+			})),
+			payment_catalogue_settings: paymentCatalogue.map((row) => ({
+				...cloneRow(row, ['nature']),
+				id: crypto.randomUUID()
+			}))
 		}
 	};
 }
@@ -190,9 +250,12 @@ type SettingsDraftCreated = Readonly<{
 	starts_on: string;
 	schemes: number;
 	rates: number;
+	work_catalogue: number;
 	leave_catalogue: number;
-	component_catalogue: number;
-	holidays: number;
+	loan_catalogue: number;
+	claim_catalogue: number;
+	allowance_catalogue: number;
+	payment_catalogue: number;
 }>;
 
 /** Writes the draft in one nested write and reads it back by its provenance. */
@@ -222,9 +285,12 @@ export const createSettingsDraft = (
 			starts_on: startsOn,
 			schemes: tree.schemes.length,
 			rates: tree.rates.length,
+			work_catalogue: tree.workCatalogue.length,
 			leave_catalogue: tree.catalogueLeaves.length,
-			component_catalogue: tree.catalogueComponents.length,
-			holidays: tree.holidays.length
+			loan_catalogue: tree.loanCatalogue.length,
+			claim_catalogue: tree.claimCatalogue.length,
+			allowance_catalogue: tree.allowanceCatalogue.length,
+			payment_catalogue: tree.paymentCatalogue.length
 		};
 	});
 

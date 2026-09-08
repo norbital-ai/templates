@@ -47,3 +47,53 @@ test('dense cells expose a compact AM/PM time axis', () => {
 	assert.equal(shiftTimeCue({ shiftStart: '09:00', shiftEnd: '18:30' }), '9a–6:30p');
 	assert.equal(shiftTimeCue({ shiftStart: null, shiftEnd: null }), null);
 });
+
+test('the roster draws dated leave charges, combining separate halves without filling uncharged dates', () => {
+	const leave = (catalogue, charges) => ({
+		employment_id: 'employment-1',
+		kind: 'TIME_OFF',
+		leave_catalogue_id: catalogue,
+		from_date: '2026-08-03',
+		to_date: '2026-08-06',
+		half_day_start: false,
+		half_day_end: false,
+		charges: charges.map(([date, days]) => ({
+			date,
+			days,
+			leave_catalogue_id: catalogue,
+			employment_term_id: 'term',
+			calendar_id: 'calendar',
+			shift_definition_id: 'shift',
+			work_day_id: null
+		}))
+	});
+	const facts = buildRosterMonth({
+		month: '2026-08',
+		employments: [employment('2026-01-01')],
+		workDays: [],
+		leaveRequests: [
+			leave('annual', [
+				['2026-08-03', 0.5],
+				['2026-08-06', 1]
+			]),
+			leave('medical', [['2026-08-03', 0.5]])
+		],
+		pendingLeaveRequests: [leave('annual', [['2026-08-07', 0.5]])],
+		holidays: [],
+		rosterCodesById: new Map(),
+		employmentTerms: [],
+		leaveCodeById: new Map([
+			['annual', 'AL'],
+			['medical', 'MC']
+		]),
+		cutoff: null,
+		locks: new Map(),
+		today: '2026-08-17'
+	});
+	assert.equal(facts.get('employment-1:2026-08-03')?.leaveCode, 'AL + MC');
+	assert.equal(facts.get('employment-1:2026-08-03')?.halfDayLeave, false);
+	assert.equal(facts.get('employment-1:2026-08-04')?.leaveCode, null);
+	assert.equal(facts.get('employment-1:2026-08-06')?.leaveCode, 'AL');
+	assert.equal(facts.get('employment-1:2026-08-07')?.pendingLeave, true);
+	assert.equal(facts.get('employment-1:2026-08-07')?.leaveCode, null);
+});

@@ -23,11 +23,16 @@
  * cap whose ceiling depends on the payslip cannot be checked before the payslip exists.
  */
 
-import { decodeNumber } from '@norbital-ai/std/json';
 import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import { coversDate } from './effective.js';
+import { monthBounds, periodHalf, periodMonth, requiredDateKey } from './dates.js';
 import { isEligible, type PersonContext } from './eligibility.js';
-import { leaveYearOf } from './leave.js';
+
+/** Recurring awards belong to the paid instalment, rather than the standing source's start date. */
+export const capOccurrenceDate = (period: string) =>
+	periodHalf(period) === 1
+		? requiredDateKey(`${periodMonth(period)}-15`, 'cap occurrence date')
+		: monthBounds(periodMonth(period)).end;
 
 type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
 type CapLayer = EntryCap['matrix']['layers'][number];
@@ -35,8 +40,7 @@ type CapLayer = EntryCap['matrix']['layers'][number];
 /** The entry columns this rule reads, so a hook may pass a candidate the database has never seen. */
 type CapEntryLike = {
 	readonly id: string;
-	readonly component_catalogue_id: string;
-	readonly amount: unknown;
+	readonly employment_id: string;
 };
 
 type ResolvedEntryCap = {
@@ -50,18 +54,47 @@ type ResolvedEntryCap = {
 
 type ResolveEntryCapOptions<TEntry extends CapEntryLike> = {
 	readonly cap: EntryCap;
-	readonly componentId: string;
+	readonly component: { readonly family: string; readonly code: string };
 	readonly employmentId: string;
-	readonly entry: TEntry;
+	readonly entry: CapEntryLike;
 	readonly eventDate: string;
 	/** Sibling entries of the same employment, this one included or not — it is excluded by id. */
 	readonly siblings: readonly TEntry[];
 	readonly eventDateOf: (entry: TEntry) => string | null;
-	readonly signOf: (entry: TEntry) => number;
+	readonly componentOf: (entry: TEntry) => { readonly family: string; readonly code: string };
+	/** Signed usage already valued under this source's own rules or captured output. */
+	readonly usedAmountOf: (entry: TEntry) => number;
 	readonly subject: PersonContext;
 	/** The layer's ceiling, or `null` where this caller cannot know it. */
 	readonly evaluateAward: (layer: CapLayer) => number | null;
 };
+
+/** Historical reimbursement is valued on its source date, independently of the next entry's cap. */
+export function entryReimbursementPercentage(options: {
+	readonly cap: EntryCap | null | undefined;
+	readonly employmentId: string;
+	readonly eventDate: string;
+	readonly subject: PersonContext;
+}): number {
+	const layers = applicableCapLayers(options);
+	return layers.length === 0
+		? 100
+		: Math.max(...layers.map((layer) => layer.reimbursement_percentage));
+}
+
+function applicableCapLayers(options: {
+	readonly cap: EntryCap | null | undefined;
+	readonly employmentId: string;
+	readonly eventDate: string;
+	readonly subject: PersonContext;
+}): readonly CapLayer[] {
+	return (options.cap?.matrix.layers ?? []).filter(
+		(layer) =>
+			(layer.level !== 'EMPLOYEE' || layer.employment_id === options.employmentId) &&
+			coversDate(layer.effective_range, options.eventDate) &&
+			isEligible(layer.eligibility, options.subject)
+	);
+}
 
 /**
  * The ceiling that governs, and what is already spent against it.
@@ -73,10 +106,7 @@ export function resolveEntryCap<TEntry extends CapEntryLike>(
 	options: ResolveEntryCapOptions<TEntry>
 ): ResolvedEntryCap | null {
 	const applicable: { amount: number; percentage: number }[] = [];
-	for (const layer of options.cap.matrix.layers) {
-		if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.employmentId) continue;
-		if (!coversDate(layer.effective_range, options.eventDate)) continue;
-		if (!isEligible(layer.eligibility, options.subject)) continue;
+	for (const layer of applicableCapLayers(options)) {
 		const amount = options.evaluateAward(layer);
 		// An applicable layer nobody can price makes the whole ceiling unknowable: the merge takes
 		// the highest layer, so omitting one would understate the ceiling and refuse a legal entry.
@@ -97,8 +127,6 @@ export function resolveEntryCap<TEntry extends CapEntryLike>(
 				return candidateDate.slice(0, 7) === options.eventDate.slice(0, 7);
 			case 'CALENDAR_YEAR':
 				return candidateDate.slice(0, 4) === options.eventDate.slice(0, 4);
-			case 'LEAVE_YEAR':
-				return leaveYearOf(candidateDate) === leaveYearOf(options.eventDate);
 		}
 	};
 
@@ -106,7 +134,9 @@ export function resolveEntryCap<TEntry extends CapEntryLike>(
 	// other; ties break on id so the order is total and the same on every run.
 	const previouslyUsed = options.siblings.reduce((total, candidate) => {
 		if (
-			candidate.component_catalogue_id !== options.componentId ||
+			candidate.employment_id !== options.employmentId ||
+			options.componentOf(candidate).family !== options.component.family ||
+			options.componentOf(candidate).code !== options.component.code ||
 			candidate.id === options.entry.id
 		)
 			return total;
@@ -118,13 +148,13 @@ export function resolveEntryCap<TEntry extends CapEntryLike>(
 			(candidateDate === options.eventDate && candidate.id > options.entry.id)
 		)
 			return total;
-		return total + (options.signOf(candidate) * decodeNumber(candidate.amount) * percentage) / 100;
+		return total + options.usedAmountOf(candidate);
 	}, 0);
 	return { amount, percentage, exceededBy: Math.max(0, previouslyUsed) };
 }
 
 /** The reimbursable value of one amount under a resolved cap, rounded to the cent. */
-export const reimbursable = (amount: number, cap: ResolvedEntryCap): number =>
+export const reimbursable = (amount: number, cap: Pick<ResolvedEntryCap, 'percentage'>): number =>
 	Math.round(amount * cap.percentage) / 100;
 
 /**
@@ -139,7 +169,7 @@ export function entryCapRefusal(options: {
 	readonly subject: string;
 	readonly proposed: number;
 }): string | null {
-	if (options.cap.on_exceed !== 'BLOCK') return null;
+	if (options.cap.on_exceed !== 'BLOCK' || options.proposed <= 0) return null;
 	const requested = options.resolved.exceededBy + options.proposed;
 	if (requested <= options.resolved.amount) return null;
 	return (

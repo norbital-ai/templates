@@ -66,17 +66,15 @@ test('the company form is name, registration, settings lineage, cutoff day, pay 
 	);
 });
 
-test('the settings form is identity and period, pay derivation, working time and overtime, with the seal and void hidden', () => {
+test('the settings form declares lineage and jurisdiction identity while Work owns payroll rules', () => {
 	const form = source('../src/collections/jurisdiction_settings/+representation.svelte');
 	assert.deepEqual(fieldNames(form), [
 		'cloned_from_id',
 		'code',
 		'currency',
 		'effective_range',
+		'jurisdiction_code',
 		'name',
-		'ordinary_rate',
-		'proration',
-		'regime',
 		'research_notes',
 		'research_urls',
 		'sealed_at',
@@ -115,8 +113,25 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		'the page is one query over the lineage'
 	);
 	assert.match(script, /where: onLineage\(code\)/, "scoped by the entity's settings code");
-	for (const tab of ['contributions', 'catalogueLeaves', 'catalogueComponents', 'holidays'])
+	for (const tab of ['contributions', 'catalogueLeaves', 'catalogueWork', 'catalogueTable'])
 		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
+	for (const [tab, collection] of [
+		['catalogueClaims', 'claim_catalogue'],
+		['catalogueAllowances', 'allowance_catalogue'],
+		['cataloguePayments', 'payment_catalogue'],
+		['catalogueLoans', 'loan_catalogue']
+	]) {
+		assert.deepEqual(registrations(snippet(settings, tab!)), [], tab);
+		assert.match(snippet(settings, tab!), new RegExp(`catalogueTable\\(\\s*'${collection}'`));
+	}
+	assert.match(
+		snippet(settings, 'holidays'),
+		/<HolidaySettings jurisdictionCode=\{selectedVersion\.jurisdiction_code\}/
+	);
+	const holidays = source('../src/lib/ui/holiday-settings.svelte');
+	for (const tab of ['calendars', 'sources'])
+		assert.deepEqual(registrations(snippet(holidays, tab)), ['CollectionTable'], tab);
+	assert.match(snippet(holidays, 'calendars'), /jurisdiction_code: \{ eq: jurisdictionCode \}/);
 	assert.deepEqual(
 		registrations(snippet(settings, 'payroll')),
 		[],

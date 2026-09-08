@@ -6,8 +6,8 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 36,
-		"apps": 14,
+		"collections": 38,
+		"apps": 12,
 		"automations": 2
 	},
 	"tags": ["HR", "Finance", "Approvals"],
@@ -19,26 +19,30 @@
 			["user"],
 			[
 				"companies",
+				"work_catalogue",
 				"statutory_contributions",
 				"leave_catalogue",
-				"component_catalogue",
-				"company_holidays"
+				"loan_catalogue",
+				"claim_catalogue",
+				"allowance_catalogue",
+				"payment_catalogue",
+				"jurisdiction_holiday_calendars",
+				"jurisdiction_holiday_sources"
 			],
 			["contribution_rates", "employees", "shift_definitions"],
 			["shift_patterns"],
 			["employments"],
-			["employee_children", "employment_statutory_facts", "employment_terms", "leave_requests"],
 			[
-				"claim_requests",
-				"allowance_requests",
-				"bonus_requests",
-				"arrears_requests",
-				"correction_requests",
-				"loans"
+				"employee_children",
+				"employment_statutory_facts",
+				"employment_terms",
+				"employment_departures"
 			],
-			["loan_repayments"]
-		],
-		"afterSeed": ["leave_ledger_refresh"]
+			["work_days"],
+			["leave_entries", "claim_requests", "allowance_requests", "payment_requests", "loans"],
+			["loan_repayments", "holiday_calendar_inputs"],
+			["employment_contract_inputs"]
+		]
 	},
 	"name_zh": "HR 与薪资",
 	"description_zh": "基于生效日期的雇佣事实、考勤、休假与法定缴款规则，运行多国 HR 与薪资。"

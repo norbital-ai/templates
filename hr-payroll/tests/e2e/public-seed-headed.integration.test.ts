@@ -8,15 +8,12 @@ import {
 	isHeadedRun,
 	launchChromiumOrSkip,
 	postGuestCommand,
-	mutationPush,
 	asRecord,
 	type HeadedBrowser,
 	type HeadedPage
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	EMPLOYMENT_ID,
-	ANNUAL_LEAVE_CATALOGUE_ID,
 	publicSeedDirectory,
 	startPublicSeedHost,
 	templateManifestPath
@@ -397,6 +394,34 @@ it('HR self-host gives a second profile its own EventSource', async () => {
 	}
 });
 
+/**
+ * The Events pages and the kiosk paint nothing until a legal entity is chosen. The public seed
+ * has one, so choosing it is one combobox pick; a page that already shows `ready` — body text, or
+ * a selector that is present — skips it.
+ */
+const chooseEntity = async (page: HeadedPage, ready: RegExp | string, label: string) => {
+	const readyCheck =
+		typeof ready === 'string'
+			? `document.querySelector(${JSON.stringify(ready)}) !== null`
+			: `${ready}.test(document.body ? document.body.innerText : '')`;
+	await pollEvaluate(
+		page,
+		`(() => {
+			if (${readyCheck}) return 'ready';
+			const option = [...document.querySelectorAll('[role="option"]')].find((node) =>
+				/Public Fixture Co/.test(node.textContent ?? '')
+			);
+			if (option instanceof HTMLElement) { option.click(); return 'chosen'; }
+			const trigger = document.querySelector('[role="combobox"][aria-label="Legal entity"]');
+			if (!(trigger instanceof HTMLElement)) return 'missing-entity-combobox';
+			trigger.click();
+			return 'opening';
+		})()`,
+		(value) => value === 'ready' || value === 'chosen',
+		label
+	);
+};
+
 const waitForBody = async (page: HeadedPage, pattern: RegExp, label: string): Promise<string> => {
 	const deadline = Date.now() + S1_EVALUATE_TIMEOUT_MS;
 	let last = '';
@@ -414,30 +439,6 @@ const ACTIVATE = `const activate = (node) => {
 	node.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 0 }));
 	node.click();
 };`;
-
-const remountImpersonatedTeam = async (
-	page: HeadedPage,
-	teamId: string,
-	label: string
-): Promise<void> => {
-	const remounted = String(
-		await page.evaluate(`(async () => {
-			const teamId = ${JSON.stringify(teamId)};
-			const response = await fetch('/__bolt/command/' + encodeURIComponent('access.impersonateTeam'), {
-				method: 'POST',
-				credentials: 'same-origin',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ teamId })
-			});
-			if (!response.ok) return 'impersonateTeam ' + response.status + ' ' + (await response.text()).slice(0, 200);
-			const actions = globalThis.__norbitalSessionActions;
-			if (actions === undefined || typeof actions.impersonate !== 'function') return 'missing-session-actions';
-			await actions.impersonate(teamId);
-			return 'remounted';
-		})()`)
-	);
-	assert.equal(remounted, 'remounted', `${label} remount: ${remounted}`);
-};
 
 const pollEvaluate = async (
 	page: HeadedPage,
@@ -466,16 +467,17 @@ it('HR self-host scheduling paints the eye filter and no Exceptions tab', async 
 	let browser: HeadedBrowser | undefined;
 	try {
 		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
-		gateway = await openHrGateway(session, 'hr-payroll-h2', '/app/hr_controller/scheduling');
+		gateway = await openHrGateway(session, 'hr-payroll-h2', '/app/hr_controller/events/work');
 		browser = await launchChromiumOrSkip(EVENT_SOURCE_PROBE);
 		if (browser === undefined) return;
 
-		const pageUrl = guestPageUrl(gateway.address.port, '/app/hr_controller/scheduling');
+		const pageUrl = guestPageUrl(gateway.address.port, '/app/hr_controller/events/work');
 		assert.doesNotMatch(pageUrl, /5173/);
 		const page = await browser.openPage(pageUrl);
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
+		await chooseEntity(page, /Show unresolved clock-outs|Month board/, 'h2-entity');
 		const body = await waitForBody(
 			page,
 			/Show unresolved clock-outs|Public Fixture Co/,
@@ -571,11 +573,11 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		// The catalogue tabs were renamed: "Leave catalogue entries" → "Leave catalogue", "Components" →
-		// "Component catalogue". What the assertion is about is unchanged — the sealed version's
+		// The settings page opens on General with the catalogues one tab over and the holiday
+		// calendars another. What the assertion is about is unchanged — the sealed version's
 		// children are all reachable from one page, and nothing else is.
-		const settings = await waitForBody(page, /Leave catalogue/, 'a2-settings');
-		assert.match(settings, /Component catalogue/);
+		const settings = await waitForBody(page, /Settings lineage|Catalog/, 'a2-settings');
+		assert.match(settings, /Catalog/);
 		assert.match(settings, /Holidays/);
 		assert.doesNotMatch(settings, /\bCompanies\b|Research sources/);
 		// The compacted settings page identifies the version in force by the span it governs rather
@@ -677,29 +679,29 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		managerGateway = await openHrGateway(
 			session,
 			'hr-payroll-h5-manager',
-			'/app/hr_controller/leave'
+			'/app/hr_controller/events/leave'
 		);
 		selfGateway = await openHrGateway(session, 'hr-payroll-h5-self', '/app/hr_employee');
 		browser = await launchChromiumOrSkip(EVENT_SOURCE_PROBE);
 		if (browser === undefined) return;
 
-		const managerUrl = guestPageUrl(managerGateway.address.port, '/app/hr_controller/leave');
+		const managerUrl = guestPageUrl(managerGateway.address.port, '/app/hr_controller/events/leave');
 		const selfUrl = guestPageUrl(selfGateway.address.port, '/app/hr_employee');
 		assert.doesNotMatch(managerUrl, /5173/);
 		const managerPage = await browser.openPage(managerUrl);
 		await managerPage.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
+		await chooseEntity(managerPage, /Leave activities/, 'h5-entity');
 		const manager = await waitForBody(
 			managerPage,
-			/Public Fixture Employee|ANNUAL · Annual leave/,
+			/PUB-EMP-0001|Public Fixture Employee/,
 			'h5-manager'
 		);
 		assert.match(manager, /HR Controller/);
-		assert.match(manager, /Leave requests/);
-		assert.match(manager, /New Leave Request/);
-		assert.match(manager, /Public Fixture Employee/);
-		assert.match(manager, /ANNUAL · Annual leave/);
+		assert.match(manager, /Leave activities/);
+		assert.match(manager, /New Leave Entry/i);
+		assert.match(manager, /Annual leave|ANNUAL/);
 		assert.doesNotMatch(manager, /Plans & rules|Current balances|Leave balances|Earned to date/);
 		const managerBoard = String(
 			await managerPage.evaluate(`(() => {
@@ -717,8 +719,8 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 			readonly oldTabs: number;
 		};
 		assert.ok(
-			board.headers.some((header) => /\bBalance\b/.test(header)),
-			`H5 manager Balance column: ${managerBoard}`
+			board.headers.some((header) => /\bDays\b/.test(header)),
+			`H5 manager Days column: ${managerBoard}`
 		);
 		assert.ok(
 			board.headers.some((header) => /\bPerson\b/.test(header)),
@@ -733,97 +735,39 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		const self = await waitForBody(selfPage, /Employee Self-Service|My leave/, 'h5-self');
 		assert.match(self, /Employee Self-Service|My leave|My HR/);
 		assert.doesNotMatch(self, /Plans & rules/);
-		const openedLeave = await pollEvaluate(
-			selfPage,
-			`(() => {
-					${ACTIVATE}
-					const tab = [...document.querySelectorAll('[role="tab"]')].find((node) =>
-						/My leave/.test((node.getAttribute('aria-label') ?? '') + (node.textContent ?? ''))
-					);
-					if (!(tab instanceof HTMLElement)) return 'missing-leave';
-					if (tab.getAttribute('data-state') !== 'active') activate(tab);
-					return tab.getAttribute('data-state') === 'active' ? 'opened' : 'inactive';
-				})()`,
-			(value) => value === 'opened',
-			'h14-leave-tab'
-		);
-		assert.equal(openedLeave, 'opened');
+		// Self-service leave is the Leave family under My events: two tabs, in that order.
+		for (const [pattern, label] of [
+			[/^My events$/, 'h14-events-tab'],
+			[/^Leave$/, 'h14-leave-tab']
+		] as const) {
+			const opened = await pollEvaluate(
+				selfPage,
+				`(() => {
+						${ACTIVATE}
+						const tab = [...document.querySelectorAll('[role="tab"]')].find((node) =>
+							${pattern}.test((node.textContent ?? '').trim())
+						);
+						if (!(tab instanceof HTMLElement)) return 'missing-leave';
+						if (tab.getAttribute('data-state') !== 'active') activate(tab);
+						return tab.getAttribute('data-state') === 'active' ? 'opened' : 'inactive';
+					})()`,
+				(value) => value === 'opened',
+				label
+			);
+			assert.equal(opened, 'opened');
+		}
 		const balances = await waitForBody(selfPage, /Available after pending/, 'h14-balances');
 		assert.match(balances, /Leave balances/);
-		assert.match(balances, /ANNUAL · 2026/);
+		assert.match(balances, /Annual leave · ANNUAL/);
 		assert.doesNotMatch(balances, /Leave requests|Plans & rules|Current balances/);
 		assert.doesNotMatch(balances, /^\s*Accrued\s*$/m);
 		assert.doesNotMatch(balances, /\nAccrued\n/);
 		assert.match(balances, /Earned to date/);
-		assert.match(balances, /Taken/);
+		assert.match(balances, /Balance today/);
 		assert.match(balances, /Pending/);
 		assert.match(balances, /Available after pending/);
-		const request = await postGuestCommand(
-			session.host.baseUrl,
-			'collections.mutate',
-			mutationPush(session.schemaFingerprint, {
-				action: 'mutate',
-				collection: 'leave_requests',
-				rows: [
-					{
-						action: 'create',
-						values: {
-							id: crypto.randomUUID(),
-							employment_id: EMPLOYMENT_ID,
-							leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-							leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
-							event: {
-								kind: 'TIME_OFF',
-								range: {
-									start: { date: '2026-04-15', half: 'FIRST' },
-									end: { date: '2026-04-15', half: 'SECOND' }
-								},
-								chargeable_days: null,
-								reason: 'Live pending balance fixture'
-							}
-						}
-					}
-				]
-			}),
-			{ ...bearerHeaders(session.credential), 'x-colony-impersonated-team': 'HQ Payroll HR' }
-		);
-		assert.ok(asRecord(request.value, 'held leave').pendingApproval, JSON.stringify(request.value));
-		const pending = await pollEvaluate(
-			selfPage,
-			`(() => {
-				const section = document.querySelector('#my-leave-balances-heading')?.closest('section');
-				const name = [...(section?.querySelectorAll('p') ?? [])].find((node) => node.textContent?.trim() === 'ANNUAL · 2026');
-				const row = name?.closest('div.border-t') ?? section;
-				const label = [...(row?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
-				return label?.nextElementSibling?.textContent?.trim() ?? ('missing-pending:' + (section?.textContent?.trim() ?? 'section'));
-			})()`,
-			(value) => Number(value) === 1,
-			'held-leave-reservation-live'
-		);
-		assert.equal(Number(pending), 1, 'held creates update the open balance view without reloading');
-		const requestId = String(
-			asRecord(asRecord(request.value, 'held leave').pendingApproval, 'pending approval').requestId
-		);
-		const withdrawn = await postGuestCommand(
-			session.host.baseUrl,
-			'approvals.withdraw',
-			{ state: { requestId } },
-			{ ...bearerHeaders(session.credential), 'x-colony-impersonated-team': 'HQ Payroll HR' }
-		);
-		assert.ok(withdrawn.status < 300, JSON.stringify(withdrawn.value));
-		const released = await pollEvaluate(
-			selfPage,
-			`(() => {
-			const section = document.querySelector('#my-leave-balances-heading')?.closest('section');
-			const name = [...(section?.querySelectorAll('p') ?? [])].find((node) => node.textContent?.trim() === 'ANNUAL · 2026');
-			const row = name?.closest('div.border-t') ?? section;
-			const label = [...(row?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
-				return label?.nextElementSibling?.textContent?.trim() ?? ('missing-pending:' + (section?.textContent?.trim() ?? 'section'));
-		})()`,
-			(value) => value !== '' && Number(value) === 0,
-			'withdrawn-leave-reservation-live'
-		);
-		assert.equal(Number(released), 0, 'withdrawal releases the reservation in the open view');
+		// A held request reserving pending balance was the old `leave_requests` approval path; leave
+		// is manual approved activity now (`leave_entries`), so the board shows what is posted.
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (managerGateway !== undefined) await managerGateway.stop();
@@ -988,28 +932,24 @@ it('HR self-host impersonate Employee remounts self-service and stop restores Ad
  * A3 form half: HQ Payroll HR leave create toasts Submitted for approval and stays open.
  * Command half is `public seed HQ Payroll HR leave create stays pending approval`.
  */
-it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approval', async () => {
+it('HR self-host leave entry over first and second half of one day charges one day', async () => {
 	const session = await startPublicSeedHost('hr-payroll-a3-form', { host: '0.0.0.0' });
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
 	try {
 		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
-		gateway = await openHrGateway(session, 'hr-payroll-a3-form', '/app/hr_controller/leave');
+		gateway = await openHrGateway(session, 'hr-payroll-a3-form', '/app/hr_controller/events/leave');
 		browser = await launchChromiumOrSkip(EVENT_SOURCE_PROBE);
 		if (browser === undefined) return;
 		const page = await browser.openPage(
-			guestPageUrl(gateway.address.port, '/app/hr_controller/leave')
+			guestPageUrl(gateway.address.port, '/app/hr_controller/events/leave')
 		);
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /Leave requests|New Leave Request/, 'a3-leave');
-		await remountImpersonatedTeam(page, 'HQ Payroll HR', 'a3');
-		await page.evaluate(
-			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
-		);
-		const preview = await waitForBody(page, /Leave requests|New Leave Request/, 'a3-preview');
-		assert.match(preview, /Leave requests/);
+		await chooseEntity(page, /Leave activities/, 'a3-entity');
+		const preview = await waitForBody(page, /Leave activities/, 'a3-leave');
+		assert.match(preview, /Leave activities/);
 		assert.doesNotMatch(preview, /Plans & rules|Current balances/);
 		const leaveTabs = String(
 			await page.evaluate(`(() =>
@@ -1023,7 +963,7 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 			`(() => {
 					${ACTIVATE}
 					const create = [...document.querySelectorAll('button')].find((button) =>
-						/New leave request/i.test(
+						/New leave entry/i.test(
 							(button.textContent ?? '') + ' ' + (button.getAttribute('aria-label') ?? '')
 						)
 					);
@@ -1035,7 +975,18 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 			'a3-create'
 		);
 		assert.equal(openedCreate, 'opened');
-		await waitForBody(page, /Submit leave/, 'a3-sheet');
+		await waitForBody(page, /Create leave entry/, 'a3-sheet');
+		assert.equal(
+			await page.evaluate(`(() => {
+					const input = document.querySelector('[data-collection-field="reference"] input');
+					if (!(input instanceof HTMLInputElement)) return 'missing-reference';
+					input.value = 'A3-HALF-DAY';
+					input.dispatchEvent(new Event('input', { bubbles: true }));
+					input.dispatchEvent(new Event('change', { bubbles: true }));
+					return 'set';
+				})()`),
+			'set'
+		);
 		const pickExact = (text: string, field: string) => `(() => {
 				${ACTIVATE}
 				const fieldRoot = document.querySelector('[data-collection-field=${JSON.stringify(field)}]');
@@ -1170,39 +1121,49 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 			pickerWidth >= 320 && pickerWidth <= 352,
 			`H15 leave picker width locked near 336px, got ${pickerWidth}`
 		);
-		assert.equal(
-			await pollEvaluate(
-				page,
-				`(() => {
-						const day = document.querySelector('button[aria-label^="2026-04-15"]');
-						if (!(day instanceof HTMLButtonElement) || day.disabled) return 'missing-day';
-						const box = day.getBoundingClientRect();
-						const at = {
-							bubbles: true,
-							cancelable: true,
-							clientX: box.left + box.width / 2,
-							clientY: box.bottom - 2,
-							view: window
-						};
-						day.dispatchEvent(new PointerEvent('pointerdown', at));
-						day.dispatchEvent(new PointerEvent('pointerup', at));
-						day.dispatchEvent(new MouseEvent('click', at));
-						return 'picked';
-					})()`,
-				(value) => value === 'picked',
-				'a3-day'
-			),
-			'picked'
-		);
+		// First half, then second half, of 15 April: two clicks on the same day. The picker used to
+		// re-anchor on every pointerdown, so this landed on the second half alone — 0.5 days.
+		for (const half of ['First half', 'Second half']) {
+			assert.equal(
+				await pollEvaluate(
+					page,
+					`(() => {
+							const day = [...document.querySelectorAll('button[aria-label]')].find((node) => {
+								const label = node.getAttribute('aria-label') ?? '';
+								return /Apr 15, 2026|2026-04-15/.test(label) && label.includes(${JSON.stringify(half)});
+							});
+							if (!(day instanceof HTMLButtonElement) || day.disabled) return 'missing-day';
+							const box = day.getBoundingClientRect();
+							const at = {
+								bubbles: true,
+								cancelable: true,
+								clientX: box.left + box.width / 2,
+								clientY: box.top + box.height / 2,
+								view: window
+							};
+							day.dispatchEvent(new PointerEvent('pointerdown', at));
+							day.dispatchEvent(new PointerEvent('pointerup', at));
+							day.dispatchEvent(new MouseEvent('click', at));
+							return 'picked';
+						})()`,
+					(value) => value === 'picked',
+					`a3-day-${half}`
+				),
+				'picked'
+			);
+		}
+		const charged = await waitForBody(page, /Second half/, 'a3-charged');
+		assert.match(charged, /First half/);
 		assert.equal(
 			await pollEvaluate(
 				page,
 				`(() => {
 						${ACTIVATE}
-						const submit = [...document.querySelectorAll('button')].find((button) =>
-							/Submit leave/.test(button.textContent ?? '')
-						);
-						if (!(submit instanceof HTMLElement) || submit.disabled) return 'missing-submit';
+						const submit = document
+							.querySelector('[data-collection-field="reference"]')
+							?.closest('form')
+							?.querySelector('button[type="submit"]');
+						if (!(submit instanceof HTMLButtonElement) || submit.disabled) return 'missing-submit';
 						activate(submit);
 						return 'submitted';
 					})()`,
@@ -1211,37 +1172,22 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 			),
 			'submitted'
 		);
-		const toasted = await waitForBody(page, /Submitted for approval/, 'a3-toast');
-		assert.match(toasted, /Submitted for approval/);
-		assert.match(toasted, /Submit leave/);
-		const sheet = String(
-			await page.evaluate(`(() => {
-					const field = document.querySelector('[data-collection-field="employment_id"]');
-					const submit = [...document.querySelectorAll('button')].find((button) =>
-						/Submit leave/.test(button.textContent ?? '')
-					);
-					return JSON.stringify({
-						field: field !== null,
-						submit: submit instanceof HTMLElement
-					});
-				})()`)
-		);
-		const open = JSON.parse(sheet) as { readonly field?: boolean; readonly submit?: boolean };
-		assert.equal(open.field, true, `A3 sheet closed: ${sheet}`);
-		assert.equal(open.submit, true, `A3 submit gone: ${sheet}`);
-
-		// The derivation the removed picker used to ask for. Nobody chose this id; the hook computed
-		// it from the employment, the leave code and the year of the range.
-
-		/**
-		 * The derived entitlement is proven where it can be: at the hook.
-		 *
-		 * A submitted request is held for approval, so nothing lands in `leave_requests` for this
-		 * test to read. `tests/hook-carried-ledger.test.ts` files a request with no
-		 * `leave_entitlement_id` and asserts the handler returns the derived one — which is the
-		 * whole reason this picker could be removed. What belongs here is the UI half, above: the
-		 * field is gone, and the form still submits without it.
-		 */
+		// The stored activity is the proof: one day, first half to second half of 15 April.
+		const deadline = Date.now() + 20_000;
+		let stored: Record<string, unknown> | undefined;
+		while (Date.now() < deadline && stored === undefined) {
+			[stored] = (await session.query('select event from leave_entries where reference = $1', [
+				'A3-HALF-DAY'
+			])) as Record<string, unknown>[];
+			if (stored === undefined) await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+		assert.ok(stored, 'the leave entry was not written');
+		const event = asRecord(stored.event, 'leave event');
+		assert.equal(event.chargeable_days, 1);
+		assert.deepEqual(asRecord(event.range, 'range'), {
+			start: { date: '2026-04-15', half: 'FIRST' },
+			end: { date: '2026-04-15', half: 'SECOND' }
+		});
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();
@@ -1465,6 +1411,7 @@ it('HR kiosk keeps manual check-in and check-out usable when the camera is unava
 			);
 		};
 		await clickButton('Manual entry');
+		await chooseEntity(page, '#kiosk-person-search:not([disabled])', 'kiosk-entity');
 		await waitForProbe(page, TAB1_PROBE, 'kiosk-live-session');
 		await pollEvaluate(
 			page,

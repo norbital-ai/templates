@@ -1,20 +1,9 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { Effect, Result, Schema } from 'effect';
+import { Effect } from 'effect';
 import { readRange, type StoredRange } from '../payroll_runs/lib/effective.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { describeVersion, halfOpenOverlap, stableJson } from '../../lib/jurisdiction_settings.js';
-import {
-	statutoryRegimeIssues,
-	statutoryRegimeSchema
-} from '../../datatypes/statutory_regime/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
-
-function assertRegime(regime: unknown, currency: string): void {
-	const parsed = Schema.decodeUnknownResult(statutoryRegimeSchema)(regime);
-	if (!Result.isSuccess(parsed)) return refuse('The statutory regime is incomplete or malformed.');
-	const issues = statutoryRegimeIssues(parsed.success, currency);
-	if (issues.length > 0) refuse(issues.join(' '));
-}
 
 /** The two columns a sealed version may still take: the void, once. */
 const VOID_COLUMNS = ['voided_at', 'void_reason'] as const;
@@ -52,7 +41,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Validates the regime; freezes every column of a sealed version except a one-time void; never unseals; requires a reason to void a version a paid payroll run cites; refuses sealing a version whose range overlaps another sealed unvoided version of its code unless that version is ended in the same write.',
+					'Validates the payroll scope; freezes every column of a sealed version except a one-time void; never unseals; requires a reason to void a version a paid payroll run cites; refuses sealing a version whose range overlaps another sealed unvoided version of its code unless that version is ended in the same write.',
 				handler: ({ input, existing, prepared, relationships, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
@@ -112,11 +101,8 @@ export default {
 						// A draft, or a create: the whole row is checked.
 						if (row.voided_at != null)
 							refuse('Only a sealed version can be voided; delete a draft instead.');
-						if (row.regime == null || row.currency == null)
-							refuse(
-								'A jurisdiction settings version states its statutory regime and its currency.'
-							);
-						assertRegime(row.regime, String(row.currency));
+						if (row.currency == null || !String(row.jurisdiction_code ?? '').trim())
+							refuse('Settings require a currency and payroll jurisdiction.');
 						if (row.sealed_at == null) return input;
 						// Sealing. The database exclusion holds the overlap too; the sentence is why it
 						// happens here, and the batch is read so a predecessor ended in the same write counts.

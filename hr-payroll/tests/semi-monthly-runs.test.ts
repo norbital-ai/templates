@@ -53,15 +53,22 @@ function settle(world, period, prepared, built) {
 		company_id: COMPANY_ID,
 		period,
 		lifecycle: 'PAID',
-		run_kind: 'REGULAR',
 		sequence: 0,
 		pay_date: prepared.window.payDate,
 		attendance_from: prepared.window.attendance.start,
 		attendance_to: prepared.window.attendance.end,
 		approval_id: null
 	});
-	for (const slip of built.payslip_payroll_run)
+	for (const slip of built.payslip_payroll_run) {
 		world.payslips.push({ ...slip, payroll_run_id: runId, approval_id: null });
+		for (const family of ['claim', 'allowance', 'payment'])
+			world[`payslip_${family}_request_inputs`].push(
+				...slip[`payslip_${family}_request_input_payslip`].map((row) => ({
+					...row,
+					payslip_id: slip.id
+				}))
+			);
+	}
 }
 
 test('a semi-monthly company refuses a whole month and a monthly company refuses a half, naming the frequency', async () => {
@@ -157,30 +164,30 @@ test('the two halves add up to what one monthly run paid, and the monthly employ
 
 test('a one-off entry settles in the half its day falls in, for a semi-monthly employment', async () => {
 	const world = createSemiMonthlyPayrollWorld();
-	const transport = world.component_catalogue.find((component) => component.code === 'TRANSPORT');
+	const transport = world.payment_catalogue.find((component) => component.code === 'TRANSPORT');
 	const entry = (id, eventDate) => ({
 		id,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
-		component_catalogue_id: transport.id,
+		payment_catalogue_id: transport.id,
 		amount: 100,
-		awarded_on: eventDate,
+		effective_on: eventDate,
 		pay_period: null,
-		note: eventDate,
+		reason: eventDate,
 		approval_id: null
 	});
-	world.bonus_requests.push(
-		entry('bonus-on-the-15th', '2026-02-15'),
-		entry('bonus-on-the-16th', '2026-02-16')
+	world.payment_requests.push(
+		entry('payment-on-the-15th', '2026-02-15'),
+		entry('payment-on-the-16th', '2026-02-16')
 	);
 	const first = await build(world, '2026-02-1');
 	settle(world, '2026-02-1', first.prepared, first.built);
 	const second = await build(world, '2026-02-2');
 	const captured = (built) =>
-		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).payslip_bonus_request_input_payslip.map(
-			(row) => row.bonus_request_id
+		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID).payslip_payment_request_input_payslip.map(
+			(row) => row.payment_request_id
 		);
-	assert.deepEqual(captured(first.built), ['bonus-on-the-15th']);
-	assert.deepEqual(captured(second.built), ['bonus-on-the-16th']);
+	assert.deepEqual(captured(first.built), ['payment-on-the-15th']);
+	assert.deepEqual(captured(second.built), ['payment-on-the-16th']);
 });
 
 /**
@@ -196,7 +203,7 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	world.employment_terms[0].base_salary = { value: SEMI_MONTHLY_BASE, currency: 'MYR' };
-	world.bonus_requests.length = 0;
+	world.payment_requests.length = 0;
 	world.allowance_requests.length = 0;
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
@@ -226,11 +233,26 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		band('tax-band-2', 35_000, 50_000, 3, 150),
 		band('tax-band-3', 50_000, null, 8, 600)
 	);
-	for (const component of world.component_catalogue)
-		component.contribution_treatments = {
-			'PUB-EPF': { kind: 'INCLUDE' },
-			'PUB-TAX': { kind: 'INCLUDE' }
-		};
+	for (const catalogue of [
+		world.claim_catalogue,
+		world.allowance_catalogue,
+		world.payment_catalogue,
+		world.loan_catalogue
+	])
+		for (const component of catalogue)
+			component.contribution_treatments = {
+				'PUB-EPF': { kind: 'INCLUDE' },
+				'PUB-TAX': { kind: 'INCLUDE' }
+			};
+	for (const work of world.work_catalogue)
+		for (const output of ['salary', 'overtime', 'overtime_excess', 'absence'])
+			work[output].contribution_treatments = Object.fromEntries(
+				['PUB-EPF', 'PUB-TAX'].map((code) => [
+					code,
+					{ kind: output === 'absence' ? 'REDUCE' : 'INCLUDE' }
+				])
+			);
+
 	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB-TAX');
 
 	const first = await build(world, '2026-01-1');
@@ -256,29 +278,18 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 });
 
 /**
- * An allowance is paid once across a month that payroll settles in two halves.
- *
- * A semi-monthly company runs two periods inside the month an allowance covers, so the thing that
- * must never happen is the amount landing in both. Each half prorates against the days it covers —
- * 53.57 and 46.43 across February — and what this pins is that they add up to exactly what the
- * entry states.
- *
- * **It does not distinguish `ONE_OFF` from `RECURRING`, and it is worth saying so here rather than
- * implying otherwise.** This scenario was proposed as the proof that a one-off depletes where a
- * recurring allowance does not. Measured, both arms pay 53.57 + 46.43, and forcing `depletes()`
- * to return false for every allowance leaves this test green — proration alone splits the window,
- * so the depletion ceiling never binds here. Whatever `depletes` protects for an allowance, this
- * is not it, and nothing in the suite currently isolates it.
+ * A one-off Allowance becomes due when its source month ends. The regular second-half run
+ * settles its full source-month entitlement once; the capture excludes it from later runs.
  */
 test('an allowance is paid once across a semi-monthly month, not once per half', async () => {
 	const world = createSemiMonthlyPayrollWorld();
-	const transport = world.component_catalogue.find((component) => component.code === 'TRANSPORT');
+	const transport = world.allowance_catalogue.find((component) => component.code === 'TRANSPORT');
 	assert.ok(transport, 'the semi-monthly world offers a component that takes entries');
 	const ONE_OFF_ID = 'once-in-february';
 	world.allowance_requests.push({
 		id: ONE_OFF_ID,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
-		component_catalogue_id: transport.id,
+		allowance_catalogue_id: transport.id,
 		amount: 100,
 		pay_period: null,
 		recurrence: { kind: 'ONE_OFF', period: '2026-02' },
@@ -307,14 +318,24 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 
 	const first = paidFor(firstHalf.built, ONE_OFF_ID);
 	const second = paidFor(secondHalf.built, ONE_OFF_ID);
-	assert.ok(first > 0, `the first half pays part of the one-off: ${first}`);
-	assert.equal(
-		Math.round((first + second) * 100) / 100,
-		100,
-		`the two halves pay the entry once between them, not once each: ${first} + ${second}`
+	assert.equal(first, 0, 'the source month has not ended in the first half');
+	assert.equal(second, 100, 'the second half settles the complete source-month amount');
+	settle(world, '2026-02-2', secondHalf.prepared, secondHalf.built);
+	const roster = world.work_days.find((row) => row.employment_id === SEMI_MONTHLY_EMPLOYMENT_ID);
+	world.work_days.push(
+		...Array.from({ length: 31 }, (_, index) => {
+			const date = `2026-03-${String(index + 1).padStart(2, '0')}`;
+			return {
+				...roster,
+				id: `next-${date}`,
+				work_date: date,
+				worked_intervals: [{ start: `${date}T07:30:00+08:00`, end: `${date}T16:30:00+08:00` }]
+			};
+		})
 	);
-	assert.ok(
-		first < 100 && second < 100,
-		`neither half pays the whole amount on its own: ${first} + ${second}`
+	assert.equal(
+		paidFor((await build(world, '2026-03-1')).built, ONE_OFF_ID),
+		0,
+		'the captured one-off is not paid again'
 	);
 });

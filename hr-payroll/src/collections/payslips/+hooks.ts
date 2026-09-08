@@ -20,11 +20,18 @@ export default {
 			before: {
 				description:
 					'Refuses updating a payslip. Output rows are created and replaced by the payroll engine only; a correction is a component entry in a later draft run.',
-				handler: ({ input, existing }) => {
+				handler: ({ input, existing, parent, relationshipSizes }) => {
 					if (existing !== undefined)
 						refuse(
 							'A payslip is engine output and cannot be edited. Recalculate its draft run, or ' +
 								'correct a paid one with a component entry in a later draft run.'
+						);
+					if (
+						parent?.collection !== 'payroll_runs' ||
+						relationshipSizes.employment_contract_input !== 1
+					)
+						refuse(
+							'A payslip must be created by its payroll with one permanent employment input seal.'
 						);
 					return input;
 				}

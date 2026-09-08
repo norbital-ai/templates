@@ -9,7 +9,6 @@ import { Result, Schema } from 'effect';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
-import { holidayScopeSchema } from '../../datatypes/holiday_scope/+definition.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
 import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
@@ -150,14 +149,6 @@ function labelOf(
 ): string {
 	const key = map[code];
 	return key === undefined ? code : t(key);
-}
-
-export function formatHolidayScope(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(holidayScopeSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.scope_invalid');
-	return parsed.success.kind === 'NATIONAL'
-		? t('component.scope_national')
-		: t('component.scope_regional', { locations: parsed.success.location_codes.join(', ') });
 }
 
 export function formatRateSelector(value: unknown, t: Translator): string {

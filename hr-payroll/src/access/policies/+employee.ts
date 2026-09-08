@@ -46,18 +46,11 @@ const ownClaimRequest = {
 const ownAllowanceRequest = {
 	allowance_request_employment: { some: OWN_EMPLOYMENT }
 } as const;
-const ownBonusRequest = {
-	bonus_request_employment: { some: OWN_EMPLOYMENT }
-} as const;
-const ownArrearsRequest = {
-	arrears_request_employment: { some: OWN_EMPLOYMENT }
+const ownPaymentRequest = {
+	payment_request_employment: { some: OWN_EMPLOYMENT }
 } as const;
 const ownLoan = { loan_employment: { some: OWN_EMPLOYMENT } } as const;
-const ownLeaveRequest = { leave_request_employment: { some: OWN_EMPLOYMENT } } as const;
-const ownLeaveEntitlement = { leave_entitlement_employment: { some: OWN_EMPLOYMENT } } as const;
-const ownLeaveEntry = {
-	entry_leave_entitlement: { some: { leave_entitlement_employment: { some: OWN_EMPLOYMENT } } }
-} as const;
+const ownLeaveRequest = { leave_entry_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownEmployeeChild = { child_employment: { some: OWN_EMPLOYMENT } } as const;
 
 const ownLoanNotTheirChildren = ownLoan;
@@ -82,6 +75,9 @@ export default {
 	grants: mergeGrants(
 		grantOn('employees', 'read', { where: ownEmployeeRecord }),
 		grantOn('employments', 'read', { where: ownEmployment }),
+		grantOn('employment_departures', 'read', {
+			where: { employment_departure: { some: ownEmployment } }
+		}),
 		grantOn('employment_terms', 'read', {
 			where: ownEmploymentTerm
 		}),
@@ -94,27 +90,23 @@ export default {
 			where: ownWorkDay
 		}),
 		/**
-		 * Their own claims, allowances, bonuses and arrears — and no grant at all on
-		 * `correction_requests`.
+		 * Their own claims, allowances, payments and arrears — all four families they may see.
 		 *
-		 * The owner's rule is that corrections are visible only to the HR policies. That used to be
-		 * a row predicate reaching two levels into a jsonb discriminator
+		 * The owner's rule is that corrections are visible only to the HR policies, and it used to
+		 * be a row predicate reaching two levels into a jsonb discriminator
 		 * (`event -> 'kind' <> 'MANUAL_ADJUSTMENT'`), explicitly `AND`ed with the ownership path
 		 * because a second grant would have been a union and would have shown the employee every
-		 * correction in the workspace. A correction is its own collection now, so the rule is the
-		 * absence of a grant — which cannot be widened by a union, cannot drift from the screen,
-		 * and needs no predicate to state.
+		 * correction in the workspace. There is no correction *record* any more — an adjustment is
+		 * an entry against the same component with `as_adjustment_entry` set — so what an employee
+		 * sees of one is what they see of the entry it lives on, which is their own or nothing.
 		 */
 		grantOn('claim_requests', 'read', { where: ownClaimRequest }),
 		grantOn('allowance_requests', 'read', { where: ownAllowanceRequest }),
-		grantOn('bonus_requests', 'read', { where: ownBonusRequest }),
-		grantOn('arrears_requests', 'read', { where: ownArrearsRequest }),
+		grantOn('payment_requests', 'read', { where: ownPaymentRequest }),
 		grantOn('loans', 'read', { where: ownLoanNotTheirChildren }),
-		grantOn('leave_requests', 'read', {
+		grantOn('leave_entries', 'read', {
 			where: ownLeaveRequest
 		}),
-		grantOn('leave_entitlements', 'read', { where: ownLeaveEntitlement }),
-		grantOn('leave_entries', 'read', { where: ownLeaveEntry }),
 		grantOn('employee_children', 'read', {
 			where: ownEmployeeChild
 		}),

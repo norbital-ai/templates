@@ -1,71 +1,78 @@
-import { Effect } from 'effect';
+import { consumedTermsThrough, withContractInput } from '../../lib/employment-contract.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
+import { Effect } from 'effect';
+import { readRange } from '../payroll_runs/lib/effective.js';
+import { dateKey } from '../../lib/iso-day.js';
+import { stableJson } from '../../lib/jurisdiction_settings.js';
 import type { Hooks } from './$types.js';
-import { restateEmploymentFor } from '../../lib/leave/service.js';
-import { readLeaveContext, type LeaveContext } from '../../lib/leave/entitlements.js';
 
-/**
- * Terms are effective-dated: one employment has at most one set of terms in force at any instant.
- *
- * The database is the guarantee: `employment_terms_no_overlap` in +model.ts rejects an overlap
- * with SQLSTATE 23P01 whatever path the write takes, including a concurrent one or another row in
- * the same batched mutate statement. Bolt translates that constraint into a caller-facing overlap
- * refusal. A SELECT precheck here would be weaker and add one database round trip per bulk row.
- *
- * Terms decide eligibility (salary, classification, employment type), so a set of terms and the
- * ledger it implies commit together: `before` plans the employment with the pending terms in hand
- * and restates the employment root through `api.db.employments.mutate`, staged into this same
- * graph as the workspace's own work; see `employee_children/+hooks.ts`.
- */
-function requireEmployment(value: string | null | undefined): string {
-	if (value == null || value === '') {
-		return refuse('Employment terms must reference an employment.');
-	}
-	return value;
-}
-
+/** The model's exclusion constraint enforces non-overlap on every write, including batches. */
 export default {
 	mutate: {
-		prepare: ({ inputs, api }): Effect.Effect<{ readonly context: LeaveContext }> =>
-			Effect.gen(function* () {
-				const ids = inputs.flatMap((one) => (one.id == null ? [] : [one.id]));
-				// An edit may leave the employment unstated; it is read off the stored terms.
-				const stored =
-					ids.length === 0
-						? []
-						: yield* api.db.employment_terms.findMany({
-								where: { id: { in: ids } },
-								columns: { id: true, employment_id: true },
-								limit: ids.length
-							});
-				const context = yield* readLeaveContext(
-					api,
-					[...inputs, ...stored].flatMap((one) =>
-						one.employment_id == null ? [] : [one.employment_id]
-					),
-					{}
-				);
-				return { context };
-			}),
 		perRecord: {
 			before: {
 				description:
-					'Requires terms to name an employment and refuses a set whose effective range overlaps terms already in force, so payroll never finds two salaries or work patterns for one person on one day. Re-checked on every edit, because extending or moving a range can put two sets in force at one instant. Restates the employment with the entitlements these terms decide, in the same commit.',
-				handler: ({ input, existing, recordId, prepared, api }) =>
+					'Preserve consumed term history; amend an unconsumed future portion by closing its range and creating a successor within the same contract.',
+				handler: ({ input, existing, parent, api }) =>
 					Effect.gen(function* () {
-						// `existing` is undefined on a create, which is exactly how the two are told apart: an
-						// edit that does not restate the employment keeps the one already stored.
-						const employmentId = requireEmployment(input.employment_id ?? existing?.employment_id);
-						yield* restateEmploymentFor(api, prepared.context, 'employment_terms', {
-							...existing,
-							...input,
-							id: recordId,
-							employment_id: employmentId,
-							approval_id: null
-						});
-						return input;
+						const enclosingId =
+							parent?.collection === 'employments' && parent.column === 'employment_id'
+								? parent.id
+								: undefined;
+						const employmentId = input.employment_id ?? existing?.employment_id ?? enclosingId;
+						if (!employmentId) refuse('Employment terms must reference an employment contract.');
+						if (enclosingId != null && employmentId !== enclosingId)
+							refuse('Nested terms must use their enclosing employment contract.');
+						const result = withContractInput({ ...input, employment_id: employmentId }, existing);
+						const range = readRange(input.effective_range ?? existing?.effective_range);
+						if (!range || (range.end != null && dateKey(range.end) < dateKey(range.start)))
+							refuse('Employment terms need an ordered inclusive effective range.');
+						const through = yield* consumedTermsThrough(api, employmentId);
+						if (through == null) return result;
+						const prior = existing == null ? null : readRange(existing.effective_range);
+						if (prior == null || dateKey(prior.start) > through) {
+							if (dateKey(range.start) <= through)
+								refuse(
+									`Employment terms through ${through} are consumed. A successor must start later; historical gaps cannot be filled.`
+								);
+							return result;
+						}
+						const changedFacts = Object.entries(input).some(
+							([key, value]) =>
+								!['id', 'row_version', 'effective_range'].includes(key) &&
+								stableJson(value) !== stableJson(Reflect.get(existing!, key))
+						);
+						if (changedFacts || dateKey(range.start) !== dateKey(prior.start))
+							refuse(
+								`Employment terms through ${through} are consumed. Keep their facts and create a future successor.`
+							);
+						const priorEnd = prior.end == null ? null : dateKey(prior.end);
+						const nextEnd = range.end == null ? null : dateKey(range.end);
+						if (
+							nextEnd !== priorEnd &&
+							(nextEnd == null || nextEnd < through || (priorEnd != null && nextEnd > priorEnd))
+						)
+							refuse(
+								`An amendment may only close the unconsumed portion after ${through}; consumed dates must remain covered.`
+							);
+						return result;
+					})
+			}
+		}
+	},
+	delete: {
+		perRecord: {
+			before: {
+				description:
+					'Retain terms that supplied consumed contract history, even after the consumer is removed.',
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						const through = yield* consumedTermsThrough(api, existing.employment_id);
+						const range = readRange(existing.effective_range);
+						if (through != null && (range == null || dateKey(range.start) <= through))
+							refuse(`Employment terms through ${through} are consumed and cannot be deleted.`);
 					})
 			}
 		}
 	}
-} satisfies Hooks<{ readonly context: LeaveContext }>;
+} satisfies Hooks;

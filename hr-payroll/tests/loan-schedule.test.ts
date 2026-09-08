@@ -13,7 +13,7 @@ import {
 	loanScheduleWriteRows,
 	repaymentProgress
 } from '../src/lib/loan-schedule.ts';
-import { repaymentOutstanding } from '../src/collections/payroll_runs/lib/entries.ts';
+import { repaymentOutstanding } from '../src/lib/payroll/loan.ts';
 
 const range = (start, end) => ({ start: `${start}T00:00:00.000Z`, end: `${end}T00:00:00.000Z` });
 const day = (value) => value.slice(0, 10);

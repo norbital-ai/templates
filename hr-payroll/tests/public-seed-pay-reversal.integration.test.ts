@@ -17,7 +17,7 @@ import {
 } from './helpers/public-seed-host.ts';
 
 /**
- * HR19 (b): a pay `MANUAL_ADJUSTMENT` with `REVERSAL` against a settled payslip line.
+ * HR19 (b): an Allowance adjustment against a settled payslip line in the same family and contract.
  *
  * January pays the fixture employment its standing TRANSPORT allowance and is marked paid. The
  * controller (HQ Payroll HR) then posts a reversal naming that settled line; the next regular run
@@ -27,8 +27,7 @@ import {
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
-/** The correction component: `entry_kind: CORRECTION`, which is the family this test files. */
-const TRANSPORT_ID = '77777777-7777-4777-8777-777777777702';
+const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
 const MUTATE = 'collections.mutate';
 
 const teamHeaders = (session: Session, team: string) => ({
@@ -112,19 +111,18 @@ const postReversal = (
 		MUTATE,
 		mutationPush(session.schemaFingerprint, {
 			action: 'mutate',
-			collection: 'correction_requests',
+			collection: 'allowance_requests',
 			rows: [
 				{
 					action: 'create',
 					values: {
 						id: crypto.randomUUID(),
 						employment_id: EMPLOYMENT_ID,
-						component_catalogue_id: TRANSPORT_ID,
+						allowance_catalogue_id: TRANSPORT_ID,
 						amount: 310,
-						corrected_on: '2026-02-10',
+						recurrence: { kind: 'ONE_OFF', period: FEBRUARY_2026 },
 						pay_period: FEBRUARY_2026,
-						operation: 'REVERSAL',
-						reason: 'January transport allowance was paid in error',
+						as_adjustment_entry: true,
 						corrects_adjustment_id: correctsAdjustmentId
 					}
 				}
@@ -178,29 +176,18 @@ test(
 
 			const februaryRun = await createRun(session, FEBRUARY_2026);
 			const february = await payslipOf(session, februaryRun);
-			/**
-			 * The correction prints under the component that takes corrections, not under the one it
-			 * corrects. A `MANUAL_ADJUSTMENT` entry may only be raised against a component whose
-			 * `entry_kind` is `MANUAL_ADJUSTMENT`, so the reversal is its own line — and it has to be
-			 * read as the pair it is: the standing allowance still pays, and the correction takes it
-			 * back. What must not change is the money, which the gross assertion below states.
-			 */
+			// Both entries retain the Allowance catalogue: the standing amount pays and its adjustment reverses it.
 			const allowance = february.adjustments.filter((row) => row.label === 'TRANSPORT');
 			assert.equal(
 				allowance.length,
-				1,
+				2,
 				`February still carries the standing allowance: ${JSON.stringify(february.adjustments)}`
 			);
-			assert.equal(signed(allowance[0]!), 310, 'the allowance is unchanged by the correction');
-			const corrections = february.adjustments.filter((row) => row.label === 'PAY_CORRECTION');
-			assert.equal(
-				corrections.length,
-				1,
-				`and the reversal beside it: ${JSON.stringify(february.adjustments)}`
+			assert.deepEqual(
+				allowance.map(signed).sort((a, b) => a - b),
+				[-310, 310],
+				'the standing Allowance and exactly its negated settled amount'
 			);
-			const reversal = corrections[0];
-			assert.ok(reversal, `the correction line: ${JSON.stringify(corrections)}`);
-			assert.equal(signed(reversal), -310, 'exactly the negated settled amount');
 			assert.equal(
 				Number(february.payslip.gross),
 				Number(january.payslip.gross) - 310,

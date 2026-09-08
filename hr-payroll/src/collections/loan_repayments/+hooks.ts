@@ -1,185 +1,175 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { dateKey } from '../../lib/iso-day.js';
+import { withContractInput } from '../../lib/employment-contract.js';
 import { loanScheduleRefusals } from '../../lib/loan-schedule.js';
 import { refuseIfCaptured } from '../../lib/scheduling/lock.js';
-import type { Hooks } from './$types.js';
-import { decodeNumber } from '@norbital-ai/std/json';
+import type { Hooks, WorkspaceRow } from './$types.js';
 
 const QUERY_LIMIT = 10_000;
+type Repayment = Pick<
+	WorkspaceRow<'loan_repayments'>,
+	'id' | 'loan_id' | 'employment_id' | 'due_date' | 'amount_due' | 'sequence'
+>;
+type Loan = Pick<WorkspaceRow<'loans'>, 'id' | 'employment_id' | 'principal' | 'effective_range'>;
+type Prepared = {
+	readonly candidates: readonly Partial<Repayment>[];
+	readonly loans: readonly Loan[];
+	readonly stored: readonly Repayment[];
+};
 
-/**
- * One amount due under a loan, and the honesty the schedule's shape asks of it.
- *
- * A repayment may legitimately feed several payslips — net-pay protection can part-recover it — so
- * unlike a one-off entry, no junction row makes a repayment immutable. What the junction's restrict
- * edge protects is its HISTORY: a captured repayment cannot be deleted, and the engine's ceiling
- * keeps paid recovery across every payslip inside the amount due. Editing the row a payroll
- * consumed would rewrite money already taken, so a capture refuses edits exactly as it does for the
- * other three families.
- *
- * `perRecord.before` holds what a single row can state about itself. The schedule's cross-row
- * shape — the three invariants `loanScheduleRefusals` states — is held by `prepare`, because no
- * per-record hook can see a schedule: it is handed one row, and the sum, the date order and the
- * last instalment's date are all properties of the set.
- */
+/** PostgreSQL JSON uses the session zone; Date compares instants, and the fraction retains subms precision. */
+const sameInstant = (left: string | null | undefined, right: string | null | undefined) => {
+	if (left === right) return true;
+	if (!left || !right || Date.parse(left) !== Date.parse(right)) return false;
+	const fraction = (value: string) => value.match(/\.(\d+)/)?.[1]?.replace(/0+$/, '') ?? '';
+	return fraction(left) === fraction(right);
+};
+
 export default {
 	mutate: {
-		/**
-		 * The schedule's three invariants, over the whole write.
-		 *
-		 * `prepare` is where this has to live, and it is deliberately more than reads: it is the only
-		 * hook coordinate handed the batch, and a schedule is a batch-shaped fact — a per-record hook
-		 * is given one row and the sum, the date order and the last instalment's date are all
-		 * properties of the set. The judgement itself is `loanScheduleRefusals`, the same function
-		 * the loans form blocks submit with; a form and a hook each carrying their own arithmetic
-		 * would be two workspaces.
-		 *
-		 * It runs in two parts, because the two see different amounts of the truth.
-		 *
-		 * **The order rule runs on every write.** The rows in the batch are rows the schedule will
-		 * hold whatever else the write does, so their days have to climb, and nothing outside the
-		 * batch is needed to say so.
-		 *
-		 * **The sum and the effective period are judged only for a write that states its
-		 * `loan_id`** — which is every create (`loan_id` is `notNull`, and only a nested write gets
-		 * it for free) and every update, import or agent call that names the loan it is writing to.
-		 * The batch is merged over that loan's stored repayments first, so a partial write is judged
-		 * against the whole schedule it would leave.
-		 *
-		 * **A write nested under the loan states no `loan_id`, and those two cannot be judged for
-		 * it.** The engine strips the ownership column from a child payload and injects the parent's
-		 * id after both hooks have run, and the loan in the same graph carries the very principal and
-		 * period the schedule would be judged against — still unwritten, so a read here returns the
-		 * old one. Both halves of that were measured against a running host, not assumed: judging a
-		 * nested write refused a loan whose principal rose from 1200 to 1500 with the schedule that
-		 * matches the new one, and refused a schedule that dropped a line, because the dropped row is
-		 * deleted by a relationship reconciliation this hook is never shown. Refusing the two edits
-		 * this collection exists to permit is worse than leaving them to the form, which blocks
-		 * submit with this same function.
-		 *
-		 * The residue, stated plainly: an update that neither names its loan nor is nested — a patch
-		 * of `{ id, amount_due }` — gets the order rule and not the other two, because it cannot be
-		 * told apart from a nested one. Naming the loan in the patch is all it takes.
-		 */
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
-				// A patch is judged as the row it would produce, never as the columns it carries — the
-				// same overlay `perRecord.before` builds its candidate from, one write earlier.
-				const named = inputs.flatMap((input) => (typeof input.id === 'string' ? [input.id] : []));
-				const priors = named.length
+				const ids = inputs.flatMap((input) => (input.id == null ? [] : [input.id]));
+				const prior = ids.length
 					? yield* api.db.loan_repayments.findMany({
-							where: { id: { in: named } },
+							where: { id: { in: ids } },
+							limit: QUERY_LIMIT,
 							columns: {
 								id: true,
 								loan_id: true,
+								employment_id: true,
 								due_date: true,
 								amount_due: true,
 								sequence: true
-							},
-							limit: QUERY_LIMIT
+							}
 						})
 					: [];
-				const priorById = new Map(priors.map((row) => [row.id, row]));
-				const candidates = inputs.map((input) => {
-					const prior = typeof input.id === 'string' ? priorById.get(input.id) : undefined;
-					return {
-						id: typeof input.id === 'string' ? input.id : null,
-						// Only what the caller itself said. A nested child is never told its loan.
-						loanId: input.loan_id == null ? null : String(input.loan_id),
-						row: prior === undefined ? { ...input } : { ...prior, ...input }
-					};
-				});
-
-				// The order rule, over the batch alone, on every path. Whatever else the batch is, the
-				// rows in it are rows the schedule will hold, and their days have to climb.
-				const disordered = loanScheduleRefusals({ rows: candidates.map(({ row }) => row) });
-				if (disordered.length > 0) refuse(disordered.map((refusal) => refusal.message).join(' '));
-
-				/**
-				 * The loans this write touches — the ones it names, and the ones it moves rows *out
-				 * of*.
-				 *
-				 * A repayment that changes `loan_id` leaves two schedules behind, and only one of
-				 * them is the one the caller named. Judging the target alone would let a caller
-				 * balance the loan they were thinking about while quietly unbalancing the one they
-				 * were not. The source is knowable for exactly the writes the sum rule applies to at
-				 * all: the prior row was read above, and it carries the loan the row is leaving.
-				 */
+				const byId = new Map(prior.map((row) => [row.id, row]));
+				const candidates = inputs.map((input) => ({
+					...(input.id == null ? {} : byId.get(input.id)),
+					...input
+				}));
 				const loanIds = [
 					...new Set(
-						candidates.flatMap(({ id, loanId }) => {
-							if (loanId == null) return [];
-							const from = id == null ? undefined : priorById.get(id)?.loan_id;
-							return from == null || from === loanId ? [loanId] : [loanId, from];
-						})
+						[...candidates, ...prior].flatMap((row) => (row.loan_id == null ? [] : [row.loan_id]))
 					)
 				];
-				if (loanIds.length === 0) return;
-				const loans = yield* api.db.loans.findMany({
-					where: { id: { in: loanIds } },
-					columns: { id: true, principal: true, effective_range: true },
-					limit: QUERY_LIMIT
-				});
-				const stored = loans.length
+				const loans = loanIds.length
+					? yield* api.db.loans.findMany({
+							where: { id: { in: loanIds } },
+							limit: QUERY_LIMIT,
+							columns: { id: true, employment_id: true, principal: true, effective_range: true }
+						})
+					: [];
+				const stored = loanIds.length
 					? yield* api.db.loan_repayments.findMany({
-							where: { loan_id: { in: loans.map((loan) => loan.id) } },
+							where: { loan_id: { in: loanIds } },
+							limit: QUERY_LIMIT,
 							columns: {
 								id: true,
 								loan_id: true,
+								employment_id: true,
 								due_date: true,
 								amount_due: true,
 								sequence: true
-							},
-							limit: QUERY_LIMIT
+							}
 						})
 					: [];
-				const rewritten = new Set(candidates.flatMap(({ id }) => (id == null ? [] : [id])));
-				for (const loan of loans) {
-					const schedule = [
-						...stored.filter((row) => row.loan_id === loan.id && !rewritten.has(row.id)),
-						...candidates.filter((one) => one.loanId === loan.id).map(({ row }) => row)
-					];
-					const refusals = loanScheduleRefusals({
-						principal: loan.principal,
-						effectiveRange: loan.effective_range,
-						rows: schedule
-					});
-					// Every issue at once. An importer that has to resubmit three times to be told
-					// three things is an importer that gives up on the second.
-					if (refusals.length > 0) refuse(refusals.map((refusal) => refusal.message).join(' '));
-				}
+				return { candidates, loans, stored };
 			}),
 		perRecord: {
 			before: {
 				description:
-					'Refuses a repayment whose amount is not a positive magnitude, whose sequence is not a whole number of one or more, whose due date is missing, any change to a repayment a payroll run has already captured, and any write naming its loan that would leave that loan a schedule not summing to the principal, with due dates that do not strictly increase along the sequence, or with a last repayment outside the agreement’s effective period.',
-				handler: ({ input, existing, api }) => {
-					const candidate = existing === undefined ? { ...input } : { ...existing, ...input };
-					const amountDue = decodeNumber(candidate.amount_due);
-					if (!(amountDue > 0))
-						refuse(
-							"A repayment amount due is a positive magnitude; part-recovery is the engine's business, never a smaller row."
+					'Keep repayments on their agreement’s employment contract, validate the proposed schedule, and preserve captured repayment amounts.',
+				handler: ({ input, existing, prepared, parent, api }) =>
+					Effect.gen(function* () {
+						const candidate = { ...existing, ...input };
+						if (!(decodeNumber(candidate.amount_due) > 0))
+							refuse(
+								"A repayment amount due is a positive magnitude; part-recovery is the engine's business, never a smaller row."
+							);
+						const sequence = decodeNumber(candidate.sequence);
+						if (!Number.isInteger(sequence) || sequence < 1)
+							refuse('A repayment sequence is a positive whole number.');
+						if (!dateKey(candidate.due_date))
+							refuse('A repayment must state the day it comes due.');
+						const repaymentChanged =
+							existing != null &&
+							(candidate.loan_id !== existing.loan_id ||
+								candidate.employment_id !== existing.employment_id ||
+								decodeNumber(candidate.amount_due) !== decodeNumber(existing.amount_due) ||
+								sequence !== decodeNumber(existing.sequence) ||
+								!sameInstant(candidate.due_date, existing.due_date));
+						if (repaymentChanged)
+							yield* refuseIfCaptured({
+								capture: api.db.payslip_loan_repayment_inputs.findFirst({
+									where: { loan_repayment_id: { eq: existing.id } },
+									columns: { period: true }
+								}),
+								approvalId: null,
+								action: 'Changing this repayment'
+							});
+
+						// Only the runtime can supply an enclosing agreement. It includes the parent's proposed
+						// own fields, so creating or amending an agreement never reads an old or missing parent.
+						const enclosingLoan =
+							parent?.collection === 'loans' && parent.column === 'loan_id' ? parent : undefined;
+						const loanId = enclosingLoan?.id ?? candidate.loan_id;
+						const loan = enclosingLoan?.values ?? prepared.loans.find((row) => row.id === loanId);
+						if (!loanId || !loan?.employment_id)
+							refuse(
+								'A repayment must reference an existing loan agreement and its employment contract.'
+							);
+						if (enclosingLoan && input.loan_id != null && input.loan_id !== loanId)
+							refuse('A nested repayment cannot name a different loan agreement.');
+						const enclosingEmployment =
+							parent?.collection === 'employments' && parent.column === 'employment_id'
+								? parent.id
+								: undefined;
+						const employmentId =
+							candidate.employment_id ?? enclosingEmployment ?? loan.employment_id;
+						if (
+							employmentId !== loan.employment_id ||
+							(enclosingEmployment != null && employmentId !== enclosingEmployment)
+						)
+							refuse('A repayment must use the same employment contract as its loan agreement.');
+						const linked = withContractInput(
+							{
+								...input,
+								employment_id: employmentId,
+								...(existing != null && !repaymentChanged && input.due_date != null
+									? { due_date: existing.due_date }
+									: {})
+							},
+							existing
 						);
-					const sequence = decodeNumber(candidate.sequence);
-					if (!Number.isInteger(sequence) || sequence < 1)
-						refuse('A repayment sequence is a positive whole number.');
-					const due = dateKey(candidate.due_date);
-					if (due == null || due === '') refuse('A repayment must state the day it comes due.');
-					// Only an edit can disturb a capture: a create has no prior run that consumed it.
-					if (existing === undefined) return input;
-					return Effect.as(
-						refuseIfCaptured({
-							capture: api.db.payslip_loan_repayment_inputs.findFirst({
-								where: { loan_repayment_id: { eq: existing.id } },
-								columns: { period: true }
-							}),
-							approvalId: null,
-							action: 'Changing this repayment'
-						}),
-						input
-					);
-				}
+
+						const changed = new Set(
+							prepared.candidates.flatMap((row) => (row.id == null ? [] : [row.id]))
+						);
+						const schedules = enclosingLoan
+							? [{ loan, rows: prepared.candidates }]
+							: prepared.loans.map((agreement) => ({
+									loan: agreement,
+									rows: [
+										...prepared.stored.filter(
+											(row) => row.loan_id === agreement.id && !changed.has(row.id)
+										),
+										...prepared.candidates.filter((row) => row.loan_id === agreement.id)
+									]
+								}));
+						for (const schedule of schedules) {
+							const refusals = loanScheduleRefusals({
+								principal: schedule.loan.principal,
+								effectiveRange: schedule.loan.effective_range,
+								rows: schedule.rows
+							});
+							if (refusals.length) refuse(refusals.map((one) => one.message).join(' '));
+						}
+						return linked;
+					})
 			}
 		}
 	},
@@ -187,17 +177,27 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses deleting a repayment a payroll run has captured. A recovered repayment is money history.',
-				handler: ({ existing, api }) =>
-					refuseIfCaptured({
-						capture: api.db.payslip_loan_repayment_inputs.findFirst({
-							where: { loan_repayment_id: { eq: existing.id } },
-							columns: { period: true }
-						}),
-						approvalId: null,
-						action: 'Deleting this repayment'
+					'Delete repayments only through a valid complete schedule replacement or unused agreement deletion; preserve captured repayments.',
+				handler: ({ existing, parent, api }) =>
+					Effect.gen(function* () {
+						yield* refuseIfCaptured({
+							capture: api.db.payslip_loan_repayment_inputs.findFirst({
+								where: { loan_repayment_id: { eq: existing.id } },
+								columns: { period: true }
+							}),
+							approvalId: null,
+							action: 'Deleting this repayment'
+						});
+						if (
+							parent?.collection !== 'loans' ||
+							parent.column !== 'loan_id' ||
+							parent.id !== existing.loan_id
+						)
+							refuse(
+								'Edit the loan agreement’s complete repayment schedule instead of deleting a repayment directly.'
+							);
 					})
 			}
 		}
 	}
-} satisfies Hooks;
+} satisfies Hooks<Prepared>;

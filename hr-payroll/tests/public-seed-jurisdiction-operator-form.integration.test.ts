@@ -78,7 +78,18 @@ test(
 				[...JURISDICTION_OPERATOR_HIDDEN_FIELDS],
 				['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id', 'research_notes']
 			);
-			assert.ok(JURISDICTION_OPERATOR_VISIBLE_FIELDS.includes('ordinary_rate'));
+			assert.deepEqual(
+				[...JURISDICTION_OPERATOR_VISIBLE_FIELDS],
+				[
+					'code',
+					'jurisdiction_code',
+					'name',
+					'currency',
+					'tax_year_start_month',
+					'effective_range',
+					'research_urls'
+				]
+			);
 			assert.equal(
 				new Set(jurisdictionOperatorFieldNames()).size,
 				jurisdictionOperatorFieldNames().length,

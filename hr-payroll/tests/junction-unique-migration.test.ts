@@ -7,22 +7,7 @@ import test from 'node:test';
 import { DatabaseRequest, EffectId, InvocationId } from '@norbital-ai/bolt-protocol';
 import { startPglite } from '@norbital-ai/test-utilities';
 
-/**
- * One captured input may appear on several payslips, and never twice on the same one.
- *
- * True of all three input junctions for the same reason, so they are one table of cases rather
- * than three files repeating it. A standing allowance recurs into the next period; net-pay
- * protection can leave a leave request or a loan repayment part-recovered, so the next run
- * captures the remainder — the same source row, a second payslip. A global unique on the
- * source column forbids that and quietly caps recovery at one period; a composite unique on
- * `(payslip_id, source_id)` allows it while still refusing a double capture on one slip.
- *
- * This used to prove it by replaying `drop_leave_and_loan_global_unique` — a migration that no
- * longer exists, because the template was re-baselined to a single migration like its three
- * siblings. Pinning a lineage entry made the test an artefact of how the schema was *reached*
- * rather than of what it *is*, so it now reads the baseline in force and asserts the shape there:
- * the composite index exists, no global one does, and the database behaves accordingly.
- */
+/** Captures are unique per payslip. Claim and Payment are also consumed once globally. */
 
 const query = async (binding, sql, parameters = []) =>
 	binding.call(
@@ -58,32 +43,16 @@ const JUNCTIONS = [
 		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc2003'
 	},
 	{
-		name: 'payslip_bonus_request_inputs',
+		name: 'payslip_payment_request_inputs',
 		singleUse: true,
-		source: 'bonus_request_id',
+		source: 'payment_request_id',
 		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3001',
 		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3002',
 		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc3003'
 	},
 	{
-		name: 'payslip_arrears_request_inputs',
-		singleUse: true,
-		source: 'arrears_request_id',
-		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc4001',
-		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc4002',
-		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc4003'
-	},
-	{
-		name: 'payslip_correction_request_inputs',
-		singleUse: true,
-		source: 'correction_request_id',
-		firstId: 'cccccccc-cccc-4ccc-8ccc-cccccccc5001',
-		secondId: 'cccccccc-cccc-4ccc-8ccc-cccccccc5002',
-		sameId: 'cccccccc-cccc-4ccc-8ccc-cccccccc5003'
-	},
-	{
-		name: 'payslip_leave_request_inputs',
-		source: 'leave_request_id',
+		name: 'payslip_leave_inputs',
+		source: 'leave_entry_id',
 		firstId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1',
 		secondId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2',
 		sameId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3'
@@ -124,20 +93,7 @@ test('every capture is unique per payslip, and only the single-use families are 
 			1,
 			`${junction.name} must unique on (payslip_id, ${junction.source}): ${JSON.stringify(indexes)}`
 		);
-		/**
-		 * The asymmetry the split bought, and it runs in both directions.
-		 *
-		 * `payslip_component_entry_inputs` held five families at once, so it could state neither
-		 * answer: a recurring allowance is an input to one payslip per period its window covers,
-		 * while a claim, a bonus, an arrears settlement and a correction are each consumed once. It
-		 * recorded that in a comment and left the rule to a named refusal in the gather step.
-		 *
-		 * Four junctions now carry a global unique on their source, so "consumed once" is a
-		 * constraint. The other four — the allowance, the leave request, the loan repayment and the
-		 * work day — must NOT, because a part-recovered or per-period input legitimately reaches
-		 * several payslips, and a unique there caps it at one. Both halves are asserted, because a
-		 * copy-paste between junctions gets exactly this wrong.
-		 */
+
 		const global = indexes.filter(
 			(statement) =>
 				statement.includes(`ON "${junction.name}"`) &&
@@ -160,7 +116,7 @@ test('every capture is unique per payslip, and only the single-use families are 
 	}
 });
 
-test('a captured input lands on two payslips, and never twice on one', async () => {
+test('recurring captures can reach another payslip while single-use inputs cannot', async () => {
 	const pglite = await startPglite();
 	try {
 		for (const junction of JUNCTIONS) {
@@ -178,6 +134,13 @@ test('a captured input lands on two payslips, and never twice on one', async () 
 					`ON ${junction.name} (payslip_id, ${junction.source})`
 			);
 			assert.equal(composite._tag, 'Success', JSON.stringify(composite));
+			if (junction.singleUse) {
+				const uniqueSource = await query(
+					pglite.binding,
+					`CREATE UNIQUE INDEX ${junction.name}_source ON ${junction.name} (${junction.source})`
+				);
+				assert.equal(uniqueSource._tag, 'Success', JSON.stringify(uniqueSource));
+			}
 
 			const first = await query(
 				pglite.binding,
@@ -194,8 +157,8 @@ test('a captured input lands on two payslips, and never twice on one', async () 
 			);
 			assert.equal(
 				second._tag,
-				'Success',
-				`${junction.name} refused a part-recovered input a second payslip: ${JSON.stringify(second)}`
+				junction.singleUse ? 'Failure' : 'Success',
+				`${junction.name} did not enforce its source consumption rule: ${JSON.stringify(second)}`
 			);
 
 			// Twice on one payslip is still a double capture, and still refused.
@@ -237,13 +200,7 @@ test('an entry states an amount; only a calculated line states a quantity', () =
 		assert.ok(body != null, `${table} is not created by the committed lineage`);
 		return [...body.matchAll(/^\t"([a-z_]+)"/gm)].map((match) => match[1] ?? '');
 	};
-	for (const family of [
-		'claim_requests',
-		'allowance_requests',
-		'bonus_requests',
-		'arrears_requests',
-		'correction_requests'
-	]) {
+	for (const family of ['claim_requests', 'allowance_requests', 'payment_requests']) {
 		const entry = columnsOf(family);
 		assert.ok(entry.includes('amount'), `${family} states the amount it is worth`);
 		assert.equal(

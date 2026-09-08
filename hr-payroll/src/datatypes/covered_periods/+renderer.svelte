@@ -1,22 +1,4 @@
 <script lang="ts">
-	/**
-	 * The past pay periods an arrears settlement makes good, one `YYYY-MM` per row.
-	 *
-	 * A list of months rather than a relation, because the periods named here may have no run, no
-	 * payslip and no row anywhere — arrears for a month the company had not yet onboarded is the
-	 * ordinary case. So there is nothing to pick from, and the control is a native month picker per
-	 * entry with an add and a remove, exactly as `leave_entitlement` edits its layers.
-	 *
-	 * Its predecessor was a single comma-separated text field inside a five-armed union, which
-	 * dropped anything that did not match `YYYY-MM` **silently** as you typed: a half-typed `2026-1`
-	 * simply vanished from the value. A month input cannot emit a malformed month, so the filtering
-	 * step that hid the mistake is gone with it.
-	 *
-	 * The stored list must hold at least one period, which the schema states and the database keeps.
-	 * That is not restated here: this control lets the operator empty the list, and the form refuses
-	 * the write, because a control that will not let you delete the last row is a control you cannot
-	 * correct a typo in.
-	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';

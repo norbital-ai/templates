@@ -2,25 +2,23 @@ import Human from '@vladmandic/human';
 import {
 	KIOSK_ANALYSE_HEIGHT,
 	KIOSK_ANALYSE_WIDTH,
+	KIOSK_DETECTOR_SCALE,
 	KIOSK_MIN_FACE_PX,
 	KIOSK_MODEL_BASE,
 	KIOSK_REQUIRED_MODELS
 } from './config.js';
 import type { KioskSample } from './sample.js';
+import type { FrameSize } from './silhouette.js';
 
 type FaceCandidate = Readonly<{
 	readonly box?: readonly [number, number, number, number];
 	readonly embedding?: number[];
 	readonly score: number;
-	/** Antispoof: how unlike a printed or re-displayed face this is. */
-	readonly real?: number;
-	/** Liveness: how unlike a still or replayed capture this is. A different model, a second axis. */
-	readonly live?: number;
 	/** Head pose in radians, from the mesh; absent until the mesh graph has run on this face. */
 	readonly rotation?: Readonly<{ angle: Readonly<{ yaw: number; pitch: number }> }> | null;
 }>;
 
-const engineConfig = (backend: 'webgl' | 'wasm') => ({
+const engineConfig = (backend: 'webgl' | 'wasm', enrollment: boolean) => ({
 	backend,
 	modelBasePath: KIOSK_MODEL_BASE,
 	debug: false,
@@ -35,7 +33,7 @@ const engineConfig = (backend: 'webgl' | 'wasm') => ({
 			maxDetected: 3,
 			minConfidence: 0.2,
 			minSize: KIOSK_MIN_FACE_PX,
-			scale: 1.4,
+			scale: KIOSK_DETECTOR_SCALE,
 			skipFrames: 0,
 			skipTime: 0
 		},
@@ -46,10 +44,11 @@ const engineConfig = (backend: 'webgl' | 'wasm') => ({
 			skipFrames: 0,
 			skipTime: 0
 		},
-		antispoof: { enabled: true, modelPath: 'antispoof.json', skipFrames: 0, skipTime: 0 },
-		iris: { enabled: true, modelPath: 'iris.json' },
+		antispoof: { enabled: false },
+		iris: { enabled: enrollment, modelPath: 'iris.json' },
+		// Keep the recognition tensor identical to enrollment (192px with mesh, 128px without).
 		mesh: { enabled: true, modelPath: 'facemesh.json' },
-		liveness: { enabled: true, modelPath: 'liveness.json', skipFrames: 0, skipTime: 0 },
+		liveness: { enabled: false },
 		emotion: { enabled: false },
 		attention: { enabled: false },
 		gear: { enabled: false }
@@ -57,7 +56,7 @@ const engineConfig = (backend: 'webgl' | 'wasm') => ({
 	hand: { enabled: false },
 	body: { enabled: false },
 	object: { enabled: false },
-	gesture: { enabled: true }
+	gesture: { enabled: false }
 });
 
 /**
@@ -70,11 +69,11 @@ const engineConfig = (backend: 'webgl' | 'wasm') => ({
  * Human's own promise. Loading here is what lets `missingFaceModels` answer before the loop starts.
  * A model that fails to load does not reject `load()`; Human logs it and leaves the slot empty.
  */
-export const warmFaceEngine = async (): Promise<Human> => {
+export const warmFaceEngine = async (enrollment = true): Promise<Human> => {
 	const boot = async (backend: 'webgl' | 'wasm'): Promise<Human> => {
-		const engine = new Human(engineConfig(backend));
+		const engine = new Human(engineConfig(backend, enrollment));
 		await engine.load();
-		await engine.warmup({ face: { enabled: true } });
+		if (missingFaceModels(engine).length === 0) await engine.warmup({ warmup: 'face' });
 		return engine;
 	};
 	try {
@@ -90,7 +89,12 @@ export const warmFaceEngine = async (): Promise<Human> => {
  */
 export const missingFaceModels = (engine: Human): string[] => {
 	const loaded = new Set(engine.models.loaded());
-	return KIOSK_REQUIRED_MODELS.filter((name) => !loaded.has(name));
+	return KIOSK_REQUIRED_MODELS.filter(
+		(name) =>
+			(name !== 'facemesh' || engine.config.face.mesh?.enabled) &&
+			(name !== 'iris' || engine.config.face.iris?.enabled) &&
+			!loaded.has(name)
+	);
 };
 
 /**
@@ -112,11 +116,47 @@ export const createAnalyseCanvas = (): HTMLCanvasElement => {
 	return canvas;
 };
 
+/** Remove recognition padding before outline checks and MiniFASNet's own context crops. */
+export const unpaddedFaceBox = (
+	box: readonly [number, number, number, number]
+): [number, number, number, number] => {
+	const [x, y, width, height] = box;
+	const faceWidth = width / KIOSK_DETECTOR_SCALE;
+	const faceHeight = height / KIOSK_DETECTOR_SCALE;
+	return [x + (width - faceWidth) / 2, y + (height - faceHeight) / 2, faceWidth, faceHeight];
+};
+
 /** Copies the live video frame into the analyse buffer. False while the camera is warming. */
-export const drawVideoFrame = (video: HTMLVideoElement, canvas: HTMLCanvasElement): boolean => {
+export const drawVideoFrame = (
+	video: HTMLVideoElement,
+	canvas: HTMLCanvasElement,
+	frame?: FrameSize
+): boolean => {
 	if (video.readyState < 2 || video.videoWidth === 0) return false;
 	const ctx = canvas.getContext('2d', { willReadFrequently: true });
 	if (ctx === null) return false;
+	if (frame !== undefined) {
+		const cover = Math.max(frame.width / video.videoWidth, frame.height / video.videoHeight);
+		const width = frame.width / cover;
+		const height = frame.height / cover;
+		const shrink = Math.min(KIOSK_ANALYSE_WIDTH / width, KIOSK_ANALYSE_HEIGHT / height, 1);
+		const targetWidth = Math.round(width * shrink);
+		const targetHeight = Math.round(height * shrink);
+		if (canvas.width !== targetWidth) canvas.width = targetWidth;
+		if (canvas.height !== targetHeight) canvas.height = targetHeight;
+		ctx.drawImage(
+			video,
+			(video.videoWidth - width) / 2,
+			(video.videoHeight - height) / 2,
+			width,
+			height,
+			0,
+			0,
+			canvas.width,
+			canvas.height
+		);
+		return true;
+	}
 	const shrink = Math.min(
 		KIOSK_ANALYSE_WIDTH / video.videoWidth,
 		KIOSK_ANALYSE_HEIGHT / video.videoHeight,
@@ -128,7 +168,7 @@ export const drawVideoFrame = (video: HTMLVideoElement, canvas: HTMLCanvasElemen
 	return true;
 };
 
-/** Largest face wins — the same rule for the scan loop and every enrollment capture. */
+/** Enrollment captures the largest face; kiosk eligibility uses the visible silhouette. */
 export const largestFace = (faces: ReadonlyArray<FaceCandidate>): FaceCandidate | undefined => {
 	let best: FaceCandidate | undefined;
 	let bestSize = 0;

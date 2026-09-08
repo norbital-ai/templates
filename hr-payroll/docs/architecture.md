@@ -1,1169 +1,434 @@
 # HR and payroll architecture
 
-Payroll is a deterministic settlement engine over approved, effective-dated facts. The database
-keeps business inputs separate from settled output, but does not add projection or linkage layers.
+Payroll settles approved family inputs for an employment contract. Each family owns its catalogue,
+activity and calculation rules. Payroll combines monetary results, applies Contribution, and commits
+one result graph. Catalogue content is the policy; there is no separate policy object for each
+business action.
 
-## The model in one map
+This document describes the implemented family source boundary. The combined contract, Payment and
+holiday changes remain under integration: artifact sync, generated migrations, type checks,
+full-suite checks and browser acceptance are still required. No deployment status is implied.
 
-```text
-APPROVED INPUTS                          SETTLED OUTPUT
+## Identity and family ownership
 
-employment_terms --+                  +-> payroll_runs [one sealed jurisdiction settings version]
-work_days ----------+                 |        |
-leave_requests -----+--> calculator --+        v
-component_entries --+                          payslips
-loan_repayments ----+                          |- base[]       (caused by no input)
-       |                                       |- proration[]  (caused by no input)
-       |                                       |- statutory[]  (caused by no input)
-       v                                       |
-component_catalogue <-------------------------- payslip_adjustments
- [policy + calculation]                     [one output relation]
-                                            |- input: WORK_DAY_INPUT | COMPONENT_ENTRY_INPUT
-                                            |        | LEAVE_REQUEST_INPUT | LOAN_REPAYMENT_INPUT
-                                            |- label + bucket + amount (frozen)
-                                            `- statutory_rule_key (work-day only)
+`employees` identifies a person. `employments` identifies one contract with one legal entity and one
+uninterrupted service period. Every employee event, loan instalment and payslip references its
+`employment_id`; shared catalogues and jurisdiction calendars are not employee events.
 
-loans -> loan_repayments
- [the agreement, and the amounts due under it]
+For each employee/entity pair, service dates cannot overlap, including future contracts. Departure
+is the last active day, so a same-entity rehire starts later. A person may simultaneously have active
+contracts in other entities, each with its own pay and entitlement. Rehire starts a fresh contract;
+old activity and unpaid obligations stay on the old contract.
 
-jurisdiction_settings  [one sealed, shareable root per lineage version; companies.settings_code]
- |- statutory_contributions -> contribution_rates
- |- component_catalogue
- |- leave_catalogue  [accrual + payroll effect + entitlement layers + eligibility]
- `- company_holidays
+The first committed reference permanently seals the contract through `employment_contract_inputs`.
+Deleting the referring event or draft payroll does not remove that evidence. Pending references also
+prevent conflicting contract edits. A sealed contract cannot be edited, reassigned, reopened or
+deleted. `employment_departures` records an immutable departure date and reason without rewriting
+the signed contract. It generates no encashment, carry or departure package.
+
+Effective terms amendments belong to the same stint and do not reset service. Contribution retains
+any person/entity/year aggregation required by its scheme; a new contract does not erase paid YTD.
+
+Jurisdiction-relative residency belongs to effective `employment_terms.residency_status`. Concurrent
+contracts in different jurisdictions can therefore have different standings. Eligibility resolves
+the term effective on the date being evaluated. An unrecorded standing remains unknown; it is not
+inferred from nationality or a shared employee-profile value.
+
+| Family       | Catalogue                                          | Contract inputs                                                                 | Results                                                      |
+| ------------ | -------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Work         | `work_catalogue`                                   | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage | Salary, overtime, unexplained absence                        |
+| Leave        | `leave_catalogue`                                  | Contract history and `leave_entries`                                            | Paid/unpaid absence coverage, reductions, entered encashment |
+| Claim        | `claim_catalogue`                                  | `claim_requests`                                                                | Reimbursements                                               |
+| Allowance    | `allowance_catalogue`                              | `allowance_requests`                                                            | One-off or recurring allowances                              |
+| Payment      | `payment_catalogue`                                | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections     |
+| Loan         | `loan_catalogue`                                   | `loans` and `loan_repayments`                                                   | Recovery deductions                                          |
+| Contribution | `statutory_contributions` and `contribution_rates` | Contract statutory facts and source-family results                              | Employee deductions and employer costs                       |
+
+Different business inputs retain typed collections. A family interface does not require a universal
+entry table. `lib/payroll/family.ts` carries the shared pay-item metadata. Work declares metadata for
+salary, overtime, excess overtime and absence; Leave declares the metadata of its distinct monetary
+outputs. Contribution consumes that metadata rather than inspecting the activity that produced it.
+
+## Catalogue revisions and jurisdiction calendars
+
+A company selects a settings lineage through `companies.settings_code`. `jurisdiction_settings`
+versions carry that lineage's effective configuration and own the family catalogues and Contribution
+rate tables through `settings_id`. `jurisdiction_code` identifies the holiday jurisdiction separately:
+companies with different catalogue lineages can share the same annual calendar.
+
+Sealing a settings version freezes its catalogue children. A change is a new draft version, reviewed
+and sealed through the existing workflow. A sealed version remains available to the runs and source
+entries that cite it. A wrong version can be voided through its supported path; it is not unsealed.
+`lib/jurisdiction_settings.ts` resolves effective versions consistently.
+
+`new_settings_version` clones the chosen version and its owned rows, remapping dependent references.
+`statutory_drift` checks configured research sources monthly and may propose a draft with review
+notes and retrieval evidence. It cannot seal its proposal or edit sealed rules. Unreachable sources
+remain visible in the outcome; a failed retrieval is not evidence that the law is unchanged.
+
+Holidays have their own annual publication lifecycle. `jurisdiction_holiday_sources` configures a
+Google calendar identifier and time zone for a jurisdiction. `jurisdiction_holiday_calendars` stores
+a year, revision, observed dates, provenance and import review. Holiday publication does not require
+a new catalogue version. Company closures remain schedule decisions and receive no public-holiday
+classification merely because the company is closed.
+
+```mermaid
+flowchart LR
+    Source[Jurisdiction source and time zone] --> Import[Yearly or manual Google import]
+    Import --> Draft[Draft candidates with provenance]
+    Draft --> Review[Review observed dates and complete annual coverage]
+    Review --> Published[Published jurisdiction calendar]
+    Published --> Link[Workday or payroll input capture]
+    Link --> Seal[Permanent input seal]
+    Import --> Conflict[Changed or cancelled sealed input: preserve and report]
 ```
 
-## Jurisdiction settings: the sealed, shareable root
+`holiday_import` runs each 1 October for the following year; an operator can request a jurisdiction
+and year explicitly. It uses a managed connection with `GOOGLE_CALENDAR_API_KEY`, expands recurring
+events and reads all pages before saving the import. It preserves all-day dates, upstream identity
+and operator decisions. Partial or failed reads cannot replace coverage. The automation saves review
+evidence and cannot publish a calendar.
 
-Every rule an entity's payroll, leave and scheduling read hangs off one root,
-`jurisdiction_settings`. A **lineage** is a code (`MY`, `SG`, or `SG-norbital` where an entity
-forked the shared law with its own catalogue); a company binds to a lineage by
-`companies.settings_code`, so two entities can take one root and a change of law never touches
-the company row. A lineage is a sequence of **versions**: one row each, sharing the code, each
-carrying the payroll scalars (currency, tax year, proration, the rate-of-pay divisor, the
-working-time regime) and owning every downstream row through `settings_id`: the schemes and their
-rate bands, the catalogue components, the leave catalogue entries and the holiday calendar, each flagged
-`is_statutory` where the law names it and company rule where the entity does. Shift definitions
-stay per company: site operations, not rules.
+An imported observance becomes a payroll holiday only after review. Publication declares complete
+annual coverage, including a reviewed empty year where appropriate. A missing or draft calendar
+blocks classification; it must not be interpreted as a year without holidays. A cross-year window
+requires every relevant year.
 
-The version **in force** on a day is the sealed, unvoided one whose `effective_range` covers it,
-read half-open (`[start, end)`), so a successor beginning the day its predecessor ends is
-adjacent. `lib/jurisdiction_settings.ts` is the one implementation of that pick; the engine, the
-leave reconciler and the Settings timeline all call it.
+Workday links seal their holiday input before payroll. Payroll captures also seal ordinary dates:
+adding a holiday later would change the already consumed non-holiday classification. A successor
+calendar must preserve sealed dates and observations, including their stable upstream identities.
+Deleting a consumer, re-importing or renaming a moved event cannot bypass the seal. Existing links
+keep their exact calendar revision; unlinked dates use the latest applicable published revision.
+Observed substitute dates come from the jurisdiction calendar. Work applies explicit rest/holiday
+precedence without inventing personal substitute holidays.
 
-**Sealing** is the HR Manager's act (`sealed_at`, under approval). It freezes the version and all
-of its children structurally: every child collection's hooks read the root as the workspace and
-refuse any create, update or delete once `sealed_at` is set, in one sentence naming the version,
-and the root's own hook refuses every column change except a one-time void. No policy can bypass
-that; the grants only decide who may prepare drafts (the controller) and who may seal or void
-(the manager). A sealed version is never unsealed and never deleted. A wrong one is **voided**
-(`voided_at`, `void_reason`, required when a paid run cites it): it stops governing, stays cited
-by the runs it priced, and is never restored.
+## Payroll flow
 
-A **new version** (`functions/+new_settings_version.ts`, the timeline's New version action)
-clones the chosen version and every row under it into a draft of the same code starting on a
-given day; schemes keep their codes under new ids and reliefs are rewritten to the clones. Sealing
-the draft ends the predecessor's range the day before, in the same write, which is what lets the
-database's `jurisdiction_settings_sealed_no_overlap` exclusion (sealed, unvoided rows of one code
-never overlap) accept the seal. Every payroll run cites the version id it priced against
-(`payroll_runs.settings_id`); the leave reconciler generates each leave year from the version in
-force on the year's rule date, and an entitlement keeps the settlement it was sealed with. A
-statutory registration names a scheme row; `payroll_runs/lib/statutory-facts.ts` realigns it to
-the picked version's scheme of the same code before the engine reads it.
-
-**Sharing and forking.** Two entities that operate under one law bind to one lineage and price
-against the same version id; a catalogue edit is a draft of that lineage and reaches both when it
-seals. An entity that wants its own catalogue forks: a new lineage whose code is the jurisdiction
-code with the entity's suffix (`SG-norbital`), cloned from the shared version, and the company's
-`settings_code` moves to it. The engine's few country rules read `countryOf(code)`, the first
-segment, so a fork is still Singapore law.
-
-**Statutory drift.** A version names the official pages it was transcribed from in
-`research_urls`. The `statutory_drift` automation (monthly, or by hand for one lineage) reads
-them for each lineage's version in force through the runtime's page reader, asks the model for
-the official position of every statutory row (each scheme's band table, each statutory leave
-type's entitlement, each statutory component's treatments) and diffs that itself against the
-sealed rows. When anything differs it clones the version into a draft the way New version does,
-with the changed rows in place of the cloned ones and a `research_notes` review sheet: per
-change the row, the field, the sealed and the official value, the page, the quote the model
-gave (verified against the retrieved page), when it was read and the digest of what was read.
-Settings badges the draft "Proposed by statutory drift" and lists the sheet; HR edits the draft
-and the HR Manager seals or deletes it. The automation never seals, never touches a sealed row,
-offers one draft per lineage at a time, and researches nothing for a version without research
-URLs. A lineage whose model turn fails is reported by name and the others proceed.
-
-Research is bounded: a version names at most 32 entry URLs, read two at a time through the
-host's page reader (HTTPS only, 2 MiB per page, 30 s per read), and one research turn may open
-at most 12 further pages with `read_official_page`, on the named origins only. No unreachable
-source is silent. Every entry URL that could not be read, whether DNS, connect, HTTP status, byte
-limit, timeout or a redirect off the named origins, is recorded with its url, a reason sentence
-and the time of the attempt: on the lineage's outcome in the run result (`sources`, and a note
-reading "3 of 5 sources read; unreachable: ..."), and under `unreachable` on the draft's
-`research_notes` sheet when a draft is created, which Settings lists under the proposal so HR
-knows which official pages the proposal does not stand on. A lineage none of whose sources
-answered is reported by name as `sources_unreachable` in the result, produces no draft, and the
-others proceed. A source the host cannot route (an IPv6-only page read from a container without
-IPv6, say) shows up here as unreachable: that is an ops fact about the host, not a reason to
-drop the source from the version.
-
-**Settlement is one behaviour.** No company states a settlement policy; the engine has exactly
-one, and the jurisdiction version supplies the only inputs:
-
-- a late joiner (hired after the attendance window closed) is paid in the next run, the skipped
-  period re-derived from the contract as a second base line;
-- a leaver is settled in the final period, attendance read to the exit date and recurring wages
-  prorated to it;
-- overtime settles in the window the hours fall in; at a semi-monthly company that is the half
-  it was earned in, never a shifted window;
-- an absent day is priced by the version's proration basis. The Philippine version states
-  `FIXED_DAYS 21.75`, the DOLE monthly factor, so a monthly worker's absent day is 1/21.75 of
-  the wage; Malaysia states calendar days.
-
-**A payslip comprises four things, and the kind is derived, never declared.** Base, proration and
-statutory are caused by no editable record, so they are inlined on `payslips` as arrays. An
-adjustment is caused by exactly one captured input, so it is a row that names one. There is no
-`kind` column anywhere: pointing at nothing IS base or proration; pointing at a capture IS an
-adjustment.
-
-The payroll core is five collections:
-
-1. `component_catalogue` — the catalogue of one settings version: one reusable definition with an
-   economic direction (`policy`), a treatment per statutory scheme code
-   (`contribution_treatments`), an `is_statutory` flag for the rows the law names, and a
-   polymorphic calculation definition.
-   Derived overtime is charged through the `OVERTIME` and `OVERTIME_EXCESS` rows
-   (`DERIVED_OVERTIME`), which the regime prices and nobody enters.
-2. `component_entries` — the employee-specific monetary facts: claims, standing allowances,
-   bonuses, arrears settlements and HR manual corrections. The `event` union says why the entry
-   exists; the amount is a positive magnitude and direction comes from the component policy.
-3. `payroll_runs` — one company-period calculation, naming the sealed jurisdiction settings
-   version that governed it and the calculation version that interpreted the captured configuration.
-4. `payslips` — one employment's totals in a run, plus base, proration and statutory inline, and
-   the four captured-input junction relations.
-5. `payslip_adjustments` — the one output relation, every row naming the capture that caused it.
-
-`input` is a `reference(...)`: one real foreign key per arm and a database-enforced exclusive arc,
-plus a write hook proving the captured input belongs to the adjustment's own payslip. Double
-consumption within one run is unrepresentable — the junction's `unique(payslip_id, source)` makes
-it so — and the cross-run ceilings are arithmetic, carried by `ENTRY_OVER_CONSUMED` and
-`REPAYMENT_OVER_RECOVERED` in `src/lib/settlement_refusals.ts`.
-
-**The capture is the settlement lock.** The four `payslip_*_inputs` junctions exist to say "this
-run took this record into account" separately from "this record produced money". A day the run
-read and priced at nothing is a junction row with no adjustment beside it: consumed nothing and was
-never read are different claims, and the junction's `restrict` FK into the business source is what
-refuses the delete.
-
-## Leave entitlements and ledger
-
-Leave is not itself money. The company's `leave_catalogue` catalogue states every rule: who may take a
-type (one CEL expression over the person), its service bands, how it accrues, what the year end
-and an exit do with the balance, and whether the row is the law (`is_statutory`, cited by
-`authority`). The reconciler generates one `leave_entitlements` row per employment, catalogue leave and
-leave year from that catalogue; `leave_entries` is the append-only signed ledger on it;
-`leave_requests` contains applications only. The statutory profile carries no leave vocabulary.
-
-```text
-target(year) = the type's band at the person's service on the year's rule date,
-               if the person satisfies the type's eligibility on that date; otherwise no row
-
-available(date) = SUM(posted leave_entries.days through date)
-                  - held application days
+```mermaid
+flowchart TD
+    Request[Company and regular period] --> Context[Resolve settings, pay window and jurisdiction calendar]
+    Context --> Contracts[Select contracts with service or due approved obligations]
+    Contracts --> Prepare[Prepare family inputs for each contract]
+    Prepare --> Work[Work: resolve schedule]
+    Work --> Leave[Leave: charges and absence coverage]
+    Leave --> Calculate[Calculate Work, Leave, Claim, Allowance, Payment and Loan]
+    Calculate --> Results[Amounts, direction, treatments and capture evidence]
+    Results --> Contribution[Contribution: bases, rates and YTD]
+    Contribution --> Settle[Gross, deductions, net and employer cost]
+    Results --> Settle
+    Settle --> Commit[Atomically write run, contract payslips, captures and seals]
 ```
 
-No live policy calculation changes a stored entitlement. A catalogue edit appends one
-`ADJUSTMENT` per open entitlement for the delta, keyed by the type's `updated_at`; MONTHLY lines
-after the edit come from the new band. Requests require an existing open entitlement. Approval
-appends `TAKEN`; changing or withdrawing an uncaptured request appends the exact `TAKEN` or
-`RESTORED` delta.
+The family processing boundary has four responsibilities:
 
-The ledger is hook-carried. An employment's `before` hook returns the employment with the complete
-set of its entitlements and lines nested under `leave_entitlement_employment`; a term or a child
-fact restates the employment the same way from its own hook; a leave request returns its `TAKEN`
-line under `leave_entry_request`. One rule of authority covers all of it: the caller is checked on
-the row it submitted, and everything a hook reads, returns or writes is the workspace's own work,
-so the caller holds no grant on the derived collections and a kiosk enrolment lands the same
-ledger an HR hire does. The `leave_ledger_refresh` automation exists for what is not one write:
-the monthly walk, a catalogue edit across a lineage, the seed. The employment edge is
-deliberately not a cascade, so a restatement can never delete a sealed year.
+| Stage     | Payroll                                           | Family                                                                |
+| --------- | ------------------------------------------------- | --------------------------------------------------------------------- |
+| Prepare   | Resolve common run context and invoke preparation | Read approved domain facts, applicable revisions and earlier captures |
+| Calculate | Invoke source calculations, then Contribution     | Produce results from prepared inputs without additional reads         |
+| Settle    | Apply shared arithmetic and recovery ordering     | Supply direction, treatments and recoverable constraints              |
+| Commit    | Return the complete atomic graph                  | Supply causal captures and frozen calculation evidence                |
 
-The ledger begins with the lineage's first sealed version. A leave year whose rule date no sealed
-version covers generates nothing; balances carried from before that version are opening
-`MANUAL_ADJUSTMENT` lines, reviewed like any other, never generated from a version that does not
-cover the date.
+`lib/payroll/families.ts` is the static coordinator used by the payroll run core:
 
-Monthly and upfront entitlements carry only when the type's settlement supplies a cap. Default
-carry is none. Closing transfers debit the old entitlement and credit the new one once, and are
-blocked while the old one has a held request. Unmetered types still receive a yearly entitlement
-and the same request approval/payroll treatment; they skip only the balance ceiling.
+| Entry point                   | Responsibility                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| `prepareFamilyCatalogues`     | Ask each owner for its definitions and pay-item metadata                           |
+| `prepareFamilyObligations`    | Prepare approved Leave and monetary obligations for contract selection             |
+| `prepareFamilyInputs`         | Prepare Work, Loan and Contribution facts and required historical Allowance inputs |
+| `prepareFamilyHistory`        | Resolve earlier captures, recoveries and Contribution YTD                          |
+| `finalizeFamilyConfiguration` | Complete shared prepared configuration, source treatments and calendar evidence    |
+| `calculateFamilies`           | Coordinate source-family calculations in dependency order                          |
+| `calculateFamilyAssessments`  | Validate family inputs/results and assess grouped Contribution                     |
 
-The same evaluator decides which catalogue components and claim cap layers apply to a person: a cap is
-the most generous applicable company layer. This is policy data, not a reason to add one
-collection per benefit kind. See `docs/leave.md` for the complete lanes and HR operating flow.
+The owners are `lib/payroll/work.ts` for Work, `money.ts` for the shared Claim/Allowance/Payment
+implementation, `loan.ts` for Loan, `contribution.ts` for Contribution and `lib/leave/payroll.ts`
+for Leave. The family modules own their source/catalogue reads and definition dispatch. The
+coordinator preserves cross-family ordering and the Work/Leave dependency without creating another
+editable catalogue or a universal entry table.
 
-## Run snapshot and locking
+`collections/payroll_runs/lib/engine.ts` orchestrates the run: `gatherPayrollRun` resolves shared
+context through configuration and gather, which invoke family preparation; `buildPayrollRun` invokes
+family assessments, applies common settlement and passes the result to `graph.ts`. Calculation uses
+prepared facts without database writes. The run core does not query family-owned source/catalogue
+tables or dispatch their calculation definitions.
 
-Configuration is captured once on `payroll_runs`, never once per payslip. Every payslip in a run was
-calculated from the same picked company and statutory policy. Repeating the snapshot per payslip
-would duplicate identical JSON and permit impossible disagreement inside one run.
+The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
+Preparation gathers the input snapshot once. Validation refuses incomplete treatments, required
+facts, open clocks, missing calendar coverage, invalid references and truncated reads. Nothing is
+persisted until all contracts have a valid result graph.
 
-The run names its law twice, as two different kinds of fact:
+Paid time off provides Work with absence coverage and does not add a second salary payment. Unpaid
+time off produces one Leave reduction and is excluded from unexplained absence in Work. For daily
+and hourly wages, paid and unpaid leave coverage must preserve the same no-double-charge rule.
 
-```text
-settings_id               real FK to the sealed jurisdiction settings version that governed the
-                          calculation. Engine-owned, restrict on the law's end, and frozen when
-                          the run is calculated: legislation changes enact a new version, never
-                          an edit of a used one.
-calculation_version       the engine/build identity that interpreted the captured configuration.
-                          A configuration hash identifies data, not code — without a durable
-                          version stamp, two builds of the same captured rules after an engine
-                          change would have no explanation on the run of what differed.
-```
+### Run lifecycle and captures
 
-Both are engine-owned derived columns. Inputs, configuration and results freeze when the run is
-calculated. To change an unpaid draft, delete it and create a replacement against current inputs.
-
-```text
-DRAFT [frozen calculation] --mark paid in sequence--> PAID [immutable]
-        |
-        +--delete--> create a replacement draft
-```
-
-YTD is summed from earlier paid statutory payslip lines. Leave balance is derived from approved
-leave events. Neither requires a mutable ledger/cache collection.
-
-## Payroll lifecycle
-
-### Run state
-
-One regular run is permitted per company and period. Ad hoc runs share that period, each with its
-own sequence and frozen inputs. They settle the difference from the paid runs already in the period,
-including cumulative statutory ceilings, so a same-cycle adjustment does not repeat the base wage.
-
-A run's period is written in its company's grammar. A monthly company runs months, `YYYY-MM`. A
-semi-monthly company runs two payrolls a month and its periods say which: `YYYY-MM-1` is the 1st to
-the 15th, paid on the 15th; `YYYY-MM-2` is the 16th to the month end, paid at the month end. The
-create hook refuses the other grammar by name (a half at a monthly company, a whole month at a
-semi-monthly one). Period text orders chronologically within a company (`2026-02-1 < 2026-02-2 <
-2026-03-1`), which is what the previous-run-paid rule and the year-to-date filter compare.
+Exactly one run is permitted per company and period. There is no ad hoc or supplemental run.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> DRAFT: create and calculate
-  DRAFT --> PAID: prior runs paid
-  DRAFT --> [*]: delete
-  PAID --> PAID: immutable result
+    [*] --> DRAFT: Calculate and freeze inputs/results
+    DRAFT --> PAID: Mark paid after earlier runs
+    DRAFT --> [*]: Delete
+    PAID --> PAID: Immutable
 ```
 
-Deleting a draft cascades its payslips and captured input links. A paid run cannot be recalculated
-or deleted. A correction is an approved input adjustment captured in a new ad hoc run; payment is
-allowed only after every prior run in the company sequence is paid.
+A draft is a frozen calculation. Replacing it means deleting it and creating another. Paid results
+cannot be edited or deleted. A late approved entry or correction remains outstanding for a later
+regular period. New runs require existing company runs to be paid so YTD does not move underneath
+the calculation.
 
-### Eight phases
+`payroll_runs` stores configuration and calculation identity once per run. Each `payslip` belongs to
+one contract and holds base, proration and statutory arrays. `payslip_adjustments` names its causal
+capture; the family-specific `payslip_*_inputs` relations retain source identity, including sources
+that produced zero money. The source and capture must belong to the payslip's contract.
 
-| Phase      | Reads or produces                                                                                                                                                                                                                                   | Failure behaviour                                                                                                       |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| PICK       | Company, the settings version in force for its lineage, and under it the schemes, rates, catalogue, OT rules, holidays and leave catalogue entries, plus the company's shifts; produces the configuration hash and the version id the run will name | Fails when no sealed version of the lineage covers the period, naming the company and the lineage                       |
-| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                                                                                                                                               | Blocks before reading an employee                                                                                       |
-| GATHER     | Approved employees, terms, facts, component entries, loan repayments, leave, work days and what earlier PAID runs consumed                                                                                                                          | Refuses a truncated query, a missing required employment fact, or a one-off entry another standing run already captured |
-| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines, and names each line's causal input                                                                                                                                     | Refuses unpriced hours, missing terms or invalid formula inputs                                                         |
-| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                                                                                                                                                  | Refuses missing or undecided treatment cells                                                                            |
-| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                                                                                                                                            | Refuses an uncovered band or missing selector fact                                                                      |
-| SETTLE     | Calculates gross, deductions, net and employer cost                                                                                                                                                                                                 | Reduces a deduction that would drive net below zero; what remains owed stays on the source, re-derived next run         |
-| PERSIST    | Returns the run, its payslips, the four captured-input junctions and every adjustment as one declarative payload from the `before` hook; the runtime performs the only write there is                                                               | Writes parent-first in one transaction; a draft replacement replaces the whole prior graph or nothing                   |
+Single-use monetary entries settle once. Loan instalments may be recovered partially; their
+outstanding amount is the scheduled amount less paid recoveries. Other monetary obligations and
+statutory charges settle in full. If net remains negative after the permitted Loan reduction, the
+whole calculation is refused before captures are committed.
 
-### Periods and cutoffs
+### Periods, cutoffs and service boundaries
 
-Three dates must not be conflated:
+Three dates remain distinct:
 
-| Concept                      | Meaning                                        | Example value (January)   |
-| ---------------------------- | ---------------------------------------------- | ------------------------- |
-| Salary period                | Calendar month contractual wages belong to     | `2026-01-01`–`2026-01-31` |
-| Attendance settlement window | Dated attendance/ordinary NPL paid in this run | `2025-12-21`–`2026-01-20` |
-| Pay date                     | Date the run is paid                           | 28th of the payroll month |
+| Concept                          | Example                     |
+| -------------------------------- | --------------------------- |
+| Salary period                    | 1–31 January                |
+| Attendance window with cutoff 21 | 21 December–20 January      |
+| Pay date                         | The configured payment date |
 
-For `pay_cutoff_day = 21`, the implementation treats 21 as the first included day:
+The attendance cutoff is its first included day. Money-entry defaults are separate: with cutoff 21,
+an event on or before the 21st defaults to that calendar month; a later event defaults to the next
+month. An explicit `pay_period` chooses the earliest intended regular period without changing the
+service/receipt date. An overdue uncaptured entry remains due after that period passes.
+
+A monthly company uses `YYYY-MM`; a semi-monthly company uses `YYYY-MM-1` and `YYYY-MM-2`. At a
+semi-monthly company, semi-monthly contracts settle each half; monthly, daily and hourly contracts
+settle in the second run on their applicable window. Half-month wage fractions use the full month's
+denominator. Withholding projections account for both the number and size of remaining payslips.
+
+Salary covers the intersection of service dates and effective terms. A late joiner whose first
+attendance window has closed can be deferred; the next run derives the skipped contractual wages
+without creating a manual Payment entry. Attendance remains in its own window and is not paid twice.
+The final service period extends attendance to the departure date and prorates wages through that
+date. A contract that both starts and ends in the period is settled rather than deferred beyond its
+end. Outstanding manual payments remain attached to an ended contract without restarting salary,
+recurring allowances or entitlement.
+
+### Manual departure package
+
+Recording resignation, misconduct or another departure reason creates no monetary request. HR
+submits the approved items independently through their owning families.
+
+For example, a contract ending 30 June has six days of computed final entitlement and four used days.
+HR enters a Leave `ENCASHMENT` for the remaining two days, an agreed rate of 100 and gross amount of 200. Leave validates the available quantity and arithmetic. Approval consumes those two days and
+makes the entered amount due; payroll does not calculate a resignation-specific price.
+
+A separate approved separation payment belongs to Payment. An outstanding expense belongs to Claim;
+contracted wages belong to Work; repayment belongs to Loan. A shared supporting reference can group
+the package without creating a duplicate lump sum. HR determines its completeness. A later regular
+payroll settles uncaptured obligations against the original contract, even after a rehire.
+
+## Leave activity and computed entitlement
+
+`leave_entries` contains approved immutable business activities: `TIME_OFF`, `ENCASHMENT`,
+`CARRY_FORWARD`, `ADJUSTMENT` and `REVERSAL`. There is no annual entitlement account, generated
+opening/accrual row, refresh job or second record mirroring each time-off application.
+
+The catalogue defines eligibility, service bands, annual window, availability, proration and
+paid/unpaid treatment. Entitlement is queried for a contract, stable leave code, window and date
+using the effective facts required by that calculation. Unlimited leave retains eligibility,
+approval and usage records while omitting the numerical ceiling.
 
 ```text
-attendance start = 21st of previous month
-attendance end   = 20th of payroll month
+available quantity
+  = computed entitlement
+  + approved incoming carry and adjustments
+  - approved time off, encashment and outgoing carry
+  - expired unused credit
 ```
 
-This boundary is `[cutoff day of previous month, day before cutoff in current month]`. A 21st event
-therefore belongs to the new window, not the closing one.
+Application validation also accounts for held debit reservations, approved future commitments and
+the validity of each credit on the date it would be consumed. Pending credits are not spendable.
+Balances and source allocations must be revalidated at approval and under concurrent writes.
 
-#### Money-event cutoff
+A manual carry entry names both source and destination windows, quantity and credit validity. Its
+creation date does not decide which year receives it. Encashment names its quantity and approved
+monetary terms. Neither action is automatically generated at year end or departure.
 
-A component entry may state `pay_period` explicitly. That is authoritative. If it is absent, the
-default is:
+Time off preserves a contiguous half-day range and its exact dated charges and calendar/schedule
+provenance. Each payroll settles only its own dates in that range. A reversal restores the original
+allocations and expiry; a paid monetary reversal offsets the captured amount instead of reopening
+the original obligation. A carry reversal must not restore source credit already spent at the
+destination. See [Leave](leave.md) for the full validation and correction contract.
+
+## Work calculation
+
+### Schedule, overrides and observed time
+
+A named `shift_patterns` row is referenced by effective employment terms. `PATTERNED` projects a
+cycle from an anchor, including phased rotations. `ROSTERED` expresses a contractual workload where
+HR supplies assignments. No pattern means rostered as assigned.
+
+A `work_days` row belongs to one contract and date. Its planned roster code overrides that date's
+assignment; its actual side contains worked intervals and break minutes. An attendance-only row
+keeps the projected plan. For a patterned contract, no row means worked to the base with no overtime;
+a reviewed empty interval list on a Work day is absence unless Leave supplies coverage. Rostered
+contracts need explicit assignments and any configured workload validation.
+
+`shift_definitions` is the physical collection for roster codes. The variants are `WORK`, `REST`
+and `OFF`; holidays are never roster codes. A Work code supplies start, end and unpaid break, from
+which paid minutes and crossing midnight are derived. REST remains a protected baseline when work
+is assigned over it; OFF is another non-working day. Work uses calendar-backed day classification
+and configured holiday/rest precedence before applying the monetary ladder.
+
+### Duration and pricing
+
+Overtime is derived from clock intervals against the effective schedule. Open, reversed or
+overlapping intervals cannot be priced. Source columns labelled OT hours or incentive OT are not
+payroll inputs. Early-arrival handling, shift boundaries and unpaid breaks are applied by the dated
+calculation. Payable overtime is floored to half-hour units: 1.99 becomes 1.5; 2.49 becomes 2.0.
+There is no round-up or automatic one-hour minimum.
+
+An annualised hourly-rate configuration uses:
 
 ```text
-event day <= cutoff day  → event calendar month
-event day >  cutoff day  → following payroll month
+hourly rate = round(monthly salary × 12 / (weekly hours × 52), 2)
+dated rate  = round(hourly rate × statutory multiple, 2)
+dated pay   = round(dated units × dated rate, 2)
+period pay  = sum(dated pay inside the settlement window)
 ```
 
-This default is intentionally distinct from attendance selection. A late-submitted claim may be
-assigned to a specific pay period without rewriting the service or receipt date.
-
-#### Cadence
-
-A company pays `MONTHLY` or `SEMI_MONTHLY` (`companies.pay_frequency`). A semi-monthly company
-runs two payrolls a month, `YYYY-MM-1` and `YYYY-MM-2`, and each employment is settled on its own
-cadence inside them:
-
-| Cadence at a semi-monthly company | `YYYY-MM-1`                   | `YYYY-MM-2`                                        |
-| --------------------------------- | ----------------------------- | -------------------------------------------------- |
-| `SEMI_MONTHLY` terms              | 1st to 15th, paid on the 15th | 16th to month end, paid at the month end           |
-| `MONTHLY` (and DAILY, HOURLY)     | nothing; not on the run       | the cutoff window for the month, paid at month end |
-
-The run records the envelope: the first half's attendance is the 1st to the 15th; the second half's
-runs from the cutoff day of the previous month to the month end, and pays at the month end. A
-semi-monthly employment's wage is prorated per half against the whole month's calendar days (15/28
-and 13/28 in February), so the two halves sum to the monthly contract wage. Every period pays on its
-last day. Overtime settles in the window the hours fall in, which is the employment's own
-attendance window; there is no per-frequency override.
-
-The default `pay_period` of a component entry follows the cadence: at a semi-monthly company a
-semi-monthly employment's entry settles in the half its day falls in (the 15th in the first), and a
-monthly employment's entry settles in the `-2` run of the month the cutoff rule names. An explicit
-`pay_period` override is written in the same grammar and still wins.
-
-The withholding projection counts payslips per cadence: twenty-four remain to a semi-monthly
-employment in a January tax year, twelve to a monthly one. A half-month payslip is smaller than a
-month, so the projection scales it by its share of the month (calendar days), and twenty-four halves
-project the same annual wage as twelve months; the tax still to withhold is spread over the payslips
-remaining, so each month withholds the same total either way.
-
-### Joiners, leavers and arrears
-
-The salary month is intersected with the employment range. Proration uses the jurisdiction's
-basis. The three settlement rules are the engine's only behaviour; no company states them:
-
-- A joiner inside the period is prorated from the hire date.
-- A person who joined after the attendance window closed has no payslip for that period. The next
-  run re-derives what the skipped period would have paid from the contract and pays it as a second
-  base line on the contracted wage's own component.
-- A leaver settles in their final period: attendance is read through to the exit date, and
-  recurring wages are prorated to it.
-- Every unpaid day settles in the run whose attendance window contains it. An absent day (a
-  scheduled day with no clock, no leave and no holiday) is priced through the unpaid-leave
-  deduction the company's leave catalogue names.
-
-Derived late-joiner arrears are not seeded. For example, an employee who joins mid-February may
-receive March basic plus a separate back-pay basic line for the six days worked before the period
-closed — those arrears are calculated from hire date and salary, not copied from the source listing.
-
-### YTD ordering
-
-Creating a run is blocked while an earlier run for the company remains `DRAFT`. This makes YTD
-deterministic: the new run sees only frozen prior periods.
-
-YTD is keyed by employee rather than employment so a transfer or rehire does not silently reset tax
-or statutory accumulation. The tax-year start month comes from the jurisdiction.
-
-### Idempotency and failure
-
-Draft calculation is repeatable under the same approved inputs and configuration. Query reads are
-guarded by a page ceiling: reaching the limit is treated as a failure rather than silently omitting
-a roster, time, term or entry row. This turns "possibly wrong pay" into an explicit blocked run.
-
-## Time, overtime and cutoffs
-
-### From roster to day type
-
-Day type is calculated before money:
-
-```mermaid
-flowchart LR
-  C["Roster code variant"] --> D["WORK / OFF / REST"]
-  P["Shift pattern (base)"] --> D
-  R["work_days row (override)"] --> D
-  H["Holiday and substitute holiday"] --> T["Final day type"]
-  D --> T
-  C --> A["Normal hours and boundaries"]
-  T --> O["Applicable statutory OT ladder"]
-  A --> O
-```
-
-Every employment has three layers, and every scheduling surface names them:
-
-- **The base.** `shift_patterns` is one named pattern per company (`AM-2x2`, `OFFICEx5-OFF-REST`,
-  `ROSTER-6D-48H-WK`), and `employment_terms.shift_pattern_id` points at it. Its `pattern` value
-  is polymorphic: `PATTERNED` repeats one or more phases of roster codes from an anchor date (one
-  seven-day cycle is a fixed office week, a short cycle is a crew rotation, calendar-month phases
-  are three months of days then three months of nights); `ROSTERED` states the expectation a
-  company wants named for people assigned roster by roster. Terms that point at no pattern are
-  rostered as assigned: nothing is projected and there is no guarantee to measure. Every reader
-  resolves the pattern through the terms row (`termPattern` in `lib/scheduling/work-pattern.ts`),
-  never from a copy on the terms.
-- **The override.** A `work_days` row is an exception to the base for one date. Its planned side
-  (`shift_definition_id`, a rostered code) replaces the projected code and is what a swap moves; a
-  plan write must leave the month's WORK days and paid minutes equal to what the pattern projects,
-  and `work_days/+hooks.ts` refuses one that does not.
-- **The time entries.** The same row's actual side (`worked_intervals`, `break_minutes`). Payroll
-  uses the row when it exists: an empty interval list on a WORK day is an absence, priced as one
-  unpaid day. A day with no row is the base taken as worked to plan, with no overtime. A row with
-  punches and no planned side is evidence on a base day, not an override: the board paints the
-  pattern's code under the clocked bar, and payroll takes the plan from the pattern. No seed
-  writes work days: the bank seeds shift patterns read off the source workbooks and nothing
-  else about the schedule, so a fresh workspace is base-only until people clock and roster.
-
-Weekly hours, workdays and rest weekdays are derived from the pattern; nothing duplicates them.
-
-`shift_definitions` remains the migration-stable physical collection name, but its domain and UI
-name is **roster codes**. Every code is exactly one of `WORK`, `REST` or `OFF`. A `WORK` code carries
-start, end and unpaid break. Whether it crosses midnight and how many paid minutes it represents are
-derived from those values. `REST` is protected statutory rest; `OFF` is another planned non-working
-day. Neither carries clock times.
-
-For a patterned employment the month board paints the base without storing person-day rows, muted
-inside a dashed outline and the code only; a roster row paints solid with a corner mark and names
-its origin; the time entries paint as a punch bar, a running clock, or AWOL in the destructive
-colour for a reviewed-empty row on a work day (`lib/ui/roster/roster-month.ts`,
-`resolveCellLayers`). "Days assigned" counts roster rows only, and "people still need shifts" are
-employments with neither a pattern nor a roster row in the month. For a rostered employment, every
-supplied row is authoritative and an absent day remains unassigned. A blank spreadsheet cell means
-"no explicit assignment"; it does not silently manufacture another rest day. In the employee app a
-base day is read-only and punches are offered only on a day that has a roster row.
-
-`REST` does not mean that work is impossible. Malaysian law requires a weekly rest day; for shift
-work, a continuous period of at least 30 hours can constitute that day. The employer prepares the
-rest-day roster before the month. Work performed on the designated rest day remains rest-day work
-and receives the rest-day ladder; it does not become ordinary OT merely because a replacement was
-called in. `OFF` is an additional non-working day and is not interchangeable with the statutory
-rest day. A genuine shift swap changes the dated roster before settlement rather than relabelling
-the hours after they were worked.
-
-An employee generally cannot be compelled to work on a rest day except for continuous/shift work or
-the statutory exceptional circumstances. The engine still prices approved work that occurred; a
-payment calculation is not evidence that scheduling the work was compliant.
-
-A public holiday can replace an ordinary day. If a paid holiday falls on the statutory rest day,
-the next working day is the substitute unless an explicit `company_holidays.substitutes_date`
-already defines one. This changes schedule classification; it does not invent an OIL transaction.
-
-### Gates
-
-An overtime amount is produced only when all relevant gates pass:
-
-1. every worked interval is complete, forward-running and non-overlapping;
-2. the schedule, holiday calendar and attendance together classify the work as payable overtime;
-3. the applicable effective-dated coverage and pricing rules permit an award; and
-4. payable duration remains after flooring.
-
-**Overtime is a calculated value, never a stored one.** A `work_days` row records what happened
-on the clock — one or more worked intervals and the unpaid break — and nothing about what those hours
-are worth or who agreed to them. Open/closed state is derived from whether the final interval has an
-end. The payroll run derives duration from the intervals, and the
-schedule decides whether the same hours were ordinary, rest-day or public-holiday work.
-
-`time_entries` previously carried `overtime_authorized` and five `approved_ot_*_hours` buckets, and
-both were engine inputs: a recorded refusal suppressed the day entirely, and a bucket total replaced
-the clock as the payable duration. They were dropped in the `drop_time_entry_overtime_approval`
-migration. A per-day authorisation decision, if a population needs one again, belongs on a record
-that says who decided and when — not as an unattributed flag that silently withholds pay for hours
-the clock says were worked.
-
-### Hours
-
-For an ordinary scheduled day:
-
-```text
-raw OT = worked intervals outside the scheduled WORK window − applicable unpaid break
-```
-
-On a rest, off or observed-holiday day, all approved worked duration is classified against that day
-type, less the applicable unpaid break. Scheduling a person to return on such a day is not a special
-OT roster kind: it is a WORK assignment overriding a derived non-working baseline. The system can
-therefore derive projected extra work when the roster is prepared and route it for approval; after
-attendance arrives, actual payable overtime is recalculated from what was worked. Projected and
-actual amounts cannot drift because neither is a writable roster/time-entry quantity.
-
-Every dated quantity is floored down to a half-hour:
-
-```text
-1.99 → 1.5 hours
-2.00 → 2.0 hours
-2.49 → 2.0 hours
-2.50 → 2.5 hours
-```
-
-There is no round-up and no automatic one-hour minimum.
-
-### Pricing
-
-An example company configuration uses the annualised dated method:
-
-```text
-HRP             = round(monthly salary × 12 / (weekly hours × 52), 2)
-dated unit rate = round(HRP × statutory multiple, 2)
-dated amount    = round(dated units × dated unit rate, 2)
-payroll amount  = sum(dated amounts in the payment window)
-```
-
-The engine also calculates the statutory Malaysian floor when required:
-
-```text
-statutory HRP = round((monthly salary / 26) / normal daily hours, 2)
-effective HRP = max(configured-method HRP, statutory HRP)
-```
-
-Ordinary/off-day work uses the ordinary OT ladder. Rest-day and public-holiday work can contain a
-day-wage award for work within normal hours and an hourly award beyond normal hours. This is why a
-legacy source's flat "1.5× hours" figure can differ from the statutory result, and why that figure
-is not an input.
-
-### Incentive OT (excess overtime)
-
-Incentive OT is calculated output. Source incentive-overtime columns are never an input. Like
-ordinary overtime it is a derived payslip line naming the statutory band that priced it, not a pay
-component. What an entity can state is only the boundary: where the value stops being statutory
-OT and becomes incentive, and it states it where every other rule of pay lives, in its
-jurisdiction settings.
-
-#### Incentive boundary
-
-A regime limit with `on_exceed: INCENTIVE` is an arrangement, not a compliance rule: a `DAY`
-limit on `TOTAL_WORK_HOURS` (hours worked, net of the recorded break) measured on ordinary
-(Monday to Friday) days. Nihon's is 11, a twelve-hour day that includes its one-hour break, and
-it lives on Nihon's own forked lineage `MY-nihon` (cloned from `MY`, the same mechanism as the
-statutory fixtures), so the shared Malaysian law carries no company's arrangement. Where an
-INCENTIVE boundary is stated it is the only classifier:
-
-```text
-ordinary-day excess hours  = floor½(max(0, hours worked − boundary))
-retained OT hours          = payable OT hours − excess hours
-rest, off and holiday work = priced whole on the statutory ladder
-```
-
-The jurisdiction's daily and monthly limits below still validate compliance (the run still fails
-`DAILY_WORK_LIMIT_EXCEEDED` and warns on the 104-hour counter) but move no hours. Null leaves
-classification to those limits, which is every other entity today.
-
-Two independent statutory limits classify already-earned OT value where no company boundary is
-stated:
-
-#### Daily total-work boundary
-
-```text
-daily excess hours = floor½(max(0, actual work hours − 12))
-retained OT hours  = payable OT hours − daily excess hours
-```
-
-The legal ladder prices the whole day first. The value associated with excess hours is moved to an
-`OVERTIME_EXCESS` line at the same statutory value and under the same band; it is not discarded. The run then
-**fails** on `DAILY_WORK_LIMIT_EXCEEDED`, naming the employee and the date: reclassification settles
-what the day is worth, and does not make the schedule compliant.
-The 12-hour boundary is the statutory daily maximum outside the Act's exceptional circumstances,
-not a daily OT entitlement or a rule that permits twelve overtime hours.
-
-#### Calendar-month 104-hour boundary
-
-The 104-hour counter:
-
-- resets on the first day of the calendar month;
-- counts ordinary-day and off-day OT;
-- excludes rest-day and paid-public-holiday work; and
-- advances chronologically by the full qualifying quantity, even when some hours also crossed the
-  daily boundary.
-
-Only the portion above 104 hours is moved to an `OVERTIME_EXCESS` line.
-
-### Unpaid leave and the settlement window
-
-NPL uses the same attendance settlement window as OT (21st–20th cutoff). Calendar-month UL in
-the source salary listing can therefore differ from the engine without either side being "broken":
-
-- Norbital: UL dates inside the run's settlement window.
-- Some Infotech April rows: UL dated in calendar April, including 21–30 April that belong to May
-  settlement.
-
-Named April examples are in the current variance report. Product rule: keep the 21st–20th window.
-
-### Payment window versus compliance month
-
-These are separate axes:
-
-```mermaid
-flowchart TB
-  D["Dated work"] --> C["Classify in its full calendar month\n12-hour and 104-hour controls"]
-  C --> W{"Inside this run's\nsettlement window?"}
-  W -->|Yes| P["Pay retained OT and any derived excess"]
-  W -->|No| L["Do not pay in this run"]
-```
-
-For January payroll with a 21st cutoff, the engine reads full December and January calendar months
-to classify the dated hours, but pays only 21 December–20 January. Work on 21–31 January remains in
-January's 104-hour counter and is paid by the following settlement window.
-
-There is no blanket one-month incentive lag. Chronological classification determines whether a
-specific dated hour crossed the threshold; the attendance window determines which run pays it.
+Where the applicable Work rules require the Malaysian statutory floor, the comparison is with
+`round((monthly salary / 26) / normal daily hours, 2)`. The higher hourly rate applies. Ordinary and
+off-day work use the ordinary ladder. Rest and public-holiday work may combine a day-wage award
+within normal hours and an hourly award beyond them; a flat source multiplier cannot express that.
+
+Base salary is segmented at effective term boundaries and each segment uses the same full-period
+proration denominator. Proration is Work catalogue configuration. Calendar-day proration uses the
+month's actual days; a fixed-day basis uses its configured divisor. Neither is inferred from an
+output workbook.
+
+### Excess overtime and compliance
+
+Work has separate overtime and excess-overtime output metadata. Both amounts are derived from the
+same priced dated hours. An `INCENTIVE` boundary in the Work regime can classify ordinary-day value
+above an explicit total-work boundary as excess. With no such arrangement, the daily/monthly controls
+provide the classification boundaries. Reclassification retains the value of earned work.
+
+The Malaysian configuration distinguishes a daily total-work boundary from the calendar-month
+ordinary/off-day overtime counter. The latter excludes rest-day/public-holiday awards and advances
+chronologically by the full qualifying duration. A daily excess must not make the same hours vanish
+from the monthly counter.
+
+Compliance classification and payment selection use different windows. A 21 December–20 January
+settlement may need the whole December and January calendars to classify hours, but only pays its
+own dates. There is no blanket one-month incentive delay.
+
+Validation follows the configured limit behavior: a monthly `BLOCK` breach refuses the run;
+`WARN` reports the breach. Current daily work/overtime checks emit warnings. A paid or reclassified
+amount is not proof that scheduling complied with the law.
 
 ### Coverage
 
-Coverage is **data, not code**. It lives in the required `jurisdiction_settings.regime` value
-alongside the pricing ladder and the limits governed by the same law revision. Sealed versions of
-one lineage cannot have overlapping effective ranges, so payroll can never assemble its law from
-independently dated fragments. A null `overtime_coverage` member covers everyone — absence of
-a coverage restriction is not a restriction that excludes everyone. See
-[Statutory overtime coverage](#statutory-overtime-coverage-what-is-encoded-and-what-is-not) for the sources and remaining gaps.
+`work_catalogue.regime.overtime_coverage` states a wage basis, ceiling and inclusivity, category
+basis, exemptions/exclusions and authority. `coverage.ts` evaluates excluded categories first,
+then exemptions, then the wage test. It returns COVERED, NOT_COVERED or UNDETERMINED. Missing wage
+basis or mismatched currency cannot be replaced with a convenient salary field. A null coverage
+rule currently means universal coverage; it does not establish that the jurisdiction has been
+researched.
 
-A contractual entitlement can be more favourable, but it must be encoded as an effective-dated
-coverage/pricing policy. There is no `employment_terms.overtime_eligible` switch: a boolean beside
-the statutory facts would eventually drift from the rule it claims to summarize. The legacy
-`work_classification = NON_EA` label is not, by itself, proof that the Employment Act does not apply.
+Where the configured rule uses statutory wages, `deriveStatutoryWages` combines contracted basic
+wages with eligible cash-for-work entries. This comparison uses contractual figures, not prorated
+partial-month pay. Overtime itself is excluded from that input set. The current classification
+cannot distinguish commissions or subsistence allowance from other earnings, and formula amounts
+are unavailable at this stage. These are explicit limits of the coverage calculation.
 
-For Malaysia the profile encodes the Employment Act 1955 First Schedule as substituted by the
-Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262]: a ceiling of RM4,000 a month,
-**inclusive** because paragraph 1A disapplies the ladder to wages that "exceeds" that figure; the
-paragraph 2 categories — manual labour, supervisors of manual labour, and commercial vehicle
-operators — covered irrespective of wages; and vessel work _excluded_ outright, because paragraph
-2(4) disapplies the whole of Part XII, which is where ss.60, 60A and 60D live.
+## Contribution calculation and audit
 
-The ceiling is measured on First Schedule paragraph 3 wages — section 2 wages less commissions,
-subsistence allowance and overtime payment — and **not** on base salary. The engine derives that
-figure per employment: the contracted basic wage plus the signed totals of every cash-for-work
-component's entries settling in the run — overtime cannot be among them, because it is not a
-component (`classifyWageComparand` / `deriveStatutoryWages` in `payroll_runs/lib/coverage.ts`). A person on
-RM3,800 basic plus a RM500 fixed allowance is outside the ladder; the old base-salary comparison
-said inside. Where the model cannot express a distinction the statute draws — commissions and
-subsistence allowance have no component category of their own — the derivation says so rather than
-guessing, and a figure the run cannot produce fails the run naming the employee and the authority
-instead of being approximated from the nearest column.
+Every monetary output has an explicit treatment for each applicable scheme code:
 
-Rest and meal breaks are **not** modelled here. The regime carried a `rest_breaks` member — the
-consecutive-hours window, the minimum length, whether the statute counts the break as working time
-— and every field of it was resolved, snapshotted and read by nothing: no line was priced, no run
-was blocked, no screen quoted a figure. It was removed rather than left as data entry that pays
-for itself with an audit token. Whether a break was taken is measured from punches, which is
-`work_days` and `shift_definitions` work; the cited statutory transcriptions are retained in
-the host seed bank so the
-requirement can be modelled again from the primary text rather than from memory.
+| Treatment          | Base effect                                               |
+| ------------------ | --------------------------------------------------------- |
+| `INCLUDE`          | Include the amount                                        |
+| `EXCLUDE`          | Omit the amount                                           |
+| `REDUCE`           | Reduce the base by the applicable absence/recovery amount |
+| `SPECIAL`          | Apply a declared scheme-specific rule                     |
+| `UNSET` or missing | Refuse incomplete configuration                           |
 
-## Calculation and statutory treatment
+A shared code survives catalogue revisions. Historical approved entries retain their source
+catalogue metadata; the current run resolves the applicable Contribution scheme and rates. Sequence
+orders dependencies and reliefs. Contribution persists its base, employee and employer amounts,
+band reference and special amounts so an amount-only reconciliation cannot hide an incorrect base.
 
-### Contractual wages and proration
+`lib/payroll/contribution.ts` groups the run's contract calculations by employee and legal entity.
+For compatible assessment intervals, it combines the scheme bases and special remuneration before
+assessing charges once. Fixed charges, thresholds and personal relief are therefore not repeated
+for each contract. The charges are allocated proportionally to the contracts' scheme remuneration,
+with fractional-cent ties resolved by contract ID. Each payslip retains its own bases, special
+amounts and source captures; allocations sum exactly to the combined assessment.
 
-Base salary comes from every effective term segment intersecting the covered period. Each segment is
-prorated against the same full-period denominator and then summed, so a mid-month salary change does
-not lose or duplicate a day.
+Different entities remain separate assessments. Conflicting salary windows, projection cadences,
+registration statuses or rate overrides refuse the grouped calculation rather than selecting one
+contract's interpretation. Company headcount counts distinct employees, not contract rows.
 
-Malaysia incomplete-month and ordinary unpaid-leave calculations use the configured statutory
-calendar-day basis where applicable:
+YTD is calculated from earlier PAID results in the tax year for the relevant person/entity/scheme.
+It is not a mutable accumulator. Proration rows explain base wages and do not contribute a second
+amount. A correction is a new approved family entry in a later regular payroll, with a reference to
+the original output and contract. Paid configuration, captures and output remain unchanged.
 
 ```text
-calendar-day rate = round(monthly salary / calendar days in month, 2)
-dated deduction   = round(calendar-day rate × unpaid days, 2)
+family catalogue revision ──→ frozen run configuration
+contract + approved input ──→ source capture ──→ payslip adjustment
+contract and effective terms ────────────────→ payslip base/proration
+source-family amounts + treatments ─────────→ contribution results
 ```
 
-Other jurisdictions or pay frequencies may select working-day or fixed-day proration through
-configuration: the Philippine version prorates by `FIXED_DAYS 21.75`, so an absent day is 1/21.75
-of the monthly wage. The formula is not copied into company catalogue components.
-
-### Component measurement
-
-| Definition source | Measurement                                                                 | Typical inputs                                        |
-| ----------------- | --------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `SCHEDULE`        | Contract amount × period fraction                                           | Effective terms, employment range, roster divisor     |
-| `ENTRY`           | Sum of approved dated entries, with per-entry proration/cap when configured | Claims, allowances, recoveries, corrections           |
-| `FORMULA`         | Closed expression over measured components, terms, leave and period facts   | Ordinary rate information, NPL and derived allowances |
-
-Overtime has no row here, because it has no definition source. It is measured from the priced
-segments themselves, one line per statutory band, and the two lines it produces —
-`OVERTIME` and `OVERTIME_EXCESS` — name the band rather than a component:
-
-| Derived line      | Measurement                                               | Typical inputs                              |
-| ----------------- | --------------------------------------------------------- | ------------------------------------------- |
-| `OVERTIME`        | Dated statutory award after schedule/day classification   | Time entry, shift, roster, holiday, OT rule |
-| `OVERTIME_EXCESS` | Statutory value reclassified beyond daily/monthly control | Same time entry and rule as the original OT |
-
-Amounts are stored as magnitudes. Earning/deduction direction comes from the catalogue component policy and
-contribution treatment. A correction never sneaks direction in through a negative amount.
-
-#### Claimable components
-
-An `ENTRY` component declares three things beyond its unit, because a claim is a different kind of
-object from an allowance:
-
-- `evidence` — `NONE`, `OPTIONAL` or `REQUIRED`, deciding whether a receipt must accompany the amount.
-- `cap` — a period (`CALENDAR_YEAR`, `LEAVE_YEAR`, `MONTH`, `LIFETIME` or `PER_EVENT`), the matrix the
-  limit is read from, a reimbursement percentage, and `on_exceed` of `BLOCK` or `ALLOW`.
-- `settlement` — `PAYROLL` when the money rides the payslip, `COMPANY_DIRECT` when the company pays
-  the provider and payroll records only that it happened.
-
-`on_exceed` is configurable rather than always blocking because some benefit limits are hard and
-some are soft ones a manager may deliberately exceed. A system that can only refuse pushes the soft
-case out into a spreadsheet, where it stops being visible to payroll at all.
-
-The component definition carries no statutory information. Whether a component is EPF wages is
-owned by the strict policy union on its `component_type`; renaming a component cannot change its
-settlement direction or what it is chargeable to.
-
-#### Leave entitlement
-
-Entitlement for one leave code is the catalogue row's band at the person's service on the rule
-date, for a person the row's eligibility expression covers. A statutory row states the floor the
-law names and changes only under HR Manager approval; a company that wants more than the floor
-edits the band upward under that approval. Compliance is the row and its expression, so a new
-statutory condition is a new expression, never a code release.
-
-### Component-owned contribution treatment grid
-
-Every catalogue component policy carries one effective treatment for every statutory contribution:
-
-| Treatment | Effect on contribution base                                    |
-| --------- | -------------------------------------------------------------- |
-| `INCLUDE` | Add the line                                                   |
-| `EXCLUDE` | Ignore the line                                                |
-| `REDUCE`  | Subtract an absence/recovery amount when the law requires it   |
-| `SPECIAL` | Apply a named contribution-specific rule                       |
-| `UNSET`   | Configuration is incomplete; activation/calculation is blocked |
-
-This cross-product makes omissions visible. Adding a new catalogue component cannot silently bypass EPF,
-SOCSO, EIS, tax or another scheme.
-
-### Malaysian treatment summary
-
-The effective tables remain the authority; this summary describes the intended classification:
-
-- Genuine overtime and the same value reclassified as statutory-excess incentive OT are excluded
-  from EPF wages.
-- Salary, ordinary incentives, allowances, bonuses and arrears follow their configured legal
-  treatment.
-- SOCSO and EIS use the insured wage base, including applicable salary, overtime, incentives and
-  allowances, then apply the effective ceiling/table.
-- PCB consumes taxable remuneration, relief facts, periods remaining and earlier paid YTD.
-- HRD levy applies the effective employer rate to the configured eligible wage base.
-
-Source incentive-overtime columns can represent a business incentive rather than statutory excess.
-Because the system cannot prove that meaning from the output column alone, it is not seeded. A
-variance remains until the underlying policy or event is supplied.
-
-### Contribution calculation
-
-For each statutory scheme the engine persists:
-
-```text
-base_amount
-employee_amount
-employer_amount
-band_reference
-special_amounts
-```
-
-Persisting the base makes the calculation auditable. A manual amount-only override is not an
-acceptable reconciliation fix because the same wrong base can affect later bands, tax and YTD.
-
-### YTD
-
-YTD is not a mutable ledger table. It is the sum of earlier paid results in the current tax year:
-
-```text
-YTD contribution base/share
-  = SUM(payslips.statutory[].employee_amount)
-    over earlier PAID runs for the employee and statutory scheme
-```
-
-Only `PAID` periods contribute. The previous-period-paid gate prevents a later draft from building
-against moving YTD. Current reconciliation separately checks that source and generated workbooks
-contain no duplicate employee-month rows before summing YTD.
-
-### Validation levels
-
-1. Configuration validation blocks undecided treatments, missing rule mappings, bad formulas and
-   ineffective/gapped tables.
-2. Run validation blocks open clocks, missing terms, unusable calendars and truncated reads.
-3. Result validation checks settlement identities, source expectations and non-negative net.
-4. Warnings expose schedule/compliance breaches such as total work above 12 hours or ordinary OT
-   above 104 hours; the earned value is still paid/reclassified.
-
-### Official Malaysian references
-
-- [Employment Act 1955 (current JTKSM download page)](https://jtksm.mohr.gov.my/en/borang/employment-act-1955)
-- [Employment (Limitation of Overtime Work) Regulations 1980](https://jtksm.mohr.gov.my/sites/default/files/2023-03/7.%20EMPLOYMENT%20%28LIMITATION%20OF%20OVERTIME%20WORK%29%20REGULATIONS%201980_0.pdf)
-- [JTKSM Employment Act 2022 amendment FAQ](https://jtksm.mohr.gov.my/ms/soalan-lazim/akta-kerja-1955-pindaan-2022)
-- [EPF employer contribution guidance](https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)
-- [PERKESO contribution rates](https://www.perkeso.gov.my/en/rate-of-contribution.html)
-- [LHDN PCB specifications](https://www.hasil.gov.my/majikan/potongan-cukai-bulanan-pcb/)
-
-## Adjustments, ledgers and locking
-
-### A ledger is a dated movement history, not a second copy
-
-Store a ledger only when the business fact cannot be represented by the originating request or by a
-paid payroll result. A ledger exists to preserve independently dated movements whose order and
-running balance matter.
-
-| Subject                        | Authoritative transaction                                    | Separate ledger?       | Reason                                                                                                                                                 |
-| ------------------------------ | ------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Leave taken                    | Approved `TIME_OFF` request plus its linked `TAKEN` entry    | Yes: `leave_entries`   | The request proves the absence and approval; the signed entry is the account movement. A deterministic source key prevents duplicate consumption.      |
-| Leave correction or encashment | Reviewed `MANUAL_ADJUSTMENT` or automatic `ENCASHMENT` entry | Same leave ledger      | Corrections and settlement are account movements, not fake absence requests.                                                                           |
-| Claim or allowance             | Approved `component_entries` row                             | No                     | The entry is already the money transaction and carries the incurred date and evidence.                                                                 |
-| Loan                           | `loans` row with its `loan_repayments` plan                  | No, the plan is rows   | Principal, due dates and every repayment reconcile across the pair; what is still owed on a repayment is its amount due less what paid runs recovered. |
-| Payroll/YTD                    | Paid payslips and contributions                              | No mutable accumulator | Earlier paid results are the immutable accounting history. YTD is their sum.                                                                           |
-| Payment file                   | Projection from a paid run                                   | No                     | A file is an output transport, not another source of payroll truth.                                                                                    |
-
-`leave_requests` contains time-off applications only. Approved requests create one linked `TAKEN`
-entry. Policy, statutory, carry, expiry, restoration, encashment and reviewed correction movements
-are append-only `leave_entries`; none masquerades as a leave application.
-
-### Settled and projected balances
-
-Two different questions read that ledger, and they must not read it the same way.
-
-Payroll settles, so it acts only on committed approved `TIME_OFF` rows. A request still held for
-approval is not yet an absence fact, and paying against it would settle a decision nobody has made.
-
-A new leave or claim request is checked against the **projected** basis, which counts every row
-including the pending ones. Otherwise someone with one request awaiting approval could submit a
-second against a balance the first has already spent, and each would look affordable on its own while
-the pair overdraws.
-
-For leave, “pending” means the held create requests returned by `findPending`. Both employee and HR
-balance screens merge those held quantities into the displayed pending and available amounts; they
-never post a ledger movement before approval.
-
-### Loan schedule
-
-Creating an agreement provisions a repayment plan. Equal repayments are a convenience, not a
-restriction: the final remainder is adjusted so that the plan reconciles exactly.
-
-```text
-SUM(repayment amounts) = principal
-last repayment date    ≤ repay-by date
-```
-
-The provisioning schedule builds both invariants in, the write hooks reject a row that breaks them
-against its neighbours, and the loan update path re-checks the plan the database holds. Each
-recovery is an approved deduction captured by the run that took it. A captured repayment cannot be
-edited or deleted; an unlinked future repayment may be changed while the two agreement invariants
-remain true.
-
-### Corrections and back pay
-
-Corrections are classified by cause before they are entered:
-
-| Cause                                                                                          | Seed or calculate?             | Treatment                                                                                                |
-| ---------------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| A source document states a genuine prior-period adjustment whose original event is unavailable | Seed                           | Approved entry with the source pay period, evidence and an explicit `inferred` or correction description |
-| Prior-year statutory amount has to be carried into the tested horizon                          | Seed                           | Dated correction entry because the causal paid period is outside the available run history               |
-| Joiner was correctly deferred by cutoff policy                                                 | Calculate                      | Re-derive the prior-period contract amount; do not seed the output                                       |
-| Late claim/allowance is explicitly assigned to a later pay period                              | Seed the event, not the result | Keep service date and explicit `pay_period` distinct                                                     |
-| A paid amount was wrong                                                                        | Correct prospectively          | Add an approved future-period adjustment or reversal; never rewrite a paid run                           |
-
-Amounts are positive magnitudes. Earning or deduction direction comes from the catalogue component policy. A
-manual correction names the settled adjustment it fixes through `corrects_adjustment_id`; a reversal
-operation settles in the opposite bucket of that output rather than storing a negative amount.
-
-### Recovering from a mistake after payment
-
-A paid run is frozen — never edited, never deleted — so every recovery is a **new approved event in
-a later draft run**. The next cycle carries the correction; history carries the evidence. Two
-ledgers are involved and they are corrected separately:
-
-- the **money** a run moved, corrected through `component_entries`; and
-- the **leave ledger** a balance is derived from, corrected by appending `leave_entries`.
-
-A leave request a run has captured is itself frozen (`refuseIfCaptured`), so a cancellation is
-never an edit of the original request — the original stays exactly as it was settled, and the
-correction states what changed and why.
-
-| What went wrong                                                            | Leave ledger correction                                         | Money correction in the next draft                                                                                                                                                                                              |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Approved leave was taken, payroll deducted it, then it was cancelled       | Positive reviewed `MANUAL_ADJUSTMENT` leave entry               | `MANUAL_ADJUSTMENT` with operation `REVERSAL` on the same unpaid-leave component, `corrects_adjustment_id` naming the settled absence adjustment; the flipped sign restores net while keeping the component code on the payslip |
-| Person was paid for leave they did not take, or salary was paid in error   | Positive reviewed `MANUAL_ADJUSTMENT` when leave was also taken | `ARREARS` entry on a deduction-kind component, `covers_periods` naming the paid period, reason stating the cause — recovered in the next run, subject to the negative-net guard                                                 |
-| A claim or allowance was missed or underpaid                               | —                                                               | The missing entry (or a `CORRECTION` naming the settled output it supersedes) on the earning component                                                                                                                          |
-| A statutory figure was computed under a law value that was mis-transcribed | —                                                               | Component-entry correction for the money delta (statutory lines of a paid run are never re-edited); see the profile amendment path below                                                                                        |
-| An open leave balance was seeded or carried wrong                          | One dated reviewed `MANUAL_ADJUSTMENT` for the exact delta      | —                                                                                                                                                                                                                               |
-
-Every correction is itself captured by the run that settles it — `corrects_adjustment_id` reaches
-back to the frozen output it fixes, `covers_periods` and `reason` say why — so the audit chain runs
-unbroken from the correction back through the paid run to the input it consumed. The negative-net
-guard bounds what a recovery can take: an overpayment larger than the person's next net is
-recovered across as many cycles as the guard allows.
-
-#### Amending jurisdiction settings
-
-The law a paid run cited is frozen in place, but the system is built so that is never a dead end:
-
-```text
-1. New version                       (Settings timeline: clone the version and every row under it
-                                      into a draft starting on the new effective date; the
-                                      statutory drift automation drafts this step itself when an
-                                      official page contradicts a statutory row)
-2. Edit the draft                    (the controller: scalars, schemes, bands, catalogue, holidays)
-3. Seal                              (HR Manager approval; the predecessor's range ends the day
-                                      before, earlier dates keep their old law)
-4. Correct the money                 (approved component entries in a new adjustment run)
-```
-
-What the amendment must not do is rewrite history: the paid run still names the version that
-governed it, its configuration hash covers the regime whole, and `calculation_version` names the
-code that interpreted it, so any auditor can reconstruct what was believed at payment time, and
-the successor shows the newly approved law. A wrong seal is voided, with a reason when a paid run
-cites it; it is never edited and never unsealed. Unpaid drafts remain frozen too; delete and
-replace them if they need to use the new law.
-
-### Locks
-
-```mermaid
-flowchart LR
-  E["Draft event"] --> A["Approval requested"]
-  A -->|"pending: record locked"| P["Approved event"]
-  P --> R["DRAFT payroll run"]
-  R -->|"recalculate: replace result"| R
-  R -->|"mark paid"| F["PAID result"]
-  F -->|"immutable"| C["Future correction event"]
-```
-
-| Boundary             | Current guarantee                                                                                                                                    | Why                                                                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows                                                                          | Prevents use and mutation while a decision is outstanding                                                            |
-| Draft run            | Results may be wholly replaced by recalculation                                                                                                      | Keeps drafts responsive without mixing old and new lines                                                             |
-| Paid run             | Any update of the run row refuses outright, as does deletion                                                                                         | Preserves the exact result used for payment, YTD and audit                                                           |
-| Payslip output       | Payslips, adjustments and the four capture junctions refuse updates outright; deletes only while the run is a draft                                  | Output rows are create-and-replace under the engine's one write; a correction is a new event in a later cycle        |
-| Settings version     | A sealed version refuses every column edit but a one-time void, and every child row refuses create, update and delete; never unsealed, never deleted | The citation is the record of what law governed the money; amendments enact a new version and a wrong seal is voided |
-| Loan repayment       | A captured repayment is immutable                                                                                                                    | Prevents a loan balance from changing behind a paid deduction                                                        |
-| Leave account ledger | Corrections append signed entries                                                                                                                    | A balance correction remains visible instead of rewriting history                                                    |
-| General event source | `sourceLock` freezes the original leave, entry, repayment or person-day row                                                                          | A pending approval, or a captured input in the record's input junction — with or without a monetary output           |
-
-Leave, entries and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
-forms disable and state the reason; collection tables disable row selection and paint a locked
-leading accent. Corrections are new events, never edits of a consumed source.
-
-## Surfaces
-
-### One live query per page
-
-Every app page opens exactly one live query, on the collection the page is about, carrying its
-relations through `with`; lookups are read once or ride the same `with`, and lock state is a
-column on the row rather than a second subscription. Scheduling is one `work_days` query for the
-month with the employment, employee, terms, holiday and leave request beside each day, and the
-named shift pattern rides the terms read through `with: { term_shift_pattern }` rather than a
-query of its own (`tests/scheduling-page-registrations.test.ts` pins the list); Leave is one
-`leave_requests` query carrying the employment, the entitlement with its posted entries and the
-payroll capture; each Settings tab is one query over the chosen version; the employee app's leave
-tab is one `leave_entitlements` query carrying the ledger. `tests/leave-page-registrations.test.ts`
-and its siblings count the registrations per surface and fail on a second. A live `orderBy` names a
-scalar column; ordering by a custom-typed column is a type error at authoring time.
-
-### Entity picker
-
-The picker at the top right of the HR Controller group lists the companies whose
-`effective_range` contains today and nothing else; every sibling page inherits the choice. A
-company's subtitle is its registration number, and a company without one (the seed loader maps
-the source sentinel `SOURCE_NOT_PROVIDED` to `null`) shows none. Statutory fixture companies live
-in a seed stage the demo bootstrap never loads, so they never appear.
-
-### Period grammar
-
-A monthly company's runs are `YYYY-MM`. A semi-monthly company's runs are `YYYY-MM-1` (1st to
-15th, paid on the 15th) and `YYYY-MM-2` (16th to month end, paid at the month end); the run hook
-refuses the other grammar by name, naming the company's frequency. The run form offers halves for
-a semi-monthly company and the month grid otherwise; rosters and the scheduling month stay
-monthly. See "Cadence" above for how each employment is settled inside a half.
-
-### Kiosk
-
-The kiosk resolves its face models from its own chunk, `new URL('../models/human/',
-import.meta.url)`, so a hosted release serves them from the same versioned static path as the
-chunk; an absolute `/__bolt/static/...` path is a 404 on every hosted tenant. After the engine
-loads it requires `human.models.loaded()` to cover every enabled model, and otherwise shows "Face
-engine unavailable" naming the models and never "Camera ready". While running it is never mute at
-a person: a face in frame before an action is chosen shows "Choose check in or check out to
-start"; a face too small or without an embedding for about two seconds shows "Move closer and face
-the camera"; no face for about five seconds shows "No face detected"; each is spoken once per
-attempt. Speech is pre-generated clips (`src/lib/kiosk/phrases.ts` is the one phrase list;
-`scripts/generate-kiosk-voice.mjs` renders a clip per key and language with Microsoft Edge's free
-neural voices, female, at +15% rate; the `kiosk-voice-clips` Vite plugin ships them beside the
-models), played one at a time through a small queue. The kiosk never uses a browser or system
-voice: a phrase with no clip is silent and logged once, so a copy change in phrases.ts is followed
-by re-rendering the clips. The camera frame carries a
-measured silhouette (`src/lib/kiosk/silhouette.ts`): a head ellipse spanning 58% of the frame's
-height with shoulders running off the bottom edge, drawn in the frame's own pixels. Enrollment
-lives on the employee profile, not on the wall: a guided five-pose capture (straight, left,
-right, up, down, each held ~600 ms with a readable descriptor), averaged into one vector and
-written through the `kiosk_enroll` command, which approves at once and refuses a pending or
-suspended enrollment HR has not reviewed.
-Manual check-in and check-out stay usable when the camera is unavailable.
-
-## Provenance and audit
-
-```text
-effective configuration ---> payroll_runs.configuration_snapshot
-statutory law ------------> payroll_runs.settings_id (FK to jurisdiction_settings)
-employment ------------------------> payslip
-                                      |- base[]       -> component_code           (frozen label)
-                                      |- proration[]  -> term_key                (frozen label)
-                                      |- statutory[]  -> scheme_code + band_key  (frozen)
-                                      v
-catalogue_component <-------- payslip_adjustment --------> captured input junction → business source
-```
-
-The adjustment is the output relation and directly answers:
-
-- which component produced the amount — its frozen `label` — or, when none does, which statutory
-  rule did (`statutory_rule_key`, work-day rows only);
-- which single captured input was consumed, through one real per-arm foreign key; and
-- which payslip and run froze the result, with the period copied onto the row.
-
-The three inlined arrays name codes and keys and deliberately hold **no** foreign key. That is the
-point of inlining: a settled payslip is a frozen statement of what was paid, and it does not become
-wrong because somebody later archived a component or superseded a terms row. The catalogue the
-component-entry adjustments reached is sealed under the version the run names, so it can always
-be re-read exactly.
-
-The configuration snapshot is housed once by the pay run because every payslip in that run shares
-the same picked policy.
-
-Consumption is one database invariant per junction and one arithmetic one:
-
-```text
-PER RUN:   unique(payslip_id, source) on each payslip_*_inputs junction   enforced by the database
-CROSS RUN: SUM(recovery adjustments in PAID runs) <= loan_repayments.amount_due
-           enforced by REPAYMENT_OVER_RECOVERED in src/lib/settlement_refusals.ts
-```
-
-The cross-run ceiling could not be a database constraint: a loan repayment the negative-net guard
-could only part-recover stays outstanding on the repayment row, and the next run recovers the
-remainder against the same repayment — so one repayment is legitimately touched by several
-payslips. The trade is carried by a named refusal and a test rather than by a comment.
-
-Scheduled and formula adjustments settle under the component their input names, and remain
-reproducible from the run snapshot plus approved inputs. Overtime adjustments link to no component
-at all: their `statutory_rule_key` names the band that priced them, resolved inside the run's
-sealed statutory profile, and `label` is that same key. A component-entry or loan-repayment adjustment
-reaches its component through the real source relationships, so no row here repeats it.
-
-## Statutory overtime coverage: what is encoded, and what is not
-
-Began as a survey of what the repository contained, prompted by the question _"check statutory law
-for OT and break time — manual labour vs non-manual, RM4,000 minimum"_. The survey found the
-Malaysian First Schedule scope test applied as a **hard-coded literal in engine code** rather than
-as effective-dated, cited data, and listed the legal questions the repository could not answer from
-its own contents.
-
-Those questions have since been researched against source and the test has been moved into data.
-This section records both: the model, and the sources each value came from with the tier of each.
-**No rate, threshold, category mapping or break figure here was written from memory.** Where the
-sources did not settle something, the shape is encoded and the value left absent — those are listed
-under [Still not encoded](#still-not-encoded), not quietly defaulted.
-
-### Encoded
-
-#### Overtime multipliers — six members of the Malaysian regime
-
-Seeded from the host seed bank (§4.4). The source fixture
-keeps named builder arrays for review (`overtime_rules.json`), then embeds them without IDs or
-effective ranges in the one `jurisdiction_settings.regime` value that is actually seeded
-(`jurisdiction_settings.json`).
-
-| Day type         | Band                                    | Award               | Cited authority        |
-| ---------------- | --------------------------------------- | ------------------- | ---------------------- |
-| `ORDINARY`       | beyond normal hours, `0 → ∞`            | `1.5 ×` hourly rate | EA 1955 s.60A(3)(a)    |
-| `REST_DAY`       | from start of day, fraction `0 → 0.5`   | `0.5 ×` day wage    | EA 1955 s.60(3)(b)(i)  |
-| `REST_DAY`       | from start of day, fraction `0.5 → 1.0` | `1.0 ×` day wage    | EA 1955 s.60(3)(b)(ii) |
-| `REST_DAY`       | beyond normal hours, `0 → ∞`            | `2.0 ×` hourly rate | EA 1955 s.60(3)(c)     |
-| `PUBLIC_HOLIDAY` | from start of day, fraction `0 → 1.0`   | `2.0 ×` day wage    | EA 1955 s.60D(3)(a)    |
-| `PUBLIC_HOLIDAY` | beyond normal hours, `0 → ∞`            | `3.0 ×` hourly rate | EA 1955 s.60D(3)(aa)   |
-
-Rest day has a half-day split; public holiday does not. `DAY_WAGE_MULTIPLE` is a flat fraction of a
-day's wage; `HOURLY_MULTIPLE` is per hour — the two award kinds are different scales, not variants.
-Each member carries its section number in `authority`, which is free text and is the citation
-carrier in the nested data model.
-
-#### Overtime and hours caps — two members
-
-The Malaysian regime holds two limits, and they count different things — see `measures`:
-
-| Period  | `measures`         | Max | Cited authority                                                                 |
-| ------- | ------------------ | --- | ------------------------------------------------------------------------------- |
-| `MONTH` | `OVERTIME_HOURS`   | 104 | EA 1955 s.60A(4)(a) with the Limitation of Overtime Work Regulations 1980 reg.2 |
-| `DAY`   | `TOTAL_WORK_HOURS` | 12  | EA 1955 s.60A(7), with s.60C(2) for shift work                                  |
-
-The monthly row is enforced in `payroll_runs/lib/validate.ts` as `OVERTIME_LIMIT_EXCEEDED`; the
-daily row as `DAILY_WORK_LIMIT_EXCEEDED`.
-
-`on_exceed` no longer decides whether the run completes. Both `WARN` and `BLOCK` stop it, because a
-run has no degraded state: an issue the operator was not forced to read was an issue nobody read —
-the engine returned these and the create hook discarded them. The column still records what the
-authority says, and the refusal quotes it; it does not decide who finds out.
-
-The `DAY` / `TOTAL_WORK_HOURS` row does double duty: it is the boundary past which a day's value is
-**reclassified** to an `OVERTIME_EXCESS` line, as well as the ceiling whose breach refuses the run.
-Reclassifying and refusing are separate acts on the same statutory number — `on_exceed` offers only
-`WARN | BLOCK` and no `RECLASSIFY` — but the number itself is the statute's, not a company's. It
-used to be `component_catalogue.definition.after_total_work_hours` on the overflow components, which let
-a company quietly move a statutory boundary.
-
-#### Coverage — one nullable member per version
-
-Seeded from the seed bank inside each settings version. The nullable, cited member decides **who** the
-ladder applies to, as distinct from what an hour is worth.
-
-| Column                                  | Meaning                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------- |
-| `wage_ceiling` (money, nullable)        | Null is a stated fact: no wage-based restriction exists                |
-| `ceiling_is_inclusive` (bool, nullable) | `true` for "exceeds X", `false` for "not less than X"                  |
-| `wage_basis` (enum, nullable)           | `STATUTORY_WAGES` or `BASE_SALARY` — which figure the ceiling measures |
-| `category_basis` (enum)                 | Which employment column the two arrays name values from                |
-| `exempt_categories` (text[])            | Covered whatever the wage                                              |
-| `excluded_categories` (text[])          | Never covered, whatever the wage                                       |
-| `authority`                             | Citation for the member; the parent profile owns `effective_range`     |
-
-`decideOvertimeCoverage` in `payroll_runs/lib/coverage.ts` reads the profile member and returns
-`COVERED`, `NOT_COVERED` or `UNDETERMINED`. Order is exclusion, then exemption, then the ceiling: a
-statute that disapplies a whole Part to a class of worker outranks a wage test, and a category
-written "irrespective of the amount of wages he earns" outranks it too. **No row means covered.**
-
-#### Breaks — members of the same profile
-
-`after_consecutive_hours` (nullable), `minimum_minutes`, `counts_as_worked_time` (nullable),
-`applies_when`, plus authority. The parent profile owns the effective range. The window is the field the flat
-`break_minutes` columns cannot supply: those record how long a break was, never when it was owed.
-
-The run picks the statutory profile once and records its complete regime, so it can say which
-break requirements governed it. **Nothing enforces them yet**: whether a break was actually
-taken is a question over punches (`work_days`, `shift_definitions`), which payroll does not
-answer. The rows are law made addressable, and the figures a future check will quote are already
-the statute's, not a literal waiting to be copied.
-
-#### The wage comparand — derived, not substituted
-
-The ceiling is only as good as the figure it is compared against. First Schedule para 3 defines
-"wages" for the Schedule as s.2 wages — basic wages **and all other cash payments for work done** —
-less commissions, subsistence allowance and overtime payment. The engine derives that figure per
-employment in `measure.ts`, from the catalogue component model:
-
-| Component as modelled                     | Read as                               |
-| ----------------------------------------- | ------------------------------------- |
-| `definition.source = SCHEDULE`            | basic wages (from `employment_terms`) |
-| `policy.kind = EARNING`, any other source | another cash payment for work done    |
-| every other kind                          | not wages                             |
-
-Para 3's third exclusion, overtime payment, needs no row: overtime is not a catalogue component, so it is
-never in the set being classified and cannot enter the comparand to begin with.
-
-The amounts are the signed entry totals settling in the run for each component the employment is
-eligible for — the contractual monthly figures, not prorated amounts, because para 1A asks what a
-person's wages _are_ a month. `classifyWageComparand` and `deriveStatutoryWages` in
-`payroll_runs/lib/coverage.ts` carry the classification; a rule naming `STATUTORY_WAGES` is
-answered from the derived figure and a rule naming `BASE_SALARY` from base salary, and never the
-other way around.
-
-Two para 3 exclusions the component model cannot express, recorded here rather than guessed:
-**commissions and subsistence allowance have no category of their own** — nothing on
-`component_catalogue.policy` or `component_catalogue.definition` distinguishes them from any other earning,
-so an earning of either kind is counted in the comparand. The seeded catalogues contain no such
-component, so no shipped population is affected; a company adding one must know the comparand will
-overstate until the model carries the distinction. `FORMULA` earnings are likewise not counted —
-their amounts exist only once the component walk has run, which the coverage decision precedes —
-and the under-inclusion keeps an employee inside the ladder rather than outside it.
-
-### The sources, and how far each was trusted
-
-Primary text was read wherever it could be reached. Where only a secondary reproduction was
-available, the tier is named rather than smoothed over.
+The run retains actual configuration values, applicable holiday snapshots and calculation version.
+A hash alone cannot reproduce a result. Captures preserve business source identity and distinguish
+"read and worth zero" from "not read". Permanent contract and holiday seals outlive draft captures.
+
+## Applications and authoring boundaries
+
+Controller uses a shared entity selection. People holds profiles, contracts, terms, statutory facts
+and departures. Events has Work, Leave, Claim, Allowance, Payment and Loan pages. Settings → Catalog
+holds family definitions, including Contribution; Settings → Holidays owns import, review and annual
+publication. Employee Events presents the same family navigation scoped to the selected contract.
+
+Scheduling and Leave use related reads for source rows, effective terms, calendars and captures.
+Computed balances are query results; screens do not subscribe to stored entitlement accounts.
+Policy grants decide whose activity can be submitted and who can approve it. Payroll uses only
+approved committed inputs; held creates reserve eligible quantities without becoming payable facts.
+
+The kiosk writes ordinary Work events against a contract. Its camera assets resolve relative to the
+versioned artifact, and manual entry remains available when camera recognition is unavailable. See
+[Scheduling and attendance](scheduling-leave-proposal.md) for the operational layers and current
+integration boundaries.
+
+Models live in `src/collections`, relationships in `src/collections/+relationship.ts`, representations
+with their collections and family preparation/calculation in `src/lib/payroll` and `src/lib/leave`.
+Shared calculation primitives and run orchestration remain in `src/collections/payroll_runs/lib`.
+Generated types, artifacts and migrations come from Bolt tooling and are not authored by hand.
+Public acceptance fixtures contain invented data; private reconciliation evidence is described in
+[Data](data.md) and is not copied into the template.
+
+## Retained statutory research record
+
+This section preserves the earlier source assessment behind the Work implementation. It is a
+research record, not a fresh legal verification or a statement that all jurisdictions are complete.
+Effective, cited catalogue values and their review govern each deployment.
+
+The recorded Malaysian ladder cites ordinary overtime at 1.5 times hourly rate, rest-day awards at
+half/full day wage plus 2 times hourly rate beyond normal hours, and public-holiday awards at twice
+day wage plus 3 times hourly rate beyond normal hours. The two recorded limits measure different
+quantities: 104 overtime hours per calendar month and 12 total work hours per day. Their authorities
+are EA 1955 ss.60, 60A and 60D, with the 1980 overtime-limitation regulations. These figures must not
+be reused as defaults for other jurisdictions.
+
+The recorded First Schedule coverage interpretation uses an inclusive RM4,000 threshold on its stated
+wage basis, exempt manual-labour/supervision/commercial-vehicle categories and exclusion for vessel
+work. The source assessment below distinguishes primary instruments from reproductions.
 
 | Fact                                                                                                                          | Source                                                                                     | Tier                                 |
 | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------ |
@@ -1177,97 +442,34 @@ available, the tier is named rather than smoothed over.
 | PP 35/2021 Pasal 26, 27, 29                                                                                                   | JDIH Kemnaker published PDF                                                                | Primary                              |
 | UU 13/2003 Pasal 79(2)(a) as amended                                                                                          | UU 6/2023 Bab IV text                                                                      | Primary                              |
 
-Two things the sources did **not** settle, and which are therefore encoded as absent:
+The earlier research did not establish the paid/unpaid status of the Malaysian leisure break or
+the Philippine ordinary meal period from the cited primary wording. The current Work regime stores
+optional `rest_break_rules` with a consecutive-hours trigger, minimum duration, working-time treatment,
+applicability, enforcement choice and authority. Omitted or empty rules produce no assessment.
 
-- **Whether the Malaysian break is paid.** s.60A(1)(a) calls it "a period of leisure" and is silent
-  on wages. The continuous-attendance proviso says the eight hours are "inclusive of" the meal
-  periods, which settles how hours are counted, not how they are paid.
-  `counts_as_worked_time` is null on both Malaysian rows.
-- **Whether the Philippine hour is paid.** Only an implication from the Omnibus Rules' treatment of
-  a _shortened_ meal period was found, and an implication is not the article's words.
+`restBreakAssessment` reads worked intervals, qualifying gaps and recorded break minutes.
+`deriveDailyOvertime` reduces raw payable overtime by a quantified break shortfall only when the
+configured rule explicitly has `counts_as_worked_time: false`, before applying the half-hour floor.
+True or null treatment causes no additional reduction, and a recorded break is not deducted twice.
+A null minimum duration or an open interval leaves the shortfall unquantified. The implementation's
+strict consecutive-hours comparison and lack of a recorded continuous-attendance exception remain
+limitations; a duration alone does not establish full break compliance.
 
-### What changed, and what it fixes
+Payroll overtime consumes this assessment. The source also provides break-message and write-blocking
+helpers, but their existence does not establish roster enforcement: the day-sheet notice remains an
+integration slot and the Work write/publish path does not currently invoke those helpers.
 
-Every defect the survey named is closed:
+Remaining research/model limitations include commission/subsistence wage classification; formula
+wages in the coverage comparison; Philippine exclusions beyond represented categories; Indonesia's
+contract-dependent exempt occupational groups; and unverified Singapore, Vietnam and Taiwan coverage.
+Normal-work limits such as weekly hours and daily spread require their own measured facts. This
+record must not be read as evidence that those gaps are closed by the family migration.
 
-- **Effective-dated.** An amendment is a new row with its own range; history keeps repricing under
-  the rule that was in force.
-- **Cited.** Every row names its instrument, its paragraph and, for Malaysia, its commencement.
-- **Portable.** `if (jurisdictionCode !== 'MY') return false` is gone. The Philippines and Indonesia
-  carry their own cited rows; Singapore, Vietnam and Taiwan carry none and are therefore treated as
-  covering everyone.
-- **Visible.** On the settings version's Payroll tab, and the resolved row joins the run's
-  configuration snapshot, so a PAID run records the ceiling that priced it.
+### Reference links
 
-Two defects the survey did **not** catch were found while reading the sources:
-
-1. **`VESSEL_WORK` was answered backwards.** The old test read
-   `statutoryWorkCategory !== 'NON_MANUAL'` and so treated vessel workers as _covered_. First
-   Schedule para 2(4) disapplies **Part XII** to them, and Part XII of Act 265 is "Rest days, hours
-   of work, holidays and other conditions of service" — ss.58A, 59, 60, 60A, 60B, 60C, 60D, 60E,
-   60F and 60I. They are outside the entire ladder at any wage. They are now `excluded_categories`.
-2. **The comparand was wrong, and is now derived.** The code compared `base_salary`. First
-   Schedule paragraph 3 defines "wages" for the Schedule as s.2 wages — basic wages _and all other
-   cash payments for work done_ — less commissions, subsistence allowance and overtime payment.
-   That is wider than basic pay, so a person on RM3,800 basic plus a RM500 fixed allowance is
-   outside the ladder while the old test put them inside it. The engine now derives the para 3
-   figure from the catalogue components and their entries — see
-   [The wage comparand](#the-wage-comparand--derived-not-substituted) — with the two exclusions
-   the model cannot express recorded there rather than guessed.
-
-The RM4,000 boundary itself was **corroborated and is correct**: para 1A bites on wages that
-"exceeds four thousand ringgit a month", so RM4,000 exactly remains covered, as the engine assumed.
-
-#### The daily hours cap — a literal that turned out to be citable
-
-`engine.ts` carried `maxWorkHours: 12` inline, applied to **every** jurisdiction in the workspace,
-which meant a Malaysian statute governed Indonesian and Philippine runs. Reading the source settled
-it: **Employment Act 1955 s.60A(7)**, with **s.60C(2)** for shift work — "no employer shall require
-any employee under any circumstances to work for more than twelve hours in any one day", except in
-the s.60A(2)(a)–(e) circumstances. It is a real statutory cap, so it moved into data.
-
-It could not go into the earlier limit shape as it stood. Its `max_hours` meant _overtime_
-hours — 104 a month — and this 12 counts **all** hours worked. The decomposition report of the day
-had already refused a total-hours cap for Singapore on exactly that ground. The nested limit gained
-`measures: OVERTIME_HOURS | TOTAL_WORK_HOURS`, every existing row states which it is, and the two
-consumers each read only their own kind. Read the wrong way, a 12 meant as total hours becomes a
-licence for twelve hours of overtime on top of a full shift.
-
-A jurisdiction that states no daily limit now has none enforced, rather than inheriting Malaysia's.
-
-### Still not encoded
-
-- **Commissions and subsistence allowance have no component category.** Para 3 takes them out of
-  the comparand, and `component_catalogue` carries nothing that distinguishes them from any other
-  earning — the derivation therefore counts an earning of either kind, overstating the comparand
-  for a company that pays them. The seeded catalogues contain no such component. Closing the gap
-  needs a wage-class distinction on the catalogue component model itself.
-- **`FORMULA` earnings are not in the comparand.** Their amounts exist only once the component
-  walk has run, and the coverage decision precedes it — an ordering the walk's formula
-  dependencies impose. The under-inclusion keeps an employee inside the ladder rather than
-  outside it; no seeded company carries a formula earning that a coverage ceiling tests.
-- **The Philippine art.82 exclusions, except managerial.** Field personnel, workers paid by results,
-  family members, domestic helpers and persons in personal service have no member in
-  `statutory_work_category` or `work_classification`. Recorded alongside the statutory seed as
-  `PH_OVERTIME_COVERAGE_CATEGORIES_UNMODELLED`; those employees are treated as covered.
-- **Indonesia's `golongan jabatan tertentu`.** PP 35/2021 Pasal 27(3) is broader than `MANAGERIAL`,
-  and Pasal 27(4)–(5) make the exemption conditional on the group being written into the contract,
-  company regulations or collective agreement — a fact this workspace does not record. Nothing is
-  emitted; see `ID_OVERTIME_COVERAGE_CATEGORIES_UNMODELLED`.
-- **Singapore, Vietnam and Taiwan** were not researched. Each now covers everyone. For Singapore
-  that is **known to be wrong** — Employment Act Part IV, which carries the overtime entitlement,
-  applies only below a salary threshold. Listed in `OVERTIME_COVERAGE_UNRESEARCHED`.
-- **s.60A(1)(b)–(d) hours limits** — eight a day, a ten-hour spread, forty-five a week. Recorded in
-  `MY_HOURS_OF_WORK_LIMITS_UNMODELLED`. These bound _normal_ hours and the shape of a working week;
-  the nested statutory limits bound a quantity a run measures, and none of the three is that.
-- **PP 35/2021 Pasal 26 hour caps** (4/day, 18/week) and **Pasal 29 meal provision** (1,400 kcal
-  where overtime runs four hours or more, not commutable to money). Recorded with the statutory
-  seed, not emitted:
-  the Indonesian ladder is empty by an earlier decision, so there is no measured quantity to cap,
-  and a calorie floor on provisions is not a rest period with a duration.
-- **An eligibility expression could express the wage test** (`terms.basic_salary`,
-  `terms.workman`), but nothing in the regime reads one; coverage is the regime's own member.
-- **Rest and meal breaks are unmodelled.** The regime no longer carries them: whether a break was
-  taken is measured from clock data, which is `work_days` and `shift_definitions` work, and
-  until something measures it the requirement is transcription, not a column. The cited statute
-  stays in the repository seed bank.
+- [Employment Act 1955 (current JTKSM download page)](https://jtksm.mohr.gov.my/en/borang/employment-act-1955)
+- [Employment (Limitation of Overtime Work) Regulations 1980](https://jtksm.mohr.gov.my/sites/default/files/2023-03/7.%20EMPLOYMENT%20%28LIMITATION%20OF%20OVERTIME%20WORK%29%20REGULATIONS%201980_0.pdf)
+- [JTKSM Employment Act 2022 amendment FAQ](https://jtksm.mohr.gov.my/ms/soalan-lazim/akta-kerja-1955-pindaan-2022)
+- [EPF employer contribution guidance](https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)
+- [PERKESO contribution rates](https://www.perkeso.gov.my/en/rate-of-contribution.html)
+- [LHDN PCB specifications](https://www.hasil.gov.my/majikan/potongan-cukai-bulanan-pcb/)

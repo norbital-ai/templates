@@ -34,7 +34,7 @@ import {
  * archiving cannot rewrite them. Component-entry and loan-repayment inputs reach their pay
  * component through real source relationships; a work-day input reaches the rule that priced it
  * through `statutory_rule_key` plus the run's `statutory_snapshot_id`, which together identify the
- * applied rule. There is no `component_catalogue_id` here and no band blob: both are output provenance
+ * applied rule. There is no family catalogue id here and no band blob: both are output provenance
  * stated as stable keys instead of unprotected ids.
  *
  * `period` is denormalized deliberately, for an access reason rather than a convenience one: the
@@ -59,10 +59,8 @@ export default defineModel(
 			WORK_DAY_INPUT: 'payslip_work_day_inputs',
 			CLAIM_REQUEST_INPUT: 'payslip_claim_request_inputs',
 			ALLOWANCE_REQUEST_INPUT: 'payslip_allowance_request_inputs',
-			BONUS_REQUEST_INPUT: 'payslip_bonus_request_inputs',
-			ARREARS_REQUEST_INPUT: 'payslip_arrears_request_inputs',
-			CORRECTION_REQUEST_INPUT: 'payslip_correction_request_inputs',
-			LEAVE_REQUEST_INPUT: 'payslip_leave_request_inputs',
+			PAYMENT_REQUEST_INPUT: 'payslip_payment_request_inputs',
+			LEAVE_INPUT: 'payslip_leave_inputs',
 			LOAN_REPAYMENT_INPUT: 'payslip_loan_repayment_inputs'
 		})
 			.notNull()

@@ -21,6 +21,7 @@ export default {
 	capabilities: { apps: ['hr_controller/kiosk'] },
 
 	grants: mergeGrants(
+		grantsOn('employment_departures', ['read']),
 		grantOn('employees', 'read', {
 			fields: [
 				'id',
@@ -69,15 +70,7 @@ export default {
 			}
 		}),
 		grantOn('employments', 'read', {
-			fields: [
-				'id',
-				'employee_id',
-				'company_id',
-				'employee_number',
-				'hire_date',
-				'exit_date',
-				'effective_range'
-			]
+			fields: ['id', 'employee_id', 'company_id', 'employee_number', 'hire_date', 'effective_range']
 		}),
 		grantOn('employments', 'mutate.new', {
 			fields: ['employee_id', 'company_id', 'employee_number', 'hire_date', 'effective_range']

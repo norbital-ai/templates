@@ -41,7 +41,7 @@ test(
 			assert.equal(served.status, 200, `Published chunk ${modelChunk[0]}`);
 			const modelBase = new URL('../models/human/', chunkUrl);
 			assert.equal(modelBase.pathname, '/__bolt/static/models/human/');
-			for (const model of ['antispoof', 'blazeface', 'facemesh', 'faceres', 'iris', 'liveness']) {
+			for (const model of ['blazeface', 'facemesh', 'faceres', 'iris']) {
 				for (const suffix of ['.json', '.bin']) {
 					const response = await fetch(new URL(`${model}${suffix}`, modelBase), {
 						headers: bearerHeaders(session.credential)

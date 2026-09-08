@@ -1,23 +1,13 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
-/**
- * Standing allowances feed every period they cover; one-off entries do not.
- *
- * The old shared junction could state neither answer. Its model comment said there was no global
- * unique on the source; a later index put one back, and because gather only refuses depleting
- * one-offs by name, a second-period standing capture died on the database instead. The split ends
- * that argument: the four single-use families carry the unique and the allowance does not. This
- * file drives gather + the create hook in memory, then proves the migrated public-seed guest can
- * land the same standing allowance on two payroll periods.
- */
+/** Recurring allowances capture per period; captured single-use requests are excluded later. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
-import { ENTRY_ALREADY_CAPTURED } from '../src/lib/settlement_refusals.ts';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
-import { memoryPayrollApi, refusalMessage } from './fixtures/memory-payroll-api.ts';
+import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import {
-	BONUS_ENTRY_ID,
+	PAYMENT_ENTRY_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	STANDING_ENTRY_ID,
@@ -39,6 +29,12 @@ const JAN_PAYSLIP = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
 const FEB_PAYSLIP = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2';
 
 async function createPayrollRun(world, period) {
+	for (const day of world.work_days) {
+		day.worked_intervals = [
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+		];
+		day.break_minutes = 60;
+	}
 	const api = memoryPayrollApi(world);
 	const prepared = await Effect.runPromise(
 		payrollRunHooks.mutate.prepare({
@@ -112,16 +108,16 @@ test('a standing allowance is captured on two periods and two payslips', async (
 	assert.equal(february.payslip_payroll_run[0].employment_id, EMPLOYMENT_ID);
 });
 
-test('a one-off depleting request is refused by gather with ENTRY_ALREADY_CAPTURED', async () => {
-	const world = createPublicPayrollWorld({ includeBonus: true });
+test('a captured single-use request is excluded from the next regular payroll', async () => {
+	const world = createPublicPayrollWorld({ includePayment: true });
 	const january = await createPayrollRun(world, '2026-01');
-	const bonusCaptures = (january.payslip_payroll_run ?? []).flatMap(
-		(payslip) => payslip.payslip_bonus_request_input_payslip ?? []
+	const paymentCaptures = (january.payslip_payroll_run ?? []).flatMap(
+		(payslip) => payslip.payslip_payment_request_input_payslip ?? []
 	);
 	assert.deepEqual(
-		bonusCaptures.map((row) => row.bonus_request_id),
-		[BONUS_ENTRY_ID],
-		'January must capture the bonus so February can refuse it by name'
+		paymentCaptures.map((row) => row.payment_request_id),
+		[PAYMENT_ENTRY_ID],
+		'January captures the payment once'
 	);
 	persistStandingCapture(world, {
 		runId: JAN_RUN,
@@ -130,27 +126,18 @@ test('a one-off depleting request is refused by gather with ENTRY_ALREADY_CAPTUR
 		lifecycle: 'PAID',
 		captures: entryCaptures(january)
 	});
-	// The bonus's own capture, in its own junction — the database unique that now backs the
-	// refusal is on this table, and gather has to reach its named sentence first.
-	for (const capture of bonusCaptures) {
-		world.payslip_bonus_request_inputs.push({
+	for (const capture of paymentCaptures) {
+		world.payslip_payment_request_inputs.push({
 			id: capture.id,
 			payslip_id: JAN_PAYSLIP,
-			bonus_request_id: capture.bonus_request_id,
+			payment_request_id: capture.payment_request_id,
 			period: capture.period
 		});
 	}
 
-	await assert.rejects(
-		() => createPayrollRun(world, '2026-02'),
-		(error) => {
-			const message = refusalMessage(error);
-			assert.match(message, new RegExp(ENTRY_ALREADY_CAPTURED));
-			assert.match(message, /2026-01/);
-			assert.doesNotMatch(message, /unique|duplicate key|already exists/i);
-			return true;
-		}
-	);
+	const february = await createPayrollRun(world, '2026-02');
+	assert.equal(february.payslip_payroll_run[0].payslip_payment_request_input_payslip.length, 0);
+	assert.equal(february.payslip_payroll_run[0].payslip_allowance_request_input_payslip.length, 1);
 });
 
 test(

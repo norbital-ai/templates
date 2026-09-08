@@ -51,39 +51,11 @@ import {
 const LABEL = 'hr-payroll-sweep';
 
 /**
- * The columns whose value genuinely is a structured document, so the JSON editor is the right
- * renderer. Every other field falling through to it is the defect this list makes visible: a name
- * here is a deliberate statement about that column, not a way to quiet the test.
+ * Every visible structured field has a dedicated renderer. The one document without a renderer,
+ * jurisdiction_settings.research_notes, is explicitly hidden by its representation.
+ * A JSON editor on a create form therefore indicates a missing renderer, including on new fields.
  */
-const STRUCTURED_FIELDS = new Set([
-	'entitlement',
-	'accrual',
-	'settlement',
-	'exit_settlement',
-	'payroll_effect',
-	'definition',
-	'policy',
-	'regime',
-	'award',
-	'selector',
-	'band',
-	'treatment',
-	'treatments',
-	'base',
-	'proration',
-	'statutory',
-	'ordinary_rate',
-	'work_pattern',
-	'effective_range',
-	'worked_intervals',
-	'schedule',
-	'variant',
-	'cap',
-	'holiday_scope',
-	'status',
-	'proposal',
-	'bank_account'
-]);
+const STRUCTURED_FIELDS = new Set<string>();
 
 /** The kiosk is a chromeless device surface that asks for a camera the runner has not got. */
 const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
@@ -99,13 +71,13 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
  */
 const NO_REPRESENTATION = new Set([
 	'employee_children',
+	'employment_contract_inputs',
+	'holiday_calendar_inputs',
 	'loan_repayments',
 	'payslip_allowance_request_inputs',
-	'payslip_arrears_request_inputs',
-	'payslip_bonus_request_inputs',
+	'payslip_payment_request_inputs',
 	'payslip_claim_request_inputs',
-	'payslip_correction_request_inputs',
-	'payslip_leave_request_inputs',
+	'payslip_leave_inputs',
 	'payslip_loan_repayment_inputs',
 	'payslip_work_day_inputs'
 ]);
@@ -113,22 +85,16 @@ const NO_REPRESENTATION = new Set([
 /**
  * Collections the public seed carries no row for, so this walk cannot render their representation.
  *
- * Naming them rather than skipping quietly is the point: each name is a representation no test has
- * ever painted. `payroll_runs`, `payslips` and `payslip_adjustments` are engine output that the
- * payroll suite produces for itself; the rest are inputs whose fixtures do not exist yet, and one
- * row in `tests/fixtures/seed/` is what removes a name from this list.
+ * Behaviour suites create some of these records, but this independent walk starts from the public
+ * fixtures alone. A fixture row removes the corresponding gap from this list.
  */
 const UNSEEDED_COLLECTIONS = new Set([
-	// Four of the five request families: the public fixture carries a standing allowance and
-	// nothing else, so these four representations are painted by no test. The split is what made
-	// that visible — they were one collection with one row, and the four shapes it could not have
-	// were invisible.
-	'arrears_requests',
-	'bonus_requests',
 	'claim_requests',
-	'company_holidays',
-	'correction_requests',
+	'employment_departures',
+	'jurisdiction_holiday_sources',
+	'loan_catalogue',
 	'loans',
+	'payment_requests',
 	'payroll_runs',
 	'payslip_adjustments',
 	'payslips',
@@ -233,11 +199,17 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 	// Every collection either authors a representation this walk opens, or is named above as
 	// authoring none. A file that disappears moves a name between those two sets and fails here.
 	assert.deepEqual(
-		collections.filter((name) => !representations.includes(name)).toSorted(),
-		[...NO_REPRESENTATION].toSorted(),
+		[...representations, ...NO_REPRESENTATION].toSorted(),
+		collections.toSorted(),
 		'a collection gained or lost its representation without this list being updated'
 	);
 	assert.ok(representations.length > 0, 'this template authors no representation to sweep');
+	for (const path of SKIPPED_SURFACES) {
+		assert.ok(
+			apps.includes(path.slice('/app/'.length)),
+			`${path} is excluded from the sweep but is no longer an authored app`
+		);
+	}
 
 	const session = await startPublicSeedHost(LABEL, { host: '0.0.0.0' });
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
@@ -393,11 +365,11 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 
 		// repository-health:allow LOG1 -- the walk's ledger is the artefact a human reads after a run.
 		console.log(`surface sweep\n${JSON.stringify(reports, null, 2)}`);
-		// The list is a statement about the seed, and it may only shrink. A collection that gains a
-		// representation without gaining a fixture row is a surface nothing has ever rendered.
+		// Compare the exact declared gap set: a retired or renamed collection must not disappear
+		// behind a filter, and a new representation without a fixture must be recorded explicitly.
 		assert.deepEqual(
 			unseeded,
-			[...UNSEEDED_COLLECTIONS].filter((name) => representations.includes(name)).toSorted(),
+			[...UNSEEDED_COLLECTIONS].toSorted(),
 			'the set of representations no seeded row can render has changed'
 		);
 		assert.ok(

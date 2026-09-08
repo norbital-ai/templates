@@ -16,7 +16,6 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
-	import { formatNumeric } from '../../lib/ui/display-formatters.js';
 
 	let { record, close, embedded = false }: RepresentationProps & { embedded?: boolean } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -47,12 +46,6 @@
 				<Field name="void_reason" hidden />
 				<Field name="cloned_from_id" hidden />
 				<Field name="research_notes" hidden />
-				<!--
-					Four sections, each one sentence of its own: what this snapshot is, how a day's pay is
-					worked out, what the working-time law says, and where the reading came from. No boxes
-					and no rules between them — a heading and a line of prose separate them, and every
-					border removed here was a border around two fields.
-				-->
 				<Stack gap="lg">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
@@ -61,6 +54,7 @@
 						</Stack>
 						<Grid gap="sm" minimum="compact">
 							<Field name="code" label={t('component.settings_lineage')} />
+							<Field name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} />
 							<Field name="name" />
 							<Field name="currency" />
 							<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
@@ -68,25 +62,6 @@
 								><Field name="effective_range" label={t('component.effective_period')} /></Column
 							>
 						</Grid>
-					</Stack>
-
-					<Stack as="section" gap="sm">
-						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">{t('component.settings_section_pay')}</h3>
-							<p class="text-meta">{t('component.settings_section_pay_hint')}</p>
-						</Stack>
-						<Grid gap="sm" minimum="compact">
-							<Field name="proration" label={t('component.proration_basis')} />
-							<Field name="ordinary_rate" label={t('component.ordinary_rate')} />
-						</Grid>
-					</Stack>
-
-					<Stack as="section" gap="sm">
-						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">{t('component.settings_section_regime')}</h3>
-							<p class="text-meta">{t('component.settings_section_regime_hint')}</p>
-						</Stack>
-						<Field name="regime" label={t('component.settings_section_regime')} />
 					</Stack>
 
 					<Stack as="section" gap="sm">
@@ -135,15 +110,6 @@
 	<!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
 	<RecordShell
 		title={record ? `${record.code} · ${record.name}` : t('component.create_settings')}
-		subtitle={record
-			? t('component.ordinary_pay_note', {
-					divisor: formatNumeric(record.ordinary_rate?.divisor),
-					unit:
-						record.ordinary_rate?.per === 'HOUR'
-							? t('component.hours_unit')
-							: t('component.days_unit')
-				})
-			: undefined}
 		tabs={[
 			{
 				name: 'snapshot',

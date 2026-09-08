@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveEmployment } from '../../lib/employment-contract.js';
 	import Icon from '@iconify/svelte';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
@@ -7,8 +8,14 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { inForceOnDay } from '../../lib/effective_range.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
+	import { dateKey } from '../../lib/iso-day.js';
 
-	let { ondone }: { ondone: () => void } = $props();
+	let {
+		companyId,
+		ondone,
+		onworkingchange
+	}: { companyId: string | null; ondone: () => void; onworkingchange: (value: boolean) => void } =
+		$props();
 
 	const i18n = useI18n<TenantI18nKeys>();
 	const { t } = i18n;
@@ -21,7 +28,7 @@
 	type ManualPunchResult = Awaited<ReturnType<(typeof client.invoke)['kiosk_punch']>>;
 
 	const peopleQuery = $derived(
-		term.trim().length < 2
+		companyId == null || term.trim().length < 2
 			? null
 			: client.db.employees.findMany({
 					search: { mode: 'lexical', term: term.trim() },
@@ -33,10 +40,15 @@
 	const chosen = $derived(people.find((person) => person.id === chosenId) ?? null);
 
 	const employmentsQuery = $derived(
-		chosen === null
+		chosen === null || companyId == null
 			? null
 			: client.db.employments.findMany({
-					where: { employee_id: { eq: chosen.id }, approval_id: { isNull: true } },
+					with: { employment_departure: { where: { approval_id: { isNull: true } } } },
+					where: {
+						employee_id: { eq: chosen.id },
+						company_id: { eq: companyId },
+						approval_id: { isNull: true }
+					},
 					columns: {
 						id: true,
 						company_id: true,
@@ -44,11 +56,19 @@
 						hire_date: true,
 						effective_range: true
 					},
-					limit: 20
+					limit: 1_000
 				})
 	);
 	const employments = $derived(
-		(employmentsQuery?.current ?? []).filter((row) => inForceOnDay(row.effective_range, todayKey()))
+		(employmentsQuery?.current ?? [])
+			.map(resolveEmployment)
+			.filter(
+				(row) =>
+					row.company_id === companyId &&
+					inForceOnDay(row.effective_range, todayKey()) &&
+					dateKey(row.hire_date) <= todayKey() &&
+					(row.exit_date == null || dateKey(row.exit_date) >= todayKey())
+			)
 	);
 	const employmentsSettled = $derived(employmentsQuery != null && !employmentsQuery.loading);
 	const companiesQuery = client.db.companies.findMany({
@@ -105,9 +125,13 @@
 				id="kiosk-person-search"
 				class="mt-2"
 				type="search"
+				disabled={companyId == null}
 				placeholder={t('kiosk.search_employee_placeholder')}
 				bind:value={term}
 			/>
+			{#if companyId == null}<p class="mt-3 text-sm text-muted-foreground">
+					{t('kiosk.choose_entity_before_punch')}
+				</p>{/if}
 			{#if error !== null}
 				<p role="alert" class="mt-3 text-sm text-destructive">{error}</p>
 			{/if}
@@ -161,10 +185,12 @@
 		{/if}
 		{#if employmentsSettled && employments.length === 0 && employmentsQuery?.error == null}
 			<p class="mb-4 rounded-lg bg-warning/10 p-4 text-sm text-warning-foreground">
-				{t('kiosk.no_active_employment')}
+				{t('kiosk.no_active_contract_in_entity')}
 			</p>
 		{/if}
-		{#if employments.length > 0}
+		{#if employments.length > 1 || (employmentsQuery?.current?.length ?? 0) >= 1_000}
+			<p role="alert" class="mb-4 text-sm text-destructive">{t('kiosk.contract_scope_conflict')}</p>
+		{:else if employments.length === 1}
 			<div class="border-t pt-6">
 				<h2 class="text-heading">{t('kiosk.active_employment')}</h2>
 				<div class="mt-4 divide-y overflow-hidden rounded-lg border">
@@ -187,6 +213,7 @@
 									disabled={working}
 									onclick={() => {
 										working = true;
+										onworkingchange(true);
 										result = null;
 										error = null;
 										void Promise.resolve(
@@ -196,7 +223,10 @@
 											})
 										)
 											.then(acceptPunch, failPunch)
-											.finally(() => (working = false));
+											.finally(() => {
+												working = false;
+												onworkingchange(false);
+											});
 									}}
 								>
 									<Icon icon="lucide:clock" class="size-4" />

@@ -6,7 +6,7 @@
  * The pieces of that sentence are each pinned somewhere already: `overtime-derivation.test.ts`
  * drives `deriveDailyOvertime` and `priceDay`, and `verify-payroll-arithmetic.mjs` drives
  * `prorationFraction`'s divisors, the statutory ladders and which run a period settles in. What
- * nothing drove is the join — `measureEmployment`, the step that reads a bundle and decides which
+ * nothing drove is the join — `calculateFamilies`, the step that reads a bundle and decides which
  * component receives which money. Everything below is that step, and every figure is the one
  * the arithmetic gate already verifies for this employee: basic 3,451 over a six-day 48-hour week
  * in Malaysia, so the ordinary rate is 3,451 / 26 / 8 = 16.59 and a day's wages is 132.73.
@@ -22,7 +22,7 @@
  *
  * `gather.ts` deliberately loads work days for the whole calendar months the cutoff straddles —
  * the 104-hour statutory counter resets on the first, so a run has to see days it does not pay.
- * Which of those days it *pays* is decided later, inside `measureEmployment`, against the
+ * Which of those days it *pays* is decided later, inside `calculateFamilies`, against the
  * employment's own attendance window. That makes "a clock outside the cut-off" a case where the
  * data is present, in the bundle, in front of the code, and must still not reach an amount.
  * A test that simply withholds the row proves nothing about that.
@@ -30,8 +30,8 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
-import { allowanceRequest, bonusRequest } from '../src/collections/payroll_runs/lib/entries.ts';
+import { calculateFamilies } from '../src/lib/payroll/families.ts';
+import { allowanceRequest, paymentRequest } from '../src/lib/payroll/money.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
@@ -110,6 +110,8 @@ const component = (overrides) => ({
 
 const BASIC = component({
 	id: '00000000-0000-4000-8000-00000000p001',
+	family: 'WORK',
+	output: 'salary',
 	code: 'BASIC',
 	name: 'Basic salary',
 	sequence: 10,
@@ -144,9 +146,21 @@ const TRANSPORT = component({
 	}
 });
 
-// Overtime is deliberately absent: it is not a component, and a company cannot put it in its
-// catalogue. Every overtime figure below comes out of the ladder and the clocks alone.
-const COMPONENT_CATALOGUE = [BASIC, TRANSPORT];
+// Work outputs carry their own treatment metadata alongside band provenance.
+const COMPONENT_CATALOGUE = [
+	BASIC,
+	TRANSPORT,
+	...['overtime', 'overtime_excess'].map((output) =>
+		component({
+			id: `work-${output}`,
+			family: 'WORK',
+			output,
+			code: output.toUpperCase(),
+			sequence: 20,
+			definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
+		})
+	)
+];
 
 /**
  * The Malaysian ladder as seeded: an ordinary day pays 1.5× beyond the normal day; a rest day pays
@@ -202,6 +216,8 @@ function configuration(overrides = {}) {
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
+		work: { ...JURISDICTION, jurisdiction_code: JURISDICTION.code },
+		holidayRestPrecedence: 'REST_DAY',
 		leaveProfiles: [JURISDICTION],
 		contributions: [],
 		treatments: new Map(),
@@ -261,13 +277,14 @@ function bundle(overrides = {}) {
 		},
 		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
 		terms: [terms()],
+		termsHistory: overrides.terms ?? [terms()],
+		children: [],
+		payFrequency: 'MONTHLY',
+		window: { period: '2026-03', salary: MARCH, attendance: MARCH_ATTENDANCE },
 		statutoryFacts: [],
-		payRequests: [],
 		loans: [],
 		loanRepayments: [],
-		ledger: [],
-		leaveEntitlements: [],
-		leaveEntries: [],
+		leave: { entries: [], catalogues: [], captures: [], balances: {}, deductionEligibility: {} },
 		workDays: [],
 		serviceMonths: 57,
 		age: 34,
@@ -276,13 +293,20 @@ function bundle(overrides = {}) {
 		attendance: MARCH_ATTENDANCE,
 		arrearsFor: null,
 		deferral: null,
-		extendedLeaveSettlesInOwnMonth: false,
-		...overrides
+		...overrides,
+		payRequests: (overrides.payRequests ?? []).map((request) => {
+			assert.equal(request.component_catalogue_id, TRANSPORT.id);
+			return {
+				captures: [],
+				...request,
+				catalogueComponent: { ...TRANSPORT, family: request.family }
+			};
+		})
 	};
 }
 
 function measure(overrides = {}, configurationOverrides = {}, extras = {}) {
-	return measureEmployment({
+	return calculateFamilies({
 		bundle: bundle(overrides),
 		configuration: configuration(configurationOverrides),
 		period: extras.period ?? '2026-03',
@@ -306,8 +330,7 @@ const paid = (measured) => [...measured.base, ...measured.adjustments];
 /**
  * Amount the named component or overtime band produced, or null when it produced none.
  *
- * `label` rather than `catalogueComponent.code`: an overtime row has no component to read a code
- * from, and that is the point of the whole model — its label is the band that priced it.
+ * Overtime labels identify the pricing band; catalogueComponent identifies its Work output.
  *
  * At most one, which is a claim in its own right: a component measures once, and overtime groups by
  * `(work day x band)`, so these single-day fixtures produce one row per band.
@@ -380,13 +403,12 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 	);
 });
 
-test('an overtime adjustment names the statutory band, the work day, and no component', () => {
-	// The rule being restored, asserted directly: the row carries the band, `catalogueComponent` is null,
-	// and `component_catalogue_id` will therefore be NULL on the stored row. Exactly one of the two.
-	const day = clock('2026-03-19', '08:30', '20:30');
+test('an overtime adjustment names its Work output, statutory band and work day', () => {
+	const day = clock('2026-03-20', '08:30', '20:30');
 	const measured = measure({ workDays: [day] });
 	const row = lineOf(measured, OT_ORDINARY);
-	assert.equal(row.catalogueComponent, null);
+	assert.equal(row.catalogueComponent.family, 'WORK');
+	assert.equal(row.catalogueComponent.output, 'overtime');
 	// The band the row was priced by, as the rule key the payslip stores — the same code
 	// `overtimeBandCode` writes and the workbook reads.
 	assert.equal(row.statutoryRuleKey, OT_ORDINARY);
@@ -396,7 +418,7 @@ test('an overtime adjustment names the statutory band, the work day, and no comp
 	// amount on them. It is one row now, and it points at the day.
 	assert.deepEqual(row.input, { family: 'WORK_DAY', id: day.id });
 
-	// And no catalogue row was consulted to produce it: this company's catalogue has two rows.
+	// Stored Work output metadata produces salary and this measured overtime band.
 	assert.deepEqual(
 		paid(measured)
 			.map((item) => item.label)
@@ -410,14 +432,14 @@ test('an entry settles by the money cut-off, not by the month it is dated in', (
 	// day its economics belong to in its own column, and the cutoff reads the one answer the
 	// builder derived from it.
 	const entry = (date) =>
-		bonusRequest({
+		paymentRequest({
 			id: `entry-${date}`,
 			employment_id: 'emp-1',
-			component_catalogue_id: TRANSPORT.id,
+			payment_catalogue_id: TRANSPORT.id,
 			pay_period: null,
-			awarded_on: `${date}T00:00:00.000Z`,
+			effective_on: `${date}T00:00:00.000Z`,
 			amount: 240,
-			note: 'travel'
+			reason: 'travel'
 		});
 
 	assert.equal(amountOf(measure({ payRequests: [entry('2026-03-20')] }), 'TRANSPORT'), 240);
@@ -426,22 +448,37 @@ test('an entry settles by the money cut-off, not by the month it is dated in', (
 		null,
 		'an entry dated after the 21st is next period’s money and produces nothing here'
 	);
-	// And the March run does not reach backwards into a period that has already been paid.
-	assert.equal(amountOf(measure({ payRequests: [entry('2026-02-10')] }), 'TRANSPORT'), null);
+	// An uncaptured late approval remains payable; a standing capture excludes it.
+	assert.equal(amountOf(measure({ payRequests: [entry('2026-02-10')] }), 'TRANSPORT'), 240);
+	assert.equal(
+		amountOf(
+			measure({
+				payRequests: [
+					{
+						...entry('2026-02-10'),
+						captured: true,
+						captures: [{ id: 'prior-capture', period: '2026-02', amount: 240 }]
+					}
+				]
+			}),
+			'TRANSPORT'
+		),
+		null
+	);
 });
 
 test('an entry produces an adjustment naming it, and nothing produces two', () => {
 	// One entry, one adjustment: `measureEntry` measures exactly one captured input, so the
 	// arbitrary provenance the old summed line had has nowhere left to be made.
 	const entry = (id, amount) =>
-		bonusRequest({
+		paymentRequest({
 			id,
 			employment_id: 'emp-1',
-			component_catalogue_id: TRANSPORT.id,
+			payment_catalogue_id: TRANSPORT.id,
 			pay_period: '2026-03',
-			awarded_on: '2026-03-05T00:00:00.000Z',
+			effective_on: '2026-03-05T00:00:00.000Z',
 			amount,
-			note: 'travel'
+			reason: 'travel'
 		});
 	const measured = measure({
 		payRequests: [entry('en-a', 240), entry('en-b', 60)]
@@ -450,8 +487,8 @@ test('an entry produces an adjustment naming it, and nothing produces two', () =
 	assert.deepEqual(
 		transport.map((row) => [row.input.family, row.input.id, row.amount]),
 		[
-			['BONUS', 'en-a', 240],
-			['BONUS', 'en-b', 60]
+			['PAYMENT', 'en-a', 240],
+			['PAYMENT', 'en-b', 60]
 		]
 	);
 	// And nothing about them landed in base: an entry is a record somebody can edit, which is
@@ -509,7 +546,7 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 			'2026-03-10',
 			{
 				id: 'hol-1',
-				settings_id: 'jur-my',
+				jurisdiction_code: 'MY',
 				observed_date: '2026-03-10',
 				name: 'Nuzul Al-Quran',
 				substitutes_date: null
@@ -768,21 +805,21 @@ test('a standing allowance prorates with the employment; a one-off does not', ()
 	const standing = allowanceRequest({
 		id: 'entry-recurring',
 		employment_id: 'emp-1',
-		component_catalogue_id: TRANSPORT.id,
+		allowance_catalogue_id: TRANSPORT.id,
 		pay_period: null,
 		amount: 310,
 		recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
 	});
 	// A different family, not a different payload on the same one: proration is a property of the
 	// collection now, so the contrast the test draws is between two tables rather than two arms.
-	const oneOff = bonusRequest({
+	const oneOff = paymentRequest({
 		id: 'entry-once',
 		employment_id: 'emp-1',
-		component_catalogue_id: TRANSPORT.id,
+		payment_catalogue_id: TRANSPORT.id,
 		pay_period: null,
 		amount: 310,
-		awarded_on: '2026-03-01T00:00:00.000Z',
-		note: 'x'
+		effective_on: '2026-03-01T00:00:00.000Z',
+		reason: 'x'
 	});
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },

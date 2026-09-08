@@ -1,3 +1,4 @@
+import type { ResolvedEmployment } from '../../../lib/employment-contract.js';
 /**
  * Which run an **employment** settles in, and which days that run covers for it.
  *
@@ -210,10 +211,7 @@ export function resolveEmploymentSettlement(options: {
 
 /** Narrow a stored hire/exit pair, failing loudly on a row that has no start. */
 export function employmentDates(
-	employment: Pick<
-		WorkspaceRow<'employments'>,
-		'employee_number' | 'id' | 'hire_date' | 'exit_date'
-	>
+	employment: Pick<ResolvedEmployment, 'employee_number' | 'id' | 'hire_date' | 'exit_date'>
 ): EmploymentDates {
 	const hire = dateKey(employment.hire_date);
 	if (hire == null)
