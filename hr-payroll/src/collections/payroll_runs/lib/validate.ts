@@ -154,7 +154,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				'CONTRIBUTION_NO_CEILING',
 				`${code} has no open-ended terminal band. A ceiling is expressed as a band with no upper ` +
 					'bound; without one, a wage above the highest band cannot be charged at all.',
-				'contribution_rates',
+				'statutory_contributions',
 				contribution.row.id
 			);
 		for (const relievedId of contribution.row.relief_for) {

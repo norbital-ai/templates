@@ -27,7 +27,7 @@ export const statutoryProposalChangeSchema = Schema.Struct({
 	 * about a pay component, and after the catalogue split there are six tables that can hold one.
 	 * The proposal is matched to rows by `code`, which is the same in every one of them.
 	 */
-	collection: Schema.Literals(['contribution_rates', 'leave_catalogue', 'pay_component']),
+	collection: Schema.Literals(['statutory_contributions', 'leave_catalogue', 'pay_component']),
 	/** The scheme, leave or component code the change belongs to. */
 	code: Schema.NonEmptyString,
 	field: Schema.Literals(['bands', 'entitlement', 'contribution_treatments']),

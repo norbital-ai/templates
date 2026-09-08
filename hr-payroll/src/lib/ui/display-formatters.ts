@@ -10,8 +10,6 @@ import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
-import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
-import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -129,60 +127,6 @@ export function formatLeaveRange(event: LeaveEvent | null | undefined, t: Transl
 	const half = (part: 'FIRST' | 'SECOND') =>
 		part === 'FIRST' ? t('component.first_half') : t('component.second_half');
 	return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
-}
-
-const SELECTOR_BY_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	WAGE: 'component.selector_wage',
-	WAGE_AND_MARITAL: 'component.selector_wage_marital',
-	HEADCOUNT: 'component.selector_headcount'
-};
-
-const AWARD_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	PERCENT: 'component.award_kind_percent',
-	FIXED: 'component.award_kind_fixed'
-};
-
-function labelOf(
-	t: Translator,
-	map: Readonly<Record<string, TenantI18nKeys>>,
-	code: string
-): string {
-	const key = map[code];
-	return key === undefined ? code : t(key);
-}
-
-export function formatRateSelector(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(rateSelectorSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.selector_invalid');
-	const selector = parsed.success;
-	if (selector.by === 'RISK_CLASS')
-		return t('component.selector_risk_class', { class: selector.class });
-	const band = `${selector.from} → ${selector.to ?? '∞'}`;
-	if (selector.by === 'WAGE_AND_AGE')
-		return t('component.selector_wage_age', {
-			range: band,
-			from: selector.age_from,
-			to: selector.age_to ?? '∞'
-		});
-	return `${labelOf(t, SELECTOR_BY_LABELS, selector.by)} ${band}`;
-}
-
-export function formatRateAward(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(rateAwardSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.award_invalid');
-	const award = parsed.success;
-	if (award.kind === 'PROGRESSIVE')
-		return t('component.award_progressive', {
-			rate: award.rate,
-			constant: DECIMAL.format(Math.abs(award.constant))
-		});
-	const unit = award.kind === 'PERCENT' ? '%' : '';
-	return t('component.award_employee_employer', {
-		kind: labelOf(t, AWARD_KIND_LABELS, award.kind),
-		employee: award.employee,
-		employer: award.employer,
-		unit
-	});
 }
 
 export function formatStatutoryFactStatus(value: unknown, t: Translator): string {

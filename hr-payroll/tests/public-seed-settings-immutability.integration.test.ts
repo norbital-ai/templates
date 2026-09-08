@@ -15,7 +15,6 @@ import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	STATUTORY_PUB_EPF_ID,
-	STATUTORY_PUB_EPF_RATE_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
@@ -141,14 +140,6 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 			special_rules: []
 		}
 	},
-	{
-		collection: 'contribution_rates',
-		values: {
-			statutory_contribution_id: STATUTORY_PUB_EPF_ID,
-			selector: { by: 'WAGE', from: 100_000, to: null },
-			award: { kind: 'PERCENT', employee: 1, employer: 1 }
-		}
-	},
 	...CATALOGUES.map((collection) => {
 		const { id: _id, ...values } = catalogueRows.get(collection)!;
 		return { collection, values: { ...values, code: `NEW_${collection.toUpperCase()}` } };
@@ -165,9 +156,16 @@ const STORED: ReadonlyArray<{
 }> = [
 	{ collection: 'statutory_contributions', id: STATUTORY_PUB_EPF_ID, change: { sequence: 99 } },
 	{
-		collection: 'contribution_rates',
-		id: STATUTORY_PUB_EPF_RATE_ID,
-		change: { award: { kind: 'PERCENT', employee: 12, employer: 13 } }
+		collection: 'statutory_contributions',
+		id: STATUTORY_PUB_EPF_ID,
+		change: {
+			bands: [
+				{
+					selector: { by: 'WAGE', from: 0, to: null },
+					award: { kind: 'PERCENT', employee: 12, employer: 13 }
+				}
+			]
+		}
 	},
 	{
 		collection: 'leave_catalogue',
@@ -208,12 +206,7 @@ const STORED: ReadonlyArray<{
 	}
 ];
 
-const COUNTED = [
-	'statutory_contributions',
-	'contribution_rates',
-	...CATALOGUES,
-	'jurisdiction_holiday_calendars'
-];
+const COUNTED = ['statutory_contributions', ...CATALOGUES, 'jurisdiction_holiday_calendars'];
 const counts = (session: Session) =>
 	session.query(
 		`select ${COUNTED.map((collection) => `(select count(*) from ${collection})::int as ${collection}`).join(', ')}`

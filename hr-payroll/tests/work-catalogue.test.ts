@@ -39,7 +39,8 @@ test('Contribution consumes Work metadata without decoding overtime labels', asy
 		relief_for: [],
 		rounding: 'NONE',
 		payer: 'BOTH',
-		keyed_by: 'WAGE'
+		keyed_by: 'WAGE',
+		bands: []
 	});
 	for (const key of ['salary', 'overtime', 'overtime_excess', 'absence']) {
 		world.work_catalogue[0][key].contribution_treatments = {

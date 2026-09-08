@@ -5,7 +5,7 @@
  * produced the base.
  *
  * ```
- * 1  SELECT BAND   by contribution_rates.selector — bands.ts
+ * 1  SELECT BAND   by statutory_contributions.bands[].selector — bands.ts
  * 2  APPLY AWARD   PERCENT · FIXED · PROGRESSIVE, or an employment's explicit flat override
  * 3  ROUND         contribution.rounding, or a ROUND: chain, never a formula
  * 4  GATE          employment_statutory_facts: NOT_REGISTERED pays nothing

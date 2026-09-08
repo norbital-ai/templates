@@ -92,35 +92,6 @@ CREATE TABLE "companies" (
 );
 
 --> statement-breakpoint
-CREATE TABLE "contribution_rates" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce((CASE selector ->> 'by'
-				WHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')
-				WHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')
-				WHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')
-				WHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')
-				WHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')
-				ELSE 'band'
-			END), ''))) STORED,
-	"statutory_contribution_id" uuid NOT NULL,
-	"selector" jsonb NOT NULL,
-	"award" jsonb NOT NULL,
-	"summary" text GENERATED ALWAYS AS (CASE selector ->> 'by'
-				WHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')
-				WHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')
-				WHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')
-				WHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')
-				WHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')
-				ELSE 'band'
-			END) STORED
-);
-
---> statement-breakpoint
 CREATE TABLE "employees" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -655,7 +626,8 @@ CREATE TABLE "statutory_contributions" (
 	"rounding" text NOT NULL,
 	"relief_for" uuid[] NOT NULL,
 	"sequence" integer NOT NULL,
-	"special_rules" text[] NOT NULL
+	"special_rules" text[] NOT NULL,
+	"bands" jsonb DEFAULT '[]' NOT NULL
 );
 
 --> statement-breakpoint
@@ -726,10 +698,6 @@ CREATE INDEX "companies_settings_code_idx" ON "companies" ("settings_code");
 CREATE INDEX "companies_search_document_gin_idx" ON "companies" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "companies_search_text_trgm_idx" ON "companies" USING gin ((coalesce("name", '')) gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "contribution_rates_search_document_gin_idx" ON "contribution_rates" USING gin ("search_document");
---> statement-breakpoint
-CREATE INDEX "contribution_rates_search_text_trgm_idx" ON "contribution_rates" USING gin ((coalesce("summary", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "employees_face_embedding_hnsw" ON "employees" USING hnsw ("face_embedding" vector_cosine_ops);
 --> statement-breakpoint
@@ -930,8 +898,6 @@ ALTER TABLE "claim_catalogue" ADD CONSTRAINT "claim_catalogue_settings_id_jurisd
 ALTER TABLE "claim_requests" ADD CONSTRAINT "claim_requests_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
 --> statement-breakpoint
 ALTER TABLE "claim_requests" ADD CONSTRAINT "claim_requests_claim_catalogue_id_claim_catalogue_fk" FOREIGN KEY ("claim_catalogue_id") REFERENCES "claim_catalogue"("id");
---> statement-breakpoint
-ALTER TABLE "contribution_rates" ADD CONSTRAINT "contribution_rates_statutory_contribution_id_statutory_contributions_fk" FOREIGN KEY ("statutory_contribution_id") REFERENCES "statutory_contributions"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 ALTER TABLE "employment_contract_inputs" ADD CONSTRAINT "employment_contract_inputs_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
 --> statement-breakpoint

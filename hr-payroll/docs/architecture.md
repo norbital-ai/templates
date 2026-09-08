@@ -35,15 +35,15 @@ contracts in different jurisdictions can therefore have different standings. Eli
 the term effective on the date being evaluated. An unrecorded standing remains unknown; it is not
 inferred from nationality or a shared employee-profile value.
 
-| Family       | Catalogue                                          | Contract inputs                                                                 | Results                                                      |
-| ------------ | -------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Work         | `work_catalogue`                                   | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage | Salary, overtime, unexplained absence                        |
-| Leave        | `leave_catalogue`                                  | Contract history and `leave_entries`                                            | Paid/unpaid absence coverage, reductions, entered encashment |
-| Claim        | `claim_catalogue`                                  | `claim_requests`                                                                | Reimbursements                                               |
-| Allowance    | `allowance_catalogue`                              | `allowance_requests`                                                            | One-off or recurring allowances                              |
-| Payment      | `payment_catalogue`                                | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections     |
-| Loan         | `loan_catalogue`                                   | `loans` and `loan_repayments`                                                   | Recovery deductions                                          |
-| Contribution | `statutory_contributions` and `contribution_rates` | Contract statutory facts and source-family results                              | Employee deductions and employer costs                       |
+| Family       | Catalogue                                      | Contract inputs                                                                 | Results                                                      |
+| ------------ | ---------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Work         | `work_catalogue`                               | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage | Salary, overtime, unexplained absence                        |
+| Leave        | `leave_catalogue`                              | Contract history and `leave_entries`                                            | Paid/unpaid absence coverage, reductions, entered encashment |
+| Claim        | `claim_catalogue`                              | `claim_requests`                                                                | Reimbursements                                               |
+| Allowance    | `allowance_catalogue`                          | `allowance_requests`                                                            | One-off or recurring allowances                              |
+| Payment      | `payment_catalogue`                            | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections     |
+| Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                   | Recovery deductions                                          |
+| Contribution | `statutory_contributions` (with their `bands`) | Contract statutory facts and source-family results                              | Employee deductions and employer costs                       |
 
 Different business inputs retain typed collections. A family interface does not require a universal
 entry table. `lib/payroll/family.ts` carries the shared pay-item metadata. Work declares metadata for

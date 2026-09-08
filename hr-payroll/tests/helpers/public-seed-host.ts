@@ -19,7 +19,6 @@ export const SHIFT_WORK_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 export const SHIFT_REST_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 export const SHIFT_OFF_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
 export const STATUTORY_PUB_EPF_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1';
-export const STATUTORY_PUB_EPF_RATE_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa2';
 export const BASIC_COMPONENT_CATALOGUE_ID = '66666666-6666-4666-8666-666666666666';
 
 export const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 120_000;

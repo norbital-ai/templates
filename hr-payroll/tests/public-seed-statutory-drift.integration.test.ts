@@ -182,16 +182,12 @@ test(
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }]
 			);
 			await session.query(
-				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, payer, keyed_by, rounding, relief_for, sequence, special_rules)
-				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'BOTH', 'WAGE', 'NEAREST_CENT', '{}', 1, '{}')`,
-				[PUB2_SCHEME_ID, PUB2_ID]
-			);
-			await session.query(
-				`insert into contribution_rates (id, statutory_contribution_id, selector, award) values ($1, $2, $3, $4)`,
-				[crypto.randomUUID(), PUB2_SCHEME_ID, pub2Band.selector, pub2Band.award]
+				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, payer, keyed_by, rounding, relief_for, sequence, special_rules, bands)
+				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'BOTH', 'WAGE', 'NEAREST_CENT', '{}', 1, '{}', $3)`,
+				[PUB2_SCHEME_ID, PUB2_ID, [pub2Band]]
 			);
 			const sealedBefore = await session.query(
-				`select s.id, s.row_version, r.award from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id join contribution_rates r on r.statutory_contribution_id = c.id where s.sealed_at is not null order by r.id`
+				`select s.id, s.row_version, c.bands from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
 			);
 
 			const start = () =>
@@ -279,7 +275,7 @@ test(
 					quote: changes[0]!.quote
 				},
 				{
-					collection: 'contribution_rates',
+					collection: 'statutory_contributions',
 					code: 'PUB-EPF',
 					field: 'bands',
 					previous: [sealedBand],
@@ -302,11 +298,14 @@ test(
 
 			// The draft carries the changed band under the cloned scheme, and the unchanged one as sealed.
 			const draftBands = (await session.query(
-				`select c.code, r.award from statutory_contributions c join contribution_rates r on r.statutory_contribution_id = c.id where c.settings_id = $1 order by c.code`,
+				`select c.code, c.bands from statutory_contributions c where c.settings_id = $1 order by c.code`,
 				[draft.id]
 			)) as Row[];
 			assert.deepEqual(
-				draftBands.map((row) => [row.code, (row.award as Record<string, unknown>).employee]),
+				draftBands.map((row) => [
+					row.code,
+					(row.bands as ReadonlyArray<{ award: Record<string, unknown> }>)[0]!.award.employee
+				]),
 				[
 					['PUB-EPF', 12],
 					['PUB-EPF-NC', 5]
@@ -324,14 +323,17 @@ test(
 
 			// Nothing sealed changed: same row versions, same bands.
 			const sealedAfter = await session.query(
-				`select s.id, s.row_version, r.award from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id join contribution_rates r on r.statutory_contribution_id = c.id where s.sealed_at is not null order by r.id`
+				`select s.id, s.row_version, c.bands from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
 			);
 			assert.deepEqual(sealedAfter, sealedBefore);
-			const [sealedEpfBand] = (await session.query(
-				`select award from contribution_rates where statutory_contribution_id = $1`,
+			const [sealedEpf] = (await session.query(
+				`select bands from statutory_contributions where id = $1`,
 				[STATUTORY_PUB_EPF_ID]
 			)) as Row[];
-			assert.deepEqual(sealedEpfBand?.award, sealedBand.award);
+			assert.deepEqual(
+				(sealedEpf?.bands as ReadonlyArray<{ award: unknown }>)[0]?.award,
+				sealedBand.award
+			);
 
 			// Run 2: the open proposal holds PUB; PUB2 is researched again and still unchanged.
 			const second = await start();

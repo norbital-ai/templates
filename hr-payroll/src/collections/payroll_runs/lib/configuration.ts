@@ -41,10 +41,7 @@ type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type ShiftPattern = WorkspaceRow<'shift_patterns'>;
 type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
-export type ContributionRate = Pick<
-	WorkspaceRow<'contribution_rates'>,
-	'id' | 'statutory_contribution_id' | 'selector' | 'award' | 'summary' | 'approval_id'
->;
+export type ContributionRate = WorkspaceRow<'statutory_contributions'>['bands'][number];
 type Treatment = ContributionTreatment;
 type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
 

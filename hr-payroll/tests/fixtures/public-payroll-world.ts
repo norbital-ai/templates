@@ -123,7 +123,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			}
 		],
 		statutory_contributions: [],
-		contribution_rates: [],
 		work_catalogue: [
 			{
 				id: BASIC_ID,

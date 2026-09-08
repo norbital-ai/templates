@@ -126,8 +126,7 @@ export const referenceGrants = (
 export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('jurisdiction_settings', actions),
-		grantsOn('statutory_contributions', actions),
-		grantsOn('contribution_rates', actions)
+		grantsOn('statutory_contributions', actions)
 	);
 
 const EMPLOYMENT_STATUTORY_FACT_FIELDS = [
@@ -351,7 +350,6 @@ export const settingsCatalogueGrants = (
 	const writes = actions.filter((action) => action !== 'read');
 	return mergeGrants(
 		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
-		...(writes.length === 0 ? [] : [grantsOn('contribution_rates', writes)]),
 		grantsOn('work_catalogue', actions),
 		grantsOn('leave_catalogue', actions),
 		grantsOn('claim_catalogue', actions),

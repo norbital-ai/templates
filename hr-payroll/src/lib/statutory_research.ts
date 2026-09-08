@@ -387,7 +387,9 @@ export function diffStatutoryFindings(
 		if (canonicalBands(scheme.bands) === canonicalBands(finding.bands)) continue;
 		const page = verified(finding, 'Scheme');
 		if (page == null) continue;
-		changes.push(change('contribution_rates', 'bands', finding, page, scheme.bands, finding.bands));
+		changes.push(
+			change('statutory_contributions', 'bands', finding, page, scheme.bands, finding.bands)
+		);
 	}
 	for (const finding of findings.leave_catalogue) {
 		const type = sealed.leave_catalogue.find((row) => row.code === finding.code);

@@ -477,7 +477,6 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 	for (const policy of [hrController, hrManager, seniorManagement])
 		for (const collection of [
 			'statutory_contributions',
-			'contribution_rates',
 			'leave_catalogue',
 			'loan_catalogue',
 			'claim_catalogue',
