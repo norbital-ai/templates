@@ -20,10 +20,11 @@ is the last active day, so a same-entity rehire starts later. A person may simul
 contracts in other entities, each with its own pay and entitlement. Rehire starts a fresh contract;
 old activity and unpaid obligations stay on the old contract.
 
-The first committed reference permanently seals the contract through `employment_contract_inputs`.
-Deleting the referring event or draft payroll does not remove that evidence. Pending references also
-prevent conflicting contract edits. A sealed contract cannot be edited, reassigned, reopened or
-deleted. Departure is recorded once on the contract (`exit_date`, `exit_reason`, `exit_note`);
+The first committed reference seals the contract: while any employee event, term, loan or payslip
+names it, it cannot be edited, reassigned, reopened or deleted, and a pending reference guards it the
+same way. There is no separate seal log; a contract whose every consumer has been removed is editable
+again. Consumed term dates are read off the consumers (`work_days.work_date`, approved Leave charges,
+`payslips.terms_through`). Departure is recorded once on the contract (`exit_date`, `exit_reason`, `exit_note`);
 once set, those three columns are immutable and the sealed contract terms stay unchanged. It
 generates no encashment, carry or departure package.
 

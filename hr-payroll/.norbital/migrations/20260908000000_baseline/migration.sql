@@ -122,28 +122,6 @@ CREATE TABLE "employees" (
 );
 
 --> statement-breakpoint
-CREATE TABLE "employment_contract_inputs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"employment_id" uuid NOT NULL,
-	"terms_through" timestamp with time zone,
-	"employment_terms_id" uuid,
-	"employment_statutory_facts_id" uuid,
-	"claim_requests_id" uuid,
-	"allowance_requests_id" uuid,
-	"payment_requests_id" uuid,
-	"loans_id" uuid,
-	"loan_repayments_id" uuid,
-	"leave_entries_id" uuid,
-	"work_days_id" uuid,
-	"payslips_id" uuid
-);
-
---> statement-breakpoint
 CREATE TABLE "employment_statutory_facts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -211,22 +189,6 @@ CREATE TABLE "employments" (
 	"exit_reason" text,
 	"exit_note" text,
 	"children" jsonb DEFAULT '[]' NOT NULL
-);
-
---> statement-breakpoint
-CREATE TABLE "holiday_calendar_inputs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"created_at" timestamp with time zone DEFAULT now(),
-	"updated_at" timestamp with time zone DEFAULT now(),
-	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"row_version" integer DEFAULT 1,
-	"approval_id" uuid,
-	"jurisdiction_code" text NOT NULL,
-	"date" timestamp with time zone NOT NULL,
-	"calendar_id" uuid NOT NULL,
-	"work_day_id" uuid,
-	"payroll_run_id" uuid,
-	"leave_entry_id" uuid
 );
 
 --> statement-breakpoint
@@ -552,6 +514,7 @@ CREATE TABLE "payslips" (
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("currency", ''))) STORED,
 	"payroll_run_id" uuid NOT NULL,
 	"employment_id" uuid NOT NULL,
+	"terms_through" timestamp with time zone NOT NULL,
 	"base" jsonb NOT NULL,
 	"proration" jsonb NOT NULL,
 	"statutory" jsonb NOT NULL,
@@ -652,7 +615,8 @@ CREATE TABLE "work_days" (
 	"planned_origin" text,
 	"planned_note" text,
 	"worked_intervals" jsonb,
-	"break_minutes" integer DEFAULT 0 NOT NULL
+	"break_minutes" integer DEFAULT 0 NOT NULL,
+	"holiday_calendar_id" uuid
 );
 
 --> statement-breakpoint
@@ -692,28 +656,6 @@ CREATE INDEX "employees_search_document_gin_idx" ON "employees" USING gin ("sear
 --> statement-breakpoint
 CREATE INDEX "employees_search_text_trgm_idx" ON "employees" USING gin ((coalesce("name", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_employment_terms_id_index" ON "employment_contract_inputs" ("employment_terms_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_employment_statutory_facts_id_index" ON "employment_contract_inputs" ("employment_statutory_facts_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_claim_requests_id_index" ON "employment_contract_inputs" ("claim_requests_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_allowance_requests_id_index" ON "employment_contract_inputs" ("allowance_requests_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_payment_requests_id_index" ON "employment_contract_inputs" ("payment_requests_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_loans_id_index" ON "employment_contract_inputs" ("loans_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_loan_repayments_id_index" ON "employment_contract_inputs" ("loan_repayments_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_leave_entries_id_index" ON "employment_contract_inputs" ("leave_entries_id");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_work_days_id_terms_through_index" ON "employment_contract_inputs" ("work_days_id","terms_through");
---> statement-breakpoint
-CREATE UNIQUE INDEX "employment_contract_inputs_payslips_id_index" ON "employment_contract_inputs" ("payslips_id");
---> statement-breakpoint
-CREATE INDEX "employment_contract_inputs_employment_id_idx" ON "employment_contract_inputs" ("employment_id");
---> statement-breakpoint
 CREATE INDEX "employment_statutory_facts_search_document_gin_idx" ON "employment_statutory_facts" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "employment_statutory_facts_search_text_trgm_idx" ON "employment_statutory_facts" USING gin ((coalesce("summary", '')) gin_trgm_ops);
@@ -727,14 +669,6 @@ CREATE UNIQUE INDEX "employments_company_id_employee_number_hire_date_index" ON 
 CREATE INDEX "employments_search_document_gin_idx" ON "employments" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "employments_search_text_trgm_idx" ON "employments" USING gin ((coalesce("employee_number", '')) gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "holiday_calendar_inputs_jurisdiction_code_date_index" ON "holiday_calendar_inputs" ("jurisdiction_code","date");
---> statement-breakpoint
-CREATE UNIQUE INDEX "holiday_calendar_inputs_work_day_id_jurisdiction_code_date_index" ON "holiday_calendar_inputs" ("work_day_id","jurisdiction_code","date");
---> statement-breakpoint
-CREATE UNIQUE INDEX "holiday_calendar_inputs_payroll_run_id_jurisdiction_code_date_index" ON "holiday_calendar_inputs" ("payroll_run_id","jurisdiction_code","date");
---> statement-breakpoint
-CREATE UNIQUE INDEX "holiday_calendar_inputs_leave_entry_id_jurisdiction_code_date_index" ON "holiday_calendar_inputs" ("leave_entry_id","jurisdiction_code","date");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "jurisdiction_holiday_calendars_jurisdiction_code_year_revision_index" ON "jurisdiction_holiday_calendars" ("jurisdiction_code","year","revision");
 --> statement-breakpoint
@@ -884,8 +818,6 @@ ALTER TABLE "claim_requests" ADD CONSTRAINT "claim_requests_employment_id_employ
 --> statement-breakpoint
 ALTER TABLE "claim_requests" ADD CONSTRAINT "claim_requests_claim_catalogue_id_claim_catalogue_fk" FOREIGN KEY ("claim_catalogue_id") REFERENCES "claim_catalogue"("id");
 --> statement-breakpoint
-ALTER TABLE "employment_contract_inputs" ADD CONSTRAINT "employment_contract_inputs_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
---> statement-breakpoint
 ALTER TABLE "employment_statutory_facts" ADD CONSTRAINT "employment_statutory_facts_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 ALTER TABLE "employment_statutory_facts" ADD CONSTRAINT "employment_statutory_facts_statutory_contribution_id_statutory_contributions_fk" FOREIGN KEY ("statutory_contribution_id") REFERENCES "statutory_contributions"("id");
@@ -897,8 +829,6 @@ ALTER TABLE "employment_terms" ADD CONSTRAINT "employment_terms_shift_pattern_id
 ALTER TABLE "employments" ADD CONSTRAINT "employments_employee_id_employees_fk" FOREIGN KEY ("employee_id") REFERENCES "employees"("id");
 --> statement-breakpoint
 ALTER TABLE "employments" ADD CONSTRAINT "employments_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
---> statement-breakpoint
-ALTER TABLE "holiday_calendar_inputs" ADD CONSTRAINT "holiday_calendar_inputs_calendar_id_jurisdiction_holiday_calendars_fk" FOREIGN KEY ("calendar_id") REFERENCES "jurisdiction_holiday_calendars"("id");
 --> statement-breakpoint
 ALTER TABLE "leave_catalogue" ADD CONSTRAINT "leave_catalogue_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
 --> statement-breakpoint
@@ -977,6 +907,8 @@ ALTER TABLE "shift_patterns" ADD CONSTRAINT "shift_patterns_company_id_companies
 ALTER TABLE "statutory_contributions" ADD CONSTRAINT "statutory_contributions_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 ALTER TABLE "work_catalogue" ADD CONSTRAINT "work_catalogue_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
+--> statement-breakpoint
+ALTER TABLE "work_days" ADD CONSTRAINT "work_days_holiday_calendar_id_jurisdiction_holiday_calendars_fk" FOREIGN KEY ("holiday_calendar_id") REFERENCES "jurisdiction_holiday_calendars"("id");
 --> statement-breakpoint
 ALTER TABLE "work_days" ADD CONSTRAINT "work_days_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
 --> statement-breakpoint

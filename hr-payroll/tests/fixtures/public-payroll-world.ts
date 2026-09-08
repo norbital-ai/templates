@@ -213,7 +213,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				approval_id: null
 			}
 		],
-		holiday_calendar_inputs: [],
 		jurisdiction_holiday_calendars: [2025, 2026, 2027].map((year) => ({
 			id: `public-calendar-${year}`,
 			jurisdiction_code: 'TEST-JUR',

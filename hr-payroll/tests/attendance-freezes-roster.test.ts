@@ -28,12 +28,6 @@ const holidayInput = {
 const api = {
 	db: {
 		payslip_work_day_inputs: { findFirst: () => Effect.succeed(undefined) },
-		employment_contract_inputs: {
-			findMany: () =>
-				Effect.succeed([
-					{ id: 'contract-input-1', employment_id: 'emp-1', terms_through: '2026-03-10' }
-				])
-		},
 		leave_entries: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) }
 	}
@@ -41,7 +35,6 @@ const api = {
 
 const prepared = {
 	holidayByDay: new Map([['emp-1:2026-03-10', holidayInput]]),
-	holidayHistory: new Map([['day-1', [holidayInput]]]),
 	companyByEmployment: new Map([['emp-1', 'co-1']]),
 	windowsByCompany: new Map(),
 	leaveByEmployment: new Map(),
@@ -146,10 +139,10 @@ test('recording attendance is never a plan change, and correcting it stays possi
 		const result = write({ worked_intervals: PUNCHED, break_minutes }, existing);
 		assert.deepEqual(result.worked_intervals, PUNCHED);
 		assert.equal(result.break_minutes, break_minutes);
-		assert.deepEqual(
-			result.work_day_holiday_input,
-			[holidayInput],
-			'attendance corrections retain the linked holiday input'
+		assert.equal(
+			result.holiday_calendar_id,
+			holidayInput.calendar_id,
+			'attendance corrections retain the pinned calendar'
 		);
 	}
 });

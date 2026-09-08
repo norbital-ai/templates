@@ -89,7 +89,6 @@ const buildGraph = (prepared: PreparedRun) =>
 		);
 		return {
 			...derivedColumns(prepared),
-			payroll_holiday_input_run: prepared.configuration.holidayInputs,
 			payslip_payroll_run: built.payslip_payroll_run
 		};
 	});

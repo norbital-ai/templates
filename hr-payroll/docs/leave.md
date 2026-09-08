@@ -5,12 +5,11 @@ balances. Payroll consumes the family's prepared outputs and captures.
 
 ## Records and ownership
 
-| Record                    | Responsibility                                                                                                                                                  |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `leave_catalogue`         | A stable leave code within a sealed settings revision: eligibility, entitlement, paid/unpaid treatment, certificate threshold and encashment pay-item metadata. |
-| `leave_entries`           | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations.  |
-| `payslip_leave_inputs`    | The dates or monetary obligation consumed by a payslip, with the exact signed amount and pay-item metadata.                                                     |
-| `holiday_calendar_inputs` | Permanent evidence of the jurisdiction calendar used for each evaluated date, including dates without a holiday.                                                |
+| Record                 | Responsibility                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `leave_catalogue`      | A stable leave code within a sealed settings revision: eligibility, entitlement, paid/unpaid treatment, certificate threshold and encashment pay-item metadata. |
+| `leave_entries`        | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations.  |
+| `payslip_leave_inputs` | The dates or monetary obligation consumed by a payslip, with the exact signed amount and pay-item metadata.                                                     |
 
 `employment_id` identifies one contract with one legal entity. Entitlement, service bands, usage,
 reservations, carry and encashment remain within that contract. A rehire creates another contract
@@ -122,7 +121,7 @@ flowchart LR
     Preview --> Review[Approval with held debit reservations]
     Review --> Validate[Revalidate complete contract batch]
     Validate --> Entry[Immutable Leave entry]
-    Validate --> Seals[Contract and holiday input seals]
+    Validate --> Seals[Charges carry their calendar and terms]
     Entry --> Family[Leave payroll preparation]
     Family --> Payroll[Regular payroll and captures]
 ```

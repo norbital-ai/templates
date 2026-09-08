@@ -64,12 +64,10 @@ status only when its contract's jurisdiction is evidenced; a profile shared acro
 must not propagate one global status to every contract. Unknown remains unknown and does not
 satisfy citizenship eligibility.
 
-The first committed reference seals the contract. Imported history must include permanent
-`employment_contract_inputs` evidence, including references whose original consumer was later
-removed. Its `terms_through` date protects the effective terms consumed by actual Work dates,
-approved Leave charges or debit valuations, and payroll dependencies. Future entitlement projections
-do not advance that date. Simple references and sources without retained dated evidence keep it
-null; moving or deleting a consumer cannot erase an earlier dated seal.
+The first committed reference seals the contract, and the consumers themselves are the evidence:
+actual Work dates, approved Leave charges or debit valuations and each payslip's `terms_through`
+protect the effective terms through those dates. Future entitlement projections do not advance
+them. There is no separate seal log to import.
 
 Departure is the contract's own `exit_date`, `exit_reason` and `exit_note`, recorded once and
 immutable afterwards. It preserves the signed contract and does not generate any payment. A missing
@@ -112,9 +110,10 @@ labels do not establish jurisdiction-observed holidays. Preserve imported observ
 and provenance, review annual completeness and publish the calendar explicitly. Missing coverage
 must not be converted into a published empty calendar.
 
-Work and Leave references retain permanent `holiday_calendar_inputs`, including non-holiday dates.
-A link or committed consumption seals the input. Removing its consumer cannot permit a later
-calendar edit, date shift or retroactive holiday addition to change the captured classification.
+Each Work day pins the published calendar revision it was classified against
+(`work_days.holiday_calendar_id`), including non-holiday dates, and each Leave charge carries its
+`calendar_id`; a paid run freezes its calendar snapshot. A later publication cannot change a date a
+pinned work day or a paid run classified.
 
 ## Monetary inputs and cutoff dates
 

@@ -169,9 +169,7 @@ export function payrollRunGraph(options: {
 		} as const;
 		return {
 			employment_id: payslip.employmentId,
-			employment_contract_input: [
-				{ employment_id: payslip.employmentId, terms_through: payslip.termsThrough }
-			],
+			terms_through: payslip.termsThrough,
 			base: payslip.settlement.base.map((item: MeasuredBase) => item.entry),
 			proration: payslip.proration,
 			statutory: payslip.charges.map((charge) => ({

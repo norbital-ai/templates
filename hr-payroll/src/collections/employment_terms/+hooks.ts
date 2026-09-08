@@ -1,4 +1,4 @@
-import { consumedTermsThrough, withContractInput } from '../../lib/employment-contract.js';
+import { consumedTermsThrough, boundToContract } from '../../lib/employment-contract.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { readRange } from '../payroll_runs/lib/effective.js';
@@ -23,7 +23,7 @@ export default {
 						if (!employmentId) refuse('Employment terms must reference an employment contract.');
 						if (enclosingId != null && employmentId !== enclosingId)
 							refuse('Nested terms must use their enclosing employment contract.');
-						const result = withContractInput({ ...input, employment_id: employmentId }, existing);
+						const result = boundToContract({ ...input, employment_id: employmentId }, existing);
 						const range = readRange(input.effective_range ?? existing?.effective_range);
 						if (!range || (range.end != null && dateKey(range.end) < dateKey(range.start)))
 							refuse('Employment terms need an ordered inclusive effective range.');

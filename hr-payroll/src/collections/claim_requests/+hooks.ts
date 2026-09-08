@@ -1,4 +1,4 @@
-import { withContractInput } from '../../lib/employment-contract.js';
+import { boundToContract } from '../../lib/employment-contract.js';
 import { Effect } from 'effect';
 import {
 	assertPayRequestAdmissible,
@@ -31,7 +31,7 @@ export default {
 					'Refuses a claim against a component that takes no requests or a different request family, an unevidenced one where the component demands evidence, a non-positive amount, a request past its entitlement ceiling, and any change to one a payroll run has already captured.',
 				handler: ({ input, existing, api }) =>
 					Effect.map(assertPayRequestAdmissible(GUARD, { api, input, existing }), () =>
-						withContractInput(input, existing)
+						boundToContract(input, existing)
 					)
 			}
 		}

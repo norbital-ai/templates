@@ -9,15 +9,30 @@
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const sealQuery = $derived(
+	// A contract is sealed by the rows that reference it; the hook is the guard, this is the hint.
+	const consumers = $derived(
 		record == null
-			? null
-			: client.db.employment_contract_inputs.findFirst({
-					where: { employment_id: { eq: record.id } },
-					columns: { id: true }
-				})
+			? []
+			: [
+					client.db.employment_terms,
+					client.db.employment_statutory_facts,
+					client.db.claim_requests,
+					client.db.allowance_requests,
+					client.db.payment_requests,
+					client.db.loans,
+					client.db.loan_repayments,
+					client.db.leave_entries,
+					client.db.work_days,
+					client.db.payslips
+				].map((collection) =>
+					collection.findFirst({
+						where: { employment_id: { eq: record.id } },
+						columns: { id: true }
+					})
+				)
 	);
-	const sealed = $derived(sealQuery?.current != null);
+	const sealed = $derived(consumers.some((query) => query.current != null));
+	const sealQuery = $derived(consumers.find((query) => query.loading) ?? null);
 	const departed = $derived(record?.exit_date != null);
 </script>
 

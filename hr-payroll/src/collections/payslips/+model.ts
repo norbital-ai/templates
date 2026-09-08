@@ -1,4 +1,4 @@
-import { custom, defineModel, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * One person's settlement for one run.
@@ -23,6 +23,8 @@ export default defineModel(
 	{
 		payroll_run_id: uuid().notNull(),
 		employment_id: uuid().notNull(),
+		/** The latest contract date this settlement consumed; employment terms through it are frozen. */
+		terms_through: instant({ precision: 'day' }).notNull(),
 		/** The contracted amounts, before the calendar touched them. */
 		base: custom('payslip_base', { multiple: true }).notNull(),
 		/**

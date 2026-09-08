@@ -2,11 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import termsHooks from '../src/collections/employment_terms/+hooks.ts';
-import sealHooks from '../src/collections/employment_contract_inputs/+hooks.ts';
 import workHooks from '../src/collections/work_days/+hooks.ts';
 import payslipHooks from '../src/collections/payslips/+hooks.ts';
 import { leaveRules } from '../src/lib/leave/context.ts';
-import { leaveTermsThrough } from '../src/lib/leave/activity.ts';
+import { leaveTermsThrough } from '../src/lib/employment-contract.ts';
 import { dateKey } from '../src/lib/iso-day.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
 import { COMPANY_ID, createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
@@ -20,36 +19,39 @@ import {
 	timeOff
 } from './helpers/manual-leave-context.ts';
 
-type Seal = { id: string; employment_id: string; terms_through: string | null };
 const term = () => ({ ...leaveContext().terms[0]!, pay_frequency: 'MONTHLY', job_title: null });
-const seal = (through: string | null): Seal => ({
-	id: id(100),
-	employment_id: id(1),
-	terms_through: through
-});
-const api = (stored: readonly Seal[] = [], pending: readonly Seal[] = []) => ({
+/**
+ * The consumers a term read sees: the latest stored Work date, a held Work proposal, stored and
+ * held Leave, the latest payslip. There is no seal log; these rows are the evidence.
+ */
+const api = (
+	workThrough: string | null = null,
+	pendingWork: string | null = null,
+	leave: readonly { event: unknown; charges: unknown }[] = [],
+	payslipThrough: string | null = null
+) => ({
 	db: {
-		employment_contract_inputs: {
+		employments: { findFirst: () => Effect.succeed({ exit_date: null }) },
+		work_days: {
+			findFirst: () => Effect.succeed(workThrough == null ? undefined : { work_date: workThrough }),
+			findPending: () => Effect.succeed(pendingWork == null ? [] : [{ work_date: pendingWork }])
+		},
+		leave_entries: {
+			findMany: () => Effect.succeed(leave),
+			findPending: () => Effect.succeed([])
+		},
+		payslips: {
 			findFirst: () =>
-				Effect.succeed(
-					stored.toSorted((a, b) => (b.terms_through ?? '').localeCompare(a.terms_through ?? ''))[0]
-				),
-			findPending: () => Effect.succeed(pending)
+				Effect.succeed(payslipThrough == null ? undefined : { terms_through: payslipThrough })
 		}
 	}
 });
 const change = (input: Record<string, unknown>, through: string | null, existing = term()) =>
 	Effect.runSync(
-		termsHooks.mutate.perRecord.before.handler({
-			input,
-			existing,
-			api: api([seal(through)])
-		} as never)
+		termsHooks.mutate.perRecord.before.handler({ input, existing, api: api(through) } as never)
 	);
 const create = (input: Record<string, unknown>, through: string | null) =>
-	Effect.runSync(
-		termsHooks.mutate.perRecord.before.handler({ input, api: api([seal(through)]) } as never)
-	);
+	Effect.runSync(termsHooks.mutate.perRecord.before.handler({ input, api: api(through) } as never));
 
 test('January approved leave protects January facts while a July salary/residency amendment remains possible', () => {
 	const context = leaveContext();
@@ -61,9 +63,9 @@ test('January approved leave protects January facts while a July salary/residenc
 		recordId: id(80),
 		prepared: { context, inputs: [input] }
 	} as never);
-	assert.equal(approved.employment_contract_input?.[0]?.terms_through, '2026-01-05');
+	const through = leaveTermsThrough(approved.event, approved.charges, null)!;
+	assert.equal(through, '2026-01-05');
 	const original = structuredClone(approved);
-	const through = approved.employment_contract_input![0]!.terms_through!;
 	const closed = change({ effective_range: { start: '2025-01-01', end: '2026-06-30' } }, through);
 	const successor = create(
 		{
@@ -109,15 +111,18 @@ test('approved future time off consumes its actual dates, and shortening a term 
 		recordId: id(82),
 		prepared: { context, inputs: [input] }
 	} as never);
-	const through = approved.employment_contract_input![0]!.terms_through!;
-	assert.equal(through, '2026-07-07');
-	assert.throws(
-		() => change({ effective_range: { start: '2025-01-01', end: '2026-06-30' } }, through),
-		/consumed dates must remain covered/
-	);
-	assert.doesNotThrow(() =>
-		change({ effective_range: { start: '2025-01-01', end: '2026-07-07' } }, through)
-	);
+	const consumed = api(null, null, [{ event: approved.event, charges: approved.charges }]);
+	assert.equal(leaveTermsThrough(approved.event, approved.charges, null), '2026-07-07');
+	const amend = (end: string) =>
+		Effect.runSync(
+			termsHooks.mutate.perRecord.before.handler({
+				input: { effective_range: { start: '2025-01-01', end } },
+				existing: term(),
+				api: consumed
+			} as never)
+		);
+	assert.throws(() => amend('2026-06-30'), /consumed dates must remain covered/);
+	assert.doesNotThrow(() => amend('2026-07-07'));
 });
 
 test('historical gaps cannot acquire new terms, consumed rows cannot be deleted or reopened', () => {
@@ -134,7 +139,7 @@ test('historical gaps cannot acquire new terms, consumed rows cannot be deleted 
 			Effect.runSync(
 				termsHooks.delete.perRecord.before.handler({
 					existing: term(),
-					api: api([seal('2026-01-31')])
+					api: api('2026-01-31')
 				} as never)
 			),
 		/cannot be deleted/
@@ -155,7 +160,7 @@ test('unconsumed drafts and future terms remain correctable; nested creation kee
 		Effect.runSync(
 			termsHooks.delete.perRecord.before.handler({
 				existing: future,
-				api: api([seal('2026-01-31')])
+				api: api('2026-01-31')
 			} as never)
 		)
 	);
@@ -165,7 +170,6 @@ test('unconsumed drafts and future terms remain correctable; nested creation kee
 		termsHooks.mutate.perRecord.before.handler({ input, parent, api: api() } as never)
 	);
 	assert.equal(result.employment_id, id(1));
-	assert.deepEqual(result.employment_contract_input, [{ employment_id: id(1) }]);
 	assert.throws(
 		() =>
 			Effect.runSync(
@@ -187,12 +191,26 @@ test('pending consumer dates prevent conflicting amendments until their approval
 				termsHooks.mutate.perRecord.before.handler({
 					input,
 					existing: term(),
-					api: api([seal('2026-01-31')], [seal('2026-07-07')])
+					api: api('2026-01-31', '2026-07-07')
 				} as never)
 			),
 		/consumed dates/
 	);
 	assert.doesNotThrow(() => change(input, '2026-01-31'));
+});
+
+test('a committed payslip consumes its terms through the settlement date', () => {
+	assert.throws(
+		() =>
+			Effect.runSync(
+				termsHooks.mutate.perRecord.before.handler({
+					input: { base_salary: { value: 4000, currency: 'MYR' } },
+					existing: term(),
+					api: api(null, null, [], '2026-01-31')
+				} as never)
+			),
+		/consumed/
+	);
 });
 
 test('manual encashment and carry consume their actual source valuation, while credits and reversals do not advance it', () => {
@@ -245,14 +263,16 @@ test('manual encashment and carry consume their actual source valuation, while c
 	);
 });
 
-test('Work preserves earlier seals when its date moves; deleting the workday cannot unseal terms', () => {
-	const old = { ...seal('2026-01-05'), work_days_id: id(10) };
+test('a moved Work day is classified afresh; a Work day that stands keeps its pinned revision', () => {
 	const date = '2026-02-05';
 	const prepared = {
 		holidayByDay: new Map([
-			[`${id(1)}:${date}`, { jurisdiction_code: 'TEST', date, calendar_id: id(20) }]
+			[`${id(1)}:${date}`, { jurisdiction_code: 'TEST', date, calendar_id: id(20) }],
+			[
+				`${id(1)}:2026-01-05`,
+				{ jurisdiction_code: 'TEST', date: '2026-01-05', calendar_id: id(21) }
+			]
 		]),
-		holidayHistory: new Map(),
 		companyByEmployment: new Map(),
 		windowsByCompany: new Map(),
 		leaveByEmployment: new Map(),
@@ -265,7 +285,6 @@ test('Work preserves earlier seals when its date moves; deleting the workday can
 	};
 	const workApi = {
 		db: {
-			employment_contract_inputs: { findMany: () => Effect.succeed([old]) },
 			payslip_work_day_inputs: { findFirst: () => Effect.succeed(null) },
 			employments: { findFirst: () => Effect.succeed({ company_id: id(3) }) },
 			payroll_runs: { findMany: () => Effect.succeed([]) },
@@ -279,98 +298,26 @@ test('Work preserves earlier seals when its date moves; deleting the workday can
 		shift_definition_id: null,
 		worked_intervals: null,
 		break_minutes: 0,
+		holiday_calendar_id: id(19),
 		approval_id: null
 	};
-	const moved = Effect.runSync(
-		workHooks.mutate.perRecord.before.handler({
-			input: { work_date: date },
-			existing,
-			prepared,
-			api: workApi
-		} as never)
-	);
-	assert.deepEqual(moved.employment_contract_input, [
-		old,
-		{ employment_id: id(1), terms_through: date }
-	]);
+	const write = (input: Record<string, unknown>) =>
+		Effect.runSync(
+			workHooks.mutate.perRecord.before.handler({
+				input,
+				existing,
+				prepared,
+				api: workApi
+			} as never)
+		);
+	assert.equal(write({ work_date: date }).holiday_calendar_id, id(20));
+	assert.equal(write({ break_minutes: 15 }).holiday_calendar_id, id(19));
 	assert.doesNotThrow(() =>
 		Effect.runSync(workHooks.delete.perRecord.before.handler({ existing, api: workApi } as never))
 	);
-	assert.throws(
-		() => change({ base_salary: { value: 4000, currency: 'MYR' } }, old.terms_through),
-		/consumed/
-	);
-	assert.throws(() => sealHooks.delete.perRecord.before.handler(), /cannot be deleted/);
 });
 
-test('new consumed seals guard term reads and cannot substitute a different Work date or contract', () => {
-	const reads: string[] = [];
-	const sourceApi = {
-		db: {
-			employments: {
-				findFirst: () => {
-					reads.push('contract');
-					return Effect.succeed({
-						effective_range: { start: '2025-01-01', end: null },
-						exit_date: null
-					});
-				}
-			},
-			employment_terms: {
-				findMany: () => {
-					reads.push('terms');
-					return Effect.succeed([term()]);
-				}
-			}
-		}
-	};
-	const parent = {
-		collection: 'work_days',
-		id: id(10),
-		column: 'work_days_id',
-		values: { employment_id: id(1), work_date: '2026-01-05' }
-	};
-	const input = { employment_id: id(1), terms_through: '2026-01-05' };
-	Effect.runSync(
-		sealHooks.mutate.perRecord.before.handler({ input, parent, api: sourceApi } as never)
-	);
-	assert.deepEqual(reads, ['contract', 'terms']);
-	assert.throws(
-		() =>
-			Effect.runSync(
-				sealHooks.mutate.perRecord.before.handler({
-					input: { ...input, terms_through: '2026-12-31' },
-					parent,
-					api: sourceApi
-				} as never)
-			),
-		/actual work date/
-	);
-	assert.throws(
-		() =>
-			Effect.runSync(
-				sealHooks.mutate.perRecord.before.handler({
-					input: { ...input, employment_id: id(9) },
-					parent,
-					api: sourceApi
-				} as never)
-			),
-		/consumer’s employment/
-	);
-	assert.throws(
-		() =>
-			Effect.runSync(
-				sealHooks.mutate.perRecord.before.handler({
-					input: { terms_through: '2026-01-01' },
-					existing: seal('2026-01-05'),
-					api: sourceApi
-				} as never)
-			),
-		/cannot be changed/
-	);
-});
-
-test('payroll creates its permanent terms seal with the graph; previews leave source data unchanged', async () => {
+test('payroll writes the consumed terms date on the payslip; previews leave source data unchanged', async () => {
 	const world = createPublicPayrollWorld();
 	const original = structuredClone(world.employment_terms);
 	const prepared = await Effect.runPromise(
@@ -379,23 +326,13 @@ test('payroll creates its permanent terms seal with the graph; previews leave so
 	assert.deepEqual(world.employment_terms, original);
 	const [payslip] = buildPayrollRun(prepared).payslip_payroll_run;
 	assert.ok(payslip);
-	assert.equal(dateKey(payslip.employment_contract_input[0]!.terms_through), '2026-01-31');
-	assert.equal(payslip.employment_contract_input[0]!.employment_id, payslip.employment_id);
+	assert.equal(dateKey(payslip.terms_through), '2026-01-31');
 	const parent = { collection: 'payroll_runs', id: id(40), column: 'payroll_run_id', values: {} };
 	assert.doesNotThrow(() =>
-		payslipHooks.mutate.perRecord.before.handler({
-			input: payslip,
-			parent,
-			relationshipSizes: { employment_contract_input: 1 }
-		} as never)
+		payslipHooks.mutate.perRecord.before.handler({ input: payslip, parent } as never)
 	);
 	assert.throws(
-		() =>
-			payslipHooks.mutate.perRecord.before.handler({
-				input: payslip,
-				parent,
-				relationshipSizes: {}
-			} as never),
-		/permanent employment input seal/
+		() => payslipHooks.mutate.perRecord.before.handler({ input: payslip } as never),
+		/payroll run/
 	);
 });

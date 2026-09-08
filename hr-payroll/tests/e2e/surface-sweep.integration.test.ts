@@ -70,8 +70,6 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
  * that has to be edited on purpose.
  */
 const NO_REPRESENTATION = new Set([
-	'employment_contract_inputs',
-	'holiday_calendar_inputs',
 	'loan_repayments',
 	'payslip_allowance_request_inputs',
 	'payslip_payment_request_inputs',

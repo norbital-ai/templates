@@ -1,4 +1,4 @@
-import { withContractInput } from '../../lib/employment-contract.js';
+import { boundToContract } from '../../lib/employment-contract.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
@@ -36,7 +36,7 @@ export default {
 						// successor is edited its predecessor was already closed, so re-staging the close would
 						// move an end date that a later fact may already sit against.
 						if (existing !== undefined || input.supersedes_fact_id == null)
-							return withContractInput(input, existing);
+							return boundToContract(input, existing);
 
 						const predecessor = yield* api.db.employment_statutory_facts.findFirst({
 							where: { id: { eq: input.supersedes_fact_id } }
@@ -73,7 +73,7 @@ export default {
 								}
 							}
 						]);
-						return withContractInput(input, existing);
+						return boundToContract(input, existing);
 					})
 			}
 		}

@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "38e536f2-8961-48b2-a75f-5cb5c2afc043",
+  "id": "70d724d0-222f-480b-900b-652a2633ae18",
   "prevIds": [
-    "50f89f30-d202-40b3-a025-73f7501a80e2"
+    "d35c2c5d-99d7-41a8-9caf-06d2b5d4b43d"
   ],
   "version": "8",
   "ddl": [
@@ -44,12 +44,6 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "employment_contract_inputs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
       "name": "employment_statutory_facts",
       "entityType": "tables",
       "schema": "public"
@@ -63,12 +57,6 @@
     {
       "isRlsEnabled": false,
       "name": "employments",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "holiday_calendar_inputs",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1539,240 +1527,6 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employment_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "terms_through",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employment_terms_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "employment_statutory_facts_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "claim_requests_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "allowance_requests_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payment_requests_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "loans_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "loan_repayments_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "leave_entries_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "work_days_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payslips_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
       "table": "employment_statutory_facts"
     },
     {
@@ -2426,162 +2180,6 @@
       "entityType": "columns",
       "schema": "public",
       "table": "employments"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "jurisdiction_code",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "date",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "calendar_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "work_day_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payroll_run_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "leave_entry_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
     },
     {
       "type": "uuid",
@@ -5929,6 +5527,19 @@
       "table": "payslips"
     },
     {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "terms_through",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
@@ -6994,6 +6605,19 @@
       "table": "work_days"
     },
     {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "holiday_calendar_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "work_days"
+    },
+    {
       "nameExplicit": false,
       "columns": [
         {
@@ -7410,244 +7034,6 @@
       "table": "employees"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employment_terms_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_employment_terms_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employment_statutory_facts_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_employment_statutory_facts_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "claim_requests_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_claim_requests_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "allowance_requests_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_allowance_requests_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payment_requests_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_payment_requests_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "loans_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_loans_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "loan_repayments_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_loan_repayments_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "leave_entries_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_leave_entries_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "work_days_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "terms_through",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_work_days_id_terms_through_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payslips_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_payslips_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employment_contract_inputs_employment_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
       "nameExplicit": true,
       "columns": [
         {
@@ -7807,139 +7193,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "employments"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "jurisdiction_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "date",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "holiday_calendar_inputs_jurisdiction_code_date_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "work_day_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "jurisdiction_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "date",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "holiday_calendar_inputs_work_day_id_jurisdiction_code_date_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "payroll_run_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "jurisdiction_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "date",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "holiday_calendar_inputs_payroll_run_id_jurisdiction_code_date_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "leave_entry_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "jurisdiction_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "date",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "holiday_calendar_inputs_leave_entry_id_jurisdiction_code_date_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
     },
     {
       "nameExplicit": false,
@@ -9650,23 +8903,6 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "employment_contract_inputs_employment_id_employments_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "employment_contract_inputs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "employment_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "employments",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "employment_statutory_facts_employment_id_employments_fk",
       "entityType": "fks",
@@ -9757,23 +8993,6 @@
       "entityType": "fks",
       "schema": "public",
       "table": "employments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "calendar_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "jurisdiction_holiday_calendars",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "holiday_calendar_inputs_calendar_id_jurisdiction_holiday_calendars_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "holiday_calendar_inputs"
     },
     {
       "nameExplicit": true,
@@ -10441,6 +9660,23 @@
     {
       "nameExplicit": true,
       "columns": [
+        "holiday_calendar_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jurisdiction_holiday_calendars",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "work_days_holiday_calendar_id_jurisdiction_holiday_calendars_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "work_days"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "employment_id"
       ],
       "schemaTo": "public",
@@ -10537,16 +9773,6 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "employment_contract_inputs_pkey",
-      "schema": "public",
-      "table": "employment_contract_inputs",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "employment_statutory_facts_pkey",
       "schema": "public",
       "table": "employment_statutory_facts",
@@ -10570,16 +9796,6 @@
       "name": "employments_pkey",
       "schema": "public",
       "table": "employments",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "holiday_calendar_inputs_pkey",
-      "schema": "public",
-      "table": "holiday_calendar_inputs",
       "entityType": "pks"
     },
     {

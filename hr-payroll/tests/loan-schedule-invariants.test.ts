@@ -292,7 +292,6 @@ test('a nested schedule uses its proposed agreement and derives its employment c
 	];
 	const result = write(rows, { stored: [], loans: [], parent });
 	assert.equal(result[0].employment_id, EMPLOYMENT);
-	assert.deepEqual(result[0].employment_contract_input, [{ employment_id: EMPLOYMENT }]);
 	assert.throws(
 		() => write([{ ...rows[0], amount_due: 299 }, rows[1]], { stored: [], loans: [], parent }),
 		/SCHEDULE_IMBALANCED/

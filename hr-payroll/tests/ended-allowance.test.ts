@@ -129,15 +129,7 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 			world.shift_definitions[0]!.effective_range.end = null;
 		}
 		const original = world.jurisdiction_holiday_calendars.find((row) => row.year === 2025)!;
-		for (const day of world.work_days)
-			world.holiday_calendar_inputs.push({
-				id: `seal-${day.id}`,
-				work_day_id: day.id,
-				jurisdiction_code: 'TEST-JUR',
-				date: day.work_date,
-				calendar_id: original.id,
-				approval_id: null
-			});
+		for (const day of world.work_days) day.holiday_calendar_id = original.id;
 		world.jurisdiction_holiday_calendars.push({
 			...structuredClone(original),
 			id: 'source-latest',
@@ -209,10 +201,6 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 			prepared: new Map([[`${COMPANY_ID}:2026-02`, prepared]]),
 			api: memoryPayrollApi(world)
 		} as never)
-	);
-	assert.equal(
-		created.payroll_holiday_input_run.filter((row) => row.date.startsWith('2025-12')).length,
-		31
 	);
 	assert.ok(created.holiday_calendars.some((row) => row.year === 2025));
 	const changed = structuredClone(world);

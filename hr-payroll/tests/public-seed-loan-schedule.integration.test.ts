@@ -207,13 +207,6 @@ test(
 				),
 				[{ employment_id: EMPLOYMENT_ID }]
 			);
-			const [sealed] = await session.query(
-				`select count(*)::int as count from employment_contract_inputs s
-				 join loan_repayments r on r.id = s.loan_repayments_id
-				 where r.loan_id = $1 and s.employment_id = r.employment_id`,
-				[LOAN_ID]
-			);
-			assert.equal(sealed?.count, 3, 'every repayment permanently seals its contract');
 
 			// A partial update is judged as the row it would produce, against the whole schedule it
 			// would leave — the two columns it carries are not the schedule.
@@ -475,16 +468,11 @@ test(
 				'new nested loan derives contract without reading an unwritten agreement'
 			);
 			const [nestedRepayment] = await session.query(
-				`select r.employment_id::text as employment_id, r.loan_id::text as loan_id,
-				 s.employment_id::text as sealed_contract from loan_repayments r
-				 join employment_contract_inputs s on s.loan_repayments_id = r.id where r.loan_id = $1`,
+				`select r.employment_id::text as employment_id, r.loan_id::text as loan_id
+				 from loan_repayments r where r.loan_id = $1`,
 				[newLoanId]
 			);
-			assert.deepEqual(nestedRepayment, {
-				employment_id: EMPLOYMENT_ID,
-				loan_id: newLoanId,
-				sealed_contract: EMPLOYMENT_ID
-			});
+			assert.deepEqual(nestedRepayment, { employment_id: EMPLOYMENT_ID, loan_id: newLoanId });
 			requireAccepted(
 				(await remove('loans', [newLoanId])).value,
 				'whole unused agreement deletion'
@@ -492,15 +480,6 @@ test(
 			assert.deepEqual(
 				await session.query('select id from loan_repayments where loan_id = $1', [newLoanId]),
 				[]
-			);
-			assert.equal(
-				(
-					await session.query('select id from employment_contract_inputs where loans_id = $1', [
-						newLoanId
-					])
-				).length,
-				1,
-				'deleting an unused agreement preserves its permanent contract seal'
 			);
 
 			// Seed a previously captured input; the mutations below still traverse the real hooks.
@@ -514,13 +493,9 @@ test(
 				[runId, COMPANY_ID, settings.settings_id]
 			);
 			await session.query(
-				`insert into payslips (id, payroll_run_id, employment_id, base, proration, statutory, gross, total_deductions, net, employer_cost, currency)
-				values ($1, $2, $3, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, 0, 0, 0, 0, 'MYR')`,
+				`insert into payslips (id, payroll_run_id, employment_id, terms_through, base, proration, statutory, gross, total_deductions, net, employer_cost, currency)
+				values ($1, $2, $3, '2026-04-30', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, 0, 0, 0, 0, 'MYR')`,
 				[payslipId, runId, EMPLOYMENT_ID]
-			);
-			await session.query(
-				`insert into employment_contract_inputs (id, employment_id, payslips_id) values ($1, $2, $3)`,
-				[crypto.randomUUID(), EMPLOYMENT_ID, payslipId]
 			);
 			await session.query(
 				`insert into payslip_loan_repayment_inputs (id, payslip_id, loan_repayment_id, period) values ($1, $2, $3, '2026-04')`,

@@ -208,29 +208,25 @@ export function prepareWorkInputs(options: {
 		const workDays = new Map(
 			[...live(workDayRows), ...historicalWorkDays].map((row) => [row.id, row])
 		);
-		// Read the many edge separately so approval and complete-read checks cover every retained seal.
-		const workHolidayRows = workDays.size
-			? yield* db.holiday_calendar_inputs.findMany({
-					where: { work_day_id: { in: [...workDays.keys()] }, ...approved },
-					limit: PAGE_LIMIT
-				})
-			: [];
-		options.api.reads.assertComplete(workHolidayRows, 'Work holiday inputs');
-		const workHolidayInputs = live(workHolidayRows).filter(
-			(input) =>
-				input.work_day_id != null &&
-				dateKey(workDays.get(input.work_day_id)?.work_date) === dateKey(input.date)
-		);
-		const workHolidayCalendars = workHolidayInputs.length
+		// Each day pins the revision it was classified against; read those revisions back whole.
+		const pinnedDays = [...workDays.values()].filter((row) => row.holiday_calendar_id != null);
+		const workHolidayCalendars = pinnedDays.length
 			? yield* db.jurisdiction_holiday_calendars.findMany({
 					where: {
-						id: { in: [...new Set(workHolidayInputs.map((input) => input.calendar_id))] },
+						id: { in: [...new Set(pinnedDays.map((row) => row.holiday_calendar_id!))] },
 						...approved
 					},
 					limit: PAGE_LIMIT
 				})
 			: [];
 		options.api.reads.assertComplete(workHolidayCalendars, 'Work holiday calendar revisions');
+		const calendarById = new Map(live(workHolidayCalendars).map((row) => [row.id, row]));
+		const workHolidayInputs = pinnedDays.map((row) => {
+			const calendar = calendarById.get(row.holiday_calendar_id!);
+			const date = requiredDateKey(row.work_date, 'work_days.work_date');
+			if (!calendar) refuse(`Work day ${date} pins a missing holiday calendar.`);
+			return { jurisdiction_code: calendar.jurisdiction_code, date, calendar_id: calendar.id };
+		});
 		return {
 			workDaysByEmployment: groupBy([...workDays.values()], (row) => row.employment_id),
 			workHolidayEvidence: { inputs: workHolidayInputs, calendars: live(workHolidayCalendars) }

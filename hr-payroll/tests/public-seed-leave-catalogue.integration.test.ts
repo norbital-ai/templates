@@ -39,9 +39,6 @@ test(
 				]
 			);
 			const entriesBefore = await session.query('select * from leave_entries order by id');
-			const sealsBefore = await session.query(
-				'select * from employment_contract_inputs order by id'
-			);
 			for (const asOf of ['2025-12-31', '2026-12-31', '2027-12-31', '2026-12-31']) {
 				const balances = await leaveBalances(session, EMPLOYMENT_ID, asOf);
 				assert.equal(balances.find((row) => row.code === 'ANNUAL')?.entitlement, 8);
@@ -54,11 +51,6 @@ test(
 			assert.deepEqual(
 				await session.query('select * from leave_entries order by id'),
 				entriesBefore
-			);
-			assert.deepEqual(
-				await session.query('select * from employment_contract_inputs order by id'),
-				sealsBefore,
-				'future projections do not consume contract history'
 			);
 			const options = {
 				id: crypto.randomUUID(),

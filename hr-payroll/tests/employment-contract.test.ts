@@ -5,7 +5,7 @@ import hooks from '../src/collections/employments/+hooks.ts';
 import {
 	assertContractDoesNotOverlap,
 	resolveEmployment,
-	withContractInput,
+	boundToContract,
 	type ContractCandidate
 } from '../src/lib/employment-contract.ts';
 
@@ -82,17 +82,14 @@ test('departure resolves the service window without editing the signed contract'
 	assert.equal(resolved.exit_reason, 'MISCONDUCT');
 });
 
-test('every new event seals its contract and existing events cannot change contracts', () => {
-	assert.deepEqual(withContractInput({ employment_id: 'a' }), {
-		employment_id: 'a',
-		employment_contract_input: [{ employment_id: 'a' }]
-	});
-	assert.throws(() => withContractInput({}), /must reference an employment contract/);
+test('every event names its contract and an existing event cannot change contracts', () => {
+	assert.deepEqual(boundToContract({ employment_id: 'a' }), { employment_id: 'a' });
+	assert.throws(() => boundToContract({}), /must reference an employment contract/);
 	assert.throws(
-		() => withContractInput({ employment_id: 'b' }, { employment_id: 'a' }),
+		() => boundToContract({ employment_id: 'b' }, { employment_id: 'a' }),
 		/cannot move/
 	);
-	assert.deepEqual(withContractInput({}, { employment_id: 'a' }), {});
+	assert.deepEqual(boundToContract({}, { employment_id: 'a' }), {});
 });
 
 test('nested contracts bind their employee before checking existing and sibling contracts', () => {

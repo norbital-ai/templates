@@ -1,4 +1,4 @@
-import { withContractInput } from '../../lib/employment-contract.js';
+import { boundToContract } from '../../lib/employment-contract.js';
 import { Effect, Result, Schema } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
@@ -701,12 +701,7 @@ function assertWorkedIntervals(
  * morning's start — which is why it reads day-1, day and day+1.
  */
 /** What `prepare` hands every record: the batch's reads, done once. */
-type HolidayCapture = Pick<
-	WorkspaceRow<'holiday_calendar_inputs'>,
-	'id' | 'work_day_id' | 'jurisdiction_code' | 'date' | 'calendar_id'
->;
 type Prepared = {
-	readonly holidayHistory: ReadonlyMap<string, readonly HolidayCapture[]>;
 	readonly holidayByDay: ReadonlyMap<string, PreparedHolidayInput>;
 	readonly companyByEmployment: ReadonlyMap<string, string | null>;
 	readonly windowsByCompany: ReadonlyMap<string, readonly PayrollWindow[]>;
@@ -737,28 +732,6 @@ export default {
 							limit: QUERY_LIMIT
 						})
 					: [];
-				const holidayHistory = new Map<string, HolidayCapture[]>();
-				if (existingIds.length) {
-					const captures = yield* api.db.holiday_calendar_inputs.findMany({
-						where: { work_day_id: { in: existingIds } },
-						columns: {
-							id: true,
-							work_day_id: true,
-							jurisdiction_code: true,
-							date: true,
-							calendar_id: true
-						},
-						limit: QUERY_LIMIT
-					});
-					if (captures.length >= QUERY_LIMIT)
-						refuse('Workday holiday history exceeded its complete-read limit.');
-					for (const capture of captures) {
-						if (!capture.work_day_id) refuse('A workday holiday capture has no consumer.');
-						const rows = holidayHistory.get(capture.work_day_id) ?? [];
-						rows.push(capture);
-						holidayHistory.set(capture.work_day_id, rows);
-					}
-				}
 
 				const existingById = new Map(existingRows.map((row) => [row.id, row]));
 				const coordinates: WorkDayCoordinate[] = [];
@@ -919,7 +892,6 @@ export default {
 				}
 				return {
 					holidayByDay,
-					holidayHistory,
 					companyByEmployment: new Map(
 						employments.map((employment) => [employment.id, employment.company_id])
 					),
@@ -1017,47 +989,14 @@ export default {
 						]);
 						const holiday = prepared.holidayByDay.get(`${employmentId}:${dateKey(workDate)}`);
 						if (!holiday) refuse('The workday has no prepared jurisdiction calendar input.');
-						const history =
-							existing == null ? [] : (prepared.holidayHistory.get(existing.id) ?? []);
-						const captured = history.some(
-							(row) =>
-								row.jurisdiction_code === holiday.jurisdiction_code &&
-								dateKey(row.date) === holiday.date
-						);
-						const contractInputs =
-							existing == null
-								? []
-								: yield* api.db.employment_contract_inputs.findMany({
-										where: { work_days_id: { eq: existing.id } },
-										columns: { id: true, employment_id: true, terms_through: true },
-										limit: QUERY_LIMIT
-									});
-						if (contractInputs.length >= QUERY_LIMIT)
-							refuse('Too many workday input seals to preserve employment term history.');
-						const termsThrough = dateKey(workDate);
-						const alreadySealed = contractInputs.some(
-							(row) => row.terms_through != null && dateKey(row.terms_through) >= termsThrough
-						);
-						return {
-							...withContractInput(input, existing, termsThrough),
-							...(existing != null && !alreadySealed
-								? {
-										employment_contract_input: [
-											...contractInputs,
-											{ employment_id: employmentId, terms_through: termsThrough }
-										]
-									}
-								: {}),
-							work_day_holiday_input: [
-								...history.map(({ id, jurisdiction_code, date, calendar_id }) => ({
-									id,
-									jurisdiction_code,
-									date,
-									calendar_id
-								})),
-								...(captured ? [] : [holiday])
-							]
-						};
+						// The day pins the published revision it was first written against; a day that moves
+						// to another date is classified afresh.
+						const pinned =
+							existing?.holiday_calendar_id != null &&
+							dateKey(existing.work_date) === dateKey(workDate)
+								? existing.holiday_calendar_id
+								: holiday.calendar_id;
+						return { ...boundToContract(input, existing), holiday_calendar_id: pinned };
 					})
 			}
 		}

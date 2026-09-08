@@ -217,12 +217,6 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 		}).timeOff[0]!.charges.length,
 		2
 	);
-	const plan = planLeaveActivity(facts(), submission(timeOff('2026-01-30', '2026-02-02')), id(11));
-	assert.equal(
-		plan.holidayInputs.length,
-		4,
-		'each consulted date is sealed, including non-holidays'
-	);
 });
 
 test('opposite half-days can be approved separately, but overlapping or duplicate activity refuses', () => {

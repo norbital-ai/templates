@@ -438,11 +438,6 @@ test(
 				'select event, charges, allocations from leave_entries where id = $1',
 				[leaveId]
 			);
-			const sealsBefore = await session.query(
-				`select i.* from employment_contract_inputs i join payslips p on p.id = i.payslips_id where p.payroll_run_id = $1 order by i.id`,
-				[runId]
-			);
-			assert.ok(sealsBefore.length > 0, 'payroll seals consumed contract history');
 			const versions = (await session.query('select row_version from payroll_runs where id = $1', [
 				runId
 			])) as ReadonlyArray<{ readonly row_version: number }>;
@@ -505,14 +500,6 @@ test(
 					leaveId
 				]),
 				sourceBefore
-			);
-			assert.deepEqual(
-				await session.query(
-					'select * from employment_contract_inputs where id = any($1) order by id',
-					[sealsBefore.map((row) => row.id)]
-				),
-				sealsBefore,
-				'deleting a consumer preserves its permanent contract seals'
 			);
 		} finally {
 			await session.stop();

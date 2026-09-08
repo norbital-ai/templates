@@ -97,9 +97,7 @@ test('the manifest covers current source collections and stages consumers after 
 		['employment_terms', 'work_days'],
 		['jurisdiction_holiday_calendars', 'work_days'],
 		['work_days', 'leave_entries'],
-		['loans', 'loan_repayments'],
-		['work_days', 'holiday_calendar_inputs'],
-		['leave_entries', 'holiday_calendar_inputs']
+		['loans', 'loan_repayments']
 	])
 		before(dependency, consumer);
 	for (const [catalogue, consumer] of [
@@ -125,6 +123,5 @@ test('the manifest covers current source collections and stages consumers after 
 		'loan_repayments'
 	]) {
 		before('employments', consumer);
-		before(consumer, 'employment_contract_inputs');
 	}
 });

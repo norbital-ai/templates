@@ -4,6 +4,8 @@ import { coversDate, readRange } from '../collections/payroll_runs/lib/effective
 import { dateKey } from './iso-day.js';
 import type { WorkspaceRow } from '$bolt/types.js';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import type { LeaveCharge } from '../datatypes/leave_charges/+definition.js';
+import type { LeaveEvent } from '../datatypes/leave_event/+definition.js';
 
 const CONTRACT_INPUT_SOURCES = [
 	'employment_terms',
@@ -19,19 +21,48 @@ const CONTRACT_INPUT_SOURCES = [
 ] as const;
 
 type ContractScoped = { readonly employment_id?: string | null };
+type ContractReader = {
+	readonly findFirst: (query: {
+		readonly where: { readonly employment_id: { readonly eq: string } };
+		readonly columns: { readonly id: true };
+	}) => Effect.Effect<unknown>;
+	readonly findPending: (query: {
+		readonly where: { readonly employment_id: { readonly eq: string } };
+		readonly limit: number;
+	}) => Effect.Effect<readonly unknown[]>;
+};
 
+const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> = {
+	employment_terms: 'employment terms',
+	employment_statutory_facts: 'a statutory fact',
+	claim_requests: 'a claim',
+	allowance_requests: 'an allowance',
+	payment_requests: 'a payment',
+	loans: 'a loan',
+	loan_repayments: 'a loan repayment',
+	leave_entries: 'a leave entry',
+	work_days: 'a work day',
+	payslips: 'a payslip'
+};
+
+/**
+ * A contract is sealed by the rows that reference it. There is no separate seal log any more: a
+ * contract whose every consumer has been removed is editable again (2026-09-09 inlining).
+ */
 export function assertContractUnreferenced(api: Api<WorkspaceSchema>, employmentId: string) {
 	return Effect.gen(function* () {
-		const seal = yield* api.db.employment_contract_inputs.findFirst({
-			where: { employment_id: { eq: employmentId } },
-			columns: { id: true }
-		});
-		if (seal)
-			refuse(
-				'This employment contract is sealed by a linked input. Record its departure; create a new contract for a rehire.'
-			);
 		for (const source of CONTRACT_INPUT_SOURCES) {
-			const pending = yield* api.db[source].findPending({
+			// Ten collections, one shape: the union of their clients is not callable, the reader is.
+			const reader = api.db[source] as unknown as ContractReader;
+			const stored = yield* reader.findFirst({
+				where: { employment_id: { eq: employmentId } },
+				columns: { id: true }
+			});
+			if (stored)
+				refuse(
+					`This employment contract is sealed by ${LABEL[source]}. Record its departure; create a new contract for a rehire.`
+				);
+			const pending = yield* reader.findPending({
 				where: { employment_id: { eq: employmentId } },
 				limit: 1
 			});
@@ -43,51 +74,85 @@ export function assertContractUnreferenced(api: Api<WorkspaceSchema>, employment
 	});
 }
 
-/** A new reference and its permanent contract seal commit as one graph. */
-export function withContractInput<T extends ContractScoped>(
-	input: T,
-	existing?: ContractScoped,
-	termsThrough?: string | null
-) {
+/** The two rules every employee event obeys: it names a contract, and it never changes contract. */
+export function boundToContract<T extends ContractScoped>(input: T, existing?: ContractScoped): T {
 	const employmentId = input.employment_id ?? existing?.employment_id;
 	if (!employmentId) refuse('An employee event must reference an employment contract.');
 	if (existing != null && employmentId !== existing.employment_id)
 		refuse(
 			'An existing event cannot move to another employment contract. Reverse it and create a new event.'
 		);
-	return {
-		...input,
-		...(existing == null
-			? {
-					employment_contract_input: [
-						{
-							employment_id: employmentId,
-							...(termsThrough == null ? {} : { terms_through: dateKey(termsThrough) })
-						}
-					]
-				}
-			: {})
-	};
+	return input;
 }
 
-/** Permanent history and held consumer proposals protect the same contract-date boundary. */
+/** The date through which one Leave activity consumed employment terms; null when it did not. */
+export function leaveTermsThrough(
+	event: LeaveEvent,
+	charges: readonly LeaveCharge[],
+	exit: string | null
+) {
+	if (event.kind === 'TIME_OFF')
+		return (
+			charges
+				.map((charge) => charge.date)
+				.toSorted()
+				.at(-1) ?? null
+		);
+	const date =
+		event.kind === 'ENCASHMENT'
+			? [event.effective_on, event.source_window.end].toSorted()[0]!
+			: event.kind === 'CARRY_FORWARD'
+				? event.source_window.end
+				: event.kind === 'ADJUSTMENT' && event.days < 0
+					? event.effective_on
+					: null;
+	return date == null ? null : [date, ...(exit == null ? [] : [exit])].toSorted()[0]!;
+}
+
+const LIMIT = 20_000;
+
+/**
+ * The latest date on which this contract's terms were consumed, read off the consumers themselves:
+ * Work consumes its work date, approved Leave its charge or debit valuation date, a committed
+ * payslip its `terms_through`. Held proposals protect the same dates until resolved.
+ */
 export function consumedTermsThrough(api: Api<WorkspaceSchema>, employmentId: string) {
 	return Effect.gen(function* () {
-		const where = { employment_id: { eq: employmentId }, terms_through: { isNull: false } };
-		const stored = yield* api.db.employment_contract_inputs.findFirst({
+		const where = { employment_id: { eq: employmentId } };
+		const employment = yield* api.db.employments.findFirst({
+			where: { id: { eq: employmentId } },
+			columns: { exit_date: true }
+		});
+		const exit = employment?.exit_date == null ? null : dateKey(employment.exit_date);
+		const dates: string[] = [];
+		const work = yield* api.db.work_days.findFirst({
+			where,
+			columns: { work_date: true },
+			orderBy: { work_date: 'desc' }
+		});
+		if (work) dates.push(dateKey(work.work_date));
+		const pendingWork = yield* api.db.work_days.findPending({ where, limit: LIMIT });
+		const leave = yield* api.db.leave_entries.findMany({
+			where,
+			columns: { event: true, charges: true },
+			limit: LIMIT
+		});
+		const pendingLeave = yield* api.db.leave_entries.findPending({ where, limit: LIMIT });
+		if (pendingWork.length >= LIMIT || leave.length >= LIMIT || pendingLeave.length >= LIMIT)
+			refuse('Too many inputs to verify employment term history.');
+		for (const row of pendingWork) if (row.work_date != null) dates.push(dateKey(row.work_date));
+		for (const row of [...leave, ...pendingLeave]) {
+			if (row.event == null || row.charges == null) continue;
+			const through = leaveTermsThrough(row.event, row.charges, exit);
+			if (through != null) dates.push(through);
+		}
+		const payslip = yield* api.db.payslips.findFirst({
 			where,
 			columns: { terms_through: true },
 			orderBy: { terms_through: 'desc' }
 		});
-		const pending = yield* api.db.employment_contract_inputs.findPending({ where, limit: 20_000 });
-		if (pending.length >= 20_000)
-			refuse('Too many pending inputs to verify employment term history.');
-		return (
-			[stored, ...pending]
-				.flatMap((row) => (row?.terms_through == null ? [] : [dateKey(row.terms_through)]))
-				.toSorted()
-				.at(-1) ?? null
-		);
+		if (payslip) dates.push(dateKey(payslip.terms_through));
+		return dates.toSorted().at(-1) ?? null;
 	});
 }
 

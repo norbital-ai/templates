@@ -102,7 +102,7 @@ test('family preparation and calculation preserve mixed source capture and cross
 	assert.equal(amounts.get('PAYMENT_REQUEST_INPUT'), 100);
 	assert.equal(amounts.get('LOAN_REPAYMENT_INPUT'), 50);
 	assert.equal(payslip.base.find((line) => line.component_code === 'BASIC')?.amount, 3451);
-	assert.equal(payslip.employment_contract_input[0]?.employment_id, EMPLOYMENT_ID);
+	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 });
 
 test('a money cap cannot see a Work output scheduled after it', async () => {

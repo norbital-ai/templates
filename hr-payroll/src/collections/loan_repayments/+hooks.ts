@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { dateKey } from '../../lib/iso-day.js';
-import { withContractInput } from '../../lib/employment-contract.js';
+import { boundToContract } from '../../lib/employment-contract.js';
 import { loanScheduleRefusals } from '../../lib/loan-schedule.js';
 import { refuseIfCaptured } from '../../lib/scheduling/lock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
@@ -135,7 +135,7 @@ export default {
 							(enclosingEmployment != null && employmentId !== enclosingEmployment)
 						)
 							refuse('A repayment must use the same employment contract as its loan agreement.');
-						const linked = withContractInput(
+						const linked = boundToContract(
 							{
 								...input,
 								employment_id: employmentId,
