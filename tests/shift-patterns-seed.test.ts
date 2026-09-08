@@ -108,8 +108,7 @@ test('the manifest covers current source collections and stages consumers after 
 		['claim_catalogue', 'claim_requests'],
 		['allowance_catalogue', 'allowance_requests'],
 		['payment_catalogue', 'payment_requests'],
-		['loan_catalogue', 'loans'],
-		['statutory_contributions', 'contribution_rates']
+		['loan_catalogue', 'loans']
 	]) {
 		before('jurisdiction_settings', catalogue);
 		before(catalogue, consumer);

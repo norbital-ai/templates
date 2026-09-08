@@ -53,7 +53,6 @@ type SettingsCloneApi = Readonly<{
 		Db,
 		| 'jurisdiction_settings'
 		| 'statutory_contributions'
-		| 'contribution_rates'
 		| 'work_catalogue'
 		| 'leave_catalogue'
 		| 'loan_catalogue'
@@ -69,7 +68,6 @@ type Row<N extends keyof Db> = Effect.Success<ReturnType<Db[N]['findMany']>>[num
 export type SettingsVersionTree = Readonly<{
 	source: Row<'jurisdiction_settings'>;
 	schemes: ReadonlyArray<Row<'statutory_contributions'>>;
-	rates: ReadonlyArray<Row<'contribution_rates'>>;
 	workCatalogue: ReadonlyArray<Row<'work_catalogue'>>;
 	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
 	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
@@ -122,21 +120,9 @@ export const readSettingsVersionTree = (
 			paymentCatalogue
 		])
 			if (rows.length >= LIMIT) refuse('The version is too large to clone safely.');
-		const rates =
-			schemes.length === 0
-				? []
-				: yield* api.db.contribution_rates.findMany({
-						where: {
-							statutory_contribution_id: { in: schemes.map((scheme) => scheme.id) },
-							approval_id: { isNull: true }
-						},
-						limit: LIMIT
-					});
-		if (rates.length >= LIMIT) refuse('The version is too large to clone safely.');
 		return {
 			source,
 			schemes,
-			rates,
 			workCatalogue,
 			catalogueLeaves,
 			loanCatalogue,
@@ -163,7 +149,6 @@ export function settingsDraftWrite(
 	const {
 		source,
 		schemes,
-		rates,
 		workCatalogue,
 		catalogueLeaves,
 		loanCatalogue,
@@ -206,13 +191,7 @@ export function settingsDraftWrite(
 			contribution_settings: schemes.map((scheme) => ({
 				...cloneRow(scheme),
 				id: cloneIdOf(scheme.id),
-				relief_for: remapRelief(scheme.relief_for),
-				rate_contribution: rates
-					.filter((rate) => rate.statutory_contribution_id === scheme.id)
-					.map((rate) => ({
-						...cloneRow(rate, ['summary', 'statutory_contribution_id']),
-						id: crypto.randomUUID()
-					}))
+				relief_for: remapRelief(scheme.relief_for)
 			})),
 			work_catalogue_settings: workCatalogue.map((row) => ({
 				...cloneRow(row),
@@ -249,7 +228,6 @@ type SettingsDraftCreated = Readonly<{
 	cloned_from_id: string;
 	starts_on: string;
 	schemes: number;
-	rates: number;
 	work_catalogue: number;
 	leave_catalogue: number;
 	loan_catalogue: number;
@@ -284,7 +262,6 @@ export const createSettingsDraft = (
 			cloned_from_id: tree.source.id,
 			starts_on: startsOn,
 			schemes: tree.schemes.length,
-			rates: tree.rates.length,
 			work_catalogue: tree.workCatalogue.length,
 			leave_catalogue: tree.catalogueLeaves.length,
 			loan_catalogue: tree.loanCatalogue.length,

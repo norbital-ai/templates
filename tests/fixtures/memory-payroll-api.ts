@@ -12,7 +12,6 @@ export type PayrollWorld = {
 	readonly companies: PayrollRow[];
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
-	readonly contribution_rates: PayrollRow[];
 	readonly work_catalogue: PayrollRow[];
 	readonly loan_catalogue: PayrollRow[];
 	readonly claim_catalogue: PayrollRow[];
@@ -149,7 +148,6 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			companies: collection('companies'),
 			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
-			contribution_rates: collection('contribution_rates'),
 			work_catalogue: collection('work_catalogue'),
 			loan_catalogue: collection('loan_catalogue'),
 			claim_catalogue: collection('claim_catalogue'),

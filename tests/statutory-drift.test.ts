@@ -60,7 +60,7 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 	);
 	assert.equal(diff.changes.length, 1);
 	assert.deepEqual(diff.changes[0], {
-		collection: 'contribution_rates',
+		collection: 'statutory_contributions',
 		code: 'EPF',
 		field: 'bands',
 		previous: [band(11)],
@@ -138,13 +138,13 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 	assert.match(diff.notes[2], /not a statutory scheme/);
 });
 
-test('the proposed rows replace the cloned ones in the draft write, under new band ids', () => {
+test('the proposed bands replace the cloned ones in the draft write', () => {
 	const write = {
 		code: 'PUB',
 		name: 'draft',
 		contribution_settings: [
-			{ id: 's1', code: 'EPF', rate_contribution: [{ id: 'r1', ...band(11) }] },
-			{ id: 's2', code: 'OTHER', rate_contribution: [{ id: 'r2', ...band(5) }] }
+			{ id: 's1', code: 'EPF', bands: [band(11)] },
+			{ id: 's2', code: 'OTHER', bands: [band(5)] }
 		],
 		leave_catalogue_settings: [
 			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }
@@ -167,7 +167,7 @@ test('the proposed rows replace the cloned ones in the draft write, under new ba
 		source_version_id: 'v1',
 		changes: [
 			{
-				collection: 'contribution_rates',
+				collection: 'statutory_contributions',
 				code: 'EPF',
 				field: 'bands',
 				previous: [band(11)],
@@ -194,9 +194,7 @@ test('the proposed rows replace the cloned ones in the draft write, under new ba
 	};
 	const revised = applyProposedChanges(write, proposal.changes, proposal);
 	assert.equal(revised.research_notes, proposal);
-	assert.equal(revised.contribution_settings[0].rate_contribution.length, 1);
-	assert.notEqual(revised.contribution_settings[0].rate_contribution[0].id, 'r1');
-	assert.deepEqual(revised.contribution_settings[0].rate_contribution[0].award, band(12).award);
+	assert.deepEqual(revised.contribution_settings[0].bands, [band(12)]);
 	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
 	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
 	assert.deepEqual(revised.work_catalogue_settings[0].overtime.contribution_treatments.EPF, {

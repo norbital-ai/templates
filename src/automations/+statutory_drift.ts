@@ -122,9 +122,7 @@ export function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutory
 				code: scheme.code,
 				name: scheme.name,
 				authority: scheme.authority,
-				bands: tree.rates
-					.filter((rate) => rate.statutory_contribution_id === scheme.id)
-					.map((rate) => ({ selector: rate.selector, award: rate.award }))
+				bands: scheme.bands.map((band) => ({ selector: band.selector, award: band.award }))
 			})),
 		leave_catalogue: tree.catalogueLeaves
 			.filter((type) => type.is_statutory)
@@ -168,17 +166,10 @@ export function applyProposedChanges(
 ): SettingsDraftWrite {
 	const schemes = (write.contribution_settings ?? []).map((scheme) => {
 		const rateChange = changes.find(
-			(row) => row.collection === 'contribution_rates' && row.code === scheme.code
+			(row) => row.collection === 'statutory_contributions' && row.code === scheme.code
 		);
 		if (rateChange == null) return scheme;
-		return {
-			...scheme,
-			rate_contribution: decodeBands(rateChange.proposed).map((band) => ({
-				id: crypto.randomUUID(),
-				selector: band.selector,
-				award: band.award
-			}))
-		};
+		return { ...scheme, bands: decodeBands(rateChange.proposed) };
 	});
 	const catalogueLeaves = (write.leave_catalogue_settings ?? []).map((type) => {
 		const change = changes.find(

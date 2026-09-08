@@ -16,7 +16,7 @@ type SealReadApi = Readonly<{
 	readonly db: Pick<Api<WorkspaceSchema, unknown>['db'], 'jurisdiction_settings'>;
 }>;
 
-export function refuseUnlessDraft(
+function refuseUnlessDraft(
 	api: SealReadApi,
 	settingsId: unknown,
 	what: string

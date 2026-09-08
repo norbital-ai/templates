@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "b0b77427-4a33-4368-ae8d-9dcad608a265",
+  "id": "9b9f0bc4-9d87-4962-80c5-e0a5e535c9e8",
   "prevIds": [
-    "5a3fdbd4-d75e-4afc-b9cc-c7b10d8a0be4"
+    "77e0295b-ba08-4cd1-b434-3351c18ade6c"
   ],
   "version": "8",
   "ddl": [
@@ -33,12 +33,6 @@
     {
       "isRlsEnabled": false,
       "name": "companies",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "contribution_rates",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1198,155 +1192,6 @@
       "entityType": "columns",
       "schema": "public",
       "table": "companies"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "tstzrange",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
-      "generated": null,
-      "identity": null,
-      "name": "sys_period",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "row_version",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approval_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "tsvector",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "to_tsvector('simple'::regconfig, coalesce((CASE selector ->> 'by'\n\t\t\t\tWHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')\n\t\t\t\tWHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')\n\t\t\t\tELSE 'band'\n\t\t\tEND), ''))",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "search_document",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "statutory_contribution_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "selector",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "award",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "CASE selector ->> 'by'\n\t\t\t\tWHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')\n\t\t\t\tWHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')\n\t\t\t\tELSE 'band'\n\t\t\tEND",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "summary",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "contribution_rates"
     },
     {
       "type": "uuid",
@@ -6866,6 +6711,19 @@
       "table": "statutory_contributions"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "bands",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -7607,48 +7465,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "companies"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "search_document",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "contribution_rates_search_document_gin_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "(coalesce(\"summary\", '')) gin_trgm_ops",
-          "isExpression": true,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "contribution_rates_search_text_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "contribution_rates"
     },
     {
       "nameExplicit": true,
@@ -9970,23 +9786,6 @@
     {
       "nameExplicit": true,
       "columns": [
-        "statutory_contribution_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "statutory_contributions",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "contribution_rates_statutory_contribution_id_statutory_contributions_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "contribution_rates"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
         "employment_id"
       ],
       "schemaTo": "public",
@@ -10865,16 +10664,6 @@
       "name": "companies_pkey",
       "schema": "public",
       "table": "companies",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "contribution_rates_pkey",
-      "schema": "public",
-      "table": "contribution_rates",
       "entityType": "pks"
     },
     {

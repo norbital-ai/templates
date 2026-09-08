@@ -220,19 +220,16 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		special_rules: [],
 		approval_id: null
 	});
-	const band = (id, from, to, rate, constant) => ({
-		id,
-		statutory_contribution_id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
+	const band = (from, to, rate, constant) => ({
 		selector: { by: 'WAGE', from, to },
-		award: { kind: 'PROGRESSIVE', rate, constant },
-		approval_id: null
+		award: { kind: 'PROGRESSIVE', rate, constant }
 	});
-	world.contribution_rates.push(
-		band('tax-band-0', 0, 20_000, 0, 0),
-		band('tax-band-1', 20_000, 35_000, 1, 0),
-		band('tax-band-2', 35_000, 50_000, 3, 150),
-		band('tax-band-3', 50_000, null, 8, 600)
-	);
+	world.statutory_contributions.at(-1)!.bands = [
+		band(0, 20_000, 0, 0),
+		band(20_000, 35_000, 1, 0),
+		band(35_000, 50_000, 3, 150),
+		band(50_000, null, 8, 600)
+	];
 	for (const catalogue of [
 		world.claim_catalogue,
 		world.allowance_catalogue,

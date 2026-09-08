@@ -51,13 +51,12 @@ function rehireWorld() {
 		relief_for: [],
 		sequence: 1,
 		special_rules: [],
-		approval_id: null
-	});
-	world.contribution_rates.push({
-		id: 'fixed-rate',
-		statutory_contribution_id: 'fixed-scheme',
-		selector: { by: 'WAGE', from: 0, to: null },
-		award: { kind: 'FIXED', employee: 30.01, employer: 60.01 },
+		bands: [
+			{
+				selector: { by: 'WAGE', from: 0, to: null },
+				award: { kind: 'FIXED', employee: 30.01, employer: 60.01 }
+			}
+		],
 		approval_id: null
 	});
 	for (const catalogue of [world.allowance_catalogue, world.payment_catalogue])

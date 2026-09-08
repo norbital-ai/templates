@@ -163,19 +163,7 @@ export function prepareContributionCatalogue(options: {
 		const contributions = live(rows).toSorted(
 			(a, b) => decodeNumber(a.sequence) - decodeNumber(b.sequence)
 		);
-		const contributionIds = contributions.map((row) => row.id);
-		const rateRows = contributionIds.length
-			? yield* options.api.db.contribution_rates.findMany({
-					where: { statutory_contribution_id: { in: contributionIds }, ...approved },
-					limit: PAGE_LIMIT
-				})
-			: [];
-		options.api.reads.assertComplete(rateRows, 'contribution rates');
-		const ratesByContribution = groupBy(live(rateRows), (row) => row.statutory_contribution_id);
-		return contributions.map((row) => ({
-			row,
-			rates: (ratesByContribution.get(row.id) ?? []).toSorted(bandOrder)
-		}));
+		return contributions.map((row) => ({ row, rates: row.bands.toSorted(bandOrder) }));
 	});
 }
 export function prepareContributionInputs(options: {

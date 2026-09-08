@@ -76,17 +76,7 @@ export default ((r) => ({
 				to: r.jurisdiction_settings.id
 			})
 		),
-		rate_contribution: r.many.contribution_rates(),
 		statutory_fact_contribution: r.many.employment_statutory_facts()
-	},
-
-	contribution_rates: {
-		rate_contribution: cascade(
-			r.one.statutory_contributions({
-				from: r.contribution_rates.statutory_contribution_id,
-				to: r.statutory_contributions.id
-			})
-		)
 	},
 
 	companies: {

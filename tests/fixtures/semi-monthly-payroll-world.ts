@@ -62,13 +62,12 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		relief_for: [],
 		sequence: 1,
 		special_rules: [],
-		approval_id: null
-	});
-	world.contribution_rates.push({
-		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa2',
-		statutory_contribution_id: RETIREMENT_SCHEME_ID,
-		selector: { by: 'WAGE', from: 0, to: null },
-		award: { kind: 'PERCENT', employee: 11, employer: 13 },
+		bands: [
+			{
+				selector: { by: 'WAGE', from: 0, to: null },
+				award: { kind: 'PERCENT', employee: 11, employer: 13 }
+			}
+		],
 		approval_id: null
 	});
 	// Every catalogue at once, and the scheme's own answer for the four the engine produces —

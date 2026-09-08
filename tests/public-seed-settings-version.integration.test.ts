@@ -61,10 +61,6 @@ const childRows = async (session: Session, settingsId: string): Promise<Record<s
 			`select * from ${table} where settings_id = $1 order by created_at, id`,
 			[settingsId]
 		)) as Row[];
-	out.contribution_rates = (await session.query(
-		`select r.* from contribution_rates r join statutory_contributions s on s.id = r.statutory_contribution_id where s.settings_id = $1 order by r.id`,
-		[settingsId]
-	)) as Row[];
 	return out;
 };
 
@@ -129,13 +125,12 @@ test(
 			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
 			assert.deepEqual(draft.effective_range, { start: '2026-03-01T00:00:00.000Z', end: null });
 			const after = await childRows(session, newId);
-			for (const table of [...CHILDREN, 'contribution_rates']) {
+			for (const table of CHILDREN) {
 				assert.equal(after[table]!.length, before[table]!.length, `${table}: counts equal`);
 				const oldIds = new Set(before[table]!.map((row) => row.id));
 				for (const row of after[table]!) {
 					assert.equal(oldIds.has(row.id), false, `${table}: ids differ`);
-					if (table !== 'contribution_rates')
-						assert.equal(row.settings_id, newId, `${table}: under the new version`);
+					assert.equal(row.settings_id, newId, `${table}: under the new version`);
 				}
 			}
 			const clonedWork = after.work_catalogue![0]!;

@@ -5,13 +5,27 @@
 		"code": "PUB-EPF",
 		"name": "Public fixture retirement fund",
 		"is_statutory": true,
-		"authority": "Public fixture — not a sealed statutory table.",
+		"authority": "Public fixture \u2014 not a sealed statutory table.",
 		"payer": "BOTH",
 		"keyed_by": "WAGE",
 		"rounding": "NEAREST_CENT",
 		"relief_for": [],
 		"sequence": 1,
-		"special_rules": []
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 13
+				}
+			}
+		]
 	},
 	{
 		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
@@ -19,12 +33,26 @@
 		"code": "PUB-EPF-NC",
 		"name": "Public fixture non-citizen retirement fund",
 		"is_statutory": true,
-		"authority": "Public fixture — invented non-citizen scheme, not a sealed statutory table.",
+		"authority": "Public fixture \u2014 invented non-citizen scheme, not a sealed statutory table.",
 		"payer": "BOTH",
 		"keyed_by": "WAGE",
 		"rounding": "NEAREST_CENT",
 		"relief_for": [],
 		"sequence": 2,
-		"special_rules": []
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 5
+				}
+			}
+		]
 	}
 ]

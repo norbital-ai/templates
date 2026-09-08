@@ -117,7 +117,7 @@ test('payroll orchestration does not read family-owned source tables or interpre
 		);
 		assert.doesNotMatch(
 			source,
-			/\bdb\.(?:claim_requests|allowance_requests|payment_requests|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|payment_catalogue|loan_catalogue|work_catalogue|leave_catalogue|statutory_contributions|contribution_rates)\b/,
+			/\bdb\.(?:claim_requests|allowance_requests|payment_requests|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|payment_catalogue|loan_catalogue|work_catalogue|leave_catalogue|statutory_contributions)\b/,
 			name
 		);
 		assert.doesNotMatch(source, /definition\??\.source/, name);

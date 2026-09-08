@@ -59,7 +59,6 @@ test(
 				'allowance_catalogue',
 				'payment_catalogue',
 				'jurisdiction_holiday_calendars',
-				'contribution_rates',
 				'employees',
 				'shift_definitions',
 				'shift_patterns',
