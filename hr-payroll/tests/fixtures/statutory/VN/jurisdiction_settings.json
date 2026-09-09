@@ -1,0 +1,85 @@
+[
+	{
+		"id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "VN",
+		"name": "Vietnam",
+		"sealed_at": "2025-12-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"currency": "VND",
+		"tax_year_start_month": 1,
+		"minimum_wages": {
+			"I": 4960000,
+			"II": 4410000,
+			"III": 3860000,
+			"IV": 3450000
+		},
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2026-01-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Nghi-dinh-74-2024-ND-CP-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-529840.aspx",
+			"https://luatvietnam.vn/bao-hiem/muc-tham-chieu-la-gi-muc-luong-tham-chieu-moi-nhat-563-102601-article.html",
+			"https://hethongphapluat.com/bo-luat-lao-dong-2019/dieu-113"
+		],
+		"jurisdiction_code": "VN"
+	},
+	{
+		"id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "VN",
+		"name": "Vietnam — 1 January 2026",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"currency": "VND",
+		"tax_year_start_month": 1,
+		"minimum_wages": {
+			"I": 5310000,
+			"II": 4730000,
+			"III": 4140000,
+			"IV": 3700000
+		},
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "2026-07-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://baochinhphu.vn/tang-luong-toi-thieu-vung-tu-1-1-2026-102251110175033018.htm",
+			"https://thuvienphapluat.vn/phap-luat-doanh-nghiep/bai-viet/cap-nhat-muc-luong-toi-thieu-vung-2026-chinh-thuc-theo-nghi-dinh-293-2025-nd-cp-15934.html",
+			"https://xaydungchinhsach.chinhphu.vn/nghi-quyet-110-2025-ubtvqh15-dieu-chinh-muc-giam-tru-gia-canh-cua-thue-thu-nhap-ca-nhan-119251110101313787.htm",
+			"https://nhansu.vn/phap-luat-lao-dong/toan-van-luat-viec-lam-2025-luat-so-74-2025-qh15-35795.html"
+		],
+		"jurisdiction_code": "VN"
+	},
+	{
+		"id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "VN",
+		"name": "Vietnam — 1 July 2026",
+		"sealed_at": "2026-07-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"currency": "VND",
+		"tax_year_start_month": 1,
+		"minimum_wages": {
+			"I": 5310000,
+			"II": 4730000,
+			"III": 4140000,
+			"IV": 3700000
+		},
+		"effective_range": {
+			"start": "2026-07-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://suckhoedoisong.vn/tu-1-7-muc-luong-co-so-la-2530000-dong-thang-169260601162826679.htm",
+			"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=26585&CateID=168",
+			"https://thuvienphapluat.vn/van-ban/Thue-Phi-Le-Phi/Luat-Thue-thu-nhap-ca-nhan-2025-so-109-2025-QH15-665870.aspx",
+			"https://xaydungchinhsach.chinhphu.vn/chi-tiet-bieu-thue-thu-nhap-ca-nhan-luy-tien-tung-phan-119260327091407544.htm"
+		],
+		"jurisdiction_code": "VN"
+	}
+]

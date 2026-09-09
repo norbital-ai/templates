@@ -1,0 +1,674 @@
+[
+	{
+		"id": "c0daeb7e-ceff-5f2e-a365-aabb3493c07b",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"proration": {
+			"by": "WORKING_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "HOUR",
+				"divisor": 190.66666666666666
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": {
+					"value": 4500,
+					"currency": "SGD"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "BASE_SALARY",
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": ["MANAGERIAL", "NON_EA"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 0.5
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0.5,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 72,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				}
+			],
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": null,
+					"counts_as_worked_time": null,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				},
+				{
+					"after_consecutive_hours": 8,
+					"minimum_minutes": 45,
+					"counts_as_worked_time": null,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 12,
+				"discharged_by": "REST",
+				"on_exceed": "WARN"
+			},
+			"holiday_rest_precedence": "SUBSTITUTE"
+		},
+		"treatments": {
+			"CPF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"CDAC": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"ECF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"MBMF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SINDA": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SDL": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+	},
+	{
+		"id": "8555fdee-afc2-506e-9f16-fb6b47b20995",
+		"settings_id": "10000000-0000-5000-8000-000000000040",
+		"proration": {
+			"by": "WORKING_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "HOUR",
+				"divisor": 190.66666666666666
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": {
+					"value": 4500,
+					"currency": "SGD"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "BASE_SALARY",
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": ["MANAGERIAL", "NON_EA"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 0.5
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0.5,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 72,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				}
+			],
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": null,
+					"counts_as_worked_time": null,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				},
+				{
+					"after_consecutive_hours": 8,
+					"minimum_minutes": 45,
+					"counts_as_worked_time": null,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 12,
+				"discharged_by": "REST",
+				"on_exceed": "WARN"
+			},
+			"holiday_rest_precedence": "SUBSTITUTE"
+		},
+		"treatments": {
+			"CPF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"CDAC": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"ECF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"MBMF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SINDA": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SDL": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+	},
+	{
+		"id": "c99fa2e6-50af-502e-92da-30bad8dea8d6",
+		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"proration": {
+			"by": "WORKING_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "HOUR",
+				"divisor": 190.66666666666666
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": {
+					"value": 4500,
+					"currency": "SGD"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "BASE_SALARY",
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": ["MANAGERIAL", "NON_EA"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 0.5
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0.5,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 72,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				}
+			],
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": null,
+					"counts_as_worked_time": null,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				},
+				{
+					"after_consecutive_hours": 8,
+					"minimum_minutes": 45,
+					"counts_as_worked_time": null,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 12,
+				"discharged_by": "REST",
+				"on_exceed": "WARN"
+			},
+			"holiday_rest_precedence": "SUBSTITUTE"
+		},
+		"treatments": {
+			"CPF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"CDAC": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"ECF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"MBMF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SINDA": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SDL": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+	}
+]

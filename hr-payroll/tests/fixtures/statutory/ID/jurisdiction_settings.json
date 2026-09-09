@@ -1,0 +1,87 @@
+[
+	{
+		"id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "ID",
+		"name": "Indonesia",
+		"sealed_at": "2025-12-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"currency": "IDR",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2026-01-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf",
+			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
+			"https://bphn.go.id/data/documents/15pp046.pdf",
+			"https://peraturan.go.id/files/pp-no-49-tahun-2023.pdf",
+			"https://jdih.kemenkeu.go.id/api/download/c70604f8-1d41-40a3-b8af-006590107124/37TAHUN2021PP.pdf",
+			"https://www.llg-bwi.org/file_publish/Perpres%20Nomor%2064%20Tahun%202020.pdf",
+			"https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf",
+			"https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
+			"https://kemenperin.go.id/kompetensi/UU_13_2003.pdf",
+			"https://www.llg-bwi.org/main_regulation/6-bab4",
+			"https://jdih.kemnaker.go.id/asset/data_puu/Permenaker%20Nomor%2016%20Tahun%202024.pdf",
+			"https://www.tempo.co/politik/daftar-ump-2025-di-seluruh-provinsi-indonesia-tertinggi-jakarta-dan-terendah-jawa-tengah-1190332"
+		],
+		"minimum_wages": {
+			"DKI Jakarta": 5396761,
+			"Jawa Barat": 2191232
+		},
+		"jurisdiction_code": "ID"
+	},
+	{
+		"id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "ID",
+		"name": "Indonesia — 2026-01-01",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"currency": "IDR",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "2026-03-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://peraturan.bpk.go.id/Details/321045/pp-no-49-tahun-2025",
+			"https://money.kompas.com/read/2026/01/09/092557026/ump-2026-resmi-berlaku-ini-daftar-lengkap-upah-minimum-seluruh-provinsi",
+			"https://www.hukumonline.com/berita/a/ump-2026-naik--ini-daftar-lengkap-upah-minimum-di-setiap-provinsi-lt694f6c131b0ca/",
+			"https://www.llg-bwi.org/file_publish/Perpres%20Nomor%2064%20Tahun%202020.pdf"
+		],
+		"minimum_wages": {
+			"DKI Jakarta": 5729876,
+			"Jawa Barat": 2317601
+		},
+		"jurisdiction_code": "ID"
+	},
+	{
+		"id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "ID",
+		"name": "Indonesia — 2026-03-01",
+		"sealed_at": "2026-03-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"currency": "IDR",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-03-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
+			"https://x.com/BPJSTKinfo/status/2028647882178388161",
+			"https://bsc.co.id/ideas/batas-upah-jaminan-pensiun-bpjs-maret-2026/"
+		],
+		"minimum_wages": {
+			"DKI Jakarta": 5729876,
+			"Jawa Barat": 2317601
+		},
+		"jurisdiction_code": "ID"
+	}
+]

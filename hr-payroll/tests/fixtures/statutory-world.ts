@@ -13,7 +13,14 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { PayrollWorld } from './memory-payroll-api.ts';
+import assert from 'node:assert/strict';
+import { Effect } from 'effect';
+import {
+	buildPayrollRun,
+	gatherPayrollRun
+} from '../../src/collections/payroll_runs/lib/engine.ts';
+import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
+import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -43,6 +50,9 @@ export type Person = {
 	readonly marital_status?: string;
 	readonly spouse_status?: string;
 	readonly solo_parent?: boolean;
+	/** Singapore's self-help groups band on `employee.race`, and MBMF on `employee.religion`. */
+	readonly race?: string;
+	readonly religion?: string;
 	/** `employee.citizenship` — read off `employment_terms.residency_status`, never nationality. */
 	readonly citizenship?: string;
 	/** `employee.residency_months` counts from here (Singapore's SPR ladders). */
@@ -68,7 +78,11 @@ export type WorldOptions = {
 	/** VN and ID band their minimum wage by region; `companies.region` picks it. */
 	readonly region?: string | null;
 	readonly riskClass?: string | null;
-	/** Overrides the derived headcount for a HEADCOUNT band (Malaysia's HRDF). */
+	/**
+	 * Pads the world to this many employments, so a HEADCOUNT band (Malaysia's HRDF) is reached.
+	 * `gathered.headcount` counts everyone the company employs in the month, so the padding is
+	 * extra people on a token wage rather than a number the fixture asserts.
+	 */
 	readonly headcount?: number;
 };
 
@@ -84,15 +98,36 @@ function birthDateFor(age: number, period: string): string {
 	return `${String(year! - age).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+/** `count` children, each young enough to be under every `children.under(n)` age in the bank. */
+function childrenOf(count: number, period: string) {
+	return Array.from({ length: count }, (_, index) => ({
+		child_birthdate: birthDateFor(index + 1, period)
+	}));
+}
+
 export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const { code, period } = options;
 	const versions = settingsVersions(code);
 	const jurisdictionCode = versions[0]!.jurisdiction_code;
-	const employmentIds = options.people.map(
+	const schemes = law(code, 'statutory_contributions');
+	// Padding employments stand outside every scheme: they count toward a HEADCOUNT band but
+	// charge nothing, relieve nothing, and always settle positive on their token wage.
+	const padding: Person[] = Array.from(
+		{ length: Math.max(0, (options.headcount ?? 0) - options.people.length) },
+		(_, index) => ({
+			key: `PAD-${index}`,
+			wage: 1,
+			registrations: Object.fromEntries(
+				schemes.map((scheme) => [scheme.code, { kind: 'NOT_REGISTERED' }])
+			)
+		})
+	);
+	const people = [...options.people, ...padding];
+	const employmentIds = people.map(
 		(_, index) => `e0000000-0000-4000-8000-${String(index).padStart(12, '0')}`
 	);
 
-	const employees = options.people.map((person, index) => ({
+	const employees = people.map((person, index) => ({
 		id: `a0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		name: person.key,
 		date_of_birth: birthDateFor(person.age ?? 40, period),
@@ -100,11 +135,13 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		marital_status: person.marital_status ?? 'SINGLE',
 		spouse_status: person.spouse_status ?? 'NONE',
 		solo_parent: person.solo_parent ?? false,
+		race: person.race ?? null,
+		religion: person.religion ?? null,
 		dependents_count: person.children ?? 0,
 		approval_id: null
 	}));
 
-	const employments = options.people.map((person, index) => ({
+	const employments = people.map((person, index) => ({
 		id: employmentIds[index]!,
 		employee_id: employees[index]!.id,
 		company_id: COMPANY_ID,
@@ -112,13 +149,13 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		hire_date: person.hire_date ?? '2015-01-01',
 		exit_date: null,
 		exit_reason: null,
-		children: [],
+		children: childrenOf(person.children ?? 0, period),
 		bank: null,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: null },
 		approval_id: null
 	}));
 
-	const terms = options.people.map((person, index) => ({
+	const terms = people.map((person, index) => ({
 		id: `b0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		employment_id: employmentIds[index]!,
 		base_salary: { value: person.wage, currency: versions[0]!.currency },
@@ -140,9 +177,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	// Every scheme the version levies gets an explicit REGISTERED row, so a scheme that only charges
 	// a registered employment is charged and a NOT_REGISTERED case is a deliberate override rather
 	// than an absence of data.
-	const schemes = law(code, 'statutory_contributions');
 	const facts: PayrollWorld['employment_statutory_facts'] = [];
-	for (const [index, person] of options.people.entries())
+	for (const [index, person] of people.entries())
 		for (const scheme of schemes) {
 			const declared = person.registrations?.[scheme.code];
 			facts.push({
@@ -255,4 +291,172 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		payslip_leave_inputs: [],
 		payslip_loan_repayment_inputs: []
 	};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Golden-test harness.
+//
+// `assessStatutory` runs the two calls production runs — `gatherPayrollRun` then
+// `buildPayrollRun` (PICK, GATHER, VALIDATE, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE,
+// GRAPH) — over the memory API, and indexes the built payslips' statutory charges by
+// employee number and scheme code. A figure asserted from this book has been through the
+// whole pipeline, not just `contribute()`.
+//
+// `assessStatutoryUnvalidated` runs GATHER, MEASURE, ACCUMULATE and CONTRIBUTE only. It
+// exists for the lineage whose sealed seed trips a validation blocker (ID `PPH21` — see
+// `tests/statutory-golden-id.test.ts`). The figures are what the engine computes; the
+// blocker's relief linkage is computationally inert on a `PERCENT` award, so they are what
+// a corrected seed would build. The run as a whole does not build until that correction.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type StatutoryCharge = {
+	readonly base: number;
+	readonly employee: number;
+	readonly employer: number;
+	readonly band: string | null;
+};
+
+export type StatutoryBook = Map<string, Map<string, StatutoryCharge>>;
+
+type PricedCharge = {
+	readonly code: string;
+	readonly base: number;
+	readonly employee: number;
+	readonly employer: number;
+	readonly band: string | null;
+};
+
+/**
+ * Index one run's charges by employee number and scheme code.
+ *
+ * `+ 0` normalises negative zero: `roundMoney(0, 'UP_TO_UNIT')` is `Math.ceil(0 - eps)`,
+ * which is `-0`, and `assert.equal` compares primitives with `Object.is`, where `-0 !== 0`.
+ * It reaches a payslip as JSON `0` and is invisible downstream, so it is normalised here
+ * rather than asserted.
+ */
+function indexStatutory(
+	employments: PayrollWorld['employments'],
+	runs: ReadonlyArray<{ employmentId: string; charges: readonly PricedCharge[] }>
+): StatutoryBook {
+	const numbers = new Map<string, string>();
+	for (const employment of employments)
+		numbers.set(String(employment.id), String(employment.employee_number));
+	const book: StatutoryBook = new Map();
+	for (const run of runs) {
+		const rows = new Map<string, StatutoryCharge>();
+		for (const charge of run.charges)
+			rows.set(charge.code, {
+				base: charge.base + 0,
+				employee: charge.employee + 0,
+				employer: charge.employer + 0,
+				band: charge.band
+			});
+		book.set(numbers.get(run.employmentId)!, rows);
+	}
+	return book;
+}
+
+export function assessStatutory(options: WorldOptions): StatutoryBook {
+	const world = createStatutoryWorld(options);
+	const prepared = Effect.runSync(
+		gatherPayrollRun({
+			api: memoryPayrollApi(world),
+			companyId: COMPANY_ID,
+			period: options.period
+		})
+	);
+	return indexStatutory(
+		world.employments,
+		buildPayrollRun(prepared).payslip_payroll_run.map((payslip) => ({
+			employmentId: String(payslip.employment_id),
+			charges: payslip.statutory.map((charge) => ({
+				code: charge.scheme_code,
+				base: charge.base_amount,
+				employee: charge.employee_amount,
+				employer: charge.employer_amount,
+				band: charge.band_key
+			}))
+		}))
+	);
+}
+
+export function assessStatutoryUnvalidated(options: WorldOptions): StatutoryBook {
+	const world = createStatutoryWorld(options);
+	const prepared = Effect.runSync(
+		gatherPayrollRun({
+			api: memoryPayrollApi(world),
+			companyId: COMPANY_ID,
+			period: options.period
+		})
+	);
+	const { measuredContracts, chargesByEmployment } = calculateFamilyAssessments({
+		configuration: prepared.configuration,
+		gathered: prepared.gathered,
+		window: prepared.window,
+		period: options.period
+	});
+	return indexStatutory(
+		world.employments,
+		measuredContracts.map((contract) => ({
+			employmentId: contract.employment.id,
+			charges: (chargesByEmployment.get(contract.employment.id) ?? []).map((charge) => ({
+				code: charge.contribution.row.code,
+				base: charge.base,
+				employee: charge.employee,
+				employer: charge.employer,
+				band: charge.bandReference
+			}))
+		}))
+	);
+}
+
+/** The scheme's charge for that person, or a failure naming what the run did produce. */
+function priced(book: StatutoryBook, person: string, code: string): StatutoryCharge {
+	const rows = book.get(person);
+	assert.ok(rows, `no payslip for ${person}: the run produced ${[...book.keys()].join(', ')}`);
+	const row = rows.get(code);
+	assert.ok(
+		row,
+		`${person} has no ${code} charge; the run charged ${[...rows.keys()].join(', ')}. ` +
+			'A scheme the person is outside produces no row at all — not a zero one.'
+	);
+	return row;
+}
+
+/** `expectStatutory(book, 'MY-5001', 'EPF', 561, 612)` — employee and employer shares. */
+export function expectStatutory(
+	book: StatutoryBook,
+	person: string,
+	code: string,
+	employee: number,
+	employer: number
+): void {
+	const row = priced(book, person, code);
+	assert.deepEqual(
+		{ employee: row.employee, employer: row.employer },
+		{ employee, employer },
+		`${person} × ${code} (base ${row.base}, band ${row.band ?? 'n/a'})`
+	);
+}
+
+/** A scheme whose own `eligibility` excludes the person contributes nothing and appears nowhere. */
+export function expectStatutorySkipped(book: StatutoryBook, person: string, code: string): void {
+	const rows = book.get(person);
+	assert.ok(rows, `no payslip for ${person}`);
+	assert.equal(
+		rows.has(code),
+		false,
+		`${person} should be outside ${code} entirely, but the run charged ` +
+			JSON.stringify(rows.get(code))
+	);
+}
+
+/** The chargeable base a scheme accumulated — the salary line, where nothing else is paid. */
+export function expectStatutoryBase(
+	book: StatutoryBook,
+	person: string,
+	code: string,
+	base: number
+): void {
+	assert.equal(priced(book, person, code).base, base, `${person} × ${code} base`);
 }

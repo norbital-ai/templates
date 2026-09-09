@@ -1,0 +1,50 @@
+[
+	{
+		"id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "TW",
+		"name": "Taiwan",
+		"sealed_at": "2025-12-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"currency": "TWD",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2026-01-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.mol.gov.tw/1607/1632/1633/84947/post",
+			"https://www.bli.gov.tw/Files/24801",
+			"https://www.bli.gov.tw/Files/24831",
+			"https://data.gov.tw/dataset/20251",
+			"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe"
+		],
+		"jurisdiction_code": "TW"
+	},
+	{
+		"id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "TW",
+		"name": "Taiwan — 1 January 2026",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"currency": "TWD",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.mol.gov.tw/1607/1632/1633/84947/post",
+			"https://www.bli.gov.tw/Files/25659",
+			"https://www.bli.gov.tw/Files/25709",
+			"https://www.nhi.gov.tw/ch/cp-19421-f9533-2569-1.html",
+			"https://law-out.mof.gov.tw/LawContent.aspx?id=FL005962",
+			"https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=N0030006",
+			"https://www.dgpa.gov.tw/information?uid=41&pid=12573"
+		],
+		"jurisdiction_code": "TW"
+	}
+]

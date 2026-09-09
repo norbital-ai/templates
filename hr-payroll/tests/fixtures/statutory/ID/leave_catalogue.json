@@ -1,0 +1,3557 @@
+[
+	{
+		"id": "318f4a5b-ec18-50d7-a982-e75d33bd3bc8",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "JOINT_LEAVE",
+		"name": "Joint leave (cuti bersama)",
+		"is_statutory": false,
+		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "5295601b-e601-57e1-bf47-383bb76d2dee",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "WORK_FROM_HOME",
+		"name": "Work from home (attendance marker)",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "82d7ddf9-9a7e-59ce-b62e-f040b703bd21",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
+		"eligibility": "employment.service_months >= 12",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 12
+				}
+			]
+		}
+	},
+	{
+		"id": "9ac49206-89cf-5912-b8f3-b8a34f9626e7",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "c235c81e-a9f1-5d6f-80d3-805c255c3e33",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
+		"eligibility": "",
+		"requires_certificate_after_days": 0,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000050",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 91
+				}
+			]
+		}
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000051",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
+		"eligibility": "employee.gender == \"MALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "78b7f6ef-50ba-5ee1-adf6-0cf0ba54a58b",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "d1662135-c06f-557c-a6ff-dad6049e21d8",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "44f066aa-269e-5fa5-b052-78f652272a5e",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "CHILD_CIRCUMCISION_LEAVE",
+		"name": "Child's circumcision leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "19369ba6-2efb-5647-8ab4-d4e4dc919380",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "CHILD_BAPTISM_LEAVE",
+		"name": "Child's baptism leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "e1414e0d-7fe7-52ee-bbdb-077314738e53",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (immediate family)",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "b0f66197-7ebc-5d91-b672-e487e3fb4435",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
+		"name": "Bereavement leave (household member)",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "1addf49b-260f-5a10-84c7-1d34497ac85e",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "dd4aa8a7-5483-57a8-b34a-ab3fb821db5e",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "MISCARRIAGE_LEAVE",
+		"name": "Miscarriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 45
+				}
+			]
+		}
+	},
+	{
+		"id": "6001d5a1-cfa4-5bbf-82c4-c88d2829d7e7",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "JOINT_LEAVE",
+		"name": "Joint leave (cuti bersama)",
+		"is_statutory": false,
+		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "87a0d61e-3eb6-5e51-a765-954530b42e9e",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "WORK_FROM_HOME",
+		"name": "Work from home (attendance marker)",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "3b3c263b-e994-5828-a1a5-c5195961036b",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
+		"eligibility": "employment.service_months >= 12",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 12
+				}
+			]
+		}
+	},
+	{
+		"id": "502b5eda-675a-5ef5-b4b7-85e0ad0e5903",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "ec61136a-bbcc-536f-8c74-de13709bcded",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
+		"eligibility": "",
+		"requires_certificate_after_days": 0,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "2a48f460-3c52-5ca7-9c69-57d02384d5dd",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 91
+				}
+			]
+		}
+	},
+	{
+		"id": "208c6c35-e3a6-5650-ae61-dfdd31af4aef",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
+		"eligibility": "employee.gender == \"MALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "57ebedc1-dea9-564f-8917-deae5a53c1f5",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "3da431c1-91d4-5ca8-8835-54dd2716d989",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "affcacee-24ab-58de-8b90-88dd3ce326ad",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "CHILD_CIRCUMCISION_LEAVE",
+		"name": "Child's circumcision leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "d1e2fbba-e0f8-51b5-a048-e64cedab38ea",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "CHILD_BAPTISM_LEAVE",
+		"name": "Child's baptism leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "da86cdb2-f2e3-5de5-bf94-063cdf9e660b",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (immediate family)",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "31614406-b60d-54ec-b1b4-77685221726d",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
+		"name": "Bereavement leave (household member)",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "2497cdd5-a67f-5572-a955-d707c045d676",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "3290cd45-48df-5afb-b38e-416009bd236c",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "MISCARRIAGE_LEAVE",
+		"name": "Miscarriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 45
+				}
+			]
+		}
+	},
+	{
+		"id": "9e2106f2-d335-5fe1-8176-96ca21c3d1ac",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "JOINT_LEAVE",
+		"name": "Joint leave (cuti bersama)",
+		"is_statutory": false,
+		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "50f08383-47ff-5aa0-bb66-7f6b29e9965d",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "WORK_FROM_HOME",
+		"name": "Work from home (attendance marker)",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "41d5dc52-9576-57be-90a7-3045bf89001f",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
+		"eligibility": "employment.service_months >= 12",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 12
+				}
+			]
+		}
+	},
+	{
+		"id": "dc29e8a5-9e97-5388-bd24-12848006de4e",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "d4409e0f-f651-5983-ab07-54c260ea0568",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
+		"eligibility": "",
+		"requires_certificate_after_days": 0,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "c1556a94-4314-52d3-8b90-fc52fbdc2dd6",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 91
+				}
+			]
+		}
+	},
+	{
+		"id": "fa1868ba-c440-5af1-886d-8bdeed33c684",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
+		"eligibility": "employee.gender == \"MALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "053e9607-854d-5005-a80e-33640c5ff718",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "f10a151a-a492-56e8-b83c-90416548f0ae",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "3c9d2a19-5521-537d-9ddf-b0023dc6bfc0",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "CHILD_CIRCUMCISION_LEAVE",
+		"name": "Child's circumcision leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "f71b699f-a20f-583c-bff0-08e235de2023",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "CHILD_BAPTISM_LEAVE",
+		"name": "Child's baptism leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "0934ee89-0108-536b-b0b3-d926998c89db",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (immediate family)",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "65ba32eb-1677-5d80-b3ff-8af1792ba2ea",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
+		"name": "Bereavement leave (household member)",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "ee1834ce-84d4-5612-a192-7a9d37f9f87e",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
+		"id": "cef5c711-452e-516e-a1b2-3ce2e80b1579",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "MISCARRIAGE_LEAVE",
+		"name": "Miscarriage leave",
+		"is_statutory": true,
+		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 45
+				}
+			]
+		}
+	}
+]

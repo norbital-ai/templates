@@ -1,0 +1,482 @@
+[
+	{
+		"id": "30058d46-3e8c-54f6-b80d-b9995699daa7",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 30
+			}
+		],
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 2
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3333333333333333
+					}
+				},
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 2,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.6666666666666667
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 2
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3333333333333333
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 2,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.6666666666666667
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 2
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3333333333333333
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 2,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.6666666666666667
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 46,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "QUARTER",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 138,
+					"on_exceed": "BLOCK"
+				}
+			],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 4,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "BLOCK"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "BLOCK"
+			},
+			"night_premium": null
+		},
+		"treatments": {
+			"LI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"NHI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"LABOR_PENSION": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"OCC_INJURY": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"INCOME_TAX": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday."
+	},
+	{
+		"id": "88abe725-781d-5e2d-a08e-7ee45be05d4b",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 30
+			}
+		],
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 2
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3333333333333333
+					}
+				},
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 2,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.6666666666666667
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 2
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3333333333333333
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 2,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.6666666666666667
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 2
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3333333333333333
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 2,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.6666666666666667
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 46,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "QUARTER",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 138,
+					"on_exceed": "BLOCK"
+				}
+			],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 4,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "BLOCK"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "BLOCK"
+			},
+			"night_premium": null
+		},
+		"treatments": {
+			"LI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"NHI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"LABOR_PENSION": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"OCC_INJURY": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"INCOME_TAX": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday."
+	}
+]

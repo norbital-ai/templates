@@ -1,0 +1,4651 @@
+[
+	{
+		"id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "LI",
+		"name": "Labor Insurance (勞工保險)",
+		"is_statutory": true,
+		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes.",
+		"eligibility": "",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 100,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 28590.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 657.57,
+					"employer": 2301.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28590.01,
+					"to": 28800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 662.4,
+					"employer": 2318.4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28800.01,
+					"to": 30300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 696.9,
+					"employer": 2439.15
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30300.01,
+					"to": 31800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 731.4,
+					"employer": 2559.9
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31800.01,
+					"to": 33300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 765.9,
+					"employer": 2680.65
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33300.01,
+					"to": 34800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 800.4,
+					"employer": 2801.4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34800.01,
+					"to": 36300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 834.9,
+					"employer": 2922.15
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 36300.01,
+					"to": 38200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 878.6,
+					"employer": 3075.1
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38200.01,
+					"to": 40100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 922.3,
+					"employer": 3228.05
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 40100.01,
+					"to": 42000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 966,
+					"employer": 3381
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42000.01,
+					"to": 43900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1009.7,
+					"employer": 3533.95
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43900.01,
+					"to": 45800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1053.4,
+					"employer": 3686.9
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1053.4,
+					"employer": 3686.9
+				}
+			}
+		]
+	},
+	{
+		"id": "3f6aa8f0-0283-5343-93a2-6bac34a32650",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "EI",
+		"name": "Employment Insurance (就業保險)",
+		"is_statutory": true,
+		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below.",
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 150,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 0,
+					"to": 0.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 0.01,
+					"to": 28590.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 57.18,
+					"employer": 200.13
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 28590.01,
+					"to": 28800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 57.6,
+					"employer": 201.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 28800.01,
+					"to": 30300.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 60.6,
+					"employer": 212.1
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 30300.01,
+					"to": 31800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 63.6,
+					"employer": 222.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 31800.01,
+					"to": 33300.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 66.6,
+					"employer": 233.1
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 33300.01,
+					"to": 34800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 69.6,
+					"employer": 243.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 34800.01,
+					"to": 36300.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 72.6,
+					"employer": 254.1
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 36300.01,
+					"to": 38200.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 76.4,
+					"employer": 267.4
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 38200.01,
+					"to": 40100.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 80.2,
+					"employer": 280.7
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 40100.01,
+					"to": 42000.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 84,
+					"employer": 294
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 42000.01,
+					"to": 43900.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 87.8,
+					"employer": 307.3
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 43900.01,
+					"to": 45800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 91.6,
+					"employer": 320.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 45800.01,
+					"to": null,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 91.6,
+					"employer": 320.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			}
+		]
+	},
+	{
+		"id": "cdc65bc6-3366-59f9-8811-ee46f58f9afe",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "NHI",
+		"name": "National Health Insurance (全民健康保險)",
+		"is_statutory": true,
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56.",
+		"eligibility": "",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 200,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 28590.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 443.43,
+					"employer": 1383.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28590.01,
+					"to": 28800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 446.69,
+					"employer": 1393.67
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28800.01,
+					"to": 30300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 469.95,
+					"employer": 1466.26
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30300.01,
+					"to": 31800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 493.22,
+					"employer": 1538.85
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31800.01,
+					"to": 33300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 516.48,
+					"employer": 1611.43
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33300.01,
+					"to": 34800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 539.75,
+					"employer": 1684.02
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34800.01,
+					"to": 36300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 563.01,
+					"employer": 1756.61
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 36300.01,
+					"to": 38200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 592.48,
+					"employer": 1848.54
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38200.01,
+					"to": 40100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 621.95,
+					"employer": 1940.48
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 40100.01,
+					"to": 42000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 651.42,
+					"employer": 2032.43
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42000.01,
+					"to": 43900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 680.89,
+					"employer": 2124.38
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43900.01,
+					"to": 45800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 710.36,
+					"employer": 2216.32
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800.01,
+					"to": 48200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 747.58,
+					"employer": 2332.45
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 48200.01,
+					"to": 50600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 784.81,
+					"employer": 2448.59
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600.01,
+					"to": 53000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 822.03,
+					"employer": 2564.73
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53000.01,
+					"to": 55400.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 859.25,
+					"employer": 2680.88
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55400.01,
+					"to": 57800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 896.48,
+					"employer": 2797.02
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 57800.01,
+					"to": 60800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 943.01,
+					"employer": 2942.19
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60800.01,
+					"to": 63800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 989.54,
+					"employer": 3087.36
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 63800.01,
+					"to": 66800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1036.07,
+					"employer": 3232.54
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66800.01,
+					"to": 69800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1082.6,
+					"employer": 3377.71
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 69800.01,
+					"to": 72800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1129.13,
+					"employer": 3522.89
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 72800.01,
+					"to": 76500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1186.52,
+					"employer": 3701.93
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 76500.01,
+					"to": 80200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1243.9,
+					"employer": 3880.97
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80200.01,
+					"to": 83900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1301.29,
+					"employer": 4060.02
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83900.01,
+					"to": 87600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1358.68,
+					"employer": 4239.07
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 87600.01,
+					"to": 92100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1428.47,
+					"employer": 4456.83
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 92100.01,
+					"to": 96600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1498.27,
+					"employer": 4674.59
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 96600.01,
+					"to": 101100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1568.06,
+					"employer": 4892.35
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 101100.01,
+					"to": 105600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1637.86,
+					"employer": 5110.11
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 105600.01,
+					"to": 110100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1707.65,
+					"employer": 5327.87
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110100.01,
+					"to": 115500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1791.41,
+					"employer": 5589.18
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 115500.01,
+					"to": 120900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1875.16,
+					"employer": 5850.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120900.01,
+					"to": 126300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1958.91,
+					"employer": 6111.81
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 126300.01,
+					"to": 131700.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2042.67,
+					"employer": 6373.11
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 131700.01,
+					"to": 137100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2126.42,
+					"employer": 6634.43
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 137100.01,
+					"to": 142500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2210.17,
+					"employer": 6895.75
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 142500.01,
+					"to": 147900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2293.93,
+					"employer": 7157.06
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 147900.01,
+					"to": 150000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2326.5,
+					"employer": 7258.68
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 150000.01,
+					"to": 156400.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2425.76,
+					"employer": 7568.39
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 156400.01,
+					"to": 162800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2525.03,
+					"employer": 7878.09
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 162800.01,
+					"to": 169200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2624.29,
+					"employer": 8187.78
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 169200.01,
+					"to": 175600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2723.56,
+					"employer": 8497.49
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 175600.01,
+					"to": 182000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2822.82,
+					"employer": 8807.2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 182000.01,
+					"to": 189500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2939.15,
+					"employer": 9170.13
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 189500.01,
+					"to": 197000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3055.47,
+					"employer": 9533.07
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 197000.01,
+					"to": 204500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3171.8,
+					"employer": 9896
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 204500.01,
+					"to": 212000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3288.12,
+					"employer": 10258.93
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 212000.01,
+					"to": 219500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3404.45,
+					"employer": 10621.87
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 219500.01,
+					"to": 228200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3539.38,
+					"employer": 11042.87
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 228200.01,
+					"to": 236900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3674.32,
+					"employer": 11463.88
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 236900.01,
+					"to": 245600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3809.26,
+					"employer": 11884.88
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 245600.01,
+					"to": 254300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3944.19,
+					"employer": 12305.89
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 254300.01,
+					"to": 263000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4079.13,
+					"employer": 12726.89
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 263000.01,
+					"to": 273000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4234.23,
+					"employer": 13210.8
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 273000.01,
+					"to": 283000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4389.33,
+					"employer": 13694.71
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 283000.01,
+					"to": 293000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4544.43,
+					"employer": 14178.62
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 293000.01,
+					"to": 303000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4699.53,
+					"employer": 14662.53
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 303000.01,
+					"to": 313000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4854.63,
+					"employer": 15146.45
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 313000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4854.63,
+					"employer": 15146.45
+				}
+			}
+		]
+	},
+	{
+		"id": "ce4ea72b-be8c-5a1c-bd57-55afaad43a6d",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "LABOR_PENSION",
+		"name": "Labor Pension (勞工退休金, new system)",
+		"is_statutory": true,
+		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below.",
+		"eligibility": "",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 300,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 28590.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1715.4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28590.01,
+					"to": 28800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1728
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28800.01,
+					"to": 30300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1818
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30300.01,
+					"to": 31800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1908
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31800.01,
+					"to": 33300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1998
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33300.01,
+					"to": 34800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2088
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34800.01,
+					"to": 36300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2178
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 36300.01,
+					"to": 38200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2292
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38200.01,
+					"to": 40100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2406
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 40100.01,
+					"to": 42000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2520
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42000.01,
+					"to": 43900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2634
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43900.01,
+					"to": 45800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2748
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800.01,
+					"to": 48200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2892
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 48200.01,
+					"to": 50600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3036
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600.01,
+					"to": 53000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3180
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53000.01,
+					"to": 55400.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3324
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55400.01,
+					"to": 57800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3468
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 57800.01,
+					"to": 60800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3648
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60800.01,
+					"to": 63800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3828
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 63800.01,
+					"to": 66800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4008
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66800.01,
+					"to": 69800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4188
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 69800.01,
+					"to": 72800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4368
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 72800.01,
+					"to": 76500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4590
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 76500.01,
+					"to": 80200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4812
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80200.01,
+					"to": 83900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5034
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83900.01,
+					"to": 87600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5256
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 87600.01,
+					"to": 92100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5526
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 92100.01,
+					"to": 96600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5796
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 96600.01,
+					"to": 101100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6066
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 101100.01,
+					"to": 105600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6336
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 105600.01,
+					"to": 110100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6606
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110100.01,
+					"to": 115500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6930
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 115500.01,
+					"to": 120900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 7254
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120900.01,
+					"to": 126300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 7578
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 126300.01,
+					"to": 131700.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 7902
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 131700.01,
+					"to": 137100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 8226
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 137100.01,
+					"to": 142500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 8550
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 142500.01,
+					"to": 147900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 8874
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 147900.01,
+					"to": 150000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 9000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 150000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 9000
+				}
+			}
+		]
+	},
+	{
+		"id": "dc52e928-2f62-525c-98dd-1014d6135b55",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "OCC_INJURY",
+		"name": "Occupational Accident Insurance (勞工職業災害保險)",
+		"is_statutory": true,
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55.",
+		"eligibility": "",
+		"rounding": "NONE",
+		"relief_for": [],
+		"sequence": 350,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "1"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "2"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "3"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.96
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "4"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.22
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "5"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "6"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.17
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "7"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.15
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "8"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "9"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.43
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "10"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.39
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "11"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "12"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.22
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "13"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.26
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "14"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.4
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "15"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.43
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "16"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.34
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "17"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.27
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "18"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "19"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.26
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "20"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.26
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "21"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "22"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.28
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "23"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.39
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "24"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "25"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.57
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "26"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.37
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "27"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.45
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "28"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.53
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "29"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.44
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "30"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "31"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.17
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "32"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.39
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "33"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.87
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "34"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "35"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.17
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "36"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.23
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "37"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "38"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "39"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "40"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "41"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "42"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "43"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "44"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.16
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "45"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.15
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "46"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "47"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.14
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "48"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "49"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "50"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "51"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "52"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.16
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "53"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.14
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "54"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "55"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			}
+		]
+	},
+	{
+		"id": "93bbdc51-5c38-5be0-9dd1-ddc3fa948461",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "INCOME_TAX",
+		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
+		"is_statutory": true,
+		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below.",
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 400,
+		"special_rules": ["MIN_WITHHOLD:2000"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				}
+			}
+		]
+	},
+	{
+		"id": "bc105840-066b-5058-9bdf-07ae2d82eb55",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "INCOME_TAX_NON_RESIDENT",
+		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
+		"is_statutory": true,
+		"authority": "所得稅法第88條與各類所得扣繳率標準第3條第2款 — 18% of the payment to a non-resident, reduced to 6% where the full month's salary does not exceed 1.5× the Executive-Yuan-approved basic wage (NT$42,885 for this version). 各類所得扣繳率標準第13條's NT$2,000 floor does not apply to a non-resident.",
+		"eligibility": "employee.citizenship == \"FOREIGNER\"",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 450,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 42885.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.citizenship == \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42885.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.citizenship == \"FOREIGNER\""
+			}
+		]
+	},
+	{
+		"id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "LI",
+		"name": "Labor Insurance (勞工保險)",
+		"is_statutory": true,
+		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes.",
+		"eligibility": "",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 100,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 29500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 678.5,
+					"employer": 2374.75
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29500.01,
+					"to": 30300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 696.9,
+					"employer": 2439.15
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30300.01,
+					"to": 31800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 731.4,
+					"employer": 2559.9
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31800.01,
+					"to": 33300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 765.9,
+					"employer": 2680.65
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33300.01,
+					"to": 34800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 800.4,
+					"employer": 2801.4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34800.01,
+					"to": 36300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 834.9,
+					"employer": 2922.15
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 36300.01,
+					"to": 38200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 878.6,
+					"employer": 3075.1
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38200.01,
+					"to": 40100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 922.3,
+					"employer": 3228.05
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 40100.01,
+					"to": 42000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 966,
+					"employer": 3381
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42000.01,
+					"to": 43900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1009.7,
+					"employer": 3533.95
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43900.01,
+					"to": 45800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1053.4,
+					"employer": 3686.9
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1053.4,
+					"employer": 3686.9
+				}
+			}
+		]
+	},
+	{
+		"id": "ee03ba5c-5716-58e1-b58c-aa505e96c7b2",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "EI",
+		"name": "Employment Insurance (就業保險)",
+		"is_statutory": true,
+		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below.",
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 150,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 0,
+					"to": 0.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 0.01,
+					"to": 29500.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 59,
+					"employer": 206.5
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 29500.01,
+					"to": 30300.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 60.6,
+					"employer": 212.1
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 30300.01,
+					"to": 31800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 63.6,
+					"employer": 222.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 31800.01,
+					"to": 33300.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 66.6,
+					"employer": 233.1
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 33300.01,
+					"to": 34800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 69.6,
+					"employer": 243.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 34800.01,
+					"to": 36300.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 72.6,
+					"employer": 254.1
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 36300.01,
+					"to": 38200.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 76.4,
+					"employer": 267.4
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 38200.01,
+					"to": 40100.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 80.2,
+					"employer": 280.7
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 40100.01,
+					"to": 42000.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 84,
+					"employer": 294
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 42000.01,
+					"to": 43900.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 87.8,
+					"employer": 307.3
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 43900.01,
+					"to": 45800.01,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 91.6,
+					"employer": 320.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE_AND_AGE",
+					"from": 45800.01,
+					"to": null,
+					"age_from": 15,
+					"age_to": 65
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 91.6,
+					"employer": 320.6
+				},
+				"eligibility": "employee.citizenship != \"FOREIGNER\""
+			}
+		]
+	},
+	{
+		"id": "fad78d69-2b64-502e-8ab5-2959909c0e27",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "NHI",
+		"name": "National Health Insurance (全民健康保險)",
+		"is_statutory": true,
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56.",
+		"eligibility": "",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 200,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 29500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 457.55,
+					"employer": 1427.54
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29500.01,
+					"to": 30300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 469.95,
+					"employer": 1466.26
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30300.01,
+					"to": 31800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 493.22,
+					"employer": 1538.85
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31800.01,
+					"to": 33300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 516.48,
+					"employer": 1611.43
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33300.01,
+					"to": 34800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 539.75,
+					"employer": 1684.02
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34800.01,
+					"to": 36300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 563.01,
+					"employer": 1756.61
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 36300.01,
+					"to": 38200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 592.48,
+					"employer": 1848.54
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38200.01,
+					"to": 40100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 621.95,
+					"employer": 1940.48
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 40100.01,
+					"to": 42000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 651.42,
+					"employer": 2032.43
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42000.01,
+					"to": 43900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 680.89,
+					"employer": 2124.38
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43900.01,
+					"to": 45800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 710.36,
+					"employer": 2216.32
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800.01,
+					"to": 48200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 747.58,
+					"employer": 2332.45
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 48200.01,
+					"to": 50600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 784.81,
+					"employer": 2448.59
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600.01,
+					"to": 53000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 822.03,
+					"employer": 2564.73
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53000.01,
+					"to": 55400.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 859.25,
+					"employer": 2680.88
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55400.01,
+					"to": 57800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 896.48,
+					"employer": 2797.02
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 57800.01,
+					"to": 60800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 943.01,
+					"employer": 2942.19
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60800.01,
+					"to": 63800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 989.54,
+					"employer": 3087.36
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 63800.01,
+					"to": 66800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1036.07,
+					"employer": 3232.54
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66800.01,
+					"to": 69800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1082.6,
+					"employer": 3377.71
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 69800.01,
+					"to": 72800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1129.13,
+					"employer": 3522.89
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 72800.01,
+					"to": 76500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1186.52,
+					"employer": 3701.93
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 76500.01,
+					"to": 80200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1243.9,
+					"employer": 3880.97
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80200.01,
+					"to": 83900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1301.29,
+					"employer": 4060.02
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83900.01,
+					"to": 87600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1358.68,
+					"employer": 4239.07
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 87600.01,
+					"to": 92100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1428.47,
+					"employer": 4456.83
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 92100.01,
+					"to": 96600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1498.27,
+					"employer": 4674.59
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 96600.01,
+					"to": 101100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1568.06,
+					"employer": 4892.35
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 101100.01,
+					"to": 105600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1637.86,
+					"employer": 5110.11
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 105600.01,
+					"to": 110100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1707.65,
+					"employer": 5327.87
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110100.01,
+					"to": 115500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1791.41,
+					"employer": 5589.18
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 115500.01,
+					"to": 120900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1875.16,
+					"employer": 5850.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120900.01,
+					"to": 126300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1958.91,
+					"employer": 6111.81
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 126300.01,
+					"to": 131700.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2042.67,
+					"employer": 6373.11
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 131700.01,
+					"to": 137100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2126.42,
+					"employer": 6634.43
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 137100.01,
+					"to": 142500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2210.17,
+					"employer": 6895.75
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 142500.01,
+					"to": 147900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2293.93,
+					"employer": 7157.06
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 147900.01,
+					"to": 150000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2326.5,
+					"employer": 7258.68
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 150000.01,
+					"to": 156400.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2425.76,
+					"employer": 7568.39
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 156400.01,
+					"to": 162800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2525.03,
+					"employer": 7878.09
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 162800.01,
+					"to": 169200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2624.29,
+					"employer": 8187.78
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 169200.01,
+					"to": 175600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2723.56,
+					"employer": 8497.49
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 175600.01,
+					"to": 182000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2822.82,
+					"employer": 8807.2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 182000.01,
+					"to": 189500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2939.15,
+					"employer": 9170.13
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 189500.01,
+					"to": 197000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3055.47,
+					"employer": 9533.07
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 197000.01,
+					"to": 204500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3171.8,
+					"employer": 9896
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 204500.01,
+					"to": 212000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3288.12,
+					"employer": 10258.93
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 212000.01,
+					"to": 219500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3404.45,
+					"employer": 10621.87
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 219500.01,
+					"to": 228200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3539.38,
+					"employer": 11042.87
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 228200.01,
+					"to": 236900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3674.32,
+					"employer": 11463.88
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 236900.01,
+					"to": 245600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3809.26,
+					"employer": 11884.88
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 245600.01,
+					"to": 254300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3944.19,
+					"employer": 12305.89
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 254300.01,
+					"to": 263000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4079.13,
+					"employer": 12726.89
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 263000.01,
+					"to": 273000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4234.23,
+					"employer": 13210.8
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 273000.01,
+					"to": 283000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4389.33,
+					"employer": 13694.71
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 283000.01,
+					"to": 293000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4544.43,
+					"employer": 14178.62
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 293000.01,
+					"to": 303000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4699.53,
+					"employer": 14662.53
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 303000.01,
+					"to": 313000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4854.63,
+					"employer": 15146.45
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 313000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4854.63,
+					"employer": 15146.45
+				}
+			}
+		]
+	},
+	{
+		"id": "68031cb2-4c64-5edb-9e30-435b8c986287",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "LABOR_PENSION",
+		"name": "Labor Pension (勞工退休金, new system)",
+		"is_statutory": true,
+		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below.",
+		"eligibility": "",
+		"rounding": "TABLE",
+		"relief_for": [],
+		"sequence": 300,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 29500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1770
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29500.01,
+					"to": 30300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1818
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30300.01,
+					"to": 31800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1908
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31800.01,
+					"to": 33300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1998
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33300.01,
+					"to": 34800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2088
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34800.01,
+					"to": 36300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2178
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 36300.01,
+					"to": 38200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2292
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38200.01,
+					"to": 40100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2406
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 40100.01,
+					"to": 42000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2520
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 42000.01,
+					"to": 43900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2634
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43900.01,
+					"to": 45800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2748
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800.01,
+					"to": 48200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 2892
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 48200.01,
+					"to": 50600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3036
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600.01,
+					"to": 53000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3180
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53000.01,
+					"to": 55400.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3324
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55400.01,
+					"to": 57800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3468
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 57800.01,
+					"to": 60800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3648
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60800.01,
+					"to": 63800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 3828
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 63800.01,
+					"to": 66800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4008
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66800.01,
+					"to": 69800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4188
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 69800.01,
+					"to": 72800.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4368
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 72800.01,
+					"to": 76500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4590
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 76500.01,
+					"to": 80200.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 4812
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80200.01,
+					"to": 83900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5034
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83900.01,
+					"to": 87600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5256
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 87600.01,
+					"to": 92100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5526
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 92100.01,
+					"to": 96600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 5796
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 96600.01,
+					"to": 101100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6066
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 101100.01,
+					"to": 105600.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6336
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 105600.01,
+					"to": 110100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6606
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110100.01,
+					"to": 115500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 6930
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 115500.01,
+					"to": 120900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 7254
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120900.01,
+					"to": 126300.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 7578
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 126300.01,
+					"to": 131700.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 7902
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 131700.01,
+					"to": 137100.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 8226
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 137100.01,
+					"to": 142500.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 8550
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 142500.01,
+					"to": 147900.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 8874
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 147900.01,
+					"to": 150000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 9000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 150000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 9000
+				}
+			}
+		]
+	},
+	{
+		"id": "bd43ec7d-061c-5324-9528-29abf401a245",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "OCC_INJURY",
+		"name": "Occupational Accident Insurance (勞工職業災害保險)",
+		"is_statutory": true,
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55.",
+		"eligibility": "",
+		"rounding": "NONE",
+		"relief_for": [],
+		"sequence": 350,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "1"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "2"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "3"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.96
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "4"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.22
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "5"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "6"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.17
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "7"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.15
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "8"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "9"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.43
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "10"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.39
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "11"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "12"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.22
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "13"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.26
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "14"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.4
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "15"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.43
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "16"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.34
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "17"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.27
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "18"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "19"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.26
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "20"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.26
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "21"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "22"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.28
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "23"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.39
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "24"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "25"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.57
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "26"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.37
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "27"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.45
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "28"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.53
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "29"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.44
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "30"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "31"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.17
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "32"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.39
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "33"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.87
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "34"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "35"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.17
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "36"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.23
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "37"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.21
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "38"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "39"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "40"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "41"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "42"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "43"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "44"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.16
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "45"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.15
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "46"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "47"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.14
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "48"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "49"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "50"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "51"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.12
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "52"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.16
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "53"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.14
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "54"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.25
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "55"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.19
+				}
+			}
+		]
+	},
+	{
+		"id": "4d2125a2-5ac8-51d3-b67d-0df689445aed",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "INCOME_TAX",
+		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
+		"is_statutory": true,
+		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below.",
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 400,
+		"special_rules": ["MIN_WITHHOLD:2000"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				}
+			}
+		]
+	},
+	{
+		"id": "2b04ad64-2e23-563c-898c-085ef5a15e21",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "INCOME_TAX_NON_RESIDENT",
+		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
+		"is_statutory": true,
+		"authority": "所得稅法第88條與各類所得扣繳率標準第3條第2款 — 18% of the payment to a non-resident, reduced to 6% where the full month's salary does not exceed 1.5× the Executive-Yuan-approved basic wage (NT$44,250 for this version). 各類所得扣繳率標準第13條's NT$2,000 floor does not apply to a non-resident.",
+		"eligibility": "employee.citizenship == \"FOREIGNER\"",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 450,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 44250.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.citizenship == \"FOREIGNER\""
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 44250.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.citizenship == \"FOREIGNER\""
+			}
+		]
+	}
+]

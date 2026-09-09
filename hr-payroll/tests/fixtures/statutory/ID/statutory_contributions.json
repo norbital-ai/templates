@@ -1,0 +1,5588 @@
+[
+	{
+		"id": "87e05e44-d2ca-5cbe-af64-4b56d19eb8bb",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "JHT",
+		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
+		"is_statutory": true,
+		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 100,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 3.7
+				}
+			}
+		]
+	},
+	{
+		"id": "174f7bcd-4e87-5b1d-9168-aaa5a1c93443",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "JP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
+		"is_statutory": true,
+		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. NOT MODELLED HERE: JP covers Indonesian nationals only. The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 200,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 10547400.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10547400.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 105474,
+					"employer": 210948
+				}
+			}
+		]
+	},
+	{
+		"id": "d8ce56fe-d5db-5a21-9163-ad20d0de18cf",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "JKK",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
+		"is_statutory": true,
+		"authority": "PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 300,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "I"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.1
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "II"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.4
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "III"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.75
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "IV"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 1.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "V"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 1.6
+				}
+			}
+		]
+	},
+	{
+		"id": "5d2a612c-7e64-50b6-9ae7-6ca1988cafee",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "JKM",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
+		"is_statutory": true,
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage, recomposed to 0.20% by PP 49/2023 art.18A for a participant required and registered in JKP; art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block — the art.18(1) rate before the art.18A recomposition. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 400,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			}
+		]
+	},
+	{
+		"id": "aa14e384-36e2-539d-8fcc-7da228b02da1",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "KESEHATAN",
+		"name": "BPJS Kesehatan (health insurance)",
+		"is_statutory": true,
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between the workplace provincial minimum wage and a ceiling (art.30(2)). SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 500,
+		"special_rules": ["ROUND:NEAREST_UNIT", "FLOOR:MINIMUM_WAGE"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 12000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 120000,
+					"employer": 480000
+				}
+			}
+		]
+	},
+	{
+		"id": "f2ea7bfd-4551-598a-947a-1f34e6bfc841",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "JKP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
+		"is_statutory": true,
+		"authority": "PP 37/2021 art.43 — 0.46% of the monthly wage, of which 0.22% is borne by the Central Government and 0.24% comes from recomposing JKK (0.14%, PP 49/2023 art.16A) and JKM (0.10%, PP 49/2023 art.18A). Only that recomposed 0.24% is an employer charge: the employer's total BPJS Ketenagakerjaan cash is unchanged at JKK + JKM + JKP = 1.19% of wage for a class III employer, exactly the 0.89 + 0.30 the source workbook charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 350,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.24
+				}
+			}
+		]
+	},
+	{
+		"id": "b0fe6e3c-2ece-58a0-965f-63204bd21d30",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "PPH21",
+		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
+		"is_statutory": true,
+		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) reduce the gross, see `relief_for`. NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": ["87e05e44-d2ca-5cbe-af64-4b56d19eb8bb", "174f7bcd-4e87-5b1d-9168-aaa5a1c93443"],
+		"sequence": 600,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 5400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5400000.01,
+					"to": 5650000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5650000.01,
+					"to": 5950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5950000.01,
+					"to": 6300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6300000.01,
+					"to": 6750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6750000.01,
+					"to": 7500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7500000.01,
+					"to": 8550000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8550000.01,
+					"to": 9650000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9650000.01,
+					"to": 10050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10050000.01,
+					"to": 10350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10350000.01,
+					"to": 10700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10700000.01,
+					"to": 11050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11050000.01,
+					"to": 11600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11600000.01,
+					"to": 12500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12500000.01,
+					"to": 13750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13750000.01,
+					"to": 15100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15100000.01,
+					"to": 16950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16950000.01,
+					"to": 19750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19750000.01,
+					"to": 24150000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 24150000.01,
+					"to": 26450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26450000.01,
+					"to": 28000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28000000.01,
+					"to": 30050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30050000.01,
+					"to": 32400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32400000.01,
+					"to": 35400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 35400000.01,
+					"to": 39100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 39100000.01,
+					"to": 43850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43850000.01,
+					"to": 47800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 47800000.01,
+					"to": 51400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 51400000.01,
+					"to": 56300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 56300000.01,
+					"to": 62200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 62200000.01,
+					"to": 68600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 68600000.01,
+					"to": 77500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 77500000.01,
+					"to": 89000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 89000000.01,
+					"to": 103000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 103000000.01,
+					"to": 125000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 125000000.01,
+					"to": 157000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 157000000.01,
+					"to": 206000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 206000000.01,
+					"to": 337000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 337000000.01,
+					"to": 454000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 454000000.01,
+					"to": 550000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 550000000.01,
+					"to": 695000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 695000000.01,
+					"to": 910000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 910000000.01,
+					"to": 1400000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1400000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 6200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6200000.01,
+					"to": 6500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6500000.01,
+					"to": 6850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6850000.01,
+					"to": 7300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7300000.01,
+					"to": 9200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9200000.01,
+					"to": 10750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10750000.01,
+					"to": 11250000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11250000.01,
+					"to": 11600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11600000.01,
+					"to": 12600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12600000.01,
+					"to": 13600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13600000.01,
+					"to": 14950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14950000.01,
+					"to": 16400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16400000.01,
+					"to": 18450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 18450000.01,
+					"to": 21850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 21850000.01,
+					"to": 26000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26000000.01,
+					"to": 27700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 27700000.01,
+					"to": 29350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29350000.01,
+					"to": 31450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31450000.01,
+					"to": 33950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33950000.01,
+					"to": 37100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 37100000.01,
+					"to": 41100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 41100000.01,
+					"to": 45800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800000.01,
+					"to": 49500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 49500000.01,
+					"to": 53800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53800000.01,
+					"to": 58500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 58500000.01,
+					"to": 64000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 64000000.01,
+					"to": 71000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 71000000.01,
+					"to": 80000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80000000.01,
+					"to": 93000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 93000000.01,
+					"to": 109000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 109000000.01,
+					"to": 129000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 129000000.01,
+					"to": 163000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 163000000.01,
+					"to": 211000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 211000000.01,
+					"to": 374000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 374000000.01,
+					"to": 459000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 459000000.01,
+					"to": 555000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 555000000.01,
+					"to": 704000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 704000000.01,
+					"to": 957000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 957000000.01,
+					"to": 1405000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1405000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 6600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6600000.01,
+					"to": 6950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6950000.01,
+					"to": 7350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7350000.01,
+					"to": 7800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7800000.01,
+					"to": 8850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8850000.01,
+					"to": 9800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9800000.01,
+					"to": 10950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10950000.01,
+					"to": 11200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11200000.01,
+					"to": 12050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12050000.01,
+					"to": 12950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12950000.01,
+					"to": 14150000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14150000.01,
+					"to": 15550000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15550000.01,
+					"to": 17050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 17050000.01,
+					"to": 19500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19500000.01,
+					"to": 22700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 22700000.01,
+					"to": 26600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26600000.01,
+					"to": 28100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28100000.01,
+					"to": 30100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30100000.01,
+					"to": 32600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32600000.01,
+					"to": 35400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 35400000.01,
+					"to": 38900000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38900000.01,
+					"to": 43000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43000000.01,
+					"to": 47400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 47400000.01,
+					"to": 51200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 51200000.01,
+					"to": 55800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55800000.01,
+					"to": 60400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60400000.01,
+					"to": 66700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66700000.01,
+					"to": 74500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 74500000.01,
+					"to": 83200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83200000.01,
+					"to": 95600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 95600000.01,
+					"to": 110000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110000000.01,
+					"to": 134000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 134000000.01,
+					"to": 169000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 169000000.01,
+					"to": 221000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 221000000.01,
+					"to": 390000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 390000000.01,
+					"to": 463000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 463000000.01,
+					"to": 561000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 561000000.01,
+					"to": 709000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 709000000.01,
+					"to": 965000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 965000000.01,
+					"to": 1419000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1419000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			}
+		]
+	},
+	{
+		"id": "756424ff-cac4-5b46-8432-e98930a17463",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "JHT",
+		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
+		"is_statutory": true,
+		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 100,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 3.7
+				}
+			}
+		]
+	},
+	{
+		"id": "f7dc551b-bdca-5cfa-9329-901d3201d854",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "JP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
+		"is_statutory": true,
+		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. NOT MODELLED HERE: JP covers Indonesian nationals only. The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 200,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 10547400.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10547400.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 105474,
+					"employer": 210948
+				}
+			}
+		]
+	},
+	{
+		"id": "9510532b-35fe-57ce-808d-7d8bacc60fbb",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "JKK",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
+		"is_statutory": true,
+		"authority": "PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 300,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "I"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.1
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "II"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.4
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "III"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.75
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "IV"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 1.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "V"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 1.6
+				}
+			}
+		]
+	},
+	{
+		"id": "f990c4f7-377d-5f99-808c-2412db545505",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "JKM",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
+		"is_statutory": true,
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage, recomposed to 0.20% by PP 49/2023 art.18A for a participant required and registered in JKP; art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block — the art.18(1) rate before the art.18A recomposition. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 400,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			}
+		]
+	},
+	{
+		"id": "77bed78a-5649-579a-9fae-cd44fa9f92f0",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "KESEHATAN",
+		"name": "BPJS Kesehatan (health insurance)",
+		"is_statutory": true,
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between the workplace provincial minimum wage and a ceiling (art.30(2)). SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 500,
+		"special_rules": ["ROUND:NEAREST_UNIT", "FLOOR:MINIMUM_WAGE"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 12000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 120000,
+					"employer": 480000
+				}
+			}
+		]
+	},
+	{
+		"id": "568d119b-44de-5f3f-be6b-68b6b4fb0d84",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "JKP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
+		"is_statutory": true,
+		"authority": "PP 37/2021 art.43 — 0.46% of the monthly wage, of which 0.22% is borne by the Central Government and 0.24% comes from recomposing JKK (0.14%, PP 49/2023 art.16A) and JKM (0.10%, PP 49/2023 art.18A). Only that recomposed 0.24% is an employer charge: the employer's total BPJS Ketenagakerjaan cash is unchanged at JKK + JKM + JKP = 1.19% of wage for a class III employer, exactly the 0.89 + 0.30 the source workbook charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 350,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.24
+				}
+			}
+		]
+	},
+	{
+		"id": "635fd0aa-423b-5df5-847d-d46cffbcf57b",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "PPH21",
+		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
+		"is_statutory": true,
+		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) reduce the gross, see `relief_for`. NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": ["756424ff-cac4-5b46-8432-e98930a17463", "f7dc551b-bdca-5cfa-9329-901d3201d854"],
+		"sequence": 600,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 5400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5400000.01,
+					"to": 5650000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5650000.01,
+					"to": 5950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5950000.01,
+					"to": 6300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6300000.01,
+					"to": 6750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6750000.01,
+					"to": 7500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7500000.01,
+					"to": 8550000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8550000.01,
+					"to": 9650000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9650000.01,
+					"to": 10050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10050000.01,
+					"to": 10350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10350000.01,
+					"to": 10700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10700000.01,
+					"to": 11050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11050000.01,
+					"to": 11600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11600000.01,
+					"to": 12500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12500000.01,
+					"to": 13750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13750000.01,
+					"to": 15100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15100000.01,
+					"to": 16950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16950000.01,
+					"to": 19750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19750000.01,
+					"to": 24150000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 24150000.01,
+					"to": 26450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26450000.01,
+					"to": 28000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28000000.01,
+					"to": 30050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30050000.01,
+					"to": 32400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32400000.01,
+					"to": 35400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 35400000.01,
+					"to": 39100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 39100000.01,
+					"to": 43850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43850000.01,
+					"to": 47800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 47800000.01,
+					"to": 51400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 51400000.01,
+					"to": 56300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 56300000.01,
+					"to": 62200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 62200000.01,
+					"to": 68600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 68600000.01,
+					"to": 77500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 77500000.01,
+					"to": 89000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 89000000.01,
+					"to": 103000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 103000000.01,
+					"to": 125000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 125000000.01,
+					"to": 157000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 157000000.01,
+					"to": 206000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 206000000.01,
+					"to": 337000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 337000000.01,
+					"to": 454000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 454000000.01,
+					"to": 550000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 550000000.01,
+					"to": 695000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 695000000.01,
+					"to": 910000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 910000000.01,
+					"to": 1400000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1400000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 6200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6200000.01,
+					"to": 6500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6500000.01,
+					"to": 6850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6850000.01,
+					"to": 7300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7300000.01,
+					"to": 9200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9200000.01,
+					"to": 10750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10750000.01,
+					"to": 11250000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11250000.01,
+					"to": 11600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11600000.01,
+					"to": 12600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12600000.01,
+					"to": 13600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13600000.01,
+					"to": 14950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14950000.01,
+					"to": 16400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16400000.01,
+					"to": 18450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 18450000.01,
+					"to": 21850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 21850000.01,
+					"to": 26000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26000000.01,
+					"to": 27700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 27700000.01,
+					"to": 29350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29350000.01,
+					"to": 31450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31450000.01,
+					"to": 33950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33950000.01,
+					"to": 37100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 37100000.01,
+					"to": 41100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 41100000.01,
+					"to": 45800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800000.01,
+					"to": 49500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 49500000.01,
+					"to": 53800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53800000.01,
+					"to": 58500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 58500000.01,
+					"to": 64000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 64000000.01,
+					"to": 71000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 71000000.01,
+					"to": 80000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80000000.01,
+					"to": 93000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 93000000.01,
+					"to": 109000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 109000000.01,
+					"to": 129000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 129000000.01,
+					"to": 163000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 163000000.01,
+					"to": 211000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 211000000.01,
+					"to": 374000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 374000000.01,
+					"to": 459000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 459000000.01,
+					"to": 555000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 555000000.01,
+					"to": 704000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 704000000.01,
+					"to": 957000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 957000000.01,
+					"to": 1405000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1405000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 6600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6600000.01,
+					"to": 6950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6950000.01,
+					"to": 7350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7350000.01,
+					"to": 7800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7800000.01,
+					"to": 8850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8850000.01,
+					"to": 9800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9800000.01,
+					"to": 10950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10950000.01,
+					"to": 11200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11200000.01,
+					"to": 12050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12050000.01,
+					"to": 12950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12950000.01,
+					"to": 14150000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14150000.01,
+					"to": 15550000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15550000.01,
+					"to": 17050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 17050000.01,
+					"to": 19500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19500000.01,
+					"to": 22700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 22700000.01,
+					"to": 26600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26600000.01,
+					"to": 28100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28100000.01,
+					"to": 30100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30100000.01,
+					"to": 32600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32600000.01,
+					"to": 35400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 35400000.01,
+					"to": 38900000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38900000.01,
+					"to": 43000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43000000.01,
+					"to": 47400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 47400000.01,
+					"to": 51200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 51200000.01,
+					"to": 55800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55800000.01,
+					"to": 60400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60400000.01,
+					"to": 66700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66700000.01,
+					"to": 74500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 74500000.01,
+					"to": 83200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83200000.01,
+					"to": 95600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 95600000.01,
+					"to": 110000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110000000.01,
+					"to": 134000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 134000000.01,
+					"to": 169000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 169000000.01,
+					"to": 221000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 221000000.01,
+					"to": 390000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 390000000.01,
+					"to": 463000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 463000000.01,
+					"to": 561000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 561000000.01,
+					"to": 709000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 709000000.01,
+					"to": 965000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 965000000.01,
+					"to": 1419000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1419000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			}
+		]
+	},
+	{
+		"id": "70173cf8-2e38-5d1e-8049-782b3ce67965",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "JHT",
+		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
+		"is_statutory": true,
+		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 100,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 3.7
+				}
+			}
+		]
+	},
+	{
+		"id": "6aed00e7-d657-59f1-9a8d-1fa4e6f7f487",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "JP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
+		"is_statutory": true,
+		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). The ceiling is 11,086,300 from 1 March 2026 (SE BPJS Ketenagakerjaan No. B/1226/022026 of 25 February 2026, the art.29(3) uplift by 2025 GDP growth of 5.11%). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. NOT MODELLED HERE: JP covers Indonesian nationals only. The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 200,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 11086300.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11086300.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 110863,
+					"employer": 221726
+				}
+			}
+		]
+	},
+	{
+		"id": "5d27ad4c-e73b-5c27-8a1d-6ac801b9b149",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "JKK",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
+		"is_statutory": true,
+		"authority": "PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 300,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "I"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.1
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "II"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.4
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "III"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.75
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "IV"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 1.13
+				}
+			},
+			{
+				"selector": {
+					"by": "RISK_CLASS",
+					"class": "V"
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 1.6
+				}
+			}
+		]
+	},
+	{
+		"id": "853056d8-44f4-5dd3-9f78-3a6875c61f66",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "JKM",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
+		"is_statutory": true,
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage, recomposed to 0.20% by PP 49/2023 art.18A for a participant required and registered in JKP; art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block — the art.18(1) rate before the art.18A recomposition. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 400,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.2
+				}
+			}
+		]
+	},
+	{
+		"id": "252fc525-0f8d-5c7e-82dd-114a17f140e0",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "KESEHATAN",
+		"name": "BPJS Kesehatan (health insurance)",
+		"is_statutory": true,
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between the workplace provincial minimum wage and a ceiling (art.30(2)). SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 500,
+		"special_rules": ["ROUND:NEAREST_UNIT", "FLOOR:MINIMUM_WAGE"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 12000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 4
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 120000,
+					"employer": 480000
+				}
+			}
+		]
+	},
+	{
+		"id": "769f1e0d-d8b2-5e0f-a184-297be726a656",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "JKP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
+		"is_statutory": true,
+		"authority": "PP 37/2021 art.43 — 0.46% of the monthly wage, of which 0.22% is borne by the Central Government and 0.24% comes from recomposing JKK (0.14%, PP 49/2023 art.16A) and JKM (0.10%, PP 49/2023 art.18A). Only that recomposed 0.24% is an employer charge: the employer's total BPJS Ketenagakerjaan cash is unchanged at JKK + JKM + JKP = 1.19% of wage for a class III employer, exactly the 0.89 + 0.30 the source workbook charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": [],
+		"sequence": 350,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0.24
+				}
+			}
+		]
+	},
+	{
+		"id": "96b640d8-34f9-5b07-8a85-876188e71c36",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "PPH21",
+		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
+		"is_statutory": true,
+		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) reduce the gross, see `relief_for`. NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
+		"rounding": "NEAREST_UNIT",
+		"relief_for": ["70173cf8-2e38-5d1e-8049-782b3ce67965", "6aed00e7-d657-59f1-9a8d-1fa4e6f7f487"],
+		"sequence": 600,
+		"special_rules": ["ROUND:NEAREST_UNIT"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 5400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5400000.01,
+					"to": 5650000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5650000.01,
+					"to": 5950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5950000.01,
+					"to": 6300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6300000.01,
+					"to": 6750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6750000.01,
+					"to": 7500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7500000.01,
+					"to": 8550000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8550000.01,
+					"to": 9650000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9650000.01,
+					"to": 10050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10050000.01,
+					"to": 10350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10350000.01,
+					"to": 10700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10700000.01,
+					"to": 11050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11050000.01,
+					"to": 11600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11600000.01,
+					"to": 12500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12500000.01,
+					"to": 13750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13750000.01,
+					"to": 15100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15100000.01,
+					"to": 16950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16950000.01,
+					"to": 19750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19750000.01,
+					"to": 24150000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 24150000.01,
+					"to": 26450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26450000.01,
+					"to": 28000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28000000.01,
+					"to": 30050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30050000.01,
+					"to": 32400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32400000.01,
+					"to": 35400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 35400000.01,
+					"to": 39100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 39100000.01,
+					"to": 43850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43850000.01,
+					"to": 47800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 47800000.01,
+					"to": 51400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 51400000.01,
+					"to": 56300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 56300000.01,
+					"to": 62200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 62200000.01,
+					"to": 68600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 68600000.01,
+					"to": 77500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 77500000.01,
+					"to": 89000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 89000000.01,
+					"to": 103000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 103000000.01,
+					"to": 125000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 125000000.01,
+					"to": 157000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 157000000.01,
+					"to": 206000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 206000000.01,
+					"to": 337000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 337000000.01,
+					"to": 454000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 454000000.01,
+					"to": 550000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 550000000.01,
+					"to": 695000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 695000000.01,
+					"to": 910000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 910000000.01,
+					"to": 1400000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1400000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 6200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6200000.01,
+					"to": 6500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6500000.01,
+					"to": 6850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6850000.01,
+					"to": 7300000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7300000.01,
+					"to": 9200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9200000.01,
+					"to": 10750000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10750000.01,
+					"to": 11250000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11250000.01,
+					"to": 11600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11600000.01,
+					"to": 12600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12600000.01,
+					"to": 13600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13600000.01,
+					"to": 14950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14950000.01,
+					"to": 16400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16400000.01,
+					"to": 18450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 18450000.01,
+					"to": 21850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 21850000.01,
+					"to": 26000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26000000.01,
+					"to": 27700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 27700000.01,
+					"to": 29350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29350000.01,
+					"to": 31450000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31450000.01,
+					"to": 33950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33950000.01,
+					"to": 37100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 37100000.01,
+					"to": 41100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 41100000.01,
+					"to": 45800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 45800000.01,
+					"to": 49500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 49500000.01,
+					"to": 53800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 53800000.01,
+					"to": 58500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 58500000.01,
+					"to": 64000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 64000000.01,
+					"to": 71000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 71000000.01,
+					"to": 80000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 80000000.01,
+					"to": 93000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 93000000.01,
+					"to": 109000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 109000000.01,
+					"to": 129000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 129000000.01,
+					"to": 163000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 163000000.01,
+					"to": 211000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 211000000.01,
+					"to": 374000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 374000000.01,
+					"to": 459000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 459000000.01,
+					"to": 555000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 555000000.01,
+					"to": 704000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 704000000.01,
+					"to": 957000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 957000000.01,
+					"to": 1405000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1405000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 6600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6600000.01,
+					"to": 6950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6950000.01,
+					"to": 7350000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7350000.01,
+					"to": 7800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7800000.01,
+					"to": 8850000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8850000.01,
+					"to": 9800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9800000.01,
+					"to": 10950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10950000.01,
+					"to": 11200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.75,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11200000.01,
+					"to": 12050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12050000.01,
+					"to": 12950000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 3,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12950000.01,
+					"to": 14150000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 4,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14150000.01,
+					"to": 15550000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 5,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15550000.01,
+					"to": 17050000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 6,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 17050000.01,
+					"to": 19500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 7,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19500000.01,
+					"to": 22700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 22700000.01,
+					"to": 26600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 9,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26600000.01,
+					"to": 28100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 10,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28100000.01,
+					"to": 30100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 11,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30100000.01,
+					"to": 32600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 12,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32600000.01,
+					"to": 35400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 13,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 35400000.01,
+					"to": 38900000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 14,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 38900000.01,
+					"to": 43000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 15,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 43000000.01,
+					"to": 47400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 16,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 47400000.01,
+					"to": 51200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 17,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 51200000.01,
+					"to": 55800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 18,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 55800000.01,
+					"to": 60400000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 19,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60400000.01,
+					"to": 66700000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 20,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66700000.01,
+					"to": 74500000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 21,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 74500000.01,
+					"to": 83200000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 22,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 83200000.01,
+					"to": 95600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 23,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 95600000.01,
+					"to": 110000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 24,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 110000000.01,
+					"to": 134000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 25,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 134000000.01,
+					"to": 169000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 26,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 169000000.01,
+					"to": 221000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 27,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 221000000.01,
+					"to": 390000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 28,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 390000000.01,
+					"to": 463000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 29,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 463000000.01,
+					"to": 561000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 30,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 561000000.01,
+					"to": 709000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 31,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 709000000.01,
+					"to": 965000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 32,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 965000000.01,
+					"to": 1419000000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 33,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1419000000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 34,
+					"employer": 0
+				},
+				"eligibility": "employee.marital_status == \"MARRIED\" && children.count >= 3"
+			}
+		]
+	}
+]

@@ -1,0 +1,2535 @@
+[
+	{
+		"id": "127c973d-0c52-5bc5-a203-1507ab60559c",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "13fc01fb-1763-5a56-9db1-e510ea61ffb5",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "74ceddb7-b2e1-53ca-b4e3-a4a4082cb0de",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 98
+				}
+			]
+		}
+	},
+	{
+		"id": "8abc26c2-563f-5a00-b147-fe5be05139ce",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		}
+	},
+	{
+		"id": "8f0025f4-77d4-5637-a3e4-a687f809d930",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 18
+				},
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		}
+	},
+	{
+		"id": "92f2c720-4896-5ed0-b74a-149afbed337e",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "b0c47cc7-6000-5c81-aff2-bda7dbe68dbd",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 12
+				},
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "d9a28cc0-4762-5850-9c8c-7c6bdf1beacf",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "def6e73d-e25e-5448-87d6-9c831a43ec6f",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "f9399e0f-1385-5865-920a-523bb6a2c092",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "44e65c8f-de83-5107-a810-bba2779cc4af",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "b62fe632-af7a-5bfa-ba2d-bad41193007b",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "13f473d0-69c4-5096-bf2f-b491b8cb9264",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 98
+				}
+			]
+		}
+	},
+	{
+		"id": "8bf9a993-d586-5097-8c8c-251176e833ad",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		}
+	},
+	{
+		"id": "d23da498-9b87-5f86-b84d-0efc7b195fdc",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 18
+				},
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		}
+	},
+	{
+		"id": "fdafe624-7c57-5f6a-8423-d5b962b4d868",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "9d1894ce-976a-5b42-b1ef-0e7fc33dfcbf",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 12
+				},
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "bde0d87a-6d1c-5cf8-a90b-aeff75f0992e",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "4ff0e19d-d894-5d3c-8a0c-19bf9b083016",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "17e9111d-7355-551d-849d-88475e093d7a",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "63442da1-4930-5b4f-92e7-e490ede7d69e",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "62a09c76-0a37-5be5-a35a-0aeb23ca674e",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "f4277dc1-07c1-599a-b076-dcf87d0e4ab1",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 98
+				}
+			]
+		}
+	},
+	{
+		"id": "bb2087cb-3946-5096-a69c-b40b58328533",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 60
+				}
+			]
+		}
+	},
+	{
+		"id": "7ee35eae-51d0-52c0-9713-55b63d070b53",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 18
+				},
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		}
+	},
+	{
+		"id": "65751668-3560-5633-9752-28736e9fa7ac",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "f8418d36-2652-544f-8aa9-e725d98ddafa",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 12
+				},
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "ae12e343-53fa-54e8-ba05-a2b3f7d62f96",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "dfac1cdb-3f33-5139-901e-a2e0908ceb35",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape.",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "abd6ffff-b681-5cb2-a0ec-ac9cbbd92ec4",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"EPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_PR": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SOCSO": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SKBBK": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EIS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PCB": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"HRDF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	}
+]

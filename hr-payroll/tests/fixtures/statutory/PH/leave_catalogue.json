@@ -1,0 +1,803 @@
+[
+	{
+		"id": "11a978e4-285a-52a4-9ffa-3b6a8eec3256",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "34a9d916-95b8-5897-86cb-23107540c44a",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"is_statutory": true,
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		}
+	},
+	{
+		"id": "65bf1678-c12d-5fba-9782-eebc730b3a55",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": 2,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "7155abd6-f390-5f9f-8002-8fd49646511c",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Republic Act 8187 sec. 3",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "8ec6350a-e936-5750-a24a-5b8a4219159d",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"is_statutory": true,
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 60
+				}
+			]
+		}
+	},
+	{
+		"id": "8f71c0d7-3e3b-5234-8e4a-0abe31b43f63",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "b35799d7-fb9e-54ea-bce4-40f0f7688842",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		}
+	},
+	{
+		"id": "ba8cc01f-31bc-5e6e-8916-466ed1abf0ad",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "bd9e3c08-cd1d-5b71-88fa-ca9683e3af50",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employee.solo_parent",
+					"days": 120
+				},
+				{
+					"eligibility": "",
+					"days": 105
+				}
+			]
+		}
+	},
+	{
+		"id": "c0e9d788-41af-5389-9f6c-0b8f53ca8c58",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "df3b701b-526e-567d-b7dc-d3bab16d2443",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "fbf0eced-5a1e-55c8-8c18-9443a661ea14",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"is_statutory": true,
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act)",
+		"eligibility": "employee.solo_parent",
+		"requires_certificate_after_days": 1,
+		"paid": true,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "fec62c00-6026-5bd8-b1db-e66cfbdef574",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"SSS": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	}
+]

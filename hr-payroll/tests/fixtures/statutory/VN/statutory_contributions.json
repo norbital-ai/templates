@@ -1,0 +1,707 @@
+[
+	{
+		"id": "eab7025d-ebed-5f30-a701-afff66ed9d46",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "SI",
+		"name": "Social Insurance (Bảo hiểm xã hội)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["34eb4f94-333c-56e7-90be-9212b41aa6c1"],
+		"eligibility": "",
+		"sequence": 100,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 46800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 17.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 46800000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3744000,
+					"employer": 8190000
+				}
+			}
+		]
+	},
+	{
+		"id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "HI",
+		"name": "Health Insurance (Bảo hiểm y tế)",
+		"is_statutory": true,
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["34eb4f94-333c-56e7-90be-9212b41aa6c1"],
+		"eligibility": "",
+		"sequence": 200,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 46800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 3
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 46800000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 702000,
+					"employer": 1404000
+				}
+			}
+		]
+	},
+	{
+		"id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "UI",
+		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
+		"is_statutory": true,
+		"authority": "Law on Employment 38/2013/QH13 art.57 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 74/2024/NĐ-CP, Region I 4,960,000). The scheme covers Vietnamese employees; a foreign employee is outside it.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["34eb4f94-333c-56e7-90be-9212b41aa6c1"],
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"sequence": 300,
+		"special_rules": ["CAP:MINIMUM_WAGE_X:20"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 1
+				}
+			}
+		]
+	},
+	{
+		"id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "UNION_FEE",
+		"name": "Trade Union Fee (Kinh phí công đoàn)",
+		"is_statutory": true,
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"eligibility": "",
+		"sequence": 350,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 46800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 46800000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 936000
+				}
+			}
+		]
+	},
+	{
+		"id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PIT",
+		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
+		"is_statutory": true,
+		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions of 132,000,000 a year for the taxpayer and 52,800,000 a dependant under Resolution 954/2020/UBTVQH14.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"eligibility": "",
+		"sequence": 400,
+		"special_rules": ["PERSONAL_RELIEF:132000000", "CHILD_RELIEF:52800000"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 60000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 5,
+					"constant": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60000000,
+					"to": 120000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 10,
+					"constant": 3000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120000000,
+					"to": 216000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 15,
+					"constant": 9000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 216000000,
+					"to": 384000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 20,
+					"constant": 23400000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 384000000,
+					"to": 624000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 25,
+					"constant": 57000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 624000000,
+					"to": 960000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 30,
+					"constant": 117000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 960000000,
+					"to": null
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 35,
+					"constant": 217800000
+				}
+			}
+		]
+	},
+	{
+		"id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "SI",
+		"name": "Social Insurance (Bảo hiểm xã hội)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd"],
+		"eligibility": "",
+		"sequence": 100,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 46800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 17.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 46800000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 3744000,
+					"employer": 8190000
+				}
+			}
+		]
+	},
+	{
+		"id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "HI",
+		"name": "Health Insurance (Bảo hiểm y tế)",
+		"is_statutory": true,
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd"],
+		"eligibility": "",
+		"sequence": 200,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 46800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 3
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 46800000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 702000,
+					"employer": 1404000
+				}
+			}
+		]
+	},
+	{
+		"id": "92d096bf-8260-5adb-a7f9-6073199855d9",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "UI",
+		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
+		"is_statutory": true,
+		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33, in force 1 January 2026 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP). The scheme covers Vietnamese employees; a foreign employee is outside it.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd"],
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"sequence": 300,
+		"special_rules": ["CAP:MINIMUM_WAGE_X:20"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 1
+				}
+			}
+		]
+	},
+	{
+		"id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "UNION_FEE",
+		"name": "Trade Union Fee (Kinh phí công đoàn)",
+		"is_statutory": true,
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"eligibility": "",
+		"sequence": 350,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 46800000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 46800000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 936000
+				}
+			}
+		]
+	},
+	{
+		"id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PIT",
+		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
+		"is_statutory": true,
+		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions raised to 186,000,000 a year for the taxpayer and 74,400,000 a dependant by Resolution 110/2025/UBTVQH15 of 17 October 2025, applied from the 2026 tax period.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"eligibility": "",
+		"sequence": 400,
+		"special_rules": ["PERSONAL_RELIEF:186000000", "CHILD_RELIEF:74400000"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 60000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 5,
+					"constant": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 60000000,
+					"to": 120000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 10,
+					"constant": 3000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120000000,
+					"to": 216000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 15,
+					"constant": 9000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 216000000,
+					"to": 384000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 20,
+					"constant": 23400000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 384000000,
+					"to": 624000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 25,
+					"constant": 57000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 624000000,
+					"to": 960000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 30,
+					"constant": 117000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 960000000,
+					"to": null
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 35,
+					"constant": 217800000
+				}
+			}
+		]
+	},
+	{
+		"id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "SI",
+		"name": "Social Insurance (Bảo hiểm xã hội)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["9657382b-d498-561e-b7b4-6015d946ae93"],
+		"eligibility": "",
+		"sequence": 100,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 50600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 8,
+					"employer": 17.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 4048000,
+					"employer": 8855000
+				}
+			}
+		]
+	},
+	{
+		"id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "HI",
+		"name": "Health Insurance (Bảo hiểm y tế)",
+		"is_statutory": true,
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (50,600,000).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["9657382b-d498-561e-b7b4-6015d946ae93"],
+		"eligibility": "",
+		"sequence": 200,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 50600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1.5,
+					"employer": 3
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 759000,
+					"employer": 1518000
+				}
+			}
+		]
+	},
+	{
+		"id": "fe8a9888-288e-5254-be22-d94bbec833d3",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "UI",
+		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
+		"is_statutory": true,
+		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP, unchanged on 1 July 2026). The scheme covers Vietnamese employees; a foreign employee is outside it.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["9657382b-d498-561e-b7b4-6015d946ae93"],
+		"eligibility": "employee.citizenship != \"FOREIGNER\"",
+		"sequence": 300,
+		"special_rules": ["CAP:MINIMUM_WAGE_X:20"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": null
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 1
+				}
+			}
+		]
+	},
+	{
+		"id": "11743132-ee52-510a-81a4-4daffc29f555",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "UNION_FEE",
+		"name": "Trade Union Fee (Kinh phí công đoàn)",
+		"is_statutory": true,
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"eligibility": "",
+		"sequence": 350,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 50600000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 0,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 50600000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 1012000
+				}
+			}
+		]
+	},
+	{
+		"id": "9657382b-d498-561e-b7b4-6015d946ae93",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "PIT",
+		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
+		"is_statutory": true,
+		"authority": "Law on Personal Income Tax 109/2025/QH15 arts.10 and 22, in force 1 July 2026 and applied to salary income from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions written into the statute.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"eligibility": "",
+		"sequence": 400,
+		"special_rules": ["PERSONAL_RELIEF:186000000", "CHILD_RELIEF:74400000"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 120000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 5,
+					"constant": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 120000000,
+					"to": 360000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 10,
+					"constant": 6000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 360000000,
+					"to": 720000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 20,
+					"constant": 30000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 720000000,
+					"to": 1200000000
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 30,
+					"constant": 102000000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1200000000,
+					"to": null
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 35,
+					"constant": 246000000
+				}
+			}
+		]
+	}
+]
