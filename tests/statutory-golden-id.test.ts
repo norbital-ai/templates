@@ -119,3 +119,31 @@ test('Indonesia — PPh 21 monthly withholding on the TER A and TER C ladders', 
 	// 25,000,000 is in bracket 22,700,001–26,600,000 at 9.00% → 2,250,000.
 	expectStatutory(book, 'ID-C-25M', 'PPH21', 2_250_000, 0);
 });
+
+test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025 UMP', () => {
+	// The first sealed version runs 1 December 2025 to 1 January 2026. Every BPJS rate is the same
+	// as on the later two; what moves on 1 January is the regional minimum wage the BPJS Kesehatan
+	// salary is floored at — DKI Jakarta 5,396,761 in 2025, 5,729,876 in 2026.
+	const book = assessStatutoryUnvalidated(idWorld('2025-12'));
+
+	// Perpres 82/2018 Ps.30 as substituted by Perpres 64/2020: 5% — 1% participant, 4% employer —
+	// on a salary floored at the workplace's UMK/UMP and capped at Rp 12,000,000. 5,000,000 is
+	// below the 2025 DKI floor, so the base is 5,396,761: 1% = 53,967.61 → 53,968 and
+	// 4% = 215,870.44 → 215,870. (On the 2026 floor the same wage gives 57,299 / 229,195.)
+	expectStatutory(book, 'ID-5M', 'KESEHATAN', 53_968, 215_870);
+	// Above the Rp 12,000,000 ceiling the floor never enters, so 15,000,000 is unchanged.
+	expectStatutory(book, 'ID-15M', 'KESEHATAN', 120_000, 480_000);
+
+	// JHT 5.7% (2% / 3.7%) with no ceiling, and JP 3% (1% / 2%) on the Rp 10,547,400 ceiling that
+	// stands until 1 March 2026 — both identical to the 1 January 2026 version.
+	expectStatutory(book, 'ID-5M', 'JHT', 100_000, 185_000);
+	expectStatutory(book, 'ID-15M', 'JP', 105_474, 210_948);
+	// JKK group II 0.40%, JKM 0.20% and the employer's 0.24% of JKP, all employer-borne.
+	expectStatutory(book, 'ID-5M', 'JKK', 0, 20_000);
+	expectStatutory(book, 'ID-5M', 'JKM', 0, 10_000);
+	expectStatutory(book, 'ID-5M', 'JKP', 0, 12_000);
+	// PMK 168/2023 TER A: 5,000,000 is inside bracket 1 at 0.00%; 15,000,000 is in the
+	// 13,750,001–15,100,000 bracket at 6.00% → 900,000.
+	expectStatutory(book, 'ID-5M', 'PPH21', 0, 0);
+	expectStatutory(book, 'ID-15M', 'PPH21', 900_000, 0);
+});

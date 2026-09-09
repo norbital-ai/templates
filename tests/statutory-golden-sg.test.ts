@@ -178,3 +178,33 @@ test('Singapore — the 1 January 2027 senior-worker CPF increase (second versio
 	expectStatutory(book, 'SG-3000-57', 'SDL', 0, 7.5);
 	expectStatutory(book, 'SG-3000-62', 'SDL', 0, 7.5);
 });
+
+test('Singapore — the 1 April 2026 version moves no contribution at all', () => {
+	// SG has three sealed versions, and the middle one exists for exactly one change: shared
+	// parental leave goes from six weeks to ten for a child born on or after 1 April 2026
+	// (bank `SG/README.md` v2: "This is the only change on 1 April 2026: no CPF, SDL, SHG or
+	// Part 4 change"). That change is asserted in `leave-entitlement-golden.test.ts`; what belongs
+	// here is the other half of the claim — that every contribution figure is January's.
+	const book = assessStatutory({
+		code: 'SG',
+		period: '2026-04',
+		people: [
+			{ key: 'SG-3000-30', wage: 3000, age: 30, citizenship: 'CITIZEN' },
+			{ key: 'SG-3000-57', wage: 3000, age: 57, citizenship: 'CITIZEN' },
+			{ key: 'SG-3000-62', wage: 3000, age: 62, citizenship: 'CITIZEN' },
+			{ key: 'SG-10000-30', wage: 10_000, age: 30, citizenship: 'CITIZEN', race: 'INDIAN' }
+		]
+	});
+
+	// Table 1 rates, unchanged from 1 January 2026: 37% total employee 20%; 34% employer 16 /
+	// employee 18; 25% split evenly. The $8,000 OW ceiling maxima are still 1,600 / 1,360.
+	expectStatutory(book, 'SG-3000-30', 'CPF', 600, 510);
+	expectStatutory(book, 'SG-3000-57', 'CPF', 540, 480);
+	expectStatutory(book, 'SG-3000-62', 'CPF', 375, 375);
+	expectStatutory(book, 'SG-10000-30', 'CPF', 1600, 1360);
+	// SDL: 0.25% with the $11.25 maximum above $4,500. SINDA: the "over $7,500 up to $10,000" rung
+	// is $12, and a wage of exactly $10,000 is its top, not the bottom of the $18 one.
+	expectStatutory(book, 'SG-3000-30', 'SDL', 0, 7.5);
+	expectStatutory(book, 'SG-10000-30', 'SDL', 0, 11.25);
+	expectStatutory(book, 'SG-10000-30', 'SINDA', 12, 0);
+});
