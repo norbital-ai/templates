@@ -3,7 +3,7 @@ import { toMinorUnits } from '@norbital-ai/std/finance';
 import type { LeaveSubmission } from '../../leave/activity.js';
 import type { LeaveBalanceSummaries } from '../../leave/summary.js';
 
-export type OffboardingSummary = LeaveBalanceSummaries[number];
+type OffboardingSummary = LeaveBalanceSummaries[number];
 
 export type OffboardingChoice = {
 	/** True encashes the whole remaining balance; false forfeits it and writes nothing. */
