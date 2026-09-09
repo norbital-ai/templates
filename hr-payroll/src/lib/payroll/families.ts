@@ -38,7 +38,7 @@ import {
 	type PayRequestFamily
 } from './money.js';
 import { prepareWorkContext, calculateWorkAttendance, prepareWorkSteps, termsAt } from './work.js';
-import { measureLoanRecoveries } from './loan.js';
+import { measureLoanRecoveries, validateLoanRecoveries } from './loan.js';
 export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEmployment {
 	const { bundle } = options;
 	const sourceComponents = new Map(
@@ -874,6 +874,16 @@ export function calculateFamilyAssessments(options: {
 }) {
 	const { configuration, gathered, window, period } = options;
 	const issues = validateWorkInputs({ configuration, bundles: gathered.bundles, window, period });
+	// A loan whose agreed pay line has no row in the version this run prices under can recover
+	// nothing, and recovering nothing quietly is an under-payment nobody sees. Named here, before
+	// anyone is measured, for the same reason every other input fault is.
+	issues.push(
+		...validateLoanRecoveries({
+			configuration,
+			bundles: gathered.bundles,
+			consumedRepayments: gathered.consumedRepayments
+		})
+	);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 	const measuredRuns: Array<{
 		readonly measured: ReturnType<typeof calculateFamilies>;

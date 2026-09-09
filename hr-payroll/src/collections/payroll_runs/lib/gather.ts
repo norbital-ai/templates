@@ -42,7 +42,7 @@ import {
 	type IsoDate
 } from './dates.js';
 import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/money.js';
-import type { Loan, LoanRepayment } from '../../../lib/payroll/loan.js';
+import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
 import { hasLeavePayment, type PreparedLeavePayroll } from '../../../lib/leave/payroll.js';
 import {
@@ -99,8 +99,11 @@ export type EmploymentBundle = {
 	readonly allowanceConfigurations?: ReadonlyMap<string, Configuration>;
 	/** The employment's child facts — what `children.under(age)` counts. */
 	readonly children: WorkspaceRow<'employments'>['children'];
-	/** The loan agreements this employment carries. Payroll consumes their repayments, not these. */
-	readonly loans: readonly Loan[];
+	/**
+	 * The loan agreements this employment carries, each with the catalogue revision it was agreed
+	 * under. Payroll consumes their repayments, not these.
+	 */
+	readonly loans: readonly PreparedLoan[];
 	/** The amounts due under those agreements — one of the four input families. */
 	readonly loanRepayments: readonly LoanRepayment[];
 	readonly leave: PreparedLeavePayroll;
