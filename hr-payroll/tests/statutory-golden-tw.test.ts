@@ -147,3 +147,49 @@ test('Taiwan — a non-resident is withheld at 18%, and is outside employment in
 	expectStatutory(book, 'TW-NR-60000', 'LI', 1053.4, 3686.9);
 	expectStatutory(book, 'TW-NR-60000', 'NHI', 943.01, 2942.19);
 });
+
+test('Taiwan — the 民國114年 grade tables of the first sealed version', () => {
+	// The 2025-12-01 version carries the 民國114年 tables off a minimum wage of NT$28,590, and the
+	// 1 January 2026 version replaces them with the 民國115年 tables off NT$29,500. The rates are
+	// identical across the seam; every figure that moves does so because the GRADE moved.
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2025-12',
+		riskClass: '1',
+		people: [
+			{ key: 'TW-28590', wage: 28_590, citizenship: 'CITIZEN' },
+			{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' },
+			// 1.5 × the basic wage is the non-resident 6%/18% breakpoint: 42,885 in 民國114年,
+			// against 44,250 in 民國115年.
+			{ key: 'TW-NR-42885', wage: 42_885, citizenship: 'FOREIGNER' },
+			{ key: 'TW-NR-42886', wage: 42_886, citizenship: 'FOREIGNER' }
+		]
+	});
+
+	// 28,590 is the first grade of this version, where 29,500 is the first grade of the next.
+	// Labour insurance 11.5%, split 20% insured / 70% insured unit: 28,590 × 11.5% = 3,287.85 →
+	// 657.57 / 2,301.50 (against 678.50 / 2,374.75 on the 民國115年 floor grade).
+	expectStatutory(book, 'TW-28590', 'LI', 657.57, 2301.5);
+	// Employment insurance 1% on the same ladder and split: 285.90 → 57.18 / 200.13.
+	expectStatutory(book, 'TW-28590', 'EI', 57.18, 200.13);
+	// Health insurance 5.17%, insured 30%, insured unit 60% × (1 + 0.56): 28,590 × 5.17% =
+	// 1,478.10 → 443.43, and 1,478.10 × 0.936 = 1,383.50.
+	expectStatutory(book, 'TW-28590', 'NHI', 443.43, 1383.5);
+	// Labour pension 6% of the contribution grade, employer alone: 28,590 × 6% = 1,715.40.
+	expectStatutory(book, 'TW-28590', 'LABOR_PENSION', 0, 1715.4);
+	// The grades above the floor did not move between the two versions: 40,000 still insures at
+	// 40,100 for every scheme, so these are the 民國115年 figures unchanged.
+	expectStatutory(book, 'TW-40000', 'LI', 922.3, 3228.05);
+	expectStatutory(book, 'TW-40000', 'NHI', 621.95, 1940.48);
+	expectStatutory(book, 'TW-40000', 'LABOR_PENSION', 0, 2406);
+
+	// 各類所得扣繳率標準 §3(2) on this version's own breakpoint: 6% at or below 1.5 × 28,590 =
+	// 42,885, and 18% above it. 6% × 42,885 = 2,573.10; 18% × 42,886 = 7,719.48.
+	expectStatutory(book, 'TW-NR-42885', 'INCOME_TAX_NON_RESIDENT', 2573.1, 0);
+	expectStatutory(book, 'TW-NR-42886', 'INCOME_TAX_NON_RESIDENT', 7719.48, 0);
+	// 就業保險法 §5 keeps employment insurance to ROC nationals on this version too.
+	expectStatutorySkipped(book, 'TW-NR-42885', 'EI');
+	// 職災 charges the industry rate on the un-graded wage here as on the later version (bank
+	// `TW/README.md` NOT APPLIED #5): 0.25% × 42,885 = 107.2125.
+	expectStatutory(book, 'TW-NR-42885', 'OCC_INJURY', 0, 107.2125);
+});

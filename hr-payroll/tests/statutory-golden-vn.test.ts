@@ -115,3 +115,40 @@ test('Vietnam — the 1 July 2026 version raises the ceiling and replaces the PI
 	// rung at 20% over the cumulative 2,500,000: 2,500,000 + 9,093,000 × 20% = 4,318,600.
 	expectStatutory(book, 'VN-60M', 'PIT', 1_809_883.33, 0);
 });
+
+test('Vietnam — the December 2025 version, and the regional cap that moves off it', () => {
+	// The first sealed version: Decree 74/2024 regional minimum wages, the 2,340,000 reference
+	// level, and the Resolution 954/2020 family deductions of 132,000,000 / 52,800,000 a year.
+	// A wage of 120,000,000 is the only way to see the unemployment ceiling, which is the one
+	// figure the 1 January 2026 version actually moves.
+	const people = [
+		{ key: 'VN-20M', wage: 20_000_000, citizenship: 'CITIZEN' },
+		{ key: 'VN-120M', wage: 120_000_000, citizenship: 'CITIZEN' },
+		{ key: 'VN-200M', wage: 200_000_000, citizenship: 'CITIZEN' }
+	];
+	const december = assessStatutory({ code: 'VN', period: '2025-12', people, region: 'I' });
+	const january = assessStatutory({ code: 'VN', period: '2026-01', people, region: 'I' });
+
+	// Social and health insurance did not move: 8% / 17.5% and 1.5% / 3% on the same twenty times
+	// the 2,340,000 reference level = 46,800,000 ceiling.
+	expectStatutory(december, 'VN-20M', 'SI', 1_600_000, 3_500_000);
+	expectStatutory(december, 'VN-120M', 'SI', 3_744_000, 8_190_000);
+	expectStatutory(december, 'VN-120M', 'HI', 702_000, 1_404_000);
+	expectStatutory(december, 'VN-120M', 'UNION_FEE', 0, 936_000); // 2% × 46,800,000
+
+	// Unemployment insurance is 1% each side, capped at twenty times the REGIONAL minimum wage.
+	// Region I is 4,960,000 to 31 December 2025 (Decree 74/2024) → cap 99,200,000 → 992,000, and
+	// 5,310,000 from 1 January 2026 (Decree 293/2025, +7.2%) → cap 106,200,000 → 1,062,000.
+	expectStatutory(december, 'VN-120M', 'UI', 992_000, 992_000);
+	expectStatutory(january, 'VN-120M', 'UI', 1_062_000, 1_062_000);
+
+	// PIT on the seven-rung annual ladder with the Resolution 954/2020 deduction of 132,000,000.
+	// A December payslip projects no further month — the tax year is over — so the annual income
+	// is the month's own. 200,000,000 − (3,744,000 + 702,000 + 992,000) − 132,000,000 =
+	// 62,562,000, in the 60,000,000–120,000,000 rung: 3,000,000 + 2,562,000 × 10% = 3,256,200.
+	// (On the 1 January 2026 version's 186,000,000 deduction the same month yields 428,100, so
+	// this figure is the December relief and not a restatement of the later one.)
+	expectStatutory(december, 'VN-200M', 'PIT', 3_256_200, 0);
+	// 120,000,000 is under 132,000,000 + the insurance relief, so there is nothing to withhold.
+	expectStatutory(december, 'VN-120M', 'PIT', 0, 0);
+});

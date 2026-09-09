@@ -220,3 +220,29 @@ test('MY-nihon prices the same statute as MY', () => {
 	expectStatutory(book, 'N-5001', 'EIS', 10.1, 10.1);
 	expectStatutory(book, 'N-5001', 'PCB', 109.9, 0);
 });
+
+test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and all', () => {
+	const people = [
+		{ key: 'N-5001', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+		{ key: 'N-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+	];
+
+	// The fork clones every Malaysian version, so its own timeline has the same two seams. 1 June
+	// 2026: SKBBK opens for everyone, phase 1 at 0.75% employee-only on SOCSO's 65 wage rows — the
+	// 5,000.01–5,100 row of PERKESO's published Act 4 schedule is the printed 37.85.
+	const june = assessStatutory({ code: 'MY-nihon', period: '2026-06', people });
+	expectStatutory(june, 'N-5001', 'SKBBK', 37.85, 0);
+	expectStatutory(june, 'N-FOREIGN', 'SKBBK', 37.85, 0);
+
+	// 9 July 2026: voluntary for Malaysians, mandatory for foreign workers. The seeded predicate is
+	// `citizenship == "FOREIGNER"`, so a local is outside the scheme and produces no row at all.
+	const july = assessStatutory({ code: 'MY-nihon', period: '2026-07', people });
+	expectStatutorySkipped(july, 'N-5001', 'SKBBK');
+	expectStatutory(july, 'N-FOREIGN', 'SKBBK', 37.85, 0);
+	// Nothing else moved across either seam: the fork prices EPF, SOCSO and EIS as Malaysia does,
+	// including the Part F non-citizen 2% each on the wage as it stands (2% × 5,001 = 100.02 → 101).
+	expectStatutory(july, 'N-5001', 'EPF', 561, 612);
+	expectStatutory(july, 'N-5001', 'SOCSO', 25.25, 88.35);
+	expectStatutory(july, 'N-5001', 'EIS', 10.1, 10.1);
+	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+});
