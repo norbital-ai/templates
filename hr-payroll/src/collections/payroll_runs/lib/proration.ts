@@ -10,10 +10,13 @@
  * do, a one-off claim, a payment and a loan instalment do not. Keying on cadence is what removes the
  * type-name branch the plan itself worries about (decision E7 / E22).
  *
- * The denominator is the calendar length of the pay period's month. A salary change mid-month
- * produces two terms rows, each prorated against that same full-month divisor and summed —
- * 4,000 × 15/31 + 4,600 × 16/31 — so the two halves of the month never add up to more or less than
- * a month.
+ * The denominator is the whole period measured on the basis's own units — the month's calendar
+ * days, its working days, or the statutory factor a `FIXED_DAYS` basis names — and the numerator is
+ * counted in those same units. A salary change mid-month produces two terms rows, each prorated
+ * against that same full-period divisor and summed — 4,000 × 15/31 + 4,600 × 16/31 — so on
+ * `CALENDAR_DAYS` and `WORKING_DAYS` the two halves of the month never add up to more or less than a
+ * month. On `FIXED_DAYS` they add up to the month's working days over the factor, which is the point
+ * of a fixed factor: a part month is priced at the statutory daily rate, not at the month's own.
  */
 
 import { Schema } from 'effect';
@@ -35,9 +38,9 @@ type ProrationFractionOptions = {
 /**
  * The fraction of a pay period a span of employment covers.
  *
- * `workingDaysIn` is only consulted for a `WORKING_DAYS` work, and is supplied by the
- * caller because only the schedule knows which days those are (public holidays excluded — decision
- * E20).
+ * `workingDaysIn` is consulted for a `WORKING_DAYS` work and for a part period of a `FIXED_DAYS`
+ * one — both count working days — and is supplied by the caller because only the schedule knows
+ * which days those are (public holidays excluded — decision E20).
  */
 export function prorationFraction(options: ProrationFractionOptions): number {
 	const segment = prorationSegment(options);
@@ -87,7 +90,19 @@ export function prorationSegment(options: ProrationFractionOptions): {
 				const divisor = decodeNumber(basis.days);
 				if (!(divisor > 0))
 					throw new Error('A FIXED_DAYS proration basis needs a positive divisor.');
-				return { days: inclusiveDays(covered.start, covered.end), denominator: divisor };
+				// A fixed divisor is a **working**-day factor — the DOLE 261/12 = 21.75, Malaysia's
+				// 26 — so its numerator counts working days, exactly as `WORKING_DAYS` does. Counting
+				// calendar days into it prices a whole 31-day January at 31/21.75 = 1.4253 months.
+				//
+				// A whole period is a whole month's salary whatever that month's working days come
+				// to: a monthly-paid employee present all month earns the monthly rate (DOLE
+				// Handbook ch.2 §E), so the numerator there is the divisor itself and only a partial
+				// period is measured — at the daily rate the factor states.
+				const whole = covered.start <= options.period.start && covered.end >= options.period.end;
+				return {
+					days: whole ? divisor : options.workingDaysIn(covered),
+					denominator: divisor
+				};
 			}
 		}
 		throw new Error(`Unsupported proration basis: ${Reflect.get(basis, 'by')}`);

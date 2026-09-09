@@ -164,6 +164,16 @@ export function personContext(input: PersonInput): PersonContext {
 	};
 }
 
+/**
+ * `children.under(n)` — how many children are under `n` completed years.
+ *
+ * The count is returned as a **BigInt** because the signature declares CEL's `int`, and CEL
+ * dispatches `==` on the runtime value: an `int`-typed call handing back a JavaScript number
+ * compares against no integer literal at all, so `children.under(7) == 0` was false even for a
+ * childless person while `< 1` and `>= 1` behaved, and `children.under(7) + 1` threw. Singapore's
+ * seeded extended-childcare rule is written `children.under(13) >= 1 && children.under(7) == 0`,
+ * and granted nobody on any version. `compileEligibility` cannot catch it: `false` is a boolean.
+ */
 const engine = createReckonEngine().registerFunction(
 	'under',
 	'map.under(int): int',

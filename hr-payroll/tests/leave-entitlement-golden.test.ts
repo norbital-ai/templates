@@ -250,38 +250,29 @@ test('Singapore — the service ladders and the family schemes, on all three sea
 	assert.deepEqual(ladder('SG', 2, 'SHARED_PARENTAL_LEAVE'), [70, 70, 70]);
 });
 
-test(
-	'Singapore — extended childcare leave, for a parent whose youngest child is seven or over',
-	{
-		todo:
-			'ENGINE DISAGREEMENT: eligibility.ts:166 registers `under` as a Reckon function whose ' +
-			'result never compares equal to an integer literal — `children.under(7) == 0` is false ' +
-			'even for a childless person, while `< 1`, `>= 1` and `children.count == 0` all behave. ' +
-			'The seeded EXTENDED_CHILDCARE_LEAVE row is written with `== 0` and therefore grants ' +
-			'nobody, on any version. compileEligibility cannot catch it: `false` is still a boolean.'
-	},
-	() => {
-		for (const version of [0, 1, 2]) {
-			// Employment Act 1968 / CDCSA: two days for a parent whose children are all seven or over
-			// but at least one is under thirteen.
-			assert.deepEqual(
-				ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
-					citizenship: 'CITIZEN',
-					childAges: [9]
-				}),
-				[2, 2, 2]
-			);
-			// A child under seven puts the parent back on ordinary childcare leave instead.
-			assert.deepEqual(
-				ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
-					citizenship: 'CITIZEN',
-					childAges: [3, 9]
-				}),
-				[null, null, null]
-			);
-		}
+test('Singapore — extended childcare leave, for a parent whose youngest child is seven or over', () => {
+	// The seeded rule is `children.under(13) >= 1 && children.under(7) == 0`, and the `== 0` half
+	// is what `under` returning a CEL `int` makes answerable at all.
+	for (const version of [0, 1, 2]) {
+		// Employment Act 1968 / CDCSA: two days for a parent whose children are all seven or over
+		// but at least one is under thirteen.
+		assert.deepEqual(
+			ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
+				citizenship: 'CITIZEN',
+				childAges: [9]
+			}),
+			[2, 2, 2]
+		);
+		// A child under seven puts the parent back on ordinary childcare leave instead.
+		assert.deepEqual(
+			ladder('SG', version, 'EXTENDED_CHILDCARE_LEAVE', {
+				citizenship: 'CITIZEN',
+				childAges: [3, 9]
+			}),
+			[null, null, null]
+		);
 	}
-);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Vietnam — Labour Code 2019 arts.113, 114, 115 and 139; Law on Social Insurance 41/2024 art.43.

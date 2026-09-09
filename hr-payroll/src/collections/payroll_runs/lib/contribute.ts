@@ -229,6 +229,12 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					chain,
 					rules
 				));
+				// `MIN_WITHHOLD` is a threshold on the **tax**, not on the wage, and it suppresses the
+				// employee leg alone — the same rule the progressive paths apply to their regular
+				// part, on the same rounded figure. Taiwan's resident 5% election is a `PERCENT`
+				// award carrying 各類所得扣繳率標準 §13's NT$2,000 exemption; ignoring the rule here
+				// withheld on every wage. Every other scheme states no threshold and is unmoved.
+				if (employee < rules.minWithhold) employee = 0;
 				break;
 			}
 			case 'FIXED': {
@@ -242,20 +248,30 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				));
 				break;
 			}
-			case 'PROGRESSIVE':
+			case 'PROGRESSIVE': {
 				// A progressive-scheme override is a flat statutory award on current remuneration,
 				// not a replacement marginal band inside the resident scale. Malaysia uses this for
 				// a proven non-resident employee: 30% of remuneration, without resident reliefs.
-				employee = hasFlatOverride
+				const scaled = hasFlatOverride
 					? applyRounding(entry.base * asFraction(status.rate_override), chain)
 					: progressiveWithholding({ entry, contribution, rules, input, produced, chain });
 				// The employer leg of a graduated scheme is a percentage of the whole chargeable wage,
 				// read off the band the wage itself selected — never a slice of the ladder.
-				employer =
-					band.award.employer == null
-						? 0
-						: applyRounding(awardBase * asFraction(band.award.employer), chain);
+				const employerShare =
+					band.award.employer == null ? 0 : awardBase * asFraction(band.award.employer);
+				// A graduated CONTRIBUTION band is a paired award like every other band of its ladder,
+				// so it rounds like one: CPF's $500–$750 rung rounds the TOTAL to the dollar and
+				// floors the employee's share (CPF rates from 1 Jan 2026, Table 1 — $750 at 55 and
+				// below is $150 employee of a $278 total, so $128 employer, not an independently
+				// rounded $127.50). A withholding scale states no employer leg and is untouched.
+				if (rules.totalRoundedEmployeeFloored)
+					({ employee, employer } = roundContributionShares(scaled, employerShare, chain, rules));
+				else {
+					employee = scaled;
+					employer = band.award.employer == null ? 0 : applyRounding(employerShare, chain);
+				}
 				break;
+			}
 		}
 
 		produced.set(code, { employee, employer, rules });
@@ -286,6 +302,20 @@ export function scaleProgressive(
 				'so a chargeable income cannot be scaled through it.'
 		);
 	return band.award.constant + (value - bandFloor(band.selector)) * asFraction(band.award.rate);
+}
+
+/**
+ * Whether a scheme's ladder is a chargeable-income **scale** rather than a **wage ladder**.
+ *
+ * Annualising means re-selecting a band on a year's chargeable income, and that only means anything
+ * where every rung is progressive: Malaysia's PCB and Vietnam's PIT ladders are nothing but
+ * progressive rungs, which is how they declare themselves annual scales. A progressive rung sitting
+ * inside a wage ladder whose other rungs are `FIXED` or `PERCENT` — Singapore's graduated CPF
+ * $500–$750 band, between a `PERCENT` rung below and a `PERCENT` rung above — is an award on this
+ * period's wage; annualising it lands on a rung of the wrong kind and `scaleProgressive` refuses.
+ */
+function isProgressiveScale(contribution: ContributionConfig): boolean {
+	return contribution.rates.every((rate) => rate.award?.kind === 'PROGRESSIVE');
 }
 
 /**
@@ -328,7 +358,13 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 	// monthly threshold and then spreading the result applies the table twelve times over. Current
 	// mandatory employee contributions are still deducted because their rows explicitly name this
 	// scheme in `relief_for`; no year-to-date or future projection belongs in a period table.
-	if (rules.periodicProgressive) {
+	//
+	// The period figure is the DEFAULT and annualising is what has to be earned, by a wholly
+	// progressive scale (`isProgressiveScale`) that has not declared `PERIODIC_PROGRESSIVE`. A
+	// graduated contribution rung inside a wage ladder is a monthly levy, not a withholding tax:
+	// CPF's $500–$750 band annualised $750 to $9,000, selected the $8,000.01+ `FIXED` ceiling and
+	// threw, so the whole band priced nobody.
+	if (rules.periodicProgressive || !isProgressiveScale(contribution)) {
 		const statutoryRelief = input.bases.reduce((total, other) => {
 			if (!other.contribution.row.relief_for.includes(contribution.row.id)) return total;
 			return total + (options.produced.get(other.contribution.row.code)?.employee ?? 0);

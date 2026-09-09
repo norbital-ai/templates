@@ -735,9 +735,12 @@ test('a FIXED_DAYS basis pays the days employed over the divisor the Work states
 			proration: { by: 'FIXED_DAYS', days: 30 }
 		}
 	});
-	// 3,451 × 16/30 = 1,840.5333…, to the cent. The same sixteen days over March's own thirty-one
-	// pay 1,781.16, so the divisor is the Work's and not the month's.
-	assert.equal(amountOf(measured, 'BASIC'), 1840.53);
+	// A fixed divisor is a count of WORKING days — the DOLE 261/12 = 21.75, the EA's 26 — so its
+	// numerator counts working days too, and never calendar ones. 16–31 March holds fourteen of
+	// this person's six-day week: 3,451 × 14/30 = 1,610.4666…, to the cent. The same span over
+	// March's own thirty-one calendar days pays 1,781.16, so the divisor is the Work's and not the
+	// month's; sixteen calendar days over the same thirty would pay 1,840.53, mixing the two bases.
+	assert.equal(amountOf(measured, 'BASIC'), 1610.47);
 	assert.deepEqual(
 		measured.proration.map((segment) => [
 			segment.basis.by,
@@ -745,8 +748,30 @@ test('a FIXED_DAYS basis pays the days employed over the divisor the Work states
 			segment.denominator,
 			segment.prorated_amount
 		]),
-		[['FIXED_DAYS', 16, 30, 1840.53]],
+		[['FIXED_DAYS', 14, 30, 1610.47]],
 		'the segment records the divisor it was taken over, not the month it fell in'
+	);
+});
+
+test('a whole month on a FIXED_DAYS basis pays the whole salary, whatever the divisor', () => {
+	// The other half of the rule: a monthly-paid employee present all month earns the monthly rate,
+	// so a whole period prorates to exactly one however far the month's working days sit from the
+	// factor. March 2026 holds twenty-six six-day-week working days against a divisor of thirty;
+	// counting them into it would pay 26/30 of the salary, and counting calendar days 31/30.
+	const measured = measure(
+		{},
+		{
+			work: {
+				...JURISDICTION,
+				jurisdiction_code: JURISDICTION.code,
+				proration: { by: 'FIXED_DAYS', days: 30 }
+			}
+		}
+	);
+	assert.equal(amountOf(measured, 'BASIC'), 3451);
+	assert.deepEqual(
+		measured.proration.map((segment) => [segment.days, segment.denominator]),
+		[[30, 30]]
 	);
 });
 
