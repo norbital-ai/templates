@@ -8,14 +8,16 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
+	COMPANY_ID,
 	EMPLOYMENT_ID,
+	FEBRUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
 /**
  * The holiday rule, end to end on the public seed: published means used, unpublished means not
- * there, and a holiday a work day has read is frozen on the row.
+ * there, a pin holds the day, and a payroll run capturing the holiday freezes it.
  */
 test(
 	'a published holiday is what a work day pins, and the pin freezes the holiday',
@@ -87,7 +89,6 @@ test(
 				).holiday_id,
 				null
 			);
-			assert.equal((await stored(draftId)).consumed_at, null);
 
 			// Published: the same date on another day pins the holiday, which is consumed from then on.
 			requireAccepted(
@@ -145,14 +146,47 @@ test(
 				publishedId,
 				'the day pins the published holiday'
 			);
-			assert.ok((await stored(publishedId)).consumed_at, 'the pin consumes the holiday');
-			assert.equal((await stored(draftId)).consumed_at, null, 'the other holiday is untouched');
+			assert.ok((await stored(publishedId)).published_at, 'the pin leaves publication alone');
+			// A pinned day's date cannot move: the pins point at this day in this jurisdiction.
+			const pinnedMove = asRecord(
+				(await write('jurisdiction_holidays', { id: publishedId, date: '2026-02-05' }, true)).value,
+				'move a pinned holiday'
+			);
+			assert.equal(pinnedMove.resolution, 'rejected', JSON.stringify(pinnedMove));
+			assert.match(String(pinnedMove.message ?? pinnedMove.error), /pinned/);
 
-			// Consumed: frozen.
+			// Captured: a payroll run over February snapshots the holiday, freezing it.
+			const payrollRunId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await postGuestCommand(
+						session.host.baseUrl,
+						'collections.mutate',
+						mutationPush(session.schemaFingerprint, {
+							action: 'mutate',
+							collection: 'payroll_runs',
+							rows: [
+								{
+									action: 'create',
+									values: { id: payrollRunId, company_id: COMPANY_ID, period: FEBRUARY_2026 }
+								}
+							]
+						}),
+						headers
+					)
+				).value,
+				'create the February run'
+			);
+			const payslips = (await session.query('select id from payslips where payroll_run_id = $1', [
+				payrollRunId
+			])) as ReadonlyArray<{ readonly id: string }>;
+			assert.ok(payslips.length > 0, 'the February run built payslips');
+
+			// Frozen: neither the name, the day, the publication nor the row itself may move now.
 			for (const change of [{ name: 'Renamed' }, { date: '2026-02-05' }, { published_at: null }]) {
 				const refused = asRecord(
 					(await write('jurisdiction_holidays', { id: publishedId, ...change }, true)).value,
-					'edit a consumed holiday'
+					'edit a captured holiday'
 				);
 				assert.equal(refused.resolution, 'rejected', JSON.stringify(change));
 				assert.match(String(refused.message ?? refused.error), /cannot/);
@@ -173,7 +207,7 @@ test(
 				),
 				headers
 			);
-			assert.equal(asRecord(removal.value, 'delete a consumed holiday').resolution, 'rejected');
+			assert.equal(asRecord(removal.value, 'delete a captured holiday').resolution, 'rejected');
 			// The earlier ordinary day keeps what it was: the pin, not the publication, is the day's truth.
 			assert.equal(
 				asRecord(

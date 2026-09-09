@@ -13,7 +13,6 @@ const holiday = (date: string, published = true) => ({
 	original_date: null,
 	source: null,
 	published_at: published ? '2025-12-01T00:00:00Z' : null,
-	consumed_at: null,
 	approval_id: null
 });
 

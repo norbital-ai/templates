@@ -206,8 +206,7 @@ function rosterApi(overrides = {}) {
 			kind: 'PUBLIC',
 			original_date: null,
 			source: null,
-			published_at: '2025-12-01T00:00:00Z',
-			consumed_at: null
+			published_at: '2025-12-01T00:00:00Z'
 		})),
 		employments: employments(),
 		shift_definitions: [

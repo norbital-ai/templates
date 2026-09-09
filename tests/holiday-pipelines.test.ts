@@ -85,10 +85,9 @@ test('a document that is neither a spreadsheet nor a publication is refused', as
 /**
  * A holiday payroll has taken is frozen where it is read, not where it is stored.
  *
- * The fixture below is what "payroll has taken this holiday" looks like to the hook today: the
- * `consumed_at` stamp a run writes when it reads the day. The assertion deliberately names the
- * behaviour rather than the column, because the mechanism is being replaced by live references to
- * the holiday — when it is, this fixture is the line that changes and the expectation is not.
+ * "Taken" is a live reference, not a stamp: a run whose frozen `holidays` snapshot still
+ * captures the day, or a work day pinning it. The hook refuses the retraction while a run
+ * captures it; a pin alone releases through re-saving the pinning days.
  */
 const takenByPayroll = {
 	id: 'festival',
@@ -97,19 +96,52 @@ const takenByPayroll = {
 	name: 'Festival',
 	original_date: null,
 	source: null,
-	published_at: '2026-12-01T00:00:00.000Z',
-	consumed_at: '2027-01-31T00:00:00.000Z'
+	published_at: '2026-12-01T00:00:00.000Z'
 };
 
-test('a holiday payroll has taken refuses being unpublished', () => {
-	const unpublish = (existing) =>
-		holidayHooks.mutate.perRecord.before.handler({
-			input: { published_at: null },
-			existing,
-			api: {}
-		} as never);
+const capturingApi = () =>
+	({
+		db: {
+			payroll_runs: {
+				findMany: () =>
+					Effect.succeed([
+						{
+							id: 'run-1',
+							period: '2027-01',
+							lifecycle: 'DRAFT',
+							holidays: [{ id: 'festival' }]
+						}
+					])
+			},
+			work_days: {
+				findMany: () => Effect.succeed([]),
+				mutate: () => Effect.succeed(undefined)
+			}
+		}
+	}) as never;
 
-	assert.throws(() => unpublish(takenByPayroll), /cannot be unpublished/);
-	// The same write on a holiday nothing has read is allowed: the refusal is about consumption.
-	assert.doesNotThrow(() => unpublish({ ...takenByPayroll, consumed_at: null }));
+const freeApi = () =>
+	({
+		db: {
+			payroll_runs: { findMany: () => Effect.succeed([]) },
+			work_days: {
+				findMany: () => Effect.succeed([]),
+				mutate: () => Effect.succeed(undefined)
+			}
+		}
+	}) as never;
+
+test('a holiday payroll has taken refuses being unpublished', async () => {
+	const unpublish = (existing: unknown, api: never) =>
+		Effect.runPromise(
+			holidayHooks.mutate.perRecord.before.handler({
+				input: { published_at: null },
+				existing,
+				api
+			} as never)
+		);
+
+	await assert.rejects(() => unpublish(takenByPayroll, capturingApi()), /cannot be unpublished/);
+	// The same write on a holiday nothing references is allowed: the refusal is about capture.
+	await unpublish(takenByPayroll, freeApi());
 });

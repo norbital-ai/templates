@@ -292,7 +292,7 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 		const imported = await until(
 			() =>
 				session.query(
-					'select id, date, name, published_at, consumed_at, source from jurisdiction_holidays where jurisdiction_code = $1 and date >= $2 order by date',
+					'select id, date, name, published_at, source from jurisdiction_holidays where jurisdiction_code = $1 and date >= $2 order by date',
 					['TEST-JUR', `${YEAR}-01-01`]
 				),
 			(rows) => rows.length === 2,

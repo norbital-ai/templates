@@ -655,7 +655,6 @@
 	"family.payment": "Adhoc",
 	"family.work": "Work",
 	"holiday_calendar.add": "Add holiday",
-	"holiday_calendar.consumed_at": "In use since",
 	"holiday_calendar.consumed_hint": "A work day or payroll run has read this holiday. Its day, name and publication are frozen; add a new holiday for a change.",
 	"holiday_calendar.consumed_selected": "A selected holiday has been read by a work day or payroll run and cannot change.",
 	"holiday_calendar.description": "One row per observed day. A published holiday is used by rosters, leave and payroll from then on; an unpublished one is not there. Import from the spreadsheet template or the Google calendar set under General, or add one by hand.",

@@ -73,7 +73,7 @@ Holidays are individual rows. `jurisdiction_settings.holiday_source` names the G
 identifier and time zone of a jurisdiction; it is operational configuration, editable under a
 sealed version, and the import reads it off the version in force. `jurisdiction_holidays` stores
 one observed day per jurisdiction: date, name, the original date when the observance moved,
-provenance, `published_at` and `consumed_at`. Publication is per holiday and needs no catalogue
+provenance and `published_at`. Publication is per holiday and needs no catalogue
 version. Company closures remain schedule decisions and receive no public-holiday classification
 merely because the company is closed.
 
@@ -83,13 +83,15 @@ first, and a missing day is simply not a holiday. Every door in — the record f
 spreadsheet, the Google import — passes through one dedupe: a day the jurisdiction already has is
 skipped, never duplicated or overwritten, and an import never publishes.
 
-A holiday that has been read is history. A work day classified as a holiday pins it
-(`work_days.holiday_id`) and payroll captures the holidays it read on the run (`payroll_runs.holidays`);
-both stamp `consumed_at` on the row, after which its day, name and publication cannot change and it
-cannot be deleted. A finished run is never touched by a holiday published later, and a holiday
-published after a run has no effect on that run. Observed substitute dates are their own rows with
-an `original_date`. Work applies explicit rest/holiday precedence without inventing personal
-substitute holidays.
+A holiday that has been read is history, and the freeze derives from the live references,
+not a stamp. A work day classified as a holiday pins it (`work_days.holiday_id`) and payroll
+captures the holidays it read on the run (`payroll_runs.holidays`); retracting a holiday
+(unpublish, moving its day or jurisdiction, delete) is refused while a run captures it, and
+otherwise the pinning days are re-saved — re-classified, lieu credits reversed — while a credit
+already taken refuses the change. A finished run is never touched by a holiday published later,
+and a holiday published after a run has no effect on that run. Observed substitute dates are
+their own rows with an `original_date`. Work applies explicit rest/holiday precedence without
+inventing personal substitute holidays.
 
 ## Payroll flow
 
