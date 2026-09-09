@@ -49,8 +49,7 @@ const rosterImportRowSchema = Schema.Struct({
 	employee_number: Schema.String,
 	work_date: Schema.String,
 	shift_code: Schema.String,
-	assignment_code: Schema.optional(Schema.String),
-	planned_note: Schema.optional(Schema.String)
+	assignment_code: Schema.optional(Schema.String)
 });
 type RosterImportRow = Schema.Schema.Type<typeof rosterImportRowSchema>;
 
@@ -124,8 +123,7 @@ function longFormRosterRows(table: SheetTable): readonly RosterImportRow[] {
 		employee_number: reader.requiredText('employee_number') ?? '',
 		work_date: reader.calendarDate('work_date') ?? '',
 		shift_code: reader.text('shift_code'),
-		assignment_code: reader.text('assignment_code'),
-		planned_note: reader.text('note')
+		assignment_code: reader.text('assignment_code')
 	}));
 	return parsed.flatMap((row): RosterImportRow[] =>
 		row.shift_code == null
@@ -135,8 +133,7 @@ function longFormRosterRows(table: SheetTable): readonly RosterImportRow[] {
 						employee_number: row.employee_number,
 						work_date: row.work_date,
 						shift_code: row.shift_code,
-						assignment_code: row.assignment_code,
-						planned_note: row.planned_note
+						assignment_code: row.assignment_code
 					}
 				]
 	);

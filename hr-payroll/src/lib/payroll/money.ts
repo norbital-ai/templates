@@ -50,10 +50,6 @@ export type PayRequest = {
 	readonly recurring: boolean;
 	/** A standing payslip already captured this single-use request. */
 	readonly captured: boolean;
-	/** The settled output this corrects, when it names one. Provenance; never a source of sign. */
-	readonly corrects_payslip_id: string | null;
-	/** The past periods an entered payment makes good, when specified. */
-	readonly covers_periods: readonly string[] | null;
 };
 
 /** A prepared request retains the definition its source references, including older sealed revisions. */
@@ -75,7 +71,6 @@ const magnitudeBase = (
 		readonly approval_id?: string | null;
 		readonly pay_period?: string | null;
 		readonly as_adjustment_entry?: boolean;
-		readonly corrects_payslip_id?: string | null;
 	},
 	family: PayRequestFamily,
 	eventDate: IsoDate,
@@ -106,9 +101,7 @@ const magnitudeBase = (
 	 */
 	depletes: row.as_adjustment_entry !== true,
 	recurring: false,
-	captured: false,
-	corrects_payslip_id: row.corrects_payslip_id ?? null,
-	covers_periods: null
+	captured: false
 });
 
 /** A claim's economics belong to the day the expense was incurred, not the day it was entered. */
@@ -123,9 +116,11 @@ export const claimRequest = (row: ClaimRequest): PayRequest =>
 /**
  * A standing allowance, whose window is read off its recurrence and never off a column beside it.
  *
- * A one-off's window is its period's own month, so proration still measures it against the days
- * actually employed — what a one-off no longer does is masquerade as a recurring allowance whose
- * range happens to be one month long. A **recurring** allowance is bounded by nothing: it states an
+ * A one-off's window is its period's own month, and that period is the one it settles in: the
+ * recurrence names it once, and `requestIsDue` reads it off the window's end, in the grammar of
+ * the cadence the employment is paid on. There is no override column. Proration still measures
+ * the one-off against the days actually employed — what it no longer does is masquerade as a
+ * recurring allowance whose range happens to be one month long. A **recurring** allowance is bounded by nothing: it states an
  * amount **per period** and pays it whole in every period its window covers, so it never depletes
  * and its junction is the one with no unique on its source.
  */
@@ -150,15 +145,13 @@ export const allowanceRequest = (row: AllowanceRequest): PayRequest => {
 	};
 };
 
-export const paymentRequest = (row: PaymentRequest): PayRequest => ({
-	...magnitudeBase(
+export const paymentRequest = (row: PaymentRequest): PayRequest =>
+	magnitudeBase(
 		row,
 		'PAYMENT',
 		requiredDateKey(row.effective_on, 'payment effective date'),
 		row.payment_catalogue_id
-	),
-	covers_periods: row.covers_periods ?? null
-});
+	);
 
 /**
  * Which run a request settles in. The stored `pay_period` wins; the cutoff supplies the default, in

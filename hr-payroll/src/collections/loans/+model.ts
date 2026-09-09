@@ -57,9 +57,7 @@ export default defineModel(
 			sql`bolt_instant(effective_range ->> 'start')`
 		),
 		/** The customer's own name for the loan — a reference, a batch number. */
-		reference: text({ search: true }),
-		/** Why the loan exists. */
-		reason: text()
+		reference: text({ search: true })
 	},
 	{
 		description:

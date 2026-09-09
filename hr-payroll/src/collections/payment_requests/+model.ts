@@ -1,23 +1,37 @@
 import {
 	boolean,
-	custom,
 	defineModel,
+	file,
 	instant,
 	numeric,
 	text,
 	uuid
 } from '@norbital-ai/bolt/authoring';
 
+/**
+ * A one-off payment or deduction: a bonus, notice pay, a separation payment, a correction. Dated by
+ * the day it takes effect and explained by its reason; the catalogue row decides direction, ceiling
+ * and treatments.
+ */
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
+		/** The payment type, from the catalogue; its nature, ceiling and treatments price the line. */
 		payment_catalogue_id: uuid().notNull(),
+		/** A positive magnitude. Direction comes from the catalogue row's nature. */
 		amount: numeric().notNull(),
+		/** The day the payment takes effect, which the cutoff reads to place it in a period. */
 		effective_on: instant({ precision: 'day' }).notNull(),
-		covers_periods: custom('covered_periods'),
+		/** Why it is paid: the decision, the agreement or the transaction it makes good. */
 		reason: text().notNull(),
+		/** The receipt or supporting document. Required when the catalogue row's `evidence` says so. */
+		evidence_file: file(),
+		/** Settle against the direction the catalogue row declares: a claw-back of an earlier line. */
 		as_adjustment_entry: boolean().notNull().default(false),
-		corrects_payslip_id: uuid(),
+		/**
+		 * The period this settles in, overriding the cutoff's answer. Null is normal: the cutoff
+		 * supplies the period from `effective_on`.
+		 */
 		pay_period: text(),
 		/**
 		 * The payslip that settled this row, and the period it belongs to. Set by the payroll engine

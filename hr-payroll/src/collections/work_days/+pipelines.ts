@@ -89,8 +89,7 @@ const rosterRowSchema = Schema.Struct({
 	employee_number: trimmedNonEmpty,
 	work_date: trimmedNonEmpty,
 	shift_code: trimmedNonEmpty,
-	assignment_code: Schema.optional(trimmedNonEmpty),
-	planned_note: Schema.optional(Schema.String)
+	assignment_code: Schema.optional(trimmedNonEmpty)
 });
 type RosterRow = Schema.Schema.Type<typeof rosterRowSchema>;
 
@@ -392,8 +391,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 					values: {
 						shift_definition_id: code.id,
 						assignment_code: row.assignment_code ?? null,
-						planned_origin: 'IMPORT' as const,
-						planned_note: row.planned_note ?? null
+						planned_origin: 'IMPORT' as const
 					}
 				};
 			}),

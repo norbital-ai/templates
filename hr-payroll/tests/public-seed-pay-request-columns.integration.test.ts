@@ -110,20 +110,19 @@ test(
 			});
 			assert.ok(accepted(windowed), `a stated window lands: ${JSON.stringify(windowed.value)}`);
 
-			// And the shapes that are simply unsayable now: a Payment cannot name a claim receipt, and an
-			// allowance cannot claim an incurred day, because neither column exists on them.
-			const receiptOnPayment = await write(session, 'payment_requests', {
+			// And a shape that is simply unsayable: an allowance cannot claim an incurred day, because
+			// the column does not exist on it.
+			const datedAllowance = await write(session, 'allowance_requests', {
 				employment_id: EMPLOYMENT_ID,
-				payment_catalogue_id: paymentComponent,
+				allowance_catalogue_id: allowanceComponent,
 				amount: 100,
-				effective_on: '2026-04-02',
-				reason: 'Reviewed payment',
-				evidence_file: null
+				recurrence: { kind: 'ONE_OFF', period: '2026-04' },
+				incurred_on: '2026-04-02'
 			});
 			assert.equal(
-				accepted(receiptOnPayment),
+				accepted(datedAllowance),
 				false,
-				`an unknown column is refused, not stripped: ${JSON.stringify(receiptOnPayment.value)}`
+				`an unknown column is refused, not stripped: ${JSON.stringify(datedAllowance.value)}`
 			);
 		} finally {
 			await session.stop();

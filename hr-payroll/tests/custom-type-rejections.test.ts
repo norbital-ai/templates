@@ -5,7 +5,6 @@ import { instantRangeSchema } from '@norbital-ai/bolt/authoring';
 import { entitlementCapSchema } from '../src/datatypes/entitlement_cap/+definition.js';
 import { contributionTreatmentSchema } from '../src/datatypes/contribution_treatment/+definition.js';
 import { allowanceRecurrenceSchema } from '../src/datatypes/allowance_recurrence/+definition.js';
-import { coveredPeriodsSchema } from '../src/datatypes/covered_periods/+definition.js';
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsSchema } from '../src/datatypes/contribution_treatments/+definition.js';
 import { ordinaryRateSchema } from '../src/datatypes/ordinary_rate/+definition.js';
@@ -130,17 +129,6 @@ describe('allowance_recurrence', () => {
 		);
 		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'ONE_OFF', period: '2026-13' }));
 		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'MONTHLY', period: '2026-02' }));
-	});
-});
-
-describe('covered_periods', () => {
-	it('accepts optional historical months and rejects malformed month values', () => {
-		assert.ok(accepts(coveredPeriodsSchema, []));
-		assert.ok(accepts(coveredPeriodsSchema, ['2026-01']));
-		assert.ok(accepts(coveredPeriodsSchema, ['2025-11', '2025-12', '2026-01']));
-		assert.ok(refuses(coveredPeriodsSchema, ['2026-1']));
-		assert.ok(refuses(coveredPeriodsSchema, ['2026-13']));
-		assert.ok(refuses(coveredPeriodsSchema, ['2026-01-15']));
 	});
 });
 

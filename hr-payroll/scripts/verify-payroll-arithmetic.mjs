@@ -863,8 +863,7 @@ const CORE = {
 	amount: 100,
 	approval_id: null,
 	pay_period: null,
-	as_adjustment_entry: false,
-	corrects_payslip_id: null
+	as_adjustment_entry: false
 };
 const CLAIM = { ...CORE, claim_catalogue_id: 'claim-1' };
 const ALLOWANCE = { ...CORE, allowance_catalogue_id: 'allowance-1' };
@@ -873,9 +872,7 @@ const paymentAdjustment = (asAdjustmentEntry) =>
 	paymentRequest({
 		...PAYMENT,
 		effective_on: '2026-03-02',
-		corrects_payslip_id: 'adj-1',
 		as_adjustment_entry: asAdjustmentEntry,
-		covers_periods: null,
 		reason: 'x'
 	});
 check(
@@ -947,8 +944,7 @@ check(
 		paymentRequest({
 			...PAYMENT,
 			effective_on: '2026-04-25',
-			reason: 'Bonus',
-			covers_periods: null
+			reason: 'Bonus'
 		}),
 		21
 	),
@@ -958,11 +954,6 @@ check(
 	'a Payment retains its contract and source catalogue',
 	[paymentAdjustment(false).employment_id, paymentAdjustment(false).component_catalogue_id],
 	['emp-1', 'payment-1']
-);
-check(
-	'covered periods are optional Payment provenance',
-	paymentAdjustment(false).covers_periods,
-	null
 );
 
 /* ── Rest-day and public-holiday work is priced by statute, from the seeded rules ──────────────

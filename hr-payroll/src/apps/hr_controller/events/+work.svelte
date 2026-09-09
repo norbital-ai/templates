@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
@@ -92,6 +94,11 @@
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const selectedCompany = $derived(companyById(selectedCompanyId));
+	// The fallback person-day form opened from this page narrows its people to this entity.
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => selectedCompanyId ?? undefined,
+		settingsCode: () => selectedCompany?.settings_code ?? undefined
+	});
 	let month = $state<string>(monthKey(todayKey()));
 	/**
 	 * The day sheet's subject. Nothing else: the drawer owns its editors and its write, and the
@@ -751,9 +758,6 @@
 		const stored = workDayByKey.get(daySheetKey);
 		return stored?.shift_definition_id != null;
 	});
-	const daySheetNote = $derived(
-		daySheetKey == null ? null : (workDayByKey.get(daySheetKey)?.planned_note ?? null)
-	);
 	const daySheetRung = $derived(
 		daySheetDay == null ? 'OPEN' : lockRung(daySheetDay, claimFor(daySheetDay))
 	);
@@ -1121,7 +1125,6 @@
 						const toCodeId = effectiveCodeId(to.employmentId, to.date);
 						if (fromCodeId == null || toCodeId == null) return;
 
-						const note = t('roster.swap_note', { from: from.date, to: to.date });
 						const fromExisting = workDayByKey.get(personDayKey(from.employmentId, from.date));
 						const toExisting = workDayByKey.get(personDayKey(to.employmentId, to.date));
 						Effect.runFork(
@@ -1132,16 +1135,14 @@
 											? { employment_id: from.employmentId, work_date: from.date }
 											: { id: fromExisting.id }),
 										shift_definition_id: toCodeId,
-										planned_origin: 'MANUAL',
-										planned_note: note
+										planned_origin: 'MANUAL'
 									},
 									{
 										...(toExisting == null
 											? { employment_id: to.employmentId, work_date: to.date }
 											: { id: toExisting.id }),
 										shift_definition_id: fromCodeId,
-										planned_origin: 'MANUAL',
-										planned_note: note
+										planned_origin: 'MANUAL'
 									}
 								])
 							).pipe(
@@ -1289,7 +1290,6 @@
 	intervals={daySheetIntervals}
 	rosterCodeOptions={daySheetCodeOptions}
 	rosterCodeId={daySheetRosterCodeId}
-	note={daySheetNote}
 	hasExplicitEntry={daySheetHasExplicitEntry}
 	planLocked={daySheetPlanLocked}
 	planLockedReason={daySheetPlanLockedReason}

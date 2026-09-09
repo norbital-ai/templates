@@ -94,7 +94,8 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		'src/apps/hr_controller/events/+loans.svelte',
 		'src/apps/hr_controller/events/+claims.svelte',
 		'src/apps/hr_controller/events/+allowances.svelte',
-		'src/apps/hr_controller/events/+payments.svelte'
+		'src/apps/hr_controller/events/+payments.svelte',
+		'src/apps/hr_controller/events/+work.svelte'
 	]) {
 		const text = source(page);
 		assert.match(
@@ -117,12 +118,19 @@ test('every controller page sets the scope, and every form it opens reads it', (
 			/employmentRelationOptions\(/,
 			`${representation} does not narrow its employment picker`
 		);
+		// The type picker is narrowed through the eligibility component, which applies the in-force
+		// clause and then the person's own rule; a form that hands it no lineage offers every version.
 		assert.match(
 			text,
-			/inForceCatalogue\(/,
+			/<EligibleTypes[\s\S]*?settingsCode=\{[^}]+\}/,
 			`${representation} does not narrow its catalogue picker`
 		);
 	}
+	assert.match(source('src/lib/ui/eligible-types.svelte'), /inForceCatalogue\(/);
+	assert.match(
+		source('src/collections/work_days/+representation.svelte'),
+		/employmentRelationOptions\(/
+	);
 });
 
 test('the scope key is a symbol, so nothing can collide with it by name', () => {

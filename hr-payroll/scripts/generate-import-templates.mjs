@@ -151,9 +151,9 @@ const ROSTER_README = [
 	'                  PM2030 · PM2230 · REST · OFF — or PH on an observed holiday',
 	'',
 	'A long-form sheet with employee_number, work_date and shift_code still imports, and may also',
-	'carry assignment_code (the token your source schedule shows) and note (why the day was changed).',
-	'Both are stored on the assignment; the schedule itself always comes from shift_code. The month',
-	'grid has no column for either. These files are the ones operators are issued.',
+	'carry assignment_code (the token your source schedule shows). It is stored on the assignment;',
+	'the schedule itself always comes from shift_code. The month grid has no column for it. These',
+	'files are the ones operators are issued.',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
 ];

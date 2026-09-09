@@ -29,9 +29,8 @@ CREATE TABLE "allowance_requests" (
 	"allowance_catalogue_id" uuid NOT NULL,
 	"amount" numeric NOT NULL,
 	"recurrence" jsonb NOT NULL,
-	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
-	"corrects_payslip_id" uuid,
-	"pay_period" text
+	"evidence_file" jsonb,
+	"as_adjustment_entry" boolean DEFAULT false NOT NULL
 );
 
 --> statement-breakpoint
@@ -69,7 +68,6 @@ CREATE TABLE "claim_requests" (
 	"description" text,
 	"evidence_file" jsonb,
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
-	"corrects_payslip_id" uuid,
 	"pay_period" text,
 	"settled_payslip_id" uuid,
 	"settled_period" text
@@ -339,8 +337,7 @@ CREATE TABLE "loans" (
 	"principal" numeric NOT NULL,
 	"effective_range" jsonb NOT NULL,
 	"effective_from" timestamp with time zone GENERATED ALWAYS AS (bolt_instant(effective_range ->> 'start')) STORED,
-	"reference" text,
-	"reason" text
+	"reference" text
 );
 
 --> statement-breakpoint
@@ -375,10 +372,9 @@ CREATE TABLE "payment_requests" (
 	"payment_catalogue_id" uuid NOT NULL,
 	"amount" numeric NOT NULL,
 	"effective_on" timestamp with time zone NOT NULL,
-	"covers_periods" jsonb,
 	"reason" text NOT NULL,
+	"evidence_file" jsonb,
 	"as_adjustment_entry" boolean DEFAULT false NOT NULL,
-	"corrects_payslip_id" uuid,
 	"pay_period" text,
 	"settled_payslip_id" uuid,
 	"settled_period" text
@@ -553,7 +549,6 @@ CREATE TABLE "work_days" (
 	"shift_definition_id" uuid,
 	"assignment_code" text,
 	"planned_origin" text,
-	"planned_note" text,
 	"worked_intervals" jsonb,
 	"break_minutes" integer DEFAULT 0 NOT NULL,
 	"holiday_id" uuid,
@@ -567,8 +562,6 @@ CREATE UNIQUE INDEX "allowance_catalogue_settings_id_code_index" ON "allowance_c
 CREATE INDEX "allowance_catalogue_search_document_gin_idx" ON "allowance_catalogue" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "allowance_catalogue_search_text_trgm_idx" ON "allowance_catalogue" USING gin ((coalesce("code", '')) gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "allowance_requests_employment_id_pay_period_index" ON "allowance_requests" ("employment_id","pay_period");
 --> statement-breakpoint
 CREATE INDEX "allowance_requests_allowance_catalogue_id_idx" ON "allowance_requests" ("allowance_catalogue_id");
 --> statement-breakpoint

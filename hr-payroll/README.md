@@ -36,7 +36,9 @@ flowchart LR
   activity and pending reservations. No annual account, ledger refresh or automatic departure
   settlement is created. Encashment pays the approved amount without repricing it from salary.
 - **Claim, Allowance and Adhoc** provide approved monetary entries. A single-use entry is consumed
-  once, including a signed correction. Recurring allowances remain eligible across their range.
+  once, including a signed correction. Recurring allowances remain eligible across their range. A
+  type is offered only to the people its catalogue row names, and a receipt is required when the
+  row says so.
 - **Loan** owns agreements and repayment schedules. Outstanding recovery is the amount due less
   paid captures. Partial recovery remains at its source.
 - **Contribution** evaluates statutory schemes against the treatments supplied by calculated items.

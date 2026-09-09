@@ -82,11 +82,92 @@ test('a component that demands evidence gets it, whichever family the request is
 			file_size: 1
 		}
 	});
-	// There is no evidence column on the other collections — a payment cannot name a receipt.
+	// The column now exists on all three families, so an allowance line demands it the same way.
+	const allowance = {
+		employment_id: 'e1',
+		allowance_catalogue_id: 'c1',
+		amount: 100,
+		recurrence: { kind: 'ONE_OFF', period: '2026-04' }
+	};
+	assert.throws(
+		() => attempt(allowanceHooks, demanding, allowance),
+		/MEDICAL requires evidence for its allowances/
+	);
+	attempt(allowanceHooks, demanding, {
+		...allowance,
+		evidence_file: {
+			storage_key: 'k',
+			file_name: 'r.pdf',
+			mime_type: 'application/pdf',
+			file_size: 1
+		}
+	});
+});
+
+test('a type whose eligibility rule does not hold for the person is refused, whichever family', () => {
+	const drivers = { code: 'FUEL', ...ENTRY, eligibility: 'terms.department == "LOGISTICS"' };
+	const personApi = (department) => ({
+		...apiWith(drivers),
+		db: {
+			...apiWith(drivers).db,
+			employments: {
+				findFirst: () =>
+					Effect.succeed({
+						id: 'e1',
+						employee_id: 'p1',
+						company_id: 'co1',
+						employee_number: 'EMP-1',
+						hire_date: '2020-01-01',
+						effective_range: { start: '2020-01-01T00:00:00.000Z', end: '9999-12-31T00:00:00.000Z' },
+						exit_date: null,
+						exit_reason: null,
+						children: []
+					})
+			},
+			employees: { findFirst: () => Effect.succeed({ gender: 'F', date_of_birth: '1990-01-01' }) },
+			employment_terms: {
+				findMany: () =>
+					Effect.succeed([
+						{
+							effective_range: {
+								start: '2020-01-01T00:00:00.000Z',
+								end: '9999-12-31T00:00:00.000Z'
+							},
+							department
+						}
+					])
+			},
+			companies: { findFirst: () => Effect.succeed({ region: '' }) }
+		}
+	});
+	const claim = { ...CLAIM, claim_catalogue_id: 'c1' };
+	assert.throws(
+		() =>
+			Effect.runSync(
+				guardOf(claimHooks)({ input: claim, existing: undefined, api: personApi('FINANCE') })
+			),
+		/FUEL is not offered to EMP-1/
+	);
 	assert.equal(
-		'evidence_file' in
-			{ employment_id: 'e1', payment_catalogue_id: 'c1', amount: 100, effective_on: '2026-04-02' },
-		false
+		Effect.runSync(
+			guardOf(claimHooks)({ input: claim, existing: undefined, api: personApi('LOGISTICS') })
+		).employment_id,
+		'e1'
+	);
+	// An empty rule is everyone, and asks nothing of the person.
+	assert.equal(
+		attempt(
+			paymentHooks,
+			{ code: 'BONUS', ...ENTRY },
+			{
+				employment_id: 'e1',
+				payment_catalogue_id: 'c1',
+				amount: 100,
+				effective_on: '2026-04-02',
+				reason: 'Approved'
+			}
+		).employment_id,
+		'e1'
 	);
 });
 
@@ -118,7 +199,7 @@ test('a component that is not in the catalogue at all refuses nothing here', () 
 	);
 });
 
-test('Payment requires a reason, seals its contract and rejects a correction from another contract', () => {
+test('Payment requires a reason and seals its contract', () => {
 	const payment = {
 		employment_id: 'e1',
 		payment_catalogue_id: 'c1',
@@ -132,13 +213,4 @@ test('Payment requires a reason, seals its contract and rejects a correction fro
 		/requires a reason/
 	);
 	assert.equal(attempt(paymentHooks, component, payment).employment_id, 'e1');
-	const api = apiWith(component);
-	api.db.payslips = { findFirst: () => Effect.succeed({ employment_id: 'old-contract' }) };
-	assert.throws(
-		() =>
-			Effect.runSync(
-				guardOf(paymentHooks)({ input: { ...payment, corrects_payslip_id: 'old-line' }, api })
-			),
-		/same employment contract/
-	);
 });

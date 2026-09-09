@@ -695,7 +695,7 @@ function assertWorkedIntervals(
  *
  * `time_entries` and `roster_entries` were the same row read twice, so their hooks were the same
  * refusals written twice. This is both, once. The plan half is `shift_definition_id`,
- * `assignment_code`, `planned_origin` and `planned_note`; the actual half is `worked_intervals` and
+ * `assignment_code` and `planned_origin`; the actual half is `worked_intervals` and
  * `break_minutes`. Either may be absent — `shift_definition_id` non-NULL is the presence test for a
  * plan, and `worked_intervals` NULL means no attendance was recorded, which is a different fact from
  * `[]`, the day that was read and produced nothing.

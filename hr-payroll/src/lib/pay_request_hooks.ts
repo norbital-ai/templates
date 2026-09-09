@@ -270,14 +270,6 @@ export function assertPayRequestAdmissible(
 
 		if (guard.family === 'PAYMENT' && String(candidate.reason ?? '').trim() === '')
 			refuse('A payment requires a reason or supporting transaction reference.');
-		if (candidate.corrects_payslip_id != null) {
-			const payslip = yield* api.db.payslips.findFirst({
-				where: { id: { eq: String(candidate.corrects_payslip_id) } },
-				columns: { employment_id: true }
-			});
-			if (payslip == null || payslip.employment_id !== candidate.employment_id)
-				refuse('A correction must reference a payslip from the same employment contract.');
-		}
 
 		const componentId = String(candidate[`${guard.family.toLowerCase()}_catalogue_id`] ?? '');
 		const component = yield* catalogueRowOf(guard.family, api, componentId);
@@ -291,12 +283,19 @@ export function assertPayRequestAdmissible(
 			const recurring =
 				guard.family === 'ALLOWANCE' &&
 				(candidate.recurrence as { kind?: unknown } | null)?.kind === 'RECURRING';
-			if (component.cap != null && !recurring) {
+			const gated = (component.eligibility ?? '').trim() !== '';
+			if (gated || (component.cap != null && !recurring)) {
 				const eventDate = guard.eventDate(candidate);
 				const employmentId = String(candidate.employment_id ?? '');
 				if (eventDate != null && employmentId !== '') {
 					const person = yield* capSubject(api, employmentId, eventDate);
-					if (person != null) {
+					// The form offers only the types whose rule holds for the person today; this is the
+					// same rule on the event date, for a write that did not come through the form.
+					if (person != null && gated && !isEligible(component.eligibility, person.subject))
+						refuse(
+							`${component.code} is not offered to ${person.label}: its eligibility rule does not hold for them.`
+						);
+					if (person != null && component.cap != null && !recurring) {
 						const revisions = yield* catalogueRevisionsOf(guard.family, api, component);
 						assertCapHistoryComplete(revisions);
 						const catalogueById = new Map(revisions.map((row) => [row.id, row]));

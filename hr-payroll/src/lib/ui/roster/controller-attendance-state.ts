@@ -11,7 +11,6 @@ export type AttendanceValue = Readonly<{
 
 type PersonDayPlanMutation = Readonly<{
 	rosterCodeId: string;
-	note: string | null;
 }>;
 
 type PersonDayMutationInput = Readonly<{
@@ -25,7 +24,6 @@ type PersonDayMutationInput = Readonly<{
 type PersonDayMutationFields = Readonly<{
 	shift_definition_id?: string;
 	planned_origin?: 'MANUAL';
-	planned_note?: string | null;
 	worked_intervals?: readonly AttendanceIntervalValue[] | null;
 	break_minutes?: number;
 }>;
@@ -127,8 +125,7 @@ export function buildPersonDayMutation(input: PersonDayMutationInput): PersonDay
 			? {}
 			: {
 					shift_definition_id: input.plan.rosterCodeId,
-					planned_origin: 'MANUAL' as const,
-					planned_note: input.plan.note
+					planned_origin: 'MANUAL' as const
 				};
 	const attendance =
 		input.attendance == null

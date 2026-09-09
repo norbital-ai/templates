@@ -25,7 +25,6 @@ const LONG_FORM_COLUMNS = new Set([
 	'work_date',
 	'shift_code',
 	'assignment_code',
-	'note',
 	'day_type',
 	'clock_in',
 	'clock_out',
