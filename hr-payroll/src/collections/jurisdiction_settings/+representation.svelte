@@ -16,11 +16,24 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close, embedded = false }: RepresentationProps & { embedded?: boolean } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const sealed = $derived(record?.sealed_at != null);
 	const voided = $derived(record?.voided_at != null);
+	/**
+	 * The scope the schemes table hands to the form it opens. Every row under this version belongs
+	 * to it: offering the version picker would let a scheme be filed into a different version than
+	 * the one on screen — and the table it lands in then does not contain it. Same rule the Settings
+	 * page states for the catalogues it draws.
+	 */
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => undefined,
+		settingsCode: () => (record?.code == null ? undefined : String(record.code)),
+		settingsId: () => record?.id
+	});
 </script>
 
 {#snippet snapshot()}
