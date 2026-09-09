@@ -36,6 +36,37 @@ type SourceVersion = {
  * with the latest start wins, then the latest draft. A named jurisdiction is imported whether or
  * not its source is enabled; the yearly job takes only enabled ones.
  */
+/**
+ * Google's own public holiday calendars, one per jurisdiction this template ships settings for.
+ *
+ * A jurisdiction with no source configured under General reads these, so the API key alone is
+ * enough to import; a configured source replaces the default, and the scheduled job only runs
+ * the sources a person enabled.
+ */
+const DEFAULT_SOURCES: Readonly<Record<string, Omit<HolidaySource, 'jurisdiction_code'>>> = {
+	ID: {
+		calendar_id: 'en.indonesian#holiday@group.v.calendar.google.com',
+		time_zone: 'Asia/Jakarta'
+	},
+	MY: {
+		calendar_id: 'en.malaysia#holiday@group.v.calendar.google.com',
+		time_zone: 'Asia/Kuala_Lumpur'
+	},
+	PH: {
+		calendar_id: 'en.philippines#holiday@group.v.calendar.google.com',
+		time_zone: 'Asia/Manila'
+	},
+	SG: {
+		calendar_id: 'en.singapore#holiday@group.v.calendar.google.com',
+		time_zone: 'Asia/Singapore'
+	},
+	TW: { calendar_id: 'en.taiwan#holiday@group.v.calendar.google.com', time_zone: 'Asia/Taipei' },
+	VN: {
+		calendar_id: 'en.vietnamese#holiday@group.v.calendar.google.com',
+		time_zone: 'Asia/Ho_Chi_Minh'
+	}
+};
+
 export function holidaySources(
 	versions: readonly SourceVersion[],
 	jurisdictionCode?: string
@@ -56,13 +87,22 @@ export function holidaySources(
 		const held = byJurisdiction.get(row.jurisdiction_code);
 		if (held == null || rank(row) > rank(held)) byJurisdiction.set(row.jurisdiction_code, row);
 	}
-	return [...byJurisdiction.values()]
-		.toSorted((a, b) => a.jurisdiction_code.localeCompare(b.jurisdiction_code))
-		.map((row) => ({
-			jurisdiction_code: row.jurisdiction_code,
-			calendar_id: row.holiday_source!.calendar_id,
-			time_zone: row.holiday_source!.time_zone
-		}));
+	const configured = [...byJurisdiction.values()].map((row) => ({
+		jurisdiction_code: row.jurisdiction_code,
+		calendar_id: row.holiday_source!.calendar_id,
+		time_zone: row.holiday_source!.time_zone
+	}));
+	// A named jurisdiction with nothing configured falls back to Google's own calendar for it.
+	const fallback =
+		jurisdictionCode != null &&
+		configured.length === 0 &&
+		DEFAULT_SOURCES[jurisdictionCode] !== undefined &&
+		versions.some((row) => row.jurisdiction_code === jurisdictionCode)
+			? [{ jurisdiction_code: jurisdictionCode, ...DEFAULT_SOURCES[jurisdictionCode]! }]
+			: [];
+	return [...configured, ...fallback].toSorted((a, b) =>
+		a.jurisdiction_code.localeCompare(b.jurisdiction_code)
+	);
 }
 
 export function validateHolidaySource(source: HolidaySource): void {
