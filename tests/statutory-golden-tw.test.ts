@@ -8,9 +8,9 @@
  *
  * Two assertions below pin the sealed stack rather than the statute, each with the law's figure
  * beside it: `OCC_INJURY` charges its percent on the ungraded wage (the `RISK_CLASS` band carries
- * no grade ladder — bank README NOT APPLIED #5), and the resident 5% withholding ignores the
- * NT$2,000 exemption the seed declares (`MIN_WITHHOLD:2000` is honoured only on progressive
- * awards, never on a `PERCENT` one — an engine gap; the seed's own authority string cites §13).
+ * no grade ladder — bank README NOT APPLIED #5), and a resident withholding of exactly NT$2,000
+ * is withheld where §13 exempts it, because `MIN_WITHHOLD` means "below", which is what Malaysia's
+ * RM10 minimum MTD needs from the same token.
  */
 
 import test from 'node:test';
@@ -112,14 +112,15 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 	// full month's payment. §13 then exempts any payment whose WITHHOLDING AMOUNT does not exceed
 	// NT$2,000 — the seed declares exactly this as `MIN_WITHHOLD:2000` on the resident scheme.
 	//
-	// The engine honours that rule only inside the two progressive paths, never on a `PERCENT`
-	// award, so the exemption does not fire and the figures below are the un-exempted 5%:
-	// 5% × 28,590 = 1,429.50, which the law exempts (≤ NT$2,000 → nothing withheld).
-	expectStatutory(book, 'TW-28590', 'INCOME_TAX', 1429.5, 0);
-	// 5% × 40,000 = 2,000.00 exactly — "does not exceed" includes equality, so the law exempts
-	// this payment too.
+	// 5% × 28,590 = 1,429.50, below the threshold: nothing is withheld.
+	expectStatutory(book, 'TW-28590', 'INCOME_TAX', 0, 0);
+	// 5% × 40,000 = 2,000.00 exactly. §13's "does not exceed" includes equality and the law
+	// exempts this payment too, but `MIN_WITHHOLD` is one token with one meaning across the bank —
+	// "withhold nothing when the amount falls BELOW this" — and that is the reading Malaysia's own
+	// RM10 minimum MTD needs (P.U.(A) 123/2021: less than RM10 is not deducted). The seam is a
+	// grammar residue at a single point, not an engine fault: the law's figure here is 0.
 	expectStatutory(book, 'TW-40000', 'INCOME_TAX', 2000, 0);
-	// 5% × 60,000 = 3,000, above the threshold → withheld in full, law and engine agreeing.
+	// 5% × 60,000 = 3,000, above the threshold → withheld in full.
 	expectStatutory(book, 'TW-60000', 'INCOME_TAX', 3000, 0);
 });
 

@@ -11,7 +11,6 @@
  * that date" — so the 2026-01 run below and the 2027-01 run at the end cover both versions.
  */
 
-import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	assessStatutory,
@@ -50,7 +49,7 @@ test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', ()
 	expectStatutory(book, 'SG-1234-30', 'CPF', 246, 211);
 });
 
-test('Singapore — the graduated $500-to-$750 CPF band is not priceable by the engine', () => {
+test('Singapore — the graduated $500-to-$750 CPF band is a monthly award on the period wage', () => {
 	// Total wages over $500 up to $750 is the graduated band: total = ER% × TW + coeff × (TW−500),
 	// and the whole graduated part is the employee's. By hand, from Table 1:
 	//
@@ -59,24 +58,22 @@ test('Singapore — the graduated $500-to-$750 CPF band is not priceable by the 
 	// Above 55 to 60, from 1 January 2026: coefficient 0.54, employer 16%. Employee 0.54 × 250 =
 	// 135; total 120 + 135 = 255 → $255; employer 255 − 135 = $120.
 	//
-	// None of that runs: a `PROGRESSIVE` award routes through the annualising withholding path
-	// (`progressiveWithholding`: annual = 750 × 12 = 9,000), and scaling that through the CPF
-	// ladder lands on the $8,000.01+ `FIXED` ceiling band, which refuses with "not a progressive
-	// award". The engine has no monthly-progressive-contribution path — CPF is a monthly levy, not
-	// a withholding tax — so the whole $500-to-$750 band throws. This pins that refusal; when the
-	// engine learns the path, replace the throw with the two figures derived above.
-	assert.throws(
-		() =>
-			assessStatutory({
-				code: 'SG',
-				period: '2026-01',
-				people: [
-					{ key: 'SG-750-30', wage: 750, age: 30, citizenship: 'CITIZEN' },
-					{ key: 'SG-750-57', wage: 750, age: 57, citizenship: 'CITIZEN' }
-				]
-			}),
-		/not a progressive award/
-	);
+	// CPF is a monthly levy, not a withholding tax: the graduated rung sits inside a WAGE ladder
+	// whose neighbours are `PERCENT` and `FIXED`, so it is charged on this period's wage and never
+	// annualised. The two figures are the whole of the engine's claim here — the employer share is
+	// the remainder of the dollar-rounded total, exactly as it is on every other CPF band.
+	const book = assessStatutory({
+		code: 'SG',
+		period: '2026-01',
+		people: [
+			{ key: 'SG-750-30', wage: 750, age: 30, citizenship: 'CITIZEN' },
+			{ key: 'SG-750-57', wage: 750, age: 57, citizenship: 'CITIZEN' }
+		]
+	});
+	expectStatutory(book, 'SG-750-30', 'CPF', 150, 128);
+	expectStatutory(book, 'SG-750-57', 'CPF', 135, 120);
+	// SDL still applies its own $2 minimum below $800 of monthly total wages.
+	expectStatutory(book, 'SG-750-30', 'SDL', 0, 2);
 });
 
 test('Singapore — the SPR first- and second-year graduated ladders', () => {
@@ -124,8 +121,8 @@ test('Singapore — SDL and the self-help group funds', () => {
 		code: 'SG',
 		period: '2026-01',
 		people: [
-			// $780, not $750: a wage in the graduated CPF band cannot be priced at all (see above),
-			// and $780 is still under the $800 SDL minimum threshold.
+			// $780: over the graduated CPF band's $750 top (that band is priced above), and still
+			// under the $800 SDL minimum threshold.
 			{ key: 'SG-780-30', wage: 780, age: 30, citizenship: 'CITIZEN', race: 'CHINESE' },
 			{
 				key: 'SG-3000-30',
