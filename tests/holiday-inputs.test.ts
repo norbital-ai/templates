@@ -7,6 +7,7 @@ const festival = {
 	jurisdiction_code: 'TEST',
 	date: '2026-02-03',
 	name: 'Festival',
+	kind: 'PUBLIC',
 	original_date: null,
 	published_at: '2025-12-01T00:00:00Z'
 };

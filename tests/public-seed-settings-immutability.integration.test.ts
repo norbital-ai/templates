@@ -183,7 +183,7 @@ const STORED: ReadonlyArray<{
 	{
 		collection: 'work_catalogue',
 		id: WORK_ID,
-		change: { ordinary_rate: { per: 'HOUR', divisor: 173 } }
+		change: { ordinary_rate: [{ eligibility: '', per: 'HOUR', divisor: 173 }] }
 	},
 	{
 		collection: 'work_catalogue',

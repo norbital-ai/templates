@@ -45,7 +45,7 @@ import {
 	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
 	ordinaryWorkedHours,
-	philippineNightWorkHours,
+	nightWindowHours,
 	overtimeBandCode,
 	priceDay,
 	type DailyOvertime,
@@ -57,6 +57,7 @@ import {
 	absenceDayRate,
 	ordinaryDayWage,
 	ordinaryHourlyRate,
+	resolveOrdinaryRate,
 	type RateTerms
 } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
@@ -106,6 +107,7 @@ export function prepareWorkCatalogue(options: {
 		| 'overtimeRules'
 		| 'overtimeLimits'
 		| 'restBreakRules'
+		| 'nightPremium'
 		| 'overtimeCoverageRule'
 		| 'shiftById'
 		| 'patternById'
@@ -155,6 +157,7 @@ export function prepareWorkCatalogue(options: {
 			overtimeRules: regime.overtime_rules,
 			overtimeLimits: regime.overtime_limits,
 			restBreakRules: regime.rest_break_rules ?? [],
+			nightPremium: regime.night_premium ?? null,
 			overtimeCoverageRule: regime.overtime_coverage,
 			shiftById: new Map(shifts.map((row) => [row.id, row])),
 			// A terms row still names its original pattern after that pattern's effective range ends.
@@ -495,9 +498,6 @@ export function prepareWorkContext(
 	});
 	const rateTerms = asRateTerms(closingTerms, closingWorkload);
 	const currency = rateTerms.base_salary.currency;
-	// The overtime hour is the jurisdiction's ordinary hourly rate and nothing a company chooses.
-	const hourlyRate = ordinaryHourlyRate(rateTerms, configuration.work);
-	const dayWage = ordinaryDayWage(rateTerms, configuration.work);
 
 	// ── schedule across the full calendar months touched by the settlement cutoff ───────────────
 	const complianceWindow: PayRange = {
@@ -585,8 +585,21 @@ export function prepareWorkContext(
 		employment: bundle.employment,
 		terms: closingTerms,
 		children: bundle.children,
+		company: configuration.company,
 		asOf: options.salary.end
 	});
+
+	// The overtime hour is the jurisdiction's ordinary hourly rate and nothing a company chooses:
+	// the first ordinary-rate row that covers this person, a WORKING_DAYS divisor being the pay
+	// month's scheduled working days.
+	const ordinaryRate = resolveOrdinaryRate({
+		rows: configuration.work.ordinary_rate,
+		person: subject,
+		workingDays: () => workingDaysIn(monthBounds(monthKey(options.salary.start))),
+		employeeNumber: bundle.employment.employee_number
+	});
+	const hourlyRate = ordinaryHourlyRate(rateTerms, configuration.work, ordinaryRate);
+	const dayWage = ordinaryDayWage(rateTerms, configuration.work, ordinaryRate);
 
 	const absenceRate = (charge: LeaveCharge): number => {
 		const term = bundle.termsHistory.find(
@@ -621,6 +634,7 @@ export function prepareWorkContext(
 		currency,
 		hourlyRate,
 		dayWage,
+		ordinaryRate,
 		complianceWindow,
 		schedule,
 		coverage,
@@ -779,15 +793,27 @@ export function calculateWorkAttendance(
 					days: absentDays
 				});
 
-	const nightShiftHours =
-		countryOf(configuration.jurisdiction.code) === 'PH'
-			? attendedDays
-					.filter((entry) => {
-						const date = requiredDateKey(entry.work_date, 'work_days.work_date');
-						return date >= overtimeAttendance.start && date <= overtimeAttendance.end;
-					})
-					.reduce((total, entry) => total + philippineNightWorkHours(entry), 0)
-			: 0;
+	// ── the night premium: the regime's window, priced per day on this run's attendance ────────
+	const nightPremium = configuration.nightPremium ?? null;
+	const nightDays =
+		nightPremium == null
+			? []
+			: attendedDays.flatMap((entry) => {
+					const date = requiredDateKey(entry.work_date, 'work_days.work_date');
+					if (date < overtimeAttendance.start || date > overtimeAttendance.end) return [];
+					const day = schedule.get(date);
+					const night = nightWindowHours(
+						entry,
+						nightPremium,
+						day?.dayType === 'ORDINARY' ? day.shift : null
+					);
+					// Overtime hours add nothing where the person is outside statutory overtime pay.
+					const overtime = paymentEligible ? night.overtime : 0;
+					return night.ordinary + overtime > 0
+						? [{ id: entry.id, ordinary: night.ordinary, overtime }]
+						: [];
+				});
+	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
 	const adjustments = [
 		...measureOvertime({
 			segments,
@@ -796,6 +822,15 @@ export function calculateWorkAttendance(
 			dayWage,
 			catalogueComponents: configuration.catalogueComponents
 		}),
+		...(nightPremium == null
+			? []
+			: measureNightPremium({
+					premium: nightPremium,
+					days: nightDays,
+					hourlyRate,
+					catalogueComponents: configuration.catalogueComponents,
+					subject
+				})),
 		...absentAdjustments
 	];
 	const lockSpan = {
@@ -1126,6 +1161,49 @@ function measureAbsence(options: {
 }
 
 /**
+ * The night premium: minutes inside the regime's window add a percentage of the hourly rate,
+ * one percentage on ordinary hours and another on overtime hours. One line per work day under the
+ * Work `night` output, so the settlement lock is the day that earned it.
+ */
+function measureNightPremium(options: {
+	readonly premium: NonNullable<Configuration['nightPremium']>;
+	readonly days: readonly {
+		readonly id: string;
+		readonly ordinary: number;
+		readonly overtime: number;
+	}[];
+	readonly hourlyRate: number;
+	readonly catalogueComponents: readonly CatalogueComponent[];
+	readonly subject: PersonContext;
+}): MeasuredAdjustment[] {
+	if (options.days.length === 0) return [];
+	const component = options.catalogueComponents.find(
+		(row) => row.family === 'WORK' && row.output === 'night'
+	);
+	if (component == null) throw new Error('Work catalogue is missing its night premium output.');
+	if (!isEligible(component.eligibility, options.subject)) return [];
+	const { ordinary_add, overtime_add } = options.premium;
+	return options.days.flatMap((day) => {
+		const amount = cents(
+			options.hourlyRate * ((day.ordinary * ordinary_add + day.overtime * overtime_add) / 100)
+		);
+		if (amount === 0) return [];
+		return [
+			{
+				input: { family: 'WORK_DAY' as const, id: day.id },
+				catalogueComponent: component,
+				nature: 'EARNING' as const,
+				label: component.code,
+				amount,
+				quantity: day.ordinary + day.overtime,
+				rate: options.hourlyRate,
+				statutoryRuleKey: null
+			}
+		];
+	});
+}
+
+/**
  * Overtime, priced from the clocks and the statute and from nothing else.
  *
  * Every hour that reached this point has already been derived from a work day, classified against
@@ -1328,10 +1406,16 @@ export function validateWorkInputs(options: {
 	return issues;
 }
 
-/** Work reports statutory daily and monthly limits from its measured attendance. */
+/**
+ * Work reports statutory daily, monthly, quarterly and yearly limits from its measured attendance.
+ * A quarter or a year is counted to date: what earlier PAID payslips of this person settled for
+ * the same months, plus this run.
+ */
 export function validateWorkResult(options: {
 	readonly configuration: Configuration;
 	readonly measured: MeasuredEmployment;
+	/** Regulated overtime hours earlier PAID payslips settled, by calendar month. */
+	readonly priorOvertimeHours?: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;
@@ -1339,16 +1423,14 @@ export function validateWorkResult(options: {
 		configuration,
 		adjustments: measured.adjustments
 	});
-	for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
-		issues.push(
-			...validateOvertimeLimits({
-				configuration,
-				employeeNumber: bundle.employment.employee_number,
-				calendarMonth,
-				monthHours
-			})
-		);
-	}
+	issues.push(
+		...validateOvertimeLimits({
+			configuration,
+			employeeNumber: bundle.employment.employee_number,
+			hoursByMonth: measured.calendarMonthOvertimeHours,
+			priorHoursByMonth: options.priorOvertimeHours ?? new Map()
+		})
+	);
 	// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
 	// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
 	// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than

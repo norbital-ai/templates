@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
-	 * The working-time regime as the RFC's segments, in its order: Overtime (who is covered, then
-	 * the pricing rules), Limits, Rest (breaks, then the weekly rest day) and the holiday-on-a-rest-day
-	 * precedence. The form renders this column once under its Overtime section; the three sections
+	 * The working-time regime as the RFC's segments, in its order: Overtime (who is covered, the
+	 * pricing rules, then the night premium), Limits, Rest (breaks, then the weekly rest day) and the
+	 * holiday-on-a-rest-day precedence. The form renders this column once under its Overtime section; the three sections
 	 * after it are drawn here with the same `FormSection` the form uses.
 	 */
 	import { Result, Schema } from 'effect';
@@ -17,7 +17,9 @@
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import { nullableNumberFrom, numberFrom, splitList } from '../../lib/ui/renderer-input.js';
 	import {
+		RULE_DAY_TYPES,
 		statutoryRegimeSchema,
+		type NightPremium,
 		type StatutoryRegime,
 		type StatutoryRestBreakRule,
 		type StatutoryWeeklyRestRule
@@ -73,7 +75,7 @@
 		{
 			key: 'day_type',
 			label: r('day_type'),
-			field: enumField('day_type', ['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+			field: enumField('day_type', RULE_DAY_TYPES),
 			width: 170
 		},
 		{
@@ -103,7 +105,7 @@
 		{
 			key: 'period',
 			label: r('period'),
-			field: enumField('period', ['DAY', 'WEEK', 'MONTH']),
+			field: enumField('period', ['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
 			width: 130
 		},
 		{
@@ -180,6 +182,7 @@
 	);
 	const breakRules = $derived<readonly StatutoryRestBreakRule[]>(current.rest_break_rules ?? []);
 	const weeklyRest = $derived<StatutoryWeeklyRestRule | null>(current.weekly_rest_rule ?? null);
+	const nightPremium = $derived<NightPremium | null>(current.night_premium ?? null);
 	const summary = $derived(
 		[
 			`${current.overtime_rules.length} ${r('summary_rules')}`,
@@ -241,6 +244,11 @@
 	function replaceWeeklyRest(next: StatutoryWeeklyRestRule | null): void {
 		const { weekly_rest_rule: _previous, ...rest } = current;
 		emit(next === null ? rest : { ...rest, weekly_rest_rule: next });
+	}
+
+	function replaceNightPremium(next: NightPremium | null): void {
+		const { night_premium: _previous, ...rest } = current;
+		emit(next === null ? rest : { ...rest, night_premium: next });
 	}
 
 	function pricingRules(rows: PricingRow[]): Rule[] {
@@ -441,6 +449,91 @@
 			onChange={(rows) => emit({ ...current, overtime_rules: pricingRules(rows) })}
 		/>
 
+		<Stack gap="sm">
+			<Inline justify="between" align="start" gap="md">
+				<Stack gap="xs">
+					<h4 class="text-sm font-semibold">{r('night_premium')}</h4>
+					<p class="text-meta">{r('night_premium_hint')}</p>
+				</Stack>
+				<Button
+					variant="outline"
+					size="sm"
+					{disabled}
+					onclick={() =>
+						replaceNightPremium(
+							nightPremium
+								? null
+								: { from: '22:00', to: '06:00', ordinary_add: 10, overtime_add: 10 }
+						)}
+				>
+					{nightPremium ? r('remove_night_premium') : r('add_night_premium')}
+				</Button>
+			</Inline>
+			{#if nightPremium}
+				{@const night = nightPremium}
+				<Grid gap="sm" minimum="compact">
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{r('night_from')}
+							<Input
+								type="time"
+								value={night.from}
+								{disabled}
+								oninput={(event) =>
+									replaceNightPremium({ ...night, from: event.currentTarget.value })}
+							/>
+						</Stack>
+					</label>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{r('night_to')}
+							<Input
+								type="time"
+								value={night.to}
+								{disabled}
+								oninput={(event) =>
+									replaceNightPremium({ ...night, to: event.currentTarget.value })}
+							/>
+						</Stack>
+					</label>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{r('night_ordinary_add')}
+							<Input
+								type="number"
+								min="0"
+								step="0.01"
+								value={night.ordinary_add}
+								{disabled}
+								oninput={(event) =>
+									replaceNightPremium({
+										...night,
+										ordinary_add: numberFrom(event.currentTarget.value, 0)
+									})}
+							/>
+						</Stack>
+					</label>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{r('night_overtime_add')}
+							<Input
+								type="number"
+								min="0"
+								step="0.01"
+								value={night.overtime_add}
+								{disabled}
+								oninput={(event) =>
+									replaceNightPremium({
+										...night,
+										overtime_add: numberFrom(event.currentTarget.value, 0)
+									})}
+							/>
+						</Stack>
+					</label>
+				</Grid>
+			{/if}
+		</Stack>
+
 		<FormSection
 			title={t('component.work_section_limits')}
 			hint={t('component.work_section_limits_hint')}
@@ -582,10 +675,11 @@
 						value={current.holiday_rest_precedence}
 						options={[
 							{ value: 'PUBLIC_HOLIDAY', label: t('holiday_calendar.public_holiday_rate') },
-							{ value: 'REST_DAY', label: t('holiday_calendar.rest_day_rate') }
+							{ value: 'REST_DAY', label: t('holiday_calendar.rest_day_rate') },
+							{ value: 'SUBSTITUTE', label: t('holiday_calendar.substitute_rate') }
 						]}
 						onValueChange={(value) => {
-							if (value === 'PUBLIC_HOLIDAY' || value === 'REST_DAY')
+							if (value === 'PUBLIC_HOLIDAY' || value === 'REST_DAY' || value === 'SUBSTITUTE')
 								emit({ ...current, holiday_rest_precedence: value });
 						}}
 					/>

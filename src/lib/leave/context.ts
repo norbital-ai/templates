@@ -46,8 +46,18 @@ export type LeaveContext = {
 		ResolvedEmployment,
 		'id' | 'employee_id' | 'company_id' | 'hire_date' | 'exit_date' | 'children'
 	>[];
-	companies: Pick<WorkspaceRow<'companies'>, 'id' | 'settings_code'>[];
-	employees: Pick<WorkspaceRow<'employees'>, 'id' | 'gender' | 'date_of_birth' | 'nationality'>[];
+	companies: Pick<WorkspaceRow<'companies'>, 'id' | 'settings_code' | 'region'>[];
+	employees: Pick<
+		WorkspaceRow<'employees'>,
+		| 'id'
+		| 'gender'
+		| 'date_of_birth'
+		| 'nationality'
+		| 'marital_status'
+		| 'solo_parent'
+		| 'race'
+		| 'religion'
+	>[];
 	terms: Pick<
 		WorkspaceRow<'employment_terms'>,
 		| 'id'
@@ -61,6 +71,8 @@ export type LeaveContext = {
 		| 'statutory_work_category'
 		| 'department'
 		| 'payroll_group'
+		| 'grade'
+		| 'residency_since'
 	>[];
 	entries: LeaveActivity[];
 	versions: Pick<
@@ -89,7 +101,7 @@ export type LeaveContext = {
 	>[];
 	holidays: Pick<
 		WorkspaceRow<'jurisdiction_holidays'>,
-		'id' | 'jurisdiction_code' | 'date' | 'name' | 'original_date' | 'published_at'
+		'id' | 'jurisdiction_code' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
 	>[];
 	workDays: Pick<
 		WorkspaceRow<'work_days'>,
@@ -144,7 +156,7 @@ export function readLeaveContext(
 				[
 					api.db.companies.findMany({
 						where: { id: { in: companyIds }, approval_id: { isNull: true } },
-						columns: { id: true, settings_code: true },
+						columns: { id: true, settings_code: true, region: true },
 						limit: LIMIT
 					}),
 					api.db.employees.findMany({
@@ -153,7 +165,11 @@ export function readLeaveContext(
 							id: true,
 							gender: true,
 							date_of_birth: true,
-							nationality: true
+							nationality: true,
+							marital_status: true,
+							solo_parent: true,
+							race: true,
+							religion: true
 						},
 						limit: LIMIT
 					}),
@@ -171,7 +187,8 @@ export function readLeaveContext(
 							statutory_work_category: true,
 							department: true,
 							payroll_group: true,
-							grade: true
+							grade: true,
+							residency_since: true
 						},
 						limit: LIMIT
 					}),
@@ -298,6 +315,7 @@ export function readLeaveContext(
 					jurisdiction_code: true,
 					date: true,
 					name: true,
+					kind: true,
 					original_date: true,
 					published_at: true
 				},
@@ -403,6 +421,7 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 			employment,
 			terms: terms.find((row) => coversDate(row.effective_range, date)) ?? null,
 			children: childrenOn(employment.children, date),
+			company,
 			asOf: date
 		});
 	const eligibility = new Map<string, boolean>();

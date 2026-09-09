@@ -525,6 +525,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					source.event_date
 				),
 				children: options.bundle.children,
+				company: options.configuration.company,
 				asOf: source.event_date
 			});
 		const eventDate = entry.recurring ? capOccurrenceDate(options.period) : entry.event_date;

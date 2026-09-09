@@ -158,8 +158,7 @@ test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK ref
 	const warned = validateOvertimeLimits({
 		configuration: configuration({ overtimeLimits: [limit('WARN')] }),
 		employeeNumber: 'PUBEM0023',
-		calendarMonth: '2026-03',
-		monthHours: 112
+		hoursByMonth: new Map([['2026-03', 112]])
 	});
 	assert.equal(warned.length, 1);
 	assert.equal(warned[0].severity, 'WARNING');
@@ -171,12 +170,73 @@ test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK ref
 	const blocked = validateOvertimeLimits({
 		configuration: configuration({ overtimeLimits: [limit('BLOCK')] }),
 		employeeNumber: 'PUBEM0023',
-		calendarMonth: '2026-03',
-		monthHours: 112
+		hoursByMonth: new Map([['2026-03', 112]])
 	});
 	assert.equal(blocked.length, 1);
 	assert.equal(blocked[0].severity, 'BLOCKER');
 	assert.equal(blockers(blocked).length, 1);
+});
+
+test('a QUARTER or YEAR ceiling counts the calendar period to date: paid payslips plus this run', () => {
+	const limit = (period, max_hours, on_exceed) => ({
+		id: `limit-${period}`,
+		period,
+		measures: 'OVERTIME_HOURS',
+		max_hours,
+		on_exceed
+	});
+	// Taiwan: 138 hours a quarter. January and February were paid at 50 each; March adds 40.
+	const quarter = validateOvertimeLimits({
+		configuration: configuration({ overtimeLimits: [limit('QUARTER', 138, 'BLOCK')] }),
+		employeeNumber: 'PUBEM0023',
+		hoursByMonth: new Map([['2026-03', 40]]),
+		priorHoursByMonth: new Map([
+			['2026-01', 50],
+			['2026-02', 50],
+			// Last quarter's hours are not this quarter's.
+			['2025-12', 100]
+		])
+	});
+	assert.equal(quarter.length, 1);
+	assert.equal(quarter[0].severity, 'BLOCKER');
+	assert.match(quarter[0].message, /140 regulated overtime hours in 2026-Q1/);
+	assert.match(quarter[0].message, /calendar-quarter ceiling/);
+	// Vietnam: 200 hours a year. The same months stay under it; a prior year is not counted.
+	assert.deepEqual(
+		validateOvertimeLimits({
+			configuration: configuration({ overtimeLimits: [limit('YEAR', 200, 'WARN')] }),
+			employeeNumber: 'PUBEM0023',
+			hoursByMonth: new Map([['2026-03', 40]]),
+			priorHoursByMonth: new Map([
+				['2026-01', 50],
+				['2026-02', 50],
+				['2025-12', 100]
+			])
+		}),
+		[]
+	);
+	const year = validateOvertimeLimits({
+		configuration: configuration({ overtimeLimits: [limit('YEAR', 120, 'WARN')] }),
+		employeeNumber: 'PUBEM0023',
+		hoursByMonth: new Map([['2026-03', 40]]),
+		priorHoursByMonth: new Map([
+			['2026-01', 50],
+			['2026-02', 50]
+		])
+	});
+	assert.equal(year.length, 1);
+	assert.equal(year[0].severity, 'WARNING');
+	assert.match(year[0].message, /140 regulated overtime hours in 2026/);
+	// A MONTH ceiling reads this run's months only, as it always did.
+	assert.deepEqual(
+		validateOvertimeLimits({
+			configuration: configuration({ overtimeLimits: [limit('MONTH', 100, 'BLOCK')] }),
+			employeeNumber: 'PUBEM0023',
+			hoursByMonth: new Map([['2026-03', 40]]),
+			priorHoursByMonth: new Map([['2026-03', 70]])
+		}),
+		[]
+	);
 });
 
 test('a total-hours ceiling is not compared against overtime hours', () => {
@@ -196,8 +256,7 @@ test('a total-hours ceiling is not compared against overtime hours', () => {
 				]
 			}),
 			employeeNumber: 'PUBEM0023',
-			calendarMonth: '2026-03',
-			monthHours: 200
+			hoursByMonth: new Map([['2026-03', 200]])
 		}),
 		[]
 	);
@@ -218,8 +277,7 @@ test('a ceiling that was not reached raises nothing', () => {
 				]
 			}),
 			employeeNumber: 'PUBEM0023',
-			calendarMonth: '2026-03',
-			monthHours: 104
+			hoursByMonth: new Map([['2026-03', 104]])
 		}),
 		[]
 	);

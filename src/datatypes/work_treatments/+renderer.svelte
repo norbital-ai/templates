@@ -1,8 +1,9 @@
 <script lang="ts">
 	/**
-	 * One row per statutory scheme, four treatment columns: how the scheme charges salary,
-	 * overtime, excess overtime and unexplained absence. A cell is the charge and, when special,
-	 * the rule's name (`treatment-cell.svelte`), so the matrix stays five columns wide.
+	 * One row per statutory scheme, five treatment columns: how the scheme charges salary,
+	 * overtime, excess overtime, unexplained absence and the night premium. A cell is the charge
+	 * and, when special, the rule's name (`treatment-cell.svelte`), so the matrix stays six columns
+	 * wide.
 	 *
 	 * On the Settings page the rows are the scoped version's own schemes, read once from
 	 * `statutory_contributions` and never typed. Without that scope the code column is free text
@@ -20,7 +21,7 @@
 	import TreatmentCell from './treatment-cell.svelte';
 	import type { RendererProps, Value } from './$types.js';
 
-	type Cell = Value[string];
+	type Cell = Required<Value[string]>;
 	type TreatmentRow = { readonly id: string; readonly code: string } & Cell;
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -62,15 +63,19 @@
 	const parsed = $derived(
 		Schema.decodeUnknownResult(workTreatmentsSchema)(props.value, { onExcessProperty: 'error' })
 	);
-	const entries = $derived<[string, Cell][]>(
-		Result.isSuccess(parsed) ? Object.entries(parsed.success) : []
-	);
 	const UNSET: Cell = {
 		salary: { kind: 'UNSET' },
 		overtime: { kind: 'UNSET' },
 		overtime_excess: { kind: 'UNSET' },
-		absence: { kind: 'UNSET' }
+		absence: { kind: 'UNSET' },
+		night: { kind: 'UNSET' }
 	};
+	/** A stored row may predate the night column; it reads as undecided there. */
+	const entries = $derived<[string, Cell][]>(
+		Result.isSuccess(parsed)
+			? Object.entries(parsed.success).map(([code, cell]) => [code, { ...UNSET, ...cell }])
+			: []
+	);
 	const rowOf = (code: string, cell: Cell): TreatmentRow => ({
 		id: `treatment-${code}`,
 		code,
@@ -80,10 +85,10 @@
 		schemesQuery == null
 			? entries.map(([code, cell]) => rowOf(code, cell))
 			: (schemesQuery.current ?? []).map((scheme) =>
-					rowOf(
-						scheme.code,
-						(Result.isSuccess(parsed) ? parsed.success[scheme.code] : undefined) ?? UNSET
-					)
+					rowOf(scheme.code, {
+						...UNSET,
+						...(Result.isSuccess(parsed) ? parsed.success[scheme.code] : undefined)
+					})
 				)
 	);
 

@@ -3,6 +3,15 @@ import test from 'node:test';
 import { assessContributions } from '../src/lib/payroll/contribution.ts';
 import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
 import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+
+/** A person with nothing recorded: every scheme and band without a predicate covers them. */
+const NOBODY = personContext({
+	employee: null,
+	employment: { hire_date: '' },
+	terms: null,
+	asOf: '2026-12-31'
+});
 
 type Contract = Parameters<typeof assessContributions>[0][number];
 
@@ -57,6 +66,8 @@ function contract(
 			projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 			spouseIsDependent: false,
 			dependents: 0,
+			person: NOBODY,
+			minimumWage: null,
 			...calculation
 		}
 	};

@@ -35,6 +35,7 @@ test('the company form is name, registration, settings lineage, cutoff day, pay 
 		'name',
 		'pay_cutoff_day',
 		'pay_frequency',
+		'region',
 		'registration_number',
 		'risk_class',
 		'settings_code'
@@ -75,6 +76,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'effective_range',
 		'holiday_source',
 		'jurisdiction_code',
+		'minimum_wages',
 		'name',
 		'research_notes',
 		'research_urls',

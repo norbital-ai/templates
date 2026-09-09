@@ -4,7 +4,7 @@ import { dateKey } from '../../lib/iso-day.js';
 import type { Hooks } from './$types.js';
 
 /** The columns a consumed holiday keeps: what a work day or payroll run already read. */
-const FROZEN = ['jurisdiction_code', 'date', 'name', 'original_date'] as const;
+const FROZEN = ['jurisdiction_code', 'date', 'name', 'kind', 'original_date'] as const;
 
 export default {
 	mutate: {

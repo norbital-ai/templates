@@ -10,29 +10,34 @@ import {
 export { WORK_OUTPUTS };
 
 /**
- * The four pay lines Work produces, and where each sits in the settlement order. Neither is
+ * The five pay lines Work produces, and where each sits in the settlement order. Neither is
  * captured: every seeded lineage carried these codes and orders (Indonesia's absence line was
- * `UNPAID_LEAVE` at 150; the majority's `ABSENCE` at 1000 is taken).
+ * `UNPAID_LEAVE` at 150; the majority's `ABSENCE` at 1000 is taken). The night premium is the
+ * regime's `night_premium` priced per work day, beside overtime.
  */
 export const WORK_PAY_ITEMS = {
 	salary: { code: 'BASIC', sequence: 100 },
 	overtime: { code: 'OVERTIME', sequence: 20 },
 	overtime_excess: { code: 'OVERTIME_EXCESS', sequence: 21 },
-	absence: { code: 'ABSENCE', sequence: 1000 }
+	absence: { code: 'ABSENCE', sequence: 1000 },
+	night: { code: 'NIGHT_PREMIUM', sequence: 22 }
 } as const satisfies Record<WorkOutput, { code: string; sequence: number }>;
 export const {
 	salary: SALARY,
 	overtime: OVERTIME,
 	overtime_excess: OVERTIME_EXCESS,
-	absence: ABSENCE
+	absence: ABSENCE,
+	night: NIGHT_PREMIUM
 } = WORK_PAY_ITEMS;
 
-/** One column of the matrix, as that pay line's treatments. */
+/** One column of the matrix, as that pay line's treatments; an absent `night` cell is undecided. */
 export const workOutputTreatments = (
 	treatments: WorkTreatments,
 	output: WorkOutput
 ): ContributionTreatments =>
-	Object.fromEntries(Object.entries(treatments).map(([code, cell]) => [code, cell[output]]));
+	Object.fromEntries(
+		Object.entries(treatments).map(([code, cell]) => [code, cell[output] ?? { kind: 'UNSET' }])
+	);
 
 /** Four column maps back into one matrix; a scheme one column lacks is `UNSET` there. */
 export const workTreatmentsOf = (

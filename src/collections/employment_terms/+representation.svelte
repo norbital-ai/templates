@@ -55,6 +55,7 @@
 				</Column>
 				<Field name="employment_type" label={t('component.employment_type')} />
 				<Field name="residency_status" label={t('component.residency_status')} />
+				<Field name="residency_since" label={t('component.residency_since')} />
 				<Field name="work_classification" label={t('component.classification')} />
 				<Field name="statutory_work_category" label={t('component.statutory_work_category')} />
 				<Field name="job_title" label={t('component.job_title')} />

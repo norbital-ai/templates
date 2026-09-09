@@ -1,10 +1,12 @@
-import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, instant, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		/** Standing in this contract's jurisdiction on the effective dates; null is unrecorded. */
 		residency_status: enums(['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']),
+		/** When that standing began; predicates read completed months as `employee.residency_months`. */
+		residency_since: instant({ precision: 'day' }),
 		base_salary: custom('money').notNull(),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
 		work_classification: enums(['EA_COVERED', 'NON_EA', 'MANAGERIAL']).notNull(),

@@ -54,7 +54,7 @@ const WORK = {
 	settings_id: JURISDICTION.id,
 	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: { per: 'DAY', divisor: 26 },
+	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 	regime: {
 		overtime_coverage: null,
 		overtime_rules: [],
@@ -231,6 +231,7 @@ const CONFIGURATION = {
 	overtimeRules: [],
 	overtimeLimits: [],
 	restBreakRules: [],
+	nightPremium: null,
 	overtimeCoverageRule: null,
 	shiftById: new Map(),
 	patternById: new Map([[SHIFT_PATTERN.id, SHIFT_PATTERN]]),
@@ -320,6 +321,7 @@ export function makePayrollCpuBenchmarkPreparedRun(): PreparedRun {
 			headcount: EMPLOYEE_COUNT,
 			workHolidayEvidence: { inputs: [], holidays: [] },
 			yearToDate: new Map(),
+			priorOvertimeHours: new Map(),
 			consumedEntries: new Map(),
 			consumedRepayments: new Map()
 		},

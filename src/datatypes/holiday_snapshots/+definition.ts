@@ -8,6 +8,7 @@ export const holidaySnapshotSchema = Schema.Struct({
 	jurisdiction_code: Schema.String,
 	date: calendarDay,
 	name: Schema.String,
+	kind: Schema.Literals(['PUBLIC', 'SPECIAL', 'SUBSTITUTE']),
 	original_date: Schema.NullOr(calendarDay),
 	published_at: Schema.String
 });

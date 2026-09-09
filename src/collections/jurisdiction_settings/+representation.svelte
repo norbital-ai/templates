@@ -62,6 +62,12 @@
 							<Column span="all"
 								><Field name="effective_range" label={t('component.effective_period')} /></Column
 							>
+							<Column span="all">
+								<Stack gap="xs">
+									<Field name="minimum_wages" label={t('component.minimum_wages')} />
+									<p class="text-meta">{t('component.minimum_wages_hint')}</p>
+								</Stack>
+							</Column>
 						</Grid>
 					</Stack>
 

@@ -8,13 +8,27 @@ import { Schema } from 'effect';
  * where the statute says 26 underpays every overtime hour by 15%, which is why it is law and not
  * a company setting.
  *
+ * Rows are read top-down and the first predicate that holds for the person is the rate: a
+ * daily-paid Filipino reads a different divisor from a monthly-paid one, a Vietnamese contract
+ * divides by the month's actual working days (`WORKING_DAYS`). The last row is normally everyone.
+ *
  * Distinct from `proration`, the partial-month denominator: Malaysia prorates by calendar days and
  * prices an extra day at ÷26.
  */
-export const ordinaryRateValueSchema = Schema.Struct({
+export const ordinaryRateRowSchema = Schema.Struct({
+	/** Who the row is for; empty is everyone. */
+	eligibility: Schema.String,
 	per: Schema.Literals(['DAY', 'HOUR']),
-	divisor: Schema.Finite.check(Schema.isGreaterThan(0))
+	divisor: Schema.Union([
+		Schema.Finite.check(Schema.isGreaterThan(0)),
+		Schema.Literal('WORKING_DAYS')
+	])
 });
+export type OrdinaryRateRow = Schema.Schema.Type<typeof ordinaryRateRowSchema>;
+
+export const ordinaryRateValueSchema = Schema.Array(ordinaryRateRowSchema).check(
+	Schema.isMinLength(1)
+);
 
 export type OrdinaryRate = Schema.Schema.Type<typeof ordinaryRateValueSchema>;
 
@@ -26,6 +40,6 @@ export const ordinaryRateSchema = Schema.toStandardSchemaV1(ordinaryRateValueSch
 export default defineCustomType({
 	name: 'ordinary_rate',
 	description:
-		'The rate of pay a jurisdiction derives from a monthly wage: the wage divided by a statutory divisor, per day or per hour.',
+		'The rate of pay a jurisdiction derives from a monthly wage, as rows read top-down: who the row is for, and the wage divided by a statutory divisor (or the month’s working days), per day or per hour.',
 	schema: ordinaryRateSchema
 });

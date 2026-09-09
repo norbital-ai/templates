@@ -84,7 +84,7 @@ const JURISDICTION = {
 	code: 'MY',
 	currency: 'MYR',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: { per: 'DAY', divisor: 26 },
+	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 	tax_year_start_month: 1,
 	effective_range: { start: '2020-01-01', end: null }
 };
@@ -550,6 +550,150 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 	const ordinary = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] });
 	assert.equal(amountOf(ordinary, OT_HOLIDAY), null);
 	assert.equal(amountOf(ordinary, OT_ORDINARY), 49.77, '2 h × 1.5 × 16.59');
+});
+
+test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladder', () => {
+	const holidays = new Map([
+		[
+			'2026-03-10',
+			{ id: 'hol-s', jurisdiction_code: 'MY', date: '2026-03-10', name: 'Special', kind: 'SPECIAL' }
+		]
+	]);
+	const rules = [
+		...OVERTIME_RULES,
+		{
+			id: 'rule-special',
+			day_type: 'SPECIAL_HOLIDAY',
+			band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
+			award: { kind: 'HOURLY_MULTIPLE', multiple: 1.3 }
+		}
+	];
+	const worked = measure(
+		{ workDays: [clock('2026-03-10', '08:30', '19:30')] },
+		{ holidays, overtimeRules: rules }
+	);
+	assert.equal(worked.overtimeDays[0].dayType, 'SPECIAL_HOLIDAY');
+	// Ten worked hours, all overtime on a holiday: 10 × 1.3 × 16.59, and nothing on the public ladder.
+	assert.equal(amountOf(worked, 'OT_SPECIAL_HOLIDAY_BEYOND_NORMAL_0'), 215.67);
+	assert.equal(amountOf(worked, OT_HOLIDAY), null);
+	// A regime that states no SPECIAL_HOLIDAY ladder cannot price the day, and says so.
+	assert.throws(
+		() => measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] }, { holidays }),
+		/no BEYOND_NORMAL overtime rule for a SPECIAL_HOLIDAY/
+	);
+});
+
+test('SUBSTITUTE precedence keeps the rest day and observes the holiday on the next working day', () => {
+	// Sunday 15 March is the pattern's rest day; the holiday falls on it.
+	const holidays = new Map([
+		[
+			'2026-03-15',
+			{
+				id: 'hol-sun',
+				jurisdiction_code: 'MY',
+				date: '2026-03-15',
+				name: 'Sunday festival',
+				kind: 'PUBLIC'
+			}
+		]
+	]);
+	const days = [clock('2026-03-15', '08:30', '12:30'), clock('2026-03-16', '08:30', '19:30')];
+	const substituted = measure(
+		{ workDays: days },
+		{ holidays, holidayRestPrecedence: 'SUBSTITUTE' }
+	);
+	assert.deepEqual(
+		substituted.overtimeDays.map((day) => [day.date, day.dayType]),
+		[
+			['2026-03-15', 'REST_DAY'],
+			['2026-03-16', 'PUBLIC_HOLIDAY']
+		]
+	);
+	assert.equal(amountOf(substituted, OT_REST_HALF), 66.37, 'Sunday is still a rest day');
+	assert.equal(amountOf(substituted, OT_HOLIDAY), 265.46, 'Monday is the holiday: two days’ wages');
+	// The existing two readings are untouched: the rest day wins, or the holiday does, on the Sunday.
+	const restWins = measure({ workDays: days }, { holidays, holidayRestPrecedence: 'REST_DAY' });
+	assert.deepEqual(
+		restWins.overtimeDays.map((day) => day.dayType),
+		['REST_DAY', 'ORDINARY']
+	);
+	const holidayWins = measure(
+		{ workDays: days },
+		{ holidays, holidayRestPrecedence: 'PUBLIC_HOLIDAY' }
+	);
+	assert.deepEqual(
+		holidayWins.overtimeDays.map((day) => day.dayType),
+		['PUBLIC_HOLIDAY', 'ORDINARY']
+	);
+});
+
+test('the night premium adds a share of the hourly rate to hours inside the window, per day', () => {
+	const night = component({
+		id: 'work-night',
+		family: 'WORK',
+		output: 'night',
+		code: 'NIGHT_PREMIUM',
+		sequence: 22,
+		definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
+	});
+	const nightPremium = { from: '22:00', to: '06:00', ordinary_add: 10, overtime_add: 20 };
+	const configurationWithNight = {
+		catalogueComponents: [...COMPONENT_CATALOGUE, night],
+		nightPremium
+	};
+	// An ordinary day clocked 20:00–02:00: six overtime hours, four of them inside the window.
+	const late = measure(
+		{
+			workDays: [
+				{
+					...clock('2026-03-10', '20:00', '23:59'),
+					worked_intervals: [
+						{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
+					],
+					break_minutes: 0
+				}
+			]
+		},
+		configurationWithNight
+	);
+	const line = paid(late).find((item) => item.label === 'NIGHT_PREMIUM');
+	assert.equal(line?.amount, 13.27, '4 h × 20% × 16.59');
+	assert.equal(line?.quantity, 4);
+	assert.equal(line?.catalogueComponent.output, 'night');
+	assert.equal(line?.input.id, 'day-2026-03-10');
+	assert.equal(
+		amountOf(late, OT_ORDINARY),
+		149.31,
+		'6 h × 1.5 × 16.59: overtime itself is unchanged'
+	);
+	// A day clocked to its shift earns nothing in the window, and no line at all.
+	assert.equal(
+		amountOf(
+			measure({ workDays: [clock('2026-03-10', '08:30', '17:30')] }, configurationWithNight),
+			'NIGHT_PREMIUM'
+		),
+		null
+	);
+	// Without a window on the regime nothing is priced, whatever the clock says.
+	assert.equal(
+		amountOf(
+			measure(
+				{
+					workDays: [
+						{
+							...clock('2026-03-10', '20:00', '23:59'),
+							worked_intervals: [
+								{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
+							]
+						}
+					]
+				},
+				{ catalogueComponents: [...COMPONENT_CATALOGUE, night] }
+			),
+			'NIGHT_PREMIUM'
+		),
+		null
+	);
 });
 
 // ── proration ───────────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,12 @@ import { coveredPeriodsSchema } from '../src/datatypes/covered_periods/+definiti
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsSchema } from '../src/datatypes/contribution_treatments/+definition.js';
 import { ordinaryRateSchema } from '../src/datatypes/ordinary_rate/+definition.js';
+import { rateAwardSchema } from '../src/datatypes/rate_award/+definition.js';
+import { rateSelectorSchema } from '../src/datatypes/rate_selector/+definition.js';
+import { minimumWagesSchema } from '../src/datatypes/minimum_wages/+definition.js';
+import { statutoryRegimeSchema } from '../src/datatypes/statutory_regime/+definition.js';
+import { holidaySnapshotsSchema } from '../src/datatypes/holiday_snapshots/+definition.js';
+import ContributionBands from '../src/datatypes/contribution_bands/+definition.js';
 
 /**
  * What these custom types *refuse*, asserted rather than inferred.
@@ -280,33 +286,162 @@ describe('contribution_treatments', () => {
 });
 
 describe('ordinary_rate', () => {
-	it('accepts the five seeded derivations', () => {
+	const row = (per: string, divisor: unknown, eligibility = '') => ({ eligibility, per, divisor });
+	it('accepts the five seeded derivations as one-row ladders, and predicate rows above them', () => {
 		for (const rate of [
-			{ per: 'DAY', divisor: 26 },
-			{ per: 'DAY', divisor: 30 },
-			{ per: 'DAY', divisor: 21.75 },
-			{ per: 'HOUR', divisor: 190.66666666666666 },
-			{ per: 'HOUR', divisor: 173 }
+			row('DAY', 26),
+			row('DAY', 30),
+			row('DAY', 21.75),
+			row('HOUR', 190.66666666666666),
+			row('HOUR', 173)
 		])
-			assert.ok(accepts(ordinaryRateSchema, rate), JSON.stringify(rate));
-	});
-
-	it('refuses a divisor that is not a positive finite number', () => {
-		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: 0 }));
-		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: -26 }));
-		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: '26' }));
-		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY' }));
-	});
-
-	it('refuses the old two-column vocabulary and any other unit', () => {
-		assert.ok(refuses(ordinaryRateSchema, { per: 'DAYS_PER_MONTH', divisor: 26 }));
-		assert.ok(refuses(ordinaryRateSchema, { per: 'WEEK', divisor: 5 }));
+			assert.ok(accepts(ordinaryRateSchema, [rate]), JSON.stringify(rate));
 		assert.ok(
-			refuses(ordinaryRateSchema, {
-				per: 'DAY',
-				divisor: 26,
-				ordinary_rate_basis: 'DAYS_PER_MONTH'
+			accepts(ordinaryRateSchema, [
+				row('DAY', 'WORKING_DAYS', 'terms.basic_salary < 20000'),
+				row('DAY', 21.75)
+			])
+		);
+	});
+
+	it('refuses no rows, a divisor that is not positive, finite or WORKING_DAYS, and a missing predicate', () => {
+		assert.ok(refuses(ordinaryRateSchema, []));
+		assert.ok(refuses(ordinaryRateSchema, [row('DAY', 0)]));
+		assert.ok(refuses(ordinaryRateSchema, [row('DAY', -26)]));
+		assert.ok(refuses(ordinaryRateSchema, [row('DAY', '26')]));
+		assert.ok(refuses(ordinaryRateSchema, [row('DAY', 'CALENDAR_DAYS')]));
+		assert.ok(refuses(ordinaryRateSchema, [{ per: 'DAY', divisor: 26 }]));
+	});
+
+	it('refuses the single-object shape, the old two-column vocabulary and any other unit', () => {
+		assert.ok(refuses(ordinaryRateSchema, { per: 'DAY', divisor: 26 }));
+		assert.ok(refuses(ordinaryRateSchema, [row('DAYS_PER_MONTH', 26)]));
+		assert.ok(refuses(ordinaryRateSchema, [row('WEEK', 5)]));
+		assert.ok(
+			refuses(ordinaryRateSchema, [{ ...row('DAY', 26), ordinary_rate_basis: 'DAYS_PER_MONTH' }])
+		);
+	});
+});
+
+describe('contribution_bands, rate_selector and rate_award (P10)', () => {
+	const wage = { by: 'WAGE', from: 0, to: null };
+	const percent = { kind: 'PERCENT', employee: 11, employer: 13 };
+	const bands = ContributionBands.schema;
+	it('accepts a band with or without an eligibility predicate, and two same-wage bands with different ones', () => {
+		assert.ok(accepts(bands, [{ selector: wage, award: percent }]));
+		assert.ok(
+			accepts(bands, [
+				{ selector: wage, award: percent, eligibility: 'employee.residency_months < 12' },
+				{ selector: wage, award: percent, eligibility: 'employee.residency_months >= 12' }
+			])
+		);
+		assert.ok(
+			refuses(bands, [
+				{ selector: wage, award: percent, eligibility: 'employee.age > 1' },
+				{ selector: wage, award: percent, eligibility: 'employee.age > 1' }
+			]),
+			'the same predicate twice over the same wage is one ladder overlapping itself'
+		);
+		assert.ok(refuses(bands, [{ selector: wage, award: percent, eligibility: null }]));
+	});
+	it('no longer knows a WAGE_AND_MARITAL selector', () => {
+		assert.ok(
+			refuses(rateSelectorSchema, { by: 'WAGE_AND_MARITAL', from: 0, to: null, marital: 'SINGLE' })
+		);
+		assert.ok(
+			accepts(rateSelectorSchema, {
+				by: 'WAGE_AND_AGE',
+				from: 0,
+				to: null,
+				age_from: 0,
+				age_to: 60
 			})
 		);
+	});
+	it('accepts an employer percentage on a PROGRESSIVE award and refuses a negative one or one on PERCENT', () => {
+		assert.ok(
+			accepts(rateAwardSchema, { kind: 'PROGRESSIVE', rate: 20, constant: 0, employer: 17 })
+		);
+		assert.ok(accepts(rateAwardSchema, { kind: 'PROGRESSIVE', rate: 20, constant: 0 }));
+		assert.ok(
+			refuses(rateAwardSchema, { kind: 'PROGRESSIVE', rate: 20, constant: 0, employer: -1 })
+		);
+		assert.ok(refuses(rateAwardSchema, { kind: 'PERCENT', employee: 1, employer: 1, rate: 1 }));
+	});
+});
+
+describe('minimum_wages', () => {
+	it('accepts region → positive wage and refuses an empty region, a zero wage or a non-number', () => {
+		assert.ok(accepts(minimumWagesSchema, { I: 4_960_000, II: 4_500_000 }));
+		assert.ok(accepts(minimumWagesSchema, {}));
+		assert.ok(refuses(minimumWagesSchema, { '': 1 }));
+		assert.ok(refuses(minimumWagesSchema, { I: 0 }));
+		assert.ok(refuses(minimumWagesSchema, { I: '4960000' }));
+	});
+});
+
+describe('statutory_regime (P10)', () => {
+	const regime = {
+		holiday_rest_precedence: 'SUBSTITUTE',
+		overtime_coverage: null,
+		overtime_rules: [
+			{
+				day_type: 'SPECIAL_HOLIDAY',
+				band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
+				award: { kind: 'HOURLY_MULTIPLE', multiple: 1.3 }
+			}
+		],
+		overtime_limits: [
+			{ period: 'QUARTER', measures: 'OVERTIME_HOURS', max_hours: 138, on_exceed: 'BLOCK' },
+			{ period: 'YEAR', measures: 'OVERTIME_HOURS', max_hours: 200, on_exceed: 'WARN' }
+		],
+		night_premium: { from: '22:00', to: '06:00', ordinary_add: 30, overtime_add: 20 }
+	};
+	it('accepts SUBSTITUTE, SPECIAL_HOLIDAY, QUARTER and YEAR, and a night window; absent or null night is no premium', () => {
+		assert.ok(accepts(statutoryRegimeSchema, regime));
+		assert.ok(accepts(statutoryRegimeSchema, { ...regime, night_premium: null }));
+		const { night_premium: _none, ...without } = regime;
+		assert.ok(accepts(statutoryRegimeSchema, without));
+	});
+	it('refuses a night window that is not wall-clock time, or a negative premium', () => {
+		assert.ok(
+			refuses(statutoryRegimeSchema, {
+				...regime,
+				night_premium: { ...regime.night_premium, from: '22' }
+			})
+		);
+		assert.ok(
+			refuses(statutoryRegimeSchema, {
+				...regime,
+				night_premium: { ...regime.night_premium, to: '25:00' }
+			})
+		);
+		assert.ok(
+			refuses(statutoryRegimeSchema, {
+				...regime,
+				night_premium: { ...regime.night_premium, ordinary_add: -1 }
+			})
+		);
+		assert.ok(
+			refuses(statutoryRegimeSchema, { ...regime, night_premium: { from: '22:00', to: '06:00' } })
+		);
+	});
+});
+
+describe('holiday_snapshots', () => {
+	const snapshot = {
+		id: '0d3f1c2e-6b1a-4f0e-9a1b-000000000001',
+		jurisdiction_code: 'PH',
+		date: '2026-08-21',
+		name: 'Ninoy Aquino Day',
+		kind: 'SPECIAL',
+		original_date: null,
+		published_at: '2026-01-01T00:00:00.000Z'
+	};
+	it('carries the kind and refuses one it does not know or a snapshot without it', () => {
+		assert.ok(accepts(holidaySnapshotsSchema, [snapshot]));
+		assert.ok(refuses(holidaySnapshotsSchema, [{ ...snapshot, kind: 'REGULAR' }]));
+		const { kind: _kind, ...without } = snapshot;
+		assert.ok(refuses(holidaySnapshotsSchema, [without]));
 	});
 });

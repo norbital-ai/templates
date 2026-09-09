@@ -2,7 +2,7 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { numberFrom } from '../../lib/ui/renderer-input.js';
+	import { nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
@@ -18,7 +18,8 @@
 		{
 			value: 'PROGRESSIVE',
 			label: 'Progressive',
-			description: 'rate × base + constant (constant may be negative)'
+			description:
+				'rate × base + constant (constant may be negative); optional employer % of the whole wage'
 		}
 	];
 
@@ -28,7 +29,11 @@
 	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
-		if (current.kind === 'PROGRESSIVE') return `${current.rate} × base + ${current.constant}`;
+		if (current.kind === 'PROGRESSIVE')
+			return (
+				`${current.rate} × base + ${current.constant}` +
+				(current.employer == null ? '' : ` · ER ${current.employer}%`)
+			);
 		const suffix = current.kind === 'PERCENT' ? '%' : '';
 		return `EE ${current.employee}${suffix} / ER ${current.employer}${suffix}`;
 	});
@@ -108,6 +113,23 @@
 						{disabled}
 						oninput={(event) =>
 							emit({ ...current, constant: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
+			</label>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.rate_award.employer_whole_wage')}
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.employer ?? ''}
+						{disabled}
+						oninput={(event) => {
+							const { employer: _previous, ...rest } = current;
+							const employer = nullableNumberFrom(event.currentTarget.value);
+							emit(employer === null ? rest : { ...rest, employer });
+						}}
 					/>
 				</Stack>
 			</label>

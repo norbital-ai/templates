@@ -129,7 +129,7 @@ function measure(entries) {
 			work: {
 				jurisdiction_code: 'TEST',
 				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: { per: 'DAY', divisor: 26 }
+				ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 			},
 			holidayRestPrecedence: 'REST_DAY',
 			contributions: [],

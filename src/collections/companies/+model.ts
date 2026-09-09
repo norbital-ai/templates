@@ -33,6 +33,12 @@ export default defineModel(
 		 * jurisdiction has no risk-keyed scheme leave it empty, and the form does not show it.
 		 */
 		risk_class: text(),
+		/**
+		 * The region the entity sits in, as `jurisdiction_settings.minimum_wages` names it. A scheme's
+		 * `FLOOR:MINIMUM_WAGE` / `CAP:MINIMUM_WAGE_X:<n>` rule reads that wage; predicates read
+		 * `company.region`. Empty where the jurisdiction states no regional wage.
+		 */
+		region: text(),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{

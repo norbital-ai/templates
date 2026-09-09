@@ -37,6 +37,8 @@ export default defineModel(
 		 * not law: it may be edited on a sealed version, and the import reads the version in force.
 		 */
 		holiday_source: custom('holiday_source'),
+		/** Region → monthly minimum wage, in the version's currency; read by `companies.region`. */
+		minimum_wages: custom('minimum_wages'),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{

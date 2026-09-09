@@ -1,4 +1,4 @@
-import { defineModel, instant, text } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, text } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -6,6 +6,12 @@ export default defineModel(
 		/** The day observed. One row per jurisdiction and day. */
 		date: instant({ precision: 'day' }).notNull(),
 		name: text({ search: true }).notNull(),
+		/**
+		 * PUBLIC and SUBSTITUTE days price as the regime's PUBLIC_HOLIDAY; SPECIAL (a Philippine
+		 * special non-working day) as SPECIAL_HOLIDAY. A substitute is the observed day of a holiday
+		 * that fell on a rest day.
+		 */
+		kind: enums(['PUBLIC', 'SPECIAL', 'SUBSTITUTE']).notNull().default('PUBLIC'),
 		/** The statutory date when the observance moved, e.g. a Sunday holiday taken on Monday. */
 		original_date: instant({ precision: 'day' }),
 		/** Where the row came from: a Google event id, a spreadsheet, or nothing for a hand entry. */

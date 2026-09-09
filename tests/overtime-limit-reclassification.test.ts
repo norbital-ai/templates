@@ -220,7 +220,7 @@ const MY = {
 		code: 'MY',
 		currency: 'MYR',
 		proration: { by: 'CALENDAR_DAYS' },
-		ordinary_rate: { per: 'DAY', divisor: 26 }
+		ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 	}),
 	overtimeRules: MY_OVERTIME_RULES,
 	overtimeLimits: MY_OVERTIME_LIMITS
@@ -231,7 +231,7 @@ const VN = {
 		code: 'VN',
 		currency: 'VND',
 		proration: { by: 'WORKING_DAYS' },
-		ordinary_rate: { per: 'DAY', divisor: 26 }
+		ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 	}),
 	overtimeRules: VN_OVERTIME_RULES,
 	overtimeLimits: VN_OVERTIME_LIMITS
@@ -242,7 +242,7 @@ const ID = {
 		code: 'ID',
 		currency: 'IDR',
 		proration: { by: 'CALENDAR_DAYS' },
-		ordinary_rate: { per: 'HOUR', divisor: 173 }
+		ordinary_rate: [{ eligibility: '', per: 'HOUR', divisor: 173 }]
 	}),
 	overtimeRules: ID_OVERTIME_RULES,
 	overtimeLimits: ID_OVERTIME_LIMITS

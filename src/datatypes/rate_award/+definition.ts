@@ -11,7 +11,9 @@ import { Schema } from 'effect';
  *
  * `PROGRESSIVE` is `constant + (base − band_from) × rate / 100`, where `constant` is the
  * CUMULATIVE tax at the band's lower bound; it is the ONLY value in the whole schema — besides
- * a leave event's signed `movement_days` — that is allowed to be negative.
+ * a leave event's signed `movement_days` — that is allowed to be negative. Its optional `employer`
+ * is a percentage of the FULL chargeable wage, not of the band's slice: Singapore's graduated CPF
+ * charges the employee on a ladder and the employer on the whole wage.
  */
 export const rateAwardValueSchema = Schema.Union([
 	Schema.Struct({
@@ -27,7 +29,8 @@ export const rateAwardValueSchema = Schema.Union([
 	Schema.Struct({
 		kind: Schema.Literal('PROGRESSIVE'),
 		rate: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-		constant: Schema.Finite
+		constant: Schema.Finite,
+		employer: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
 	})
 ]);
 
@@ -41,6 +44,6 @@ export const rateAwardSchema = Schema.toStandardSchemaV1(rateAwardValueSchema, {
 export default defineCustomType({
 	name: 'rate_award',
 	description:
-		'What a matched contribution band charges: employee and employer percentages, fixed employee and employer amounts, or a progressive step of the cumulative tax at the band floor plus a rate on the wage above it.',
+		'What a matched contribution band charges: employee and employer percentages, fixed employee and employer amounts, or a progressive step of the cumulative tax at the band floor plus a rate on the wage above it, with an optional employer percentage of the whole wage.',
 	schema: rateAwardSchema
 });

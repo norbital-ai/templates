@@ -106,6 +106,9 @@ export default {
 							refuse('Only a sealed version can be voided; delete a draft instead.');
 						if (row.currency == null || !String(row.jurisdiction_code ?? '').trim())
 							refuse('Settings require a currency and payroll jurisdiction.');
+						for (const [region, wage] of Object.entries(row.minimum_wages ?? {}))
+							if (!(Number(wage) > 0))
+								refuse(`The minimum wage of region ${region} must be a positive amount.`);
 						if (row.sealed_at == null) return input;
 						// Sealing. The database exclusion holds the overlap too; the sentence is why it
 						// happens here, and the batch is read so a predecessor ended in the same write counts.

@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import { personContext, isEligible } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import {
+	compileEligibility,
+	personContext,
+	isEligible
+} from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { capSubject } from '../src/lib/component_entry_cap_subject.ts';
 import { leaveRules, readLeaveContext } from '../src/lib/leave/context.ts';
 import { annualWindow, id, leaveContext } from './helpers/manual-leave-context.ts';
@@ -89,7 +93,8 @@ test('claim caps use the same effective contract standing as Leave and payroll',
 					Effect.succeed({ id: id(1), employee_id: id(2), hire_date: '2025-01-01', children: [] })
 			},
 			employees: { findFirst: () => Effect.succeed({ gender: 'MALE', nationality: 'MY' }) },
-			employment_terms: { findMany: () => Effect.succeed(terms) }
+			employment_terms: { findMany: () => Effect.succeed(terms) },
+			companies: { findFirst: () => Effect.succeed({ region: 'I' }) }
 		}
 	};
 	assert.equal(
@@ -100,6 +105,43 @@ test('claim caps use the same effective contract standing as Leave and payroll',
 		Effect.runSync(capSubject(api, id(1), '2026-07-01'))?.subject.employee.citizenship,
 		'CITIZEN'
 	);
+	assert.equal(Effect.runSync(capSubject(api, id(1), '2026-07-01'))?.subject.company.region, 'I');
+});
+
+test('the grammar reads standing, family facts and the company region; a fact it does not carry is refused', () => {
+	const subject = personContext({
+		employee: { marital_status: 'MARRIED', solo_parent: true, race: 'MALAY', religion: 'ISLAM' },
+		employment: { hire_date: '2024-01-01' },
+		terms: { residency_status: 'PERMANENT_RESIDENT', residency_since: '2025-02-15' },
+		company: { region: 'I' },
+		asOf: '2026-06-30'
+	});
+	assert.equal(subject.employee.residency_months, 16);
+	for (const expression of [
+		'employee.marital_status == "MARRIED"',
+		'employee.solo_parent',
+		'employee.race == "MALAY" || employee.religion == "ISLAM"',
+		'employee.residency_months >= 12 && employee.residency_months < 24',
+		'company.region == "I"'
+	]) {
+		assert.equal(compileEligibility(expression), null, expression);
+		assert.equal(isEligible(expression, subject), true, expression);
+	}
+	// Unrecorded facts read as empty, false and zero: nothing is ever claimed by default.
+	const blank = personContext({
+		employee: null,
+		employment: { hire_date: '' },
+		terms: null,
+		asOf: '2026-06-30'
+	});
+	assert.equal(isEligible('employee.solo_parent', blank), false);
+	assert.equal(isEligible('employee.residency_months < 12', blank), true);
+	assert.equal(isEligible('company.region == ""', blank), true);
+	assert.match(
+		compileEligibility('employee.spouse == "NONE"') ?? '',
+		/employee\.spouse, which the person context does not carry/
+	);
+	assert.match(compileEligibility('company.name == "X"') ?? '', /company\.region/);
 });
 
 test('Leave preparation selects residency on terms and never requests the removed employee column', () => {

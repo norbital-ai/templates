@@ -49,8 +49,9 @@ export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 	return issues.filter((issue) => issue.severity !== 'WARNING');
 }
 
-const isWorkAbsence = (component: FamilyPayItem): boolean =>
-	component.family === 'WORK' && component.output === 'absence';
+/** The two Work columns a lineage may leave undecided until a run prices one: absence and night. */
+const isJudgedWhenPriced = (component: FamilyPayItem): boolean =>
+	component.family === 'WORK' && (component.output === 'absence' || component.output === 'night');
 
 /** One component's cell for every effective scheme: present, decided, and naming a declared rule. */
 function treatmentIssues(configuration: Configuration, component: FamilyPayItem): RunIssue[] {
@@ -94,15 +95,20 @@ function treatmentIssues(configuration: Configuration, component: FamilyPayItem)
 }
 
 /**
- * The absence column, judged once a run has priced an unexplained absence: an undecided cell then
+ * The absence and night columns, judged once a run has priced one: an undecided cell then
  * refuses the run by name, exactly as any other component's would have at configuration time.
  */
 export function validateAbsenceTreatments(options: {
 	readonly configuration: Configuration;
 	readonly adjustments: readonly { readonly catalogueComponent: FamilyPayItem }[];
 }): RunIssue[] {
-	const absence = options.adjustments.find((row) => isWorkAbsence(row.catalogueComponent));
-	return absence == null ? [] : treatmentIssues(options.configuration, absence.catalogueComponent);
+	const priced = new Map<string, FamilyPayItem>();
+	for (const row of options.adjustments)
+		if (isJudgedWhenPriced(row.catalogueComponent))
+			priced.set(row.catalogueComponent.id, row.catalogueComponent);
+	return [...priced.values()].flatMap((component) =>
+		treatmentIssues(options.configuration, component)
+	);
 }
 
 /** Configuration checks. None of them read a person. */
@@ -145,7 +151,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	// may stay undecided in a jurisdiction that never deducts one, and `validateAbsenceTreatments`
 	// judges it on the measured run instead.
 	for (const component of configuration.catalogueComponents)
-		if (!isWorkAbsence(component)) issues.push(...treatmentIssues(configuration, component));
+		if (!isJudgedWhenPriced(component)) issues.push(...treatmentIssues(configuration, component));
 
 	// ── the schemes ─────────────────────────────────────────────────────────────────────────────
 	const sequenceById = new Map(
@@ -231,46 +237,74 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 type ValidateOvertimeLimitsOptions = {
 	readonly configuration: Configuration;
 	readonly employeeNumber: string;
-	readonly calendarMonth: string;
-	readonly monthHours: number;
+	/** Regulated overtime this run measured, by calendar month. */
+	readonly hoursByMonth: ReadonlyMap<string, number>;
+	/** Regulated overtime earlier PAID payslips settled, by calendar month; read by QUARTER and YEAR. */
+	readonly priorHoursByMonth?: ReadonlyMap<string, number>;
 };
+
+/** The calendar bucket a month falls in under one limit period. */
+function limitBucket(month: string, period: 'MONTH' | 'QUARTER' | 'YEAR'): string {
+	const [year, monthNumber] = month.split('-');
+	if (period === 'MONTH') return month;
+	if (period === 'YEAR') return year ?? month;
+	return `${year}-Q${Math.ceil(decodeNumber(monthNumber) / 3)}`;
+}
 
 /**
  * The overtime ceilings that only a measured run can test.
  *
- * `on_exceed` decides whether the run stops. `WARN` names the person, the month and the authority
- * and lets the payslips be written; `BLOCK` refuses the whole run.
+ * A MONTH ceiling reads this run's months; a QUARTER or YEAR ceiling reads the calendar quarter
+ * or year to date — the months earlier PAID payslips settled plus this run's. `on_exceed` decides
+ * whether the run stops. `WARN` names the person, the period and the authority and lets the
+ * payslips be written; `BLOCK` refuses the whole run.
  */
 export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): RunIssue[] {
-	return (
-		options.configuration.overtimeLimits
-			// `monthHours` is regulated *overtime*, so only a limit that counts overtime hours may be
-			// compared against it. A TOTAL_WORK_HOURS row is a different quantity, not a stricter one.
-			.filter(
-				(limit) =>
-					limit.on_exceed !== 'INCENTIVE' &&
-					limit.period === 'MONTH' &&
-					limit.measures === 'OVERTIME_HOURS' &&
-					options.monthHours > decodeNumber(limit.max_hours)
-			)
-			.map((limit) => {
-				const severity: IssueSeverity = limit.on_exceed === 'BLOCK' ? 'BLOCKER' : 'WARNING';
-				const nextStep =
-					severity === 'BLOCKER'
-						? 'Reduce the recorded overtime, or raise the ceiling on the authority that states it, before this payroll can be built.'
-						: 'The run will still be built; review the attendance or raise the ceiling if the hours should not stand.';
-				return {
-					code: 'OVERTIME_LIMIT_EXCEEDED',
-					severity,
-					message:
-						`${options.employeeNumber} worked ${options.monthHours} regulated overtime hours in ` +
-						`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
-						`(${options.configuration.work.authority ?? 'the Work catalogue'}, on_exceed=${limit.on_exceed}). ${nextStep}`,
-					collection: 'work_catalogue',
-					recordId: options.configuration.work.id
-				};
-			})
-	);
+	const issues: RunIssue[] = [];
+	for (const limit of options.configuration.overtimeLimits) {
+		// The hours are regulated *overtime*, so only a limit that counts overtime hours may be
+		// compared against them. A TOTAL_WORK_HOURS row is a different quantity, not a stricter one.
+		const period = limit.period;
+		if (
+			limit.on_exceed === 'INCENTIVE' ||
+			limit.measures !== 'OVERTIME_HOURS' ||
+			(period !== 'MONTH' && period !== 'QUARTER' && period !== 'YEAR')
+		)
+			continue;
+		const totals = new Map<string, number>();
+		const add = (month: string, hours: number) => {
+			const bucket = limitBucket(month, period);
+			totals.set(bucket, (totals.get(bucket) ?? 0) + hours);
+		};
+		for (const [month, hours] of options.hoursByMonth) add(month, hours);
+		if (period !== 'MONTH')
+			for (const [month, hours] of options.priorHoursByMonth ?? [])
+				if (
+					[...options.hoursByMonth.keys()].some(
+						(own) => limitBucket(own, period) === limitBucket(month, period)
+					)
+				)
+					add(month, hours);
+		const severity: IssueSeverity = limit.on_exceed === 'BLOCK' ? 'BLOCKER' : 'WARNING';
+		const nextStep =
+			severity === 'BLOCKER'
+				? 'Reduce the recorded overtime, or raise the ceiling on the authority that states it, before this payroll can be built.'
+				: 'The run will still be built; review the attendance or raise the ceiling if the hours should not stand.';
+		for (const [bucket, hours] of totals) {
+			if (!(hours > decodeNumber(limit.max_hours))) continue;
+			issues.push({
+				code: 'OVERTIME_LIMIT_EXCEEDED',
+				severity,
+				message:
+					`${options.employeeNumber} worked ${hours} regulated overtime hours in ${bucket}, ` +
+					`against a ${limit.max_hours}-hour calendar-${period.toLowerCase()} ceiling ` +
+					`(${options.configuration.work.authority ?? 'the Work catalogue'}, on_exceed=${limit.on_exceed}). ${nextStep}`,
+				collection: 'work_catalogue',
+				recordId: options.configuration.work.id
+			});
+		}
+	}
+	return issues;
 }
 
 /**

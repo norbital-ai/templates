@@ -59,7 +59,10 @@
  */
 
 import { Equivalence, Number as EffectNumber, Schema } from 'effect';
-import type { StatutoryRestBreakRule } from '../../../datatypes/statutory_regime/+definition.js';
+import type {
+	NightPremium,
+	StatutoryRestBreakRule
+} from '../../../datatypes/statutory_regime/+definition.js';
 import { statutoryOvertimeRuleValueSchema } from '../../../datatypes/statutory_regime/+definition.js';
 import {
 	restBreakAssessment,
@@ -235,18 +238,39 @@ export function ordinaryWorkedHours(
 }
 
 /**
- * Hours inside the Philippines' 22:00–06:00 statutory night-work window.
+ * Hours inside the regime's night window, split into the shift's own hours and the rest.
  *
- * Attendance is already assigned to a work date. The window therefore starts at 22:00 on that
- * date and ends at 06:00 the next day, which also handles an overtime punch continuing past the
- * scheduled night shift. The overlap is derived from the actual clock rather than a payroll
- * workbook amount.
+ * Attendance is already assigned to a work date, so the window opens at `from` on that date and,
+ * when it ends at or before it opens, closes the next morning — which also catches an overtime
+ * punch continuing past a scheduled night shift. Hours inside the scheduled window are ordinary;
+ * everything else in the night is overtime, and on a day with no shift every night hour is.
+ * The overlap is derived from the actual clock rather than a payroll workbook amount.
  */
-export function philippineNightWorkHours(entry: WorkDayLike): number {
+export function nightWindowHours(
+	entry: WorkDayLike,
+	window: Pick<NightPremium, 'from' | 'to'>,
+	shift: ScheduledDay['shift']
+): { readonly ordinary: number; readonly overtime: number } {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
-	const nightStart = midnight(workDate) + 22 * HOUR_MS;
-	const nightEnd = midnight(workDate) + 30 * HOUR_MS;
-	return overlapHours(normalizedWorkedIntervals(entry), nightStart, nightEnd);
+	const from = clockMinutes(window.from);
+	let to = clockMinutes(window.to);
+	if (to <= from) to += 1440;
+	const nightStart = midnight(workDate) + from * MINUTE_MS;
+	const nightEnd = midnight(workDate) + to * MINUTE_MS;
+	const intervals = normalizedWorkedIntervals(entry);
+	const night = overlapHours(intervals, nightStart, nightEnd);
+	if (shift == null) return { ordinary: 0, overtime: night };
+	const start = clockMinutes(shift.start_time);
+	let end = clockMinutes(shift.end_time);
+	if (shift.crosses_midnight || end <= start) end += 1440;
+	// ponytail: the recorded break is not apportioned to the night; add a break window if a statute
+	// prices the break itself.
+	const ordinary = overlapHours(
+		intervals,
+		Math.max(nightStart, midnight(workDate) + start * MINUTE_MS),
+		Math.min(nightEnd, midnight(workDate) + end * MINUTE_MS)
+	);
+	return { ordinary, overtime: night - ordinary };
 }
 
 /** One day's overtime, before it is priced. */
@@ -375,7 +399,7 @@ export type PricedSegment = Schema.Schema.Type<typeof PricedSegmentSchema>;
 
 /** The band triple that names a derived overtime line: day type, measure, floor. */
 const OvertimeBandIdentitySchema = Schema.Struct({
-	dayType: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+	dayType: RuleDayTypeSchema,
 	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
 	bandFrom: Schema.Number
 });

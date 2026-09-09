@@ -5,10 +5,11 @@
  * carries empty strings and zeros for missing facts. An empty expression includes everyone;
  * an ineligible entry produces no pay item, and an ineligible date earns no leave.
  *
- * employee.gender  employee.age  employee.citizenship
+ * employee.gender  employee.age  employee.citizenship  employee.marital_status
+ * employee.solo_parent  employee.race  employee.religion  employee.residency_months
  * employment.type  employment.classification  employment.service_months  employment.hire_date
  * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
- * children.count  children.under(age)
+ * children.count  children.under(age)  company.region
  *
  * compileEligibility validates syntax, available context members and a boolean result when
  * the catalogue is written. Jurisdiction standing comes from the effective contract terms.
@@ -26,6 +27,12 @@ export type PersonContext = {
 		readonly gender: string;
 		readonly age: number;
 		readonly citizenship: string;
+		readonly marital_status: string;
+		readonly solo_parent: boolean;
+		readonly race: string;
+		readonly religion: string;
+		/** Completed months since `employment_terms.residency_since` on the rule date; 0 when unrecorded. */
+		readonly residency_months: number;
 	};
 	readonly employment: {
 		readonly type: string;
@@ -45,22 +52,45 @@ export type PersonContext = {
 		/** Completed years of each child on the rule date; `children.under(age)` counts these. */
 		readonly ages: readonly number[];
 	};
+	readonly company: {
+		readonly region: string;
+	};
 };
 
 /** The member names each root may be asked for, checked at write time. */
 const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
-	employee: new Set(['gender', 'age', 'citizenship']),
+	employee: new Set([
+		'gender',
+		'age',
+		'citizenship',
+		'marital_status',
+		'solo_parent',
+		'race',
+		'religion',
+		'residency_months'
+	]),
 	employment: new Set(['type', 'classification', 'service_months', 'hire_date']),
 	terms: new Set(['basic_salary', 'workman', 'department', 'payroll_group', 'grade']),
-	children: new Set(['count', 'under'])
+	children: new Set(['count', 'under']),
+	company: new Set(['region'])
 };
 
 /** A person with nothing recorded: what a new expression is compiled against. */
 const BLANK_PERSON: PersonContext = {
-	employee: { gender: '', age: 0, citizenship: '' },
+	employee: {
+		gender: '',
+		age: 0,
+		citizenship: '',
+		marital_status: '',
+		solo_parent: false,
+		race: '',
+		religion: '',
+		residency_months: 0
+	},
 	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
 	terms: { basic_salary: 0, workman: false, department: '', payroll_group: '', grade: '' },
-	children: { count: 0, ages: [] }
+	children: { count: 0, ages: [] },
+	company: { region: '' }
 };
 
 type PersonInput = {
@@ -68,6 +98,10 @@ type PersonInput = {
 		readonly gender?: string | null;
 		readonly date_of_birth?: string | null;
 		readonly nationality?: string | null;
+		readonly marital_status?: string | null;
+		readonly solo_parent?: boolean | null;
+		readonly race?: string | null;
+		readonly religion?: string | null;
 	} | null;
 	readonly employment: { readonly hire_date: string };
 	readonly terms: {
@@ -79,7 +113,10 @@ type PersonInput = {
 		readonly department?: string | null;
 		readonly payroll_group?: string | null;
 		readonly grade?: string | null;
+		readonly residency_since?: string | null;
 	} | null;
+	/** The employing entity; `company.region` picks its minimum wage. Absent reads as no region. */
+	readonly company?: { readonly region?: string | null } | null;
 	readonly children?: ReadonlyArray<{ readonly child_birthdate: string }>;
 	/** The rule date: service, age and children are measured on it. */
 	readonly asOf: string;
@@ -89,6 +126,7 @@ type PersonInput = {
 export function personContext(input: PersonInput): PersonContext {
 	const hire = dateKey(input.employment.hire_date);
 	const born = dateKey(input.employee?.date_of_birth);
+	const residency = dateKey(input.terms?.residency_since);
 	const salary = input.terms?.base_salary as { value?: unknown } | null | undefined;
 	const ages = (input.children ?? [])
 		.map((child) => dateKey(child.child_birthdate))
@@ -100,7 +138,13 @@ export function personContext(input: PersonInput): PersonContext {
 			age: born === '' ? 0 : completedYears(born, input.asOf),
 			// Effective contract terms hold jurisdiction-relative standing. A concurrent contract
 			// elsewhere may have different standing; nationality is not a substitute.
-			citizenship: input.terms?.residency_status ?? ''
+			citizenship: input.terms?.residency_status ?? '',
+			marital_status: input.employee?.marital_status ?? '',
+			solo_parent: input.employee?.solo_parent === true,
+			race: input.employee?.race ?? '',
+			religion: input.employee?.religion ?? '',
+			residency_months:
+				residency === '' || residency > input.asOf ? 0 : completedMonths(residency, input.asOf)
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',
@@ -115,7 +159,8 @@ export function personContext(input: PersonInput): PersonContext {
 			payroll_group: input.terms?.payroll_group ?? '',
 			grade: input.terms?.grade ?? ''
 		},
-		children: { count: ages.length, ages }
+		children: { count: ages.length, ages },
+		company: { region: input.company?.region ?? '' }
 	};
 }
 
@@ -161,13 +206,13 @@ export function compileEligibility(expression: string | null | undefined): strin
 	const expr = (expression ?? '').trim();
 	if (expr === '') return null;
 	for (const match of expr.matchAll(
-		/\b(employee|employment|terms|children)\.([A-Za-z_][A-Za-z0-9_]*)/g
+		/\b(employee|employment|terms|children|company)\.([A-Za-z_][A-Za-z0-9_]*)/g
 	)) {
 		const [, root, member] = match;
 		if (root != null && member != null && !CONTEXT_MEMBERS[root]?.has(member))
 			return (
 				`Eligibility names ${root}.${member}, which the person context does not carry. ` +
-				`Use employee.gender, employee.age, employee.citizenship, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, children.count or children.under(age).`
+				`Use employee.gender, employee.age, employee.citizenship, employee.marital_status, employee.solo_parent, employee.race, employee.religion, employee.residency_months, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, children.count, children.under(age) or company.region.`
 			);
 	}
 	try {

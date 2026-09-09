@@ -58,6 +58,7 @@ export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
  * no rest break rule" and not a missing value.
  */
 type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
+type NightPremium = NonNullable<StatutoryRegime['night_premium']>;
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type ShiftPattern = WorkspaceRow<'shift_patterns'>;
 type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
@@ -98,6 +99,8 @@ export type Configuration = {
 	 * jurisdiction that declares no rules contributes nothing and hashes exactly as it did before.
 	 */
 	readonly restBreakRules: readonly RestBreakRule[];
+	/** The regime's night window and premiums, or null where it states none. Hashed with the regime. */
+	readonly nightPremium: NightPremium | null;
 	/**
 	 * Who the ladder covers, or null where the jurisdiction restricts coverage in no way.
 	 *
@@ -259,13 +262,17 @@ export function configurationSnapshot(
 		// The whole calendar: a company that moves its cutoff or starts paying twice a month
 		// produces different payslips for the same month, so the hash has to move with it.
 		pay_calendar: [configuration.company.pay_cutoff_day, configuration.company.pay_frequency],
+		// The region and the wage it names bound a scheme's base, so they move the hash like a band.
+		region: configuration.company.region ?? null,
+		minimum_wages: configuration.jurisdiction.minimum_wages ?? null,
 		contributions: configuration.contributions.map((entry) => ({
 			code: entry.row.code,
 			sequence: entry.row.sequence,
 			rounding: entry.row.rounding,
 			special_rules: [...entry.row.special_rules].toSorted(),
 			relief_for: [...entry.row.relief_for].toSorted(),
-			rates: entry.rates.map((rate) => [rate.selector, rate.award])
+			eligibility: entry.row.eligibility ?? '',
+			rates: entry.rates.map((rate) => [rate.selector, rate.award, rate.eligibility ?? ''])
 		})),
 		// One entry per decided cell. The OVERTIME and OVERTIME_EXCESS rows are in here like every
 		// other component, so what EPF does with overtime moves the hash the way a band does.

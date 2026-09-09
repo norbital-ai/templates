@@ -77,11 +77,9 @@ function timestampHours(row: WorkDayLike): number {
  * `PUBLIC_HOLIDAY`), so the match is prefix-based longest-first, not a split on `_`; an unknown
  * key still names itself in the workbook column.
  */
-const RULE_KEY_DAY_TYPES = ['REST_DAY', 'PUBLIC_HOLIDAY', 'ORDINARY'] as const;
+const RULE_KEY_DAY_TYPES = ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'ORDINARY'] as const;
 
-function overtimeRuleKeyDayType(
-	ruleKey: string
-): 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | null {
+function overtimeRuleKeyDayType(ruleKey: string): (typeof RULE_KEY_DAY_TYPES)[number] | null {
 	const withoutPrefix = ruleKey.replace('OT_', '').replace('EXCESS_', '');
 	return (
 		RULE_KEY_DAY_TYPES.find(

@@ -196,7 +196,8 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 			salary: { kind: 'UNSET' },
 			overtime: { kind: 'INCLUDE' },
 			overtime_excess: { kind: 'UNSET' },
-			absence: { kind: 'UNSET' }
+			absence: { kind: 'UNSET' },
+			night: { kind: 'UNSET' }
 		}
 	});
 	assert.deepEqual(revised.payment_catalogue_settings, write.payment_catalogue_settings);

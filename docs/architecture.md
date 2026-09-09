@@ -150,6 +150,19 @@ band holding means no entitlement, refused when the request is written and paid 
 `employment_terms.grade` is the contract's benefit tier; the predicate grammar reads it as
 `terms.grade` beside department, service months and the rest.
 
+### Statutory grammar
+
+One predicate language, `payroll_runs/lib/eligibility.ts`, is what every catalogue row, band and
+rate speaks. Its facts: `employee.gender`, `employee.age`, `employee.citizenship`,
+`employee.marital_status`, `employee.solo_parent`, `employee.race`, `employee.religion`,
+`employee.residency_months` (completed months since `employment_terms.residency_since`, 0 when
+unrecorded), `employment.type`, `employment.classification`, `employment.service_months`,
+`employment.hire_date`, `terms.basic_salary`, `terms.workman`, `terms.department`,
+`terms.payroll_group`, `terms.grade`, `children.count`, `children.under(age)` and
+`company.region`. Empty is everyone; an unrecorded fact reads as empty, false or zero and never
+claims anything. Hooks compile every predicate when the row is written. Race and religion are
+captured only where a statutory fund is selected by them.
+
 The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
 Preparation gathers the input snapshot once. Validation refuses incomplete treatments, required
 facts, open clocks, missing calendar coverage, invalid references and truncated reads. Nothing is
@@ -286,6 +299,12 @@ which paid minutes and crossing midnight are derived. REST remains a protected b
 is assigned over it; OFF is another non-working day. Work uses calendar-backed day classification
 and configured holiday/rest precedence before applying the monetary ladder.
 
+A holiday row has a `kind`: `PUBLIC` and `SUBSTITUTE` days classify as `PUBLIC_HOLIDAY`, `SPECIAL`
+(a Philippine special non-working day) as `SPECIAL_HOLIDAY`, a day type with its own ladder. The
+regime's `holiday_rest_precedence` decides a holiday falling on the rest day: `PUBLIC_HOLIDAY` or
+`REST_DAY` price that day as one or the other; `SUBSTITUTE` keeps the rest day and observes the
+holiday on the next working day of the window.
+
 ### Duration and pricing
 
 Overtime is derived from clock intervals against the effective schedule. Open, reversed or
@@ -307,6 +326,14 @@ Where the applicable Work rules require the Malaysian statutory floor, the compa
 `round((monthly salary / 26) / normal daily hours, 2)`. The higher hourly rate applies. Ordinary and
 off-day work use the ordinary ladder. Rest and public-holiday work may combine a day-wage award
 within normal hours and an hourly award beyond them; a flat source multiplier cannot express that.
+
+`work_catalogue.ordinary_rate` is rows of `{eligibility, per, divisor}` read top-down; the first
+predicate that holds for the person is their rate, and a `WORKING_DAYS` divisor is the pay month's
+scheduled working days for them (`ordinary-rate.ts`, `resolveOrdinaryRate`). A regime may state a
+`night_premium`: hours inside its window add `ordinary_add`% of the hourly rate on ordinary hours
+and `overtime_add`% on overtime hours, one `NIGHT_PREMIUM` line per work day under the Work `night`
+output, whose scheme treatments are the matrix's fifth column (undecided until a run prices one,
+like absence).
 
 Base salary is segmented at effective term boundaries and each segment uses the same full-period
 proration denominator. Proration is Work catalogue configuration. Calendar-day proration uses the
@@ -330,8 +357,10 @@ settlement may need the whole December and January calendars to classify hours, 
 own dates. There is no blanket one-month incentive delay.
 
 Validation follows the configured limit behavior: a monthly `BLOCK` breach refuses the run;
-`WARN` reports the breach. Current daily work/overtime checks emit warnings. A paid or reclassified
-amount is not proof that scheduling complied with the law.
+`WARN` reports the breach. A `QUARTER` or `YEAR` limit counts the calendar quarter or year to date:
+the regulated hours earlier PAID payslips settled for those months plus this run's, with the same
+`WARN`/`BLOCK` semantics and no reclassification. Current daily work/overtime checks emit
+warnings. A paid or reclassified amount is not proof that scheduling complied with the law.
 
 ### Coverage
 
@@ -360,6 +389,15 @@ Every monetary output has an explicit treatment for each applicable scheme code:
 | `REDUCE`           | Reduce the base by the applicable absence/recovery amount |
 | `SPECIAL`          | Apply a declared scheme-specific rule                     |
 | `UNSET` or missing | Refuse incomplete configuration                           |
+
+A scheme carries an `eligibility` predicate (empty is everyone): a person outside it is skipped
+whole, with no charge, no capture and no relief fed. Each band may carry its own predicate, applied
+before the wage ceiling, so one scheme holds a ladder per citizenship, marital category or
+residency year; bands with different predicates never overlap. A `PROGRESSIVE` award's optional
+`employer` is a percentage of the whole chargeable wage, read off the band the wage selected. The
+special rules `FLOOR:MINIMUM_WAGE` and `CAP:MINIMUM_WAGE_X:<n>` bound the chargeable base by the
+company's region's wage in `jurisdiction_settings.minimum_wages`; a company in a region the version
+names no wage for stops the run under such a scheme.
 
 A shared code survives catalogue revisions. Historical approved entries retain their source
 catalogue metadata; the current run resolves the applicable Contribution scheme and rates. Sequence

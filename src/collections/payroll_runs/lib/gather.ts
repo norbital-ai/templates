@@ -142,6 +142,8 @@ export type GatheredRun = {
 	};
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
+	/** employee id → calendar month → regulated overtime hours earlier PAID payslips settled. */
+	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/**
 	 * pay request id → what earlier PAID runs actually took from it.
 	 *
@@ -293,6 +295,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				headcount,
 				workHolidayEvidence: { inputs: [], holidays: [] },
 				yearToDate: new Map(),
+				priorOvertimeHours: new Map(),
 				consumedEntries: new Map(),
 				consumedRepayments: new Map()
 			};
@@ -436,6 +439,7 @@ type GatherPriorSettlementOptions = {
 
 type PriorSettlement = {
 	readonly yearToDate: Map<string, { employee: number; employer: number; base: number }>;
+	readonly priorOvertimeHours: Map<string, Map<string, number>>;
 	readonly consumedEntries: Map<string, number>;
 	readonly consumedRepayments: Map<string, number>;
 };
@@ -477,7 +481,12 @@ function gatherPriorSettlement(
 		const totals = new Map<string, { employee: number; employer: number; base: number }>();
 		const consumedEntries = new Map<string, number>();
 		const consumedRepayments = new Map<string, number>();
-		const empty = { yearToDate: totals, consumedEntries, consumedRepayments };
+		const empty = {
+			yearToDate: totals,
+			priorOvertimeHours: new Map<string, Map<string, number>>(),
+			consumedEntries,
+			consumedRepayments
+		};
 		if (priorRuns.length === 0 || options.employeeIds.length === 0) return empty;
 
 		// Employments are resolved employee-first so a mid-year transfer keeps its history: the person
@@ -508,7 +517,8 @@ function gatherPriorSettlement(
 			api: options.api,
 			payslips: priorPayslips,
 			inTaxYear,
-			employmentToEmployee
+			employmentToEmployee,
+			periodByRun: new Map(priorRuns.map((run) => [run.id, run.period]))
 		});
 	});
 }

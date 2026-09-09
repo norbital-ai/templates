@@ -100,16 +100,21 @@ const [
 	{
 		classifyOvertimeByCalendarMonth,
 		deriveDailyOvertime,
-		philippineNightWorkHours,
+		nightWindowHours,
 		priceDay,
 		regulatedMonthlyOvertimeHours
 	},
 	{ isStatutoryOvertimePayCovered },
 	{ classifyWageComparand, deriveStatutoryWages },
-	{ ordinaryHourlyRate, ordinaryDayWage, absenceDayRate },
+	{ ordinaryHourlyRate: hourlyRateOf, ordinaryDayWage: dayWageOf, absenceDayRate },
 	{ allowanceRequest, paymentRequest, claimRequest, requestPayPeriod },
 	{ settle }
 ] = modules;
+
+/** The scripts price against a work row's first ordinary-rate row, which is the everyone row here. */
+const ordinaryHourlyRate = (terms, work) => hourlyRateOf(terms, work, work.ordinary_rate[0]);
+const ordinaryDayWage = (terms, work) => dayWageOf(terms, work, work.ordinary_rate[0]);
+const PH_NIGHT = { from: '22:00', to: '06:00' };
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // Rounding — the five methods, including the ties this data is full of.
@@ -459,7 +464,7 @@ const terms = {
 };
 const myJurisdiction = {
 	jurisdiction_code: 'MY',
-	ordinary_rate: { per: 'DAY', divisor: 26 }
+	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 };
 check('ORP is 3,451 / 26 / 8 = 16.59', ordinaryHourlyRate(terms, myJurisdiction), 16.59);
 check('a day’s wages is 3,451 / 26 = 132.73', ordinaryDayWage(terms, myJurisdiction), 132.73);
@@ -475,7 +480,7 @@ check(
 		},
 		{
 			jurisdiction_code: 'PH',
-			ordinary_rate: { per: 'DAY', divisor: 21.75 }
+			ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 21.75 }]
 		}
 	),
 	89.94
@@ -492,33 +497,41 @@ check(
 		},
 		{
 			jurisdiction_code: 'PH',
-			ordinary_rate: { per: 'DAY', divisor: 21.75 }
+			ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 21.75 }]
 		}
 	),
 	75
 );
 check(
 	'a PH overnight clock overlaps all eight statutory night hours',
-	philippineNightWorkHours({
-		id: 'night',
-		work_date: '2026-02-03',
-		worked_intervals: [
-			{ start: '2026-02-03T20:22:00.000+08:00', end: '2026-02-04T08:30:00.000+08:00' }
-		],
-		break_minutes: 0
-	}),
+	nightWindowHours(
+		{
+			id: 'night',
+			work_date: '2026-02-03',
+			worked_intervals: [
+				{ start: '2026-02-03T20:22:00.000+08:00', end: '2026-02-04T08:30:00.000+08:00' }
+			],
+			break_minutes: 0
+		},
+		PH_NIGHT,
+		null
+	).overtime,
 	8
 );
 check(
 	'a daytime clock earns no night differential',
-	philippineNightWorkHours({
-		id: 'day',
-		work_date: '2026-02-03',
-		worked_intervals: [
-			{ start: '2026-02-03T08:30:00.000+08:00', end: '2026-02-03T17:30:00.000+08:00' }
-		],
-		break_minutes: 0
-	}),
+	nightWindowHours(
+		{
+			id: 'day',
+			work_date: '2026-02-03',
+			worked_intervals: [
+				{ start: '2026-02-03T08:30:00.000+08:00', end: '2026-02-03T17:30:00.000+08:00' }
+			],
+			break_minutes: 0
+		},
+		PH_NIGHT,
+		null
+	).overtime,
 	0
 );
 check(
@@ -538,7 +551,7 @@ check(
 	'an hours-per-month jurisdiction divides once',
 	ordinaryHourlyRate(terms, {
 		jurisdiction_code: 'ID',
-		ordinary_rate: { per: 'HOUR', divisor: 173 }
+		ordinary_rate: [{ eligibility: '', per: 'HOUR', divisor: 173 }]
 	}),
 	cents(3451 / 173)
 );
@@ -1190,7 +1203,7 @@ const calendarMY = {
 	// alternative, so a jurisdiction fixture that omits it is only ever "not PH" by accident.
 	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: { per: 'DAY', divisor: 26 }
+	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 };
 const absenceRate = (jurisdiction, period = january) =>
 	absenceDayRate({ terms: januaryTerms, work: jurisdiction, period, workingDaysIn: () => 26 });
@@ -1217,7 +1230,7 @@ check(
 		terms: januaryTerms,
 		work: {
 			proration: { by: 'WORKING_DAYS' },
-			ordinary_rate: { per: 'DAY', divisor: 26 }
+			ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 		},
 		period: january,
 		workingDaysIn: () => 22
@@ -1235,7 +1248,7 @@ check(
 		},
 		work: {
 			proration: { by: 'FIXED_DAYS', days: 21.75 },
-			ordinary_rate: { per: 'DAY', divisor: 21.75 }
+			ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 21.75 }]
 		},
 		period: { start: '2026-02-01', end: '2026-02-28' },
 		workingDaysIn: () => 16

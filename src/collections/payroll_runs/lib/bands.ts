@@ -7,34 +7,34 @@
  * amount by one band — half a ringgit of employee share and 1.75 of employer share on every
  * payslip in the company (decision E3, and the `statutory-band` category of the parity baseline).
  *
- * Non-wage dimensions — age, headcount, risk class — are filters applied first; the wage ceiling
- * then picks one row from what survives. That is what lets EPF, SOCSO and EIS each carry a second
- * age class over the very same wage ladder.
+ * Non-wage dimensions — age, headcount, risk class, and the band's own eligibility predicate — are
+ * filters applied first; the wage ceiling then picks one row from what survives. That is what lets
+ * EPF, SOCSO and EIS each carry a second age class over the very same wage ladder, and CPF a
+ * ladder per residency year.
  *
  * A wage above every ceiling is an **error**, never a silent fall back to the last row. A ceiling
  * is expressed as an open-ended terminal band (`to: null`); an engine that quietly reuses the last
  * finite band instead is a wrong-answer generator that nobody can see (decision E24).
  */
 
-import { Schema } from 'effect';
 import type { ContributionRate } from './configuration.js';
+import { isEligible, type PersonContext } from './eligibility.js';
 
 /** The four arms of `rate_selector`. A row whose selector is absent is a data error, not a band. */
 type BandSelector = NonNullable<ContributionRate['selector']>;
 type BandAward = NonNullable<ContributionRate['award']>;
 
 /** The non-wage dimensions that choose a band, and the wage the choice is asked about. */
-const BandContextSchema = Schema.Struct({
-	base: Schema.Number,
+export type BandContext = {
+	readonly base: number;
 	/** Completed years of age at the period end. `null` where date of birth is unknown. */
-	age: Schema.NullOr(Schema.Number),
+	readonly age: number | null;
 	/** Active employments in the company at the period end. */
-	headcount: Schema.Number,
-	riskClass: Schema.NullOr(Schema.String),
-	/** Which marital category a twice-published scale should be read on. `null` where unknown. */
-	marital: Schema.NullOr(Schema.Literals(['SINGLE', 'MARRIED']))
-});
-export type BandContext = Schema.Schema.Type<typeof BandContextSchema>;
+	readonly headcount: number;
+	readonly riskClass: string | null;
+	/** The person a band's `eligibility` predicate is asked about. */
+	readonly person: PersonContext;
+};
 
 /**
  * A band row with its variant columns present.
@@ -71,10 +71,6 @@ function dimensionsMatch(selector: BandSelector, context: BandContext): boolean 
 				(selector.age_to == null || context.age < selector.age_to)
 			);
 		}
-		// An employment whose marital status is unrecorded is read on the SINGLE scale: it is the
-		// one every taxpayer qualifies for, so an unknown never claims a relief it may not be owed.
-		case 'WAGE_AND_MARITAL':
-			return selector.marital === (context.marital ?? 'SINGLE');
 		case 'HEADCOUNT':
 			return (
 				context.headcount >= selector.from &&
@@ -96,7 +92,6 @@ export function bandCeiling(selector: BandSelector): number {
 	switch (selector.by) {
 		case 'WAGE':
 		case 'WAGE_AND_AGE':
-		case 'WAGE_AND_MARITAL':
 			return selector.to == null ? Number.POSITIVE_INFINITY : selector.to;
 		case 'HEADCOUNT':
 		case 'RISK_CLASS':
@@ -110,7 +105,6 @@ export function bandFloor(selector: BandSelector): number {
 	switch (selector.by) {
 		case 'WAGE':
 		case 'WAGE_AND_AGE':
-		case 'WAGE_AND_MARITAL':
 		case 'HEADCOUNT':
 			return selector.from;
 		case 'RISK_CLASS':
@@ -131,8 +125,6 @@ export function bandReference(selector: BandSelector): string {
 			return `${selector.from} – ${selector.to ?? '∞'}`;
 		case 'WAGE_AND_AGE':
 			return `${selector.from} – ${selector.to ?? '∞'} · age ${selector.age_from}–${selector.age_to ?? '∞'}`;
-		case 'WAGE_AND_MARITAL':
-			return `${selector.from} – ${selector.to ?? '∞'} · ${selector.marital.toLowerCase()}`;
 		case 'HEADCOUNT':
 			return `headcount ${selector.from} – ${selector.to ?? '∞'}`;
 		case 'RISK_CLASS':
@@ -152,7 +144,10 @@ export function selectBand(
 ): ResolvedBand {
 	const candidates = rates
 		.map((rate) => resolveBand(rate, contributionCode))
-		.filter((band) => dimensionsMatch(band.selector, context));
+		.filter(
+			(band) =>
+				isEligible(band.row.eligibility, context.person) && dimensionsMatch(band.selector, context)
+		);
 	if (candidates.length === 0)
 		throw new Error(
 			`${contributionCode} has no band for a base of ${context.base}` +

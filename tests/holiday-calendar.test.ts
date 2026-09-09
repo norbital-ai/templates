@@ -7,6 +7,7 @@ const holiday = (changes: Partial<HolidayRow> = {}): HolidayRow => ({
 	jurisdiction_code: 'JUR-A',
 	date: '2026-01-01',
 	name: 'Festival',
+	kind: 'PUBLIC',
 	original_date: null,
 	published_at: '2025-12-01T00:00:00Z',
 	...changes
@@ -21,6 +22,14 @@ test('a published holiday is used; an unpublished one is not there; a range with
 	const resolved = resolveHolidays([holiday()], 'JUR-A', '2026-01-01', '2026-01-31');
 	assert.deepEqual([...resolved.keys()], ['2026-01-01']);
 	assert.equal(resolved.get('2026-01-01')!.name, 'Festival');
+	// The kind rides the snapshot: a run prices a SPECIAL day on its own ladder from this copy.
+	assert.equal(resolved.get('2026-01-01')!.kind, 'PUBLIC');
+	assert.equal(
+		resolveHolidays([holiday({ kind: 'SPECIAL' })], 'JUR-A', '2026-01-01', '2026-01-31').get(
+			'2026-01-01'
+		)!.kind,
+		'SPECIAL'
+	);
 });
 
 test('only the jurisdiction and range asked for, and never two published rows on one day', () => {

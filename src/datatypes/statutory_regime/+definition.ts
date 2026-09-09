@@ -13,8 +13,16 @@ export const overtimeCoverageValueSchema = Schema.Struct({
 	excluded_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1)))
 });
 
+/** The day types the ladder prices. A SPECIAL holiday (PH special non-working day) is its own type. */
+export const RULE_DAY_TYPES = [
+	'ORDINARY',
+	'REST_DAY',
+	'PUBLIC_HOLIDAY',
+	'SPECIAL_HOLIDAY'
+] as const;
+
 export const statutoryOvertimeRuleValueSchema = Schema.Struct({
-	day_type: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+	day_type: Schema.Literals(RULE_DAY_TYPES),
 	band: overtimeBandValueSchema,
 	award: overtimeAwardValueSchema
 });
@@ -33,7 +41,8 @@ export type StatutoryOvertimeRule = Schema.Schema.Type<typeof statutoryOvertimeR
  * on the entity's own forked lineage.
  */
 export const statutoryOvertimeLimitValueSchema = Schema.Struct({
-	period: Schema.Literals(['DAY', 'WEEK', 'MONTH']),
+	/** QUARTER and YEAR are calendar periods to date: paid payslips plus this run. */
+	period: Schema.Literals(['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
 	measures: Schema.Literals(['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
 	max_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
 	on_exceed: Schema.Literals(['WARN', 'BLOCK', 'INCENTIVE'])
@@ -120,6 +129,25 @@ export const statutoryWeeklyRestRuleValueSchema = Schema.Struct({
 
 export type StatutoryWeeklyRestRule = Schema.Schema.Type<typeof statutoryWeeklyRestRuleValueSchema>;
 
+const clockTime = Schema.String.check(
+	Schema.makeFilter((value) =>
+		/^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? true : `"${value}" is not a HH:MM wall-clock time.`
+	)
+);
+
+/**
+ * A night window and what an hour inside it adds, as whole percentages of the hourly rate:
+ * the Philippines adds 10% to every hour between 22:00 and 06:00, Vietnam 30% on ordinary hours
+ * and 20% more on overtime hours. A window ending at or before its start crosses midnight.
+ */
+export const nightPremiumValueSchema = Schema.Struct({
+	from: clockTime,
+	to: clockTime,
+	ordinary_add: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+	overtime_add: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
+});
+export type NightPremium = Schema.Schema.Type<typeof nightPremiumValueSchema>;
+
 /**
  * The atomic working-time part of one effective-dated jurisdiction snapshot.
  *
@@ -129,7 +157,11 @@ export type StatutoryWeeklyRestRule = Schema.Schema.Type<typeof statutoryWeeklyR
  * Work catalogue row states one `authority` for the whole regime.
  */
 export const statutoryRegimeValueSchema = Schema.Struct({
-	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY']),
+	/**
+	 * A holiday on the rest day: priced as the holiday, as the rest day, or SUBSTITUTE — the rest
+	 * day stays a rest day and the next working day is observed as the holiday.
+	 */
+	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']),
 	overtime_coverage: Schema.NullOr(overtimeCoverageValueSchema),
 	overtime_rules: Schema.Array(statutoryOvertimeRuleValueSchema),
 	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema),
@@ -158,7 +190,9 @@ export const statutoryRegimeValueSchema = Schema.Struct({
 	 * "which of the two governs this roster?" to seed order — the ambiguity the limit-key and
 	 * break-arm checks in `statutoryRegimeIssues` exist to catch elsewhere.
 	 */
-	weekly_rest_rule: Schema.optionalKey(statutoryWeeklyRestRuleValueSchema)
+	weekly_rest_rule: Schema.optionalKey(statutoryWeeklyRestRuleValueSchema),
+	/** Optional for the same reason as its siblings: absent or null is no premium. */
+	night_premium: Schema.optionalKey(Schema.NullOr(nightPremiumValueSchema))
 });
 
 export type StatutoryRegime = Schema.Schema.Type<typeof statutoryRegimeValueSchema>;
@@ -262,6 +296,10 @@ export function statutoryRegimeIssues(regime: StatutoryRegime, currency: string)
 			);
 		breakArms.add(rule.applies_when);
 	}
+
+	const night = regime.night_premium;
+	if (night != null && night.from === night.to)
+		issues.push('A night premium window must end at a different time from its start.');
 
 	return [...new Set(issues)];
 }

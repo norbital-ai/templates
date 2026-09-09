@@ -15,10 +15,16 @@
  * Normal hours in an overtime-rate day are the employment's contractual weekly hours divided by
  * its contractual working days. That is the employee's normal day; a payroll-system convention
  * cannot replace it with a different schedule.
+ *
+ * `work_catalogue.ordinary_rate` is rows read top-down; `resolveOrdinaryRate` picks the first
+ * whose predicate holds for the person and settles a `WORKING_DAYS` divisor from the month's
+ * scheduled working days. Every pricing function below takes that resolved rate.
  */
 
 import { Schema } from 'effect';
 import type { Work } from './configuration.js';
+import type { OrdinaryRate } from '../../../datatypes/ordinary_rate/+definition.js';
+import { isEligible, type PersonContext } from './eligibility.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { countryOf } from '../../../lib/jurisdiction_settings.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -36,6 +42,37 @@ const RateTermsSchema = Schema.Struct({
 });
 export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
 
+/** One ordinary-rate row with its divisor settled to a number. */
+type ResolvedOrdinaryRate = { readonly per: 'DAY' | 'HOUR'; readonly divisor: number };
+
+/**
+ * The first row whose predicate holds for the person. `WORKING_DAYS` asks the caller for the
+ * month's scheduled working days; a person no row covers, or a month with no working days under
+ * that divisor, stops the run by name rather than pricing an hour at nothing.
+ */
+export function resolveOrdinaryRate(options: {
+	readonly rows: OrdinaryRate | null | undefined;
+	readonly person: PersonContext;
+	readonly workingDays: () => number;
+	readonly employeeNumber?: string;
+}): ResolvedOrdinaryRate {
+	const rows = options.rows ?? [];
+	if (rows.length === 0) throw new Error('The work states no ordinary rate.');
+	const row = rows.find((candidate) => isEligible(candidate.eligibility, options.person));
+	const who = options.employeeNumber ?? 'this person';
+	if (row == null)
+		throw new Error(`No ordinary rate row covers ${who}; the last row is normally everyone.`);
+	if (row.divisor === 'WORKING_DAYS') {
+		const days = options.workingDays();
+		if (!(days > 0))
+			throw new Error(
+				`The ordinary rate of ${who} divides by the month's working days, and the month has none.`
+			);
+		return { per: row.per, divisor: days };
+	}
+	return { per: row.per, divisor: decodeNumber(row.divisor) };
+}
+
 /**
  * The Philippines uses 261 annual days for a five-day week and 313 for a six-day week. The
  * work row stores the common monthly divisor (261 / 12 = 21.75); the employee's stated
@@ -44,16 +81,14 @@ export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
  * This is employee-level law, so it cannot be represented by replacing the work's one
  * divisor with a company-wide value.
  */
-function ordinaryRateDivisor(terms: RateTerms, work: Work): number {
-	const rate = work.ordinary_rate;
-	if (rate == null) throw new Error('The work states no ordinary rate.');
+function ordinaryRateDivisor(terms: RateTerms, work: Work, rate: ResolvedOrdinaryRate): number {
 	if (
 		countryOf(work.jurisdiction_code) === 'PH' &&
 		decodeNumber(terms.ordinary_hours_per_week) > 40 &&
 		rate.per === 'DAY'
 	)
 		return 313 / 12;
-	return decodeNumber(rate.divisor);
+	return rate.divisor;
 }
 
 /**
@@ -85,16 +120,20 @@ function monthlyBaseSalary(terms: RateTerms): number {
 }
 
 /** Pay for one ordinary hour, rounded to cents before any multiplication. */
-export function ordinaryHourlyRate(terms: RateTerms, work: Work): number {
+export function ordinaryHourlyRate(
+	terms: RateTerms,
+	work: Work,
+	rate: ResolvedOrdinaryRate
+): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
 	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'DAILY')
 		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
-	const divisor = ordinaryRateDivisor(terms, work);
+	const divisor = ordinaryRateDivisor(terms, work, rate);
 	if (!(divisor > 0)) throw new Error('work_catalogue.ordinary_rate.divisor must be positive.');
 	const monthly = monthlyBaseSalary(terms);
-	return work.ordinary_rate?.per === 'HOUR'
+	return rate.per === 'HOUR'
 		? cents(monthly / divisor)
 		: cents(monthly / divisor / normalDailyHours(terms));
 }
@@ -106,15 +145,15 @@ export function ordinaryHourlyRate(terms: RateTerms, work: Work): number {
  * in the statute at all, so a day is the contracted daily hours priced at the hourly rate
  * (decision E28).
  */
-export function ordinaryDayWage(terms: RateTerms, work: Work): number {
+export function ordinaryDayWage(terms: RateTerms, work: Work, rate: ResolvedOrdinaryRate): number {
 	// A DAILY contract states its day wage; an HOURLY one states it per hour, so a day is the
 	// contracted daily hours priced at that rate. Monthly staff read the divisor as before.
 	if (terms.pay_frequency === 'DAILY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'HOURLY')
 		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
-	const divisor = ordinaryRateDivisor(terms, work);
+	const divisor = ordinaryRateDivisor(terms, work, rate);
 	const monthly = monthlyBaseSalary(terms);
-	return work.ordinary_rate?.per === 'HOUR'
+	return rate.per === 'HOUR'
 		? cents((monthly * normalDailyHours(terms)) / divisor)
 		: cents(monthly / divisor);
 }
