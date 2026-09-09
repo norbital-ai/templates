@@ -25,10 +25,16 @@
 	import { AS_ASSIGNED_PATTERN } from '../../lib/scheduling/work-pattern.js';
 	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
 	import {
+		formatCalendarDate,
 		formatEffectiveRange,
 		formatStatutoryFactStatus
 	} from '../../lib/ui/display-formatters.js';
-	import { todayKey } from '../../lib/ui/calendar.js';
+	import {
+		calendarDateInTimeZone,
+		daysBetweenKeys,
+		PAYROLL_TIME_ZONE,
+		todayKey
+	} from '../../lib/ui/calendar.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
@@ -39,7 +45,7 @@
 	/** Terms as the profile reads them: the pointer, and the named pattern riding the `with`. */
 	type EmploymentTerm = Pick<
 		WorkspaceRow<'employment_terms'>,
-		'employment_id' | 'effective_range' | 'shift_pattern_id'
+		'employment_id' | 'effective_range' | 'shift_pattern_id' | 'summary'
 	> & {
 		readonly term_shift_pattern?: Pick<
 			WorkspaceRow<'shift_patterns'>,
@@ -170,6 +176,7 @@
 					columns: {
 						id: true,
 						company_id: true,
+						employee_number: true,
 						hire_date: true,
 						effective_range: true,
 						exit_date: true,
@@ -252,6 +259,135 @@
 			else terms.set(term.employment_id, [term]);
 		}
 		return terms;
+	});
+
+	/** A stored day-precision instant as a `YYYY-MM-DD` key in the payroll timezone. */
+	function timelineDayKey(value: unknown): string | null {
+		if (value == null) return null;
+		const instant = value instanceof Date ? value : new Date(String(value));
+		if (Number.isNaN(instant.getTime())) return null;
+		return calendarDateInTimeZone(instant, PAYROLL_TIME_ZONE);
+	}
+
+	type TimelineBar = {
+		readonly id: string;
+		readonly companyId: string;
+		readonly employeeNumber: string;
+		readonly startKey: string;
+		readonly endKey: string;
+		readonly active: boolean;
+		readonly termsSummary: string | null;
+		readonly top: number;
+		readonly height: number;
+	};
+
+	type TimelineColumn = {
+		readonly companyId: string;
+		readonly companyName: string;
+		readonly active: boolean;
+		readonly lastEndKey: string | null;
+		readonly bars: readonly TimelineBar[];
+	};
+
+	/** The terms in force on `date`: the covering row, else the latest row's summary. */
+	function termsSummaryInForce(terms: readonly EmploymentTerm[], date: string): string | null {
+		const dated = terms.flatMap((term) => {
+			const range = readRange(term.effective_range);
+			return range == null ? [] : [{ range, summary: term.summary }];
+		});
+		const covering =
+			dated.find((candidate) => isEffectiveOn(candidate.range, date)) ??
+			dated.toSorted((left, right) => right.range.start.localeCompare(left.range.start))[0];
+		const summary = covering?.summary;
+		return typeof summary === 'string' && summary !== '' ? summary : null;
+	}
+
+	// Company names for the timeline columns; the employments read carries only the id.
+	const timelineCompanyIds = $derived([
+		...new Set(employments.map((employment) => employment.company_id))
+	]);
+	const timelineCompaniesQuery = $derived(
+		record == null || timelineCompanyIds.length === 0
+			? null
+			: client.db.companies.findMany({
+					where: { id: { in: timelineCompanyIds } },
+					columns: { id: true, name: true },
+					limit: 50
+				})
+	);
+	const timelineCompanyNames = $derived(
+		new Map(
+			(timelineCompaniesQuery?.current ?? []).map((company) => [
+				String(company.id),
+				company.name == null || company.name === '' ? String(company.id) : String(company.name)
+			])
+		)
+	);
+
+	/**
+	 * One column per legal entity, time down the Y axis, one bar per employment from its hire
+	 * date to its exit date (or today when active). Overlap within an entity is refused by the
+	 * hook, so the bars are drawn as stored and never overlap by construction.
+	 */
+	const timeline = $derived.by(() => {
+		const bars = employments.flatMap((employment) => {
+			if (typeof employment.id !== 'string' || typeof employment.company_id !== 'string') return [];
+			const startKey =
+				timelineDayKey(employment.hire_date) ??
+				timelineDayKey(readRange(employment.effective_range)?.start) ??
+				today;
+			const storedEnd = employment.exit_date == null ? null : timelineDayKey(employment.exit_date);
+			const active = storedEnd == null || storedEnd >= today;
+			const endKey = storedEnd == null ? today : storedEnd < startKey ? startKey : storedEnd;
+			const reference = active ? today : endKey;
+			return [
+				{
+					id: employment.id,
+					companyId: employment.company_id,
+					employeeNumber:
+						employment.employee_number == null ? '—' : String(employment.employee_number),
+					startKey,
+					endKey,
+					active,
+					termsSummary: termsSummaryInForce(termsByEmployment.get(employment.id) ?? [], reference)
+				}
+			];
+		});
+		if (bars.length === 0) return { columns: [], todayTop: 0, showToday: false };
+		const minKey = bars.map((bar) => bar.startKey).toSorted()[0]!;
+		const maxKey = [today, ...bars.map((bar) => bar.endKey)].toSorted().at(-1)!;
+		const spanDays = Math.max(1, daysBetweenKeys(minKey, maxKey));
+		const position = (key: string) => (daysBetweenKeys(minKey, key) / spanDays) * 100;
+		const byCompany = new Map<string, Omit<TimelineBar, 'top' | 'height'>[]>();
+		for (const bar of bars) {
+			const bucket = byCompany.get(bar.companyId);
+			if (bucket) bucket.push(bar);
+			else byCompany.set(bar.companyId, [bar]);
+		}
+		const columns: TimelineColumn[] = [...byCompany]
+			.map(([companyId, companyBars]) => {
+				const placed: TimelineBar[] = companyBars
+					.toSorted((left, right) => left.startKey.localeCompare(right.startKey))
+					.map((bar) => ({
+						...bar,
+						top: position(bar.startKey),
+						height: ((daysBetweenKeys(bar.startKey, bar.endKey) + 1) / spanDays) * 100
+					}));
+				return {
+					companyId,
+					companyName: timelineCompanyNames.get(companyId) ?? companyId,
+					active: placed.some((bar) => bar.active),
+					lastEndKey:
+						placed
+							.filter((bar) => !bar.active)
+							.map((bar) => bar.endKey)
+							.toSorted()
+							.at(-1) ?? null,
+					bars: placed
+				};
+			})
+			.toSorted((left, right) => left.companyName.localeCompare(right.companyName));
+		return { columns, todayTop: position(today), showToday: today >= minKey };
 	});
 
 	const storedPhotoKey = $derived.by(() => {
@@ -338,32 +474,92 @@
 
 {#snippet engagements()}
 	{#if record}
-		<CollectionTable
-			{client}
-			collection="employments"
-			view="employees:employments"
-			title={t('component.employments')}
-			description={t('component.employments_description')}
-			query={{
-				where: { employee_id: { eq: record.id } },
-				orderBy: { hire_date: 'desc' }
-			}}
-		>
-			{#snippet columns({ Column: TableColumn })}
-				<TableColumn
-					name="employee_number"
-					card="title"
-					minWidth={280}
-					renderer={FormattedValueRenderer}
-					rendererProps={{
-						format: ({ row }) => employmentSummary(row as { id: string; employee_number: unknown })
-					}}
-				/>
-				<TableColumn name="company_id" label={t('component.legal_entity')} card="subtitle" />
-				<TableColumn name="hire_date" label={t('component.hired')} />
-				<TableColumn name="effective_range" label={t('component.effective')} />
-			{/snippet}
-		</CollectionTable>
+		<Stack gap="lg">
+			{#if timeline.columns.length > 0}
+				<FormSection
+					first
+					title={t('component.timeline_title')}
+					hint={t('component.timeline_hint')}
+				>
+					<div class="flex gap-4 overflow-x-auto pb-2">
+						{#each timeline.columns as column (column.companyId)}
+							<div class="min-w-[14rem] flex-1">
+								<h4 class="text-sm font-semibold">{column.companyName}</h4>
+								<p class="text-meta">
+									{#if column.active}
+										{t('component.timeline_active')}
+									{:else if column.lastEndKey != null}
+										{t('component.timeline_last_ended', {
+											date: formatCalendarDate(column.lastEndKey)
+										})}
+									{/if}
+								</p>
+								<div class="relative mt-2 h-80 rounded-md bg-muted/40">
+									{#if timeline.showToday}
+										<div
+											class="absolute right-0 left-0 border-t border-dashed border-primary"
+											style="top: {timeline.todayTop}%"
+										>
+											<span class="text-meta absolute top-0 right-1 bg-card px-1"
+												>{t('component.timeline_today')}</span
+											>
+										</div>
+									{/if}
+									{#each column.bars as bar (bar.id)}
+										<div
+											class="absolute right-2 left-2 overflow-hidden rounded-md border p-2 {bar.active
+												? 'border-primary bg-card'
+												: 'border-border bg-muted text-muted-foreground'}"
+											style="top: {bar.top}%; height: {bar.height}%; min-height: 4.5rem;"
+										>
+											<p class="text-sm font-medium text-foreground">{bar.employeeNumber}</p>
+											<p class="text-meta">
+												{bar.termsSummary ?? t('component.timeline_no_terms')}
+											</p>
+											<p class="text-meta">
+												{formatCalendarDate(bar.startKey)} → {bar.active
+													? t('component.timeline_today')
+													: formatCalendarDate(bar.endKey)}
+												· {bar.active
+													? t('component.timeline_active')
+													: t('component.timeline_ended')}
+											</p>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</FormSection>
+			{/if}
+			<CollectionTable
+				{client}
+				collection="employments"
+				view="employees:employments"
+				title={t('component.employments')}
+				description={t('component.employments_description')}
+				query={{
+					where: { employee_id: { eq: record.id } },
+					orderBy: { hire_date: 'desc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn
+						name="employee_number"
+						card="title"
+						minWidth={280}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }) =>
+								employmentSummary(row as { id: string; employee_number: unknown })
+						}}
+					/>
+					<TableColumn name="company_id" label={t('component.legal_entity')} card="subtitle" />
+					<TableColumn name="hire_date" label={t('component.hired')} />
+					<TableColumn name="effective_range" label={t('component.effective')} />
+				{/snippet}
+			</CollectionTable>
+		</Stack>
 	{/if}
 {/snippet}
 
