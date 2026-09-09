@@ -254,6 +254,13 @@ test('change-terms closes the previous row the day before through the existing h
 	assert.equal(create.employment_id, id(1));
 	assert.equal(create.id, id(81));
 	assert.deepEqual(create.effective_range, { start: '2026-07-01', end: null });
+	// The change leaves exactly two segments, and they tile the contract: the successor starts
+	// the day after the predecessor closes, with no gap and no overlap, and the tail stays open.
+	const segments = [close.effective_range, create.effective_range];
+	assert.equal(segments.length, 2);
+	assert.equal(segments[0]!.start, '2025-01-01');
+	assert.equal(previousDay(segments[1]!.start), segments[0]!.end);
+	assert.equal(segments[1]!.end, null);
 	// Both halves pass the existing amendment rule while nothing is consumed …
 	assert.doesNotThrow(() =>
 		Effect.runSync(
