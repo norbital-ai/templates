@@ -32,6 +32,7 @@
 	import { blockedPhraseKey } from '../../lib/kiosk/punch.js';
 	import {
 		faceInsideSilhouette,
+		fitFrame,
 		silhouetteGeometry,
 		type FrameSize
 	} from '../../lib/kiosk/silhouette.js';
@@ -108,8 +109,11 @@
 	let now = $state(new Date());
 	let organizationName = $state('');
 	let organizationLogoUrl = $state<string | null>(null);
-	/** The camera frame's box, measured, so the silhouette is drawn in its pixels. */
-	let frame = $state<FrameSize>({ width: KIOSK_CAPTURE_WIDTH, height: KIOSK_CAPTURE_HEIGHT });
+	/** The cell the camera frame is given, measured; the frame is the video's ratio fitted inside it. */
+	let cell = $state<FrameSize>({ width: KIOSK_CAPTURE_WIDTH, height: KIOSK_CAPTURE_HEIGHT });
+	/** What the camera actually delivers: iOS rotates it with the tablet, so it is read off the video. */
+	let videoSize = $state<FrameSize>({ width: KIOSK_CAPTURE_WIDTH, height: KIOSK_CAPTURE_HEIGHT });
+	const frame = $derived(fitFrame(cell, videoSize));
 	const silhouette = $derived(silhouetteGeometry(frame));
 
 	let videoNode: HTMLVideoElement | null = null;
@@ -122,6 +126,8 @@
 	let clockTimer: ReturnType<typeof setInterval> | null = null;
 	let resetTimer: ReturnType<typeof setTimeout> | null = null;
 	let inFlight = false;
+	/** One recognition request at a time; the next frame of the hold asks again if it came back empty. */
+	let matchInFlight = false;
 	let lastFrameTime = -1;
 	let scanSession = {};
 	let completedProbe: readonly number[] | null = null;
@@ -341,13 +347,15 @@
 	});
 
 	/**
-	 * The silhouette is drawn in the frame's own pixels, so the frame reports its size whenever the
-	 * viewport, the aside or the breakpoint changes it. The observer lives as long as the section.
+	 * The frame keeps the camera's own aspect ratio at every size, so it is the video's ratio fitted
+	 * inside this cell and centred. The cell is a grid track, never sized by its content, so measuring
+	 * it cannot feed back into itself. The silhouette is drawn in the frame's pixels and the analysed
+	 * image is the whole camera picture, which is exactly what the person sees.
 	 */
-	const measureFrame = (node: HTMLElement) => {
+	const measureCell = (node: HTMLElement) => {
 		const read = () => {
 			const box = node.getBoundingClientRect();
-			if (box.width > 0 && box.height > 0) frame = { width: box.width, height: box.height };
+			if (box.width > 0 && box.height > 0) cell = { width: box.width, height: box.height };
 		};
 		read();
 		const observer = new ResizeObserver(read);
@@ -359,7 +367,16 @@
 	const attachVideo = (node: HTMLVideoElement) => {
 		videoNode = node;
 		if (stream !== null) showStream(node, stream);
+		const readSize = () => {
+			if (node.videoWidth > 0 && node.videoHeight > 0)
+				videoSize = { width: node.videoWidth, height: node.videoHeight };
+		};
+		readSize();
+		node.addEventListener('loadedmetadata', readSize);
+		node.addEventListener('resize', readSize);
 		return () => {
+			node.removeEventListener('loadedmetadata', readSize);
+			node.removeEventListener('resize', readSize);
 			if (videoNode === node) videoNode = null;
 		};
 	};
@@ -406,6 +423,7 @@
 	const resumeScan = () => {
 		clearResetTimer();
 		scanSession = {};
+		matchInFlight = false;
 		hold = null;
 		candidate = null;
 		punch = null;
@@ -446,6 +464,7 @@
 	const openTab = (next: Tab) => {
 		clearResetTimer();
 		scanSession = {};
+		matchInFlight = false;
 		hold = null;
 		tab = next;
 		candidate = null;
@@ -581,15 +600,20 @@
 		);
 	};
 
+	/**
+	 * A reply for the hold that asked. An empty reply is not a verdict: the frame that produced the
+	 * probe may have been blurred or half-turned, so the hold simply asks again with its next
+	 * embedding, and only a hold that runs its whole two seconds without a name is "unknown".
+	 */
 	const acceptMatch = (
 		matched: MatchResult,
-		probe: readonly number[],
+		holdProbe: readonly number[],
 		requestedCompanyId: string
 	) => {
 		if (
 			tab !== 'scan' ||
 			phase !== 'challenge' ||
-			hold?.probe !== probe ||
+			hold?.probe !== holdProbe ||
 			companyId !== requestedCompanyId
 		)
 			return;
@@ -605,13 +629,7 @@
 			);
 			return;
 		}
-		if (matched.status !== 'match') {
-			hold = null;
-			phase = 'unknown';
-			narrator.say('identity_unknown');
-			scheduleResume(5500);
-			return;
-		}
+		if (matched.status !== 'match') return;
 		candidate = {
 			employeeName: matched.employee.name,
 			employmentId: matched.employment.id,
@@ -704,24 +722,35 @@
 				absentSince = 0;
 				hint = null;
 				phase = 'challenge';
-				if (hold.probe !== previousProbe) {
-					candidate = null;
-					const probe = hold.probe;
+				if (hold.probe !== previousProbe) candidate = null;
+				if (candidate === null && !matchInFlight && kioskSecondsLeft(hold) === 0) {
+					// Two seconds of live frames, and the last reply named nobody.
+					hold = null;
+					phase = 'unknown';
+					narrator.say('identity_unknown');
+					scheduleResume(5500);
+					return;
+				}
+				if (candidate === null && !matchInFlight) {
+					matchInFlight = true;
+					const holdProbe = hold.probe;
 					const matchStart = performance.now();
 					void client.invoke
 						.kiosk_match({
 							company_id: activeCompanyId,
-							probe: [...probe],
+							probe: [...hold.embedding],
 							threshold: KIOSK_MATCH_THRESHOLD
 						})
 						.then(
 							(matched) => {
+								matchInFlight = false;
 								performance.clearMeasures('kiosk.match');
 								performance.measure('kiosk.match', { start: matchStart });
-								if (activeSession === scanSession) acceptMatch(matched, probe, activeCompanyId);
+								if (activeSession === scanSession) acceptMatch(matched, holdProbe, activeCompanyId);
 							},
 							(error: unknown) => {
-								if (hold?.probe !== probe || disposed) return;
+								matchInFlight = false;
+								if (hold?.probe !== holdProbe || disposed) return;
 								rejectFace(
 									{
 										tone: 'error',
@@ -896,9 +925,11 @@
 	and status bar as the chrome rows and the body as the definite middle track — deliberately not
 	an `AppShell`, which would add a workspace hero around a shop-floor time clock. The body grid
 	used to be `h-full` under a root with no definite height, which is where the empty band under
-	the status bar came from. Below `lg` the video is an `aspect-video` frame with the action cards
-	over its foot and the identity panel under it; from `lg` the frame and the aside sit side by
-	side and fill the track.
+	the status bar came from. The camera cell is a definite track at every breakpoint — the
+	remaining height above the identity panel below `lg`, the left column from `lg` — and the frame
+	inside it keeps the camera's own aspect ratio, letterboxed on the dark cell, never cropped: a
+	near-square iPad column used to show a 16:9 stream with its sides cut off, and a portrait
+	tablet under a 16:9 `aspect-video` frame showed a third of a portrait stream.
 -->
 <Bound size="full">
 	<Cover as="main" top={header} bottom={statusBar} gap="none" class="bg-background text-foreground">
@@ -925,94 +956,100 @@
 			</Stack>
 		{:else if tab === 'scan'}
 			<div
-				class="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.8fr)] lg:grid-rows-none"
+				class="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.8fr)] lg:grid-rows-none"
 			>
-				<section
-					{@attach measureFrame}
-					class="relative aspect-video overflow-hidden bg-foreground lg:aspect-auto lg:min-h-0"
-					aria-label={t('kiosk.camera')}
+				<div
+					{@attach measureCell}
+					class="grid min-h-0 min-w-0 place-items-center overflow-hidden bg-foreground"
+					data-kiosk-cell
 				>
-					<video
-						{@attach attachVideo}
-						playsinline
-						autoplay
-						muted
-						class="absolute inset-0 size-full -scale-x-100 object-cover"
-					></video>
-					<div class="pointer-events-none absolute inset-0 bg-black/25"></div>
-
-					<div
-						class="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white"
-						data-kiosk-engine={phase === 'unavailable' ? 'unavailable' : 'ready'}
+					<section
+						class="relative overflow-hidden"
+						style="width: {frame.width}px; height: {frame.height}px;"
+						aria-label={t('kiosk.camera')}
 					>
-						{#if phase === 'unavailable'}
-							<span class="size-2 rounded-full bg-destructive"></span>
-							{t('kiosk.engine_unavailable')}
-						{:else}
-							<span class="size-2 rounded-full bg-success"></span>
-							{t('kiosk.camera_ready')}
-						{/if}
-					</div>
+						<video
+							{@attach attachVideo}
+							playsinline
+							autoplay
+							muted
+							class="absolute inset-0 size-full -scale-x-100 object-cover"
+						></video>
+						<div class="pointer-events-none absolute inset-0 bg-black/25"></div>
 
-					<!--
+						<div
+							class="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white"
+							data-kiosk-engine={phase === 'unavailable' ? 'unavailable' : 'ready'}
+						>
+							{#if phase === 'unavailable'}
+								<span class="size-2 rounded-full bg-destructive"></span>
+								{t('kiosk.engine_unavailable')}
+							{:else}
+								<span class="size-2 rounded-full bg-success"></span>
+								{t('kiosk.camera_ready')}
+							{/if}
+						</div>
+
+						<!--
 						One silhouette, drawn in the frame's own pixels: a head ellipse spanning 58% of the
 						frame's height, a neck gap, then shoulders that fade as they run off the bottom edge.
 						The geometry is `silhouetteGeometry(frame)`; the frame is measured above, so the
 						guide scales with the video at every breakpoint. The countdown sits in the head.
 					-->
-					<svg
-						viewBox="0 0 {silhouette.width} {silhouette.height}"
-						preserveAspectRatio="none"
-						class="pointer-events-none absolute inset-0 size-full {phase === 'challenge'
-							? 'text-brand'
-							: 'text-white/80'}"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-dasharray="6 8"
-						data-kiosk-silhouette
-						data-head-height={Math.round(silhouette.head.ry * 2)}
-						data-frame-height={Math.round(silhouette.height)}
-						aria-hidden="true"
-					>
-						<defs>
-							<linearGradient
-								id="kiosk-silhouette-fade"
-								x1="0"
-								y1={silhouette.shoulders.top}
-								x2="0"
-								y2={silhouette.height}
-								gradientUnits="userSpaceOnUse"
-							>
-								<stop offset="0" stop-color="currentColor" stop-opacity="1" />
-								<stop offset="0.6" stop-color="currentColor" stop-opacity="0.6" />
-								<stop offset="1" stop-color="currentColor" stop-opacity="0" />
-							</linearGradient>
-						</defs>
-						<ellipse
-							cx={silhouette.head.cx}
-							cy={silhouette.head.cy}
-							rx={silhouette.head.rx}
-							ry={silhouette.head.ry}
-						/>
-						<path d={silhouette.shoulders.path} stroke="url(#kiosk-silhouette-fade)" />
-					</svg>
-					{#if phase === 'challenge'}
-						<div
-							class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
-							style="left: {(silhouette.head.cx / silhouette.width) * 100}%; top: {(silhouette.head
-								.cy /
-								silhouette.height) *
-								100}%;"
+						<svg
+							viewBox="0 0 {silhouette.width} {silhouette.height}"
+							preserveAspectRatio="none"
+							class="pointer-events-none absolute inset-0 size-full {phase === 'challenge'
+								? 'text-brand'
+								: 'text-white/80'}"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-dasharray="6 8"
+							data-kiosk-silhouette
+							data-head-height={Math.round(silhouette.head.ry * 2)}
+							data-frame-height={Math.round(silhouette.height)}
+							aria-hidden="true"
 						>
-							<span
-								class="flex size-20 items-center justify-center rounded-full bg-black/70 text-title text-white tabular-nums"
-								aria-hidden="true">{challengeLeft}</span
+							<defs>
+								<linearGradient
+									id="kiosk-silhouette-fade"
+									x1="0"
+									y1={silhouette.shoulders.top}
+									x2="0"
+									y2={silhouette.height}
+									gradientUnits="userSpaceOnUse"
+								>
+									<stop offset="0" stop-color="currentColor" stop-opacity="1" />
+									<stop offset="0.6" stop-color="currentColor" stop-opacity="0.6" />
+									<stop offset="1" stop-color="currentColor" stop-opacity="0" />
+								</linearGradient>
+							</defs>
+							<ellipse
+								cx={silhouette.head.cx}
+								cy={silhouette.head.cy}
+								rx={silhouette.head.rx}
+								ry={silhouette.head.ry}
+							/>
+							<path d={silhouette.shoulders.path} stroke="url(#kiosk-silhouette-fade)" />
+						</svg>
+						{#if phase === 'challenge'}
+							<div
+								class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+								style="left: {(silhouette.head.cx / silhouette.width) * 100}%; top: {(silhouette
+									.head.cy /
+									silhouette.height) *
+									100}%;"
 							>
-						</div>
-					{/if}
-				</section>
+								<span
+									class="flex size-20 items-center justify-center rounded-full bg-black/70 text-title text-white tabular-nums"
+									aria-hidden="true">{challengeLeft}</span
+								>
+							</div>
+						{/if}
+					</section>
+				</div>
 
 				<aside class="min-h-0 overflow-y-auto bg-card px-5 py-6 sm:px-8 sm:py-8">
 					<div class="mx-auto flex max-w-lg flex-col gap-8">
