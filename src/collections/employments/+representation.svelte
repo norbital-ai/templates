@@ -11,9 +11,21 @@
 	import Icon from '@iconify/svelte';
 	import OffboardingFlow from '../../lib/ui/offboarding/offboarding-flow.svelte';
 	import ChangeTermsFlow from '../../lib/ui/offboarding/change-terms-flow.svelte';
+	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	/**
+	 * The legal entity a contract belongs to is the one the page is scoped to. Offering the picker
+	 * lets an operator file a contract into an entity the page is not showing — the table it lands
+	 * in then does not contain it. Scoped, the entity is prefilled and not asked for; unscoped, the
+	 * form keeps the picker so a contract can still be filed from a finder result or a link.
+	 */
+	const createScope = hrCreateScope();
+	const scopedCompanyId = $derived(createScope?.companyId());
+	const defaults = $derived(
+		record ?? (scopedCompanyId == null ? undefined : { company_id: scopedCompanyId })
+	);
 	/**
 	 * Off-boarding and contract changes open from here and nowhere else: both write the sealed
 	 * contract's departure or terms, so they stay beside the departure section they settle.
@@ -110,7 +122,7 @@
 			{client}
 			collection="employments"
 			disabled={(sealed && departed) || (sealQuery?.loading ?? false)}
-			defaultValues={record ?? undefined}
+			defaultValues={defaults}
 			submitLabel={record ? t('component.save_employment') : t('component.create_employment')}
 			onAfterSubmit={record ? undefined : close}
 		>
@@ -127,17 +139,21 @@
 							limit: 10_000
 						}}
 					/>
-					<Field
-						name="company_id"
-						label={t('component.legal_entity')}
-						disabled={sealed}
-						relationOptions={{
-							label: (company) =>
-								company.name != null && company.name !== '' ? String(company.name) : '—',
-							orderBy: { name: 'asc' },
-							limit: 500
-						}}
-					/>
+					{#if scopedCompanyId != null}
+						<Field name="company_id" hidden />
+					{:else}
+						<Field
+							name="company_id"
+							label={t('component.legal_entity')}
+							disabled={sealed}
+							relationOptions={{
+								label: (company) =>
+									company.name != null && company.name !== '' ? String(company.name) : '—',
+								orderBy: { name: 'asc' },
+								limit: 500
+							}}
+						/>
+					{/if}
 					<Field name="employee_number" label={t('component.employee_number')} disabled={sealed} />
 					<Field name="hire_date" label={t('component.hired')} disabled={sealed} />
 					<Column span="all"

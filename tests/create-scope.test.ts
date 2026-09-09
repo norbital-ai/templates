@@ -24,7 +24,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
 	employmentRelationOptions,
@@ -38,6 +38,35 @@ const source = (path: string): string =>
 	readFileSync(fileURLToPath(new URL(path, templateRoot)), 'utf8');
 
 const QUANTIFIERS = new Set(['some', 'none', 'every']);
+
+/**
+ * Every collection this template authors, read from the tree rather than listed.
+ *
+ * The lists this file used to carry named five representations and six pages. `shift_definitions`
+ * and `shift_patterns` were offering `company_id` on a scoped page and neither list said so,
+ * because neither was on a list — which is the failure mode of an audit whose subject is written
+ * down by hand. A collection added tomorrow is checked by enumerating them here.
+ */
+const collections = readdirSync(fileURLToPath(new URL('src/collections', templateRoot)), {
+	withFileTypes: true
+})
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => entry.name)
+	.sort();
+
+const collectionSource = (name: string, file: string): string | null => {
+	try {
+		return source(`src/collections/${name}/${file}`);
+	} catch {
+		return null;
+	}
+};
+
+/** A `<Field name="x" …>`, with whatever attributes it carries. */
+const fieldsNamed = (text: string, column: string): string[] =>
+	[...text.matchAll(/<Field\b[^>]*?\/?>/g)]
+		.map((match) => match[0])
+		.filter((tag) => new RegExp(`name="${column}"`).test(tag));
 
 test('a catalogue predicate reaches its version under a quantifier', () => {
 	for (const relation of ['leave_catalogue_settings', 'payment_catalogue_settings'] as const) {
@@ -131,6 +160,100 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		source('src/collections/work_days/+representation.svelte'),
 		/employmentRelationOptions\(/
 	);
+});
+
+test('no representation offers a column its page scope already decides', () => {
+	// The exhaustive half of the wiring test above: every collection in the tree, not a list.
+	//
+	// `company_id` and `settings_id` are decided by the page — the legal-entity combobox in the app
+	// header, or the settings version on screen. A form that offers them asks the operator to
+	// re-choose something already chosen, and lets them choose *differently*, which writes a row into
+	// an entity the page is not showing. The shape every scoped form uses is the same: read the
+	// scope, hide the field when it is set, and offer it when it is not, so an unscoped form still
+	// works.
+	const failures: string[] = [];
+	for (const name of collections) {
+		const model = collectionSource(name, '+model.ts');
+		const representation = collectionSource(name, '+representation.svelte');
+		if (model == null || representation == null) continue;
+		for (const column of ['company_id', 'settings_id'] as const) {
+			if (!new RegExp(`\\b${column}:`).test(model)) continue;
+			const tags = fieldsNamed(representation, column);
+			if (tags.length === 0) continue;
+			// Never offered at all is stronger than offered-when-unscoped: a form that drives the
+			// column from its own control hides every one of its tags. Either shape passes.
+			if (tags.every((tag) => /\bhidden\b/.test(tag))) continue;
+			if (!/hrCreateScope\(\)/.test(representation))
+				failures.push(`${name} offers ${column} without reading the page scope`);
+			else if (!tags.some((tag) => /\bhidden\b/.test(tag)))
+				failures.push(`${name} offers ${column} with no hidden branch for a scoped page`);
+		}
+	}
+	assert.deepEqual(failures, []);
+});
+
+test('every employment picker is narrowed to the page entity', () => {
+	// An unnarrowed employment picker offers every person in the workspace, in every entity. It is
+	// the same fault as the catalogue picker and it is invisible until a second entity is seeded.
+	const failures: string[] = [];
+	for (const name of collections) {
+		const representation = collectionSource(name, '+representation.svelte');
+		if (representation == null) continue;
+		if (fieldsNamed(representation, 'employment_id').length === 0) continue;
+		if (!/employmentRelationOptions\(/.test(representation))
+			failures.push(`${name} offers an unnarrowed employment picker`);
+	}
+	assert.deepEqual(failures, []);
+});
+
+test('every page that draws a scoped collection provides the scope', () => {
+	// The other half: a form can only read a scope a page sets. A page that draws a table of a
+	// company-scoped collection and sets nothing puts an unscoped form behind a scoped table.
+	// A form that reads the scope is a form that expects one. A page drawing it and setting nothing
+	// is the half of the wiring that fails silently — the picker quietly widens back out.
+	const scoped = new Set(
+		collections.filter((name) => {
+			const representation = collectionSource(name, '+representation.svelte');
+			return representation != null && /hrCreateScope\(\)/.test(representation);
+		})
+	);
+	const pages = [
+		...readdirSync(fileURLToPath(new URL('src/apps', templateRoot)), { withFileTypes: true })
+			.filter((entry) => entry.isFile() && entry.name.endsWith('.svelte'))
+			.map((entry) => `src/apps/${entry.name}`),
+		...readdirSync(fileURLToPath(new URL('src/apps/hr_controller', templateRoot)), {
+			withFileTypes: true
+		})
+			.filter((entry) => entry.isFile() && entry.name.endsWith('.svelte'))
+			.map((entry) => `src/apps/hr_controller/${entry.name}`),
+		...readdirSync(fileURLToPath(new URL('src/apps/hr_controller/events', templateRoot)), {
+			withFileTypes: true
+		})
+			.filter((entry) => entry.isFile() && entry.name.endsWith('.svelte'))
+			.map((entry) => `src/apps/hr_controller/events/${entry.name}`)
+	];
+	const failures: string[] = [];
+	for (const page of pages) {
+		const text = source(page);
+		const drawn = [...text.matchAll(/collection="([a-z_]+)"/g)].map((match) => match[1]!);
+		const scopedDrawn = drawn.filter((name) => scoped.has(name));
+		if (scopedDrawn.length === 0) continue;
+		if (!/setContext(<[^>]*>)?\(\s*HR_CREATE_SCOPE/.test(text))
+			failures.push(`${page} draws ${scopedDrawn.join(', ')} without providing the create scope`);
+	}
+	// A representation drawing another collection's table is a page for that collection's forms, and
+	// owes them the same scope. The person profile draws contracts, terms and statutory facts.
+	for (const name of collections) {
+		const representation = collectionSource(name, '+representation.svelte');
+		if (representation == null) continue;
+		const drawn = [...representation.matchAll(/collection="([a-z_]+)"/g)]
+			.map((match) => match[1]!)
+			.filter((child) => child !== name && scoped.has(child));
+		if (drawn.length === 0) continue;
+		if (!/setContext(<[^>]*>)?\(\s*HR_CREATE_SCOPE/.test(representation))
+			failures.push(`${name} draws ${drawn.join(', ')} without providing the create scope`);
+	}
+	assert.deepEqual(failures, []);
 });
 
 test('the scope key is a symbol, so nothing can collide with it by name', () => {

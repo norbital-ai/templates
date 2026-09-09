@@ -20,6 +20,7 @@ import {
 	ordinaryWorkedHours,
 	priceDay
 } from '../src/collections/payroll_runs/lib/overtime.ts';
+import { floorHalfHour } from '../src/collections/payroll_runs/lib/rounding.ts';
 
 /** 08:30–17:30 with an hour's scheduled break. */
 const DAY_SHIFT = {
@@ -512,4 +513,35 @@ test('a shift whose end reads before its start is carried forward even without t
 	const unflagged = { ...NIGHT_SHIFT, crosses_midnight: false };
 	assert.equal(deriveDailyOvertime(nightEntry(), nightScheduled({ shift: unflagged })), null);
 	assert.equal(ordinaryWorkedHours(nightEntry(), unflagged), 8);
+});
+
+test('the half-hour floor rounds down, and float error never costs a step', () => {
+	// The 0.5h step is the payable unit, and it is a FLOOR, not a rounding: 2h55m earns 2h30m and
+	// 55 minutes earns 30. Rounding to nearest would pay 3h for 2h55m, which is money the day did
+	// not earn. The epsilon exists because clock arithmetic produces 2.9999999999999996 for three
+	// hours, and flooring that raw would silently drop half an hour off a full day's overrun.
+	for (const [raw, expected] of [
+		[0, 0],
+		[0.4, 0],
+		[0.5, 0.5],
+		[0.9166666, 0.5],
+		[2.9166666, 2.5],
+		[3.25, 3],
+		[3.75, 3.5],
+		[2.9999999999999996, 3],
+		[0.49999999999999994, 0.5]
+	] as const) {
+		assert.equal(floorHalfHour(raw), expected, `${raw} h floors to ${expected} h`);
+	}
+	// Never up: every input lands at or below itself, within the epsilon's own tolerance.
+	for (let minutes = 0; minutes <= 600; minutes += 1) {
+		const hours = minutes / 60;
+		const floored = floorHalfHour(hours);
+		assert.ok(floored <= hours + 1e-9, `${minutes} minutes floored up to ${floored} h`);
+		assert.equal(
+			floored % 0.5,
+			0,
+			`${minutes} minutes produced ${floored} h, not a half-hour step`
+		);
+	}
 });
