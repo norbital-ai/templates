@@ -1488,8 +1488,5 @@
 				{/snippet}
 			</CollectionForm>
 		{/key}
-		<Dialog.Footer>
-			<Dialog.Close>{t('roster.cancel')}</Dialog.Close>
-		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
