@@ -1392,6 +1392,7 @@
 					<Field name="break_minutes" hidden />
 					<Field name="settled_payslip_id" hidden />
 					<Field name="settled_period" hidden />
+					<Field name="holiday_id" hidden />
 					<Stack gap="sm">
 						<Inline gap="sm" align="end">
 							<label class="flex-1 text-sm font-medium">

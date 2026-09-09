@@ -370,7 +370,7 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 			page,
 			`(() => {
 				${ACTIVATE}
-				const node = [...document.querySelectorAll('button')].find((candidate) => candidate.textContent?.trim().startsWith('Export'));
+				const node = [...document.querySelectorAll('button')].find((candidate) => candidate.textContent?.trim().startsWith('Bulk actions'));
 				if (!(node instanceof HTMLElement)) return false;
 				if (node.getAttribute('aria-expanded') !== 'true') activate(node);
 				return document.querySelector('[aria-label="Run Publish selected"]') != null;

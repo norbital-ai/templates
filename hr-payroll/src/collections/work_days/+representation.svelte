@@ -68,6 +68,7 @@
 			<Field name="planned_origin" hidden />
 			<Field name="settled_payslip_id" hidden />
 			<Field name="settled_period" hidden />
+			<Field name="holiday_id" hidden />
 			<Stack gap="lg">
 				<Grid gap="md" minimum="panel">
 					<Field
