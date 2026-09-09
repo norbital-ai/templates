@@ -124,9 +124,8 @@
 				<Column name="code" label={t('component.code')} card="title" />
 				<Column name="name" label={t('component.name')} card="subtitle" />
 				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
-				<Column name="payer" label={t('component.paid_by')} />
-				<Column name="keyed_by" label={t('component.keyed_by')} />
 				<Column name="sequence" label={t('component.order')} />
+				<Column name="rounding" label={t('component.rounding')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}

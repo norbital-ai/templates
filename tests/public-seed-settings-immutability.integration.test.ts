@@ -132,8 +132,6 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 			name: 'A scheme nobody may add',
 			is_statutory: true,
 			authority: 'Public fixture',
-			payer: 'BOTH',
-			keyed_by: 'WAGE',
 			rounding: 'NEAREST_CENT',
 			relief_for: [],
 			sequence: 9,

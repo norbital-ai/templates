@@ -147,8 +147,9 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 			if (selector == null) return false;
 			return (selector.by === 'WAGE' || selector.by === 'WAGE_AND_AGE') && selector.to == null;
 		});
-		const isWageBanded =
-			contribution.row.keyed_by === 'WAGE' || contribution.row.keyed_by === 'WAGE_AND_AGE';
+		const isWageBanded = contribution.rates.some(
+			(rate) => rate.selector?.by === 'WAGE' || rate.selector?.by === 'WAGE_AND_AGE'
+		);
 		if (isWageBanded && contribution.rates.length > 0 && !hasTerminalBand)
 			blocker(
 				'CONTRIBUTION_NO_CEILING',

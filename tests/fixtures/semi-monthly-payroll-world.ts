@@ -56,8 +56,6 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		code: 'PUB-EPF',
 		name: 'Public fixture retirement fund',
 		authority: 'Public fixture',
-		payer: 'BOTH',
-		keyed_by: 'WAGE',
 		rounding: 'NEAREST_CENT',
 		relief_for: [],
 		sequence: 1,

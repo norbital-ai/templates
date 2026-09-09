@@ -56,8 +56,8 @@ test('the company form is name, registration, settings lineage, cutoff day, pay 
 	);
 	assert.match(
 		form,
-		/keyed_by: \{ eq: 'RISK_CLASS' \}/,
-		'keyed by the lineage, not by a country name'
+		/band\.selector\?\.by === 'RISK_CLASS'/,
+		"keyed by the lineage schemes' bands, not by a country name"
 	);
 	assert.match(
 		form,

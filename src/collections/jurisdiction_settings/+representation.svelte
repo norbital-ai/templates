@@ -96,8 +96,6 @@
 				<TableColumn name="name" card="subtitle" />
 				<TableColumn name="is_statutory" label={t('component.is_statutory')} card="badge" />
 				<TableColumn name="authority" />
-				<TableColumn name="payer" card="badge" />
-				<TableColumn name="keyed_by" label={t('component.keyed_by')} />
 				<TableColumn name="rounding" />
 				<TableColumn name="sequence" label={t('component.applied_at')} />
 			{/snippet}

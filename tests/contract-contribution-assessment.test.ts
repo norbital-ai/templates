@@ -19,8 +19,6 @@ function scheme(
 			settings_id: 'settings',
 			is_statutory: true,
 			authority: 'Invented regression fixture',
-			payer: 'BOTH',
-			keyed_by: 'WAGE',
 			rounding: 'NEAREST_CENT',
 			relief_for: [],
 			sequence: 1,

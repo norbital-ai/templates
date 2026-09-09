@@ -21,20 +21,25 @@
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 
-	/** Whether the entity's lineage prices any scheme by risk class: only then is the field asked. */
-	const riskKeyedQuery = $derived(
+	/**
+	 * Whether the entity's lineage prices any scheme by risk class: only then is the field asked.
+	 * A scheme's key is what its band selectors say, so the lineage's schemes are read with their
+	 * bands and the question is answered here.
+	 */
+	const schemesQuery = $derived(
 		record?.settings_code == null
 			? null
 			: client.db.statutory_contributions.findMany({
-					where: {
-						contribution_settings: { some: onLineage(record.settings_code) },
-						keyed_by: { eq: 'RISK_CLASS' }
-					},
-					columns: { id: true },
-					limit: 1
+					where: { contribution_settings: { some: onLineage(record.settings_code) } },
+					columns: { bands: true },
+					limit: 200
 				})
 	);
-	const riskKeyed = $derived((riskKeyedQuery?.current ?? []).length > 0);
+	const riskKeyed = $derived(
+		(schemesQuery?.current ?? []).some((scheme) =>
+			scheme.bands.some((band) => band.selector?.by === 'RISK_CLASS')
+		)
+	);
 	/** The lineages the workspace holds, so the code is chosen rather than typed. */
 	const lineagesQuery = $derived(
 		client.db.jurisdiction_settings.findMany({

@@ -213,8 +213,6 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		code: 'PUB-TAX',
 		name: 'Public fixture withholding',
 		authority: 'Public fixture',
-		payer: 'EMPLOYEE',
-		keyed_by: 'WAGE',
 		rounding: 'NEAREST_CENT',
 		relief_for: [],
 		sequence: 2,

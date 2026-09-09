@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 
 /**
  * Which band of a statutory contribution table a rate row applies to.
- * The discriminator mirrors `statutory_contributions.keyed_by`.
+ * The discriminator is what keys the scheme's ladder; a scheme's bands say what it is keyed by.
  * `to` bounds are exclusive upper limits; `null` means "open ended".
  */
 export const rateSelectorValueSchema = Schema.Union([

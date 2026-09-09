@@ -12,8 +12,6 @@ const EPF = {
 		sequence: 10,
 		special_rules: [],
 		relief_for: [],
-		keyed_by: 'WAGE',
-		payer: 'BOTH',
 		rounding: 'NEAREST_CENT'
 	},
 	rates: [

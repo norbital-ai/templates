@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { refuseUnlessDraftOnBoth } from '../../lib/settings_seal.js';
 import type { Hooks } from './$types.js';
 
@@ -15,17 +16,20 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal.',
+					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal. Requires a citation on a statutory scheme.',
 				handler: ({ input, existing, api }) =>
-					Effect.map(
-						refuseUnlessDraftOnBoth(
+					Effect.gen(function* () {
+						const row = { ...existing, ...input };
+						yield* refuseUnlessDraftOnBoth(
 							api,
 							existing?.settings_id,
 							input.settings_id,
-							`Scheme ${String(input.code ?? existing?.code ?? '')}`
-						),
-						() => input
-					)
+							`Scheme ${String(row.code ?? '')}`
+						);
+						if (row.is_statutory === true && String(row.authority ?? '').trim() === '')
+							refuse('A statutory scheme cites the section of law it transcribes.');
+						return input;
+					})
 			}
 		}
 	},

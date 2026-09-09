@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "48651fbf-4573-4aa1-8661-7ee640781217",
+  "id": "83a0bc04-c65b-4d37-ae47-41bfd12c90d4",
   "prevIds": [
-    "fdb6fdd8-6687-40b9-b91d-cb310975786b"
+    "40273331-d9f0-4b0c-829d-9a9202d90af1"
   ],
   "version": "8",
   "ddl": [
@@ -5540,38 +5540,12 @@
     {
       "type": "text",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
       "name": "authority",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "payer",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "keyed_by",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"
