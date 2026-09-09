@@ -1,0 +1,2042 @@
+[
+	{
+		"id": "196b65cf-45e3-5d8e-8c87-bbce6a83dc59",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (Nghỉ hằng năm)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 360",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 300",
+					"days": 21
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 240",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 180",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 120",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 60",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 360",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 300",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 240",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 180",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 120",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"days": 14
+				},
+				{
+					"eligibility": "employee.age < 18",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 360",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.service_months >= 300",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.service_months >= 240",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months >= 120",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 13
+				},
+				{
+					"eligibility": "",
+					"days": 12
+				}
+			]
+		}
+	},
+	{
+		"id": "c8c17dad-bd2d-5e40-9cd3-3e7673d53b0a",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (Nghỉ ốm đau)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day.",
+		"eligibility": "",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 360",
+					"days": 70
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 180",
+					"days": 50
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"days": 40
+				},
+				{
+					"eligibility": "employment.service_months >= 360",
+					"days": 60
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 40
+				},
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		}
+	},
+	{
+		"id": "32f0180c-9a15-54e6-9104-892b4bc00bf4",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (Nghỉ thai sản)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 180
+				}
+			]
+		}
+	},
+	{
+		"id": "3b9ac3e8-2da0-56fb-8f6d-15f0f0e9dc04",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth.",
+		"eligibility": "employee.gender == \"MALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		}
+	},
+	{
+		"id": "02a55899-2079-5d71-9dde-db471ece9651",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "78416cc8-90dc-5ed1-b96b-b594b1921120",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "a2de3baa-cab6-577e-b033-5aab116a6535",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "80365960-1e69-5406-8fdd-a3285fad038a",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "BEREAVEMENT_LEAVE_UNPAID",
+		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "dcfd01f6-1a75-5bda-bde0-a74a988c55f1",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PUBLIC_HOLIDAY",
+		"name": "Public holidays (Nghỉ lễ, tết)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 11
+				}
+			]
+		}
+	},
+	{
+		"id": "3a0553af-cebc-5864-a33d-b3006e99bc03",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (Nghỉ hằng năm)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 360",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 300",
+					"days": 21
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 240",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 180",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 120",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 60",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 360",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 300",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 240",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 180",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 120",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"days": 14
+				},
+				{
+					"eligibility": "employee.age < 18",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 360",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.service_months >= 300",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.service_months >= 240",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months >= 120",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 13
+				},
+				{
+					"eligibility": "",
+					"days": 12
+				}
+			]
+		}
+	},
+	{
+		"id": "23e2ad22-bac9-5612-8ed0-a77392e001a9",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (Nghỉ ốm đau)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day.",
+		"eligibility": "",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 360",
+					"days": 70
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 180",
+					"days": 50
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"days": 40
+				},
+				{
+					"eligibility": "employment.service_months >= 360",
+					"days": 60
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 40
+				},
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		}
+	},
+	{
+		"id": "6c27641f-8bc6-5819-b39a-f11ba6bb21eb",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (Nghỉ thai sản)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 180
+				}
+			]
+		}
+	},
+	{
+		"id": "604dace5-816f-5f89-ba1d-af7cb49ec5ed",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth.",
+		"eligibility": "employee.gender == \"MALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		}
+	},
+	{
+		"id": "88877a49-72f6-5199-802f-5cdc112325f0",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "77a4cace-ec32-5828-ad6d-6598a57c55ba",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "4cb40f30-1051-5eef-9970-c0fb4052ca73",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "8b95ced1-56b0-5100-9887-a2377ae476a1",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "BEREAVEMENT_LEAVE_UNPAID",
+		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "84467886-9d33-5f19-8247-186455d50e33",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PUBLIC_HOLIDAY",
+		"name": "Public holidays (Nghỉ lễ, tết)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 11
+				}
+			]
+		}
+	},
+	{
+		"id": "8abc3f5f-88d0-5365-a21a-fbe4cfc70a60",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (Nghỉ hằng năm)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "COMPLETED_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 360",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 300",
+					"days": 21
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 240",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 180",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 120",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\" && employment.service_months >= 60",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 360",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 300",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 240",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 180",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 120",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"days": 14
+				},
+				{
+					"eligibility": "employee.age < 18",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 360",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.service_months >= 300",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.service_months >= 240",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months >= 120",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 13
+				},
+				{
+					"eligibility": "",
+					"days": 12
+				}
+			]
+		}
+	},
+	{
+		"id": "447c82c2-4118-54b3-adeb-ceb379bcaa6f",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (Nghỉ ốm đau)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day.",
+		"eligibility": "",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 360",
+					"days": 70
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\" && employment.service_months >= 180",
+					"days": 50
+				},
+				{
+					"eligibility": "employment.classification == \"ARDUOUS\"",
+					"days": 40
+				},
+				{
+					"eligibility": "employment.service_months >= 360",
+					"days": 60
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 40
+				},
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		}
+	},
+	{
+		"id": "38a533b8-21b8-5374-b0ea-2268d208c9d3",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (Nghỉ thai sản)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 180
+				}
+			]
+		}
+	},
+	{
+		"id": "1dae4f31-c349-5b53-8f87-191b67978cc5",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
+		"is_statutory": true,
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth.",
+		"eligibility": "employee.gender == \"MALE\"",
+		"requires_certificate_after_days": 0,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 5
+				}
+			]
+		}
+	},
+	{
+		"id": "a3f51a2d-c8c7-5649-9006-ff4acc3d0f3b",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "79c2f845-8e0b-584b-9206-6d34dc33f8de",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "f391c034-b05b-5bc3-adf3-6ba87b7d67fe",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		}
+	},
+	{
+		"id": "976e4480-f5a7-5b47-aac3-87330fb6f651",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "BEREAVEMENT_LEAVE_UNPAID",
+		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "c8fb6d8f-aa56-5026-96b0-58dae8989f57",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "PUBLIC_HOLIDAY",
+		"name": "Public holidays (Nghỉ lễ, tết)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 11
+				}
+			]
+		}
+	}
+]

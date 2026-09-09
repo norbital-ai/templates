@@ -1,0 +1,228 @@
+[
+	{
+		"id": "24fed650-14e7-5028-b156-86604a50ffba",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"proration": {
+			"by": "FIXED_DAYS",
+			"days": 21.75
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "terms.payroll_group == \"MONTHLY\"",
+				"per": "DAY",
+				"divisor": 30.4167
+			},
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 21.75
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": ["MANAGERIAL"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.25
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.69
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2.6
+					}
+				},
+				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.3
+					}
+				},
+				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.69
+					}
+				}
+			],
+			"overtime_limits": [],
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 5,
+					"minimum_minutes": 60,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF",
+				"on_exceed": "WARN"
+			},
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": 10,
+				"overtime_add": 10
+			}
+		},
+		"treatments": {
+			"SSS": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SSS_EC": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PHIC": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HDMF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"WTAX": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. NOT APPLIED: a regular holiday worked on a rest day is 260% for the first eight hours and 338% beyond (2.0 x 1.3), and a special (non-working) day worked on a rest day is 150%; `holiday_rest_precedence` picks one day type rather than compounding two, so this row pays the 200% and 130% legs only. NOT APPLIED: art.94(a) pay for an UNWORKED regular holiday (100% of the daily wage, subject to the day-before presence rule) and the 'no work, no pay' rule for an unworked special day — the regime expresses premiums for hours worked, not an entitlement for a day not worked. NOT APPLIED: the art.82 exclusions beyond MANAGERIAL — officers and members of the managerial staff, field personnel, family members dependent on the employer for support, domestic helpers, persons in the personal service of another and workers paid by results — `category_basis: WORK_CLASSIFICATION` names one classification per person and the bank has one such value for them. NOT APPLIED: art.85's 20-minute compensable meal period in the four listed cases, and the compensable 5-20 minute rest periods; `rest_break_rules` carries the general 60-minute unpaid meal period only."
+	}
+]

@@ -1,0 +1,58 @@
+[
+	{
+		"id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "SG",
+		"name": "Singapore",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": null,
+		"currency": "SGD",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "2026-04-01T00:00:00.000Z"
+		},
+		"jurisdiction_code": "SG"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000040",
+		"code": "SG",
+		"name": "Singapore — 1 April 2026",
+		"sealed_at": "2026-04-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"currency": "SGD",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-04-01T00:00:00.000Z",
+			"end": "2027-01-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.profamilyleave.msf.gov.sg/schemes/shared-parental-leave",
+			"https://ask.gov.sg/msf/questions/cls1lenly0295jzsgceq144x9"
+		],
+		"jurisdiction_code": "SG"
+	},
+	{
+		"id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"code": "SG",
+		"name": "Singapore — 2027-01-01",
+		"sealed_at": "2027-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "10000000-0000-5000-8000-000000000040",
+		"currency": "SGD",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2027-01-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.cpf.gov.sg/employer/infohub/news/cpf-related-announcements/new-contribution-rates",
+			"https://www.cpf.gov.sg/service/article/what-are-the-changes-to-the-cpf-contribution-rates-for-senior-workers-from-1-january-2026"
+		],
+		"jurisdiction_code": "SG"
+	}
+]

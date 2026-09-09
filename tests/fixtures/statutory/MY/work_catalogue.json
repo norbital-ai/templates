@@ -1,0 +1,735 @@
+[
+	{
+		"id": "5219bc51-2c6a-53dd-8fea-ffa3f9faf5b9",
+		"settings_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 26
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": {
+					"value": 4000,
+					"currency": "MYR"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "STATUTORY_WAGES",
+				"category_basis": "STATUTORY_WORK_CATEGORY",
+				"exempt_categories": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"COMMERCIAL_VEHICLE_OPERATOR"
+				],
+				"excluded_categories": ["VESSEL_WORK"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 0.5
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 0.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0.5,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"on_exceed": "WARN"
+				}
+			],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 5,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "BLOCK"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "BLOCK"
+			}
+		},
+		"treatments": {
+			"EPF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EPF_PR": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SOCSO": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EIS": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"PCB": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"HRDF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. NOT APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day, a spread-over of not more than ten hours, not more than forty-five hours in one week — the regime shape has no normal-hours field, and every BEYOND_NORMAL band below therefore leans on the engine's own definition; (b) the s.60(3)(a) daily-, hourly- and piece-rated rest-day limbs, which pay one day's and two days' wages for the same two fractions the monthly limbs pay half and one; (c) the First Schedule para 2(5) domestic employee, to whom ss.60, 60A, 60B, 60C, 60D, 60E, 60F, 60FA, 60I, 61 and 64 and Parts IX and XIIA do not apply at all — the seeded population carries none, so no DOMESTIC_EMPLOYEE category is declared and every leave row and overtime rule here would over-grant one; (d) the proviso to s.59(1), which disapplies the weekly rest day during maternity leave, sick leave under s.60F and temporary disablement."
+	},
+	{
+		"id": "0fe549b3-94c4-5d47-99ee-82b74b04501e",
+		"settings_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 26
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": {
+					"value": 4000,
+					"currency": "MYR"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "STATUTORY_WAGES",
+				"category_basis": "STATUTORY_WORK_CATEGORY",
+				"exempt_categories": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"COMMERCIAL_VEHICLE_OPERATOR"
+				],
+				"excluded_categories": ["VESSEL_WORK"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 0.5
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 0.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0.5,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"on_exceed": "WARN"
+				}
+			],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 5,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "BLOCK"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "BLOCK"
+			}
+		},
+		"treatments": {
+			"EPF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EPF_PR": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SOCSO": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SKBBK": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EIS": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"PCB": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"HRDF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. NOT APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day, a spread-over of not more than ten hours, not more than forty-five hours in one week — the regime shape has no normal-hours field, and every BEYOND_NORMAL band below therefore leans on the engine's own definition; (b) the s.60(3)(a) daily-, hourly- and piece-rated rest-day limbs, which pay one day's and two days' wages for the same two fractions the monthly limbs pay half and one; (c) the First Schedule para 2(5) domestic employee, to whom ss.60, 60A, 60B, 60C, 60D, 60E, 60F, 60FA, 60I, 61 and 64 and Parts IX and XIIA do not apply at all — the seeded population carries none, so no DOMESTIC_EMPLOYEE category is declared and every leave row and overtime rule here would over-grant one; (d) the proviso to s.59(1), which disapplies the weekly rest day during maternity leave, sick leave under s.60F and temporary disablement."
+	},
+	{
+		"id": "9a1c28ff-377f-5b11-9380-aa223b5178df",
+		"settings_id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 26
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": {
+					"value": 4000,
+					"currency": "MYR"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "STATUTORY_WAGES",
+				"category_basis": "STATUTORY_WORK_CATEGORY",
+				"exempt_categories": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"COMMERCIAL_VEHICLE_OPERATOR"
+				],
+				"excluded_categories": ["VESSEL_WORK"]
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 0.5
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 0.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0.5,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 1
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": 1
+					},
+					"award": {
+						"kind": "DAY_WAGE_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"on_exceed": "BLOCK"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"on_exceed": "WARN"
+				}
+			],
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 5,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "BLOCK"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "BLOCK"
+			}
+		},
+		"treatments": {
+			"EPF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EPF_PR": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EPF_NON_CITIZEN": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SOCSO": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"SKBBK": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"EIS": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"PCB": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"HRDF": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. NOT APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day, a spread-over of not more than ten hours, not more than forty-five hours in one week — the regime shape has no normal-hours field, and every BEYOND_NORMAL band below therefore leans on the engine's own definition; (b) the s.60(3)(a) daily-, hourly- and piece-rated rest-day limbs, which pay one day's and two days' wages for the same two fractions the monthly limbs pay half and one; (c) the First Schedule para 2(5) domestic employee, to whom ss.60, 60A, 60B, 60C, 60D, 60E, 60F, 60FA, 60I, 61 and 64 and Parts IX and XIIA do not apply at all — the seeded population carries none, so no DOMESTIC_EMPLOYEE category is declared and every leave row and overtime rule here would over-grant one; (d) the proviso to s.59(1), which disapplies the weekly rest day during maternity leave, sick leave under s.60F and temporary disablement."
+	}
+]

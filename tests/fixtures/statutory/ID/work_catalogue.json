@@ -1,0 +1,761 @@
+[
+	{
+		"id": "c9ac34ba-ef07-537b-bb55-d02583dd6f6a",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "HOUR",
+				"divisor": 173
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": []
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": 4
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 4
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": 4
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 4
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "WEEK",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 18,
+					"on_exceed": "WARN"
+				}
+			],
+			"holiday_rest_precedence": "REST_DAY",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 4,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF",
+				"on_exceed": "WARN"
+			},
+			"night_premium": null
+		},
+		"treatments": {
+			"JHT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JP": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKK": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKM": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"KESEHATAN": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKP": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"PPH21": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week."
+	},
+	{
+		"id": "1ebda788-b020-5db0-9af9-d0fbdff3d71c",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "HOUR",
+				"divisor": 173
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": []
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": 4
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 4
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": 4
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 4
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "WEEK",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 18,
+					"on_exceed": "WARN"
+				}
+			],
+			"holiday_rest_precedence": "REST_DAY",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 4,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF",
+				"on_exceed": "WARN"
+			},
+			"night_premium": null
+		},
+		"treatments": {
+			"JHT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JP": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKK": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKM": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"KESEHATAN": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKP": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"PPH21": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week."
+	},
+	{
+		"id": "3d13f102-9db1-5f41-8909-1a5da48578df",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "HOUR",
+				"divisor": 173
+			}
+		],
+		"regime": {
+			"overtime_coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": []
+			},
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": 4
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 4
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": 4
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 4
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "WEEK",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 18,
+					"on_exceed": "WARN"
+				}
+			],
+			"holiday_rest_precedence": "REST_DAY",
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 4,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF",
+				"on_exceed": "WARN"
+			},
+			"night_premium": null
+		},
+		"treatments": {
+			"JHT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JP": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKK": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKM": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"KESEHATAN": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"JKP": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			},
+			"PPH21": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				}
+			}
+		},
+		"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week."
+	}
+]

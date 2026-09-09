@@ -1,0 +1,1008 @@
+[
+	{
+		"id": "f3469881-d554-5a44-a85c-18478d228217",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SSS",
+		"name": "Social Security System",
+		"is_statutory": true,
+		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["5d1752ac-3a06-575a-9ffa-572a5e7f7f08"],
+		"sequence": 100,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 5250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 250,
+					"employer": 500
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5250,
+					"to": 5750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 275,
+					"employer": 550
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 5750,
+					"to": 6250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 300,
+					"employer": 600
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6250,
+					"to": 6750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 325,
+					"employer": 650
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 6750,
+					"to": 7250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 350,
+					"employer": 700
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7250,
+					"to": 7750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 375,
+					"employer": 750
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 7750,
+					"to": 8250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 400,
+					"employer": 800
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8250,
+					"to": 8750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 425,
+					"employer": 850
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 8750,
+					"to": 9250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 450,
+					"employer": 900
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9250,
+					"to": 9750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 475,
+					"employer": 950
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 9750,
+					"to": 10250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 500,
+					"employer": 1000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10250,
+					"to": 10750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 525,
+					"employer": 1050
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10750,
+					"to": 11250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 550,
+					"employer": 1100
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11250,
+					"to": 11750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 575,
+					"employer": 1150
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 11750,
+					"to": 12250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 600,
+					"employer": 1200
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12250,
+					"to": 12750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 625,
+					"employer": 1250
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 12750,
+					"to": 13250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 650,
+					"employer": 1300
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13250,
+					"to": 13750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 675,
+					"employer": 1350
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 13750,
+					"to": 14250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 700,
+					"employer": 1400
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14250,
+					"to": 14750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 725,
+					"employer": 1450
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14750,
+					"to": 15250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 750,
+					"employer": 1500
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15250,
+					"to": 15750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 775,
+					"employer": 1550
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 15750,
+					"to": 16250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 800,
+					"employer": 1600
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16250,
+					"to": 16750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 825,
+					"employer": 1650
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 16750,
+					"to": 17250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 850,
+					"employer": 1700
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 17250,
+					"to": 17750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 875,
+					"employer": 1750
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 17750,
+					"to": 18250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 900,
+					"employer": 1800
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 18250,
+					"to": 18750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 925,
+					"employer": 1850
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 18750,
+					"to": 19250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 950,
+					"employer": 1900
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19250,
+					"to": 19750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 975,
+					"employer": 1950
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 19750,
+					"to": 20250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1000,
+					"employer": 2000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 20250,
+					"to": 20750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1025,
+					"employer": 2050
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 20750,
+					"to": 21250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1050,
+					"employer": 2100
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 21250,
+					"to": 21750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1075,
+					"employer": 2150
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 21750,
+					"to": 22250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1100,
+					"employer": 2200
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 22250,
+					"to": 22750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1125,
+					"employer": 2250
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 22750,
+					"to": 23250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1150,
+					"employer": 2300
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 23250,
+					"to": 23750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1175,
+					"employer": 2350
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 23750,
+					"to": 24250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1200,
+					"employer": 2400
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 24250,
+					"to": 24750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1225,
+					"employer": 2450
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 24750,
+					"to": 25250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1250,
+					"employer": 2500
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 25250,
+					"to": 25750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1275,
+					"employer": 2550
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 25750,
+					"to": 26250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1300,
+					"employer": 2600
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26250,
+					"to": 26750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1325,
+					"employer": 2650
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 26750,
+					"to": 27250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1350,
+					"employer": 2700
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 27250,
+					"to": 27750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1375,
+					"employer": 2750
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 27750,
+					"to": 28250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1400,
+					"employer": 2800
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28250,
+					"to": 28750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1425,
+					"employer": 2850
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 28750,
+					"to": 29250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1450,
+					"employer": 2900
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29250,
+					"to": 29750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1475,
+					"employer": 2950
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 29750,
+					"to": 30250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1500,
+					"employer": 3000
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30250,
+					"to": 30750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1525,
+					"employer": 3050
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 30750,
+					"to": 31250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1550,
+					"employer": 3100
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31250,
+					"to": 31750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1575,
+					"employer": 3150
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 31750,
+					"to": 32250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1600,
+					"employer": 3200
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32250,
+					"to": 32750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1625,
+					"employer": 3250
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 32750,
+					"to": 33250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1650,
+					"employer": 3300
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33250,
+					"to": 33750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1675,
+					"employer": 3350
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33750,
+					"to": 34250
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1700,
+					"employer": 3400
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34250,
+					"to": 34750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1725,
+					"employer": 3450
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 34750,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 1750,
+					"employer": 3500
+				}
+			}
+		]
+	},
+	{
+		"id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "SSS_EC",
+		"name": "Employees Compensation Programme premium",
+		"is_statutory": true,
+		"authority": "Presidential Decree 626 as amended, Art.183 of the Labor Code — employer-only EC premium keyed to the SSS monthly salary credit",
+		"rounding": "NONE",
+		"relief_for": [],
+		"sequence": 110,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 14750
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 10
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 14750,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 30
+				}
+			}
+		]
+	},
+	{
+		"id": "dc14c8f0-ddf3-5a91-9eb3-89eaa6977cd0",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "PHIC",
+		"name": "PhilHealth",
+		"is_statutory": true,
+		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 — 5% premium, floor PHP 10,000, ceiling PHP 100,000. NOT APPLIED: PhilHealth is a SINGLE 5% premium that is then split, not two independent 2.5% shares. The published split is premium = round(base * 5%, NEAREST_CENT); employee = floor(premium * 50) / 100; employer = premium - employee. The engine computes each share independently, which diverges by one cent at every half-cent premium (e.g. basic 11,653.50 -> premium 582.675). No token names that split. Report §4.5. Also NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["5d1752ac-3a06-575a-9ffa-572a5e7f7f08"],
+		"sequence": 200,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 0.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 0,
+					"employer": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0.01,
+					"to": 10000.01
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 250,
+					"employer": 250
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10000.01,
+					"to": 100000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2.5,
+					"employer": 2.5
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 100000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 2500,
+					"employer": 2500
+				}
+			}
+		]
+	},
+	{
+		"id": "a423b464-8df4-5426-8c48-3941dcdfb301",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "HDMF",
+		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
+		"is_statutory": true,
+		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
+		"rounding": "NEAREST_CENT",
+		"relief_for": ["5d1752ac-3a06-575a-9ffa-572a5e7f7f08"],
+		"sequence": 300,
+		"special_rules": [],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 1500.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 1,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 1500.01,
+					"to": 10000.01
+				},
+				"award": {
+					"kind": "PERCENT",
+					"employee": 2,
+					"employer": 2
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 10000.01,
+					"to": null
+				},
+				"award": {
+					"kind": "FIXED",
+					"employee": 200,
+					"employer": 200
+				}
+			}
+		]
+	},
+	{
+		"id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "WTAX",
+		"name": "Withholding Tax on Compensation",
+		"is_statutory": true,
+		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. NOT APPLIED: the NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay and other benefits — it is a per-year running allowance against a class of pay, and nothing in the grammar expresses one (report §6.3).",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 400,
+		"special_rules": ["PERIODIC_PROGRESSIVE"],
+		"bands": [
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 0,
+					"to": 20833
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 0,
+					"constant": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 20833,
+					"to": 33333
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 15,
+					"constant": 0
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 33333,
+					"to": 66667
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 20,
+					"constant": 1875
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 66667,
+					"to": 166667
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 25,
+					"constant": 8541.8
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 166667,
+					"to": 666667
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 30,
+					"constant": 33541.8
+				}
+			},
+			{
+				"selector": {
+					"by": "WAGE",
+					"from": 666667,
+					"to": null
+				},
+				"award": {
+					"kind": "PROGRESSIVE",
+					"rate": 35,
+					"constant": 183541.8
+				}
+			}
+		]
+	}
+]

@@ -1,0 +1,647 @@
+[
+	{
+		"id": "cbfd8d48-58b8-5e97-93c8-474422d424bb",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"proration": {
+			"by": "WORKING_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": "WORKING_DAYS"
+			}
+		],
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 40,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "YEAR",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 200,
+					"on_exceed": "WARN"
+				}
+			],
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				},
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": true,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "WARN"
+			},
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": 30,
+				"overtime_add": 20
+			},
+			"holiday_rest_precedence": "SUBSTITUTE"
+		},
+		"treatments": {
+			"SI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
+	},
+	{
+		"id": "ce84c308-f2f9-5840-ac9c-32115016d057",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"proration": {
+			"by": "WORKING_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": "WORKING_DAYS"
+			}
+		],
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 40,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "YEAR",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 200,
+					"on_exceed": "WARN"
+				}
+			],
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				},
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": true,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "WARN"
+			},
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": 30,
+				"overtime_add": 20
+			},
+			"holiday_rest_precedence": "SUBSTITUTE"
+		},
+		"treatments": {
+			"SI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
+	},
+	{
+		"id": "21044325-f479-5cbc-973f-a830c65d2ac1",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"proration": {
+			"by": "WORKING_DAYS"
+		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": "WORKING_DAYS"
+			}
+		],
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [
+				{
+					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "FROM_START_OF_DAY",
+						"from_fraction": 0,
+						"to_fraction": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				},
+				{
+					"day_type": "REST_DAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "PUBLIC_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 3
+					}
+				}
+			],
+			"overtime_limits": [
+				{
+					"period": "DAY",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "MONTH",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 40,
+					"on_exceed": "WARN"
+				},
+				{
+					"period": "YEAR",
+					"measures": "OVERTIME_HOURS",
+					"max_hours": 200,
+					"on_exceed": "WARN"
+				}
+			],
+			"rest_break_rules": [
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": false,
+					"applies_when": "ALWAYS",
+					"on_exceed": "WARN"
+				},
+				{
+					"after_consecutive_hours": 6,
+					"minimum_minutes": 30,
+					"counts_as_worked_time": true,
+					"applies_when": "CONTINUOUS_ATTENDANCE",
+					"on_exceed": "WARN"
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST",
+				"on_exceed": "WARN"
+			},
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": 30,
+				"overtime_add": 20
+			},
+			"holiday_rest_precedence": "SUBSTITUTE"
+		},
+		"treatments": {
+			"SI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"salary": {
+					"kind": "INCLUDE"
+				},
+				"overtime": {
+					"kind": "INCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "INCLUDE"
+				},
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"night": {
+					"kind": "EXCLUDE"
+				}
+			}
+		},
+		"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
+	}
+]

@@ -1,0 +1,69 @@
+[
+	{
+		"id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "MY-nihon",
+		"name": "Malaysia (Nihon Pigment)",
+		"sealed_at": "2025-12-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
+		"currency": "MYR",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2025-12-01T00:00:00.000Z",
+			"end": "2026-06-01T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+			"https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+			"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+			"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+			"https://hrdcorp.gov.my/registered-employers",
+			"https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20(Akta%20265).pdf",
+			"https://publicholidays.com.my/johor/2026-dates/"
+		],
+		"jurisdiction_code": "MY"
+	},
+	{
+		"id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "MY-nihon",
+		"name": "Malaysia (Nihon Pigment) — 2026-06-01",
+		"sealed_at": "2026-06-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"currency": "MYR",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-06-01T00:00:00.000Z",
+			"end": "2026-07-09T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
+			"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+			"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html"
+		],
+		"jurisdiction_code": "MY"
+	},
+	{
+		"id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "MY-nihon",
+		"name": "Malaysia (Nihon Pigment) — 2026-07-09",
+		"sealed_at": "2026-07-09T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"currency": "MYR",
+		"tax_year_start_month": 1,
+		"effective_range": {
+			"start": "2026-07-09T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"research_urls": [
+			"https://mercans.com/resources/statutory-alerts/malaysia-skbbk-lindung-24-jam-contribution-made-voluntary-for-local-employees-8-july-2026/",
+			"https://dataon.com/en-my/blog/lindung-24-jam-skbbk-socso/",
+			"https://www.justlogin.com.my/blogpost/skbbk-lindung-24-jam-opt-out-2026"
+		],
+		"jurisdiction_code": "MY"
+	}
+]

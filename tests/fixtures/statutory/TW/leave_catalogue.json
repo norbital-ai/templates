@@ -1,0 +1,2222 @@
+[
+	{
+		"id": "9eb54752-41f6-5404-98d7-176d0ec09db8",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (特別休假)",
+		"is_statutory": true,
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 288",
+					"days": 30
+				},
+				{
+					"eligibility": "employment.service_months >= 276",
+					"days": 29
+				},
+				{
+					"eligibility": "employment.service_months >= 264",
+					"days": 28
+				},
+				{
+					"eligibility": "employment.service_months >= 252",
+					"days": 27
+				},
+				{
+					"eligibility": "employment.service_months >= 240",
+					"days": 26
+				},
+				{
+					"eligibility": "employment.service_months >= 228",
+					"days": 25
+				},
+				{
+					"eligibility": "employment.service_months >= 216",
+					"days": 24
+				},
+				{
+					"eligibility": "employment.service_months >= 204",
+					"days": 23
+				},
+				{
+					"eligibility": "employment.service_months >= 192",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 21
+				},
+				{
+					"eligibility": "employment.service_months >= 168",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.service_months >= 156",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.service_months >= 144",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.service_months >= 132",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.service_months >= 120",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months >= 36",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 7
+				},
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 3
+				},
+				{
+					"eligibility": "",
+					"days": 0
+				}
+			]
+		}
+	},
+	{
+		"id": "6cce70cf-cc38-53b3-8f34-e3fcbb5c2957",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "SICK_LEAVE",
+		"name": "Ordinary injury or sickness leave (普通傷病假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		}
+	},
+	{
+		"id": "1fc284f7-9314-5b2b-bddf-0f45fae11b8f",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "PERSONAL_LEAVE",
+		"name": "Personal leave (事假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第7條 — not more than 14 days a year, unpaid; from 2026-01-01 it may be taken by the hour where it is used to care for a family member.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		}
+	},
+	{
+		"id": "c6632860-501e-5b7d-9a2c-431f972bdaf3",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第2條 — 8 days on full wages.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "e3f7fb22-dd31-5445-ac9a-457ab8c2b3a8",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (喪假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "ff27fe08-8ad2-5a5a-acc8-45497374cc17",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "OCCUPATIONAL_INJURY_LEAVE",
+		"name": "Occupational injury leave (公傷病假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "dce28a8a-baf3-5705-b6c9-2169ad7fc230",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (產假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 56
+				}
+			]
+		}
+	},
+	{
+		"id": "8e05b3b6-2f9c-566f-bcca-02902fa8397b",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "c2df653f-a2c1-55d2-9dbd-70a61145e40c",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "PRENATAL_CHECKUP_LEAVE",
+		"name": "Prenatal check-up leave (產檢假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第4項 — 7 days on full wages.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "d2579d59-4ae6-5706-82e1-38e859fa8a1d",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave (生理假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "ffc8911e-0bad-5bdc-9339-23021f1f1cc8",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "FAMILY_CARE_LEAVE",
+		"name": "Family care leave (家庭照顧假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "30b5eb1d-4a1a-508a-84be-618062035a50",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "PARENTAL_LEAVE",
+		"name": "Parental leave without pay (育嬰留職停薪)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple.",
+		"eligibility": "employment.service_months >= 6",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 730
+				}
+			]
+		}
+	},
+	{
+		"id": "e68fa491-ca00-598a-a3f2-5a2480bfae2b",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "BREASTFEEDING_TIME",
+		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time.",
+		"eligibility": "employee.gender == \"FEMALE\" && children.under(2) >= 1",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "841da440-0fec-5216-85a4-3d894b10b38c",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (特別休假)",
+		"is_statutory": true,
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 288",
+					"days": 30
+				},
+				{
+					"eligibility": "employment.service_months >= 276",
+					"days": 29
+				},
+				{
+					"eligibility": "employment.service_months >= 264",
+					"days": 28
+				},
+				{
+					"eligibility": "employment.service_months >= 252",
+					"days": 27
+				},
+				{
+					"eligibility": "employment.service_months >= 240",
+					"days": 26
+				},
+				{
+					"eligibility": "employment.service_months >= 228",
+					"days": 25
+				},
+				{
+					"eligibility": "employment.service_months >= 216",
+					"days": 24
+				},
+				{
+					"eligibility": "employment.service_months >= 204",
+					"days": 23
+				},
+				{
+					"eligibility": "employment.service_months >= 192",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 21
+				},
+				{
+					"eligibility": "employment.service_months >= 168",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.service_months >= 156",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.service_months >= 144",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.service_months >= 132",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.service_months >= 120",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months >= 36",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 7
+				},
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 3
+				},
+				{
+					"eligibility": "",
+					"days": 0
+				}
+			]
+		}
+	},
+	{
+		"id": "a43e72ab-e989-57d0-af5f-5772a2445293",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "SICK_LEAVE",
+		"name": "Ordinary injury or sickness leave (普通傷病假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		}
+	},
+	{
+		"id": "00426d95-6082-575b-b15d-32b00ae495cc",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "PERSONAL_LEAVE",
+		"name": "Personal leave (事假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第7條 — not more than 14 days a year, unpaid; from 2026-01-01 it may be taken by the hour where it is used to care for a family member.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		}
+	},
+	{
+		"id": "3b6ce88a-c096-5ecd-9c76-5312a89058b5",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第2條 — 8 days on full wages.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "d5bb0987-7bb1-51dc-839e-6625f8243bdf",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (喪假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		}
+	},
+	{
+		"id": "a977372b-727f-5929-a9a1-9172ecfa89c7",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "OCCUPATIONAL_INJURY_LEAVE",
+		"name": "Occupational injury leave (公傷病假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "01750a01-2c63-5d01-ba2e-07410caf5dd1",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (產假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 56
+				}
+			]
+		}
+	},
+	{
+		"id": "c8c04e77-8066-5736-91c6-d3be7948b8fb",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance.",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "b3ab8091-2030-525a-9904-51770338c523",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "PRENATAL_CHECKUP_LEAVE",
+		"name": "Prenatal check-up leave (產檢假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第4項 — 7 days on full wages.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "027a42e9-4217-54de-a2b3-b11aed841952",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave (生理假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		}
+	},
+	{
+		"id": "7941601d-d57d-5f64-9bc0-9ec481fde3c0",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "FAMILY_CARE_LEAVE",
+		"name": "Family care leave (家庭照顧假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		}
+	},
+	{
+		"id": "3de20385-72c8-55c9-b5d3-8e30a3cbd877",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "PARENTAL_LEAVE",
+		"name": "Parental leave without pay (育嬰留職停薪)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple.",
+		"eligibility": "employment.service_months >= 6",
+		"requires_certificate_after_days": null,
+		"paid": false,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 730
+				}
+			]
+		}
+	},
+	{
+		"id": "f20d7f87-5027-5527-8784-6a3fd70bf5b6",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "BREASTFEEDING_TIME",
+		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time.",
+		"eligibility": "employee.gender == \"FEMALE\" && children.under(2) >= 1",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	}
+]
