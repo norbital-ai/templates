@@ -130,7 +130,9 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST",
 				"on_exceed": "BLOCK"
-			}
+			},
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"EPF": {
@@ -365,7 +367,9 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST",
 				"on_exceed": "BLOCK"
-			}
+			},
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"EPF": {
@@ -614,7 +618,9 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST",
 				"on_exceed": "BLOCK"
-			}
+			},
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"EPF": {

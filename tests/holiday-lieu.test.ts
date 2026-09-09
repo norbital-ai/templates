@@ -576,7 +576,7 @@ test('a captured holiday refuses unpublish and delete', async () => {
 	);
 });
 
-test('an uncaptured holiday unpublishes by re-saving its pinning days', async () => {
+test('an uncaptured holiday unpublishes by releasing its pinning days', async () => {
 	const released = [];
 	const api = stubHolidayApi([], [{ id: 'wd-1' }], released);
 	const result = await Effect.runPromise(
@@ -587,5 +587,7 @@ test('an uncaptured holiday unpublishes by re-saving its pinning days', async ()
 		})
 	);
 	assert.deepEqual(result, { published_at: null });
-	assert.deepEqual(released, [{ id: 'wd-1' }]);
+	// The release is explicit: this retraction is not written yet, so a day re-reading the
+	// calendar would still find the holiday published and keep its pin.
+	assert.deepEqual(released, [{ id: 'wd-1', holiday_id: null }]);
 });

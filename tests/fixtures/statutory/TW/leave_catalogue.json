@@ -2218,5 +2218,155 @@
 			"proration": "NONE",
 			"bands": []
 		}
+	},
+	{
+		"id": "c80d0999-a976-4b7a-8560-7b3107cac9a8",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "97d3f5d4-a4c1-49d2-a895-13246a10b2b8",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"LI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"EI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"NHI": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"LABOR_PENSION": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"OCC_INJURY": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"INCOME_TAX_NON_RESIDENT": {
+				"absence": {
+					"kind": "EXCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
 	}
 ]

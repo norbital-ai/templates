@@ -135,7 +135,9 @@
 				"discharged_by": "REST",
 				"on_exceed": "BLOCK"
 			},
-			"night_premium": null
+			"night_premium": null,
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY_OR_LIEU"
 		},
 		"treatments": {
 			"LI": {
@@ -375,7 +377,9 @@
 				"discharged_by": "REST",
 				"on_exceed": "BLOCK"
 			},
-			"night_premium": null
+			"night_premium": null,
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY_OR_LIEU"
 		},
 		"treatments": {
 			"LI": {

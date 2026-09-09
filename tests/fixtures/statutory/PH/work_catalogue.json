@@ -134,7 +134,9 @@
 				"to": "06:00",
 				"ordinary_add": 10,
 				"overtime_add": 10
-			}
+			},
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"SSS": {

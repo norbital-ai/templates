@@ -263,7 +263,7 @@ test('manual encashment and carry consume their actual source valuation, while c
 	);
 });
 
-test('a moved Work day is classified afresh; a Work day that stands keeps its pinned revision', () => {
+test('a Work day is classified afresh when it moves, or when its pinned holiday was retracted', () => {
 	const date = '2026-02-05';
 	const prepared = {
 		holidayByDay: new Map([
@@ -308,10 +308,13 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 			} as never)
 		);
 	assert.equal(write({ work_date: date }).holiday_id, id(20));
-	// The pin stands while the date publishes the same holiday; a superseded pin (id 19, while
-	// the date now publishes id 21) re-classifies on write — the freeze lives on the holiday
-	// side (no retraction while pinned or captured), not on the day keeping a dead pointer.
+	// P11: the pin is evidence, not a stamp. A day that stands keeps it only while the same date
+	// still publishes the same holiday — one row per jurisdiction and day, so a different id here
+	// means the pinned row was retracted and this one is what the day is now.
 	assert.equal(write({ break_minutes: 15 }).holiday_id, id(21));
+	// The retracting hook releases the days it pins explicitly, because its own retraction is not
+	// written yet and the calendar would still read as published.
+	assert.equal(write({ holiday_id: null }).holiday_id, null);
 	assert.doesNotThrow(() =>
 		Effect.runSync(workHooks.delete.perRecord.before.handler({ existing, api: workApi } as never))
 	);

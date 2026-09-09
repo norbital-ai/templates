@@ -2539,5 +2539,206 @@
 			"proration": "NONE",
 			"bands": []
 		}
+	},
+	{
+		"id": "2818c45e-2a0e-42c8-bb41-c137226065a3",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"CPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"CDAC": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"ECF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"MBMF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SINDA": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SDL": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "f0838770-9076-40b6-9426-c592ea87953a",
+		"settings_id": "10000000-0000-5000-8000-000000000040",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"CPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"CDAC": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"ECF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"MBMF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SINDA": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SDL": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "6690f990-eace-4639-a28e-b729cb1cf598",
+		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"CPF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"CDAC": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"ECF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"MBMF": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SINDA": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"SDL": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
 	}
 ]

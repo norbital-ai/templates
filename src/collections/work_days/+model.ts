@@ -68,9 +68,11 @@ export default defineModel(
 		 */
 		break_minutes: integer().notNull().default(0),
 		/**
-		 * The published holiday this day was classified as, pinned at the first write and kept while
-		 * the date stands; null is a day that was no holiday when written. Payroll reads the pin back
-		 * so a later publication or edit cannot retroactively change what this day was.
+		 * The published holiday this day was classified as; null is a day that was no holiday when
+		 * written. Payroll reads the pin back, so a later publication or edit cannot retroactively
+		 * change what this day was. The pin stands while the same date still publishes the same
+		 * holiday, and the holiday hook releases it explicitly as it retracts the row — this field
+		 * is in no grant mask, so a hook is the only writer that can say so.
 		 */
 		holiday_id: uuid(),
 		/**
