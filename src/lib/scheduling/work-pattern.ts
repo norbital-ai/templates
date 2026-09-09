@@ -163,32 +163,51 @@ export function patternWorkload(
 	}
 
 	let referenceDays: number;
+	let spans: number[];
 	if (pattern.phases.length === 1 && pattern.phases[0]!.duration.kind === 'CONTINUOUS') {
 		referenceDays = pattern.phases[0]!.day_cycle.length;
+		spans = [referenceDays];
 	} else {
+		spans = [];
 		let end = pattern.anchor_date;
 		for (const phase of pattern.phases) {
 			if (phase.duration.kind !== 'CALENDAR_MONTHS') {
 				throw new Error('A multi-phase pattern requires calendar-month durations.');
 			}
-			end = addMonths(end, phase.duration.months);
+			const next = addMonths(end, phase.duration.months);
+			spans.push(dateNumber(next) - dateNumber(end));
+			end = next;
 		}
 		referenceDays = dateNumber(end) - dateNumber(pattern.anchor_date);
 	}
 
+	// One pass over each roster code: the enumeration above used to re-resolve the phase per
+	// day (`patternRosterCodeId`), re-walking the phases and re-parsing the clocks behind every
+	// code, so a year-long cycle cost thousands of phase walks per employment per run.
+	const paidMinutesByCode = new Map<string, number | null>();
+	const paidMinutesOf = (id: string): number | null => {
+		const known = paidMinutesByCode.get(id);
+		if (known !== undefined) return known;
+		const code = rosterCodeById.get(id);
+		if (code == null) throw new Error(`Work pattern names missing roster code ${id}.`);
+		const paid =
+			rosterCodeKind(code.variant) === 'WORK' ? workWindow(code.variant)!.paid_minutes : null;
+		paidMinutesByCode.set(id, paid);
+		return paid;
+	};
+
 	let workDays = 0;
 	let paidMinutes = 0;
-	for (let offset = 0; offset < referenceDays; offset += 1) {
-		const date = new Date((dateNumber(pattern.anchor_date) + offset) * DAY_MS)
-			.toISOString()
-			.slice(0, 10);
-		const id = patternRosterCodeId(pattern, date);
-		const code = id == null ? null : rosterCodeById.get(id);
-		if (code == null) throw new Error(`Work pattern names missing roster code ${id ?? '(none)'}.`);
-		if (rosterCodeKind(code.variant) !== 'WORK') continue;
-		workDays += 1;
-		paidMinutes += workWindow(code.variant)!.paid_minutes;
-	}
+	pattern.phases.forEach((phase, phaseIndex) => {
+		const span = spans[phaseIndex]!;
+		const cycle = phase.day_cycle;
+		for (let day = 0; day < span; day += 1) {
+			const paid = paidMinutesOf(cycle[day % cycle.length]!.roster_code_id);
+			if (paid == null) continue;
+			workDays += 1;
+			paidMinutes += paid;
+		}
+	});
 	return {
 		work_days: workDays,
 		paid_minutes: paidMinutes,

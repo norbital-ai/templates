@@ -21,6 +21,27 @@ export type StoredRange = Schema.Schema.Type<typeof StoredRangeSchema>;
 
 /** Decode one stored range: anything that is not a legal pair of strings is `null`, never an error. */
 export function readRange(value: unknown): StoredRange | null {
+	if (typeof value === 'object' && value !== null) {
+		const known = rangeCache.get(value);
+		if (known !== undefined) return known;
+		const decoded = decodeRange(value);
+		rangeCache.set(value, decoded);
+		return decoded;
+	}
+	return decodeRange(value);
+}
+
+/**
+ * One Schema decode per range object: a run asks whether the same terms, catalogue and settings
+ * rows cover each of hundreds of days, and re-decoding the identical object every time was the
+ * bulk of range-check CPU. Rows are never mutated in place (a change is a successor row), so an
+ * identity cache cannot go stale; primitives still decode every time.
+ */
+// ponytail: identity cache, correct only because ranges are immutable. If a caller ever mutates a
+// range object in place, this must become a content-keyed cache instead.
+const rangeCache = new WeakMap<object, StoredRange | null>();
+
+function decodeRange(value: unknown): StoredRange | null {
 	const parsed = Option.getOrNull(Schema.decodeUnknownOption(StoredRangeSchema)(value));
 	if (parsed == null || parsed.start === '') return null;
 	return { start: parsed.start, end: parsed.end === '' ? null : parsed.end };
