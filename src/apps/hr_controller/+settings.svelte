@@ -34,6 +34,8 @@
 	import { Bound, Inline, Scroll } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { Spinner } from '@norbital-ai/ui/spinner';
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 	import { newestFirst } from '../../lib/jurisdiction_settings.js';
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
@@ -79,6 +81,17 @@
 		versions.find((version) => version.id === scope?.versionId) ?? versions[0] ?? null
 	);
 
+	/**
+	 * The scope every catalogue form opened from here is drawn against: the version on screen. The
+	 * form prefills and hides `settings_id` and keys its treatments matrix by that version's schemes;
+	 * the getters read the derived state lazily, so the context is set once at init.
+	 */
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => undefined,
+		settingsCode: () => selectedVersion?.code,
+		settingsId: () => selectedVersion?.id
+	});
+
 	const banner =
 		'/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp';
 </script>
@@ -113,7 +126,7 @@
 				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
 				<Column name="payer" label={t('component.paid_by')} />
 				<Column name="keyed_by" label={t('component.keyed_by')} />
-				<Column name="sequence" label={t('component.applied_at')} />
+				<Column name="sequence" label={t('component.order')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -147,7 +160,7 @@
 				<Column name="code" label={t('component.code')} card="title" />
 				<Column name="nature" label={t('component.economic_type')} card="subtitle" />
 				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
-				<Column name="sequence" label={t('component.applied_at')} />
+				<Column name="sequence" label={t('component.order')} />
 				<Column name="eligibility" label={t('component.who_receives')} />
 				<Column name="contribution_treatments" label={t('component.contribution_treatments')} />
 			{/snippet}
