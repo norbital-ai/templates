@@ -823,7 +823,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 0.01
+					"to": 0
 				},
 				"award": {
 					"kind": "FIXED",
@@ -835,7 +835,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -847,7 +847,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 10000.01,
-					"to": 100000.01
+					"to": 100000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -885,7 +885,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -897,7 +897,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "PERCENT",

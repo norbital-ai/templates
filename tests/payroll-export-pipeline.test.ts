@@ -44,8 +44,8 @@ const BANK = {
  * `payslips` table by `payroll_run_id`, so the nested write is unrolled into the world here exactly
  * as the database would hold it.
  */
-async function januaryWorld({ bank = false } = {}) {
-	const world = createPublicPayrollWorld();
+async function januaryWorld({ bank = false, period = PERIOD, runId = RUN_ID, world } = {}) {
+	world ??= createPublicPayrollWorld();
 	if (bank) world.employments[0].bank = BANK;
 	for (const day of world.work_days) {
 		day.worked_intervals = [
@@ -55,18 +55,18 @@ async function januaryWorld({ bank = false } = {}) {
 	}
 	const api = memoryPayrollApi(world);
 	const prepared = await Effect.runPromise(
-		payrollRunHooks.mutate.prepare({ inputs: [{ company_id: COMPANY_ID, period: PERIOD }], api })
+		payrollRunHooks.mutate.prepare({ inputs: [{ company_id: COMPANY_ID, period }], api })
 	);
 	const created = await Effect.runPromise(
 		payrollRunHooks.mutate.perRecord.before.handler({
-			input: { company_id: COMPANY_ID, period: PERIOD },
+			input: { company_id: COMPANY_ID, period },
 			existing: undefined,
 			prepared,
 			api
 		})
 	);
 	const run = {
-		id: RUN_ID,
+		id: runId,
 		company_id: created.company_id,
 		settings_id: created.settings_id,
 		period: created.period,
@@ -76,7 +76,7 @@ async function januaryWorld({ bank = false } = {}) {
 	};
 	world.payroll_runs.push({ ...run, lifecycle: created.lifecycle });
 	for (const payslip of created.payslip_payroll_run)
-		world.payslips.push({ ...payslip, payroll_run_id: RUN_ID });
+		world.payslips.push({ ...payslip, payroll_run_id: runId });
 	return { world, run };
 }
 
@@ -185,4 +185,62 @@ test('a run with no payslips answers a manifest with nothing in it', async () =>
 	const manifest = await exportRuns(world, [run]);
 	assertManifestShape(manifest);
 	assert.deepEqual(manifest, [], 'no payslips is no artefacts, not a file with a header in it');
+});
+
+test('two runs selected together export as two sets, each named by its own period', async () => {
+	// The bulk case the collection's action bar actually sends: `records` is whatever the operator
+	// ticked. Every test above passes one run, so a manifest that collapsed two runs into one set —
+	// or gave both bank files the same name, which is how the second overwrites the first on the way
+	// to disk — would have shipped. Each artefact must be its own action, named by its own period.
+	const first = await januaryWorld({ bank: true });
+	// A second run refuses while the first is a draft, which is the guard, not the subject here.
+	for (const stored of first.world.payroll_runs) stored.lifecycle = 'PAID';
+	const second = await januaryWorld({
+		bank: true,
+		period: '2026-02',
+		runId: 'run:2026-02',
+		world: first.world
+	});
+	const manifest = await exportRuns(first.world, [first.run, second.run]);
+	assertManifestShape(manifest);
+
+	assert.deepEqual(
+		manifest.map((action) => action.label),
+		[
+			`Bank file ${PERIOD}`,
+			'Bank file 2026-02',
+			`Payslips ${PERIOD}`,
+			'Payslips 2026-02',
+			'Payroll workbook'
+		],
+		'each run contributes its own bank file and payslips, grouped by artefact so the app routes ' +
+			'one kind at a time; the workbook is one report over the whole selection'
+	);
+
+	const names = manifest.flatMap((action) => action.attachments.map((file) => file.name));
+	assert.equal(
+		new Set(names).size,
+		names.length,
+		`two runs produced a duplicate filename: ${names}`
+	);
+	assert.ok(names.includes(`bank_payments_${PERIOD}.csv`));
+	assert.ok(names.includes('bank_payments_2026-02.csv'));
+
+	// Neither run's rows leak into the other's file: one paid payslip each, under one header.
+	for (const [period, action] of [
+		[PERIOD, manifest[0]],
+		['2026-02', manifest[1]]
+	]) {
+		assert.equal(action.metadata.period, period);
+		assert.equal(action.metadata.included_payslips, 1);
+		assert.equal(
+			action.attachments[0].content.length,
+			2,
+			`${period} bank file is header + one row`
+		);
+		assert.equal(
+			action.attachments[0].content[1][1],
+			`${period}-${period === PERIOD ? '31' : '28'}`
+		);
+	}
 });
