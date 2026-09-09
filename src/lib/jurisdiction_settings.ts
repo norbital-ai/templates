@@ -85,6 +85,23 @@ export function settingsInForce<V extends SettingsVersionLike>(
 }
 
 /**
+ * The treatment grid an entry pinned to an older revision of a code is charged under.
+ *
+ * A shared code survives catalogue revisions. Every cell the entry's own revision decided stands —
+ * including an explicit `UNSET`, which is a decision and not a gap — because an approved entry's
+ * treatment is history and a later revision does not get to re-decide it. But a scheme sealed into
+ * a later version has no cell in that older row to keep, since it did not exist when the row was
+ * written; the run resolves the schemes it levies, so the run's own row of the same code supplies
+ * those. A code neither row decides stays absent, and ACCUMULATE still refuses it by name.
+ */
+export function treatmentsInForce<TGrid extends Readonly<Record<string, unknown>>>(
+	source: TGrid,
+	current: TGrid | undefined
+): TGrid {
+	return current == null ? source : ({ ...current, ...source } as TGrid);
+}
+
+/**
  * The jurisdiction a lineage transcribes: the first segment of its code. `SG-norbital` is
  * Singapore law with Norbital's own catalogue; the engine's few country-specific rules (the
  * Philippine 313-day divisor, night-work hours) read this and never the whole code.
