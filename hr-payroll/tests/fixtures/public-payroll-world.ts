@@ -127,14 +127,11 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			{
 				id: BASIC_ID,
 				settings_id: JURISDICTION_ID,
-				code: 'STANDARD',
 				proration: { by: 'CALENDAR_DAYS' },
 				ordinary_rate: { per: 'DAY', divisor: 26 },
 				regime: REGIME,
-				salary: { code: 'BASIC', sequence: 100, contribution_treatments: {} },
-				overtime: { code: 'OVERTIME', sequence: 20, contribution_treatments: {} },
-				overtime_excess: { code: 'OVERTIME_EXCESS', sequence: 21, contribution_treatments: {} },
-				absence: { code: 'ABSENCE', sequence: 1000, contribution_treatments: {} },
+				treatments: {},
+				authority: null,
 				approval_id: null
 			}
 		],

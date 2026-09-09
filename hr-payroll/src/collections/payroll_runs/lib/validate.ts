@@ -23,6 +23,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 
 import { Effect, Result, Schema } from 'effect';
 import type { Configuration } from './configuration.js';
+import type { FamilyPayItem } from '../../../lib/payroll/family.js';
 import { dateKey, requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
@@ -46,6 +47,62 @@ export type RunIssue = Schema.Schema.Type<typeof RunIssueSchema>;
 
 export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 	return issues.filter((issue) => issue.severity !== 'WARNING');
+}
+
+const isWorkAbsence = (component: FamilyPayItem): boolean =>
+	component.family === 'WORK' && component.output === 'absence';
+
+/** One component's cell for every effective scheme: present, decided, and naming a declared rule. */
+function treatmentIssues(configuration: Configuration, component: FamilyPayItem): RunIssue[] {
+	if (component.nature === 'INFORMATION') return [];
+	const issues: RunIssue[] = [];
+	const collection = `${component.family.toLowerCase()}_catalogue`;
+	const recordId = component.catalogue_id ?? component.id;
+	for (const contribution of configuration.contributions) {
+		const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
+		if (cell == null) {
+			issues.push({
+				code: 'TREATMENT_MISSING',
+				message:
+					`No ${contribution.row.code} treatment exists for ${component.code}. The component ` +
+					'states a treatment for every scheme its jurisdiction levies.',
+				collection,
+				recordId
+			});
+			continue;
+		}
+		if (cell.kind === 'UNSET')
+			issues.push({
+				code: 'TREATMENT_UNSET',
+				message:
+					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
+					'this kind of pay is chargeable.',
+				collection,
+				recordId
+			});
+		if (cell.kind === 'SPECIAL' && !contribution.row.special_rules.includes(cell.rule))
+			issues.push({
+				code: 'SPECIAL_RULE_UNKNOWN',
+				message:
+					`${component.code} × ${contribution.row.code} names special rule "${cell.rule}", ` +
+					`which ${contribution.row.code} does not declare.`,
+				collection,
+				recordId
+			});
+	}
+	return issues;
+}
+
+/**
+ * The absence column, judged once a run has priced an unexplained absence: an undecided cell then
+ * refuses the run by name, exactly as any other component's would have at configuration time.
+ */
+export function validateAbsenceTreatments(options: {
+	readonly configuration: Configuration;
+	readonly adjustments: readonly { readonly catalogueComponent: FamilyPayItem }[];
+}): RunIssue[] {
+	const absence = options.adjustments.find((row) => isWorkAbsence(row.catalogueComponent));
+	return absence == null ? [] : treatmentIssues(options.configuration, absence.catalogueComponent);
 }
 
 /** Configuration checks. None of them read a person. */
@@ -83,41 +140,12 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					configuration.company.id
 				);
 
-	// Every monetary component owns a decided cell for every effective statutory scheme.
-	for (const component of configuration.catalogueComponents) {
-		if (component.nature === 'INFORMATION') continue;
-		const catalogueCollection = `${component.family.toLowerCase()}_catalogue`;
-		const catalogueId = component.catalogue_id ?? component.id;
-		for (const contribution of configuration.contributions) {
-			const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
-			if (cell == null) {
-				blocker(
-					'TREATMENT_MISSING',
-					`No ${contribution.row.code} treatment exists for ${component.code}. The component ` +
-						'states a treatment for every scheme its jurisdiction levies.',
-					catalogueCollection,
-					catalogueId
-				);
-				continue;
-			}
-			if (cell.kind === 'UNSET')
-				blocker(
-					'TREATMENT_UNSET',
-					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
-						'this kind of pay is chargeable.',
-					catalogueCollection,
-					catalogueId
-				);
-			if (cell.kind === 'SPECIAL' && !contribution.row.special_rules.includes(cell.rule))
-				blocker(
-					'SPECIAL_RULE_UNKNOWN',
-					`${component.code} × ${contribution.row.code} names special rule "${cell.rule}", ` +
-						`which ${contribution.row.code} does not declare.`,
-					catalogueCollection,
-					catalogueId
-				);
-		}
-	}
+	// Every monetary component owns a decided cell for every effective statutory scheme. The Work
+	// absence line is the one exception: it is priced only when someone was absent, so its column
+	// may stay undecided in a jurisdiction that never deducts one, and `validateAbsenceTreatments`
+	// judges it on the measured run instead.
+	for (const component of configuration.catalogueComponents)
+		if (!isWorkAbsence(component)) issues.push(...treatmentIssues(configuration, component));
 
 	// ── the schemes ─────────────────────────────────────────────────────────────────────────────
 	const sequenceById = new Map(
@@ -191,7 +219,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		if (rule.band != null) continue;
 		blocker(
 			'OVERTIME_RULE_UNBANDED',
-			`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
+			`A ${rule.day_type} overtime rule carries no band and can never be entered.`,
 			'work_catalogue',
 			configuration.work.id
 		);
@@ -237,7 +265,7 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 					message:
 						`${options.employeeNumber} worked ${options.monthHours} regulated overtime hours in ` +
 						`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
-						`(${limit.authority}, on_exceed=${limit.on_exceed}). ${nextStep}`,
+						`(${options.configuration.work.authority ?? 'the Work catalogue'}, on_exceed=${limit.on_exceed}). ${nextStep}`,
 					collection: 'work_catalogue',
 					recordId: options.configuration.work.id
 				};

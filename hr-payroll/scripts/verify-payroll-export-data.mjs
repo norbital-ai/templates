@@ -198,7 +198,7 @@ const BASIC = {
 	sequence: 1,
 	contribution_treatments: {}
 };
-const WORK = { id: 'work:test', settings_id: RUN.settings_id, salary: BASIC };
+const WORK = { id: 'work:test', settings_id: RUN.settings_id, treatments: {} };
 const FINAL_PAYMENT = {
 	id: 'payment:final',
 	settings_id: RUN.settings_id,

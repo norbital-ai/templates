@@ -148,7 +148,6 @@ test('an open clock is refused rather than priced as if it had stopped', () => {
 
 const rule = (overrides) => ({
 	id: `rule-${overrides.day_type}-${overrides.band.measure}`,
-	authority: 'EA 1955',
 	...overrides
 });
 
@@ -264,7 +263,6 @@ const breakRule = (overrides) => ({
 	counts_as_worked_time: null,
 	applies_when: 'ALWAYS',
 	on_exceed: 'WARN',
-	authority: 'Employment Act 1955 s.60A(1)(a)',
 	...overrides
 });
 

@@ -4,21 +4,17 @@ import { Schema } from 'effect';
 import { overtimeAwardValueSchema } from '../overtime_award/+definition.js';
 import { overtimeBandValueSchema } from '../overtime_band/+definition.js';
 
-const authority = Schema.Trimmed.check(Schema.isMinLength(1));
-
 export const overtimeCoverageValueSchema = Schema.Struct({
 	wage_ceiling: Schema.NullOr(MoneyValueSchema),
 	ceiling_is_inclusive: Schema.NullOr(Schema.Boolean),
 	wage_basis: Schema.NullOr(Schema.Literals(['STATUTORY_WAGES', 'BASE_SALARY'])),
 	category_basis: Schema.Literals(['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION']),
 	exempt_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1))),
-	excluded_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1))),
-	authority
+	excluded_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1)))
 });
 
 export const statutoryOvertimeRuleValueSchema = Schema.Struct({
 	day_type: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
-	authority,
 	band: overtimeBandValueSchema,
 	award: overtimeAwardValueSchema
 });
@@ -40,8 +36,7 @@ export const statutoryOvertimeLimitValueSchema = Schema.Struct({
 	period: Schema.Literals(['DAY', 'WEEK', 'MONTH']),
 	measures: Schema.Literals(['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
 	max_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
-	on_exceed: Schema.Literals(['WARN', 'BLOCK', 'INCENTIVE']),
-	authority
+	on_exceed: Schema.Literals(['WARN', 'BLOCK', 'INCENTIVE'])
 });
 
 /**
@@ -86,8 +81,7 @@ export const statutoryRestBreakRuleValueSchema = Schema.Struct({
 	minimum_minutes: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0))),
 	counts_as_worked_time: Schema.NullOr(Schema.Boolean),
 	applies_when: Schema.Literals(['ALWAYS', 'CONTINUOUS_ATTENDANCE']),
-	on_exceed: Schema.Literals(['WARN', 'BLOCK']),
-	authority
+	on_exceed: Schema.Literals(['WARN', 'BLOCK'])
 });
 
 export type StatutoryRestBreakRule = Schema.Schema.Type<typeof statutoryRestBreakRuleValueSchema>;
@@ -121,8 +115,7 @@ export const statutoryWeeklyRestRuleValueSchema = Schema.Struct({
 		Schema.isLessThanOrEqualTo(30)
 	),
 	discharged_by: Schema.Literals(['REST', 'REST_OR_OFF']),
-	on_exceed: Schema.Literals(['WARN', 'BLOCK']),
-	authority
+	on_exceed: Schema.Literals(['WARN', 'BLOCK'])
 });
 
 export type StatutoryWeeklyRestRule = Schema.Schema.Type<typeof statutoryWeeklyRestRuleValueSchema>;
@@ -132,7 +125,8 @@ export type StatutoryWeeklyRestRule = Schema.Schema.Type<typeof statutoryWeeklyR
  *
  * These values are attributes of one law revision, not independently versioned records. The
  * jurisdiction's `effective_range` dates the whole structure, so payroll can never pick coverage
- * from one revision and pricing or limits from another.
+ * from one revision and pricing or limits from another. No rule carries its own citation: the
+ * Work catalogue row states one `authority` for the whole regime.
  */
 export const statutoryRegimeValueSchema = Schema.Struct({
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY']),

@@ -1,7 +1,8 @@
 <script lang="ts">
 	/**
-	 * One settings version's work rules: how a monthly wage becomes a daily and hourly rate, the
-	 * overtime regime, and how every scheme charges each of the four pay items work produces.
+	 * One settings version's work rules, in the RFC's segments: how a monthly wage becomes a daily
+	 * and hourly rate; the overtime regime (coverage, rules, limits, rest, holiday precedence); how
+	 * every scheme charges the four pay lines work produces; and the one citation for the row.
 	 *
 	 * `settings_id` is never a field on the Settings page: the page names the version and the form
 	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
@@ -23,7 +24,7 @@
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
 </script>
 
-<RecordShell title={record?.code ?? t('app.settings.work_catalogue')}>
+<RecordShell title={t('app.settings.work_catalogue')}>
 	<CollectionForm
 		{client}
 		collection="work_catalogue"
@@ -43,15 +44,15 @@
 						{:else}
 							<Field name="settings_id" label={t('component.settings_version')} />
 						{/if}
-						<Field name="code" label={t('component.code')} />
 						<Field name="proration" label={t('component.proration_basis')} />
 						<Field name="ordinary_rate" label={t('component.ordinary_rate')} />
 					</Grid>
 				</FormSection>
 
+				<!-- The regime is one column; its renderer draws Limits, Rest and Holiday after this. -->
 				<FormSection
-					title={t('component.settings_section_regime')}
-					hint={t('component.work_section_regime_hint')}
+					title={t('component.work_section_overtime')}
+					hint={t('component.work_section_overtime_hint')}
 				>
 					<Field name="regime" label={t('component.settings_section_regime')} />
 				</FormSection>
@@ -60,12 +61,14 @@
 					title={t('component.section_contributions')}
 					hint={t('component.work_section_contributions_hint')}
 				>
-					<Stack gap="sm">
-						<Field name="salary" label={t('work.output_salary')} />
-						<Field name="overtime" label={t('work.output_overtime')} />
-						<Field name="overtime_excess" label={t('work.output_overtime_excess')} />
-						<Field name="absence" label={t('work.output_absence')} />
-					</Stack>
+					<Field name="treatments" label={t('component.contribution_treatments')} />
+				</FormSection>
+
+				<FormSection
+					title={t('component.work_section_citation')}
+					hint={t('component.work_section_citation_hint')}
+				>
+					<Field name="authority" label={t('component.authority')} />
 				</FormSection>
 			</Stack>
 		{/snippet}

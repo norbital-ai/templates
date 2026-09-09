@@ -14,7 +14,7 @@ test('a run reads only the catalogue of the version it picked, never a sibling v
 			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 		);
 	const expected = buildPayrollRun(await prepare()).payslip_payroll_run;
-	const basic = world.work_catalogue.find((row) => row.code === 'STANDARD');
+	const basic = world.work_catalogue[0];
 	assert.ok(basic);
 	// Two more versions of the lineage (a draft and a voided one) carry their own BASIC clones;
 	// the picked version's catalogue is the only one the run prices.

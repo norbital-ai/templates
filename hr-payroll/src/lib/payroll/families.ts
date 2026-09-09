@@ -815,12 +815,11 @@ export function calculateFamilyAssessments(options: {
 	const { configuration, gathered, window, period } = options;
 	const issues = validateWorkInputs({ configuration, bundles: gathered.bundles, window, period });
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
-	const measuredContracts: Array<
-		Parameters<typeof assessContributions>[0][number] & {
-			readonly measured: ReturnType<typeof calculateFamilies>;
-			readonly termsThrough: string;
-		}
-	> = [];
+	const measuredRuns: Array<{
+		readonly measured: ReturnType<typeof calculateFamilies>;
+		readonly termsThrough: string;
+		readonly projection: ReturnType<typeof payProjection>;
+	}> = [];
 	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.tax_year_start_month);
 
 	for (const bundle of gathered.bundles) {
@@ -854,8 +853,9 @@ export function calculateFamilyAssessments(options: {
 
 		issues.push(...validateWorkResult({ configuration, measured }));
 
-		measuredContracts.push({
+		measuredRuns.push({
 			measured,
+			projection,
 			// These are committed calculation dates, not the future horizon of an entitlement or tax projection.
 			termsThrough: [
 				[
@@ -879,16 +879,23 @@ export function calculateFamilyAssessments(options: {
 				...measured.proration.map((segment) => segment.to)
 			]
 				.toSorted()
-				.at(-1)!,
-			...prepareContributionAssessment({
-				measured,
-				configuration,
-				projection,
-				yearToDate: gathered.yearToDate,
-				headcount: gathered.headcount
-			})
+				.at(-1)!
 		});
 	}
+
+	// Every measured run is judged before any is accumulated, so a blocker names every person it
+	// concerns and an undecided cell is reported as the issue it is rather than thrown from the grid.
+	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
+	const measuredContracts = measuredRuns.map(({ projection, ...run }) => ({
+		...run,
+		...prepareContributionAssessment({
+			measured: run.measured,
+			configuration,
+			projection,
+			yearToDate: gathered.yearToDate,
+			headcount: gathered.headcount
+		})
+	}));
 
 	// 6 — CONTRIBUTE once per person/entity assessment; outputs remain on their own contracts.
 	const chargesByEmployment = assessContributions(measuredContracts);

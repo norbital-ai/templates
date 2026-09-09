@@ -241,13 +241,17 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 				'PUB-TAX': { kind: 'INCLUDE' }
 			};
 	for (const work of world.work_catalogue)
-		for (const output of ['salary', 'overtime', 'overtime_excess', 'absence'])
-			work[output].contribution_treatments = Object.fromEntries(
-				['PUB-EPF', 'PUB-TAX'].map((code) => [
-					code,
-					{ kind: output === 'absence' ? 'REDUCE' : 'INCLUDE' }
-				])
-			);
+		work.treatments = Object.fromEntries(
+			['PUB-EPF', 'PUB-TAX'].map((code) => [
+				code,
+				{
+					salary: { kind: 'INCLUDE' },
+					overtime: { kind: 'INCLUDE' },
+					overtime_excess: { kind: 'INCLUDE' },
+					absence: { kind: 'REDUCE' }
+				}
+			])
+		);
 
 	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB-TAX');
 

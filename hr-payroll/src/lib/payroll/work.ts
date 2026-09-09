@@ -65,6 +65,7 @@ import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js'
 import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
 	validateDailyOvertimeHoursLimit,
+	validateAbsenceTreatments,
 	validateDailyWorkLimit,
 	validateOpenWorkDays,
 	validateOvertimeLimits,
@@ -301,6 +302,8 @@ type StatutoryOvertimeCoverageOptions = {
 	readonly statutoryWorkCategory: string | null;
 	readonly workClassification: string | null;
 	readonly employeeNumber: string;
+	/** The Work catalogue's citation, quoted when the rule cannot be applied. */
+	readonly authority?: string | null;
 };
 
 /**
@@ -323,7 +326,7 @@ export function isStatutoryOvertimePayCovered(options: StatutoryOvertimeCoverage
 	// There is no warning tier left — every run issue fails the run — so an input the rule needs and
 	// the engine cannot supply stops payroll and names itself, rather than being quietly rounded to
 	// a boolean that decides someone's overtime.
-	const authority = options.rule?.authority ?? 'the effective coverage rule';
+	const authority = options.authority ?? 'the effective coverage rule';
 	if (decision.reason === 'CEILING_CURRENCY_MISMATCH')
 		throw new Error(
 			`${options.employeeNumber}: the ${options.jurisdictionCode} overtime coverage ceiling is ` +
@@ -696,7 +699,8 @@ export function calculateWorkAttendance(
 		},
 		statutoryWorkCategory: closingTerms.statutory_work_category,
 		workClassification: closingTerms.work_classification,
-		employeeNumber: bundle.employment.employee_number
+		employeeNumber: bundle.employment.employee_number,
+		authority: configuration.work.authority
 	});
 	const classifiedOvertime = classifyOvertimeByCalendarMonth({
 		days: overtimeDays,
@@ -1331,7 +1335,10 @@ export function validateWorkResult(options: {
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;
-	const issues: RunIssue[] = [];
+	const issues: RunIssue[] = validateAbsenceTreatments({
+		configuration,
+		adjustments: measured.adjustments
+	});
 	for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
 		issues.push(
 			...validateOvertimeLimits({

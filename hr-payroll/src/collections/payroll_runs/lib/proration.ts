@@ -65,7 +65,10 @@ export function prorationSegment(options: ProrationFractionOptions): {
 } | null {
 	if (options.covered == null) return null;
 	const basis = options.work.proration;
-	if (basis == null) throw new Error(`Work ${options.work.code} states no proration basis.`);
+	if (basis == null)
+		throw new Error(
+			`The Work catalogue of settings version ${options.work.settings_id} states no proration basis.`
+		);
 	const covered = intersectDays(options.covered, options.period);
 	if (covered == null) return null;
 	const measured = ((): { days: number; denominator: number } => {

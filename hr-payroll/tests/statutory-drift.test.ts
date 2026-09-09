@@ -149,13 +149,7 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 		leave_catalogue_settings: [
 			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }
 		],
-		work_catalogue_settings: [
-			{
-				id: 'w1',
-				code: 'STANDARD',
-				overtime: { code: 'OVERTIME', sequence: 20, contribution_treatments: {} }
-			}
-		],
+		work_catalogue_settings: [{ id: 'w1', treatments: {} }],
 		payment_catalogue_settings: [
 			{ id: 'p1', code: 'SEPARATION', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }
 		]
@@ -197,8 +191,13 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 	assert.deepEqual(revised.contribution_settings[0].bands, [band(12)]);
 	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
 	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
-	assert.deepEqual(revised.work_catalogue_settings[0].overtime.contribution_treatments.EPF, {
-		kind: 'INCLUDE'
+	assert.deepEqual(revised.work_catalogue_settings[0].treatments, {
+		EPF: {
+			salary: { kind: 'UNSET' },
+			overtime: { kind: 'INCLUDE' },
+			overtime_excess: { kind: 'UNSET' },
+			absence: { kind: 'UNSET' }
+		}
 	});
 	assert.deepEqual(revised.payment_catalogue_settings, write.payment_catalogue_settings);
 });

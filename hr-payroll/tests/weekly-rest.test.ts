@@ -31,7 +31,6 @@ const rule = (over = {}) => ({
 	max_consecutive_work_days: 6,
 	discharged_by: 'REST_OR_OFF',
 	on_exceed: 'BLOCK',
-	authority: 'Fixture s.1',
 	...over
 });
 
@@ -53,6 +52,7 @@ function judge(shape: string, start: string, options = {}) {
 		assertRunHasRestDay({
 			employeeNumber: 'PUB-EMP-0001',
 			rule: rule(options.rule),
+			authority: 'Fixture s.1',
 			window: { start, end: addDays(start, shape.length - 1) },
 			plannedByDate,
 			changedDates: options.changedDates?.(start) ?? changedDates,

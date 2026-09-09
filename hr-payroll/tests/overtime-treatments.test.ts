@@ -107,7 +107,6 @@ test('the OVERTIME and OVERTIME_EXCESS rows decide the scheme base of derived ov
 test('a jurisdiction that prices overtime needs both statutory rows before the run is built', () => {
 	const rule = {
 		day_type: 'ORDINARY',
-		authority: 'EA 1955 s.60A(3)(a)',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
 	};

@@ -163,42 +163,36 @@ const COMPONENT_CATALOGUE = [
 const OVERTIME_RULES = [
 	{
 		id: 'rule-ord',
-		authority: 'EA 1955 s.60A(1)(a)',
 		day_type: 'ORDINARY',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
 	},
 	{
 		id: 'rule-rest-half',
-		authority: 'EA 1955 s.60(3)',
 		day_type: 'REST_DAY',
 		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0, to_fraction: 0.5 },
 		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 0.5 }
 	},
 	{
 		id: 'rule-rest-full',
-		authority: 'EA 1955 s.60(3)',
 		day_type: 'REST_DAY',
 		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0.5, to_fraction: 1 },
 		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 1 }
 	},
 	{
 		id: 'rule-rest-beyond',
-		authority: 'EA 1955 s.60(3)(c)',
 		day_type: 'REST_DAY',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 2 }
 	},
 	{
 		id: 'rule-ph',
-		authority: 'EA 1955 s.60D(3)',
 		day_type: 'PUBLIC_HOLIDAY',
 		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0, to_fraction: 1 },
 		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 2 }
 	},
 	{
 		id: 'rule-ph-beyond',
-		authority: 'EA 1955 s.60D(3)',
 		day_type: 'PUBLIC_HOLIDAY',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 3 }

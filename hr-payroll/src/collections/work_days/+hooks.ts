@@ -198,6 +198,8 @@ function assertMonthConformsToPattern(options: {
 export function assertRunHasRestDay(options: {
 	readonly employeeNumber: string;
 	readonly rule: StatutoryWeeklyRestRule;
+	/** The Work catalogue's citation, quoted in the refusal. */
+	readonly authority: string | null;
 	readonly window: { readonly start: string; readonly end: string };
 	readonly plannedByDate: ReadonlyMap<string, string | null>;
 	readonly changedDates: ReadonlySet<string>;
@@ -211,6 +213,7 @@ export function assertRunHasRestDay(options: {
 	const {
 		employeeNumber,
 		rule,
+		authority,
 		window,
 		plannedByDate,
 		changedDates,
@@ -228,7 +231,7 @@ export function assertRunHasRestDay(options: {
 			refuse(
 				`Roster change for ${employeeNumber} is refused: ${runStart} to ${runEnd} would be ` +
 					`${length} consecutive worked day(s) with no rest day inside them. This jurisdiction ` +
-					`allows ${rule.max_consecutive_work_days} (${rule.authority}). Give the run a rest day — ` +
+					`allows ${rule.max_consecutive_work_days}${authority ? ` (${authority})` : ''}. Give the run a rest day — ` +
 					`swap one of those days for a ${rule.discharged_by === 'REST' ? 'REST' : 'REST or OFF'} ` +
 					`code in the same write — or move the work outside it.`
 			);
@@ -501,9 +504,8 @@ function assertBatchConformsToPattern(
 			if (version == null) continue;
 			// The same strict view the settings write hook decoded this snapshot through, so a regime
 			// that would not be accepted today governs nothing rather than governing partly.
-			const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(
-				workBySettings.get(version.id)?.regime
-			);
+			const work = workBySettings.get(version.id);
+			const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(work?.regime);
 			if (Result.isFailure(decoded)) continue;
 			const rule: StatutoryWeeklyRestRule | undefined = decoded.success.weekly_rest_rule;
 			if (rule == null) continue;
@@ -516,6 +518,7 @@ function assertBatchConformsToPattern(
 			assertRunHasRestDay({
 				employeeNumber: employmentById.get(employmentId)?.employee_number ?? employmentId,
 				rule,
+				authority: work?.authority ?? null,
 				window: { start: spanStart, end: spanEnd },
 				plannedByDate,
 				changedDates: new Set(own.map((change) => change.work_date)),

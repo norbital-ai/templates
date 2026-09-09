@@ -88,7 +88,7 @@ test(
 							action: 'update',
 							values: {
 								id: String(originalWork.id),
-								salary: { ...asRecord(originalWork.salary, 'salary metadata'), code: 'UNREVIEWED' }
+								authority: 'UNREVIEWED'
 							}
 						}
 					]
@@ -134,28 +134,20 @@ test(
 				}
 			}
 			const clonedWork = after.work_catalogue![0]!;
-			for (const column of [
-				'proration',
-				'ordinary_rate',
-				'regime',
-				'salary',
-				'overtime',
-				'overtime_excess',
-				'absence'
-			]) {
+			for (const column of ['proration', 'ordinary_rate', 'regime', 'treatments', 'authority']) {
 				assert.deepEqual(
 					clonedWork[column],
 					originalWork[column],
 					`Work ${column} survives cloning`
 				);
 			}
-			const changeWork = (salary: unknown) =>
+			const changeWork = (regime: unknown) =>
 				command(
 					session,
 					{
 						action: 'mutate',
 						collection: 'work_catalogue',
-						rows: [{ action: 'update', values: { id: String(clonedWork.id), salary } }]
+						rows: [{ action: 'update', values: { id: String(clonedWork.id), regime } }]
 					},
 					[
 						{
@@ -164,17 +156,20 @@ test(
 						}
 					]
 				);
+			// The draft's own hook still judges the regime: two overlapping bands are refused by name.
+			const overlappingRule = {
+				day_type: 'ORDINARY',
+				band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
+				award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
+			};
 			const invalidWork = await changeWork({
-				...asRecord(clonedWork.salary, 'salary metadata'),
-				code: asRecord(clonedWork.overtime, 'overtime metadata').code
+				...asRecord(clonedWork.regime, 'regime'),
+				overtime_rules: [overlappingRule, overlappingRule]
 			});
-			assert.equal(
-				asRecord(invalidWork.value, 'duplicate Work output code').resolution,
-				'rejected'
-			);
+			assert.equal(asRecord(invalidWork.value, 'overlapping Work bands').resolution, 'rejected');
 			assert.match(
-				String(asRecord(invalidWork.value, 'duplicate Work output code').message),
-				/distinct pay-item code/
+				String(asRecord(invalidWork.value, 'overlapping Work bands').message),
+				/overtime bands overlap/
 			);
 
 			const codes = (table: string, rows: Row[]) => rows.map((row) => row.code).toSorted();

@@ -546,7 +546,6 @@ check(
 const ordinaryRule = {
 	id: 'ot-ordinary',
 	day_type: 'ORDINARY',
-	authority: 'EA s.60A(1)(a)',
 	band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 	award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
 };
@@ -707,8 +706,7 @@ const MY_COVERAGE_RULE = {
 	wage_basis: 'STATUTORY_WAGES',
 	category_basis: 'STATUTORY_WORK_CATEGORY',
 	exempt_categories: ['MANUAL_LABOUR', 'MANUAL_LABOUR_SUPERVISOR', 'COMMERCIAL_VEHICLE_OPERATOR'],
-	excluded_categories: ['VESSEL_WORK'],
-	authority: 'Employment Act 1955 First Schedule paras 1A, 2 and 3'
+	excluded_categories: ['VESSEL_WORK']
 };
 const coverageArgs = (category, salary, comparand = salary) => ({
 	rule: MY_COVERAGE_RULE,
@@ -719,7 +717,9 @@ const coverageArgs = (category, salary, comparand = salary) => ({
 	},
 	statutoryWorkCategory: category,
 	workClassification: 'EA_COVERED',
-	employeeNumber: 'E-0001'
+	employeeNumber: 'E-0001',
+	// The Work catalogue row's citation, as seeded from the seed bank.
+	authority: 'Employment Act 1955 First Schedule paras 1A, 2 and 3'
 });
 
 check(
@@ -962,7 +962,6 @@ check(
 const restDayRule = (measure, from, to, award, multiple) => ({
 	id: `ot-${measure}-${from}`,
 	day_type: 'REST_DAY',
-	authority: 'Statutory rest-day verification rule',
 	band:
 		measure === 'FROM_START_OF_DAY'
 			? { measure, from_fraction: from, to_fraction: to }
@@ -1080,13 +1079,11 @@ check(
 const malaysiaPublicHoliday = [
 	{
 		...restDayRule('FROM_START_OF_DAY', 0, 1, 'DAY_WAGE_MULTIPLE', 2),
-		day_type: 'PUBLIC_HOLIDAY',
-		authority: 'Statutory public-holiday verification rule'
+		day_type: 'PUBLIC_HOLIDAY'
 	},
 	{
 		...restDayRule('BEYOND_NORMAL', 0, null, 'HOURLY_MULTIPLE', 3),
-		day_type: 'PUBLIC_HOLIDAY',
-		authority: 'Statutory public-holiday verification rule'
+		day_type: 'PUBLIC_HOLIDAY'
 	}
 ];
 const thirteenHourPublicHolidaySplit = priceDay({
@@ -1127,18 +1124,15 @@ const indonesiaRestOverflow = priceDay({
 	rules: [
 		{
 			...restDayRule('FROM_START_OF_DAY', 0, null, 'HOURLY_MULTIPLE', 2),
-			day_type: 'REST_DAY',
-			authority: 'PP 35/2021 Pasal 31 rest-day verification rule'
+			day_type: 'REST_DAY'
 		},
 		{
 			...restDayRule('BEYOND_NORMAL', 0, 1, 'HOURLY_MULTIPLE', 3),
-			day_type: 'REST_DAY',
-			authority: 'PP 35/2021 Pasal 31 rest-day verification rule'
+			day_type: 'REST_DAY'
 		},
 		{
 			...restDayRule('BEYOND_NORMAL', 1, 4, 'HOURLY_MULTIPLE', 4),
-			day_type: 'REST_DAY',
-			authority: 'PP 35/2021 Pasal 31 rest-day verification rule'
+			day_type: 'REST_DAY'
 		}
 	],
 	retainedHours: 13

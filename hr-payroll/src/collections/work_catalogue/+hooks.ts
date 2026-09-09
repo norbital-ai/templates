@@ -8,8 +8,7 @@ export default {
 	mutate: {
 		perRecord: {
 			before: {
-				description:
-					'Validate Work rules and distinct output codes; refuse changes to a sealed catalogue.',
+				description: 'Validate Work rules; refuse changes to a sealed catalogue.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
@@ -19,14 +18,6 @@ export default {
 							input.settings_id,
 							'Work catalogue'
 						);
-						const requiredOutputs = [row.salary, row.overtime, row.overtime_excess];
-						if (requiredOutputs.some((output) => output == null))
-							refuse('Work defines salary, overtime and excess overtime outputs.');
-						const codes = [...requiredOutputs, row.absence].flatMap((output) =>
-							output == null ? [] : [output.code]
-						);
-						if (new Set(codes).size !== codes.length)
-							refuse('Each Work output needs a distinct pay-item code.');
 						if (row.regime == null) refuse('Work requires its working-time rules.');
 						const settings =
 							row.settings_id == null

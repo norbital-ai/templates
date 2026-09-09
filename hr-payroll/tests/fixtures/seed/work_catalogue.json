@@ -2,7 +2,6 @@
 	{
 		"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0021",
 		"settings_id": "22222222-2222-4222-8222-222222222222",
-		"code": "STANDARD",
 		"proration": {
 			"by": "CALENDAR_DAYS"
 		},
@@ -15,7 +14,6 @@
 			"overtime_rules": [
 				{
 					"day_type": "ORDINARY",
-					"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)",
 					"band": {
 						"measure": "BEYOND_NORMAL",
 						"from_hours": 0,
@@ -32,79 +30,58 @@
 					"period": "DAY",
 					"measures": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"on_exceed": "BLOCK",
-					"authority": "Public fixture: twelve-hour day (Employment Act 1955 s.60A(7) shape)"
+					"on_exceed": "BLOCK"
 				},
 				{
 					"period": "MONTH",
 					"measures": "OVERTIME_HOURS",
 					"max_hours": 104,
-					"on_exceed": "WARN",
-					"authority": "Public fixture: 104 overtime hours a month (Employment (Limitation of Overtime Work) Regulations 1980 shape)"
+					"on_exceed": "WARN"
 				},
 				{
 					"period": "DAY",
 					"measures": "TOTAL_WORK_HOURS",
 					"max_hours": 11,
-					"on_exceed": "INCENTIVE",
-					"authority": "Public fixture arrangement: weekday work past eleven hours (a twelve-hour day including the one-hour break) is incentive overtime"
+					"on_exceed": "INCENTIVE"
 				}
 			],
 			"weekly_rest_rule": {
 				"max_consecutive_work_days": 12,
 				"discharged_by": "REST_OR_OFF",
-				"on_exceed": "BLOCK",
-				"authority": "Public fixture: one rest day of one whole day in each week, substituted on a monthly roster with no more than twelve days between rest days"
+				"on_exceed": "BLOCK"
 			},
 			"holiday_rest_precedence": "REST_DAY"
 		},
-		"salary": {
-			"code": "BASIC",
-			"sequence": 100,
-			"contribution_treatments": {
-				"PUB-EPF": {
+		"treatments": {
+			"PUB-EPF": {
+				"salary": {
 					"kind": "INCLUDE"
 				},
-				"PUB-EPF-NC": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
-		"overtime": {
-			"code": "OVERTIME",
-			"sequence": 20,
-			"contribution_treatments": {
-				"PUB-EPF": {
+				"overtime": {
 					"kind": "EXCLUDE"
 				},
-				"PUB-EPF-NC": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
-		"overtime_excess": {
-			"code": "OVERTIME_EXCESS",
-			"sequence": 21,
-			"contribution_treatments": {
-				"PUB-EPF": {
+				"overtime_excess": {
 					"kind": "EXCLUDE"
 				},
-				"PUB-EPF-NC": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
-		"absence": {
-			"code": "ABSENCE",
-			"sequence": 1000,
-			"contribution_treatments": {
-				"PUB-EPF": {
+				"absence": {
 					"kind": "REDUCE"
+				}
+			},
+			"PUB-EPF-NC": {
+				"salary": {
+					"kind": "INCLUDE"
 				},
-				"PUB-EPF-NC": {
+				"overtime": {
+					"kind": "EXCLUDE"
+				},
+				"overtime_excess": {
+					"kind": "EXCLUDE"
+				},
+				"absence": {
 					"kind": "REDUCE"
 				}
 			}
-		}
+		},
+		"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)"
 	}
 ]

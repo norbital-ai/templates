@@ -9,7 +9,13 @@ import {
 } from '../datatypes/statutory_proposal/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsValueSchema } from '../datatypes/contribution_treatments/+definition.js';
-import { WORK_OUTPUTS, workPayItems } from '../collections/work_catalogue/pay-items.js';
+import {
+	WORK_OUTPUTS,
+	WORK_PAY_ITEMS,
+	workOutputTreatments,
+	workPayItems,
+	workTreatmentsOf
+} from '../collections/work_catalogue/pay-items.js';
 import {
 	absenceTreatments,
 	encashmentCode,
@@ -215,13 +221,25 @@ export function applyProposedChanges(
 		});
 	return {
 		...write,
+		// The Work matrix is four columns; each column takes its own proposal by pay-line code.
 		work_catalogue_settings: (write.work_catalogue_settings ?? []).map((row) => {
-			const updated = { ...row };
-			for (const output of WORK_OUTPUTS) {
-				const item = row[output];
-				if (item != null) updated[output] = applyTreatments([item])[0]!;
-			}
-			return updated;
+			const treatments = row.treatments;
+			if (treatments == null) return row;
+			const proposed = WORK_OUTPUTS.map((output) =>
+				proposedTreatments(WORK_PAY_ITEMS[output].code)
+			);
+			if (proposed.every((column) => column == null)) return row;
+			return {
+				...row,
+				treatments: workTreatmentsOf(
+					Object.fromEntries(
+						WORK_OUTPUTS.map((output, index) => [
+							output,
+							proposed[index] ?? workOutputTreatments(treatments, output)
+						])
+					) as Parameters<typeof workTreatmentsOf>[0]
+				)
+			};
 		}),
 		research_notes: proposal,
 		contribution_settings: schemes as SettingsDraftWrite['contribution_settings'],

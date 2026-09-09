@@ -4,20 +4,20 @@ import { custom, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
 export default defineModel(
 	{
 		settings_id: uuid().notNull(),
-		code: text({ search: true }).notNull(),
 		proration: custom('proration_basis').notNull(),
 		ordinary_rate: custom('ordinary_rate').notNull(),
 		regime: custom('statutory_regime').notNull(),
-		salary: custom('pay_item_metadata').notNull(),
-		overtime: custom('pay_item_metadata').notNull(),
-		overtime_excess: custom('pay_item_metadata').notNull(),
-		// Required when a run contains unexplained absence; omission never selects a leave type.
-		absence: custom('pay_item_metadata')
+		/**
+		 * Scheme × {salary, overtime, overtime_excess, absence}: how each scheme charges the four pay
+		 * lines Work produces. Their codes and orders are constants (`pay-items.ts`).
+		 */
+		treatments: custom('work_treatments').notNull(),
+		/** The instrument the regime transcribes; one citation for the row. */
+		authority: text()
 	},
 	{
 		description:
-			'Work calculation rules and the payroll metadata of salary, overtime and unexplained absence. Owned by one settings version; holiday dates are resolved separately for its jurisdiction.',
-		recordLabel: 'code',
+			'Work calculation rules: proration, the ordinary rate, the working-time regime and how each scheme charges salary, overtime and unexplained absence. Owned by one settings version; holiday dates are resolved separately for its jurisdiction.',
 		icon: 'lucide:clock',
 		indexes: [{ columns: ['settings_id'], unique: true }]
 	}

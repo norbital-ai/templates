@@ -142,7 +142,14 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 	},
 	...CATALOGUES.map((collection) => {
 		const { id: _id, ...values } = catalogueRows.get(collection)!;
-		return { collection, values: { ...values, code: `NEW_${collection.toUpperCase()}` } };
+		// Work has no code: one row per version, and a second one under the seal is refused as well.
+		return {
+			collection,
+			values:
+				collection === 'work_catalogue'
+					? values
+					: { ...values, code: `NEW_${collection.toUpperCase()}` }
+		};
 	})
 ];
 

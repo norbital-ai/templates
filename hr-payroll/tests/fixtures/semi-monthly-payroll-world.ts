@@ -79,10 +79,14 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		for (const component of catalogue)
 			component.contribution_treatments = { 'PUB-EPF': { kind: 'INCLUDE' } };
 	for (const work of world.work_catalogue)
-		for (const output of ['salary', 'overtime', 'overtime_excess', 'absence'])
-			work[output].contribution_treatments = {
-				'PUB-EPF': { kind: output === 'absence' ? 'REDUCE' : 'INCLUDE' }
-			};
+		work.treatments = {
+			'PUB-EPF': {
+				salary: { kind: 'INCLUDE' },
+				overtime: { kind: 'INCLUDE' },
+				overtime_excess: { kind: 'INCLUDE' },
+				absence: { kind: 'REDUCE' }
+			}
+		};
 
 	world.employees.push({
 		id: SEMI_MONTHLY_EMPLOYEE_ID,

@@ -179,13 +179,9 @@
 			query={{ where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } } }}
 		>
 			{#snippet columns({ Column })}
-				<Column name="code" label={t('component.code')} card="title" />
-				<Column name="proration" label={t('component.proration_basis')} />
+				<Column name="proration" label={t('component.proration_basis')} card="title" />
 				<Column name="ordinary_rate" label={t('component.ordinary_rate')} />
-				<Column name="salary" label={t('work.output_salary')} />
-				<Column name="overtime" label={t('work.output_overtime')} />
-				<Column name="overtime_excess" label={t('work.output_overtime_excess')} />
-				<Column name="absence" label={t('work.output_absence')} />
+				<Column name="regime" label={t('component.work_section_overtime')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}

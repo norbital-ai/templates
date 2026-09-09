@@ -280,8 +280,8 @@ function hoursText(hours: number): string {
  * it is the module refusing to imply that nothing is owed merely because it cannot say how much,
  * which is the whole reason `requiredMinutes` is nullable.
  *
- * The citation is always appended, because a sentence that says a break is short without saying
- * which law says so sends the reader to look for a setting.
+ * The rule carries no citation of its own: the Work catalogue row's `authority` is the one to
+ * quote beside it.
  */
 export function restBreakMessage(assessment: RestBreakAssessment, subject: string): string | null {
 	const rule = assessment.rule;
@@ -290,13 +290,13 @@ export function restBreakMessage(assessment: RestBreakAssessment, subject: strin
 		return (
 			`${subject}: ${hoursText(assessment.longestRunHours)} consecutive hours worked with ` +
 			`${assessment.takenMinutes} minutes of break, but ${assessment.requiredMinutes} are ` +
-			`required — ${assessment.shortfallMinutes} minutes short. ${rule.authority}`
+			`required — ${assessment.shortfallMinutes} minutes short.`
 		);
 	if (assessment.requiredMinutes === null)
 		return (
 			`${subject}: ${hoursText(assessment.longestRunHours)} consecutive hours worked, which ` +
 			'requires a period of leisure the statute does not put a length on. ' +
-			`Recorded break: ${assessment.takenMinutes} minutes. ${rule.authority}`
+			`Recorded break: ${assessment.takenMinutes} minutes.`
 		);
 	return null;
 }

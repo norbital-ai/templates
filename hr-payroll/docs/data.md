@@ -73,15 +73,15 @@ Departure is the contract's own `exit_date`, `exit_reason` and `exit_note`, reco
 immutable afterwards. It preserves the signed contract and does not generate any payment. A missing
 departure reason remains unresolved.
 
-| Family       | Source inputs                                                             | Preservation requirement                                                                            |
-| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Work         | Work catalogue, effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
-| Leave        | Leave catalogue and manual `leave_entries`                                | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
-| Claim        | Claim catalogue and approved claims                                       | Preserve entered amount, original dates, receipts, entitlement bands and settlement assignment      |
-| Allowance    | Allowance catalogue and approved awards or recurring assignments          | Preserve recurrence, amount and the original eligibility window                                     |
-| Payment      | Payment catalogue and approved one-off payments or deductions             | Preserve source and catalogue IDs, entered amount, effective date, reason and any covered periods   |
-| Loan         | Loan catalogue, agreement and `loan_repayments`                           | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
-| Contribution | Scheme catalogues, rates and contract facts                               | Preserve effective applicability and the explicit treatments declared by source-family outputs      |
+| Family       | Source inputs                                                                                                                                | Preservation requirement                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Work         | Work catalogue (rate, regime, one scheme-by-line treatments matrix, one citation), effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
+| Leave        | Leave catalogue and manual `leave_entries`                                                                                                   | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
+| Claim        | Claim catalogue and approved claims                                                                                                          | Preserve entered amount, original dates, receipts, entitlement bands and settlement assignment      |
+| Allowance    | Allowance catalogue and approved awards or recurring assignments                                                                             | Preserve recurrence, amount and the original eligibility window                                     |
+| Payment      | Payment catalogue and approved one-off payments or deductions                                                                                | Preserve source and catalogue IDs, entered amount, effective date, reason and any covered periods   |
+| Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                              | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
+| Contribution | Scheme catalogues, rates and contract facts                                                                                                  | Preserve effective applicability and the explicit treatments declared by source-family outputs      |
 
 Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
 claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and
