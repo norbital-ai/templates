@@ -17,15 +17,8 @@ export default defineModel(
 		name: text({ search: true }).notNull(),
 		/** The law names it (cited by `authority`); a company-rule scheme is the entity's own levy. */
 		is_statutory: boolean().notNull().default(true),
-		authority: text().notNull(),
-		payer: enums(['EMPLOYEE', 'EMPLOYER', 'BOTH']).notNull(),
-		keyed_by: enums([
-			'WAGE',
-			'WAGE_AND_AGE',
-			'WAGE_AND_MARITAL',
-			'HEADCOUNT',
-			'RISK_CLASS'
-		]).notNull(),
+		/** The section of law transcribed; the hook requires it when `is_statutory`. */
+		authority: text(),
 		rounding: enums(['NONE', 'NEAREST_CENT', 'UP_TO_UNIT', 'TABLE']).notNull(),
 		relief_for: uuid().array().notNull(),
 		sequence: integer().notNull(),
@@ -37,7 +30,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with who pays, its rate bands, how it rounds and which named special rules it implements. Sealed with its version. Source families declare the contribution treatment of their monetary outputs.',
+			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with its rate bands (each band selector and award say what keys it and who pays), how it rounds and which named special rules it implements. Sealed with its version. Source families declare the contribution treatment of their monetary outputs.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

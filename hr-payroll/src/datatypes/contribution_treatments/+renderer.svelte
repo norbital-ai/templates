@@ -34,14 +34,14 @@
 	const COLUMNS = [
 		{
 			key: 'code',
-			label: 'Scheme code',
+			label: t('renderer.contribution_treatments.scheme_code'),
 			field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
 			placeholder: 'EPF',
 			width: 160
 		},
 		{
 			key: 'treatment',
-			label: 'Chargeability',
+			label: t('renderer.contribution_treatments.chargeability'),
 			field: {
 				name: 'treatment',
 				kind: 'enum',
@@ -52,9 +52,9 @@
 		},
 		{
 			key: 'special_rule',
-			label: 'Special rule',
+			label: t('renderer.contribution_treatments.special_rule'),
 			field: { name: 'special_rule', kind: 'text', nullable: true } satisfies CollectionField,
-			placeholder: 'Only when chargeability is special',
+			placeholder: t('renderer.contribution_treatments.special_rule_placeholder'),
 			width: 220
 		}
 	] satisfies readonly MatrixColumn<TreatmentRow>[];

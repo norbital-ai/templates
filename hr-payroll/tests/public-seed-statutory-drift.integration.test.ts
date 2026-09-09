@@ -182,8 +182,8 @@ test(
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }]
 			);
 			await session.query(
-				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, payer, keyed_by, rounding, relief_for, sequence, special_rules, bands)
-				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'BOTH', 'WAGE', 'NEAREST_CENT', '{}', 1, '{}', $3)`,
+				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, rounding, relief_for, sequence, special_rules, bands)
+				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'NEAREST_CENT', '{}', 1, '{}', $3)`,
 				[PUB2_SCHEME_ID, PUB2_ID, [pub2Band]]
 			);
 			const sealedBefore = await session.query(

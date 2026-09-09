@@ -23,22 +23,6 @@
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
-
-	const payerLabel = $derived(
-		record?.payer === 'BOTH' ? 'employee and employer' : (record?.payer?.toLowerCase() ?? 'nobody')
-	);
-	const keyedByLabel = $derived(
-		record?.keyed_by?.toLowerCase().replaceAll('_', ' ') ?? 'nothing yet'
-	);
-	const subtitle = $derived(
-		record == null
-			? undefined
-			: t('component.scheme_subtitle', {
-					payer: payerLabel,
-					step: record.sequence,
-					keyed_by: keyedByLabel
-				})
-	);
 </script>
 
 {#snippet scheme()}
@@ -87,8 +71,6 @@
 					<Grid gap="sm" minimum="compact">
 						<Field name="sequence" label={t('component.order')} />
 						<Field name="rounding" label={t('component.rounding')} />
-						<Field name="payer" label={t('component.paid_by')} />
-						<Field name="keyed_by" label={t('component.bands_keyed_by')} />
 					</Grid>
 				</FormSection>
 
@@ -111,6 +93,7 @@
 								[contribution.code, contribution.name]
 									.filter((part) => part != null && part !== '')
 									.join(' · ') || '—',
+							where: settingsId == null ? undefined : { settings_id: { eq: settingsId } },
 							orderBy: { sequence: 'asc' },
 							limit: 500
 						}}
@@ -125,7 +108,6 @@
 <!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
 <RecordShell
 	title={record ? `${record.code} · ${record.name}` : t('component.create_scheme')}
-	{subtitle}
 	tabs={[
 		{
 			name: 'scheme',

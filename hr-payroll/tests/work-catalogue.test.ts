@@ -38,8 +38,6 @@ test('Contribution consumes Work metadata without decoding overtime labels', asy
 		special_rules: [],
 		relief_for: [],
 		rounding: 'NONE',
-		payer: 'BOTH',
-		keyed_by: 'WAGE',
 		bands: []
 	});
 	for (const key of ['salary', 'overtime', 'overtime_excess', 'absence']) {

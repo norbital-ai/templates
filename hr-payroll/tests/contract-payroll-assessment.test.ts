@@ -45,8 +45,6 @@ function rehireWorld() {
 		name: 'Invented fixed assessment',
 		authority: 'Public regression fixture',
 		is_statutory: true,
-		payer: 'BOTH',
-		keyed_by: 'WAGE',
 		rounding: 'NEAREST_CENT',
 		relief_for: [],
 		sequence: 1,

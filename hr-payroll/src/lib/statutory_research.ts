@@ -311,7 +311,7 @@ export type SealedStatutoryFacts = Readonly<{
 		Readonly<{
 			code: string;
 			name: string;
-			authority: string;
+			authority: string | null;
 			bands: ReadonlyArray<Schema.Schema.Type<typeof rateBandSchema>>;
 		}>
 	>;

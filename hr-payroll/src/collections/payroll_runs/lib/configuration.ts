@@ -241,8 +241,6 @@ export function configurationSnapshot(
 		contributions: configuration.contributions.map((entry) => ({
 			code: entry.row.code,
 			sequence: entry.row.sequence,
-			payer: entry.row.payer,
-			keyed_by: entry.row.keyed_by,
 			rounding: entry.row.rounding,
 			special_rules: [...entry.row.special_rules].toSorted(),
 			relief_for: [...entry.row.relief_for].toSorted(),
