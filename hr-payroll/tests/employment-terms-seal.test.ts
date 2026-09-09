@@ -308,7 +308,10 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 			} as never)
 		);
 	assert.equal(write({ work_date: date }).holiday_id, id(20));
-	assert.equal(write({ break_minutes: 15 }).holiday_id, id(19));
+	// The pin stands while the date publishes the same holiday; a superseded pin (id 19, while
+	// the date now publishes id 21) re-classifies on write — the freeze lives on the holiday
+	// side (no retraction while pinned or captured), not on the day keeping a dead pointer.
+	assert.equal(write({ break_minutes: 15 }).holiday_id, id(21));
 	assert.doesNotThrow(() =>
 		Effect.runSync(workHooks.delete.perRecord.before.handler({ existing, api: workApi } as never))
 	);
