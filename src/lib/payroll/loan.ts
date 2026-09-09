@@ -1,9 +1,17 @@
 import { Effect } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { decodeNumber } from '@norbital-ai/std/json';
-import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
+import type {
+	CatalogueComponent,
+	Configuration
+} from '../../collections/payroll_runs/lib/configuration.js';
+import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
+import { treatmentsInForce } from '../jurisdiction_settings.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 export type Loan = WorkspaceRow<'loans'>;
+/** A loan with the catalogue row it was agreed against — the revision it pins, read at GATHER. */
+export type PreparedLoan = Loan & { readonly catalogueComponent: CatalogueComponent };
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
 /** A loan recovery is always a payroll deduction; the catalogue row does not get to say otherwise. */
 const LOAN_NATURE = 'DEDUCTION' as const;
@@ -32,11 +40,98 @@ type MeasureRecoveryOptions = {
 	readonly consumedRepayments: ReadonlyMap<string, number>;
 };
 
+/**
+ * The pay line a loan is recovered under: its own row, filled from the run's row of the same code.
+ *
+ * A loan pins the `loan_catalogue` row of the version in force the day it was agreed, and sealing
+ * the next version rewrites every catalogue row under a new id (`lib/settings_clone.ts`). So from
+ * that version onward the pinned id is in no run's catalogue and resolving the line by id found
+ * nothing — every remaining instalment was skipped, the balance stayed outstanding forever, and no
+ * payslip line said so. The code is what survives a revision (`settings_id, code` is the
+ * catalogue's unique key), so the code resolves the line.
+ *
+ * The agreed row's own treatment decisions stand — an approved agreement's treatment is history —
+ * and the run's row of the same code fills only the cells a scheme sealed later left it silent
+ * about. That is the same rule money requests and leave charges are charged under; see
+ * `treatmentsInForce`. A code the run's version does not carry at all resolves to nothing, and
+ * `validateLoanRecoveries` refuses the run by name rather than recovering nothing quietly.
+ */
+function loanRecoveryComponent(
+	loan: PreparedLoan,
+	currentByCode: ReadonlyMap<string, CatalogueComponent>
+): CatalogueComponent | null {
+	const source = loan.catalogueComponent;
+	const current = currentByCode.get(source.code);
+	if (current == null) return null;
+	return {
+		...source,
+		contribution_treatments: treatmentsInForce(
+			source.contribution_treatments,
+			current.contribution_treatments
+		)
+	};
+}
+
+/** The run's own loan catalogue, by the key that survives a revision. */
+function loanComponentsByCode(
+	configuration: Configuration
+): ReadonlyMap<string, CatalogueComponent> {
+	return new Map(
+		configuration.catalogueComponents
+			.filter((component) => component.family === 'LOAN')
+			.map((component) => [component.code, component])
+	);
+}
+
+/** The refusal raised when a loan's pay line does not exist in the version the run prices under. */
+const LOAN_COMPONENT_MISSING = 'LOAN_COMPONENT_MISSING' as const;
+
+const loanComponentMissingIssue = (employeeNumber: string, loan: PreparedLoan): RunIssue => ({
+	code: LOAN_COMPONENT_MISSING,
+	message:
+		`${employeeNumber} owes a loan recovered through ${loan.catalogueComponent.code}, which the ` +
+		'settings version this payroll prices under does not carry. Recovering nothing would leave ' +
+		`the balance outstanding with nothing on the payslip saying why. Add ${loan.catalogueComponent.code} ` +
+		'to the version in force, or void the agreement.',
+	collection: 'loan_catalogue',
+	recordId: loan.catalogueComponent.id
+});
+
+/**
+ * Every loan still owed resolves a pay line in the version the run prices under.
+ *
+ * Raised here, ahead of MEASURE, so one run names every person it concerns rather than throwing on
+ * the first. A loan whose instalments are all settled is not judged: there is nothing left to
+ * recover, so nothing the missing line could have under-paid.
+ */
+export function validateLoanRecoveries(options: {
+	readonly configuration: Configuration;
+	readonly bundles: readonly EmploymentBundle[];
+	readonly consumedRepayments: ReadonlyMap<string, number>;
+}): RunIssue[] {
+	const currentByCode = loanComponentsByCode(options.configuration);
+	const issues: RunIssue[] = [];
+	for (const bundle of options.bundles) {
+		// A deferred joining period produces no payslip, so it recovers nothing and blocks nothing.
+		if (bundle.deferral != null) continue;
+		const owed = new Set(
+			bundle.loanRepayments
+				.filter(
+					(repayment) =>
+						repaymentOutstanding(repayment, options.consumedRepayments.get(repayment.id) ?? 0) > 0
+				)
+				.map((repayment) => repayment.loan_id)
+		);
+		for (const loan of bundle.loans)
+			if (owed.has(loan.id) && loanRecoveryComponent(loan, currentByCode) == null)
+				issues.push(loanComponentMissingIssue(bundle.employment.employee_number, loan));
+	}
+	return issues;
+}
+
 export function measureLoanRecoveries(options: MeasureRecoveryOptions): MeasuredAdjustment[] {
 	const recoveries: MeasuredAdjustment[] = [];
-	const componentById = new Map(
-		options.configuration.catalogueComponents.map((component) => [component.id, component])
-	);
+	const currentByCode = loanComponentsByCode(options.configuration);
 	const loanById = new Map(options.bundle.loans.map((loan) => [loan.id, loan]));
 	// In `(due_date, sequence)` order, which is the plan's order and stable for the same rows;
 	// nothing about the money depends on it, but a payslip whose row order moved between two
@@ -46,8 +141,16 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 			String(left.due_date).localeCompare(String(right.due_date)) || left.sequence - right.sequence
 	);
 	for (const repayment of dueRepayments) {
-		const component = componentById.get(loanById.get(repayment.loan_id)?.loan_catalogue_id ?? '');
-		if (component == null) continue;
+		// Present by construction: the bundle's repayments are gathered from these very loans.
+		const loan = loanById.get(repayment.loan_id)!;
+		const component = loanRecoveryComponent(loan, currentByCode);
+		// Unreachable: `validateLoanRecoveries` refuses the run before it is measured. Stated as a
+		// throw rather than a skip because skipping is the defect — a recovery that silently pays
+		// nothing leaves the employee owing money no payslip ever mentions.
+		if (component == null)
+			throw new Error(
+				loanComponentMissingIssue(options.bundle.employment.employee_number, loan).message
+			);
 		if (!isEligible(component.eligibility, options.subject)) continue;
 		const due = dateKey(repayment.due_date) ?? String(repayment.due_date).slice(0, 10);
 		/**
@@ -116,7 +219,18 @@ function assertWithinRepayment(options: RepaymentCeiling): void {
 		throw new Error(repaymentOverRecoveredMessage(consumption));
 }
 
-/** Loan owns its agreements and recovery schedule; no obligation rows are copied into payroll. */
+/**
+ * Loan owns its agreements and recovery schedule; no obligation rows are copied into payroll.
+ *
+ * The agreed catalogue row is read here, beside the loans that pin it, rather than by widening the
+ * run's `prepareLoanCatalogue`: that step resolves the version's own catalogue — one read for every
+ * employment in the company, hashed into the configuration and walked by `validateConfiguration`,
+ * which demands a decided cell for every scheme the run levies. A row sealed under an earlier
+ * version cannot have one for a scheme sealed after it, so pulling pinned rows into the run's
+ * catalogue would refuse exactly the payroll this fixes. A pin is an input fact, and inputs are
+ * gathered here — the same place, and for the same reason, `prepareRequestCatalogues` reads the
+ * revision a money request was raised against.
+ */
 export function prepareLoanPayroll(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly employmentIds: readonly string[];
@@ -127,15 +241,36 @@ export function prepareLoanPayroll(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(rows, 'loans');
-		const loans = live(rows);
-		const repayments =
-			loans.length === 0
-				? []
-				: yield* options.api.db.loan_repayments.findMany({
-						where: { loan_id: { in: loans.map((row) => row.id) } },
-						limit: PAGE_LIMIT
-					});
+		const rawLoans = live(rows);
+		const [catalogueRows, repayments] = yield* Effect.all(
+			[
+				rawLoans.length === 0
+					? Effect.succeed([])
+					: options.api.db.loan_catalogue.findMany({
+							where: {
+								id: { in: [...new Set(rawLoans.map((row) => row.loan_catalogue_id))] },
+								approval_id: { isNull: true }
+							},
+							limit: PAGE_LIMIT
+						}),
+				rawLoans.length === 0
+					? Effect.succeed([])
+					: options.api.db.loan_repayments.findMany({
+							where: { loan_id: { in: rawLoans.map((row) => row.id) } },
+							limit: PAGE_LIMIT
+						})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		options.api.reads.assertComplete(catalogueRows, 'agreed loan catalogue');
 		options.api.reads.assertComplete(repayments, 'loan repayments');
+		const agreedById = new Map(live(catalogueRows).map((row) => [row.id, loanComponent(row)]));
+		const loans = rawLoans.map((loan): PreparedLoan => {
+			const catalogueComponent = agreedById.get(loan.loan_catalogue_id);
+			if (catalogueComponent == null)
+				refuse('A loan must reference an approved row of the loan catalogue it was agreed under.');
+			return { ...loan, catalogueComponent };
+		});
 		return {
 			loansByEmployment: groupBy(loans, (row) => row.employment_id),
 			repaymentsByLoan: groupBy(live(repayments), (row) => row.loan_id)
@@ -166,15 +301,18 @@ export function prepareLoanCatalogue(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(rows, 'loan catalogue');
-		return live(rows).map((row) => ({
-			...row,
-			family: 'LOAN' as const,
-			nature: LOAN_NATURE,
-			settlement: LOAN_SETTLEMENT,
-			definition: { source: 'ENTRY' as const, cap: null }
-		}));
+		return live(rows).map(loanComponent);
 	});
 }
+
+/** One stored catalogue row as the engine's pay line; a loan recovery is never anything else. */
+const loanComponent = (row: WorkspaceRow<'loan_catalogue'>) => ({
+	...row,
+	family: 'LOAN' as const,
+	nature: LOAN_NATURE,
+	settlement: LOAN_SETTLEMENT,
+	definition: { source: 'ENTRY' as const, cap: null }
+});
 export function prepareLoanConsumption(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly payslipIds: readonly string[];
