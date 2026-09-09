@@ -21,6 +21,8 @@ export default defineModel(
 		authority: text(),
 		rounding: enums(['NONE', 'NEAREST_CENT', 'UP_TO_UNIT', 'TABLE']).notNull(),
 		relief_for: uuid().array().notNull(),
+		/** Who the scheme covers at all, as a predicate; empty is everyone. The run skips the rest. */
+		eligibility: text().notNull().default(''),
 		sequence: integer().notNull(),
 		special_rules: text().array().notNull(),
 		/** The ladder: non-overlapping selector → award rungs, sealed with the version. */

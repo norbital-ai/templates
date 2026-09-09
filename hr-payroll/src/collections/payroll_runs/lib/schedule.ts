@@ -19,18 +19,25 @@ import type { Configuration, ShiftDefinition } from './configuration.js';
 import { requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
+import { RULE_DAY_TYPES } from '../../../datatypes/statutory_regime/+definition.js';
+import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+definition.js';
 import type { PayrollWindow } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-const DayTypeSchema = Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY', 'OFF_DAY']);
+const DayTypeSchema = Schema.Literals([...RULE_DAY_TYPES, 'OFF_DAY']);
 export type DayType = Schema.Schema.Type<typeof DayTypeSchema>;
 
-/** The overtime rules are stated for three day types; an off day is priced as an ordinary one. */
-export const RuleDayTypeSchema = Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']);
+/** The overtime rules are stated for four day types; an off day is priced as an ordinary one. */
+export const RuleDayTypeSchema = Schema.Literals(RULE_DAY_TYPES);
 export type RuleDayType = Schema.Schema.Type<typeof RuleDayTypeSchema>;
 
 export function ruleDayType(dayType: DayType): RuleDayType {
 	return dayType === 'OFF_DAY' ? 'ORDINARY' : dayType;
+}
+
+/** PUBLIC and SUBSTITUTE days price on the PUBLIC_HOLIDAY ladder; SPECIAL on its own. */
+function holidayDayType(holiday: Pick<HolidaySnapshot, 'kind'>): RuleDayType {
+	return holiday.kind === 'SPECIAL' ? 'SPECIAL_HOLIDAY' : 'PUBLIC_HOLIDAY';
 }
 
 type ScheduledShift = WorkWindow & {
@@ -136,6 +143,11 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		shift: ScheduledShift | null;
 		normalHours: number;
 	}[] = [];
+	const precedence = options.configuration.holidayRestPrecedence;
+	if (precedence !== 'REST_DAY' && precedence !== 'PUBLIC_HOLIDAY' && precedence !== 'SUBSTITUTE')
+		throw new Error('The Work rules must specify public-holiday/rest-day precedence.');
+	/** Under SUBSTITUTE: holidays that fell on a rest day, waiting for the next working day. */
+	const carried: RuleDayType[] = [];
 
 	for (const date of options.dates) {
 		const terms = options.terms(date);
@@ -155,13 +167,16 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		const baseDayType = dayCode == null ? 'OFF_DAY' : dayTypeFor(dayCode.kind);
 		const holiday = options.configuration.holidays.get(date);
 		// Observed dates come only from the jurisdiction calendar. The pricing rule resolves overlap.
-		let dayType: DayType = holiday ? 'PUBLIC_HOLIDAY' : baseDayType;
+		let dayType: DayType = holiday ? holidayDayType(holiday) : baseDayType;
 		if (holiday && baseDayType === 'REST_DAY') {
-			const precedence = options.configuration.holidayRestPrecedence;
-			if (precedence !== 'REST_DAY' && precedence !== 'PUBLIC_HOLIDAY')
-				throw new Error('The Work rules must specify public-holiday/rest-day precedence.');
-			dayType = precedence;
-		}
+			// SUBSTITUTE: the rest day stays a rest day and the holiday is observed on the next
+			// working day of the window; one that falls past the window is nobody's to observe here.
+			if (precedence === 'SUBSTITUTE') {
+				dayType = 'REST_DAY';
+				carried.push(holidayDayType(holiday));
+			} else dayType = precedence;
+		} else if (!holiday && baseDayType === 'ORDINARY' && carried.length > 0)
+			dayType = carried.shift()!;
 		if (clampStart == null && baseDayType === 'ORDINARY' && assignmentCode?.shift)
 			clampStart = assignmentCode.shift.start_time;
 		pending.push({

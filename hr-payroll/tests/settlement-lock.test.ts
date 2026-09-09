@@ -45,7 +45,7 @@ const JURISDICTION = {
 	code: 'MY',
 	currency: 'MYR',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: { per: 'DAY', divisor: 26 },
+	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 	tax_year_start_month: 1,
 	effective_range: { start: '2020-01-01', end: null }
 };

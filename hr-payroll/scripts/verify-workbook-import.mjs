@@ -203,6 +203,7 @@ function rosterApi(overrides = {}) {
 			jurisdiction_code: 'TEST-JUR',
 			date: row.date,
 			name: 'Fixture holiday',
+			kind: 'PUBLIC',
 			original_date: null,
 			source: null,
 			published_at: '2025-12-01T00:00:00Z',

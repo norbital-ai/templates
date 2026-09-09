@@ -26,11 +26,27 @@ import {
 	selectBand,
 	type BandContext
 } from '../src/collections/payroll_runs/lib/bands.ts';
-import { scaleProgressive } from '../src/collections/payroll_runs/lib/contribute.ts';
+import { contribute, scaleProgressive } from '../src/collections/payroll_runs/lib/contribute.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import type {
 	ContributionConfig,
 	ContributionRate
 } from '../src/collections/payroll_runs/lib/configuration.ts';
+
+/** A person with nothing recorded, and one with a standing a predicate can read. */
+const NOBODY = personContext({
+	employee: null,
+	employment: { hire_date: '' },
+	terms: null,
+	asOf: '2026-03-31'
+});
+const FOREIGNER = personContext({
+	employee: { marital_status: 'MARRIED' },
+	employment: { hire_date: '2024-01-01' },
+	terms: { residency_status: 'FOREIGNER', residency_since: '2025-02-15' },
+	company: { region: 'I' },
+	asOf: '2026-03-31'
+});
 
 const rate = (
 	selector: ContributionRate['selector'],
@@ -48,9 +64,48 @@ const context = (base: number, over: Partial<BandContext> = {}): BandContext => 
 	age: null,
 	headcount: 10,
 	riskClass: null,
-	marital: null,
+	person: NOBODY,
 	...over
 });
+
+/** One scheme as `contribute` reads it: a code, its bands, no special rules. */
+const schemeOf = (
+	code: string,
+	rates: readonly ContributionRate[],
+	row: Record<string, unknown> = {}
+): ContributionConfig =>
+	({
+		row: {
+			id: `id-${code}`,
+			code,
+			rounding: 'NEAREST_CENT',
+			relief_for: [],
+			special_rules: [],
+			eligibility: '',
+			...row
+		},
+		rates
+	}) as unknown as ContributionConfig;
+
+const charge = (
+	schemes: readonly ContributionConfig[],
+	base: number,
+	over: Partial<Parameters<typeof contribute>[0]> = {}
+) =>
+	contribute({
+		bases: schemes.map((contribution) => ({ contribution, base, special: {} })),
+		facts: new Map(),
+		yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
+		age: 40,
+		headcount: 10,
+		riskClass: null,
+		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
+		spouseIsDependent: false,
+		dependents: 0,
+		person: NOBODY,
+		minimumWage: null,
+		...over
+	});
 
 /** Two closed bands and an open terminal one, in the ascending-ceiling order the engine promises. */
 const LADDER = [
@@ -107,13 +162,82 @@ test('a combination no band admits is refused rather than charged on the nearest
 	assert.throws(() => selectBand(aged, context(3000), 'PUB'), /no band for a base of 3000/);
 });
 
-test('a twice-published scale reads an unrecorded marital status on the SINGLE ladder', () => {
+test('a band whose predicate does not hold is skipped before the wage ceiling is read', () => {
+	// A scale published twice, once per marital category, is two predicate ladders over one wage.
 	const scale = [
-		rate({ by: 'WAGE_AND_MARITAL', from: 0, to: null, marital: 'SINGLE' } as never, percent(7, 0)),
-		rate({ by: 'WAGE_AND_MARITAL', from: 0, to: null, marital: 'MARRIED' } as never, percent(4, 0))
-	];
+		{ ...rate(wage(0, null), percent(7, 0)), eligibility: 'employee.marital_status != "MARRIED"' },
+		{ ...rate(wage(0, null), percent(4, 0)), eligibility: 'employee.marital_status == "MARRIED"' }
+	] as ContributionRate[];
 	assert.equal(selectBand(scale, context(3000), 'PUB').award.employee, 7);
-	assert.equal(selectBand(scale, context(3000, { marital: 'MARRIED' }), 'PUB').award.employee, 4);
+	assert.equal(selectBand(scale, context(3000, { person: FOREIGNER }), 'PUB').award.employee, 4);
+	// A residency-year ladder: the first year reads one rate, the second another, everyone else none.
+	const cpf = [
+		{ ...rate(wage(0, null), percent(5, 4)), eligibility: 'employee.residency_months < 12' },
+		{
+			...rate(wage(0, null), percent(15, 9)),
+			eligibility: 'employee.residency_months >= 12 && employee.residency_months < 24'
+		},
+		{ ...rate(wage(0, null), percent(20, 17)), eligibility: 'employee.residency_months >= 24' }
+	] as ContributionRate[];
+	assert.equal(selectBand(cpf, context(3000, { person: FOREIGNER }), 'PUB').award.employee, 15);
+	// Unrecorded standing is zero months: the first-year ladder, never a later one.
+	assert.equal(selectBand(cpf, context(3000), 'PUB').award.employee, 5);
+	assert.throws(() => selectBand(cpf.slice(1), context(3000), 'PUB'), /no band for a base of 3000/);
+});
+
+test('a scheme the person is outside is skipped whole: no charge, no zero row', () => {
+	const fund = schemeOf('FUND', LADDER, { eligibility: 'employee.citizenship != "FOREIGNER"' });
+	const levy = schemeOf('LEVY', [rate(wage(0, null), percent(0, 2))]);
+	const local = charge([fund, levy], 3000);
+	assert.deepEqual(
+		local.map((row) => [row.contribution.row.code, row.employee, row.employer]),
+		[
+			['FUND', 30, 60],
+			['LEVY', 0, 60]
+		]
+	);
+	const foreign = charge([fund, levy], 3000, { person: FOREIGNER });
+	assert.deepEqual(
+		foreign.map((row) => [row.contribution.row.code, row.employee, row.employer]),
+		[['LEVY', 0, 60]]
+	);
+});
+
+test('a PROGRESSIVE band with an employer percentage charges it on the whole wage', () => {
+	// The employee climbs the ladder; the employer pays a flat share of the full base.
+	const graduated = schemeOf(
+		'CPF',
+		[
+			rate(wage(0, 500), { kind: 'PROGRESSIVE', rate: 0, constant: 0, employer: 17 } as never),
+			rate(wage(500, 750), { kind: 'PROGRESSIVE', rate: 60, constant: 0, employer: 17 } as never),
+			rate(wage(750, null), { kind: 'PROGRESSIVE', rate: 20, constant: 150, employer: 17 } as never)
+		],
+		{ special_rules: ['PERIODIC_PROGRESSIVE'] }
+	);
+	const [row] = charge([graduated], 1000);
+	assert.equal(row!.employee, 150 + 250 * 0.2);
+	assert.equal(row!.employer, 170, '17% of the whole 1,000, not of the slice above 750');
+	// Without the member the employer leg stays what it always was: nothing.
+	const employeeOnly = schemeOf(
+		'TAX',
+		[rate(wage(0, null), { kind: 'PROGRESSIVE', rate: 10, constant: 0 } as never)],
+		{ special_rules: ['PERIODIC_PROGRESSIVE'] }
+	);
+	assert.equal(charge([employeeOnly], 1000)[0]!.employer, 0);
+});
+
+test("FLOOR:MINIMUM_WAGE and CAP:MINIMUM_WAGE_X bound the base by the region's wage", () => {
+	const floored = schemeOf('BPJS', LADDER, { special_rules: ['FLOOR:MINIMUM_WAGE'] });
+	const capped = schemeOf('UI', LADDER, { special_rules: ['CAP:MINIMUM_WAGE_X:20'] });
+	// Base 1,000 floored to a 2,500 wage: 1% of 2,500; the band is still chosen on the real base.
+	assert.equal(charge([floored], 1000, { minimumWage: 2500 })[0]!.employee, 25);
+	assert.equal(charge([floored], 4000, { minimumWage: 2500 })[0]!.employee, 120);
+	// Base 100,000 capped at 20 × 2,500 = 50,000, on the terminal band's 5%.
+	assert.equal(charge([capped], 100_000, { minimumWage: 2500 })[0]!.employee, 2500);
+	assert.throws(
+		() => charge([floored], 1000, { minimumWage: null }),
+		/BPJS bounds its base by the regional minimum wage/
+	);
 });
 
 test('a band with no selector or no award stops the run rather than paying nothing', () => {

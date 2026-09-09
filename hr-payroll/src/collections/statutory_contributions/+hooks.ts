@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { refuseUnlessDraftOnBoth } from '../../lib/settings_seal.js';
+import { compileEligibility } from '../payroll_runs/lib/eligibility.js';
 import type { Hooks } from './$types.js';
 
 /**
@@ -16,7 +17,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal. Requires a citation on a statutory scheme.',
+					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal. Requires a citation on a statutory scheme; compiles the scheme and band eligibility predicates.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
@@ -28,6 +29,12 @@ export default {
 						);
 						if (row.is_statutory === true && String(row.authority ?? '').trim() === '')
 							refuse('A statutory scheme cites the section of law it transcribes.');
+						const schemeFault = compileEligibility(row.eligibility);
+						if (schemeFault != null) refuse(`Scheme ${String(row.code ?? '')}: ${schemeFault}`);
+						for (const [index, band] of (row.bands ?? []).entries()) {
+							const fault = compileEligibility(band.eligibility);
+							if (fault != null) refuse(`Band ${index + 1}: ${fault}`);
+						}
 						return input;
 					})
 			}

@@ -20,6 +20,7 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
+	import FormSection from '../../lib/ui/form-section.svelte';
 	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 	import { AS_ASSIGNED_PATTERN } from '../../lib/scheduling/work-pattern.js';
 	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
@@ -262,19 +263,34 @@
 			<Field name="face_enrolled_at" hidden />
 			<Field name="face_last_match_at" hidden />
 			<Field name="face_match_count" hidden />
-			<Grid gap="md" minimum="panel">
-				<Field name="name" />
-				<Field name="email" />
-				<Field name="phone" />
-				<Field name="date_of_birth" label={t('component.date_of_birth')} />
-				<Field name="nationality" />
-				<Field name="identity_number" label={t('component.identity_number')} />
-				<Field name="gender" />
-				<Field name="marital_status" label={t('component.marital_status')} />
-				<Field name="spouse_status" label={t('component.spouse')} />
-				<Field name="dependents_count" label={t('component.dependents')} />
-				<Column span="all"><Field name="address" /></Column>
-			</Grid>
+			<Stack gap="lg">
+				<Grid gap="md" minimum="panel">
+					<Field name="name" />
+					<Field name="email" />
+					<Field name="phone" />
+					<Field name="date_of_birth" label={t('component.date_of_birth')} />
+					<Field name="nationality" />
+					<Field name="identity_number" label={t('component.identity_number')} />
+					<Field name="gender" />
+					<Field name="spouse_status" label={t('component.spouse')} />
+					<Field name="dependents_count" label={t('component.dependents')} />
+					<Column span="all"><Field name="address" /></Column>
+				</Grid>
+				<FormSection title={t('component.standing')} hint={t('component.standing_hint')}>
+					<Grid gap="md" minimum="panel">
+						<Field name="marital_status" label={t('component.marital_status')} />
+						<Field name="solo_parent" label={t('component.solo_parent')} />
+						<Stack gap="xs">
+							<Field name="race" label={t('component.race')} />
+							<p class="text-meta">{t('component.race_religion_hint')}</p>
+						</Stack>
+						<Stack gap="xs">
+							<Field name="religion" label={t('component.religion')} />
+							<p class="text-meta">{t('component.race_religion_hint')}</p>
+						</Stack>
+					</Grid>
+				</FormSection>
+			</Stack>
 		{/snippet}
 	</CollectionForm>
 {/snippet}

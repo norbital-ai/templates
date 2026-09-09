@@ -24,6 +24,8 @@
  * | `TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED` | round a paired total, floor employee, give remainder to employer |
  * | `ADDITIONAL_REMUNERATION`    | the channel a `SPECIAL` grid cell posts a payment into               |
  * | `PERIODIC_PROGRESSIVE`       | apply a period table directly; do not annualise or spread          |
+ * | `FLOOR:MINIMUM_WAGE`         | the chargeable base is at least the company's regional minimum wage |
+ * | `CAP:MINIMUM_WAGE_X:<n>`     | the chargeable base is at most n × that minimum wage               |
  *
  * Reliefs and caps are annual amounts because that is how every tax authority states them. The
  * numbers live on a row; nothing here is a magic constant.
@@ -58,7 +60,11 @@ export const SpecialRulesSchema = Schema.Struct({
 	/** CPF-style paired-share rounding: round the total, floor employee, assign the remainder. */
 	totalRoundedEmployeeFloored: Schema.Boolean,
 	additionalRemuneration: Schema.Boolean,
-	periodicProgressive: Schema.Boolean
+	periodicProgressive: Schema.Boolean,
+	/** Floor the base at the company region's minimum wage (`jurisdiction_settings.minimum_wages`). */
+	minimumWageFloor: Schema.Boolean,
+	/** Cap the base at this many regional minimum wages; `null` is no cap. */
+	minimumWageCapMultiple: Schema.NullOr(Schema.Number)
 });
 export type SpecialRules = Schema.Schema.Type<typeof SpecialRulesSchema>;
 
@@ -74,7 +80,9 @@ const EMPTY: SpecialRules = {
 	roundingChain: [],
 	totalRoundedEmployeeFloored: false,
 	additionalRemuneration: false,
-	periodicProgressive: false
+	periodicProgressive: false,
+	minimumWageFloor: false,
+	minimumWageCapMultiple: null
 };
 
 /** Decoder for one `ROUND:<method>` name, built once and reused per token. */
@@ -142,6 +150,16 @@ export function parseSpecialRules(
 				break;
 			case 'PERIODIC_PROGRESSIVE':
 				parsed = { ...parsed, periodicProgressive: true };
+				break;
+			case 'FLOOR':
+				if (first !== 'MINIMUM_WAGE')
+					throw new Error(`Special rule "${token}" floors on nothing the engine knows.`);
+				parsed = { ...parsed, minimumWageFloor: true };
+				break;
+			case 'CAP':
+				if (first !== 'MINIMUM_WAGE_X')
+					throw new Error(`Special rule "${token}" caps on nothing the engine knows.`);
+				parsed = { ...parsed, minimumWageCapMultiple: amount(token, second) };
 				break;
 			default:
 				throw new Error(

@@ -3,6 +3,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
+	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import SelectorRenderer from '../rate_selector/+renderer.svelte';
 	import AwardRenderer from '../rate_award/+renderer.svelte';
@@ -21,6 +22,16 @@
 	}
 	function edit(index: number, change: Partial<Value[number]>): void {
 		emit(rows.map((row, position) => (position === index ? { ...row, ...change } : row)));
+	}
+	/** Empty is everyone, and is stored as no key at all. */
+	function editEligibility(index: number, eligibility: string): void {
+		emit(
+			rows.map((row, position) => {
+				if (position !== index) return row;
+				const { eligibility: _previous, ...rest } = row;
+				return eligibility.trim() === '' ? rest : { ...rest, eligibility };
+			})
+		);
 	}
 	const selectorField = { name: 'selector', type: 'custom' };
 	const awardField = { name: 'award', type: 'custom' };
@@ -53,6 +64,17 @@
 						}}
 					/>
 				</Grid>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('component.band_eligibility')}
+						<Input
+							value={row.eligibility ?? ''}
+							{disabled}
+							placeholder={'employee.citizenship == "FOREIGNER"'}
+							oninput={(event) => editEligibility(index, event.currentTarget.value)}
+						/>
+					</Stack>
+				</label>
 				<Cluster
 					><Button
 						variant="ghost"

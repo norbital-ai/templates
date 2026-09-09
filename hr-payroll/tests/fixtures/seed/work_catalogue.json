@@ -5,10 +5,13 @@
 		"proration": {
 			"by": "CALENDAR_DAYS"
 		},
-		"ordinary_rate": {
-			"per": "DAY",
-			"divisor": 26
-		},
+		"ordinary_rate": [
+			{
+				"eligibility": "",
+				"per": "DAY",
+				"divisor": 26
+			}
+		],
 		"regime": {
 			"overtime_coverage": null,
 			"overtime_rules": [

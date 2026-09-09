@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "1796d093-7402-40ce-abf1-c7f284ef0ba4",
+  "id": "716d292c-b4a9-4760-98cd-a903d0dd9717",
   "prevIds": [
-    "8fcb6295-db68-43ec-b5b5-db445f345bd7"
+    "a33c7ca6-9c77-4059-b6ba-960a728f58f5"
   ],
   "version": "8",
   "ddl": [
@@ -1159,6 +1159,19 @@
       "table": "companies"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "region",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
@@ -1313,6 +1326,45 @@
       "generated": null,
       "identity": null,
       "name": "marital_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "solo_parent",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "race",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "religion",
       "entityType": "columns",
       "schema": "public",
       "table": "employees"
@@ -1803,6 +1855,19 @@
       "generated": null,
       "identity": null,
       "name": "residency_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "residency_since",
       "entityType": "columns",
       "schema": "public",
       "table": "employment_terms"
@@ -2324,6 +2389,19 @@
       "table": "jurisdiction_holidays"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PUBLIC'",
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
+    },
+    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
@@ -2621,6 +2699,19 @@
       "generated": null,
       "identity": null,
       "name": "holiday_source",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_settings"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "minimum_wages",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_settings"
@@ -5521,6 +5612,19 @@
       "generated": null,
       "identity": null,
       "name": "relief_for",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "eligibility",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"

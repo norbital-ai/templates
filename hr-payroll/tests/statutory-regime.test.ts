@@ -71,13 +71,13 @@ test('the PAID configuration snapshot retains the exact regime revision', () => 
 			},
 			work: {
 				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: { per: 'DAY', divisor: 26 },
+				ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 				regime: value
 			},
 			jurisdiction: {
 				id: 'jurisdiction-my-2026',
 				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: { per: 'DAY', divisor: 26 },
+				ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 				tax_year_start_month: 1,
 				effective_range: { start: '2026-01-01', end: null },
 				regime: value

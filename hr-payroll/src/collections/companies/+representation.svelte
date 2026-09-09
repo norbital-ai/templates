@@ -79,6 +79,10 @@
 						/>
 						<p class="text-meta">{t('component.settings_lineage_hint')}</p>
 					</Stack>
+					<Stack gap="xs">
+						<Field name="region" label={t('component.region')} />
+						<p class="text-meta">{t('component.region_hint')}</p>
+					</Stack>
 					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
 					<Field name="pay_frequency" label={t('component.pay_frequency')} />
 					<Field

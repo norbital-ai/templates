@@ -100,7 +100,8 @@ export function prepareLeavePayroll(options: {
 							employment,
 							terms: term,
 							asOf: charge.date,
-							children: childrenOn(employment.children, charge.date)
+							children: childrenOn(employment.children, charge.date),
+							company
 						})
 					);
 				}

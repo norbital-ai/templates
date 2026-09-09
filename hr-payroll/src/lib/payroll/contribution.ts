@@ -96,7 +96,11 @@ export function assessContributions(
 		});
 		const charges = contribute({ ...input, bases });
 		for (const contract of ordered) result.set(contract.employment.id, []);
-		for (const [index, charge] of charges.entries()) {
+		// By scheme, not by position: a scheme the person is outside produced no charge at all.
+		for (const charge of charges) {
+			const index = input.bases.findIndex(
+				(base) => base.contribution.row.id === charge.contribution.row.id
+			);
 			const parts = ordered.map((contract) => contract.calculation.bases[index]!);
 			const weights = parts.map((part) =>
 				Math.max(
@@ -140,6 +144,7 @@ import { bandAgeFloor, bandCeiling } from '../../collections/payroll_runs/lib/ba
 import { accumulateBases } from '../../collections/payroll_runs/lib/accumulate.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
+import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import type { MeasuredEmployment } from './family.js';
 function bandOrder(left: ContributionRate, right: ContributionRate): number {
 	const ceiling = (rate: ContributionRate): number =>
@@ -209,6 +214,16 @@ export function contributionYearToDate(options: {
 	return totals;
 }
 
+/** The company region's minimum wage under the version in force, or null where none is stated. */
+function regionalMinimumWage(
+	configuration: Pick<Configuration, 'company' | 'jurisdiction'>
+): number | null {
+	const region = configuration.company.region;
+	if (region == null || region === '') return null;
+	const wage = configuration.jurisdiction.minimum_wages?.[region];
+	return wage == null ? null : decodeNumber(wage);
+}
+
 export function prepareContributionAssessment(options: {
 	readonly measured: MeasuredEmployment;
 	readonly configuration: Configuration;
@@ -249,7 +264,19 @@ export function prepareContributionAssessment(options: {
 			riskClass: configuration.company.risk_class,
 			projection,
 			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
-			dependents: decodeNumber(bundle.employee.dependents_count ?? 0)
+			dependents: decodeNumber(bundle.employee.dependents_count ?? 0),
+			person: personContext({
+				employee: bundle.employee,
+				employment: bundle.employment,
+				terms:
+					bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
+					bundle.terms.at(-1) ??
+					null,
+				children: bundle.children,
+				company: configuration.company,
+				asOf
+			}),
+			minimumWage: regionalMinimumWage(configuration)
 		}
 	};
 }

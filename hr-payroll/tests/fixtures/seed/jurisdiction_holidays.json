@@ -4,6 +4,7 @@
 		"jurisdiction_code": "TEST-JUR",
 		"date": "2026-12-25",
 		"name": "Fixture holiday",
+		"kind": "PUBLIC",
 		"original_date": null,
 		"source": "Synthetic fixture",
 		"published_at": null,

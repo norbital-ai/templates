@@ -59,10 +59,16 @@ obligation to a rehire contract or combine two entities' payouts. Contribution m
 person's settled amounts across contracts within the same entity/year when its scheme requires it;
 that does not merge their leave balances or source obligations.
 
-Jurisdiction-relative residency status belongs to effective employment terms. Move an existing
-status only when its contract's jurisdiction is evidenced; a profile shared across jurisdictions
-must not propagate one global status to every contract. Unknown remains unknown and does not
-satisfy citizenship eligibility.
+Jurisdiction-relative residency status belongs to effective employment terms, with the day that
+standing began (`residency_since`). Move an existing status only when its contract's jurisdiction
+is evidenced; a profile shared across jurisdictions must not propagate one global status to every
+contract. Unknown remains unknown and does not satisfy citizenship eligibility.
+
+The predicate facts a statute keys on are columns: `employees.marital_status` (`SINGLE` or
+`MARRIED`), `employees.solo_parent`, `employees.race` and `employees.religion` (only where a fund is
+selected by them), `employment_terms.residency_since`, and `companies.region`, which names the row of
+`jurisdiction_settings.minimum_wages` a scheme's floor or cap reads. A fact that is unrecorded is
+never inferred from another.
 
 The first committed reference seals the contract, and the consumers themselves are the evidence:
 actual Work dates, approved Leave charges or debit valuations and each payslip's `terms_through`
@@ -81,7 +87,7 @@ departure reason remains unresolved.
 | Allowance    | Allowance catalogue and approved awards or recurring assignments                                                                             | Preserve recurrence, amount and the original eligibility window                                     |
 | Payment      | Payment catalogue and approved one-off payments or deductions                                                                                | Preserve source and catalogue IDs, entered amount, effective date, reason and any covered periods   |
 | Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                              | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
-| Contribution | Scheme catalogues, rates and contract facts                                                                                                  | Preserve effective applicability and the explicit treatments declared by source-family outputs      |
+| Contribution | Scheme catalogues, rates, their predicates and contract facts                                                                                | Preserve effective applicability and the explicit treatments declared by source-family outputs      |
 
 Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
 claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and
@@ -110,7 +116,8 @@ can change within a year. Distinguish missing policy on an actual activity date 
 future year-end valuation. Do not invent opening adjustments or carry-forward credits merely to
 make an old usage total fit a formula.
 
-Holidays are standalone jurisdiction rows, one per observed day, each published on its own.
+Holidays are standalone jurisdiction rows, one per observed day, each published on its own, with a
+`kind` (`PUBLIC`, `SPECIAL`, `SUBSTITUTE`) the run classifies the day by and freezes with it.
 Company closures and personal roster labels do not establish jurisdiction-observed holidays.
 Imported rows keep their provenance and arrive unpublished; every bank holiday is unpublished
 pending review, and an unpublished holiday is not observed anywhere.

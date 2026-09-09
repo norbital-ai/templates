@@ -180,6 +180,7 @@
 		{#snippet columns({ Column })}
 			<Column name="date" label={t('component.observed_on')} card="title" />
 			<Column name="name" label={t('component.holiday')} card="subtitle" />
+			<Column name="kind" label={t('holiday_calendar.kind')} />
 			<Column name="original_date" label={t('holiday_calendar.original_date')} />
 			<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
 			<Column name="consumed_at" label={t('holiday_calendar.consumed_at')} card="badge" />

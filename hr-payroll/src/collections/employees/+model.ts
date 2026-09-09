@@ -1,4 +1,5 @@
 import {
+	boolean,
 	defineModel,
 	enums,
 	file,
@@ -16,7 +17,13 @@ export default defineModel(
 		name: text({ search: true }).notNull(),
 		date_of_birth: instant({ precision: 'day' }),
 		gender: enums(['MALE', 'FEMALE']),
-		marital_status: enums(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED']),
+		/** Standing a statutory band or leave may key on (`employee.marital_status`); null is unrecorded. */
+		marital_status: enums(['SINGLE', 'MARRIED']),
+		/** A solo parent under a statute that names one (PH RA 8972); `employee.solo_parent`. */
+		solo_parent: boolean().notNull().default(false),
+		/** Only where a statutory fund is selected by it (SG's SHG funds); `employee.race`, `employee.religion`. */
+		race: text(),
+		religion: text(),
 		/**
 		 * Whether the employee has a spouse, and whether that spouse has total income of their own.
 		 *

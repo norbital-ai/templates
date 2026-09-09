@@ -128,7 +128,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				id: BASIC_ID,
 				settings_id: JURISDICTION_ID,
 				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: { per: 'DAY', divisor: 26 },
+				ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 				regime: REGIME,
 				treatments: {},
 				authority: null,

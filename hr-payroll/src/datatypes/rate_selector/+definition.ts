@@ -19,23 +19,6 @@ export const rateSelectorValueSchema = Schema.Union([
 		age_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 		age_to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
 	}),
-	/**
-	 * A wage ladder that a jurisdiction publishes twice, once per marital category — Malaysia's
-	 * MTD Category 1 and Category 2 are the same scale with a larger s.6D rebate folded into
-	 * Category 2's constants. It is the marital sibling of `WAGE_AND_AGE`: the category filters
-	 * first, then the wage ceiling picks a row from what survives.
-	 *
-	 * `marital` names the CATEGORY, not the employee's civil status. `MARRIED` is the category for
-	 * a taxpayer who carries a spouse — one who exists and has no total income of their own — and
-	 * `SINGLE` is the category for everyone else, including a married taxpayer whose spouse earns.
-	 * It is chosen from `employees.spouse_status`, which is the question the statute asks.
-	 */
-	Schema.Struct({
-		by: Schema.Literal('WAGE_AND_MARITAL'),
-		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
-		marital: Schema.Literals(['SINGLE', 'MARRIED'])
-	}),
 	Schema.Struct({
 		by: Schema.Literal('HEADCOUNT'),
 		from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
@@ -70,6 +53,6 @@ export const rateSelectorSchema = Schema.toStandardSchemaV1(rateSelectorValueSch
 export default defineCustomType({
 	name: 'rate_selector',
 	description:
-		'Which row of a statutory contribution table a rate applies to, keyed by wage, wage and age, wage and marital category, headcount, or risk class.',
+		'Which row of a statutory contribution table a rate applies to, keyed by wage, wage and age, headcount, or risk class. A scale published per marital category is two bands with an eligibility predicate each.',
 	schema: rateSelectorSchema
 });

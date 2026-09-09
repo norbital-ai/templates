@@ -12,7 +12,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import FormSection from '../../lib/ui/form-section.svelte';
@@ -61,6 +61,16 @@
 						<Field name="name" label={t('component.name')} />
 						<Field name="is_statutory" label={t('component.is_statutory')} />
 						<Field name="authority" label={t('component.authority')} />
+						<Column span="all">
+							<Stack gap="xs">
+								<Field
+									name="eligibility"
+									label={t('component.who_receives')}
+									placeholder={'employee.citizenship != "FOREIGNER"'}
+								/>
+								<p class="text-meta">{t('component.scheme_eligibility_hint')}</p>
+							</Stack>
+						</Column>
 					</Grid>
 				</FormSection>
 

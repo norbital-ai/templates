@@ -39,7 +39,9 @@ const ReportLineSchema = Schema.Struct({
 	isClaim: Schema.Boolean,
 	isLoanInstalment: Schema.Boolean,
 	/** Derived overtime lines carry the day type of the statutory band that priced them. */
-	overtimeDayType: Schema.NullOr(Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY'])),
+	overtimeDayType: Schema.NullOr(
+		Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])
+	),
 	isOvertimeExcess: Schema.Boolean
 });
 export type ReportLine = Schema.Schema.Type<typeof ReportLineSchema>;

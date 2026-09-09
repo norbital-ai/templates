@@ -39,6 +39,7 @@
 						readonly={consumed}
 					/>
 					<Field name="date" label={t('component.observed_on')} readonly={consumed} />
+					<Field name="kind" label={t('holiday_calendar.kind')} readonly={consumed} />
 					<Column span="all"
 						><Field name="name" label={t('component.holiday')} readonly={consumed} /></Column
 					>

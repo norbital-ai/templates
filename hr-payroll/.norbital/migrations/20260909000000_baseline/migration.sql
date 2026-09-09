@@ -90,6 +90,7 @@ CREATE TABLE "companies" (
 	"pay_cutoff_day" integer NOT NULL,
 	"pay_frequency" text DEFAULT 'MONTHLY' NOT NULL,
 	"risk_class" text,
+	"region" text,
 	"effective_range" jsonb NOT NULL
 );
 
@@ -106,6 +107,9 @@ CREATE TABLE "employees" (
 	"date_of_birth" timestamp with time zone,
 	"gender" text,
 	"marital_status" text,
+	"solo_parent" boolean DEFAULT false NOT NULL,
+	"race" text,
+	"religion" text,
 	"spouse_status" text,
 	"nationality" text,
 	"identity_number" text,
@@ -159,6 +163,7 @@ CREATE TABLE "employment_terms" (
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce((COALESCE(job_title || ' · ', '') || employment_type), ''))) STORED,
 	"employment_id" uuid NOT NULL,
 	"residency_status" text,
+	"residency_since" timestamp with time zone,
 	"base_salary" jsonb NOT NULL,
 	"pay_frequency" text NOT NULL,
 	"work_classification" text NOT NULL,
@@ -206,6 +211,7 @@ CREATE TABLE "jurisdiction_holidays" (
 	"jurisdiction_code" text NOT NULL,
 	"date" timestamp with time zone NOT NULL,
 	"name" text NOT NULL,
+	"kind" text DEFAULT 'PUBLIC' NOT NULL,
 	"original_date" timestamp with time zone,
 	"source" text,
 	"published_at" timestamp with time zone,
@@ -233,6 +239,7 @@ CREATE TABLE "jurisdiction_settings" (
 	"research_urls" text[],
 	"research_notes" jsonb,
 	"holiday_source" jsonb,
+	"minimum_wages" jsonb,
 	"effective_range" jsonb NOT NULL
 );
 
@@ -511,6 +518,7 @@ CREATE TABLE "statutory_contributions" (
 	"authority" text,
 	"rounding" text NOT NULL,
 	"relief_for" uuid[] NOT NULL,
+	"eligibility" text DEFAULT '' NOT NULL,
 	"sequence" integer NOT NULL,
 	"special_rules" text[] NOT NULL,
 	"bands" jsonb DEFAULT '[]' NOT NULL

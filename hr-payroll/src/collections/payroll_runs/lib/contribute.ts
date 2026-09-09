@@ -5,11 +5,15 @@
  * produced the base.
  *
  * ```
- * 1  SELECT BAND   by statutory_contributions.bands[].selector — bands.ts
+ * 0  COVER         statutory_contributions.eligibility: a scheme the person is outside is skipped
+ * 1  SELECT BAND   by statutory_contributions.bands[].selector and eligibility — bands.ts
  * 2  APPLY AWARD   PERCENT · FIXED · PROGRESSIVE, or an employment's explicit flat override
  * 3  ROUND         contribution.rounding, or a ROUND: chain, never a formula
  * 4  GATE          employment_statutory_facts: NOT_REGISTERED pays nothing
  * ```
+ *
+ * A skipped scheme produces no charge at all — not a zero one — so it neither appears on the
+ * payslip nor feeds a relief pool.
  *
  * Schemes run in `sequence` order, so a scheme that is a relief inside another has already produced
  * its number when that other one reads it. `relief_for` says *this scheme's employee share is a
@@ -36,6 +40,7 @@ import { Number as EffectNumber, Option, Schema } from 'effect';
 import { bandFloor, bandReference, selectBand, type BandContext } from './bands.js';
 import type { ContributionConfig } from './configuration.js';
 import type { ContributionBase } from './accumulate.js';
+import { isEligible, type PersonContext } from './eligibility.js';
 import type { PayProjection } from './period.js';
 import { roundMoney, RoundingMethodSchema, type RoundingMethod } from './rounding.js';
 import {
@@ -80,6 +85,10 @@ type ContributeInput = {
 	 */
 	readonly spouseIsDependent: boolean;
 	readonly dependents: number;
+	/** The person, as a scheme's or band's eligibility predicate sees them. */
+	readonly person: PersonContext;
+	/** The company region's minimum wage, or null where the version states none for it. */
+	readonly minimumWage: number | null;
 };
 
 /**
@@ -128,7 +137,29 @@ function roundContributionShares(
 	};
 }
 
-/** `constant + (value − band_from) × rate%`, over the scheme's own bands. */
+/**
+ * `FLOOR:MINIMUM_WAGE` and `CAP:MINIMUM_WAGE_X:<n>`: the chargeable base bounded by the company
+ * region's minimum wage. A rule that names a wage the version does not state for the region stops
+ * the run rather than charging on an unbounded base.
+ */
+function minimumWageBounds(
+	base: number,
+	rules: SpecialRules,
+	minimumWage: number | null,
+	code: string
+): number {
+	if (!rules.minimumWageFloor && rules.minimumWageCapMultiple == null) return base;
+	if (minimumWage == null)
+		refuse(
+			`${code} bounds its base by the regional minimum wage, but the company's region has none in ` +
+				'this settings version. Set companies.region and jurisdiction_settings.minimum_wages.'
+		);
+	let bounded = base;
+	if (rules.minimumWageFloor) bounded = Math.max(bounded, minimumWage);
+	if (rules.minimumWageCapMultiple != null)
+		bounded = Math.min(bounded, rules.minimumWageCapMultiple * minimumWage);
+	return bounded;
+}
 
 /** Everything one scheme produced, so the schemes that read it can find it. */
 const ProducedSchema = Schema.Struct({
@@ -146,6 +177,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		const contribution = entry.contribution;
 		const code = contribution.row.code;
 		const rules = parseSpecialRules(contribution.row.special_rules, code);
+		if (!isEligible(contribution.row.eligibility, input.person)) continue;
 		const status = input.facts.get(contribution.row.id);
 
 		// Whether a scheme charges at all: an unregistered employment contributes nothing, and
@@ -174,10 +206,15 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			age: input.age,
 			headcount: input.headcount,
 			riskClass: input.riskClass,
-			marital: input.spouseIsDependent ? 'MARRIED' : 'SINGLE'
+			person: input.person
 		};
 		const band = selectBand(contribution.rates, context, code);
-		const awardBase = bracketBase(entry.base, rules.bracketSteps);
+		const awardBase = minimumWageBounds(
+			bracketBase(entry.base, rules.bracketSteps),
+			rules,
+			input.minimumWage,
+			code
+		);
 		const chain = roundingFor(contribution, rules);
 		const hasFlatOverride = status?.kind === 'REGISTERED' && status.rate_override != null;
 
@@ -212,7 +249,12 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				employee = hasFlatOverride
 					? applyRounding(entry.base * asFraction(status.rate_override), chain)
 					: progressiveWithholding({ entry, contribution, rules, input, produced, chain });
-				employer = 0;
+				// The employer leg of a graduated scheme is a percentage of the whole chargeable wage,
+				// read off the band the wage itself selected — never a slice of the ladder.
+				employer =
+					band.award.employer == null
+						? 0
+						: applyRounding(awardBase * asFraction(band.award.employer), chain);
 				break;
 		}
 
@@ -297,7 +339,7 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 			age: input.age,
 			headcount: input.headcount,
 			riskClass: input.riskClass,
-			marital: input.spouseIsDependent ? 'MARRIED' : 'SINGLE'
+			person: input.person
 		};
 		const regular = applyRounding(
 			scaleProgressive(contribution, chargeable, context),
@@ -352,7 +394,7 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 		age: input.age,
 		headcount: input.headcount,
 		riskClass: input.riskClass,
-		marital: input.spouseIsDependent ? 'MARRIED' : 'SINGLE'
+		person: input.person
 	};
 	const annualTax = scaleProgressive(contribution, chargeable, bandContext);
 	const alreadyWithheld = input.yearToDate(code).employee;

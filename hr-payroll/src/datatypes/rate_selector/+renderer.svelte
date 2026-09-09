@@ -16,11 +16,6 @@
 	const KEY_OPTIONS: { value: SelectorKey; label: string; description: string }[] = [
 		{ value: 'WAGE', label: 'Wage band', description: 'Matched on the contribution base' },
 		{ value: 'WAGE_AND_AGE', label: 'Wage and age', description: 'Base plus employee age' },
-		{
-			value: 'WAGE_AND_MARITAL',
-			label: 'Wage and marital status',
-			description: 'Base plus the category the scale is published for'
-		},
 		{ value: 'HEADCOUNT', label: 'Headcount band', description: 'Matched on company headcount' },
 		{ value: 'RISK_CLASS', label: 'Risk class', description: 'Matched on the company risk class' }
 	];
@@ -35,7 +30,6 @@
 		const range = `${current.from} – ${current.to ?? '∞'}`;
 		if (current.by === 'WAGE') return `Wage ${range}`;
 		if (current.by === 'HEADCOUNT') return `Headcount ${range}`;
-		if (current.by === 'WAGE_AND_MARITAL') return `Wage ${range}, ${current.marital.toLowerCase()}`;
 		return `Wage ${range}, age ${current.age_from} – ${current.age_to ?? '∞'}`;
 	});
 
@@ -49,8 +43,6 @@
 				return { by: 'WAGE', from: 0, to: null };
 			case 'WAGE_AND_AGE':
 				return { by: 'WAGE_AND_AGE', from: 0, to: null, age_from: 0, age_to: null };
-			case 'WAGE_AND_MARITAL':
-				return { by: 'WAGE_AND_MARITAL', from: 0, to: null, marital: 'SINGLE' };
 			case 'HEADCOUNT':
 				return { by: 'HEADCOUNT', from: 0, to: null };
 			case 'RISK_CLASS':
@@ -169,60 +161,6 @@
 						{disabled}
 						oninput={(event) =>
 							emit({ ...current, age_to: nullableNumberFrom(event.currentTarget.value) })}
-					/>
-				</Stack>
-			</label>
-		{:else if current?.by === 'WAGE_AND_MARITAL'}
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Wage from
-					<Input
-						type="number"
-						min="0"
-						step="0.01"
-						value={current.from}
-						{disabled}
-						oninput={(event) =>
-							emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
-					/>
-				</Stack>
-			</label>
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Wage to (blank = open ended)
-					<Input
-						type="number"
-						min="0"
-						step="0.01"
-						value={current.to ?? ''}
-						{disabled}
-						oninput={(event) =>
-							emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
-					/>
-				</Stack>
-			</label>
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Marital category
-					<Combobox
-						options={[
-							{
-								value: 'SINGLE',
-								label: 'No dependent spouse',
-								description: 'Unmarried, or married to a spouse who has income'
-							},
-							{
-								value: 'MARRIED',
-								label: 'Dependent spouse',
-								description: 'Married to a spouse who has no income of their own'
-							}
-						]}
-						value={current.marital}
-						{disabled}
-						searchable={false}
-						emptyPlaceholder={t('renderer.rate_selector.select_category')}
-						onValueChange={(next) =>
-							emit({ ...current, marital: next === 'MARRIED' ? 'MARRIED' : 'SINGLE' })}
 					/>
 				</Stack>
 			</label>

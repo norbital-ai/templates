@@ -2,9 +2,9 @@
  * The person a claim's entitlement ceiling is read against, at write time.
  *
  * An entitlement band is gated by an `eligibility` expression over the person — grade, department,
- * service, children — so the ceiling is not a property of the component alone. MEASURE builds this
- * context from the bundle it already gathered; a write hook has to read it, and reads exactly the
- * four things `personContext` consumes and nothing else.
+ * service, children, the company's region — so the ceiling is not a property of the component
+ * alone. MEASURE builds this context from the bundle it already gathered; a write hook has to read
+ * it, and reads exactly the five things `personContext` consumes and nothing else.
  *
  * `null` means the employment is not on file, which is a different refusal made elsewhere: this
  * function's absence of an answer must not become a silent absence of a cap.
@@ -52,6 +52,9 @@ export function capSubject(
 			readonly employment_terms: {
 				readonly findMany: (input: unknown) => Effect.Effect<readonly Record<string, unknown>[]>;
 			};
+			readonly companies: {
+				readonly findFirst: (input: unknown) => Effect.Effect<Record<string, unknown> | undefined>;
+			};
 		};
 	},
 	employmentId: string,
@@ -63,6 +66,7 @@ export function capSubject(
 			columns: {
 				id: true,
 				employee_id: true,
+				company_id: true,
 				employee_number: true,
 				hire_date: true,
 				effective_range: true,
@@ -73,19 +77,27 @@ export function capSubject(
 		});
 		if (employment == null) return null;
 		const contract = resolveEmployment(employment as Parameters<typeof resolveEmployment>[0]);
-		const [employee, terms] = yield* Effect.all(
+		const [employee, terms, company] = yield* Effect.all(
 			[
 				api.db.employees.findFirst({
 					where: { id: { eq: String(employment.employee_id) } },
 					columns: {
 						gender: true,
 						date_of_birth: true,
-						nationality: true
+						nationality: true,
+						marital_status: true,
+						solo_parent: true,
+						race: true,
+						religion: true
 					}
 				}),
 				api.db.employment_terms.findMany({
 					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
 					limit: LIMIT
+				}),
+				api.db.companies.findFirst({
+					where: { id: { eq: String(employment.company_id) } },
+					columns: { region: true }
 				})
 			],
 			{ concurrency: 'unbounded' }
@@ -105,6 +117,7 @@ export function capSubject(
 					(employment.children ?? []) as WorkspaceRow<'employments'>['children'],
 					date
 				),
+				company: company as never,
 				asOf: date
 			});
 		return {

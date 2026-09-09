@@ -8,8 +8,10 @@ import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather
 import {
 	inclusiveDays,
 	monthDays,
+	periodMonth,
 	requiredDateKey
 } from '../../collections/payroll_runs/lib/dates.js';
+import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { type PayCadence } from '../../collections/payroll_runs/lib/period.js';
@@ -107,6 +109,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			employment: bundle.employment,
 			terms: finalTerms,
 			children: bundle.children,
+			company: configuration.company,
 			asOf: finalDate
 		});
 		const facts: Record<string, string | number | boolean> = {};
@@ -159,11 +162,12 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				periods_remaining: options.periodsRemaining,
 				pay_fraction: 0
 			},
+			// An ended contract earns no rate this period, so its ordinary rate is not resolved.
 			jurisdiction: {
 				code: configuration.jurisdiction.code,
 				currency,
-				ordinary_rate_per: configuration.work.ordinary_rate?.per ?? '',
-				ordinary_rate_divisor: decodeNumber(configuration.work.ordinary_rate?.divisor)
+				ordinary_rate_per: '',
+				ordinary_rate_divisor: 0
 			}
 		});
 		for (const step of prepareMoneySteps({
@@ -366,8 +370,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		jurisdiction: {
 			code: configuration.jurisdiction.code,
 			currency: configuration.jurisdiction.currency,
-			ordinary_rate_per: configuration.work.ordinary_rate?.per ?? '',
-			ordinary_rate_divisor: decodeNumber(configuration.work.ordinary_rate?.divisor)
+			ordinary_rate_per: work.ordinaryRate.per,
+			ordinary_rate_divisor: work.ordinaryRate.divisor
 		}
 	});
 
@@ -701,6 +705,8 @@ export function prepareFamilyInputs(
 export function prepareFamilyHistory(
 	options: Parameters<typeof contributionYearToDate>[0] & {
 		readonly api: PayrollReadApi & { readonly reads: ReadLog };
+		/** run id → its period, so a settled payslip's overtime lands in a calendar month. */
+		readonly periodByRun: ReadonlyMap<string, string>;
 	}
 ) {
 	return Effect.gen(function* () {
@@ -709,8 +715,45 @@ export function prepareFamilyHistory(
 			[prepareMoneyConsumption(scope), prepareLoanConsumption(scope)],
 			{ concurrency: 'unbounded' }
 		);
-		return { yearToDate: contributionYearToDate(options), consumedEntries, consumedRepayments };
+		return {
+			yearToDate: contributionYearToDate(options),
+			priorOvertimeHours: priorOvertimeHours(options),
+			consumedEntries,
+			consumedRepayments
+		};
 	});
+}
+
+/**
+ * Regulated overtime hours earlier PAID payslips settled: employee id → calendar month → hours.
+ * Regulated is ordinary/off-day overtime, statutory or excess — the same counter the monthly
+ * ceiling reads — identified by the band code the line carries (`OT_ORDINARY_…`,
+ * `OT_EXCESS_ORDINARY_…`). Rest-day and holiday work is outside every hours ceiling.
+ */
+function priorOvertimeHours(options: {
+	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	readonly employmentToEmployee: ReadonlyMap<string, string>;
+	readonly periodByRun: ReadonlyMap<string, string>;
+}): Map<string, Map<string, number>> {
+	const hours = new Map<string, Map<string, number>>();
+	for (const payslip of options.payslips) {
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		const period = options.periodByRun.get(payslip.payroll_run_id);
+		if (employeeId == null || period == null) continue;
+		const month = periodMonth(period);
+		for (const line of payslip.adjustments) {
+			const key = line.statutory_rule_key ?? '';
+			if (
+				line.family !== 'WORK_DAY' ||
+				!(key.startsWith('OT_ORDINARY_') || key.startsWith('OT_EXCESS_ORDINARY_'))
+			)
+				continue;
+			const byMonth = hours.get(employeeId) ?? new Map<string, number>();
+			byMonth.set(month, (byMonth.get(month) ?? 0) + decodeNumber(line.quantity ?? 0));
+			hours.set(employeeId, byMonth);
+		}
+	}
+	return hours;
 }
 
 import { sha256Json } from '@norbital-ai/std/reckon';
@@ -851,7 +894,13 @@ export function calculateFamilyAssessments(options: {
 			consumedRepayments: gathered.consumedRepayments
 		});
 
-		issues.push(...validateWorkResult({ configuration, measured }));
+		issues.push(
+			...validateWorkResult({
+				configuration,
+				measured,
+				priorOvertimeHours: gathered.priorOvertimeHours.get(bundle.employment.employee_id)
+			})
+		);
 
 		measuredRuns.push({
 			measured,
