@@ -619,6 +619,10 @@ const verifyTemplates = (filter?: string): void => {
 			const artifact = path.join(destination, '.norbital', 'artifact', 'bundle.mjs');
 			if (!existsSync(artifact)) fail(`${template.slug} bolt sync emitted no ${artifact}.`);
 			pnpm('lint', ['lint']);
+			// The suite runs here rather than only on a developer's machine: a projection installs the
+			// published packages a tenant installs, so this is the one place a test proves the template
+			// against what actually ships. A red unit test used to reach main unnoticed.
+			pnpm('test', ['test']);
 			console.log(`Validated clean standalone projection: ${template.slug}.`);
 		}
 	} finally {
