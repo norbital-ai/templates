@@ -230,7 +230,7 @@
 		"is_statutory": true,
 		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) reduce the gross, see `relief_for`. NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
 		"rounding": "NEAREST_UNIT",
-		"relief_for": ["87e05e44-d2ca-5cbe-af64-4b56d19eb8bb", "174f7bcd-4e87-5b1d-9168-aaa5a1c93443"],
+		"relief_for": [],
 		"sequence": 600,
 		"special_rules": ["ROUND:NEAREST_UNIT"],
 		"bands": [
@@ -2092,7 +2092,7 @@
 		"is_statutory": true,
 		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) reduce the gross, see `relief_for`. NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
 		"rounding": "NEAREST_UNIT",
-		"relief_for": ["756424ff-cac4-5b46-8432-e98930a17463", "f7dc551b-bdca-5cfa-9329-901d3201d854"],
+		"relief_for": [],
 		"sequence": 600,
 		"special_rules": ["ROUND:NEAREST_UNIT"],
 		"bands": [
@@ -3954,7 +3954,7 @@
 		"is_statutory": true,
 		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) reduce the gross, see `relief_for`. NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
 		"rounding": "NEAREST_UNIT",
-		"relief_for": ["70173cf8-2e38-5d1e-8049-782b3ce67965", "6aed00e7-d657-59f1-9a8d-1fa4e6f7f487"],
+		"relief_for": [],
 		"sequence": 600,
 		"special_rules": ["ROUND:NEAREST_UNIT"],
 		"bands": [
