@@ -156,3 +156,112 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		assert.doesNotMatch(settings, new RegExp(gone), `${gone} is no longer on the page`);
 	assert.doesNotMatch(settings, /statutory_research_sources|researchSources|jurisdictions\b/);
 });
+
+/**
+ * P6 of the HR family simplification: the contract forms are sections, their pickers read the
+ * page's scope, and the columns only a hook or a flow may write are never offered.
+ */
+const sectionTitles = (text: string): ReadonlyArray<string> =>
+	[...text.matchAll(/<FormSection[^>]*?title=\{t\('([a-z_.]+)'\)\}/gs)].map((match) => match[1]!);
+
+test('the terms form is Pay, Standing, Organisation and Period, scoped to the entity', () => {
+	const form = source('../src/collections/employment_terms/+representation.svelte');
+	assert.deepEqual(fieldNames(form), [
+		'base_salary',
+		'department',
+		'effective_range',
+		'employment_id',
+		'employment_id',
+		'employment_type',
+		'grade',
+		'job_title',
+		'pay_frequency',
+		'payroll_group',
+		'residency_since',
+		'residency_status',
+		'shift_pattern_id',
+		'statutory_work_category',
+		'work_classification'
+	]);
+	assert.deepEqual(sectionTitles(form), [
+		'component.terms_section_pay',
+		'component.standing',
+		'component.terms_section_organisation',
+		'component.section_period'
+	]);
+	assert.match(form, /hrCreateScope\(\)/, 'the form reads the create scope');
+	assert.match(form, /employmentRelationOptions\(scopedCompanyId\)/, "people are the entity's own");
+	assert.match(
+		form,
+		/\{#if scopedEmploymentId != null\}\s*<Field name="employment_id" hidden \/>/,
+		'a scope naming the employment prefills and hides it'
+	);
+	assert.match(
+		form,
+		/where: \{ company_id: \{ eq: scopedCompanyId \} \}/,
+		"patterns are the entity's own"
+	);
+	assert.match(form, /name="department" label=\{t\('component\.department'\)\}/);
+	assert.doesNotMatch(form, /<Field name="[a-z_]+" \/>/, 'every label is set');
+});
+
+test('the statutory fact form is Scheme, Registration and Period; the successor pointer is hook-owned', () => {
+	const form = source('../src/collections/employment_statutory_facts/+representation.svelte');
+	assert.deepEqual(fieldNames(form), [
+		'effective_range',
+		'employment_id',
+		'employment_id',
+		'status',
+		'statutory_contribution_id',
+		'supersedes_fact_id'
+	]);
+	assert.deepEqual(sectionTitles(form), [
+		'component.fact_section_scheme',
+		'component.registration',
+		'component.section_period'
+	]);
+	assert.match(form, /<Field name="supersedes_fact_id" hidden \/>/);
+	assert.match(form, /hrCreateScope\(\)/);
+	assert.match(form, /employmentRelationOptions\(scopedCompanyId\)/);
+	// The scheme picker reaches the version through its relation, under a quantifier, and only
+	// when the page names a lineage; unscoped it offers every scheme rather than none.
+	assert.match(
+		form,
+		/scopedSettingsCode == null\s*\?\s*undefined\s*:\s*\{ contribution_settings: \{ some: inForceSettings\(scopedSettingsCode, todayKey\(\)\) \} \}/s
+	);
+	assert.match(form, /\.\.\.\(inForceSchemes == null \? \{\} : \{ where: inForceSchemes \}\)/);
+});
+
+test('the person form is Person, Standing and Family; the face lifecycle is written by the enrolment flow only', () => {
+	const profile = source('../src/collections/employees/+representation.svelte');
+	const form = snippet(profile, 'person');
+	for (const hidden of [
+		'user_id',
+		'face_embedding',
+		'face_photo',
+		'face_enrollment_status',
+		'face_consent_at',
+		'face_enrolled_at',
+		'face_last_match_at',
+		'face_match_count'
+	])
+		assert.match(form, new RegExp(`<Field name="${hidden}" hidden />`), `${hidden} is hidden`);
+	assert.deepEqual(sectionTitles(form), [
+		'component.person',
+		'component.standing',
+		'component.family_section'
+	]);
+	assert.match(form, /<Stack gap="lg">\s*<FormSection/, 'no field sits outside a section');
+	// The profile scopes the forms its tables open: one contract is prefilled, the entity narrows
+	// the pickers, and the lineage narrows the scheme picker.
+	assert.match(profile, /setContext<HrCreateScope>\(HR_CREATE_SCOPE, \{/);
+	assert.match(profile, /employmentId: \(\) => scopedEmployment\?\.id/);
+	assert.match(profile, /with: \{ employment_company: \{ columns: \{ settings_code: true \} \} \}/);
+	// Nothing on the client writes the lifecycle columns but the enrolment flow.
+	for (const path of ['../src/collections/employees/+representation.svelte'])
+		assert.doesNotMatch(
+			source(path).replace(/<Field name="face_[a-z_]+" hidden \/>/g, ''),
+			/face_(enrollment_status|consent_at|enrolled_at|last_match_at|match_count)\s*:/,
+			`${path} does not write the face lifecycle`
+		);
+});
