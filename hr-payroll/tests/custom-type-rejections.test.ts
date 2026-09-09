@@ -139,24 +139,30 @@ describe('covered_periods', () => {
 });
 
 describe('leave_entitlement', () => {
-	const band = { band_from: 0, days: 8 };
+	const band = { eligibility: '', days: 8 };
 	const entitlement = {
 		availability: 'UPFRONT',
 		year_start_month: 1,
 		proration: 'NONE',
 		bands: [band]
 	};
-	it('accepts service bands and unlimited leave without a yearly account', () => {
+	it('accepts predicate bands and unlimited leave without a yearly account', () => {
+		assert.ok(
+			accepts(leaveEntitlementSchema, {
+				...entitlement,
+				bands: [{ eligibility: 'terms.grade == "M1"', days: 20 }, band]
+			})
+		);
 		assert.ok(accepts(leaveEntitlementSchema, entitlement));
 		assert.ok(
 			accepts(leaveEntitlementSchema, { ...entitlement, availability: 'UNLIMITED', bands: [] })
 		);
 	});
-	it('refuses a band threshold that is not a whole non-negative count', () => {
-		for (const band_from of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])
+	it('refuses a band whose predicate is not a string', () => {
+		for (const eligibility of [null, 0, true])
 			assert.ok(
-				refuses(leaveEntitlementSchema, { ...entitlement, bands: [{ ...band, band_from }] }),
-				`band_from=${String(band_from)}`
+				refuses(leaveEntitlementSchema, { ...entitlement, bands: [{ ...band, eligibility }] }),
+				`eligibility=${String(eligibility)}`
 			);
 	});
 	it('refuses NaN, Infinity and negative entitlement days', () => {
@@ -166,8 +172,7 @@ describe('leave_entitlement', () => {
 				`days=${String(days)}`
 			);
 	});
-	it('refuses duplicate service thresholds and invalid anniversary months', () => {
-		assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, bands: [band, band] }));
+	it('refuses invalid anniversary months', () => {
 		for (const year_start_month of [0, 13, 1.5])
 			assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, year_start_month }));
 	});
@@ -187,6 +192,7 @@ describe('leave_entitlement', () => {
 		for (const extra of [
 			{ level: 'EMPLOYEE', employment_id: 'employment-1' },
 			{ key: { by: 'SERVICE_MONTHS' } },
+			{ band_from: 0 },
 			{ authority: 'Company policy' },
 			{ effective_range: RANGE },
 			{ days_max: 9 }

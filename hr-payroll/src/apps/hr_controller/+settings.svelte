@@ -240,7 +240,7 @@
 				<Column name="code" label={t('component.code')} card="title" />
 				<Column name="name" label={t('component.name')} card="subtitle" />
 				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
-				<Column name="entitlement" label={t('component.entitlement_bands')} />
+				<Column name="paid" label={t('component.paid')} />
 				<Column name="eligibility" label={t('component.who_may_take_it')} />
 			{/snippet}
 		</CollectionTable>

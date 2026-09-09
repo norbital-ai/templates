@@ -86,7 +86,9 @@ departure reason remains unresolved.
 Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
 claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and
 entitlement matrix, judged against the contract terms in force on the event date; `grade` on the
-terms is the tier those predicates read. Encashment and
+terms is the tier those predicates read. A leave row grants days the same way: its entitlement
+bands are `{eligibility, days}` rows read top-down, and `paid` plus one scheme × absence/encashment
+`treatments` matrix say what an unpaid or encashed day does on the payslip. Encashment and
 carry-forward remain manual Leave categories. No annual account rows, accrual scheduler, automatic
 departure payments or automatic carry-forward policies are seeded.
 
@@ -103,8 +105,8 @@ and retain their original assignment code and origin. Missing evidence is not pe
 an arbitrary shift or distribute a range's quantity across dates.
 
 Leave quantities reconcile against computed entitlement and explicit manual entries. Compare
-usage on the dates it occurs, because service bands, eligibility and released entitlement can
-change within a year. Distinguish missing policy on an actual activity date from an unavailable
+usage on the dates it occurs, because the entitlement tier, eligibility and released entitlement
+can change within a year. Distinguish missing policy on an actual activity date from an unavailable
 future year-end valuation. Do not invent opening adjustments or carry-forward credits merely to
 make an old usage total fit a formula.
 

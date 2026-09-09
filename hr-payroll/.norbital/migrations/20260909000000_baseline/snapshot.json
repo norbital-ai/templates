@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "d23e2240-57b1-49fb-a3fb-b195b705057c",
+  "id": "32537492-4dbe-4d48-8284-6ac1b99d2ddf",
   "prevIds": [
-    "e99ecc8a-e16a-4376-b2be-14a04c3bf937"
+    "34f2079e-fedd-4e70-97f5-9edd04149535"
   ],
   "version": "8",
   "ddl": [
@@ -2824,14 +2824,14 @@
       "table": "leave_catalogue"
     },
     {
-      "type": "jsonb",
+      "type": "boolean",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "true",
       "generated": null,
       "identity": null,
-      "name": "payroll_effect",
+      "name": "paid",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_catalogue"
@@ -2844,7 +2844,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "encashment",
+      "name": "treatments",
       "entityType": "columns",
       "schema": "public",
       "table": "leave_catalogue"

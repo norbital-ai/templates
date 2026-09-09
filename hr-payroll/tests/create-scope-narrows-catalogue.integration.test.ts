@@ -67,11 +67,11 @@ test(
 			await session.query(
 				`insert into leave_catalogue
 				   (id, settings_id, code, name, is_statutory, authority, eligibility,
-				    requires_certificate_after_days, payroll_effect, entitlement,
-				    encashment, approval_id, created_at, updated_at)
+				    requires_certificate_after_days, paid, entitlement,
+				    treatments, approval_id, created_at, updated_at)
 				 select $1, $2, code, name, is_statutory, authority, eligibility,
-				        requires_certificate_after_days, payroll_effect, entitlement,
-				        encashment, null, created_at, updated_at
+				        requires_certificate_after_days, paid, entitlement,
+				        treatments, null, created_at, updated_at
 				   from leave_catalogue where code = 'ANNUAL' and settings_id = $3`,
 				[OLD_ANNUAL_ID, OLD_VERSION_ID, JURISDICTION_ID]
 			);

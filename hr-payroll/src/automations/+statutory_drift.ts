@@ -10,6 +10,12 @@ import {
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsValueSchema } from '../datatypes/contribution_treatments/+definition.js';
 import { WORK_OUTPUTS, workPayItems } from '../collections/work_catalogue/pay-items.js';
+import {
+	absenceTreatments,
+	encashmentCode,
+	encashmentTreatments,
+	leaveTreatmentsOf
+} from '../lib/leave/pay-items.js';
 import { isInForceCandidate, settingsInForce } from '../lib/jurisdiction_settings.js';
 import {
 	createSettingsDraft,
@@ -138,10 +144,23 @@ export function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutory
 		pay_component: [
 			...[
 				...tree.workCatalogue.flatMap(workPayItems),
-				...tree.catalogueLeaves.map((row) => ({
-					...row.encashment,
-					is_statutory: row.is_statutory
-				}))
+				// A leave's two lines: the encashment always, the unpaid deduction when it has one.
+				...tree.catalogueLeaves.flatMap((row) => [
+					{
+						code: encashmentCode(row.code),
+						contribution_treatments: encashmentTreatments(row.treatments),
+						is_statutory: row.is_statutory
+					},
+					...(row.paid
+						? []
+						: [
+								{
+									code: row.code,
+									contribution_treatments: absenceTreatments(row.treatments),
+									is_statutory: row.is_statutory
+								}
+							])
+				])
 			].filter((component) => component.is_statutory),
 			...tree.loanCatalogue,
 			...tree.claimCatalogue,
@@ -183,14 +202,16 @@ export function applyProposedChanges(
 	// One rule, applied to each catalogue's own slice of the draft. `collection` on a change row is
 	// `pay_component`, because that is what a proposal is about — a pay component, not the table
 	// that happens to hold it.
+	const proposedTreatments = (code: unknown) => {
+		const change = changes.find((row) => row.collection === 'pay_component' && row.code === code);
+		return change == null ? undefined : decodeTreatments(change.proposed);
+	};
 	const applyTreatments = <T extends { readonly code?: unknown }>(rows: readonly T[]): T[] =>
 		rows.map((component) => {
-			const change = changes.find(
-				(row) => row.collection === 'pay_component' && row.code === component.code
-			);
-			return change == null
+			const proposed = proposedTreatments(component.code);
+			return proposed == null
 				? component
-				: ({ ...component, contribution_treatments: decodeTreatments(change.proposed) } as T);
+				: ({ ...component, contribution_treatments: proposed } as T);
 		});
 	return {
 		...write,
@@ -204,10 +225,21 @@ export function applyProposedChanges(
 		}),
 		research_notes: proposal,
 		contribution_settings: schemes as SettingsDraftWrite['contribution_settings'],
-		leave_catalogue_settings: catalogueLeaves.map((row) => ({
-			...row,
-			...(row.encashment == null ? {} : { encashment: applyTreatments([row.encashment])[0]! })
-		})),
+		// A leave row's matrix is two columns; each column takes its own proposal by pay-line code.
+		leave_catalogue_settings: catalogueLeaves.map((row) => {
+			if (row.treatments == null || row.code == null) return row;
+			const absence = proposedTreatments(row.code);
+			const encashment = proposedTreatments(encashmentCode(row.code));
+			return absence == null && encashment == null
+				? row
+				: {
+						...row,
+						treatments: leaveTreatmentsOf(
+							absence ?? absenceTreatments(row.treatments),
+							encashment ?? encashmentTreatments(row.treatments)
+						)
+					};
+		}),
 		loan_catalogue_settings: applyTreatments(write.loan_catalogue_settings ?? []),
 		claim_catalogue_settings: applyTreatments(write.claim_catalogue_settings ?? []),
 		allowance_catalogue_settings: applyTreatments(write.allowance_catalogue_settings ?? []),

@@ -89,22 +89,20 @@
 					title={t('component.leave_section_pay')}
 					hint={t('component.leave_section_pay_hint')}
 				>
-					<Stack gap="sm">
-						<Field name="payroll_effect" label={t('component.effect_on_pay')} />
-						<Grid gap="sm" minimum="compact">
-							<Field
-								name="requires_certificate_after_days"
-								label={t('component.certificate_required_after_days')}
-							/>
-						</Grid>
-					</Stack>
+					<Grid gap="sm" minimum="compact">
+						<Field name="paid" label={t('component.paid')} />
+						<Field
+							name="requires_certificate_after_days"
+							label={t('component.certificate_required_after_days')}
+						/>
+					</Grid>
 				</FormSection>
 
 				<FormSection
 					title={t('component.section_contributions')}
 					hint={t('component.leave_section_contributions_hint')}
 				>
-					<Field name="encashment" label={t('leave.encashment_output')} />
+					<Field name="treatments" label={t('component.contribution_treatments')} />
 				</FormSection>
 			</Stack>
 		{/snippet}

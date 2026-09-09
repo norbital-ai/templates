@@ -252,8 +252,8 @@ CREATE TABLE "leave_catalogue" (
 	"authority" text,
 	"eligibility" text DEFAULT '' NOT NULL,
 	"entitlement" jsonb NOT NULL,
-	"payroll_effect" jsonb NOT NULL,
-	"encashment" jsonb NOT NULL,
+	"paid" boolean DEFAULT true NOT NULL,
+	"treatments" jsonb NOT NULL,
 	"requires_certificate_after_days" integer
 );
 

@@ -298,7 +298,7 @@ export function configurationSnapshot(
 			observation: configuration.holidays.get(date) ?? null
 		})),
 		leave_catalogue: configuration.catalogueLeaves
-			.map((row) => [row.code, row.entitlement, row.payroll_effect, row.encashment])
+			.map((row) => [row.code, row.entitlement, row.paid, row.treatments])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// Codes are configuration because their polymorphic variant decides whether a scheduled day
 		// is work, protected rest or another off day, and a WORK code owns its clock window.

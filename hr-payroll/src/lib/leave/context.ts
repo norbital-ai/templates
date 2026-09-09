@@ -9,7 +9,11 @@ import { computedEntitlement } from './entitlement.js';
 import { dateKey } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	isEligible,
+	personContext,
+	type PersonContext
+} from '../../collections/payroll_runs/lib/eligibility.js';
 
 type ReadTables =
 	| 'employments'
@@ -80,8 +84,8 @@ export type LeaveContext = {
 		| 'entitlement'
 		| 'is_statutory'
 		| 'requires_certificate_after_days'
-		| 'payroll_effect'
-		| 'encashment'
+		| 'paid'
+		| 'treatments'
 	>[];
 	holidays: Pick<
 		WorkspaceRow<'jurisdiction_holidays'>,
@@ -272,8 +276,8 @@ export function readLeaveContext(
 					entitlement: true,
 					is_statutory: true,
 					requires_certificate_after_days: true,
-					payroll_effect: true,
-					encashment: true
+					paid: true,
+					treatments: true
 				},
 				limit: LIMIT
 			}),
@@ -392,6 +396,15 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 		}
 		return row;
 	};
+	/** The person as a predicate sees them on one date: the terms in force that day, or none. */
+	const personOn = (date: string): PersonContext =>
+		personContext({
+			employee,
+			employment,
+			terms: terms.find((row) => coversDate(row.effective_range, date)) ?? null,
+			children: childrenOn(employment.children, date),
+			asOf: date
+		});
 	const eligibility = new Map<string, boolean>();
 	const eligibleOn = (date: string): boolean => {
 		const known = eligibility.get(date);
@@ -402,18 +415,7 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 		const catalogue = catalogueAt(date);
 		const active = date >= hire && (exit == null || date <= exit) && term != null;
 		const eligible =
-			active &&
-			catalogue != null &&
-			isEligible(
-				catalogue.eligibility,
-				personContext({
-					employee,
-					employment,
-					terms: term,
-					children: childrenOn(employment.children, date),
-					asOf: date
-				})
-			);
+			active && catalogue != null && isEligible(catalogue.eligibility, personOn(date));
 		eligibility.set(date, eligible);
 		return eligible;
 	};
@@ -431,7 +433,8 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 			asOf,
 			hireDate: hire,
 			exitDate: exit,
-			eligibleOn
+			eligibleOn,
+			personOn
 		});
 		amounts.set(key, result);
 		return result;

@@ -17,7 +17,7 @@ test('Settings Leave catalogue is one table over the selected settings revision'
 	assert.deepEqual(registrations(tab), ['CollectionTable']);
 	assert.match(tab, /collection="leave_catalogue"/);
 	assert.match(tab, /settings_id: \{ eq: selectedVersion\.id \}/);
-	assert.match(tab, /<Column name="entitlement"/);
+	assert.match(tab, /<Column name="paid"/);
 });
 
 test('Employee Leave combines one computed balance query with a contract-scoped activity table', () => {

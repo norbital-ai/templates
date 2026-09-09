@@ -236,8 +236,10 @@ payroll settles uncaptured obligations against the original contract, even after
 `CARRY_FORWARD`, `ADJUSTMENT` and `REVERSAL`. There is no annual entitlement account, generated
 opening/accrual row, refresh job or second record mirroring each time-off application.
 
-The catalogue defines eligibility, service bands, annual window, availability, proration and
-paid/unpaid treatment. Entitlement is queried for a contract, stable leave code, window and date
+The catalogue defines eligibility, the entitlement matrix, annual window, availability, proration,
+whether a day is paid and how each scheme charges an unpaid or encashed day. The matrix is rows of
+`{eligibility, days}` read top-down on the entitlement date, the first predicate that holds being
+the grant, so a service tier and a grade tier are the same kind of row. Entitlement is queried for a contract, stable leave code, window and date
 using the effective facts required by that calculation. Unlimited leave retains eligibility,
 approval and usage records while omitting the numerical ceiling.
 

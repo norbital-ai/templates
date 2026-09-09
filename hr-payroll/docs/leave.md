@@ -5,11 +5,11 @@ balances. Payroll consumes the family's prepared outputs and captures.
 
 ## Records and ownership
 
-| Record                 | Responsibility                                                                                                                                                  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `leave_catalogue`      | A stable leave code within a sealed settings revision: eligibility, entitlement, paid/unpaid treatment, certificate threshold and encashment pay-item metadata. |
-| `leave_entries`        | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations.  |
-| `payslip_leave_inputs` | The dates or monetary obligation consumed by a payslip, with the exact signed amount and pay-item metadata.                                                     |
+| Record                 | Responsibility                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `leave_catalogue`      | A stable leave code within a sealed settings revision: eligibility, an entitlement matrix, whether a day is `paid`, a certificate threshold and one `treatments` matrix (scheme × absence/encashment). An unpaid day is deducted under the leave's own code and an encashed day is paid under `${code}_ENCASHMENT`; both orders are constants in `lib/leave/pay-items.ts`. |
+| `leave_entries`        | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations.                                                                                                                                                                                                             |
+| `payslip_leave_inputs` | The dates or monetary obligation consumed by a payslip, with the exact signed amount and pay-item metadata.                                                                                                                                                                                                                                                                |
 
 `employment_id` identifies one contract with one legal entity. Entitlement, service bands, usage,
 reservations, carry and encashment remain within that contract. A rehire creates another contract
@@ -175,7 +175,7 @@ Contribution treatment.
 
 - Paid time off supplies approved coverage and a zero-money capture.
 - Unpaid time off supplies reductions for its exact captured dates, using Work's applicable rate
-  and the leave catalogue's deduction metadata.
+  and the `absence` column of the leave's treatments; the deduction covers whom the leave covers.
 - Encashment supplies the entered gross amount. An optional entered rate must reconcile to that
   amount; payroll does not derive or replace it from salary.
 - Carry and adjustments change quantities without directly creating payroll money.

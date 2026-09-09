@@ -6,16 +6,19 @@ import {
 	leaveEntitlementValueSchema,
 	type LeaveEntitlement
 } from '../src/datatypes/leave_entitlement/+definition.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 const base: LeaveEntitlement = {
 	availability: 'UPFRONT',
 	proration: 'NONE',
 	year_start_month: 1,
 	bands: [
-		{ band_from: 0, days: 12 },
-		{ band_from: 24, days: 18 }
+		{ eligibility: 'employment.service_months >= 24', days: 18 },
+		{ eligibility: '', days: 12 }
 	]
 };
+const personOn = (hireDate: string) => (date: string) =>
+	personContext({ employee: null, employment: { hire_date: hireDate }, terms: null, asOf: date });
 const calculate = (
 	rule: LeaveEntitlement,
 	asOf: string,
@@ -28,7 +31,8 @@ const calculate = (
 		hireDate,
 		exitDate,
 		window: leaveWindowOf(asOf, rule.year_start_month),
-		eligibleOn: () => true
+		eligibleOn: () => true,
+		personOn: personOn(hireDate)
 	});
 
 test('upfront and monthly availability need no stored annual account or accrual entries', () => {
@@ -73,7 +77,8 @@ test('joined employment, service bands and eligibility use their effective dates
 			asOf: '2026-04-01',
 			hireDate: '2025-01-01',
 			exitDate: null,
-			eligibleOn: (date) => date >= '2026-05-01'
+			eligibleOn: (date) => date >= '2026-05-01',
+			personOn: personOn('2025-01-01')
 		}).available,
 		0
 	);
@@ -83,7 +88,7 @@ test('annual windows and day proration handle fiscal years and leap days', () =>
 	assert.deepEqual(leaveWindowOf('2026-03-31', 4), { start: '2025-04-01', end: '2026-03-31' });
 	assert.deepEqual(leaveWindowOf('2026-04-01', 4), { start: '2026-04-01', end: '2027-03-31' });
 	const result = calculate(
-		{ ...base, proration: 'CALENDAR_DAYS', bands: [{ band_from: 0, days: 366 }] },
+		{ ...base, proration: 'CALENDAR_DAYS', bands: [{ eligibility: '', days: 366 }] },
 		'2024-02-29',
 		'2024-01-01'
 	);
@@ -101,18 +106,71 @@ test('the catalogue schema admits no automatic carry or encashment policy', () =
 	);
 });
 
-test('ambiguous service bands and a monthly release without earning rules are refused', () => {
-	assert.throws(() =>
-		Schema.decodeUnknownSync(leaveEntitlementValueSchema)({
-			...base,
-			bands: [
-				{ band_from: 0, days: 12 },
-				{ band_from: 0, days: 20 }
-			]
-		})
-	);
+test('a monthly release without earning rules is refused', () => {
 	assert.throws(() =>
 		Schema.decodeUnknownSync(leaveEntitlementValueSchema)({ ...base, availability: 'MONTHLY' })
+	);
+});
+
+test('bands read top-down: the first predicate that holds is the grant, and a tier can key on grade', () => {
+	const tiered: LeaveEntitlement = {
+		...base,
+		bands: [
+			{ eligibility: 'terms.grade == "M1"', days: 20 },
+			{ eligibility: 'employment.service_months >= 24', days: 18 },
+			{ eligibility: '', days: 12 }
+		]
+	};
+	const withGrade = (grade: string | null) => (date: string) =>
+		personContext({
+			employee: null,
+			employment: { hire_date: '2020-01-01' },
+			terms: { grade },
+			asOf: date
+		});
+	const calculateFor = (grade: string | null) =>
+		computedEntitlement({
+			rule: tiered,
+			window: leaveWindowOf('2026-01-01', 1),
+			asOf: '2026-01-01',
+			hireDate: '2020-01-01',
+			exitDate: null,
+			eligibleOn: () => true,
+			personOn: withGrade(grade)
+		});
+	assert.equal(calculateFor('M1').entitlement, 20);
+	assert.equal(calculateFor('G3').entitlement, 18);
+	// The everyone row last: a general tier listed first would win for everybody.
+	assert.equal(
+		computedEntitlement({
+			rule: { ...tiered, bands: [...tiered.bands].reverse() },
+			window: leaveWindowOf('2026-01-01', 1),
+			asOf: '2026-01-01',
+			hireDate: '2020-01-01',
+			exitDate: null,
+			eligibleOn: () => true,
+			personOn: withGrade('M1')
+		}).entitlement,
+		12
+	);
+	// Nobody matched is no days, not the last row.
+	assert.equal(
+		computedEntitlement({
+			rule: { ...tiered, bands: tiered.bands.slice(0, 2) },
+			window: leaveWindowOf('2026-01-01', 1),
+			asOf: '2026-01-01',
+			hireDate: '2025-06-01',
+			exitDate: null,
+			eligibleOn: () => true,
+			personOn: (date) =>
+				personContext({
+					employee: null,
+					employment: { hire_date: '2025-06-01' },
+					terms: { grade: 'G3' },
+					asOf: date
+				})
+		}).entitlement,
+		0
 	);
 });
 
@@ -128,7 +186,8 @@ test('unmetered leave still requires an eligible employment date', () => {
 			asOf: '2026-06-01',
 			hireDate: '2025-01-01',
 			exitDate: null,
-			eligibleOn: () => false
+			eligibleOn: () => false,
+			personOn: personOn('2025-01-01')
 		}).available,
 		0
 	);

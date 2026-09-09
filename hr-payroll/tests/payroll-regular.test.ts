@@ -198,13 +198,8 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 					bands: []
 				},
 				requires_certificate_after_days: null,
-				payroll_effect: paid
-					? { kind: 'PAID' }
-					: {
-							kind: 'UNPAID',
-							deduction: { sequence: 110, eligibility: '', contribution_treatments: {} }
-						},
-				encashment: { code: 'TEST_CASH', sequence: 111, contribution_treatments: {} }
+				paid,
+				treatments: {}
 			});
 			world.leave_entries.push({
 				id: '00000000-0000-4000-8000-000000000002',
