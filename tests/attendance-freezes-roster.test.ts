@@ -52,7 +52,6 @@ const stored = (over = {}) => ({
 	shift_definition_id: WORK,
 	assignment_code: null,
 	planned_origin: 'PATTERN',
-	planned_note: null,
 	worked_intervals: null,
 	break_minutes: 0,
 	approval_id: null,
@@ -95,10 +94,10 @@ test('only a real change to a plan column counts as one', () => {
 		planChanges({ shift_definition_id: null }, stored({ shift_definition_id: undefined })),
 		[]
 	);
-	assert.deepEqual(planChanges({ planned_note: null }, existing), []);
+	assert.deepEqual(planChanges({ assignment_code: null }, existing), []);
 	assert.deepEqual(
-		planChanges({ planned_note: 'swapped', assignment_code: 'A' }, existing).toSorted(),
-		['assignment_code', 'planned_note']
+		planChanges({ planned_origin: 'MANUAL', assignment_code: 'A' }, existing).toSorted(),
+		['assignment_code', 'planned_origin']
 	);
 });
 

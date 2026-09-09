@@ -1,5 +1,9 @@
 import { boundToContract } from '../../lib/employment-contract.js';
 import { loanScheduleRefusals } from '../../lib/loan-schedule.js';
+import { capSubject } from '../../lib/component_entry_cap_subject.js';
+import { isEligible } from '../payroll_runs/lib/eligibility.js';
+import { readRange } from '../payroll_runs/lib/effective.js';
+import { dateKey } from '../../lib/iso-day.js';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
@@ -11,7 +15,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Require a complete nonempty repayment schedule, preserve its agreement total and period, and require a loan catalogue entry; every recovery is a payroll deduction (`lib/payroll/loan.ts`).',
+					'Require a complete nonempty repayment schedule, preserve its agreement total and period, and require a loan catalogue entry the person is eligible for on the day the agreement opens; every recovery is a payroll deduction (`lib/payroll/loan.ts`).',
 				handler: ({ input, existing, relationshipSizes, api }) =>
 					Effect.gen(function* () {
 						const principal = decodeNumber(input.principal ?? existing?.principal ?? 0);
@@ -42,10 +46,21 @@ export default {
 						}
 						const catalogue = yield* api.db.loan_catalogue.findFirst({
 							where: { id: { eq: String(input.loan_catalogue_id ?? existing?.loan_catalogue_id) } },
-							columns: { code: true }
+							columns: { code: true, eligibility: true }
 						});
 						if (!catalogue) refuse('A loan must reference a loan catalogue entry.');
-						return boundToContract(input, existing);
+						// The form offers only the lines whose rule holds for the person; the hook holds the
+						// same rule on the day the agreement opens, for a write that bypassed the form.
+						const bound = boundToContract(input, existing);
+						const opens = readRange(input.effective_range ?? existing?.effective_range)?.start;
+						if ((catalogue.eligibility ?? '').trim() !== '' && opens != null) {
+							const person = yield* capSubject(api, String(bound.employment_id), dateKey(opens));
+							if (person != null && !isEligible(catalogue.eligibility, person.subject))
+								refuse(
+									`${catalogue.code} is not offered to ${person.label}: its eligibility rule does not hold for them.`
+								);
+						}
+						return bound;
 					})
 			}
 		}

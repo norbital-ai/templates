@@ -11,14 +11,14 @@ import {
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		/** The pay component this claims against; its policy decides direction, caps and treatment. */
+		/** The claim type, from the catalogue; its nature, ceiling and treatments price the line. */
 		claim_catalogue_id: uuid().notNull(),
 		/** A positive magnitude. Direction comes from the referenced component's policy. */
 		amount: numeric().notNull(),
 		/** The day the expense was incurred, which is not the day it was entered. */
 		incurred_on: instant({ precision: 'day' }).notNull(),
 		description: text(),
-		/** The receipt. Required when the component's definition demands evidence. */
+		/** The receipt. Required when the catalogue row's `evidence` says so. */
 		evidence_file: file(),
 		/**
 		 * Settle this one against the direction its component declares, rather than with it.
@@ -32,15 +32,6 @@ export default defineModel(
 		 * treatment remain identifiable on the resulting payslip line.
 		 */
 		as_adjustment_entry: boolean().notNull().default(false),
-		/**
-		 * The settled payslip this entry corrects, when it corrects one.
-		 *
-		 * Optional, and provenance only: the direction comes from `as_adjustment_entry` above, never
-		 * from walking a chain. Outputs are immutable, so a correction names one and there is
-		 * nothing to walk — the removed `obligations` model carried a `reverses` walk whose single
-		 * flip silently doubled a negative on a reversal of a reversal.
-		 */
-		corrects_payslip_id: uuid(),
 		/**
 		 * The period this settles in, overriding the cutoff's answer. Null is normal: the cutoff
 		 * supplies the period from `incurred_on`.

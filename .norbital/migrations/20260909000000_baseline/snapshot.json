@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "716d292c-b4a9-4760-98cd-a903d0dd9717",
+  "id": "af5523db-aaf3-4dc0-bb2b-88c16e5edd14",
   "prevIds": [
-    "a33c7ca6-9c77-4059-b6ba-960a728f58f5"
+    "ca58d9ae-25bd-4286-b164-31a8cc03be2e"
   ],
   "version": "8",
   "ddl": [
@@ -516,6 +516,19 @@
       "table": "allowance_requests"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "evidence_file",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_requests"
+    },
+    {
       "type": "boolean",
       "typeSchema": null,
       "notNull": true,
@@ -524,32 +537,6 @@
       "generated": null,
       "identity": null,
       "name": "as_adjustment_entry",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "allowance_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "corrects_payslip_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "allowance_requests"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "pay_period",
       "entityType": "columns",
       "schema": "public",
       "table": "allowance_requests"
@@ -930,19 +917,6 @@
       "generated": null,
       "identity": null,
       "name": "as_adjustment_entry",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "corrects_payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_requests"
@@ -3805,19 +3779,6 @@
       "table": "loans"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "reason",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "loans"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -4159,19 +4120,6 @@
       "table": "payment_requests"
     },
     {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "covers_periods",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -4185,6 +4133,19 @@
       "table": "payment_requests"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "evidence_file",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payment_requests"
+    },
+    {
       "type": "boolean",
       "typeSchema": null,
       "notNull": true,
@@ -4193,19 +4154,6 @@
       "generated": null,
       "identity": null,
       "name": "as_adjustment_entry",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_requests"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "corrects_payslip_id",
       "entityType": "columns",
       "schema": "public",
       "table": "payment_requests"
@@ -5968,19 +5916,6 @@
       "table": "work_days"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "planned_note",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "work_days"
-    },
-    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": false,
@@ -6114,34 +6049,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "allowance_catalogue"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "pay_period",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "allowance_requests_employment_id_pay_period_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "allowance_requests"
     },
     {
       "nameExplicit": true,

@@ -97,16 +97,12 @@ async function payslipOf(session: Session, runId: string) {
 	const [row] = (await session.query('select adjustments from payslips where id = $1', [
 		String(payslip.id)
 	])) as ReadonlyArray<{ readonly adjustments: ReadonlyArray<Row> }>;
-	// A correction names the payslip it corrects; the line is found by label and bucket.
+	// The line is found by label and bucket; a claw-back names no payslip, it is a signed entry.
 	const adjustments = (row?.adjustments ?? []).map((line) => ({ ...line, id: payslip.id }));
 	return { payslip, adjustments };
 }
 
-const postReversal = (
-	session: Session,
-	headers: Readonly<Record<string, string>>,
-	correctsAdjustmentId: string
-) =>
+const postReversal = (session: Session, headers: Readonly<Record<string, string>>) =>
 	postGuestCommand(
 		session.host.baseUrl,
 		MUTATE,
@@ -122,9 +118,7 @@ const postReversal = (
 						allowance_catalogue_id: TRANSPORT_ID,
 						amount: 310,
 						recurrence: { kind: 'ONE_OFF', period: FEBRUARY_2026 },
-						pay_period: FEBRUARY_2026,
-						as_adjustment_entry: true,
-						corrects_payslip_id: correctsAdjustmentId
+						as_adjustment_entry: true
 					}
 				}
 			]
@@ -147,22 +141,14 @@ test(
 			assert.ok(settled, `January settled the allowance: ${JSON.stringify(january.adjustments)}`);
 			assert.equal(Number(settled.amount), 310);
 
-			const employee = await postReversal(
-				session,
-				teamHeaders(session, 'Employee'),
-				String(settled.id)
-			);
+			const employee = await postReversal(session, teamHeaders(session, 'Employee'));
 			assert.ok(
 				employee.status >= 400 ||
 					JSON.stringify(employee.value).match(/rejected|denied|not allowed|policy/i),
 				`an employee cannot post a reversal: ${employee.status} ${JSON.stringify(employee.value)}`
 			);
 
-			const posted = await postReversal(
-				session,
-				teamHeaders(session, 'HQ Payroll HR'),
-				String(settled.id)
-			);
+			const posted = await postReversal(session, teamHeaders(session, 'HQ Payroll HR'));
 			assert.ok(
 				posted.status >= 200 && posted.status < 300,
 				`controller reversal ${posted.status}: ${JSON.stringify(posted.value)}`

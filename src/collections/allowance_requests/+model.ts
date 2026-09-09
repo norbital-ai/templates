@@ -1,4 +1,4 @@
-import { boolean, custom, defineModel, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import { boolean, custom, defineModel, file, numeric, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * A standing allowance a person is paid: Bob's $100 transport allowance, monthly.
@@ -20,12 +20,17 @@ import { boolean, custom, defineModel, numeric, text, uuid } from '@norbital-ai/
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		/** The pay component this is paid under; its policy decides direction and treatment. */
+		/** The allowance type, from the catalogue; its nature, ceiling and treatments price the line. */
 		allowance_catalogue_id: uuid().notNull(),
 		/** A positive magnitude, paid whole in every period the recurrence covers. */
 		amount: numeric().notNull(),
-		/** Paid once in one stated period, or across a window. */
+		/**
+		 * Paid once in one stated period, or across a window. A one-off's period is also the period it
+		 * settles in; there is no separate override column.
+		 */
 		recurrence: custom('allowance_recurrence').notNull(),
+		/** The receipt. Required when the catalogue row's `evidence` says so. */
+		evidence_file: file(),
 		/**
 		 * Settle this one against the direction its component declares, rather than with it.
 		 *
@@ -37,31 +42,13 @@ export default defineModel(
 		 * The correction retains the original family's catalogue definition, so its source and
 		 * treatment remain identifiable on the resulting payslip line.
 		 */
-		as_adjustment_entry: boolean().notNull().default(false),
-		/**
-		 * The settled payslip this entry corrects, when it corrects one.
-		 *
-		 * Optional, and provenance only: the direction comes from `as_adjustment_entry` above, never
-		 * from walking a chain. Outputs are immutable, so a correction names one and there is
-		 * nothing to walk — the removed `obligations` model carried a `reverses` walk whose single
-		 * flip silently doubled a negative on a reversal of a reversal.
-		 */
-		corrects_payslip_id: uuid(),
-		/**
-		 * The period a one-off settles in, overriding the cutoff's answer. A recurring allowance
-		 * ignores it: its window already names every period it is paid in.
-		 */
-		pay_period: text()
+		as_adjustment_entry: boolean().notNull().default(false)
 	},
 	{
 		description:
 			'A standing allowance a person is paid, either once in one stated period or whole in every period its window covers. The only request family that prorates against the days actually employed.',
 		recordLabel: ['amount'],
 		icon: 'lucide:calendar-clock',
-		indexes: [
-			{ columns: ['employment_id', 'pay_period'] },
-			{ columns: ['allowance_catalogue_id'] },
-			{ columns: ['employment_id'] }
-		]
+		indexes: [{ columns: ['allowance_catalogue_id'] }, { columns: ['employment_id'] }]
 	}
 );

@@ -17,10 +17,14 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
+	import FormSection from '../../lib/ui/form-section.svelte';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
+	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const createScope = hrCreateScope();
+	const scopedCompanyId = $derived(createScope?.companyId());
 
 	/**
 	 * The settlement lock, read per record.
@@ -70,28 +74,20 @@
 			<Field name="settled_period" hidden />
 			<Field name="holiday_id" hidden />
 			<Stack gap="lg">
-				<Grid gap="md" minimum="panel">
+				<Grid gap="sm" minimum="compact">
 					<Field
 						name="employment_id"
-						label={t('component.employment')}
-						relationOptions={{
-							label: (employment) =>
-								employment.employee_number != null && employment.employee_number !== ''
-									? String(employment.employee_number)
-									: '—',
-							orderBy: { employee_number: 'asc' },
-							limit: 10_000
-						}}
+						label={t('component.person')}
+						relationOptions={employmentRelationOptions(scopedCompanyId)}
 					/>
 					<Field name="work_date" label={t('component.day')} />
 				</Grid>
 
-				<Stack as="section" gap="sm" aria-labelledby="work-day-planned-heading">
-					<h3 id="work-day-planned-heading" class="text-sm font-semibold">
-						{t('component.work_day_planned')}
-					</h3>
-					<p class="text-meta">{t('component.work_day_planned_description')}</p>
-					<Grid gap="md" minimum="panel">
+				<FormSection
+					title={t('component.work_day_planned')}
+					hint={t('component.work_day_planned_description')}
+				>
+					<Grid gap="sm" minimum="compact">
 						<Field
 							name="shift_definition_id"
 							label={t('component.shift')}
@@ -105,18 +101,14 @@
 							}}
 						/>
 						<Field name="assignment_code" label={t('component.source_roster_token')} />
-						<Column span="all"
-							><Field name="planned_note" label={t('component.planned_note')} /></Column
-						>
 					</Grid>
-				</Stack>
+				</FormSection>
 
-				<Stack as="section" gap="sm" aria-labelledby="work-day-actual-heading">
-					<h3 id="work-day-actual-heading" class="text-sm font-semibold">
-						{t('component.work_day_actual')}
-					</h3>
-					<p class="text-meta">{t('component.work_day_actual_description')}</p>
-					<Grid gap="md" minimum="panel">
+				<FormSection
+					title={t('component.work_day_actual')}
+					hint={t('component.work_day_actual_description')}
+				>
+					<Grid gap="sm" minimum="compact">
 						<Column span="all">
 							<Field name="worked_intervals" label={t('component.worked_intervals')} />
 						</Column>
@@ -126,7 +118,7 @@
 							renderer={DurationHoursRenderer}
 						/>
 					</Grid>
-				</Stack>
+				</FormSection>
 			</Stack>
 		{/snippet}
 	</CollectionForm>

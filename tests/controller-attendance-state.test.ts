@@ -203,14 +203,13 @@ test('explicit clear writes null while a combined change remains one mutation', 
 			id: 'person-day-1',
 			employmentId: 'employment-1',
 			date: '2026-08-04',
-			plan: { rosterCodeId: 'night', note: null },
+			plan: { rosterCodeId: 'night' },
 			attendance: { intervals: null, breakMinutes: 60 }
 		}),
 		{
 			id: 'person-day-1',
 			shift_definition_id: 'night',
 			planned_origin: 'MANUAL',
-			planned_note: null,
 			worked_intervals: null,
 			break_minutes: 0
 		}

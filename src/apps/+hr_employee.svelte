@@ -1387,7 +1387,6 @@
 					<Field name="shift_definition_id" hidden />
 					<Field name="assignment_code" hidden />
 					<Field name="planned_origin" hidden />
-					<Field name="planned_note" hidden />
 					<Field name="worked_intervals" hidden />
 					<Field name="break_minutes" hidden />
 					<Field name="settled_payslip_id" hidden />

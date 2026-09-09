@@ -416,12 +416,7 @@ export function refuseIfCaptured(
 export const attendanceRecorded = (intervals: unknown): boolean => Array.isArray(intervals);
 
 /** The plan columns, which are exactly the ones attendance freezes. */
-const PLAN_COLUMNS = [
-	'shift_definition_id',
-	'assignment_code',
-	'planned_origin',
-	'planned_note'
-] as const;
+const PLAN_COLUMNS = ['shift_definition_id', 'assignment_code', 'planned_origin'] as const;
 
 /**
  * Which plan columns this write would change, given what the row already holds. Empty means the

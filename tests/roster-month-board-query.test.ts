@@ -179,7 +179,6 @@ test('both month-board work_days prefixes project the whole-row base version and
 	assert.equal('roster_id' in MONTH_BOARD_WORK_DAY_COLUMNS, false);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.assignment_code, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.planned_origin, true);
-	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.planned_note, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.worked_intervals, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.break_minutes, true);
 

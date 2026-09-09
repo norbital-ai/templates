@@ -11,7 +11,7 @@
 	A right-hand sheet leaves the board on screen, which is what makes an overlap warning legible.
 
  	── WHAT THIS COMPONENT IS NOT ───────────────────────────────────────────────────────────────────
-	The plan picker, the interval editor and the note are custom composition: they write their
+	The plan picker and the interval editor are custom composition: they write their
 	columns through the internal `CollectionForm` (`work_days`) via `form.setValues`, and the
 	framework footer owns the native submit, so every write still goes through `client.db.*`
 	and every hook still runs. The form's default write carries the whole person-day row, which
@@ -50,7 +50,6 @@
 	  timeZone             string                     (default PAYROLL_TIME_ZONE) clocks are read in
 	  rosterCodeOptions    readonly DaySheetRosterCodeOption[]   controller only; ignored otherwise
 	  rosterCodeId         string | null              the code the day currently carries
-	  note                 string | null              the note on the explicit entry, if any
 	  hasExplicitEntry     boolean                    false when the day carries no plan of its own
 	                       (pattern-projected, or a row that holds only attendance)
 	  planLocked           boolean                    the plan cannot be changed (no draft, published)
@@ -112,7 +111,6 @@
 		timeZone?: string;
 		rosterCodeOptions?: readonly DaySheetRosterCodeOption[];
 		rosterCodeId?: string | null;
-		note?: string | null;
 		hasExplicitEntry?: boolean;
 		planLocked?: boolean;
 		planLockedReason?: string | null;
@@ -210,7 +208,6 @@
 		timeZone = PAYROLL_TIME_ZONE,
 		rosterCodeOptions = [],
 		rosterCodeId = null,
-		note = null,
 		hasExplicitEntry = false,
 		planLocked = false,
 		planLockedReason = null,
@@ -235,9 +232,7 @@
 	type EditableInterval = { startMinutes: number | null; endMinutes: number | null };
 
 	let draftCodeId = $state<string | null>(null);
-	let draftNote = $state('');
 	let baselineCodeId = $state<string | null>(null);
-	let baselineNote = $state('');
 	/** The caller's verdict on the currently chosen code; recomputed on seed and on every change. */
 	let overlapWarning = $state<string | null>(null);
 	let draftIntervals = $state<EditableInterval[]>([]);
@@ -263,8 +258,6 @@
 		draftCodeId = rosterCodeId;
 		baselineCodeId = rosterCodeId;
 		overlapWarning = resolveOverlap?.(rosterCodeId ?? null) ?? null;
-		draftNote = note ?? '';
-		baselineNote = (note ?? '').trim();
 		draftBreak = day?.breakMinutes ?? 0;
 		draftAttendanceRecorded = day?.attendanceState != null;
 		baselineAttendance = {
@@ -409,9 +402,7 @@
 	 * live prop would otherwise erase plan dirty state as soon as the caller received that mirror.
 	 */
 	const planTouched = $derived(
-		planWritable &&
-			draftCodeId != null &&
-			(draftCodeId !== baselineCodeId || draftNote.trim() !== baselineNote)
+		planWritable && draftCodeId != null && draftCodeId !== baselineCodeId
 	);
 	const saveIntent = $derived<DaySheetSaveIntent>(
 		daySheetSaveIntent(planTouched, attendanceTouched)
@@ -454,12 +445,11 @@
 			return;
 		});
 
-	/** Mirror the plan half into the form; the picker and the note are custom composition. */
+	/** Mirror the plan half into the form; the picker is custom composition. */
 	function pushPlan(form: CollectionFormController): void {
 		form.setValues({
 			shift_definition_id: draftCodeId,
-			planned_origin: 'MANUAL',
-			planned_note: draftNote.trim() === '' ? null : draftNote.trim()
+			planned_origin: 'MANUAL'
 		});
 	}
 
@@ -652,7 +642,6 @@
 							<Field name="shift_definition_id" hidden />
 							<Field name="assignment_code" hidden />
 							<Field name="planned_origin" hidden />
-							<Field name="planned_note" hidden />
 							<Field name="worked_intervals" hidden />
 							<Field name="break_minutes" hidden />
 							<Field name="settled_payslip_id" hidden />
@@ -712,19 +701,6 @@
 												}}
 												emptyPlaceholder={t('roster.choose_roster_code')}
 												searchPlaceholder={t('roster.search_roster_codes')}
-											/>
-										</Stack>
-										<Stack gap="xs">
-											<Label for="day-sheet-note">{t('roster.day_sheet_note')}</Label>
-											<Input
-												id="day-sheet-note"
-												value={draftNote}
-												disabled={!planWritable}
-												placeholder={t('roster.day_sheet_note_placeholder')}
-												oninput={(event) => {
-													draftNote = event.currentTarget.value;
-													pushPlan(form);
-												}}
 											/>
 										</Stack>
 									{:else}
@@ -1083,7 +1059,6 @@
 										id: workDayId,
 										shift_definition_id: null,
 										assignment_code: null,
-										planned_note: null,
 										planned_origin: null
 									}
 								])

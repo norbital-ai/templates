@@ -8,10 +8,9 @@
 			"from": "2026-01-01",
 			"to": "2026-03-31"
 		},
-		"pay_period": null,
 		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"corrects_payslip_id": null
+		"evidence_file": null
 	},
 	{
 		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
@@ -22,10 +21,9 @@
 			"from": "2026-01-20",
 			"to": "2026-03-31"
 		},
-		"pay_period": null,
 		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"corrects_payslip_id": null
+		"evidence_file": null
 	},
 	{
 		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
@@ -36,9 +34,8 @@
 			"from": "2026-01-01",
 			"to": "2026-03-31"
 		},
-		"pay_period": null,
 		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"corrects_payslip_id": null
+		"evidence_file": null
 	}
 ]

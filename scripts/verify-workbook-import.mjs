@@ -325,8 +325,7 @@ const program = Effect.gen(function* () {
 				employee_number: 'PUBEM0002',
 				work_date: '2026-05-01',
 				shift_code: '7.5AM',
-				assignment_code: undefined,
-				planned_note: undefined
+				assignment_code: undefined
 			},
 			'a row naming a shift reads as a working day on that shift'
 		);
@@ -336,8 +335,7 @@ const program = Effect.gen(function* () {
 				employee_number: 'PUBEM0002',
 				work_date: '2026-05-03',
 				shift_code: 'REST',
-				assignment_code: undefined,
-				planned_note: undefined
+				assignment_code: undefined
 			},
 			'REST is a real roster-code variant'
 		);
@@ -367,8 +365,7 @@ const program = Effect.gen(function* () {
 				work_date: '2026-05-06',
 				shift_definition_id: 'shift:off',
 				assignment_code: null,
-				planned_origin: 'IMPORT',
-				planned_note: null
+				planned_origin: 'IMPORT'
 			},
 			'OFF remains explicit and its meaning comes from the referenced code variant'
 		);
@@ -423,8 +420,8 @@ const program = Effect.gen(function* () {
 			[
 				'Roster',
 				[
-					[...ROSTER_HEADERS, 'assignment_code', 'note'],
-					['PUBEM0002', '2026-05-04', '7.5AM', 'AMRES', 'swap with 03 May']
+					[...ROSTER_HEADERS, 'assignment_code'],
+					['PUBEM0002', '2026-05-04', '7.5AM', 'AMRES']
 				]
 			]
 		]);
@@ -442,8 +439,7 @@ const program = Effect.gen(function* () {
 				work_date: '2026-05-04',
 				shift_definition_id: 'shift:75',
 				assignment_code: 'AMRES',
-				planned_origin: 'IMPORT',
-				planned_note: 'swap with 03 May'
+				planned_origin: 'IMPORT'
 			}
 		]);
 
@@ -633,8 +629,7 @@ const program = Effect.gen(function* () {
 				employee_number: 'PUBEM0002',
 				work_date: '2026-05-04',
 				shift_code: '7.5AM',
-				assignment_code: undefined,
-				planned_note: undefined
+				assignment_code: undefined
 			}
 		]);
 

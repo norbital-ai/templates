@@ -116,7 +116,6 @@ export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 	shift_definition_id: true,
 	assignment_code: true,
 	planned_origin: true,
-	planned_note: true,
 	worked_intervals: true,
 	break_minutes: true
 });

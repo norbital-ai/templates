@@ -24,11 +24,9 @@
 		type LoanRepaymentDraft
 	} from '../../lib/loan-schedule.js';
 	import { Button } from '@norbital-ai/ui/button';
-	import {
-		employmentRelationOptions,
-		hrCreateScope,
-		inForceCatalogue
-	} from '../../lib/ui/create-scope.js';
+	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
+	import EligibleTypes from '../../lib/ui/eligible-types.svelte';
+	import FormSection from '../../lib/ui/form-section.svelte';
 
 	/**
 	 * The loan agreement, and the repayment lines it owns.
@@ -37,6 +35,9 @@
 	 * never rewritten. Submit sends the matrix as `repayment_loan`, the loan's complete desired
 	 * set: a row dropped from the matrix is a stored repayment the cascade-owned relationship
 	 * deletes.
+	 *
+	 * The line picker offers only the lines whose eligibility holds for the person today
+	 * (`EligibleTypes`); the hook holds the same rule on the day the agreement opens.
 	 */
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -167,43 +168,55 @@
 				form.values().effective_range,
 				schedule
 			)}
-			<Grid gap="md" minimum="panel">
-				<Field
-					name="employment_id"
-					label={t('component.employment')}
-					relationOptions={employmentRelationOptions(scopedCompanyId)}
-				/>
-				<Field
-					name="loan_catalogue_id"
-					label={t('component.catalogue_component')}
-					relationOptions={{
-						label: (component) =>
-							component.code != null && component.code !== '' ? String(component.code) : '—',
-						// The loan catalogue is already the pay lines a loan recovers through, so the only
-						// condition left is the version of this entity's lineage in force today. The
-						// `nature: DEDUCTION` clause that used to sit here is gone with the merged
-						// catalogue: a recovery a company forgives, or an advance paid out through the line
-						// it is recovered on, is the company's business and not this picker's.
-						where: { ...inForceCatalogue('loan_catalogue_settings', scopedSettingsCode) },
-						orderBy: { code: 'asc' },
-						limit: 200
-					}}
-				/>
-				<Field name="principal" label={t('component.principal')} />
-				<Field name="effective_range" label={t('component.effective_period')} />
-				<Column span="all"><Field name="reference" label={t('component.reference')} /></Column>
-				<Column span="all"><Field name="reason" label={t('component.reason')} /></Column>
-				<Column span="all">
+			<Stack gap="lg">
+				<FormSection
+					first
+					title={t('component.loan_section_loan')}
+					hint={t('component.loan_section_loan_hint')}
+				>
+					<Grid gap="sm" minimum="compact">
+						<Field
+							name="employment_id"
+							label={t('component.person')}
+							relationOptions={employmentRelationOptions(scopedCompanyId)}
+						/>
+						<EligibleTypes
+							catalogue="loan_catalogue"
+							employmentId={String(form.values().employment_id ?? '') || undefined}
+							settingsCode={scopedSettingsCode}
+						>
+							{#snippet children(where)}
+								<Field
+									name="loan_catalogue_id"
+									label={t('app.loans.deducted_as')}
+									relationOptions={{
+										label: (component) =>
+											component.code != null && component.code !== ''
+												? String(component.code)
+												: '—',
+										where,
+										orderBy: { code: 'asc' },
+										limit: 200
+									}}
+								/>
+							{/snippet}
+						</EligibleTypes>
+						<Field name="principal" label={t('component.principal')} />
+						<Field name="effective_range" label={t('component.effective_period')} />
+						<Column span="all"><Field name="reference" label={t('component.reference')} /></Column>
+					</Grid>
+				</FormSection>
+
+				<FormSection
+					title={t('component.repayment_schedule')}
+					hint={t('component.loan_section_schedule_hint')}
+				>
 					<Stack
-						as="section"
 						gap="sm"
 						data-loan-schedule
 						data-invalid={imbalanced ? 'true' : undefined}
-						aria-labelledby="loan-repayment-schedule-heading"
+						aria-label={t('component.repayment_schedule')}
 					>
-						<h3 id="loan-repayment-schedule-heading" class="text-sm font-semibold">
-							{t('component.repayment_schedule')}
-						</h3>
 						{#if imbalanced}
 							<p class="text-sm text-destructive" role="status">
 								{t('component.loan_schedule_imbalance', {
@@ -249,8 +262,8 @@
 							onChange={(rows) => applySchedule(rows, form)}
 						/>
 					</Stack>
-				</Column>
-			</Grid>
+				</FormSection>
+			</Stack>
 		{/snippet}
 	</CollectionForm>
 </RecordShell>

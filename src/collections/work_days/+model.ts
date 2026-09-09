@@ -51,11 +51,6 @@ export default defineModel(
 		 * on this — it is provenance and a board filter, nothing more.
 		 */
 		planned_origin: enums(['IMPORT', 'MANUAL']),
-		/**
-		 * A free-text reason for an ad hoc change, for example "swap with 03 Aug" or
-		 * "call-back for stocktake". Purely explanatory; the schedule always comes from the code.
-		 */
-		planned_note: text(),
 
 		// ── actual ───────────────────────────────────────────────────────────────────────────────
 		/**

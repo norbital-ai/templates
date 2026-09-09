@@ -163,6 +163,14 @@ unrecorded), `employment.type`, `employment.classification`, `employment.service
 claims anything. Hooks compile every predicate when the row is written. Race and religion are
 captured only where a statutory fund is selected by them.
 
+The event forms speak it too. `lib/ui/eligible-types.svelte` reads the chosen employment with its
+person, terms and entity in one query, builds the same context as of today (`lib/eligible-types.ts`)
+and narrows the type picker to the catalogue rows whose predicate holds; with no person chosen it
+offers every row in force. The write hooks hold the same rule on the event date, so a write that
+bypassed the form is refused with the same sentence. An event carries no entitlement of its own:
+a claim, allowance or payment is a type, an amount, a date, a receipt when the type demands one,
+and whether it claws an earlier line back.
+
 The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
 Preparation gathers the input snapshot once. Validation refuses incomplete treatments, required
 facts, open clocks, missing calendar coverage, invalid references and truncated reads. Nothing is
