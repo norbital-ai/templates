@@ -22,7 +22,8 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	expectStatutory,
-	expectStatutorySkipped
+	expectStatutorySkipped,
+	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
 
 const VN_PEOPLE = [
@@ -151,4 +152,11 @@ test('Vietnam — the December 2025 version, and the regional cap that moves off
 	expectStatutory(december, 'VN-200M', 'PIT', 3_256_200, 0);
 	// 120,000,000 is under 132,000,000 + the insurance relief, so there is nothing to withhold.
 	expectStatutory(december, 'VN-120M', 'PIT', 0, 0);
+});
+
+test('every sealed version of `VN` is priced by a golden here', () => {
+	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
+	// golden names its version through the period it runs, so a version sealed afterwards is priced
+	// by nothing and stays green.
+	assertEveryVersionPriced('VN');
 });

@@ -20,7 +20,22 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { computedEntitlement, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
 import { isEligible, personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
-import { leaveCatalogue, settingsVersions, type Lineage } from './fixtures/statutory-world.ts';
+import {
+	LINEAGES,
+	leaveCatalogue,
+	settingsVersions,
+	type Lineage
+} from './fixtures/statutory-world.ts';
+
+/**
+ * Every `(lineage, sealed version)` this file actually asserted against, recorded as it goes.
+ *
+ * The goldens below name their versions in prose — "on all three sealed versions" — which is true
+ * of the versions that existed when each was written and says nothing about a version sealed
+ * afterwards. A new sealed version is a new law in force, and a law in force with no golden is the
+ * one case this file exists to prevent. The completeness test at the foot of the file reads this.
+ */
+const asserted = new Set<string>();
 
 /** The facts a seeded leave row or entitlement band can read about a person. */
 type Facts = {
@@ -80,6 +95,7 @@ function grant(
 		)
 		.map((row) => row.id as string)[version];
 	assert.ok(settingsId, `${lineage} has no leave rows for version ${version}`);
+	asserted.add(`${lineage}:${settingsId}`);
 	const row = leaveCatalogue(lineage).find(
 		(candidate) => candidate.settings_id === settingsId && candidate.code === code
 	);
@@ -383,4 +399,19 @@ test('Indonesia — the UU 13/2003 leave heads, on all three sealed versions', (
 		// art.93(2)(a) sick pay is unmetered: certified from the first day and not a day count.
 		assert.deepEqual(ladder('ID', version, 'MEDICAL_LEAVE'), [null, null, null]);
 	}
+});
+
+test('every sealed version of every lineage has a leave golden', () => {
+	// Not "were the numbers checked" — the tests above do that — but "was any version skipped".
+	const missing: string[] = [];
+	for (const lineage of LINEAGES) {
+		for (const version of settingsVersions(lineage)) {
+			const key = `${lineage}:${String(version.id)}`;
+			if (!asserted.has(key))
+				missing.push(
+					`${lineage} version in force from ${String(version.effective_range.start).slice(0, 10)}`
+				);
+		}
+	}
+	assert.deepEqual(missing, [], 'a sealed version with no leave golden is a law nothing checks');
 });

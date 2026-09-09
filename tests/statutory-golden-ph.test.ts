@@ -15,7 +15,8 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	expectStatutory,
-	expectStatutoryBase
+	expectStatutoryBase,
+	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
 
 const PH_PEOPLE = [
@@ -90,4 +91,11 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	// 40,000 − (1,750 + 1,000 + 200) = 37,050. Row "33,333–66,666 → 1,875.00 + 20% of the excess
 	// over 33,333": 1,875 + 3,717 × 20% = 1,875 + 743.40 = 2,618.40.
 	expectStatutory(book, 'PH-40000', 'WTAX', 2618.4, 0);
+});
+
+test('every sealed version of `PH` is priced by a golden here', () => {
+	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
+	// golden names its version through the period it runs, so a version sealed afterwards is priced
+	// by nothing and stays green.
+	assertEveryVersionPriced('PH');
 });

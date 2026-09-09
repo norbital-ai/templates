@@ -18,7 +18,8 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	expectStatutory,
-	expectStatutorySkipped
+	expectStatutorySkipped,
+	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;
@@ -245,4 +246,12 @@ test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and a
 	expectStatutory(july, 'N-5001', 'SOCSO', 25.25, 88.35);
 	expectStatutory(july, 'N-5001', 'EIS', 10.1, 10.1);
 	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+});
+
+test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', () => {
+	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
+	// golden names its version through the period it runs, so a version sealed afterwards is priced
+	// by nothing and stays green.
+	assertEveryVersionPriced('MY');
+	assertEveryVersionPriced('MY-nihon');
 });

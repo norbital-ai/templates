@@ -17,7 +17,8 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	expectStatutory,
-	expectStatutorySkipped
+	expectStatutorySkipped,
+	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
 
 test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 民國115年 tables', () => {
@@ -193,4 +194,11 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 	// 職災 charges the industry rate on the un-graded wage here as on the later version (bank
 	// `TW/README.md` NOT APPLIED #5): 0.25% × 42,885 = 107.2125.
 	expectStatutory(book, 'TW-NR-42885', 'OCC_INJURY', 0, 107.2125);
+});
+
+test('every sealed version of `TW` is priced by a golden here', () => {
+	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
+	// golden names its version through the period it runs, so a version sealed afterwards is priced
+	// by nothing and stays green.
+	assertEveryVersionPriced('TW');
 });
