@@ -5,7 +5,6 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import { Cluster, Cover } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import { setContext } from 'svelte';
@@ -13,14 +12,17 @@
 	import { HOLIDAY_JURISDICTION } from '../holiday-scope.js';
 	import { holidayImportPayload } from '../holiday-workbook.js';
 	import { runWorkbookImport } from './workbook-import.js';
+	import { importCollectionRecords } from '@norbital-ai/bolt/client';
+	import { newLocalId } from '../ids.js';
 	import type { WorkspaceRow } from '$bolt/types.js';
 
 	/**
 	 * One table, one jurisdiction: the holidays themselves, each published on its own. Create,
-	 * search and filter are the table's; the two imports are its pipelines — a spreadsheet, or
-	 * the Google calendar set under General — and both come through the same door, so a day the
-	 * jurisdiction already has is never duplicated. A holiday a work day or payroll run has read
-	 * is frozen and says so.
+	 * search and filter are the table's; publishing is a bulk operation over the rows a person
+	 * selected, and the spreadsheet import a pipeline — both go through the collection's own
+	 * import handler, so no write is made from the browser. The Google calendar set under General
+	 * comes through the same dedupe, so a day the jurisdiction already has is never duplicated.
+	 * A holiday a work day or payroll run has read is frozen; Published is its status column.
 	 */
 	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
 	const jurisdictionCode = $derived(version.jurisdiction_code);
@@ -29,6 +31,37 @@
 	setContext(HOLIDAY_JURISDICTION, () => jurisdictionCode);
 
 	type Holiday = WorkspaceRow<'jurisdiction_holidays'>;
+	/**
+	 * Publication for selected rows goes through the collection's import handler, which answers
+	 * with the rows to write; the toolbar's operations are the only writer this surface has.
+	 */
+	const publication = (rows: readonly Holiday[], published: boolean) =>
+		Effect.tryPromise({
+			try: () =>
+				importCollectionRecords({
+					records: [
+						{
+							collection: 'jurisdiction_holidays',
+							id: newLocalId(),
+							values: { publish: rows.map((row) => row.id), published }
+						}
+					]
+				}),
+			catch: (cause) => new Error(getErrorMessage(cause))
+		}).pipe(
+			Effect.tap((count) =>
+				Effect.sync(() =>
+					toast.success(
+						t(
+							published ? 'holiday_calendar.published_count' : 'holiday_calendar.unpublished_count',
+							{
+								count
+							}
+						)
+					)
+				)
+			)
+		);
 
 	let importing = $state(false);
 	let importNote = $state<string | null>(null);
@@ -51,31 +84,6 @@
 			? t('holiday_import.configure_key')
 			: message;
 </script>
-
-{#snippet publishAction({ row, hovered }: { row: Holiday; hovered: boolean })}
-	{#if row.consumed_at != null}
-		<span class="text-xs text-muted-foreground">{t('holiday_calendar.consumed')}</span>
-	{:else if hovered || row.published_at == null}
-		<Button
-			size="sm"
-			variant={row.published_at == null ? 'default' : 'ghost'}
-			onclick={(event) => {
-				event.stopPropagation();
-				const published = row.published_at == null;
-				Effect.runFork(
-					submitCollectionMutation(() =>
-						client.db.jurisdiction_holidays.mutate([
-							{ id: row.id, published_at: published ? new Date().toISOString() : null }
-						])
-					).pipe(Effect.catch((cause) => Effect.sync(() => toast.error(getErrorMessage(cause)))))
-				);
-			}}
-			>{row.published_at == null
-				? t('holiday_calendar.publish')
-				: t('holiday_calendar.unpublish')}</Button
-		>
-	{/if}
-{/snippet}
 
 {#snippet googleImport()}
 	<Cluster align="center" gap="sm">
@@ -125,6 +133,32 @@
 			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
 			orderBy: { date: 'desc' }
 		}}
+		exportPipelines={[
+			{
+				id: 'holidays-publish',
+				label: t('holiday_calendar.publish_selected'),
+				description: t('holiday_calendar.publish_selected_description'),
+				icon: 'lucide:calendar-check',
+				requiresSelection: true,
+				getDisabledReason: (rows) =>
+					rows.some((row) => row.consumed_at != null && row.published_at != null)
+						? t('holiday_calendar.consumed_selected')
+						: null,
+				run: ({ selectedRows }) => publication(selectedRows, true)
+			},
+			{
+				id: 'holidays-unpublish',
+				label: t('holiday_calendar.unpublish_selected'),
+				description: t('holiday_calendar.unpublish_selected_description'),
+				icon: 'lucide:calendar-minus',
+				requiresSelection: true,
+				getDisabledReason: (rows) =>
+					rows.some((row) => row.consumed_at != null)
+						? t('holiday_calendar.consumed_selected')
+						: null,
+				run: ({ selectedRows }) => publication(selectedRows, false)
+			}
+		]}
 		importPipelines={[
 			{
 				id: 'holidays-workbook',
@@ -142,14 +176,13 @@
 					)
 			}
 		]}
-		rowActions={[publishAction]}
 	>
 		{#snippet columns({ Column })}
 			<Column name="date" label={t('component.observed_on')} card="title" />
 			<Column name="name" label={t('component.holiday')} card="subtitle" />
 			<Column name="original_date" label={t('holiday_calendar.original_date')} />
 			<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
-			<Column name="consumed_at" label={t('holiday_calendar.consumed_at')} />
+			<Column name="consumed_at" label={t('holiday_calendar.consumed_at')} card="badge" />
 		{/snippet}
 	</CollectionTable>
 </Cover>
