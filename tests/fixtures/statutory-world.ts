@@ -53,7 +53,9 @@ export type Person = {
 	readonly statutory_work_category?: string;
 	readonly hire_date?: string;
 	/** Per-scheme registration: a code mapped to `NOT_REGISTERED`, or to a flat rate override. */
-	readonly registrations?: Readonly<Record<string, { kind: string; rate_override?: number | null }>>;
+	readonly registrations?: Readonly<
+		Record<string, { kind: string; rate_override?: number | null }>
+	>;
 };
 
 export type WorldOptions = {
@@ -86,7 +88,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const { code, period } = options;
 	const versions = settingsVersions(code);
 	const jurisdictionCode = versions[0]!.jurisdiction_code;
-	const employmentIds = options.people.map((_, index) => `e0000000-0000-4000-8000-${String(index).padStart(12, '0')}`);
+	const employmentIds = options.people.map(
+		(_, index) => `e0000000-0000-4000-8000-${String(index).padStart(12, '0')}`
+	);
 
 	const employees = options.people.map((person, index) => ({
 		id: `a0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
