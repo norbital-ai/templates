@@ -19,6 +19,8 @@ import { todayKey } from './calendar.js';
  *   version in force today — the same predicate the payroll engine picks a version with.
  * - `employmentId` is set only by Employee Self-Service, where the record is the employee's own:
  *   employment is prefilled and the field is not offered at all.
+ * - `settingsId` is set by the Settings page, where every catalogue row belongs to the version on
+ *   screen: the form prefills it, hides it, and keys its treatments matrix by that version's schemes.
  *
  * A form opened with no scope keeps its old, unnarrowed behaviour rather than showing nothing.
  */
@@ -27,6 +29,8 @@ export interface HrCreateScope {
 	readonly settingsCode: () => string | undefined;
 	/** Self-service only: the request is this person's own. */
 	readonly employmentId?: () => string | undefined;
+	/** Settings only: the version whose catalogue the row is a line of. */
+	readonly settingsId?: () => string | undefined;
 }
 
 export const HR_CREATE_SCOPE = Symbol('norbital_hr.create_scope');

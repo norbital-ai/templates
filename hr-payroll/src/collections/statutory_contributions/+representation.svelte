@@ -3,18 +3,26 @@
 	 * One statutory scheme, and the rate bands that price it. A row like "5.5% from RM0 to RM5,000"
 	 * is meaningless without the EPF/SOCSO/EIS scheme whose wage ladder it is a rung of, so the bands
 	 * are the scheme's own `bands` column; the datatype refuses two rungs that overlap.
+	 *
+	 * `settings_id` is never a field on the Settings page: the page names the version and the form
+	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
+	import FormSection from '../../lib/ui/form-section.svelte';
+	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const createScope = hrCreateScope();
+	const settingsId = $derived(createScope?.settingsId?.());
+	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
 
 	const payerLabel = $derived(
 		record?.payer === 'BOTH' ? 'employee and employer' : (record?.payer?.toLowerCase() ?? 'nobody')
@@ -37,61 +45,64 @@
 	<CollectionForm
 		{client}
 		collection="statutory_contributions"
-		defaultValues={record ?? undefined}
+		defaultValues={formValues}
 		submitLabel={record ? t('component.save_scheme') : t('component.create_scheme')}
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
 			<Stack gap="lg">
-				<!--
-					Three sections in the order the question is actually asked: what this scheme is, how
-					much it takes and from whom, and the exceptions the statute names. No rules between
-					them — the heading and its sentence are the separation, as on the settings form.
-				-->
-				<Stack as="section" gap="sm">
-					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">{t('component.scheme_section_identity')}</h3>
-						<p class="text-meta">{t('component.scheme_section_identity_hint')}</p>
-					</Stack>
+				<FormSection
+					first
+					title={t('component.scheme_section_identity')}
+					hint={t('component.scheme_section_identity_hint')}
+				>
 					<Grid gap="sm" minimum="compact">
-						<Field
-							name="settings_id"
-							label={t('component.settings_version')}
-							relationOptions={{
-								label: (version) =>
-									[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { code: 'asc' },
-								limit: 200
-							}}
-						/>
-						<Field name="code" />
-						<Field name="name" />
+						{#if settingsId != null}
+							<Field name="settings_id" hidden />
+						{:else}
+							<Field
+								name="settings_id"
+								label={t('component.settings_version')}
+								relationOptions={{
+									label: (version) =>
+										[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+											.filter((part) => part != null && part !== '')
+											.join(' · ') || '—',
+									orderBy: { code: 'asc' },
+									limit: 200
+								}}
+							/>
+						{/if}
+						<Field name="code" label={t('component.code')} />
+						<Field name="name" label={t('component.name')} />
 						<Field name="is_statutory" label={t('component.is_statutory')} />
-						<Field name="authority" />
+						<Field name="authority" label={t('component.authority')} />
 					</Grid>
-				</Stack>
+				</FormSection>
 
-				<Stack as="section" gap="sm">
-					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">{t('component.scheme_section_calculation')}</h3>
-						<p class="text-meta">{t('component.scheme_section_calculation_hint')}</p>
-					</Stack>
+				<FormSection
+					title={t('component.scheme_section_order')}
+					hint={t('component.scheme_section_order_hint')}
+				>
 					<Grid gap="sm" minimum="compact">
+						<Field name="sequence" label={t('component.order')} />
+						<Field name="rounding" label={t('component.rounding')} />
 						<Field name="payer" label={t('component.paid_by')} />
 						<Field name="keyed_by" label={t('component.bands_keyed_by')} />
-						<Field name="rounding" />
-						<Field name="sequence" label={t('component.applied_at')} />
 					</Grid>
-					<Field name="bands" label={t('component.rate_bands')} />
-				</Stack>
+				</FormSection>
 
-				<Stack as="section" gap="sm">
-					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">{t('component.scheme_section_exceptions')}</h3>
-						<p class="text-meta">{t('component.scheme_section_exceptions_hint')}</p>
-					</Stack>
+				<FormSection
+					title={t('component.scheme_section_bands')}
+					hint={t('component.scheme_section_bands_hint')}
+				>
+					<Field name="bands" label={t('component.rate_bands')} />
+				</FormSection>
+
+				<FormSection
+					title={t('component.scheme_section_exceptions')}
+					hint={t('component.scheme_section_exceptions_hint')}
+				>
 					<Field
 						name="relief_for"
 						label={t('component.gives_relief_for')}
@@ -105,7 +116,7 @@
 						}}
 					/>
 					<Field name="special_rules" label={t('component.named_special_rules')} />
-				</Stack>
+				</FormSection>
 			</Stack>
 		{/snippet}
 	</CollectionForm>

@@ -1,11 +1,18 @@
 <script lang="ts">
 	/**
-	 * One row per statutory scheme the component has decided: the scheme's code, how it charges the
-	 * component, and the rule name when the charge is special. A code the company's jurisdiction
-	 * does not levy is refused by the catalogue hook, so the code column is plain text here rather
-	 * than a lookup that would mount one query per row of the catalogue table.
+	 * One row per statutory scheme: the scheme's code, how it charges the component, and the rule
+	 * name when the charge is special.
+	 *
+	 * On the Settings page the rows are the scoped version's own schemes, read once from
+	 * `statutory_contributions` and never typed: the matrix cannot name a scheme the version does
+	 * not levy, and a scheme the map does not name shows as undecided. Without that scope the code
+	 * column is free text and rows are added by hand, as before; the hook still refuses a code the
+	 * version does not levy. The query is opened only in edit mode, so a catalogue table showing
+	 * this column in every row mounts none.
 	 */
 	import { Result, Schema } from 'effect';
+	import { client } from '../../lib/workspace-client.js';
+	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -51,9 +58,26 @@
 			width: 220
 		}
 	] satisfies readonly MatrixColumn<TreatmentRow>[];
+	const SCOPED_COLUMNS = [
+		{ ...COLUMNS[0], readOnly: true },
+		COLUMNS[1],
+		COLUMNS[2]
+	] satisfies readonly MatrixColumn<TreatmentRow>[];
 
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
+	const createScope = hrCreateScope();
+	const settingsId = $derived(createScope?.settingsId?.());
+	const schemesQuery = $derived(
+		props.mode !== 'edit' || settingsId == null
+			? null
+			: client.db.statutory_contributions.findMany({
+					where: { settings_id: { eq: settingsId }, approval_id: { isNull: true } },
+					orderBy: { sequence: 'asc' },
+					columns: { code: true, name: true }
+				})
+	);
+	const scoped = $derived(schemesQuery != null);
 	const parsed = $derived(
 		Schema.decodeUnknownResult(contributionTreatmentsSchema)(props.value, {
 			onExcessProperty: 'error'
@@ -62,13 +86,23 @@
 	const entries = $derived<[string, Treatment][]>(
 		Result.isSuccess(parsed) ? Object.entries(parsed.success) : []
 	);
+	const rowOf = (code: string, treatment: Treatment): TreatmentRow => ({
+		id: `treatment-${code}`,
+		code,
+		treatment: treatment.kind,
+		special_rule: treatment.kind === 'SPECIAL' ? treatment.rule : null
+	});
 	const rows = $derived(
-		entries.map(([code, treatment]): TreatmentRow => ({
-			id: `treatment-${code}`,
-			code,
-			treatment: treatment.kind,
-			special_rule: treatment.kind === 'SPECIAL' ? treatment.rule : null
-		}))
+		schemesQuery == null
+			? entries.map(([code, treatment]) => rowOf(code, treatment))
+			: (schemesQuery.current ?? []).map((scheme) =>
+					rowOf(
+						scheme.code,
+						(Result.isSuccess(parsed) ? parsed.success[scheme.code] : undefined) ?? {
+							kind: 'UNSET'
+						}
+					)
+				)
 	);
 
 	const summary = $derived(
@@ -96,7 +130,9 @@
 		const next: Record<string, Treatment> = {};
 		for (const row of nextRows) {
 			const code = row.code.trim().toUpperCase();
-			if (code === '') continue;
+			// A scoped row is every scheme in the version; one nobody has decided stays absent, as a
+			// missing key is what "undecided" already means to the run.
+			if (code === '' || (scoped && row.treatment === 'UNSET')) continue;
 			next[code] = treatmentOf(row);
 		}
 		props.onValueChange(next);
@@ -108,20 +144,33 @@
 {:else}
 	<Stack gap="xs">
 		<p class="text-meta">{t('renderer.contribution_treatments.identity')}</p>
-		<MatrixRenderer
-			{rows}
-			columns={COLUMNS}
-			{disabled}
-			emptyMessage={t('renderer.contribution_treatments.empty')}
-			addRowLabel={t('renderer.contribution_treatments.add_row')}
-			createRow={(): TreatmentRow => ({
-				id: crypto.randomUUID(),
-				code: '',
-				treatment: 'UNSET',
-				special_rule: null
-			})}
-			bounded={false}
-			onChange={emit}
-		/>
+		{#if scoped}
+			<MatrixRenderer
+				{rows}
+				columns={SCOPED_COLUMNS}
+				{disabled}
+				emptyMessage={t('renderer.contribution_treatments.empty')}
+				allowAddRows={false}
+				allowRemoveRows={false}
+				bounded={false}
+				onChange={emit}
+			/>
+		{:else}
+			<MatrixRenderer
+				{rows}
+				columns={COLUMNS}
+				{disabled}
+				emptyMessage={t('renderer.contribution_treatments.empty')}
+				addRowLabel={t('renderer.contribution_treatments.add_row')}
+				createRow={(): TreatmentRow => ({
+					id: crypto.randomUUID(),
+					code: '',
+					treatment: 'UNSET',
+					special_rule: null
+				})}
+				bounded={false}
+				onChange={emit}
+			/>
+		{/if}
 	</Stack>
 {/if}
