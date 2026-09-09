@@ -10,7 +10,7 @@ import {
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
-function mixedFamilies(claimSequence = 200) {
+function mixedFamilies() {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	for (const day of world.work_days) {
 		day.worked_intervals = [
@@ -22,30 +22,8 @@ function mixedFamilies(claimSequence = 200) {
 		...world.payment_catalogue[0],
 		id: 'claim-type',
 		code: 'EXPENSE',
-		sequence: claimSequence,
-		definition: {
-			source: 'ENTRY',
-			unit: 'MONEY',
-			evidence: 'NONE',
-			settlement: 'PAYROLL',
-			cap: {
-				period: 'CALENDAR_YEAR',
-				on_exceed: 'BLOCK',
-				matrix: {
-					merge: 'MAX_WITH_COMPANY_LAYERS',
-					layers: [
-						{
-							level: 'ORGANISATION',
-							eligibility: '',
-							authority: 'Synthetic sequence regression',
-							effective_range: { start: '2020-01-01', end: null },
-							award: { kind: 'FORMULA', expr: "component('BASIC') / 10.0" },
-							reimbursement_percentage: 100
-						}
-					]
-				}
-			}
-		}
+		sequence: 200,
+		cap: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', bands: [{ eligibility: '', amount: 500 }] }
 	});
 	world.claim_requests.push({
 		id: 'claim',
@@ -59,8 +37,6 @@ function mixedFamilies(claimSequence = 200) {
 		...world.payment_catalogue[0],
 		id: 'loan-type',
 		code: 'LOAN',
-		nature: 'DEDUCTION',
-		policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' },
 		sequence: 400
 	});
 	world.loans.push({
@@ -101,10 +77,6 @@ test('family preparation and calculation preserve mixed source capture and cross
 	assert.equal(amounts.get('LOAN_REPAYMENT'), 50);
 	assert.equal(payslip.base.find((line) => line.component_code === 'BASIC')?.amount, 3451);
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
-});
-
-test('a money cap cannot see a Work output scheduled after it', async () => {
-	await assert.rejects(calculate(mixedFamilies(10)), /EXPENSE.*(cap|entitlement|exceed)/i);
 });
 
 test('payroll orchestration does not read family-owned source tables or interpret calculation definitions', async () => {

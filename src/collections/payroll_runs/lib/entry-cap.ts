@@ -1,8 +1,8 @@
 /**
- * A claimable component's entitlement ceiling, and what a candidate entry has left of it.
+ * A pay line's entitlement ceiling, and what a candidate entry has left of it.
  *
- * The cap is stated once, on the catalogue row (`component_definition`'s `cap`), and two callers
- * need the same answer at two different moments:
+ * The cap is stated once, on the catalogue row (`cap`, an `entitlement_cap`), and two callers need
+ * the same answer at two different moments:
  *
  *   MEASURE   prices an entry and refuses the run when a `BLOCK` cap is exceeded.
  *   THE HOOK  refuses the entry when it is written, which is where a person can still fix it.
@@ -12,19 +12,12 @@
  * payroll run weeks later — a refusal aimed at somebody who was not the person who made the
  * mistake, at a moment when it could no longer be corrected cheaply.
  *
- * ## Why the award evaluator is injected rather than imported
- *
- * A layer's ceiling is either a `FIXED` amount or a `FORMULA` over the payslip context — component
- * amounts measured this period, statutory facts, leave balances. At MEASURE time all of that
- * exists. At write time none of it does, and there is no honest way to invent it. So the caller
- * supplies the evaluator, and one that cannot answer says so by returning `null`; a cap with an
- * unresolvable applicable layer yields no ceiling and the write is left to the run, which is the
- * only place the number is knowable. That boundary is a property of the data, not a shortcut: a
- * cap whose ceiling depends on the payslip cannot be checked before the payslip exists.
+ * The ceiling is a table of tiers: the first band whose predicate holds for the person is theirs,
+ * per period. A person no band covers has no entitlement, which both callers treat as a refusal
+ * rather than as "no ceiling".
  */
 
-import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
-import { coversDate } from './effective.js';
+import type { EntitlementCap } from '../../../datatypes/entitlement_cap/+definition.js';
 import { monthBounds, periodHalf, periodMonth, requiredDateKey } from './dates.js';
 import { isEligible, type PersonContext } from './eligibility.js';
 
@@ -34,9 +27,6 @@ export const capOccurrenceDate = (period: string) =>
 		? requiredDateKey(`${periodMonth(period)}-15`, 'cap occurrence date')
 		: monthBounds(periodMonth(period)).end;
 
-type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
-type CapLayer = EntryCap['matrix']['layers'][number];
-
 /** The entry columns this rule reads, so a hook may pass a candidate the database has never seen. */
 type CapEntryLike = {
 	readonly id: string;
@@ -44,16 +34,14 @@ type CapEntryLike = {
 };
 
 type ResolvedEntryCap = {
-	/** The ceiling in force for this person on this day: the highest applicable layer. */
+	/** The ceiling in force for this person: the first band that covers them. */
 	readonly amount: number;
-	/** The reimbursable share, which is what actually counts against the ceiling. */
-	readonly percentage: number;
 	/** What earlier entries in the same capped period have already used of it. */
 	readonly exceededBy: number;
 };
 
 type ResolveEntryCapOptions<TEntry extends CapEntryLike> = {
-	readonly cap: EntryCap;
+	readonly cap: EntitlementCap;
 	readonly component: { readonly family: string; readonly code: string };
 	readonly employmentId: string;
 	readonly entry: CapEntryLike;
@@ -65,57 +53,22 @@ type ResolveEntryCapOptions<TEntry extends CapEntryLike> = {
 	/** Signed usage already valued under this source's own rules or captured output. */
 	readonly usedAmountOf: (entry: TEntry) => number;
 	readonly subject: PersonContext;
-	/** The layer's ceiling, or `null` where this caller cannot know it. */
-	readonly evaluateAward: (layer: CapLayer) => number | null;
 };
 
-/** Historical reimbursement is valued on its source date, independently of the next entry's cap. */
-export function entryReimbursementPercentage(options: {
-	readonly cap: EntryCap | null | undefined;
-	readonly employmentId: string;
-	readonly eventDate: string;
-	readonly subject: PersonContext;
-}): number {
-	const layers = applicableCapLayers(options);
-	return layers.length === 0
-		? 100
-		: Math.max(...layers.map((layer) => layer.reimbursement_percentage));
-}
-
-function applicableCapLayers(options: {
-	readonly cap: EntryCap | null | undefined;
-	readonly employmentId: string;
-	readonly eventDate: string;
-	readonly subject: PersonContext;
-}): readonly CapLayer[] {
-	return (options.cap?.matrix.layers ?? []).filter(
-		(layer) =>
-			(layer.level !== 'EMPLOYEE' || layer.employment_id === options.employmentId) &&
-			coversDate(layer.effective_range, options.eventDate) &&
-			isEligible(layer.eligibility, options.subject)
-	);
-}
+/** The band that covers this person, or `null` when none does: no entitlement. */
+const entitlementBand = (cap: EntitlementCap, subject: PersonContext) =>
+	cap.bands.find((band) => isEligible(band.eligibility, subject)) ?? null;
 
 /**
  * The ceiling that governs, and what is already spent against it.
  *
- * `null` means no ceiling this caller can state: either no layer applies to this person on this
- * day, or one that does is priced by a formula the caller cannot evaluate.
+ * `null` means no band covers this person: they have no entitlement under this line.
  */
 export function resolveEntryCap<TEntry extends CapEntryLike>(
 	options: ResolveEntryCapOptions<TEntry>
 ): ResolvedEntryCap | null {
-	const applicable: { amount: number; percentage: number }[] = [];
-	for (const layer of applicableCapLayers(options)) {
-		const amount = options.evaluateAward(layer);
-		// An applicable layer nobody can price makes the whole ceiling unknowable: the merge takes
-		// the highest layer, so omitting one would understate the ceiling and refuse a legal entry.
-		if (amount === null) return null;
-		applicable.push({ amount, percentage: layer.reimbursement_percentage });
-	}
-	if (applicable.length === 0) return null;
-	const amount = Math.max(...applicable.map((layer) => layer.amount));
-	const percentage = Math.max(...applicable.map((layer) => layer.percentage));
+	const band = entitlementBand(options.cap, options.subject);
+	if (band == null) return null;
 
 	const samePeriod = (candidateDate: string): boolean => {
 		switch (options.cap.period) {
@@ -150,12 +103,12 @@ export function resolveEntryCap<TEntry extends CapEntryLike>(
 			return total;
 		return total + options.usedAmountOf(candidate);
 	}, 0);
-	return { amount, percentage, exceededBy: Math.max(0, previouslyUsed) };
+	return { amount: band.amount, exceededBy: Math.max(0, previouslyUsed) };
 }
 
-/** The reimbursable value of one amount under a resolved cap, rounded to the cent. */
-export const reimbursable = (amount: number, cap: Pick<ResolvedEntryCap, 'percentage'>): number =>
-	Math.round(amount * cap.percentage) / 100;
+/** The sentence that refuses a person no band covers. */
+export const noEntitlementRefusal = (componentCode: string, subject: string): string =>
+	`${componentCode} has no entitlement band covering ${subject}.`;
 
 /**
  * The sentence a `BLOCK` cap refuses with, or `null` when the entry fits.
@@ -163,7 +116,7 @@ export const reimbursable = (amount: number, cap: Pick<ResolvedEntryCap, 'percen
  * `ALLOW` states a ceiling for reporting without enforcing it, so it never refuses.
  */
 export function entryCapRefusal(options: {
-	readonly cap: EntryCap;
+	readonly cap: EntitlementCap;
 	readonly resolved: ResolvedEntryCap;
 	readonly componentCode: string;
 	readonly subject: string;

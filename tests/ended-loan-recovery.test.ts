@@ -21,9 +21,7 @@ test('an ended contract recovers its due loan from later manual payments without
 	world.loan_catalogue.push({
 		...world.payment_catalogue[0],
 		id: 'loan-type',
-		code: 'LOAN',
-		nature: 'DEDUCTION',
-		policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' }
+		code: 'LOAN'
 	});
 	world.loans.push({
 		id: 'loan',

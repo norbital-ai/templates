@@ -8,13 +8,13 @@ CREATE TABLE "allowance_catalogue" (
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", ''))) STORED,
 	"settings_id" uuid NOT NULL,
 	"code" text NOT NULL,
-	"is_statutory" boolean DEFAULT false NOT NULL,
-	"policy" jsonb NOT NULL,
-	"nature" text GENERATED ALWAYS AS (policy ->> 'kind') STORED,
+	"nature" text NOT NULL,
 	"contribution_treatments" jsonb NOT NULL,
 	"sequence" integer NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL,
-	"definition" jsonb NOT NULL
+	"evidence" text DEFAULT 'NONE' NOT NULL,
+	"settlement" text DEFAULT 'PAYROLL' NOT NULL,
+	"cap" jsonb
 );
 
 --> statement-breakpoint
@@ -45,13 +45,13 @@ CREATE TABLE "claim_catalogue" (
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", ''))) STORED,
 	"settings_id" uuid NOT NULL,
 	"code" text NOT NULL,
-	"is_statutory" boolean DEFAULT false NOT NULL,
-	"policy" jsonb NOT NULL,
-	"nature" text GENERATED ALWAYS AS (policy ->> 'kind') STORED,
+	"nature" text NOT NULL,
 	"contribution_treatments" jsonb NOT NULL,
 	"sequence" integer NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL,
-	"definition" jsonb NOT NULL
+	"evidence" text DEFAULT 'NONE' NOT NULL,
+	"settlement" text DEFAULT 'PAYROLL' NOT NULL,
+	"cap" jsonb
 );
 
 --> statement-breakpoint
@@ -167,6 +167,7 @@ CREATE TABLE "employment_terms" (
 	"department" text,
 	"job_title" text,
 	"payroll_group" text,
+	"grade" text,
 	"shift_pattern_id" uuid,
 	"effective_range" jsonb NOT NULL,
 	"summary" text GENERATED ALWAYS AS (COALESCE(job_title || ' · ', '') || employment_type) STORED
@@ -297,13 +298,9 @@ CREATE TABLE "loan_catalogue" (
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", ''))) STORED,
 	"settings_id" uuid NOT NULL,
 	"code" text NOT NULL,
-	"is_statutory" boolean DEFAULT false NOT NULL,
-	"policy" jsonb NOT NULL,
-	"nature" text GENERATED ALWAYS AS (policy ->> 'kind') STORED,
 	"contribution_treatments" jsonb NOT NULL,
 	"sequence" integer NOT NULL,
-	"eligibility" text DEFAULT '' NOT NULL,
-	"definition" jsonb NOT NULL
+	"eligibility" text DEFAULT '' NOT NULL
 );
 
 --> statement-breakpoint
@@ -350,13 +347,13 @@ CREATE TABLE "payment_catalogue" (
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", ''))) STORED,
 	"settings_id" uuid NOT NULL,
 	"code" text NOT NULL,
-	"is_statutory" boolean DEFAULT false NOT NULL,
-	"policy" jsonb NOT NULL,
-	"nature" text GENERATED ALWAYS AS (policy ->> 'kind') STORED,
+	"nature" text NOT NULL,
 	"contribution_treatments" jsonb NOT NULL,
 	"sequence" integer NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL,
-	"definition" jsonb NOT NULL
+	"evidence" text DEFAULT 'NONE' NOT NULL,
+	"settlement" text DEFAULT 'PAYROLL' NOT NULL,
+	"cap" jsonb
 );
 
 --> statement-breakpoint

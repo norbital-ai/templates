@@ -198,7 +198,7 @@ test('coverageRuleFor returns null for none and refuses two', () => {
 // ── the comparand: s.2 wages, classified from the component model ────────────────────────────
 
 const component = (kind, source) => ({
-	policy: kind == null ? null : { kind },
+	nature: kind,
 	definition: source == null ? null : { source }
 });
 

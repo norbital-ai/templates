@@ -186,12 +186,7 @@ const world = (options = {}) => {
 				findFirst: () => Effect.succeed(options.captured === true ? { period: PERIOD } : undefined)
 			},
 			loan_catalogue: {
-				findFirst: () =>
-					Effect.succeed({
-						code: 'LOAN',
-						nature: 'DEDUCTION',
-						definition: { source: 'ENTRY', settlement: 'PAYROLL' }
-					})
+				findFirst: () => Effect.succeed({ code: 'LOAN' })
 			}
 		}
 	};

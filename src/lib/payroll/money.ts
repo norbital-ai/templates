@@ -294,21 +294,13 @@ function prepareRequestCatalogues(
 		options.api.reads.assertComplete(allowances, 'source Allowance catalogue');
 		options.api.reads.assertComplete(payments, 'source Adhoc catalogue');
 		const components: CatalogueComponent[] = [
-			...claims.map((row) => ({
-				...row,
-				family: 'CLAIM' as const,
-				settlement: row.definition.settlement
-			})),
+			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf(row) })),
 			...allowances.map((row) => ({
 				...row,
 				family: 'ALLOWANCE' as const,
-				settlement: row.definition.settlement
+				definition: entryOf(row)
 			})),
-			...payments.map((row) => ({
-				...row,
-				family: 'PAYMENT' as const,
-				settlement: row.definition.settlement
-			}))
+			...payments.map((row) => ({ ...row, family: 'PAYMENT' as const, definition: entryOf(row) }))
 		];
 		const settings = yield* options.api.db.jurisdiction_settings.findMany({
 			where: { id: { in: [...new Set(components.map((row) => row.settings_id))] }, ...approved },
@@ -337,6 +329,10 @@ function prepareRequestCatalogues(
 		return byId;
 	});
 }
+
+/** The stored row lifted into the engine's `ENTRY` arm: the flat columns are the definition. */
+const entryOf = (row: Pick<WorkspaceRow<'claim_catalogue'>, 'cap'>) =>
+	({ source: 'ENTRY', cap: row.cap }) as const;
 
 /** Standing captures exclude single-use requests, including signed corrections, from later runs. */
 function requestCaptures(options: {
@@ -420,7 +416,7 @@ function requestCaptures(options: {
 	});
 }
 
-import type { ComponentDefinition } from '../../datatypes/component_definition/+definition.js';
+import type { ComponentDefinition } from '../../collections/payroll_runs/lib/configuration.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import type { Measurement, MeasureComponentOptions, PayRange, FamilyStep } from './family.js';
 import {
@@ -437,10 +433,8 @@ import {
 import {
 	capOccurrenceDate,
 	entryCapRefusal,
-	entryReimbursementPercentage,
 	resolveEntryCap
 } from '../../collections/payroll_runs/lib/entry-cap.js';
-import { evaluateFormula } from '../../collections/payroll_runs/lib/formula.js';
 import { prorationFraction } from '../../collections/payroll_runs/lib/proration.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
@@ -478,7 +472,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			`A ${options.component.family} request must have an ENTRY catalogue definition.`
 		);
 	if (options.entry == null) return null;
-	const nature = options.component.policy?.kind ?? null;
+	const nature = options.component.nature;
 	const entryFraction = (source: PayRequest): number => {
 		const window = source.window;
 		// A late one-off allowance retains the source month's proration and employment coverage.
@@ -584,17 +578,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 						componentOf: (row) => row.catalogueComponent,
 						usedAmountOf: (row) => {
 							if (row.capAmount != null) return row.sign * row.capAmount;
-							const source = row.catalogueComponent;
-							const sourceSubject = subjectOn(row);
-							if (!isEligible(source.eligibility, sourceSubject)) return 0;
-							if (source.definition.source !== 'ENTRY')
-								throw new Error('A pay request must have an ENTRY catalogue definition.');
-							const percentage = entryReimbursementPercentage({
-								cap: source.definition.cap,
-								employmentId: row.employment_id,
-								eventDate: row.event_date,
-								subject: sourceSubject
-							});
+							if (!isEligible(row.catalogueComponent.eligibility, subjectOn(row))) return 0;
 							const due = requestIsDue(
 								row,
 								options.period,
@@ -606,24 +590,17 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 								}
 							);
 							const fraction = due ? entryFraction(row) : 1;
-							return row.sign * cents((decodeNumber(row.amount) * fraction * percentage) / 100);
+							return row.sign * cents(decodeNumber(row.amount) * fraction);
 						},
-						subject,
-						evaluateAward: (layer) =>
-							layer.award.kind === 'FIXED'
-								? layer.award.amount
-								: evaluateFormula({
-										code: `${options.component.code}_${layer.level}_ENTITLEMENT`,
-										expr: layer.award.expr,
-										context: options.context()
-									})
+						subject
 					});
-		const percentage = cap?.percentage ?? 100;
+		// A person no band covers has nothing to draw on: the entry is read and captured, and pays nothing.
+		if (definition.cap != null && cap == null) return null;
 		const sign = entry.sign;
 		const fraction = entryFraction(entry);
 		if (fraction <= 0) return null;
-		// The reimbursable share is an economic fact per claim, so it is rounded per entry.
-		let reimbursable = cents((decodeNumber(entry.amount) * fraction * percentage) / 100);
+		// The payable share is an economic fact per entry, so it is rounded per entry.
+		let reimbursable = cents(decodeNumber(entry.amount) * fraction);
 		if (entry.recurring && entry.sign > 0 && cap != null && definition.cap?.on_exceed === 'BLOCK')
 			reimbursable = Math.min(reimbursable, Math.max(0, cents(cap.amount - cap.exceededBy)));
 		// One sentence, produced by the same function the write hook refuses with, so a run and a
@@ -786,17 +763,17 @@ export function prepareMoneyCatalogues(options: {
 			...live(claims).map((row) => ({
 				...row,
 				family: 'CLAIM' as const,
-				settlement: row.definition.settlement
+				definition: entryOf(row)
 			})),
 			...live(allowances).map((row) => ({
 				...row,
 				family: 'ALLOWANCE' as const,
-				settlement: row.definition.settlement
+				definition: entryOf(row)
 			})),
 			...live(payments).map((row) => ({
 				...row,
 				family: 'PAYMENT' as const,
-				settlement: row.definition.settlement
+				definition: entryOf(row)
 			}))
 		];
 	});

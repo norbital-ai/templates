@@ -60,6 +60,7 @@
 				<Field name="job_title" label={t('component.job_title')} />
 				<Field name="department" />
 				<Field name="payroll_group" label={t('component.payroll_group')} />
+				<Field name="grade" label={t('component.grade')} />
 				<Column span="all"
 					><Field name="effective_range" label={t('component.effective_period')} /></Column
 				>

@@ -32,7 +32,6 @@ const component = (code, treatments, definition) => ({
 	code,
 	is_statutory: true,
 	nature: 'EARNING',
-	policy: { kind: 'EARNING', settlement: 'ADD' },
 	contribution_treatments: treatments,
 	sequence: 20,
 	eligibility: '',

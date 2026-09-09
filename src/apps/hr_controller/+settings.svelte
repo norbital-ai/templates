@@ -9,10 +9,9 @@
 	 * versions are not surfaced here.
 	 *
 	 * Catalogues is one tab with seven of its own, because there are seven catalogue tables where
-	 * there used to be two. Six of them are the same nine columns — a code, a direction, the
-	 * treatment every scheme gives it, its place in the reduction order, who it covers and how it
-	 * produces its amount — and what tells them apart is which table a row is in, which is exactly
-	 * what a tab strip says. Seven tabs at the top level would have said the same thing while
+	 * there used to be two. Four of them are the same row — a code, a nature, the treatment every
+	 * scheme gives it, its place in the reduction order, who it covers and what bounds it — and what
+	 * tells them apart is which table a row is in, which is exactly what a tab strip says. Seven tabs at the top level would have said the same thing while
 	 * burying Payroll rules and Holidays among them; a second grouping level under Catalogues would
 	 * have been a level to explain.
 	 *
@@ -137,16 +136,17 @@
 	description: string
 )}
 	<!--
-		Six catalogues, one table. They carry the same nine columns because they are the same kind of
-		thing — a pay line definition — and the family is the table rather than a column on it. Six
-		copies of this markup would be six places for the sequence column to go missing from one.
-		`leave_catalogue` is not one of them: its row is a leave first and a pay line second, so it
-		has its own snippet below.
+		Four catalogues, one table. They are the same kind of thing — a pay line definition — and the
+		family is the table rather than a column on it; a loan is the one with no nature, because a
+		recovery is always a deduction. Four copies of this markup would be four places for the
+		sequence column to go missing from one. `leave_catalogue` is not one of them: its row is a
+		leave first and a pay line second, so it has its own snippet below.
 	-->
 	{#if selectedVersion}
+		<!-- A loan row is the money row minus four columns; the loan branch shows only the shared ones. -->
 		<CollectionTable
 			{client}
-			{collection}
+			collection={collection as Exclude<typeof collection, 'loan_catalogue'>}
 			view={`hr_controller:settings:${collection}`}
 			{title}
 			{description}
@@ -157,8 +157,9 @@
 		>
 			{#snippet columns({ Column })}
 				<Column name="code" label={t('component.code')} card="title" />
-				<Column name="nature" label={t('component.economic_type')} card="subtitle" />
-				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
+				{#if collection !== 'loan_catalogue'}
+					<Column name="nature" label={t('component.economic_type')} card="subtitle" />
+				{/if}
 				<Column name="sequence" label={t('component.order')} />
 				<Column name="eligibility" label={t('component.who_receives')} />
 				<Column name="contribution_treatments" label={t('component.contribution_treatments')} />

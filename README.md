@@ -72,15 +72,15 @@ manual encashment, carry-forward, adjustments and reversals.
 
 **Controller** shares the selected legal entity across its pages:
 
-| Area                | Purpose                                                              |
-| ------------------- | -------------------------------------------------------------------- |
-| Entities            | Select the legal entity                                              |
-| People              | Profiles, contracts, departures, effective terms and statutory facts |
-| Events              | Work, Leave, Claim, Allowance, Adhoc and Loan records                |
-| Payroll             | Create the regular period, review results, mark paid and export      |
-| Settings → Catalog  | Review family definitions within the settings lineage                |
-| Settings → Holidays | Configure sources, import, review and publish annual calendars       |
-| Kiosk               | Attendance clock and face enrollment                                 |
+| Area                | Purpose                                                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Entities            | Select the legal entity                                                                                                                                                        |
+| People              | Profiles, contracts, departures, effective terms and statutory facts                                                                                                           |
+| Events              | Work, Leave, Claim, Allowance, Adhoc and Loan records                                                                                                                          |
+| Payroll             | Create the regular period, review results, mark paid and export                                                                                                                |
+| Settings → Catalog  | Review family definitions within the settings lineage; a money catalogue row says who may raise it and up to what ceiling, as predicates over the contract's terms and `grade` |
+| Settings → Holidays | Configure sources, import, review and publish annual calendars                                                                                                                 |
+| Kiosk               | Attendance clock and face enrollment                                                                                                                                           |
 
 Policies distinguish employee, supervisor, manager, HR controller, HR manager, senior management
 and kiosk access. Payroll writes belong to HR manager and senior management. Approved Leave entries

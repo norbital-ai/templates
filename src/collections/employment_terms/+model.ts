@@ -32,6 +32,8 @@ export default defineModel(
 		department: text(),
 		job_title: text(),
 		payroll_group: text(),
+		/** The entity's own benefit tier; catalogue predicates read it as terms.grade. */
+		grade: text(),
 		/**
 		 * The employment's base: the named `shift_patterns` row its days are projected from.
 		 * Workdays, hours, rest and off days derive from the pattern; a `work_days` row overrides one

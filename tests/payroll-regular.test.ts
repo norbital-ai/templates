@@ -253,7 +253,6 @@ test('single-use recoveries cannot be silently reduced or leave a negative paysl
 	world.payment_requests[0].amount = 100000;
 	await assert.rejects(build(world), /net pay is negative/);
 	world.payment_catalogue[0].nature = 'DEDUCTION';
-	world.payment_catalogue[0].policy = { kind: 'DEDUCTION', settlement: 'DEDUCT' };
 	world.payment_requests[0].as_adjustment_entry = false;
 	await assert.rejects(build(world), /net pay is negative/);
 });
@@ -269,21 +268,10 @@ test('captured siblings still count against the annual request cap', async () =>
 	});
 	settle(world, 'payment_requests', first.id, 'prior-slip', '2026-01');
 	adjust(world, 'prior-slip', { family: 'PAYMENT', source_id: first.id, amount: 100 });
-	world.payment_catalogue[0].definition.cap = {
+	world.payment_catalogue[0].cap = {
 		period: 'CALENDAR_YEAR',
 		on_exceed: 'BLOCK',
-		matrix: {
-			merge: 'MAX_WITH_COMPANY_LAYERS',
-			layers: [
-				{
-					level: 'ORGANISATION',
-					effective_range: { start: '2020-01-01', end: null },
-					eligibility: '',
-					reimbursement_percentage: 100,
-					award: { kind: 'FIXED', amount: 150 }
-				}
-			]
-		}
+		bands: [{ eligibility: '', amount: 150 }]
 	};
 	await assert.rejects(build(world), /entitlement exceeded/);
 	world.payment_requests[1].amount = 50;
@@ -296,9 +284,7 @@ test('loan recovery reduces to available net and keeps the unrecovered balance a
 	world.loan_catalogue.push({
 		...world.payment_catalogue[0],
 		id: 'loan-type',
-		code: 'LOAN',
-		nature: 'DEDUCTION',
-		policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' }
+		code: 'LOAN'
 	});
 	world.loans.push({
 		id: 'loan',
@@ -413,8 +399,7 @@ for (const family of ['payment', 'claim', 'allowance']) {
 			...source,
 			id: 'current-family-item',
 			settings_id: currentSettings.id,
-			nature: 'DEDUCTION',
-			policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' }
+			nature: 'DEDUCTION'
 		});
 		const { slip, prepared } = await build(world);
 		const output = slip.adjustments.find((row) => row.family === family.toUpperCase());

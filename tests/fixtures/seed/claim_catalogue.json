@@ -3,11 +3,7 @@
 		"id": "77777777-7777-4777-8777-777777777701",
 		"settings_id": "22222222-2222-4222-8222-222222222222",
 		"code": "TRANSPORT_CLAIM",
-		"is_statutory": false,
-		"policy": {
-			"kind": "EARNING",
-			"settlement": "ADD"
-		},
+		"nature": "EARNING",
 		"contribution_treatments": {
 			"PUB-EPF": {
 				"kind": "INCLUDE"
@@ -18,12 +14,8 @@
 		},
 		"sequence": 51,
 		"eligibility": "",
-		"definition": {
-			"source": "ENTRY",
-			"unit": "MONEY",
-			"evidence": "NONE",
-			"cap": null,
-			"settlement": "PAYROLL"
-		}
+		"evidence": "NONE",
+		"settlement": "PAYROLL",
+		"cap": null
 	}
 ]

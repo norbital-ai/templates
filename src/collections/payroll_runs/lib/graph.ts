@@ -62,15 +62,16 @@ export type PendingPayslip = {
 };
 
 /**
- * The bucket an amount settles into, from the family pay item's `policy.kind` where there is one.
+ * The bucket an amount settles into, from the family pay item's `nature` where there is one.
  *
  * `INFORMATION` never reaches here — MEASURE stops it, because an hourly rate is not money — so a
  * nature that is null or informational is a derived overtime row, and derived overtime is an
  * earning. The fallback is stated rather than left to a cast so an unexpected value lands in the
  * pot it economically belongs to instead of failing a not-null column at the database.
  */
+const BUCKETS = ['EARNING', 'ABSENCE', 'DEDUCTION', 'NON_WAGE_PAYMENT', 'EMPLOYER_COST'] as const;
 function bucketOf(nature: MeasuredAdjustment['nature']): PayslipAdjustment['bucket'] {
-	return nature == null || nature === 'INFORMATION' ? 'EARNING' : nature;
+	return BUCKETS.find((bucket) => bucket === nature) ?? 'EARNING';
 }
 
 /** The single-use sources one payslip settled, by family — what the run stamps after the commit. */

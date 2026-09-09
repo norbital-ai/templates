@@ -5,6 +5,9 @@ import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 export type Loan = WorkspaceRow<'loans'>;
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
+/** A loan recovery is always a payroll deduction; the catalogue row does not get to say otherwise. */
+const LOAN_NATURE = 'DEDUCTION' as const;
+const LOAN_SETTLEMENT = 'PAYROLL' as const;
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
@@ -44,7 +47,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 	);
 	for (const repayment of dueRepayments) {
 		const component = componentById.get(loanById.get(repayment.loan_id)?.loan_catalogue_id ?? '');
-		if (component == null || component.nature !== 'DEDUCTION') continue;
+		if (component == null) continue;
 		if (!isEligible(component.eligibility, options.subject)) continue;
 		const due = dateKey(repayment.due_date) ?? String(repayment.due_date).slice(0, 10);
 		/**
@@ -70,7 +73,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		recoveries.push({
 			input: { family: 'LOAN_REPAYMENT', id: repayment.id },
 			catalogueComponent: component,
-			nature: component.policy?.kind ?? null,
+			nature: component.nature,
 			label: component.code,
 			amount,
 			quantity: null,
@@ -166,7 +169,9 @@ export function prepareLoanCatalogue(options: {
 		return live(rows).map((row) => ({
 			...row,
 			family: 'LOAN' as const,
-			settlement: row.definition.settlement
+			nature: LOAN_NATURE,
+			settlement: LOAN_SETTLEMENT,
+			definition: { source: 'ENTRY' as const, cap: null }
 		}));
 	});
 }

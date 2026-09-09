@@ -1,24 +1,19 @@
 /**
- * A claim's entitlement ceiling, refused when the claim is written.
+ * A pay line's entitlement ceiling, refused when the request is written.
  *
  * Before this the cap existed only inside MEASURE: a twelfth claim against an annual limit of ten
  * was accepted, sat in the workspace, and took down the whole company's payroll run weeks later.
  * The refusal named the run, not the entry, and reached somebody who was not the person who made
  * the mistake at a moment when it could no longer be corrected cheaply.
  *
- * `resolveEntryCap` is now one rule with two callers — MEASURE and the write hook — so this file
- * covers the arithmetic once, and `entry-cap-refusal.test.ts` covers the hook that consumes it.
- * None of it had any test at all: `resolveEntryCap`, the `MAX_WITH_COMPANY_LAYERS` merge, the five
- * cap periods and `reimbursement_percentage` were all unexercised.
+ * `resolveEntryCap` is one rule with two callers — MEASURE and the write hook — so this file
+ * covers the arithmetic once: which band is the person's, the capped period, sibling usage, and
+ * BLOCK against ALLOW. `family-cap-history.test.ts` covers the hook and the run consuming it.
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	entryCapRefusal,
-	reimbursable,
-	resolveEntryCap
-} from '../src/collections/payroll_runs/lib/entry-cap.ts';
+import { entryCapRefusal, resolveEntryCap } from '../src/collections/payroll_runs/lib/entry-cap.ts';
 import type { PersonContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 const PERSON: PersonContext = {
@@ -29,27 +24,18 @@ const PERSON: PersonContext = {
 		service_months: 40,
 		hire_date: '2022-01-01'
 	},
-	terms: { basic_salary: 3451, workman: false, department: 'OPS', payroll_group: 'HQ' },
+	terms: { basic_salary: 3451, workman: false, department: 'OPS', payroll_group: 'HQ', grade: '' },
 	children: { count: 0, ages: [] }
 };
 
 const COMPONENT = { family: 'CLAIM', code: 'MEDICAL' };
 const EMPLOYMENT = 'employment-1';
 
-const layer = (over: Record<string, unknown> = {}) => ({
-	level: 'ORGANISATION',
-	effective_range: { start: '2020-01-01', end: null },
-	eligibility: '',
-	reimbursement_percentage: 100,
-	award: { kind: 'FIXED', amount: 1000 },
-	...over
-});
-
 const cap = (over: Record<string, unknown> = {}) =>
 	({
 		period: 'CALENDAR_YEAR',
-		matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [layer()] },
 		on_exceed: 'BLOCK',
+		bands: [{ eligibility: '', amount: 1000 }],
 		...over
 	}) as never;
 
@@ -73,115 +59,39 @@ const resolve = (over: Record<string, unknown> = {}) =>
 		componentOf: (row) => row.component,
 		usedAmountOf: (row) => row.amount,
 		subject: PERSON,
-		evaluateAward: (row) => (row.award.kind === 'FIXED' ? row.award.amount : null),
 		...over
 	} as never);
 
-test('the ceiling is the highest layer that applies to this person on this day', () => {
-	const resolved = resolve({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [
-					layer({ award: { kind: 'FIXED', amount: 1000 } }),
-					// A richer employee-level layer for this very employment: the merge takes the max.
-					layer({
-						level: 'EMPLOYEE',
-						employment_id: EMPLOYMENT,
-						award: { kind: 'FIXED', amount: 2500 }
-					}),
-					// And one for somebody else, which must not raise this person's ceiling.
-					layer({
-						level: 'EMPLOYEE',
-						employment_id: 'someone-else',
-						award: { kind: 'FIXED', amount: 9999 }
-					})
-				]
-			}
-		})
+test('the ceiling is the first band whose predicate holds, so tiers go from specific to general', () => {
+	const tiers = cap({
+		bands: [
+			{ eligibility: 'terms.grade == "G3"', amount: 2500 },
+			{ eligibility: "employee.gender == 'FEMALE'", amount: 1500 },
+			{ eligibility: '', amount: 1000 }
+		]
 	});
-	assert.equal(resolved?.amount, 2500);
+	assert.equal(
+		resolve({ cap: tiers, subject: { ...PERSON, terms: { ...PERSON.terms, grade: 'G3' } } })
+			?.amount,
+		2500,
+		'a G3 reads the G3 row, whatever the rows below would say'
+	);
+	assert.equal(resolve({ cap: tiers })?.amount, 1500, 'no grade, so the next row that holds');
+	assert.equal(
+		resolve({
+			cap: tiers,
+			subject: { ...PERSON, employee: { ...PERSON.employee, gender: 'MALE' } }
+		})?.amount,
+		1000,
+		'and the everyone row for the rest'
+	);
 });
 
-test('a layer out of date, or one the person is not eligible for, does not apply', () => {
-	const expired = resolve({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [layer({ effective_range: { start: '2020-01-01', end: '2021-12-31' } })]
-			}
-		})
+test('a person no band covers has no entitlement at all', () => {
+	const none = resolve({
+		cap: cap({ bands: [{ eligibility: 'terms.grade == "G3"', amount: 2500 }] })
 	});
-	assert.equal(expired, null, 'no layer covers the day, so there is no ceiling to state');
-
-	const ineligible = resolve({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [layer({ eligibility: "employee.gender == 'MALE'" })]
-			}
-		})
-	});
-	assert.equal(ineligible, null);
-	// The same layer for somebody it does cover.
-	const eligible = resolveEntryCap({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [layer({ eligibility: "employee.gender == 'MALE'" })]
-			}
-		}),
-		component: COMPONENT,
-		employmentId: EMPLOYMENT,
-		entry: entry('e2', 400, '2026-06-01'),
-		eventDate: '2026-06-01',
-		siblings: [],
-		eventDateOf: (row) => row.date,
-		componentOf: (row) => row.component,
-		usedAmountOf: (row) => row.amount,
-		subject: { ...PERSON, employee: { ...PERSON.employee, gender: 'MALE' } },
-		evaluateAward: (row) => (row.award.kind === 'FIXED' ? row.award.amount : null)
-	} as never);
-	assert.equal(eligible?.amount, 1000);
-});
-
-/**
- * An applicable layer nobody can price makes the whole ceiling unknowable.
- *
- * The merge takes the highest layer, so dropping the one that cannot be evaluated would understate
- * the ceiling and refuse an entry that is actually within it. The write hook relies on exactly
- * this: it answers `null` for a `FORMULA` layer and the cap then falls to the run, which is the
- * only place a payslip-dependent number exists.
- */
-test('a cap with an unpriceable applicable layer states no ceiling at all', () => {
-	const resolved = resolve({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [
-					layer({ award: { kind: 'FIXED', amount: 1000 } }),
-					layer({ award: { kind: 'FORMULA', expr: 'terms.basic_salary * 2' } })
-				]
-			}
-		})
-	});
-	assert.equal(resolved, null);
-	// …but a formula layer that does not apply cannot make the rest unknowable.
-	const stillKnown = resolve({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [
-					layer({ award: { kind: 'FIXED', amount: 1000 } }),
-					layer({
-						eligibility: "employee.gender == 'MALE'",
-						award: { kind: 'FORMULA', expr: 'terms.basic_salary * 2' }
-					})
-				]
-			}
-		})
-	});
-	assert.equal(stillKnown?.amount, 1000);
+	assert.equal(none, null);
 });
 
 test('only entries before this one, in the same capped period, are already spent', () => {
@@ -216,24 +126,8 @@ test('two entries on one day break their tie by id, so neither refuses the other
 	assert.equal(first?.exceededBy, 0, 'and e1 sees nothing before it');
 });
 
-test('a reimbursement share below a hundred is what counts against the ceiling', () => {
-	const resolved = resolve({
-		cap: cap({
-			matrix: {
-				merge: 'MAX_WITH_COMPANY_LAYERS',
-				layers: [layer({ reimbursement_percentage: 80 })]
-			}
-		}),
-		siblings: [entry('e0', 500, '2026-01-10')],
-		usedAmountOf: (row) => row.amount * 0.8
-	});
-	assert.equal(resolved?.percentage, 80);
-	assert.equal(resolved?.exceededBy, 400, 'eighty per cent of the five hundred already claimed');
-	assert.equal(reimbursable(500, resolved!), 400);
-});
-
 test('a BLOCK cap refuses by name once the ceiling is passed, and not before', () => {
-	const resolved = { amount: 1000, percentage: 100, exceededBy: 800 };
+	const resolved = { amount: 1000, exceededBy: 800 };
 	assert.equal(
 		entryCapRefusal({
 			cap: cap(),
@@ -260,7 +154,7 @@ test('an ALLOW cap states a ceiling for reporting and refuses nothing', () => {
 	assert.equal(
 		entryCapRefusal({
 			cap: cap({ on_exceed: 'ALLOW' }),
-			resolved: { amount: 1000, percentage: 100, exceededBy: 5000 },
+			resolved: { amount: 1000, exceededBy: 5000 },
 			componentCode: 'MEDICAL',
 			subject: 'PUB-EMP-0001',
 			proposed: 5000

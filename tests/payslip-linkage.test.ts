@@ -101,8 +101,6 @@ const COMPANY = {
 const component = (overrides) => ({
 	settings_id: 'jur-my',
 	nature: 'EARNING',
-	is_statutory: false,
-	policy: { kind: 'EARNING', settlement: 'ADD' },
 	contribution_treatments: {},
 	eligibility: '',
 	...overrides
@@ -137,13 +135,8 @@ const TRANSPORT = component({
 	code: 'TRANSPORT',
 	name: 'Transport allowance',
 	sequence: 50,
-	definition: {
-		source: 'ENTRY',
-		unit: 'MONEY',
-		evidence: 'NONE',
-		cap: null,
-		settlement: 'PAYROLL'
-	}
+	settlement: 'PAYROLL',
+	definition: { source: 'ENTRY', cap: null }
 });
 
 // Work outputs carry their own treatment metadata alongside band provenance.

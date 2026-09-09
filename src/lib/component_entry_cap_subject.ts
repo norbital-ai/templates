@@ -1,7 +1,7 @@
 /**
  * The person a claim's entitlement ceiling is read against, at write time.
  *
- * A cap layer may be gated by an `eligibility` expression over the person — grade, department,
+ * An entitlement band is gated by an `eligibility` expression over the person — grade, department,
  * service, children — so the ceiling is not a property of the component alone. MEASURE builds this
  * context from the bundle it already gathered; a write hook has to read it, and reads exactly the
  * four things `personContext` consumes and nothing else.

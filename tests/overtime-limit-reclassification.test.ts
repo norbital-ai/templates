@@ -73,7 +73,6 @@ const BASIC = {
 	sequence: 10,
 	nature: 'EARNING',
 	is_statutory: false,
-	policy: { kind: 'EARNING', settlement: 'ADD' },
 	contribution_treatments: {},
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }

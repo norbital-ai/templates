@@ -111,12 +111,14 @@ const catalogueRows = new Map<string, Row>(
 	CATALOGUES.map((collection) => [
 		collection,
 		collection === 'loan_catalogue'
-			? {
-					...seedRow('claim_catalogue'),
+			? (({ settings_id, contribution_treatments, sequence, eligibility }) => ({
 					id: LOAN_ID,
+					settings_id,
 					code: 'FIXTURE_LOAN',
-					policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' }
-				}
+					contribution_treatments,
+					sequence,
+					eligibility
+				}))(seedRow('claim_catalogue'))
 			: seedRow(collection)
 	])
 );
@@ -234,17 +236,14 @@ test(
 			// Loan has no agreement fixture; install a valid catalogue sibling beneath the existing seal.
 			const loan = catalogueRows.get('loan_catalogue')!;
 			await session.query(
-				`insert into loan_catalogue (id, settings_id, code, is_statutory, policy, contribution_treatments, sequence, eligibility, definition) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+				`insert into loan_catalogue (id, settings_id, code, contribution_treatments, sequence, eligibility) values ($1,$2,$3,$4,$5,$6)`,
 				[
 					loan.id,
 					loan.settings_id,
 					loan.code,
-					loan.is_statutory,
-					loan.policy,
 					loan.contribution_treatments,
 					loan.sequence,
-					loan.eligibility,
-					loan.definition
+					loan.eligibility
 				]
 			);
 			// Holidays are independent of settings: both operators can add one even here.

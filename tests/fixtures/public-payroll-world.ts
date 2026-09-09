@@ -153,18 +153,12 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				code: 'TRANSPORT',
 				name: 'Transport allowance',
 				nature: 'EARNING',
-				is_statutory: false,
-				policy: { kind: 'EARNING', settlement: 'ADD' },
 				contribution_treatments: {},
 				sequence: 50,
 				eligibility: '',
-				definition: {
-					source: 'ENTRY',
-					unit: 'MONEY',
-					evidence: 'NONE',
-					cap: null,
-					settlement: 'PAYROLL'
-				},
+				evidence: 'NONE',
+				settlement: 'PAYROLL',
+				cap: null,
 				approval_id: null
 			}
 		],
@@ -175,18 +169,12 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				code: 'TRANSPORT',
 				name: 'Transport allowance',
 				nature: 'EARNING',
-				is_statutory: false,
-				policy: { kind: 'EARNING', settlement: 'ADD' },
 				contribution_treatments: {},
 				sequence: 51,
 				eligibility: '',
-				definition: {
-					source: 'ENTRY',
-					unit: 'MONEY',
-					evidence: 'NONE',
-					cap: null,
-					settlement: 'PAYROLL'
-				},
+				evidence: 'NONE',
+				settlement: 'PAYROLL',
+				cap: null,
 				approval_id: null
 			}
 		],

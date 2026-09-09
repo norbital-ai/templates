@@ -43,7 +43,7 @@ type CategoryBasis = Schema.Schema.Type<typeof CategoryBasisSchema>;
  * filtering it back out.
  *
  * Two para 3 exclusions the component model cannot express: **commissions and subsistence
- * allowance have no category of their own.** A family pay item's policy and calculation definition
+ * allowance have no category of their own.** A family pay item's nature and calculation definition
  * do not distinguish a commission from any other earning, so a commission
  * paid through an `EARNING` component is counted in the comparand even though the statute takes it
  * out. The seeded catalogues contain no commission or subsistence component, so no shipped
@@ -54,7 +54,7 @@ const WageComparandCategorySchema = Schema.Literals(['BASIC_WAGES', 'CASH_FOR_WO
 type WageComparandCategory = Schema.Schema.Type<typeof WageComparandCategorySchema>;
 
 const WageComparandComponentSchema = Schema.Struct({
-	policy: Schema.NullOr(Schema.Struct({ kind: Schema.String })),
+	nature: Schema.NullOr(Schema.String),
 	definition: Schema.NullOr(Schema.Struct({ source: Schema.String }))
 });
 type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
@@ -63,7 +63,7 @@ type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSc
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
 	const source = component.definition?.source;
 	if (source === 'SCHEDULE') return 'BASIC_WAGES';
-	if (component.policy?.kind === 'EARNING') return 'CASH_FOR_WORK';
+	if (component.nature === 'EARNING') return 'CASH_FOR_WORK';
 	return 'NOT_WAGES';
 }
 

@@ -33,18 +33,11 @@ const SYSTEM_COLUMNS = [
 type SystemColumn = (typeof SYSTEM_COLUMNS)[number];
 
 /** A stored row as a nested create accepts it: without the runtime's columns and any named extras. */
-function cloneRow<R extends Record<string, unknown>, D extends string = never>(
-	row: R,
-	drop: readonly D[] = []
-): Omit<R, SystemColumn | D> {
+function cloneRow<R extends Record<string, unknown>>(row: R): Omit<R, SystemColumn> {
 	const out: Record<string, unknown> = {};
 	for (const [column, value] of Object.entries(row))
-		if (
-			!(SYSTEM_COLUMNS as readonly string[]).includes(column) &&
-			!(drop as readonly string[]).includes(column)
-		)
-			out[column] = value;
-	return out as Omit<R, SystemColumn | D>;
+		if (!(SYSTEM_COLUMNS as readonly string[]).includes(column)) out[column] = value;
+	return out as Omit<R, SystemColumn>;
 }
 
 type Db = Api['db'];
@@ -202,19 +195,19 @@ export function settingsDraftWrite(
 				id: crypto.randomUUID()
 			})),
 			loan_catalogue_settings: loanCatalogue.map((row) => ({
-				...cloneRow(row, ['nature']),
+				...cloneRow(row),
 				id: crypto.randomUUID()
 			})),
 			claim_catalogue_settings: claimCatalogue.map((row) => ({
-				...cloneRow(row, ['nature']),
+				...cloneRow(row),
 				id: crypto.randomUUID()
 			})),
 			allowance_catalogue_settings: allowanceCatalogue.map((row) => ({
-				...cloneRow(row, ['nature']),
+				...cloneRow(row),
 				id: crypto.randomUUID()
 			})),
 			payment_catalogue_settings: paymentCatalogue.map((row) => ({
-				...cloneRow(row, ['nature']),
+				...cloneRow(row),
 				id: crypto.randomUUID()
 			}))
 		}

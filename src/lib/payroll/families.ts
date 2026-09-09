@@ -421,7 +421,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		// formula context and every total sum.
 		base.push({
 			catalogueComponent: component,
-			nature: component.policy?.kind ?? null,
+			nature: component.nature,
 			label: component.code,
 			amount: arrears.amount,
 			entry: { component_code: component.code, amount: arrears.amount }

@@ -20,10 +20,6 @@ export function workPayItems(
 				family: 'WORK',
 				output,
 				is_statutory: output !== 'salary',
-				policy:
-					output === 'absence'
-						? { kind: 'ABSENCE', settlement: 'DEDUCT' }
-						: { kind: 'EARNING', settlement: 'ADD' },
 				nature: output === 'absence' ? 'ABSENCE' : 'EARNING',
 				eligibility: '',
 				definition:

@@ -767,7 +767,7 @@ check(
 // subsistence allowance and overtime payment. The classification below is the statute read against
 // what a component row can say.
 const component = (kind, source) => ({
-	policy: kind == null ? null : { kind },
+	nature: kind,
 	definition: source == null ? null : { source }
 });
 check(

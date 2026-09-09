@@ -8,13 +8,15 @@ export type FamilyPayItem = {
 	readonly settings_id: string;
 	readonly code: string;
 	readonly name?: string | null;
-	readonly is_statutory: boolean;
-	readonly policy: WorkspaceRow<'claim_catalogue'>['policy'];
-	readonly nature: string | null;
+	/** Work and Leave items only: the money catalogues carry no statutory flag. */
+	readonly is_statutory?: boolean;
+	/** The economic direction the line settles in; `ABSENCE` reduces gross, the rest are what they say. */
+	readonly nature: string;
 	readonly contribution_treatments: WorkspaceRow<'claim_catalogue'>['contribution_treatments'];
 	readonly sequence: number;
 	readonly eligibility: string;
-	readonly settlement?: 'PAYROLL' | 'COMPANY_DIRECT';
+	/** `PAYROLL` or `COMPANY_DIRECT`; absent on Work items, which payroll always pays. */
+	readonly settlement?: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
 };
 
@@ -34,9 +36,6 @@ import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js
 import type { FormulaContext } from '../../collections/payroll_runs/lib/formula.js';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
-/** The economic direction a line settles in — the family pay item's `policy.kind` where present. */
-type LineNature = NonNullable<CatalogueComponent['policy']>['kind'];
-
 /**
  * What a measured amount looks like to the steps that price the whole payslip.
  *
@@ -52,7 +51,7 @@ export type PricedItem = {
 	 * What the amount settles as, carried rather than read back off the component, because derived
 	 * overtime has none to read it from. It is always an `EARNING`.
 	 */
-	readonly nature: LineNature | null;
+	readonly nature: string | null;
 	/** What to call this in an engine message — a component code, or the rule key that priced it. */
 	readonly label: string;
 	/** Signed within its economic direction; a reversal negates the original amount. */
@@ -177,11 +176,7 @@ export type Measurement = {
 	readonly adjustments: readonly MeasuredAdjustment[];
 };
 
-/**
- * The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does.
- * MEASURE can price a `FORMULA` layer because the payslip context exists here; the hook cannot,
- * and says so by returning `null` rather than guessing.
- */
+/** The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does. */
 export type MeasureComponentOptions = {
 	readonly component: CatalogueComponent;
 	readonly bundle: EmploymentBundle;
