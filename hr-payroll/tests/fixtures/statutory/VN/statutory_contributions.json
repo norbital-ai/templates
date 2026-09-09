@@ -16,7 +16,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 46800000.01
+					"to": 46800000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -55,7 +55,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 46800000.01
+					"to": 46800000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -121,7 +121,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 46800000.01
+					"to": 46800000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -259,7 +259,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 46800000.01
+					"to": 46800000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -298,7 +298,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 46800000.01
+					"to": 46800000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -364,7 +364,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 46800000.01
+					"to": 46800000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -502,7 +502,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 50600000.01
+					"to": 50600000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -541,7 +541,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 50600000.01
+					"to": 50600000
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -607,7 +607,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 50600000.01
+					"to": 50600000
 				},
 				"award": {
 					"kind": "PERCENT",

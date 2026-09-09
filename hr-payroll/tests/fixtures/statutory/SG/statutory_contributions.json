@@ -15,7 +15,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -45,7 +45,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -61,7 +61,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -91,7 +91,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -121,7 +121,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -137,7 +137,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -167,7 +167,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -197,7 +197,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -213,7 +213,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -243,7 +243,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -273,7 +273,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -289,7 +289,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -319,7 +319,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -349,7 +349,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -365,7 +365,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -395,7 +395,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -425,7 +425,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -441,7 +441,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -471,7 +471,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -501,7 +501,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -517,7 +517,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -547,7 +547,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -577,7 +577,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -593,7 +593,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -623,7 +623,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -653,7 +653,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -669,7 +669,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -699,7 +699,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -729,7 +729,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -745,7 +745,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -775,7 +775,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -805,7 +805,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -821,7 +821,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -851,7 +851,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -881,7 +881,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -897,7 +897,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -927,7 +927,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -957,7 +957,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -973,7 +973,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -1003,7 +1003,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -1033,7 +1033,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -1049,7 +1049,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -1079,7 +1079,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -1109,7 +1109,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -1125,7 +1125,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -1170,7 +1170,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 2000.01
+					"to": 2000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1182,7 +1182,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2000.01,
-					"to": 3500.01
+					"to": 3500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1194,7 +1194,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 3500.01,
-					"to": 5000.01
+					"to": 5000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1206,7 +1206,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 5000.01,
-					"to": 7500.01
+					"to": 7500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1245,7 +1245,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1257,7 +1257,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1269,7 +1269,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 2500.01
+					"to": 2500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1281,7 +1281,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2500.01,
-					"to": 4000.01
+					"to": 4000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1293,7 +1293,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4000.01,
-					"to": 7000.01
+					"to": 7000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1305,7 +1305,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7000.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1344,7 +1344,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1356,7 +1356,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 2000.01
+					"to": 2000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1368,7 +1368,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2000.01,
-					"to": 3000.01
+					"to": 3000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1380,7 +1380,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 3000.01,
-					"to": 4000.01
+					"to": 4000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1392,7 +1392,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4000.01,
-					"to": 6000.01
+					"to": 6000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1404,7 +1404,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 6000.01,
-					"to": 8000.01
+					"to": 8000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1416,7 +1416,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 8000.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1455,7 +1455,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1467,7 +1467,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1479,7 +1479,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 2500.01
+					"to": 2500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1491,7 +1491,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2500.01,
-					"to": 4500.01
+					"to": 4500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1503,7 +1503,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4500.01,
-					"to": 7500.01
+					"to": 7500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1515,7 +1515,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7500.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1527,7 +1527,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 10000.01,
-					"to": 15000.01
+					"to": 15000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1615,7 +1615,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -1645,7 +1645,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -1661,7 +1661,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -1691,7 +1691,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -1721,7 +1721,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -1737,7 +1737,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -1767,7 +1767,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -1797,7 +1797,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -1813,7 +1813,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -1843,7 +1843,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -1873,7 +1873,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -1889,7 +1889,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -1919,7 +1919,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -1949,7 +1949,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -1965,7 +1965,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -1995,7 +1995,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -2025,7 +2025,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -2041,7 +2041,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -2071,7 +2071,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -2101,7 +2101,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -2117,7 +2117,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -2147,7 +2147,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -2177,7 +2177,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -2193,7 +2193,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -2223,7 +2223,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -2253,7 +2253,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -2269,7 +2269,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -2299,7 +2299,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -2329,7 +2329,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -2345,7 +2345,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -2375,7 +2375,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -2405,7 +2405,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -2421,7 +2421,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -2451,7 +2451,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -2481,7 +2481,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -2497,7 +2497,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -2527,7 +2527,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -2557,7 +2557,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -2573,7 +2573,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -2603,7 +2603,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -2633,7 +2633,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -2649,7 +2649,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -2679,7 +2679,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -2709,7 +2709,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -2725,7 +2725,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -2770,7 +2770,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 2000.01
+					"to": 2000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2782,7 +2782,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2000.01,
-					"to": 3500.01
+					"to": 3500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2794,7 +2794,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 3500.01,
-					"to": 5000.01
+					"to": 5000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2806,7 +2806,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 5000.01,
-					"to": 7500.01
+					"to": 7500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2845,7 +2845,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2857,7 +2857,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2869,7 +2869,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 2500.01
+					"to": 2500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2881,7 +2881,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2500.01,
-					"to": 4000.01
+					"to": 4000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2893,7 +2893,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4000.01,
-					"to": 7000.01
+					"to": 7000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2905,7 +2905,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7000.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2944,7 +2944,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2956,7 +2956,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 2000.01
+					"to": 2000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2968,7 +2968,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2000.01,
-					"to": 3000.01
+					"to": 3000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2980,7 +2980,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 3000.01,
-					"to": 4000.01
+					"to": 4000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2992,7 +2992,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4000.01,
-					"to": 6000.01
+					"to": 6000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3004,7 +3004,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 6000.01,
-					"to": 8000.01
+					"to": 8000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3016,7 +3016,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 8000.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3055,7 +3055,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3067,7 +3067,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3079,7 +3079,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 2500.01
+					"to": 2500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3091,7 +3091,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2500.01,
-					"to": 4500.01
+					"to": 4500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3103,7 +3103,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4500.01,
-					"to": 7500.01
+					"to": 7500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3115,7 +3115,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7500.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3127,7 +3127,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 10000.01,
-					"to": 15000.01
+					"to": 15000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3215,7 +3215,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -3245,7 +3245,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -3261,7 +3261,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -3291,7 +3291,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -3321,7 +3321,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -3337,7 +3337,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -3367,7 +3367,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -3397,7 +3397,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -3413,7 +3413,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -3443,7 +3443,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -3473,7 +3473,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -3489,7 +3489,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -3519,7 +3519,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -3549,7 +3549,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -3565,7 +3565,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -3595,7 +3595,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -3625,7 +3625,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -3641,7 +3641,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -3671,7 +3671,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -3701,7 +3701,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -3717,7 +3717,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -3747,7 +3747,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -3777,7 +3777,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -3793,7 +3793,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -3823,7 +3823,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -3853,7 +3853,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -3869,7 +3869,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -3899,7 +3899,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -3929,7 +3929,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -3945,7 +3945,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -3975,7 +3975,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -4005,7 +4005,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -4021,7 +4021,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 0,
 					"age_to": 56
 				},
@@ -4051,7 +4051,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -4081,7 +4081,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -4097,7 +4097,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 56,
 					"age_to": 61
 				},
@@ -4127,7 +4127,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -4157,7 +4157,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -4173,7 +4173,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 61,
 					"age_to": 66
 				},
@@ -4203,7 +4203,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -4233,7 +4233,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -4249,7 +4249,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 66,
 					"age_to": 71
 				},
@@ -4279,7 +4279,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 0,
-					"to": 50.01,
+					"to": 50,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -4309,7 +4309,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 500,
-					"to": 750.01,
+					"to": 750,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -4325,7 +4325,7 @@
 				"selector": {
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
-					"to": 8000.01,
+					"to": 8000,
 					"age_from": 71,
 					"age_to": null
 				},
@@ -4370,7 +4370,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 2000.01
+					"to": 2000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4382,7 +4382,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2000.01,
-					"to": 3500.01
+					"to": 3500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4394,7 +4394,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 3500.01,
-					"to": 5000.01
+					"to": 5000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4406,7 +4406,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 5000.01,
-					"to": 7500.01
+					"to": 7500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4445,7 +4445,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4457,7 +4457,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4469,7 +4469,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 2500.01
+					"to": 2500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4481,7 +4481,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2500.01,
-					"to": 4000.01
+					"to": 4000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4493,7 +4493,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4000.01,
-					"to": 7000.01
+					"to": 7000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4505,7 +4505,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7000.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4544,7 +4544,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4556,7 +4556,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 2000.01
+					"to": 2000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4568,7 +4568,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2000.01,
-					"to": 3000.01
+					"to": 3000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4580,7 +4580,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 3000.01,
-					"to": 4000.01
+					"to": 4000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4592,7 +4592,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4000.01,
-					"to": 6000.01
+					"to": 6000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4604,7 +4604,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 6000.01,
-					"to": 8000.01
+					"to": 8000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4616,7 +4616,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 8000.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4655,7 +4655,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 1000.01
+					"to": 1000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4667,7 +4667,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1000.01,
-					"to": 1500.01
+					"to": 1500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4679,7 +4679,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 1500.01,
-					"to": 2500.01
+					"to": 2500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4691,7 +4691,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 2500.01,
-					"to": 4500.01
+					"to": 4500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4703,7 +4703,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 4500.01,
-					"to": 7500.01
+					"to": 7500
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4715,7 +4715,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7500.01,
-					"to": 10000.01
+					"to": 10000
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4727,7 +4727,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 10000.01,
-					"to": 15000.01
+					"to": 15000
 				},
 				"award": {
 					"kind": "FIXED",
