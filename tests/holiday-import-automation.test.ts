@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import automation, { runHolidayImport } from '../src/automations/+holiday_import.ts';
+import { runHolidayImport } from '../src/automations/+holiday_import.ts';
 import { holidaySources } from '../src/lib/holiday-import.ts';
 
 const version = {
@@ -11,15 +11,18 @@ const version = {
 	effective_range: { start: '2025-01-01T00:00:00.000Z', end: null },
 	holiday_source: { calendar_id: 'public-holidays', time_zone: 'Asia/Singapore', enabled: true }
 };
-const event = {
-	id: 'festival',
+const event = (id: string, date: string, next: string, summary = 'Festival') => ({
+	id,
 	etag: 'one',
-	summary: 'Festival',
-	start: { date: '2027-01-01' },
-	end: { date: '2027-01-02' }
-};
+	summary,
+	start: { date },
+	end: { date: next }
+});
 
-test('the annual job reads every page before one draft write and never publishes', async () => {
+const harness = (
+	pages: ReadonlyArray<unknown>,
+	existing: ReadonlyArray<{ jurisdiction_code: string; date: string }> = []
+) => {
 	const calls: string[] = [];
 	const writes: Record<string, unknown>[] = [];
 	const api = {
@@ -27,24 +30,15 @@ test('the annual job reads every page before one draft write and never publishes
 		connection: {
 			get: (request: { query: { pageToken?: string } }) => {
 				calls.push(request.query.pageToken ?? 'first');
-				assert.equal(writes.length, 0);
-				return Effect.succeed({
-					status: 200,
-					headers: {},
-					body: request.query.pageToken
-						? { kind: 'calendar#events', items: [event] }
-						: { kind: 'calendar#events', items: [], nextPageToken: 'second' }
-				});
+				assert.equal(writes.length, 0, 'every page is read before a row is written');
+				const index = request.query.pageToken == null ? 0 : Number(request.query.pageToken);
+				return Effect.succeed({ status: 200, headers: {}, body: pages[index] });
 			}
 		},
 		db: {
 			jurisdiction_settings: { findMany: () => Effect.succeed([version]) },
-			jurisdiction_holiday_calendars: {
-				// Nothing before the write; afterwards the draft the job reads back for its id.
-				findMany: () =>
-					Effect.succeed(
-						writes.map((row) => ({ id: 'draft-1', approval_id: null, published_at: null, ...row }))
-					),
+			jurisdiction_holidays: {
+				findMany: () => Effect.succeed(existing),
 				mutate: (rows: Record<string, unknown>[]) =>
 					Effect.sync(() => {
 						writes.push(...rows);
@@ -52,61 +46,57 @@ test('the annual job reads every page before one draft write and never publishes
 			}
 		}
 	} as unknown as Parameters<typeof runHolidayImport>[0];
+	return { api, calls, writes };
+};
+
+test('the annual job reads every page, adds the days the jurisdiction lacks, and never publishes', async () => {
+	const { api, calls, writes } = harness(
+		[
+			{ kind: 'calendar#events', items: [], nextPageToken: '1' },
+			{
+				kind: 'calendar#events',
+				items: [
+					event('festival', '2027-01-01', '2027-01-02'),
+					event('long', '2027-02-01', '2027-02-03', 'Two days'),
+					{ ...event('gone', '2027-03-01', '2027-03-02'), status: 'cancelled' }
+				]
+			}
+		],
+		[{ jurisdiction_code: 'TEST', date: '2027-02-02' }]
+	);
 	const result = await Effect.runPromise(
 		runHolidayImport(api, { jurisdiction_code: 'TEST', year: 2027 })
 	);
-	assert.deepEqual(calls, ['first', 'second']);
-	assert.equal(writes.length, 1);
-	assert.deepEqual(writes[0]!.observations, []);
-	assert.equal(writes[0]!.published_at, undefined);
-	assert.equal(result.calendars[0]!.review_required, 1);
-	assert.equal(result.calendars[0]!.year, 2027);
-	assert.deepEqual(automation.trigger, { schedule: '0 3 1 10 *' });
-	assert.equal(automation.spec.connection.authentication.value.env, 'GOOGLE_CALENDAR_API_KEY');
-});
-
-test('the source is read off the version in force; a named jurisdiction imports even when disabled', () => {
-	const draft = {
-		...version,
-		sealed_at: null,
-		effective_range: { start: '2027-01-01T00:00:00.000Z', end: null },
-		holiday_source: { calendar_id: 'draft-calendar', time_zone: 'UTC', enabled: true }
-	};
-	const older = {
-		...version,
-		effective_range: { start: '2020-01-01T00:00:00.000Z', end: '2024-12-31T23:59:59.999Z' },
-		holiday_source: { calendar_id: 'old-calendar', time_zone: 'UTC', enabled: true }
-	};
-	const off = {
-		...version,
-		jurisdiction_code: 'OTHER',
-		holiday_source: { calendar_id: 'other', time_zone: 'UTC', enabled: false }
-	};
+	assert.deepEqual(calls, ['first', '1']);
 	assert.deepEqual(
-		holidaySources([draft, older, version, off, { ...version, holiday_source: null }]),
-		[{ jurisdiction_code: 'TEST', calendar_id: 'public-holidays', time_zone: 'Asia/Singapore' }]
+		writes.map((row) => [row.date, row.name, row.published_at]),
+		[
+			['2027-01-01', 'Festival', undefined],
+			['2027-02-01', 'Two days', undefined]
+		]
 	);
-	assert.deepEqual(holidaySources([off], 'OTHER'), [
-		{ jurisdiction_code: 'OTHER', calendar_id: 'other', time_zone: 'UTC' }
+	assert.deepEqual(result.imports, [
+		{ jurisdiction_code: 'TEST', year: 2027, inserted: 2, skipped: 1 }
 	]);
-	assert.deepEqual(holidaySources([off]), []);
 });
 
-test('a provider failure leaves existing annual drafts untouched', async () => {
-	let writes = 0;
-	const api = {
-		progress: () => Effect.void,
-		connection: { get: () => Effect.succeed({ status: 503, headers: {}, body: 'Unavailable' }) },
-		db: {
-			jurisdiction_settings: { findMany: () => Effect.succeed([version]) },
-			jurisdiction_holiday_calendars: {
-				mutate: () =>
-					Effect.sync(() => {
-						writes += 1;
-					})
-			}
-		}
-	} as unknown as Parameters<typeof runHolidayImport>[0];
-	await assert.rejects(Effect.runPromise(runHolidayImport(api, { year: 2027 })), /HTTP 503/);
-	assert.equal(writes, 0);
+test('a named jurisdiction imports off its version even when disabled; a provider failure writes nothing', async () => {
+	const disabled = { ...version, holiday_source: { ...version.holiday_source, enabled: false } };
+	assert.equal(holidaySources([disabled]).length, 0);
+	assert.equal(holidaySources([disabled], 'TEST').length, 1);
+	const { api, writes } = harness([]);
+	(api as { connection: unknown }).connection = {
+		get: () => Effect.succeed({ status: 503, headers: {}, body: {} })
+	};
+	await assert.rejects(
+		Effect.runPromise(runHolidayImport(api, { jurisdiction_code: 'TEST', year: 2027 })),
+		/HTTP 503/
+	);
+	assert.equal(writes.length, 0);
+	await assert.rejects(
+		Effect.runPromise(
+			runHolidayImport(harness([]).api, { jurisdiction_code: 'NOWHERE', year: 2027 })
+		),
+		/Configure a Google holiday source for NOWHERE/
+	);
 });

@@ -1,56 +1,63 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { changedHolidayDates, resolveHolidayInputs } from '../src/lib/holiday-inputs.ts';
+import { resolveHolidayInputs } from '../src/lib/holiday-inputs.ts';
 
-const holiday = {
+const festival = {
+	id: 'festival',
+	jurisdiction_code: 'TEST',
 	date: '2026-02-03',
 	name: 'Festival',
 	original_date: null,
-	source: 'Synthetic fixture'
+	published_at: '2025-12-01T00:00:00Z'
 };
-const first = {
-	id: 'calendar-one',
-	jurisdiction_code: 'TEST',
-	year: 2026,
-	revision: 1,
-	published_at: '2025-12-01T00:00:00Z',
-	observations: [holiday]
-};
-const later = {
-	...first,
-	id: 'calendar-two',
-	revision: 2,
-	observations: [holiday, { ...holiday, date: '2026-06-01', name: 'Other festival' }]
-};
+const later = { ...festival, id: 'later', date: '2026-06-01', name: 'Other festival' };
 
-test('new consumers use published coverage and retain a capture for every classified date', () => {
-	const before = resolveHolidayInputs([first], 'TEST', ['2026-02-03']);
-	const after = resolveHolidayInputs([first, later], 'TEST', [
+test('every classified date gets an input: the published holiday on it, or none', () => {
+	const result = resolveHolidayInputs([festival, later], 'TEST', [
 		'2026-02-03',
-		'2026-06-01',
-		'2026-06-02'
+		'2026-02-04',
+		'2026-06-01'
 	]);
-	assert.equal(before.inputs[0]?.calendar_id, first.id);
-	assert.equal(after.inputs[0]?.calendar_id, later.id);
-	assert.deepEqual(before.holidays.get(holiday.date), after.holidays.get(holiday.date));
-	assert.equal(after.inputs.length, 3);
-	assert.ok(!after.holidays.has('2026-06-02'));
-	assert.equal(after.inputs[2]?.date, '2026-06-02', 'absence of a holiday is also captured');
-	assert.equal(before.calendars[0]?.observations.length, 1, 'previous evidence remains unchanged');
+	assert.deepEqual(
+		result.inputs.map((row) => [row.date, row.holiday_id]),
+		[
+			['2026-02-03', 'festival'],
+			['2026-02-04', null],
+			['2026-06-01', 'later']
+		]
+	);
+	assert.deepEqual(
+		result.snapshots.map((row) => row.id),
+		['festival', 'later']
+	);
 });
 
-test('publication identifies edits, removal and both sides of a date shift', () => {
-	assert.deepEqual(changedHolidayDates([holiday], [{ ...holiday, date: '2026-02-04' }]), [
-		'2026-02-03',
-		'2026-02-04'
-	]);
-	assert.deepEqual(changedHolidayDates([holiday], []), [holiday.date]);
-	assert.deepEqual(changedHolidayDates([holiday], [{ ...holiday, name: 'Renamed' }]), [
-		holiday.date
-	]);
-	assert.deepEqual(changedHolidayDates([holiday], [holiday]), []);
+test('a work day pin keeps its holiday after it was unpublished; an unpinned day takes what is published now', () => {
+	const unpublished = { ...festival, published_at: null };
+	const pinned = resolveHolidayInputs(
+		[unpublished, later],
+		'TEST',
+		['2026-02-03', '2026-06-01'],
+		[{ jurisdiction_code: 'TEST', date: '2026-02-03', holiday_id: 'festival' }]
+	);
+	assert.equal(pinned.holidays.get('2026-02-03')?.id, 'festival');
+	assert.equal(pinned.holidays.get('2026-06-01')?.id, 'later');
+	const unpinned = resolveHolidayInputs([unpublished, later], 'TEST', ['2026-02-03']);
+	assert.equal(unpinned.holidays.has('2026-02-03'), false);
 });
 
-test('adding a holiday changes a previously non-holiday classification', () => {
-	assert.deepEqual(changedHolidayDates(first.observations, later.observations), ['2026-06-01']);
+test('two pins disagreeing on one day, or a pin to a missing holiday, refuse', () => {
+	const pin = (holiday_id: string) => ({
+		jurisdiction_code: 'TEST',
+		date: '2026-02-03',
+		holiday_id
+	});
+	assert.throws(
+		() => resolveHolidayInputs([festival], 'TEST', ['2026-02-03'], [pin('festival'), pin('other')]),
+		/disagree/
+	);
+	assert.throws(
+		() => resolveHolidayInputs([], 'TEST', ['2026-02-03'], [pin('gone')]),
+		/missing holiday/
+	);
 });

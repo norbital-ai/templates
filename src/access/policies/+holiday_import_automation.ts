@@ -2,14 +2,13 @@ import type { Policy } from './$types.js';
 
 export default {
 	description:
-		'Reads configured jurisdiction holiday sources and prepares or refreshes import evidence on annual drafts. It cannot publish calendars, change observations directly or delete history.',
+		'Reads configured jurisdiction holiday sources and adds the holidays a Google calendar names that the jurisdiction does not have yet, unpublished. It cannot publish, change or delete a holiday.',
 	grants: {
 		jurisdiction_settings: { read: {} },
-		jurisdiction_holiday_calendars: {
+		jurisdiction_holidays: {
 			read: {},
 			mutate: {
-				new: { fields: ['jurisdiction_code', 'year', 'revision', 'observations', 'import_review'] },
-				existing: { fields: ['import_review'] }
+				new: { fields: ['jurisdiction_code', 'date', 'name', 'original_date', 'source'] }
 			}
 		}
 	},

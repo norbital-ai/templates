@@ -120,7 +120,7 @@ const catalogueRows = new Map<string, Row>(
 			: seedRow(collection)
 	])
 );
-const HOLIDAY = seedRow('jurisdiction_holiday_calendars');
+const HOLIDAY = seedRow('jurisdiction_holidays');
 
 /** Valid source shapes from the synthetic seed, with new codes so only the seal prevents creation. */
 const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row }> = [
@@ -197,16 +197,10 @@ const STORED: ReadonlyArray<{
 		collection,
 		id: String(catalogueRows.get(collection)!.id),
 		change: { sequence: 99 }
-	})),
-	{
-		collection: 'jurisdiction_holiday_calendars',
-		id: String(HOLIDAY.id),
-		change: { year: 2032 },
-		pattern: /Published holiday calendars/
-	}
+	}))
 ];
 
-const COUNTED = ['statutory_contributions', ...CATALOGUES, 'jurisdiction_holiday_calendars'];
+const COUNTED = ['statutory_contributions', ...CATALOGUES, 'jurisdiction_holidays'];
 const counts = (session: Session) =>
 	session.query(
 		`select ${COUNTED.map((collection) => `(select count(*) from ${collection})::int as ${collection}`).join(', ')}`
@@ -255,28 +249,24 @@ test(
 					loan.definition
 				]
 			);
-			// Annual calendars are independent of settings: both operators can create drafts even here.
+			// Holidays are independent of settings: both operators can add one even here.
 			for (const [index, team] of [CONTROLLER, MANAGER].entries()) {
 				const id = crypto.randomUUID();
 				requireAccepted(
 					(
-						await write(session, teamHeaders(session, team), 'jurisdiction_holiday_calendars', {
+						await write(session, teamHeaders(session, team), 'jurisdiction_holidays', {
 							action: 'create',
 							values: {
 								id,
 								jurisdiction_code: HOLIDAY.jurisdiction_code,
-								year: 2030 + index,
-								revision: 1,
-								observations: []
+								date: `203${index}-01-01`,
+								name: 'Fixture holiday'
 							}
 						})
 					).value,
-					`${team} creates an independent holiday draft`
+					`${team} adds an independent holiday`
 				);
-				assert.equal(
-					(await stored(session, 'jurisdiction_holiday_calendars', id)).published_at,
-					null
-				);
+				assert.equal((await stored(session, 'jurisdiction_holidays', id)).published_at, null);
 			}
 			const countsBefore = await counts(session);
 			const before = new Map<string, Row>();

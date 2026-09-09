@@ -73,11 +73,11 @@ export default defineModel(
 		 */
 		break_minutes: integer().notNull().default(0),
 		/**
-		 * The published jurisdiction calendar revision this day was classified against, pinned at the
-		 * first write and kept while the date stands. Payroll reads it back so a later publication
-		 * cannot retroactively change what this day was.
+		 * The published holiday this day was classified as, pinned at the first write and kept while
+		 * the date stands; null is a day that was no holiday when written. Payroll reads the pin back
+		 * so a later publication or edit cannot retroactively change what this day was.
 		 */
-		holiday_calendar_id: uuid(),
+		holiday_id: uuid(),
 		/**
 		 * The payslip that settled this row, and the period it belongs to. Set by the payroll engine
 		 * when a run captures the row, cleared when a draft run is deleted; while set, the row is

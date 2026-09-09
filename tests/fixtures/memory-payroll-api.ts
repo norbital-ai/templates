@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 
 /**
  * In-memory `api.db` for gather / create-before. Predicates match the engine's actual where
- * shapes (`eq`, `in`, `isNull`, inequalities, and one nested `input.kind` clause).
+ * shapes (`eq`, `in`, `isNull`, `isNotNull`, inequalities, and one nested `input.kind` clause).
  */
 
 export type PayrollRow = Record<string, unknown>;
@@ -19,7 +19,7 @@ export type PayrollWorld = {
 	readonly payment_catalogue: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly shift_patterns: PayrollRow[];
-	readonly jurisdiction_holiday_calendars: PayrollRow[];
+	readonly jurisdiction_holidays: PayrollRow[];
 	readonly leave_catalogue: PayrollRow[];
 	readonly leave_entries: PayrollRow[];
 	readonly employments: PayrollRow[];
@@ -39,7 +39,7 @@ export type PayrollWorld = {
 	readonly payslip_loan_repayment_inputs: PayrollRow[];
 };
 
-const OPERATORS = ['eq', 'in', 'isNull', 'lt', 'lte', 'gt', 'gte'] as const;
+const OPERATORS = ['eq', 'in', 'isNull', 'isNotNull', 'lt', 'lte', 'gt', 'gte'] as const;
 
 function valuesEqual(left: unknown, right: unknown): boolean {
 	return left === right || (left == null && right == null);
@@ -81,6 +81,9 @@ function matchPredicate(value: unknown, predicate: unknown): boolean {
 				break;
 			case 'isNull':
 				if (Boolean(clause.isNull) !== (value == null)) return false;
+				break;
+			case 'isNotNull':
+				if (Boolean(clause.isNotNull) !== (value != null)) return false;
 				break;
 			case 'lt':
 				if (compare(value, clause.lt) >= 0) return false;
@@ -165,7 +168,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			payment_catalogue: collection('payment_catalogue'),
 			shift_definitions: collection('shift_definitions'),
 			shift_patterns: collection('shift_patterns'),
-			jurisdiction_holiday_calendars: collection('jurisdiction_holiday_calendars'),
+			jurisdiction_holidays: collection('jurisdiction_holidays'),
 			leave_catalogue: collection('leave_catalogue'),
 			leave_entries: collection('leave_entries'),
 			employments: collection('employments'),

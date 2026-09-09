@@ -322,7 +322,7 @@ export function makePayrollCpuBenchmarkPreparedRun(): PreparedRun {
 		gathered: {
 			bundles: Array.from({ length: EMPLOYEE_COUNT }, (_, index) => bundle(index, window)),
 			headcount: EMPLOYEE_COUNT,
-			workHolidayEvidence: { inputs: [], calendars: [] },
+			workHolidayEvidence: { inputs: [], holidays: [] },
 			yearToDate: new Map(),
 			consumedEntries: new Map(),
 			consumedRepayments: new Map()

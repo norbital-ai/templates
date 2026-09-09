@@ -127,9 +127,9 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		assert.match(snippet(settings, tab!), new RegExp(`catalogueTable\\(\\s*'${collection}'`));
 	}
 	assert.match(snippet(settings, 'holidays'), /<HolidaySettings version=\{selectedVersion\}/);
-	// The Holidays tab is one live query over the jurisdiction's calendars, shown one year at a time.
+	// The Holidays tab is one table over the jurisdiction's holidays; its imports are pipelines.
 	const holidays = source('../src/lib/ui/holiday-settings.svelte');
-	assert.deepEqual(registrations(holidays), ['db.jurisdiction_holiday_calendars.findMany']);
+	assert.deepEqual(registrations(holidays), ['CollectionTable']);
 	assert.match(holidays, /jurisdiction_code: \{ eq: jurisdictionCode \}/);
 	// The source is the version's own column, set under General as a form over the version.
 	assert.match(snippet(settings, 'payroll'), /<HolidaySourceForm version=\{selectedVersion\}/);

@@ -468,7 +468,7 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 			'claim_catalogue',
 			'allowance_catalogue',
 			'payment_catalogue',
-			'jurisdiction_holiday_calendars'
+			'jurisdiction_holidays'
 		])
 			for (const action of ['mutate.new', 'mutate.existing', 'delete']) {
 				const [grant, ...extra] = grantsFor(policy, collection, action);

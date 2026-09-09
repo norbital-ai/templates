@@ -208,28 +208,30 @@ export function prepareWorkInputs(options: {
 		const workDays = new Map(
 			[...live(workDayRows), ...historicalWorkDays].map((row) => [row.id, row])
 		);
-		// Each day pins the revision it was classified against; read those revisions back whole.
-		const pinnedDays = [...workDays.values()].filter((row) => row.holiday_calendar_id != null);
-		const workHolidayCalendars = pinnedDays.length
-			? yield* db.jurisdiction_holiday_calendars.findMany({
+		// A day that was classified as a holiday pins it; read those holidays back whole, published
+		// or not, because the pin is what the day was. An unpinned day takes whatever is published
+		// at the point of running.
+		const pinnedDays = [...workDays.values()].filter((row) => row.holiday_id != null);
+		const workHolidays = pinnedDays.length
+			? yield* db.jurisdiction_holidays.findMany({
 					where: {
-						id: { in: [...new Set(pinnedDays.map((row) => row.holiday_calendar_id!))] },
+						id: { in: [...new Set(pinnedDays.map((row) => row.holiday_id!))] },
 						...approved
 					},
 					limit: PAGE_LIMIT
 				})
 			: [];
-		options.api.reads.assertComplete(workHolidayCalendars, 'Work holiday calendar revisions');
-		const calendarById = new Map(live(workHolidayCalendars).map((row) => [row.id, row]));
+		options.api.reads.assertComplete(workHolidays, 'Work holidays');
+		const holidayById = new Map(live(workHolidays).map((row) => [row.id, row]));
 		const workHolidayInputs = pinnedDays.map((row) => {
-			const calendar = calendarById.get(row.holiday_calendar_id!);
+			const holiday = holidayById.get(row.holiday_id!);
 			const date = requiredDateKey(row.work_date, 'work_days.work_date');
-			if (!calendar) refuse(`Work day ${date} pins a missing holiday calendar.`);
-			return { jurisdiction_code: calendar.jurisdiction_code, date, calendar_id: calendar.id };
+			if (!holiday) refuse(`Work day ${date} pins a missing holiday.`);
+			return { jurisdiction_code: holiday.jurisdiction_code, date, holiday_id: holiday.id };
 		});
 		return {
 			workDaysByEmployment: groupBy([...workDays.values()], (row) => row.employment_id),
-			workHolidayEvidence: { inputs: workHolidayInputs, calendars: live(workHolidayCalendars) }
+			workHolidayEvidence: { inputs: workHolidayInputs, holidays: live(workHolidays) }
 		};
 	});
 }

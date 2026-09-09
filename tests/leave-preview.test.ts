@@ -90,9 +90,14 @@ test('preview distinguishes an occupied half from the available half on the same
 
 test('observed holidays remain non-chargeable in a multi-day preview', () => {
 	const context = leaveContext();
-	context.calendars.find((row) => row.year === 2026)!.observations = [
-		{ date: '2026-04-16', name: 'Observed holiday', original_date: null, source: null }
-	];
+	context.holidays.push({
+		id: 'holiday-2026-04-16',
+		jurisdiction_code: 'TEST-JUR',
+		date: '2026-04-16',
+		name: 'Observed holiday',
+		original_date: null,
+		published_at: '2025-01-01T00:00:00.000Z'
+	});
 	const preview = evaluateLeavePreview(context, {
 		...input,
 		range: { start: range.start, end: { date: '2026-04-17', half: 'SECOND' } }

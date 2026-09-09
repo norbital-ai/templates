@@ -244,7 +244,7 @@ const settlementLedgerGrants = (): Grants => captureLedgerGrants();
 export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('companies', actions),
-		grantsOn('jurisdiction_holiday_calendars', actions),
+		grantsOn('jurisdiction_holidays', actions),
 		grantsOn('shift_definitions', actions),
 		// The base an employee's own days are projected from; read in full, like the codes it names.
 		grantsOn('shift_patterns', actions),
@@ -342,7 +342,7 @@ export const settingsCatalogueGrants = (
 		grantsOn('allowance_catalogue', actions),
 		grantsOn('payment_catalogue', actions),
 		grantsOn('loan_catalogue', actions),
-		grantsOn('jurisdiction_holiday_calendars', actions)
+		grantsOn('jurisdiction_holidays', actions)
 	);
 };
 

@@ -1,7 +1,7 @@
-import type { HolidayCalendarSnapshot } from '../../../datatypes/holiday_calendar_snapshots/+definition.js';
+import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+definition.js';
 /**
- * Resolve the governing settings and family definitions once for the run. Jurisdiction holiday
- * calendars publish independently; their exact revisions and observations are captured on the run.
+ * Resolve the governing settings and family definitions once for the run. Holidays publish
+ * individually; the exact published rows the run read are captured on it.
  */
 
 import { refuse } from '@norbital-ai/bolt/authoring';
@@ -14,7 +14,6 @@ import { prepareFamilyCatalogues } from '../../../lib/payroll/families.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { daysBetween, monthBounds, monthKey, type IsoDate } from './dates.js';
 import { resolveHolidayInputs, type PreparedHolidayInput } from '../../../lib/holiday-inputs.js';
-import type { HolidayObservation } from '../../../datatypes/holiday_observations/+definition.js';
 import { effectiveOn, live } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
@@ -91,8 +90,8 @@ export type Configuration = {
 	 * is configuration the same way its roster codes are.
 	 */
 	readonly patternById: ReadonlyMap<string, ShiftPattern>;
-	readonly holidays: ReadonlyMap<IsoDate, HolidayObservation>;
-	readonly holidayCalendars: readonly HolidayCalendarSnapshot[];
+	readonly holidays: ReadonlyMap<IsoDate, HolidaySnapshot>;
+	readonly holidaySnapshots: readonly HolidaySnapshot[];
 	readonly holidayInputs: readonly PreparedHolidayInput[];
 	readonly catalogueLeaves: readonly CatalogueLeave[];
 	readonly hash: string;
@@ -179,15 +178,16 @@ export function pickConfiguration(
 			windowEnd
 		});
 		const { catalogueComponents, contributions } = familyConfiguration;
-		const holidayRows = yield* db.jurisdiction_holiday_calendars.findMany({
+		const holidayRows = yield* db.jurisdiction_holidays.findMany({
 			where: {
 				jurisdiction_code: { eq: jurisdiction.jurisdiction_code },
-				year: { gte: Number(windowStart.slice(0, 4)), lte: Number(windowEnd.slice(0, 4)) },
+				date: { gte: windowStart, lte: windowEnd },
+				published_at: { isNotNull: true },
 				...approved
 			},
 			limit: PAGE_LIMIT
 		});
-		options.api.reads.assertComplete(holidayRows, 'jurisdiction holiday calendars');
+		options.api.reads.assertComplete(holidayRows, 'published holidays');
 		const treatments = new Map<string, Treatment>();
 		for (const component of catalogueComponents)
 			for (const contribution of contributions) {
@@ -206,7 +206,7 @@ export function pickConfiguration(
 			...familyConfiguration,
 			treatments,
 			holidays: resolvedCalendar.holidays,
-			holidayCalendars: resolvedCalendar.calendars,
+			holidaySnapshots: resolvedCalendar.snapshots,
 			holidayInputs: resolvedCalendar.inputs
 		} satisfies Omit<Configuration, 'hash'>;
 
@@ -271,8 +271,8 @@ export function configurationSnapshot(
 			effective_range: configuration.jurisdiction.effective_range,
 			value: configuration.work.regime
 		},
-		// Annual revisions remain in the run's immutable snapshots. Only classified dates
-		// affect arithmetic identity; unused future dates do not change this run’s calculation.
+		// The holidays read stay in the run's immutable snapshot. Only classified dates affect
+		// arithmetic identity; a holiday published later for another period changes nothing here.
 		holiday_inputs: configuration.holidayInputs.map(({ jurisdiction_code, date }) => ({
 			jurisdiction_code,
 			date,

@@ -33,9 +33,9 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * docs/architecture.md (Provenance and audit).
  */
 export default ((r) => ({
-	/** Restrict: a revision a work day pinned is history and cannot be deleted. */
-	jurisdiction_holiday_calendars: {
-		work_day_holiday_calendar: r.many.work_days()
+	/** Restrict: a holiday a work day pinned is history and cannot be deleted. */
+	jurisdiction_holidays: {
+		work_day_holiday: r.many.work_days()
 	},
 	/**
 	 * The sealed, shareable root. Every downstream rule row is owned by its version (`cascade`: a
@@ -264,9 +264,9 @@ export default ((r) => ({
 	},
 
 	work_days: {
-		work_day_holiday_calendar: r.one.jurisdiction_holiday_calendars({
-			from: r.work_days.holiday_calendar_id,
-			to: r.jurisdiction_holiday_calendars.id
+		work_day_holiday: r.one.jurisdiction_holidays({
+			from: r.work_days.holiday_id,
+			to: r.jurisdiction_holidays.id
 		}),
 		work_day_employment: r.one.employments({
 			from: r.work_days.employment_id,

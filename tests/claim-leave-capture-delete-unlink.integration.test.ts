@@ -297,24 +297,21 @@ test(
 
 			// 4. Leave on a rest day, on the swapped-off Monday, and on a holiday is no leave at
 			// all. (The swapped Sunday carries Monday's WORK code now, so the rest-day case moves a
-			// week on, to a Sunday nobody touched.) Publish a successor holiday calendar before
-			// its newly observed Tuesday is consumed. Existing captured dates remain unchanged.
+			// week on, to a Sunday nobody touched.) Publish a holiday on the Tuesday before it is
+			// consumed. Existing captured dates remain unchanged.
 			const holiday = await create(
 				session,
-				'jurisdiction_holiday_calendars',
+				'jurisdiction_holidays',
 				{
 					id: crypto.randomUUID(),
 					jurisdiction_code: 'TEST-JUR',
-					year: 2026,
-					revision: 2,
-					observations: [
-						{ date: HOLIDAY_TUESDAY, name: 'Fixture holiday', original_date: null, source: null }
-					],
+					date: HOLIDAY_TUESDAY,
+					name: 'Fixture holiday',
 					published_at: '2026-01-01T00:00:00Z'
 				},
 				founder
 			);
-			requireAccepted(holiday, 'publish successor holiday calendar');
+			requireAccepted(holiday, 'publish a holiday');
 			for (const date of [QUIET_SUNDAY, MONDAY, HOLIDAY_TUESDAY]) {
 				const noOp = await fileTimeOff(session, crypto.randomUUID(), date, controller);
 				assert.equal(

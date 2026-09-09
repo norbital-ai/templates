@@ -213,15 +213,8 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				approval_id: null
 			}
 		],
-		jurisdiction_holiday_calendars: [2025, 2026, 2027].map((year) => ({
-			id: `public-calendar-${year}`,
-			jurisdiction_code: 'TEST-JUR',
-			year,
-			revision: 1,
-			published_at: '2024-12-01T00:00:00.000Z',
-			observations: [],
-			approval_id: null
-		})),
+		// Published holidays only exist where a test declares one; a year with none is a year with none.
+		jurisdiction_holidays: [],
 		leave_catalogue: [],
 		leave_entries: [],
 		employments: [

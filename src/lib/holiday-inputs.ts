@@ -1,73 +1,66 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { PayrollReadApi } from '../collections/payroll_runs/lib/api.js';
-import { stableJson } from './jurisdiction_settings.js';
-import { resolveHolidayCalendars, type HolidayCalendar } from './holiday-calendar.js';
+import type { HolidaySnapshot } from '../datatypes/holiday_snapshots/+definition.js';
+import { holidaySnapshot, resolveHolidays, type HolidayRow } from './holiday-calendar.js';
 import { dateKey } from './iso-day.js';
 
-/** One classified date: which published revision answers for it in this jurisdiction. */
+/** One classified day: the holiday it was read against, or none. */
 export type PreparedHolidayInput = {
 	readonly jurisdiction_code: string;
 	readonly date: string;
-	readonly calendar_id: string;
+	readonly holiday_id: string | null;
 };
 type HolidayInputApi = {
-	readonly db: Pick<PayrollReadApi['db'], 'jurisdiction_holiday_calendars'>;
+	readonly db: Pick<PayrollReadApi['db'], 'jurisdiction_holidays'>;
 };
 const LIMIT = 20_000;
 
-/** Work keeps its sealed date classification; dates without Work evidence use the latest publication. */
+/**
+ * Classifies every requested day: what is published at the point of running, except where a work
+ * day already pinned a holiday — that pin stays the day's holiday even if the row was unpublished
+ * or changed since, because it is what the day was classified against.
+ */
 export function resolveHolidayInputs(
-	calendars: readonly HolidayCalendar[],
+	rows: readonly HolidayRow[],
 	jurisdiction: string,
 	dates: readonly string[],
 	pinned: readonly PreparedHolidayInput[] = []
-): ReturnType<typeof resolveHolidayCalendars> & {
+): {
+	readonly holidays: ReadonlyMap<string, HolidaySnapshot>;
+	readonly snapshots: readonly HolidaySnapshot[];
 	readonly inputs: readonly PreparedHolidayInput[];
 } {
-	const ordered = [...new Set(dates)].sort();
-	if (!ordered.length) return { inputs: [], calendars: [], holidays: new Map() };
-	const resolved = resolveHolidayCalendars(calendars, jurisdiction, ordered[0]!, ordered.at(-1)!);
-	const byYear = new Map(resolved.calendars.map((calendar) => [calendar.year, calendar]));
-	const holidays = new Map(resolved.holidays);
-	const used = new Map<string, (typeof resolved.calendars)[number]>();
-	const pinnedByDate = new Map<string, (typeof resolved.calendars)[number]>();
+	const ordered = [...new Set(dates.map(dateKey))].sort();
+	if (!ordered.length) return { holidays: new Map(), snapshots: [], inputs: [] };
+	const holidays = new Map(resolveHolidays(rows, jurisdiction, ordered[0]!, ordered.at(-1)!));
 	const requested = new Set(ordered);
+	const byId = new Map(rows.map((row) => [row.id, row]));
+	const pinnedByDate = new Map<string, string>();
 	for (const input of pinned) {
 		const date = dateKey(input.date);
-		if (input.jurisdiction_code !== jurisdiction || !requested.has(date)) continue;
-		const row = calendars.find((calendar) => calendar.id === input.calendar_id);
-		if (!row) refuse(`Work holiday input ${date} references a missing calendar.`);
-		const calendar = resolveHolidayCalendars([row], jurisdiction, date, date).calendars[0]!;
+		if (
+			input.jurisdiction_code !== jurisdiction ||
+			!requested.has(date) ||
+			input.holiday_id == null
+		)
+			continue;
 		const previous = pinnedByDate.get(date);
-		const observation = calendar.observations.find((entry) => entry.date === date) ?? null;
-		if (
-			previous &&
-			stableJson(previous.observations.find((entry) => entry.date === date) ?? null) !==
-				stableJson(observation)
-		)
+		if (previous !== undefined && previous !== input.holiday_id)
 			refuse(`Work holiday inputs disagree on the observed holiday for ${jurisdiction} ${date}.`);
-		used.set(calendar.id, calendar);
-		// One run/date link names the oldest compatible revision; every Work revision remains in the snapshot.
-		if (
-			!previous ||
-			calendar.revision < previous.revision ||
-			(calendar.revision === previous.revision && calendar.id < previous.id)
-		)
-			pinnedByDate.set(date, calendar);
-		if (observation) holidays.set(date, observation);
-		else holidays.delete(date);
+		pinnedByDate.set(date, input.holiday_id);
+		const row = byId.get(input.holiday_id);
+		if (!row) refuse(`Work holiday input ${date} references a missing holiday.`);
+		holidays.set(date, holidaySnapshot(row));
 	}
-	const inputs = ordered.map((date) => {
-		const calendar = pinnedByDate.get(date) ?? byYear.get(Number(date.slice(0, 4)))!;
-		used.set(calendar.id, calendar);
-		return { jurisdiction_code: jurisdiction, date, calendar_id: calendar.id };
-	});
+	const inputs = ordered.map((date) => ({
+		jurisdiction_code: jurisdiction,
+		date,
+		holiday_id: holidays.get(date)?.id ?? null
+	}));
 	return {
 		holidays,
-		calendars: [...used.values()].sort(
-			(a, b) => a.year - b.year || a.revision - b.revision || a.id.localeCompare(b.id)
-		),
+		snapshots: [...holidays.values()].toSorted((a, b) => a.date.localeCompare(b.date)),
 		inputs
 	};
 }
@@ -78,29 +71,16 @@ export const prepareHolidayInputs = (
 	dates: readonly string[]
 ) =>
 	Effect.gen(function* () {
-		const ordered = [...new Set(dates)].sort();
+		const ordered = [...new Set(dates.map(dateKey))].sort();
 		if (!ordered.length) return resolveHolidayInputs([], jurisdiction, []);
-		const calendars = yield* api.db.jurisdiction_holiday_calendars.findMany({
+		const rows = yield* api.db.jurisdiction_holidays.findMany({
 			where: {
 				jurisdiction_code: { eq: jurisdiction },
-				year: { gte: Number(ordered[0]!.slice(0, 4)), lte: Number(ordered.at(-1)!.slice(0, 4)) },
+				date: { gte: ordered[0]!, lte: ordered.at(-1)! },
 				approval_id: { isNull: true }
 			},
 			limit: LIMIT
 		});
-		if (calendars.length >= LIMIT)
-			refuse('Holiday calendar preparation exceeded its complete-read limit.');
-		return resolveHolidayInputs(calendars, jurisdiction, ordered);
+		if (rows.length >= LIMIT) refuse('Holiday preparation exceeded its complete-read limit.');
+		return resolveHolidayInputs(rows, jurisdiction, ordered);
 	});
-
-/** Only dates whose classification/evidence changes can conflict with a prior capture. */
-export function changedHolidayDates(
-	before: HolidayCalendar['observations'],
-	after: HolidayCalendar['observations']
-) {
-	const old = new Map(before.map((row) => [row.date, row]));
-	const next = new Map(after.map((row) => [row.date, row]));
-	return [...new Set([...old.keys(), ...next.keys()])]
-		.filter((date) => stableJson(old.get(date) ?? null) !== stableJson(next.get(date) ?? null))
-		.sort();
-}

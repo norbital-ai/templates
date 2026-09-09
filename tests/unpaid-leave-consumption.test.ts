@@ -54,7 +54,7 @@ function leaveEntry(id, dates) {
 		days: 1,
 		leave_catalogue_id: NPL.id,
 		employment_term_id: TERM.id,
-		calendar_id: 'calendar',
+		holiday_id: null,
 		shift_definition_id: null,
 		work_day_id: null
 	}));

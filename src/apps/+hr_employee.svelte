@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolveEmployment } from '../lib/employment-contract.js';
-	import { HOLIDAY_CALENDAR_QUERY_LIMIT, holidayCalendarView } from '../lib/ui/holiday-calendar.js';
+	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../lib/jurisdiction_settings.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../lib/workspace-client.js';
@@ -388,7 +388,7 @@
 			? null
 			: client.db.jurisdiction_settings.findMany({
 					where: onLineage(activeSettingsCode),
-					limit: HOLIDAY_CALENDAR_QUERY_LIMIT
+					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);
 	const scheduleCalendarJurisdiction = $derived(
@@ -403,20 +403,21 @@
 	const scheduleHolidaysQuery = $derived(
 		scheduleCalendarJurisdiction == null
 			? null
-			: client.db.jurisdiction_holiday_calendars.findMany({
+			: client.db.jurisdiction_holidays.findMany({
 					where: {
 						...approved,
 						jurisdiction_code: { eq: scheduleCalendarJurisdiction },
-						year: { eq: Number(scheduleMonthStart.slice(0, 4)) }
+						date: { gte: scheduleMonthStart, lte: scheduleMonthEnd },
+						published_at: { isNotNull: true }
 					},
-					limit: HOLIDAY_CALENDAR_QUERY_LIMIT
+					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);
 	const scheduleCalendarResolution = $derived(
-		holidayCalendarView({
+		holidayView({
 			settingsCount: scheduleCalendarSettingsQuery?.current?.length,
 			jurisdiction: scheduleCalendarJurisdiction,
-			calendars: scheduleHolidaysQuery?.current,
+			rows: scheduleHolidaysQuery?.current,
 			start: scheduleMonthStart,
 			end: scheduleMonthEnd,
 			noJurisdiction: t('holiday_calendar.no_jurisdiction'),

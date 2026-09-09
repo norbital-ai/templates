@@ -7,7 +7,7 @@ flowchart LR
   RAW["Original source evidence"] --> CLEAN["Normalised source records"]
   CLEAN --> REVIEW["Verify contract identity and input evidence"]
   REVIEW --> INPUT["Family catalogues and approved entries"]
-  HOLIDAY["Published jurisdiction holiday calendar"] --> RUN
+  HOLIDAY["Published jurisdiction holidays"] --> RUN
   INPUT --> RUN["One regular run per entity and period"]
   RUN --> OUT["One payslip per employment contract"]
   OUT --> EXPORT["Generated workbook"]
@@ -105,14 +105,14 @@ change within a year. Distinguish missing policy on an actual activity date from
 future year-end valuation. Do not invent opening adjustments or carry-forward credits merely to
 make an old usage total fit a formula.
 
-Holiday calendars are standalone jurisdiction/year inputs. Company closures and personal roster
-labels do not establish jurisdiction-observed holidays. Preserve imported observation identities
-and provenance, review annual completeness and publish the calendar explicitly. Missing coverage
-must not be converted into a published empty calendar.
+Holidays are standalone jurisdiction rows, one per observed day, each published on its own.
+Company closures and personal roster labels do not establish jurisdiction-observed holidays.
+Imported rows keep their provenance and arrive unpublished; every bank holiday is unpublished
+pending review, and an unpublished holiday is not observed anywhere.
 
-Each Work day pins the published calendar revision it was classified against
-(`work_days.holiday_calendar_id`), including non-holiday dates, and each Leave charge carries its
-`calendar_id`; a paid run freezes its calendar snapshot. A later publication cannot change a date a
+A Work day classified as a holiday pins it (`work_days.holiday_id`), each Leave charge carries the
+`holiday_id` that excluded its day when one did, and a run captures the holidays it read
+(`payroll_runs.holidays`); a paid run freezes that snapshot. A later publication cannot change a date a
 pinned work day or a paid run classified.
 
 ## Monetary inputs and cutoff dates

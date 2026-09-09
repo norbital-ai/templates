@@ -1,77 +1,50 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
-import type { WorkspaceRow } from '../collections/jurisdiction_holiday_calendars/$types.js';
-import type { HolidayObservation } from '../datatypes/holiday_observations/+definition.js';
-import type { HolidayCalendarSnapshot } from '../datatypes/holiday_calendar_snapshots/+definition.js';
+import type { WorkspaceRow } from '../collections/jurisdiction_holidays/$types.js';
+import type { HolidaySnapshot } from '../datatypes/holiday_snapshots/+definition.js';
+import { dateKey } from './iso-day.js';
 
-export type HolidayCalendar = Pick<
-	WorkspaceRow<'jurisdiction_holiday_calendars'>,
-	'id' | 'jurisdiction_code' | 'year' | 'revision' | 'observations' | 'published_at'
+/** What a consumer reads off a holiday row; the snapshot is the same columns, dates as day keys. */
+export type HolidayRow = Pick<
+	WorkspaceRow<'jurisdiction_holidays'>,
+	'id' | 'jurisdiction_code' | 'date' | 'name' | 'original_date' | 'published_at'
 >;
 
-export function validateHolidayCalendar(
-	calendar: Omit<HolidayCalendar, 'id' | 'published_at'>
-): void {
-	if (!calendar.jurisdiction_code.trim()) refuse('A holiday calendar needs a jurisdiction.');
-	if (!Number.isInteger(calendar.year) || calendar.year < 1 || calendar.year > 9999)
-		refuse('A holiday calendar needs a year between 1 and 9999.');
-	if (!Number.isInteger(calendar.revision) || calendar.revision < 1)
-		refuse('A holiday calendar revision must be a positive integer.');
-	const dates = new Set<string>();
-	for (const observation of calendar.observations) {
-		if (!isCalendarDate(observation.date) || Number(observation.date.slice(0, 4)) !== calendar.year)
-			refuse(`Observed date ${observation.date} must belong to calendar year ${calendar.year}.`);
-		if (!observation.name.trim()) refuse('Each observed holiday needs a name.');
-		if (observation.original_date != null && !isCalendarDate(observation.original_date))
-			refuse(`Original holiday date ${observation.original_date} is invalid.`);
-		if (dates.has(observation.date))
-			refuse(`Observed date ${observation.date} occurs more than once.`);
-		dates.add(observation.date);
-	}
+/** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
+export function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
+	return {
+		id: row.id,
+		jurisdiction_code: row.jurisdiction_code,
+		date: dateKey(row.date),
+		name: row.name,
+		original_date: row.original_date == null ? null : dateKey(row.original_date),
+		published_at: row.published_at ?? ''
+	};
 }
 
-/** Resolve complete annual coverage once. Unpublished or missing years never imply no holidays. */
-export function resolveHolidayCalendars(
-	rows: readonly HolidayCalendar[],
+/**
+ * The published holidays of one jurisdiction across a date range, by day.
+ *
+ * Publication is per holiday: a published row is a holiday, an unpublished one is not there.
+ * Nothing asks a year to be complete first. A day a work day pinned is read back by id elsewhere,
+ * published or not, because the pin is what the day was classified against.
+ */
+export function resolveHolidays(
+	rows: readonly HolidayRow[],
 	jurisdictionCode: string,
 	start: string,
 	end: string
-): {
-	readonly calendars: readonly HolidayCalendarSnapshot[];
-	readonly holidays: ReadonlyMap<string, HolidayObservation>;
-} {
+): ReadonlyMap<string, HolidaySnapshot> {
 	if (!isCalendarDate(start) || !isCalendarDate(end) || start > end)
-		refuse('Holiday calendar coverage needs a valid ordered date range.');
-	const calendars: HolidayCalendarSnapshot[] = [];
-	const holidays = new Map<string, HolidayObservation>();
-	for (let year = Number(start.slice(0, 4)); year <= Number(end.slice(0, 4)); year += 1) {
-		const candidates = rows
-			.filter(
-				(row) =>
-					row.jurisdiction_code === jurisdictionCode &&
-					row.year === year &&
-					row.published_at != null
-			)
-			.toSorted((a, b) => b.revision - a.revision);
-		const calendar = candidates[0];
-		if (!calendar || calendar.published_at == null)
-			refuse(
-				`Publish the ${jurisdictionCode} holiday calendar for ${year} before calculating this period.`
-			);
-		if (candidates[1]?.revision === calendar.revision)
-			refuse(`Holiday calendar ${jurisdictionCode} ${year} has duplicate published revisions.`);
-		validateHolidayCalendar(calendar);
-		// Keep values as well as revision IDs: a hash or a live query cannot reproduce an old result.
-		const snapshot = {
-			id: calendar.id,
-			jurisdiction_code: calendar.jurisdiction_code,
-			year: calendar.year,
-			revision: calendar.revision,
-			published_at: calendar.published_at,
-			observations: structuredClone(calendar.observations)
-		};
-		calendars.push(snapshot);
-		for (const observation of snapshot.observations) holidays.set(observation.date, observation);
+		refuse('Holiday coverage needs a valid ordered date range.');
+	const holidays = new Map<string, HolidaySnapshot>();
+	for (const row of rows) {
+		if (row.jurisdiction_code !== jurisdictionCode || row.published_at == null) continue;
+		const date = dateKey(row.date);
+		if (date < start || date > end) continue;
+		if (holidays.has(date))
+			refuse(`Jurisdiction ${jurisdictionCode} has two published holidays on ${date}.`);
+		holidays.set(date, holidaySnapshot(row));
 	}
-	return { calendars, holidays };
+	return holidays;
 }

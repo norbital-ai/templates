@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "381e87d6-822c-4602-87b5-61967419dbd3",
+  "id": "48651fbf-4573-4aa1-8661-7ee640781217",
   "prevIds": [
-    "bd72092d-6ca6-4903-8882-399ab77fc2f3"
+    "fdb6fdd8-6687-40b9-b91d-cb310975786b"
   ],
   "version": "8",
   "ddl": [
@@ -62,7 +62,7 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "jurisdiction_holiday_calendars",
+      "name": "jurisdiction_holidays",
       "entityType": "tables",
       "schema": "public"
     },
@@ -2194,7 +2194,7 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "timestamp with time zone",
@@ -2207,7 +2207,7 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "timestamp with time zone",
@@ -2220,7 +2220,7 @@
       "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "tstzrange",
@@ -2233,7 +2233,7 @@
       "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "integer",
@@ -2246,7 +2246,7 @@
       "name": "row_version",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "uuid",
@@ -2259,7 +2259,23 @@
       "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "text",
@@ -2272,59 +2288,59 @@
       "name": "jurisdiction_code",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
-      "type": "integer",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "year",
+      "name": "date",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
-      "type": "integer",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "revision",
+      "name": "name",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
     },
     {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "observations",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
-    },
-    {
-      "type": "jsonb",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "import_review",
+      "name": "original_date",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "timestamp with time zone",
@@ -2337,7 +2353,20 @@
       "name": "published_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "consumed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
     },
     {
       "type": "uuid",
@@ -4334,7 +4363,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "holiday_calendars",
+      "name": "holidays",
       "entityType": "columns",
       "schema": "public",
       "table": "payroll_runs"
@@ -6013,7 +6042,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "holiday_calendar_id",
+      "name": "holiday_id",
       "entityType": "columns",
       "schema": "public",
       "table": "work_days"
@@ -6632,14 +6661,7 @@
           "opclass": null
         },
         {
-          "value": "year",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "revision",
+          "value": "date",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6651,10 +6673,73 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "jurisdiction_holiday_calendars_jurisdiction_code_year_revision_index",
+      "name": "jurisdiction_holidays_jurisdiction_code_date_index",
       "entityType": "indexes",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars"
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "published_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "jurisdiction_holidays_published_at_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "search_document",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "jurisdiction_holidays_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "jurisdiction_holidays_search_text_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "jurisdiction_holidays"
     },
     {
       "nameExplicit": false,
@@ -8509,16 +8594,16 @@
     {
       "nameExplicit": true,
       "columns": [
-        "holiday_calendar_id"
+        "holiday_id"
       ],
       "schemaTo": "public",
-      "tableTo": "jurisdiction_holiday_calendars",
+      "tableTo": "jurisdiction_holidays",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "work_days_holiday_calendar_id_jurisdiction_holiday_calendars_fk",
+      "name": "work_days_holiday_id_jurisdiction_holidays_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "work_days"
@@ -8652,9 +8737,9 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "jurisdiction_holiday_calendars_pkey",
+      "name": "jurisdiction_holidays_pkey",
       "schema": "public",
-      "table": "jurisdiction_holiday_calendars",
+      "table": "jurisdiction_holidays",
       "entityType": "pks"
     },
     {

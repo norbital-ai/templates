@@ -4,210 +4,152 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
-	import {
-		createCollectionRouteKey,
-		getCollectionNavigationContext
-	} from '@norbital-ai/ui/collection-navigation';
+	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import { Cluster, Cover, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import Icon from '@iconify/svelte';
-	import { Effect, Result, Schema } from 'effect';
-	import { holidayObservationInputSchema } from '../../datatypes/holiday_observations/+definition.js';
-	import { todayKey } from './calendar.js';
+	import { Cluster, Cover } from '@norbital-ai/ui/layout';
+	import { Effect } from 'effect';
+	import { setContext } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { HOLIDAY_JURISDICTION } from '../holiday-scope.js';
+	import { holidayImportPayload } from '../holiday-workbook.js';
+	import { runWorkbookImport } from './workbook-import.js';
 	import type { WorkspaceRow } from '$bolt/types.js';
 
 	/**
-	 * One year of one jurisdiction: its observed dates, and the three things a person does to
-	 * them — move a year, import it, publish it. The calendar rows, revisions and the Google
-	 * source stay out of sight; the record sheet still opens for the review an import can ask for.
+	 * One table, one jurisdiction: the holidays themselves, each published on its own. Create,
+	 * search and filter are the table's; the two imports are its pipelines — a spreadsheet, or
+	 * the Google calendar set under General — and both come through the same door, so a day the
+	 * jurisdiction already has is never duplicated. A holiday a work day or payroll run has read
+	 * is frozen and says so.
 	 */
 	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
 	const jurisdictionCode = $derived(version.jurisdiction_code);
 	const { t } = useI18n<TenantI18nKeys>();
-	const navigation = getCollectionNavigationContext();
-	const routeKey = createCollectionRouteKey({ view: 'hr_controller:settings:holidays' });
+	// The create form opened from this table starts on this jurisdiction.
+	setContext(HOLIDAY_JURISDICTION, () => jurisdictionCode);
 
-	let year = $state(Number(todayKey().slice(0, 4)));
-	let error = $state<string | null>(null);
+	type Holiday = WorkspaceRow<'jurisdiction_holidays'>;
+
+	let importing = $state(false);
+	let importNote = $state<string | null>(null);
 	/**
 	 * The run this surface started, held here rather than read back off the client: the client's
-	 * `latest` is set on a host-side signal that a `$derived` in authored code never re-reads, so
-	 * the status line stayed blank while the import ran. The returned run's snapshot is what the
-	 * line follows; a reload starts with none, which is also what the client would have said.
+	 * `latest` is set on a host-side signal a `$derived` in authored code never re-reads. The run's
+	 * own snapshot is live, so the note below follows the import to its last word.
 	 */
-	let latest =
+	let latestRun =
 		$state<
 			ReturnType<typeof client.automations.holiday_import.run> extends Promise<infer R> ? R : never
 		>();
 	/**
 	 * The one way this surface learns the key is unset: the import refused for want of it. The
 	 * vault's own projection is a management command the tenant client does not carry, so the
-	 * placeholder stands in for the last refusal rather than a pre-flight read.
+	 * sentence stands in for the refusal rather than a pre-flight read.
 	 */
-	const keyUnset = $derived(
-		latest?.current?.status === 'failed' &&
-			/GOOGLE_CALENDAR_API_KEY.*vault has no value/.test(latest.current.error ?? '')
-	);
-
-	const calendarsQuery = $derived(
-		client.db.jurisdiction_holiday_calendars.findMany({
-			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
-			orderBy: { year: 'desc', revision: 'desc' },
-			columns: {
-				id: true,
-				year: true,
-				revision: true,
-				published_at: true,
-				observations: true,
-				import_review: true
-			},
-			limit: 200
-		})
-	);
-	/** The year's newest revision, which is the one a person reads, reviews and publishes. */
-	const calendar = $derived(
-		(calendarsQuery.current ?? []).find((candidate) => candidate.year === year) ?? null
-	);
-	const rows = $derived.by(() => {
-		const parsed = Schema.decodeUnknownResult(Schema.Array(holidayObservationInputSchema))(
-			calendar?.observations ?? []
-		);
-		return (Result.isSuccess(parsed) ? parsed.success : []).toSorted((left, right) =>
-			left.date.localeCompare(right.date)
-		);
-	});
-	const reviewCount = $derived(
-		(calendar?.import_review?.events ?? []).filter((event) => event.review_required).length
-	);
-	let publishing = $state(false);
-	const openReview = () => {
-		if (calendar == null) return;
-		navigation?.open({
-			collectionName: 'jurisdiction_holiday_calendars',
-			recordId: calendar.id,
-			routeKey
-		});
-	};
+	const keyUnset = (message: string): string =>
+		/GOOGLE_CALENDAR_API_KEY.*vault has no value/.test(message)
+			? t('holiday_import.configure_key')
+			: message;
 </script>
 
-{#snippet controls()}
-	<Stack gap="sm">
-		<Cluster align="center" gap="sm">
-			<Button
-				variant="ghost"
-				size="sm"
-				aria-label={t('holiday_calendar.previous_year')}
-				onclick={() => {
-					year -= 1;
-				}}><Icon icon="lucide:chevron-left" class="size-4" /></Button
-			>
-			<span class="text-heading tabular-nums" data-holiday-year={year}>{year}</span>
-			<Button
-				variant="ghost"
-				size="sm"
-				aria-label={t('holiday_calendar.next_year')}
-				onclick={() => {
-					year += 1;
-				}}><Icon icon="lucide:chevron-right" class="size-4" /></Button
-			>
-			<Button
-				size="sm"
-				variant="outline"
-				disabled={client.automations.holiday_import.pending > 0}
-				onclick={async () => {
-					error = null;
-					try {
-						latest = await client.automations.holiday_import.run({
-							jurisdiction_code: jurisdictionCode,
-							year
-						});
-					} catch (cause) {
-						error = getErrorMessage(cause);
-					}
-				}}
-				>{client.automations.holiday_import.pending > 0
-					? t('holiday_import.running')
-					: t('holiday_import.run')}</Button
-			>
-			{#if calendar?.published_at != null}
-				<span class="text-sm text-muted-foreground"
-					>{t('holiday_calendar.published_on', { date: calendar.published_at.slice(0, 10) })}</span
-				>
-			{:else if calendar != null && reviewCount > 0}
-				<Button size="sm" onclick={openReview}
-					>{t('holiday_calendar.review_count', { count: reviewCount })}</Button
-				>
-			{:else if calendar != null}
-				<Button
-					size="sm"
-					disabled={publishing}
-					onclick={() => {
-						if (calendar == null) return;
-						error = null;
-						publishing = true;
-						Effect.runFork(
-							submitCollectionMutation(() =>
-								client.db.jurisdiction_holiday_calendars.mutate([
-									{ id: calendar.id, published_at: new Date().toISOString() }
-								])
-							).pipe(
-								Effect.catch((cause) =>
-									Effect.sync(() => {
-										error = getErrorMessage(cause);
-									})
-								),
-								Effect.ensuring(
-									Effect.sync(() => {
-										publishing = false;
-									})
-								)
-							)
-						);
-					}}>{t('holiday_calendar.publish', { year })}</Button
-				>
-			{/if}
-		</Cluster>
-		{#if keyUnset}
-			<p class="rounded-md border p-3 text-sm" role="status" data-holiday-import-key-unset>
-				{t('holiday_import.configure_key')}
-			</p>
-		{:else if error}
-			<p class="text-sm text-destructive" role="alert">{error}</p>
-		{:else if latest?.current?.status === 'failed'}
-			<p class="text-sm text-destructive" role="alert">{latest.current.error}</p>
-		{:else if latest != null}
-			<p class="text-sm text-muted-foreground" role="status">
-				{latest.current?.progress?.text ?? t('holiday_import.started')}
-			</p>
-		{:else if calendar != null && calendar.published_at == null}
-			<p class="text-sm text-muted-foreground">{t('holiday_calendar.draft_hint')}</p>
-		{/if}
-	</Stack>
+{#snippet publishAction({ row, hovered }: { row: Holiday; hovered: boolean })}
+	{#if row.consumed_at != null}
+		<span class="text-xs text-muted-foreground">{t('holiday_calendar.consumed')}</span>
+	{:else if hovered || row.published_at == null}
+		<Button
+			size="sm"
+			variant={row.published_at == null ? 'default' : 'ghost'}
+			onclick={(event) => {
+				event.stopPropagation();
+				const published = row.published_at == null;
+				Effect.runFork(
+					submitCollectionMutation(() =>
+						client.db.jurisdiction_holidays.mutate([
+							{ id: row.id, published_at: published ? new Date().toISOString() : null }
+						])
+					).pipe(Effect.catch((cause) => Effect.sync(() => toast.error(getErrorMessage(cause)))))
+				);
+			}}
+			>{row.published_at == null
+				? t('holiday_calendar.publish')
+				: t('holiday_calendar.unpublish')}</Button
+		>
+	{/if}
 {/snippet}
 
-<Cover top={controls} gap="md">
-	<Scroll name={t('app.settings.holidays')}>
-		{#if rows.length === 0}
-			<p class="text-sm text-muted-foreground">{t('holiday_calendar.empty', { year })}</p>
-		{:else}
-			<table class="w-full text-sm" data-holiday-rows>
-				<thead class="text-muted-foreground text-left text-xs">
-					<tr>
-						<th class="py-1 pr-3">{t('component.observed_on')}</th>
-						<th class="py-1 pr-3">{t('component.holiday')}</th>
-						<th class="py-1">{t('holiday_calendar.original_date')}</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each rows as row (row.date)}
-						<tr class="border-t">
-							<td class="py-1 pr-3 tabular-nums">{row.date}</td>
-							<td class="py-1 pr-3">{row.name}</td>
-							<td class="py-1 tabular-nums">{row.original_date ?? '—'}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+{#snippet googleImport()}
+	<Cluster align="center" gap="sm">
+		<Button
+			size="sm"
+			variant="outline"
+			disabled={importing}
+			title={t('holiday_import.google_description')}
+			onclick={async () => {
+				importing = true;
+				importNote = null;
+				latestRun = undefined;
+				try {
+					latestRun = await client.automations.holiday_import.run({
+						jurisdiction_code: jurisdictionCode,
+						year: new Date().getFullYear() + 1
+					});
+				} catch (cause) {
+					importNote = keyUnset(getErrorMessage(cause));
+				} finally {
+					importing = false;
+				}
+			}}>{importing ? t('holiday_import.running') : t('holiday_import.google')}</Button
+		>
+		{#if importNote}
+			<span class="text-sm text-destructive" role="alert">{importNote}</span>
+		{:else if latestRun?.current?.status === 'failed'}
+			<span class="text-sm text-destructive" role="alert"
+				>{keyUnset(latestRun.current.error ?? '')}</span
+			>
+		{:else if latestRun != null}
+			<span class="text-sm text-muted-foreground" role="status"
+				>{latestRun.current?.progress?.text ?? t('holiday_import.started')}</span
+			>
 		{/if}
-	</Scroll>
+	</Cluster>
+{/snippet}
+
+<Cover top={googleImport} gap="sm">
+	<CollectionTable
+		{client}
+		collection="jurisdiction_holidays"
+		view="hr_controller:settings:holidays"
+		title={t('app.settings.holidays')}
+		description={t('holiday_calendar.description')}
+		query={{
+			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
+			orderBy: { date: 'desc' }
+		}}
+		importPipelines={[
+			{
+				id: 'holidays-workbook',
+				label: t('holiday_import.spreadsheet'),
+				description: t('holiday_import.spreadsheet_description'),
+				icon: 'lucide:upload',
+				run: () =>
+					runWorkbookImport(
+						{
+							collectionName: 'jurisdiction_holidays',
+							recordLabel: t('app.settings.holidays').toLowerCase(),
+							buildPayload: holidayImportPayload
+						},
+						t
+					)
+			}
+		]}
+		rowActions={[publishAction]}
+	>
+		{#snippet columns({ Column })}
+			<Column name="date" label={t('component.observed_on')} card="title" />
+			<Column name="name" label={t('component.holiday')} card="subtitle" />
+			<Column name="original_date" label={t('holiday_calendar.original_date')} />
+			<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
+			<Column name="consumed_at" label={t('holiday_calendar.consumed_at')} />
+		{/snippet}
+	</CollectionTable>
 </Cover>

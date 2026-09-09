@@ -889,7 +889,7 @@ export default {
 				for (const coordinate of coordinates) {
 					const key = `${coordinate.employment_id}:${coordinate.work_date}`;
 					const choice = holidayByScope.get(`${scopeByDay.get(key)}:${coordinate.work_date}`);
-					if (!choice) refuse(`No published holiday input covers ${coordinate.work_date}.`);
+					if (!choice) refuse(`No holiday input was prepared for ${coordinate.work_date}.`);
 					holidayByDay.set(key, choice);
 				}
 				return {
@@ -989,15 +989,18 @@ export default {
 							}
 						]);
 						const holiday = prepared.holidayByDay.get(`${employmentId}:${dateKey(workDate)}`);
-						if (!holiday) refuse('The workday has no prepared jurisdiction calendar input.');
-						// The day pins the published revision it was first written against; a day that moves
-						// to another date is classified afresh.
+						if (!holiday) refuse('The workday has no prepared holiday input.');
+						// The day pins the holiday it was first classified as, or none; a day that moves to
+						// another date is classified afresh. A newly pinned holiday is consumed from here on.
 						const pinned =
-							existing?.holiday_calendar_id != null &&
-							dateKey(existing.work_date) === dateKey(workDate)
-								? existing.holiday_calendar_id
-								: holiday.calendar_id;
-						return { ...boundToContract(input, existing), holiday_calendar_id: pinned };
+							existing?.holiday_id != null && dateKey(existing.work_date) === dateKey(workDate)
+								? existing.holiday_id
+								: holiday.holiday_id;
+						if (pinned != null && pinned !== existing?.holiday_id)
+							yield* api.db.jurisdiction_holidays.mutate([
+								{ id: pinned, consumed_at: new Date().toISOString() }
+							]);
+						return { ...boundToContract(input, existing), holiday_id: pinned };
 					})
 			}
 		}

@@ -488,7 +488,7 @@ test(
 			const payslipId = crypto.randomUUID();
 			await session.query(
 				`insert into payroll_runs
-				(id, company_id, period, lifecycle, settings_id, configuration_hash, holiday_calendars, calculation_version, pay_date, attendance_from, attendance_to)
+				(id, company_id, period, lifecycle, settings_id, configuration_hash, holidays, calculation_version, pay_date, attendance_from, attendance_to)
 				values ($1, $2, '2026-04', 'DRAFT', $3, 'loan-capture-fixture', '[]'::jsonb, 'loan-capture-fixture', '2026-04-30', '2026-04-01', '2026-04-30')`,
 				[runId, COMPANY_ID, settings.settings_id]
 			);

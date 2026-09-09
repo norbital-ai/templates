@@ -6,21 +6,21 @@ import {
 } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
 import { calendarDateInTimeZone } from '../lib/iso-day.js';
-import {
-	holidaySources,
-	mergeHolidayImport,
-	readGoogleHolidayYear
-} from '../lib/holiday-import.js';
-import { stableJson } from '../lib/jurisdiction_settings.js';
+import { googleHolidayRows, holidaySources, readGoogleHolidayYear } from '../lib/holiday-import.js';
+import { dedupeHolidayRows } from '../lib/holiday-rows.js';
 
 const outcomeSchema = Schema.Struct({
 	jurisdiction_code: Schema.String,
 	year: Schema.Number,
-	calendar_id: Schema.String,
-	status: Schema.Literals(['draft_prepared', 'unchanged']),
-	review_required: Schema.Number
+	inserted: Schema.Number,
+	skipped: Schema.Number
 });
 
+/**
+ * Reads a jurisdiction's Google holiday calendar for one year and adds the days it does not have
+ * yet, unpublished. The same door a spreadsheet comes through: `dedupeHolidayRows` decides what
+ * is new, so neither import can duplicate or overwrite a holiday a person already has.
+ */
 export const runHolidayImport = (
 	api: AutomationApi,
 	options: { readonly jurisdiction_code?: string; readonly year?: number } = {}
@@ -46,7 +46,7 @@ export const runHolidayImport = (
 		const sources = holidaySources(versions, options.jurisdiction_code);
 		if (options.jurisdiction_code != null && sources.length === 0)
 			refuse(
-				`Configure a Google holiday source for ${options.jurisdiction_code} before importing.`
+				`Configure a Google holiday source for ${options.jurisdiction_code} under General before importing.`
 			);
 		const outcomes: Schema.Schema.Type<typeof outcomeSchema>[] = [];
 		for (const [index, source] of sources.entries()) {
@@ -66,81 +66,31 @@ export const runHolidayImport = (
 								? Effect.succeed(response.body)
 								: Effect.fail(
 										new Error(
-											`Google Calendar returned HTTP ${response.status} for ${source.jurisdiction_code}. No holiday draft was changed.`
+											`Google Calendar returned HTTP ${response.status} for ${source.jurisdiction_code}. No holiday was added.`
 										)
 									)
 						)
 					)
 			);
-			const calendars = yield* api.db.jurisdiction_holiday_calendars.findMany({
-				where: {
-					jurisdiction_code: { eq: source.jurisdiction_code },
-					year: { eq: year },
-					approval_id: { isNull: true }
-				},
-				orderBy: { revision: 'desc' },
-				limit: 1
-			});
-			const previous = calendars[0];
-			const review = mergeHolidayImport(
-				source,
-				new Date(yield* Clock.currentTimeMillis).toISOString(),
-				events,
-				previous?.import_review ?? null
+			const { inserts, skipped } = yield* dedupeHolidayRows(
+				api,
+				googleHolidayRows(source.jurisdiction_code, events)
 			);
-			if (
-				previous?.import_review != null &&
-				previous.import_review.calendar_id === review.calendar_id &&
-				previous.import_review.time_zone === review.time_zone &&
-				stableJson(previous.import_review.events) === stableJson(review.events)
-			) {
-				outcomes.push({
-					jurisdiction_code: source.jurisdiction_code,
-					year,
-					calendar_id: previous.id,
-					status: 'unchanged',
-					review_required: review.events.filter((event) => event.review_required).length
-				});
-				continue;
-			}
-			const refreshing = previous != null && previous.published_at == null;
-			if (refreshing) {
-				yield* api.db.jurisdiction_holiday_calendars.mutate([
-					{ id: previous.id, import_review: review }
-				]);
-			} else {
-				yield* api.db.jurisdiction_holiday_calendars.mutate([
-					{
-						jurisdiction_code: source.jurisdiction_code,
-						year,
-						revision: (previous?.revision ?? 0) + 1,
-						observations: [],
-						import_review: review
-					}
-				]);
-			}
-			const draftId = refreshing
-				? previous.id
-				: (yield* api.db.jurisdiction_holiday_calendars.findMany({
-						where: {
-							jurisdiction_code: { eq: source.jurisdiction_code },
-							year: { eq: year },
-							approval_id: { isNull: true }
-						},
-						orderBy: { revision: 'desc' },
-						limit: 1
-					}))[0]?.id;
-			if (draftId == null) refuse('The prepared holiday draft could not be read back.');
+			if (inserts.length > 0) yield* api.db.jurisdiction_holidays.mutate([...inserts]);
 			outcomes.push({
 				jurisdiction_code: source.jurisdiction_code,
 				year,
-				calendar_id: draftId,
-				status: 'draft_prepared',
-				review_required: review.events.filter((event) => event.review_required).length
+				inserted: inserts.length,
+				skipped
 			});
 		}
-		yield* api.progress({ progress: 1, text: 'Holiday drafts are ready for review' });
-		return { calendars: outcomes };
+		const inserted = outcomes.reduce((sum, outcome) => sum + outcome.inserted, 0);
+		const skipped = outcomes.reduce((sum, outcome) => sum + outcome.skipped, 0);
+		yield* api.progress({
+			progress: 1,
+			text: `Imported ${inserted} holidays; ${skipped} already present. Publish the ones to observe.`
+		});
+		return { imports: outcomes };
 	});
 
 export default defineAutomation(
@@ -152,7 +102,7 @@ export default defineAutomation(
 				Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 9998 }))
 			)
 		}),
-		output: Schema.Struct({ calendars: Schema.Array(outcomeSchema) }),
+		output: Schema.Struct({ imports: Schema.Array(outcomeSchema) }),
 		policies: ['holiday_import_automation'],
 		connection: defineConnection({
 			baseUrl: 'https://www.googleapis.com/calendar/v3/',
@@ -163,7 +113,7 @@ export default defineAutomation(
 			}
 		}),
 		description:
-			'Every 1 October, reads complete Google holiday calendars for next year and prepares jurisdiction drafts for review. Manual runs choose a jurisdiction and year. Source refreshes preserve existing observations and never publish a calendar.',
+			'Every 1 October, reads each enabled Google holiday calendar for next year and adds the days the jurisdiction does not have yet, unpublished. Manual runs choose a jurisdiction and year. It never publishes, changes or deletes a holiday.',
 		handler: (api, { args }) => runHolidayImport(api, args)
 	}
 );

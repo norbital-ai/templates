@@ -73,14 +73,7 @@ function facts(): LeaveContext {
 				requires_certificate_after_days: null
 			}
 		],
-		calendars: [2026, 2027].map((year) => ({
-			id: id(year),
-			jurisdiction_code: 'TEST-JUR',
-			year,
-			revision: 1,
-			observations: [],
-			published_at: '2025-01-01'
-		})),
+		holidays: [],
 		workDays: [],
 		runs: [],
 		captures: [],
@@ -161,9 +154,14 @@ const reversal = (original: LeaveActivity): LeaveSubmission['event'] => ({
 
 test('a collapsed cross-month range retains half-day charges, holiday evidence and per-period consumption', () => {
 	const context = facts();
-	context.calendars[0]!.observations = [
-		{ date: '2026-01-31', name: 'Test holiday', original_date: null, source: null }
-	];
+	context.holidays.push({
+		id: id(2026),
+		jurisdiction_code: 'TEST-JUR',
+		date: '2026-01-31',
+		name: 'Test holiday',
+		original_date: null,
+		published_at: '2025-01-01T00:00:00.000Z'
+	});
 	const row = approve(context, {
 		kind: 'TIME_OFF',
 		range: {
@@ -370,11 +368,8 @@ test('a paid reversal uses captured money exactly; a draft holding the source mu
 	assert.equal(due.monetary[0]!.entry.id, correction.id);
 });
 
-test('approval refuses missing holiday coverage and paid date insertion', () => {
+test('approval refuses paid date insertion', () => {
 	const context = facts();
-	context.calendars = [];
-	assert.throws(() => approve(context, timeOff('2026-01-01')), /Publish.*holiday calendar/);
-	context.calendars = facts().calendars;
 	context.runs.push({
 		id: id(20),
 		company_id: id(3),
@@ -440,9 +435,14 @@ test('computed balance view uses fiscal years and refuses inaccessible employmen
 
 test('leave preview is JSON-safe and keeps the unused half available beside a holiday', () => {
 	const context = facts();
-	context.calendars[0]!.observations = [
-		{ date: '2026-01-27', name: 'Fixture holiday', original_date: null, source: null }
-	];
+	context.holidays.push({
+		id: id(2027),
+		jurisdiction_code: 'TEST-JUR',
+		date: '2026-01-27',
+		name: 'Fixture holiday',
+		original_date: null,
+		published_at: '2025-01-01T00:00:00.000Z'
+	});
 	approve(context, {
 		kind: 'TIME_OFF',
 		range: {

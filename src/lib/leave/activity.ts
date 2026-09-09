@@ -11,7 +11,7 @@ import { daysBetween } from '../../collections/payroll_runs/lib/dates.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../iso-day.js';
 import { pointNumber } from '../half-day.js';
-import { resolveHolidayCalendars } from '../holiday-calendar.js';
+import { resolveHolidays } from '../holiday-calendar.js';
 import { patternRosterCodeId, termPattern } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
 import { payrollWindows, lockStateForDate } from '../scheduling/lock.js';
@@ -52,17 +52,11 @@ export function measureLeaveDay(
 	entries: readonly LeaveActivity[]
 ) {
 	const settings = rules.settingsOn(date);
-	const resolved = resolveHolidayCalendars(
-		context.calendars,
-		settings.jurisdiction_code,
-		date,
-		date
-	);
-	const calendar = resolved.calendars[0]!;
+	const resolved = resolveHolidays(context.holidays, settings.jurisdiction_code, date, date);
 	const evidence = {
 		jurisdiction_code: settings.jurisdiction_code,
 		date,
-		calendar_id: calendar.id
+		holiday_id: resolved.get(date)?.id ?? null
 	};
 	if (date < rules.hire)
 		return { eligible: false as const, reason: 'BEFORE_HIRE' as const, evidence };
@@ -81,8 +75,7 @@ export function measureLeaveDay(
 			period: paid.period,
 			evidence
 		};
-	if (resolved.holidays.has(date))
-		return { eligible: false as const, reason: 'HOLIDAY' as const, evidence };
+	if (resolved.has(date)) return { eligible: false as const, reason: 'HOLIDAY' as const, evidence };
 	const term = rules.terms.find((row) => coversDate(row.effective_range, date));
 	if (!term) return { eligible: false as const, reason: 'NO_SCHEDULE' as const, evidence };
 	const override = context.workDays.find(
@@ -195,7 +188,7 @@ export function planLeaveActivity(
 					days,
 					leave_catalogue_id: day.catalogue.id,
 					employment_term_id: day.term.id,
-					calendar_id: day.evidence.calendar_id,
+					holiday_id: day.evidence.holiday_id,
 					shift_definition_id: day.shift.id,
 					work_day_id: day.workDay?.id ?? null
 				});

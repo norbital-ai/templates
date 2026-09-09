@@ -19,14 +19,14 @@ import workDayHooks from '../src/collections/work_days/+hooks.ts';
 const WORK = 'shift-work';
 const REST = 'shift-rest';
 const holidayInput = {
-	id: 'holiday-input-1',
 	jurisdiction_code: 'TEST-JUR',
 	date: '2026-03-10',
-	calendar_id: 'calendar-2026'
+	holiday_id: 'holiday-2026-03-10'
 };
 
 const api = {
 	db: {
+		jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 		leave_entries: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) }
 	}
@@ -139,9 +139,9 @@ test('recording attendance is never a plan change, and correcting it stays possi
 		assert.deepEqual(result.worked_intervals, PUNCHED);
 		assert.equal(result.break_minutes, break_minutes);
 		assert.equal(
-			result.holiday_calendar_id,
-			holidayInput.calendar_id,
-			'attendance corrections retain the pinned calendar'
+			result.holiday_id,
+			holidayInput.holiday_id,
+			'attendance corrections retain the pinned holiday'
 		);
 	}
 });

@@ -62,7 +62,7 @@ test('the roster draws dated leave charges, combining separate halves without fi
 			days,
 			leave_catalogue_id: catalogue,
 			employment_term_id: 'term',
-			calendar_id: 'calendar',
+			holiday_id: null,
 			shift_definition_id: 'shift',
 			work_day_id: null
 		}))

@@ -3,9 +3,8 @@ import test from 'node:test';
 import { Effect } from 'effect';
 import {
 	googleHolidayRequest,
-	mergeHolidayImport,
+	googleHolidayRows,
 	readGoogleHolidayYear,
-	reviewHolidayEvent,
 	validateHolidaySource
 } from '../src/lib/holiday-import.ts';
 
@@ -63,7 +62,7 @@ test('complete paging preserves all-day dates, empty intermediate pages and excl
 	assert.equal(calls.length, 2);
 	assert.equal(calls[1]!.query.pageToken, 'second');
 	assert.deepEqual(result[0]!.dates, ['2027-01-01', '2027-01-02']);
-	assert.equal(result[0]!.revision, 'one');
+	assert.equal(result[0]!.event_id, 'festival');
 	assert.match(result[0]!.source, /\/events\/festival$/);
 });
 
@@ -118,97 +117,29 @@ test('failed, repeating, changing and invalid feeds return no completed import',
 	}
 });
 
-test('imports begin unselected; repeat imports retain reviewed decisions and identities', async () => {
-	const incoming = await imported();
-	const first = mergeHolidayImport(source, retrievedAt, incoming, null);
-	assert.equal(first.events[0]!.review_required, true);
-	const reviewed = {
-		...first,
-		events: first.events.map((row) => ({ ...row, review_required: false }))
-	};
-	const repeated = mergeHolidayImport(source, '2026-10-02T00:00:00.000Z', incoming, reviewed);
-	assert.equal(repeated.events.length, 1);
-	assert.equal(repeated.events[0]!.review_required, false);
-	assert.equal(repeated.events[0]!.source, first.events[0]!.source);
-	const revised = mergeHolidayImport(
-		source,
-		retrievedAt,
-		incoming.map((row) => ({ ...row, revision: 'two' })),
-		reviewed
+test('a Google year proposes one row per live day, and a cancelled event proposes nothing', async () => {
+	const events = await Effect.runPromise(
+		readGoogleHolidayYear(source, 2027, () =>
+			Effect.succeed({
+				kind: 'calendar#events',
+				items: [
+					{ ...event, id: 'two-days', summary: 'Two days', end: { date: '2027-01-03' } },
+					{ ...event, id: 'gone', status: 'cancelled' },
+					event
+				]
+			})
+		)
 	);
-	assert.equal(
-		revised.events[0]!.review_required,
-		false,
-		'upstream metadata alone does not change holiday treatment'
-	);
-	assert.equal(revised.events[0]!.revision, 'two');
-});
-
-test('moved and removed events require review while retaining the previous selection', async () => {
-	const incoming = await imported();
-	const reviewed = mergeHolidayImport(source, retrievedAt, incoming, null);
-	const observation = reviewHolidayEvent([], reviewed.events[0]!, 'OBSERVE', new Set());
-	const moved = mergeHolidayImport(
-		source,
-		retrievedAt,
-		incoming.map((row) => ({ ...row, dates: ['2027-01-02'] })),
-		{ ...reviewed, events: reviewed.events.map((row) => ({ ...row, review_required: false })) }
-	);
-	assert.equal(moved.events[0]!.review_required, true);
-	assert.equal(observation[0]!.date, '2027-01-01');
+	const rows = googleHolidayRows('TEST', events);
 	assert.deepEqual(
-		reviewHolidayEvent(observation, moved.events[0]!, 'KEEP', new Set()),
-		observation
+		rows.map((row) => [row.date, row.name, row.original_date]),
+		[
+			['2027-01-01', 'Festival', null],
+			['2027-01-01', 'Two days', null],
+			['2027-01-02', 'Two days', null]
+		]
 	);
-	const removed = mergeHolidayImport(source, retrievedAt, [], reviewed);
-	assert.equal(removed.events[0]!.cancelled, true);
-	assert.equal(removed.events[0]!.review_required, true);
-	assert.deepEqual(removed.events[0]!.dates, ['2027-01-01']);
-	assert.throws(
-		() => reviewHolidayEvent(observation, removed.events[0]!, 'OBSERVE', new Set()),
-		/cancelled/
-	);
-});
-
-test('sealed holiday and non-holiday dates cannot be renamed, moved, removed or newly observed', async () => {
-	const incoming = await imported();
-	const reviewed = mergeHolidayImport(source, retrievedAt, incoming, null).events[0]!;
-	const observation = reviewHolidayEvent([], reviewed, 'OBSERVE', new Set());
-	for (const update of [
-		{ ...reviewed, dates: ['2027-01-02'] },
-		{ ...reviewed, name: 'Renamed' }
-	])
-		assert.throws(
-			() => reviewHolidayEvent(observation, update, 'OBSERVE', new Set(['2027-01-01'])),
-			/sealed/
-		);
-	assert.throws(
-		() => reviewHolidayEvent(observation, reviewed, 'IGNORE', new Set(['2027-01-01'])),
-		/sealed/
-	);
-	assert.throws(
-		() => reviewHolidayEvent([], reviewed, 'OBSERVE', new Set(['2027-01-01'])),
-		/sealed/
-	);
-	assert.deepEqual(
-		reviewHolidayEvent(observation, reviewed, 'KEEP', new Set(['2027-01-01'])),
-		observation
-	);
-});
-
-test('source review preserves manual holidays and prevents two holidays on the same date', async () => {
-	const incoming = await imported();
-	const reviewed = mergeHolidayImport(source, retrievedAt, incoming, null).events[0]!;
-	const manual = {
-		date: '2027-02-01',
-		name: 'Announced holiday',
-		original_date: null,
-		source: 'Official notice'
-	};
-	const selected = reviewHolidayEvent([manual], reviewed, 'OBSERVE', new Set());
-	assert.deepEqual(reviewHolidayEvent(selected, reviewed, 'IGNORE', new Set()), [manual]);
-	assert.throws(
-		() => reviewHolidayEvent([{ ...manual, date: '2027-01-01' }], reviewed, 'OBSERVE', new Set()),
-		/already has/
+	assert.ok(
+		rows.every((row) => row.jurisdiction_code === 'TEST' && row.source?.includes('/events/'))
 	);
 });

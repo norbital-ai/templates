@@ -61,7 +61,7 @@ import {
 	type EmploymentSettlement
 } from './settlement.js';
 import { decodeNumber } from '@norbital-ai/std/json';
-import type { HolidayCalendar } from '../../../lib/holiday-calendar.js';
+import type { HolidayRow } from '../../../lib/holiday-calendar.js';
 import type { PreparedHolidayInput } from '../../../lib/holiday-inputs.js';
 
 type Employment = ResolvedEmployment;
@@ -138,7 +138,7 @@ export type GatheredRun = {
 	readonly headcount: number;
 	readonly workHolidayEvidence: {
 		readonly inputs: readonly PreparedHolidayInput[];
-		readonly calendars: readonly HolidayCalendar[];
+		readonly holidays: readonly HolidayRow[];
 	};
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
@@ -291,7 +291,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			return {
 				bundles: [],
 				headcount,
-				workHolidayEvidence: { inputs: [], calendars: [] },
+				workHolidayEvidence: { inputs: [], holidays: [] },
 				yearToDate: new Map(),
 				consumedEntries: new Map(),
 				consumedRepayments: new Map()

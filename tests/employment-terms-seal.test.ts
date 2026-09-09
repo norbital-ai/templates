@@ -267,11 +267,8 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 	const date = '2026-02-05';
 	const prepared = {
 		holidayByDay: new Map([
-			[`${id(1)}:${date}`, { jurisdiction_code: 'TEST', date, calendar_id: id(20) }],
-			[
-				`${id(1)}:2026-01-05`,
-				{ jurisdiction_code: 'TEST', date: '2026-01-05', calendar_id: id(21) }
-			]
+			[`${id(1)}:${date}`, { jurisdiction_code: 'TEST', date, holiday_id: id(20) }],
+			[`${id(1)}:2026-01-05`, { jurisdiction_code: 'TEST', date: '2026-01-05', holiday_id: id(21) }]
 		]),
 		companyByEmployment: new Map(),
 		windowsByCompany: new Map(),
@@ -286,6 +283,7 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 	const workApi = {
 		db: {
 			employments: { findFirst: () => Effect.succeed({ company_id: id(3) }) },
+			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 			payroll_runs: { findMany: () => Effect.succeed([]) },
 			leave_entries: { findMany: () => Effect.succeed([]) }
 		}
@@ -297,7 +295,7 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 		shift_definition_id: null,
 		worked_intervals: null,
 		break_minutes: 0,
-		holiday_calendar_id: id(19),
+		holiday_id: id(19),
 		approval_id: null
 	};
 	const write = (input: Record<string, unknown>) =>
@@ -309,8 +307,8 @@ test('a moved Work day is classified afresh; a Work day that stands keeps its pi
 				api: workApi
 			} as never)
 		);
-	assert.equal(write({ work_date: date }).holiday_calendar_id, id(20));
-	assert.equal(write({ break_minutes: 15 }).holiday_calendar_id, id(19));
+	assert.equal(write({ work_date: date }).holiday_id, id(20));
+	assert.equal(write({ break_minutes: 15 }).holiday_id, id(19));
 	assert.doesNotThrow(() =>
 		Effect.runSync(workHooks.delete.perRecord.before.handler({ existing, api: workApi } as never))
 	);
