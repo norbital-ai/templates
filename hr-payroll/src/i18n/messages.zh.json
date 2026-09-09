@@ -655,7 +655,6 @@
 	"family.payment": "临时款项",
 	"family.work": "工作",
 	"holiday_calendar.add": "新增假期",
-	"holiday_calendar.consumed_at": "开始使用于",
 	"holiday_calendar.consumed_hint": "某个工作日或薪资运行已读取此假期。其日期、名称和发布状态已冻结；如需变更，请新增假期。",
 	"holiday_calendar.consumed_selected": "所选假期中有已被工作日或薪资运行读取的，不能变更。",
 	"holiday_calendar.description": "每个观察日一行。已发布的假期自此用于排班、休假和薪资；未发布的视为不存在。可从电子表格模板或“常规”下设置的 Google 日历导入，或手动新增。",

@@ -77,7 +77,6 @@ const sourceHoliday = (date: string, name: string) => ({
 	original_date: null,
 	source: null,
 	published_at: '2025-12-01T00:00:00.000Z',
-	consumed_at: null,
 	approval_id: null
 });
 
