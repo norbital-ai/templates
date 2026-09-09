@@ -182,8 +182,9 @@ test(
 			])) as ReadonlyArray<{ readonly id: string }>;
 			assert.ok(payslips.length > 0, 'the February run built payslips');
 
-			// Frozen: neither the name, the day, the publication nor the row itself may move now.
-			for (const change of [{ name: 'Renamed' }, { date: '2026-02-05' }, { published_at: null }]) {
+			// Frozen: the day, the jurisdiction and the publication cannot move now — but a
+			// note is not a retraction, so renaming still writes.
+			for (const change of [{ date: '2026-02-05' }, { published_at: null }]) {
 				const refused = asRecord(
 					(await write('jurisdiction_holidays', { id: publishedId, ...change }, true)).value,
 					'edit a captured holiday'

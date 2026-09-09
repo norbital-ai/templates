@@ -170,7 +170,11 @@ const engine = createReckonEngine().registerFunction(
 	(children, age) => {
 		const ages = (children as { ages?: unknown }).ages;
 		const limit = Number(age);
-		return Array.isArray(ages) ? ages.filter((value) => Number(value) < limit).length : 0;
+		// BigInt, not number: cel-js wraps a custom function's numeric return as a double, and
+		// a double never `==` an integer literal — so `children.under(7) == 0` was false even for
+		// a childless person while `< 1` held. A bigint return evaluates as an integer.
+		if (!Array.isArray(ages)) return 0n;
+		return BigInt(ages.filter((value) => Number(value) < limit).length);
 	}
 );
 
