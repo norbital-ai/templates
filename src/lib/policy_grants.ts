@@ -376,7 +376,9 @@ const WORK_DAY_IDENTITY_FIELDS = ['employment_id', 'work_date'] as const;
 export const WORK_DAY_PLANNED_FIELDS = [
 	'shift_definition_id',
 	'assignment_code',
-	'planned_origin'
+	'planned_origin',
+	/** The holiday-work choice: pay the premium, or a day in lieu. Roster-owned like the plan. */
+	'compensation'
 ] as const;
 
 /** The clock. Writing any of these is what review exists for. */

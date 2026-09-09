@@ -117,7 +117,9 @@ export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 	assignment_code: true,
 	planned_origin: true,
 	worked_intervals: true,
-	break_minutes: true
+	break_minutes: true,
+	/** The pay-or-lieu choice the day sheet seeds its radio from. */
+	compensation: true
 });
 
 /**

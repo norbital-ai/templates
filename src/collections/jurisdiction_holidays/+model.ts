@@ -19,17 +19,17 @@ export default defineModel(
 		/**
 		 * Publication is per holiday. Payroll, leave and rosters read published rows only; an
 		 * unpublished row is a proposal that costs nobody a day.
+		 *
+		 * There is no consumed stamp: a holiday is frozen while a payroll run captured it
+		 * (`payroll_runs.holidays`) or while any work day still pins it (`work_days.holiday_id`),
+		 * and free again once nothing does. Retraction while captured is refused; otherwise the
+		 * pinning days are re-saved and re-classified.
 		 */
-		published_at: instant(),
-		/**
-		 * Set the first time a work day or a payroll run reads this holiday. A consumed holiday is
-		 * history: its date, name and publication cannot change and it cannot be deleted.
-		 */
-		consumed_at: instant()
+		published_at: instant()
 	},
 	{
 		description:
-			'One observed public holiday of one jurisdiction on one day. Published individually; a row a work day or payroll run has consumed is frozen. Imported from a spreadsheet or a Google holiday calendar, or entered by hand.',
+			'One observed public holiday of one jurisdiction on one day. Published individually; a row a payroll run captured or a work day pins is frozen. Imported from a spreadsheet or a Google holiday calendar, or entered by hand.',
 		recordLabel: ['date', 'name'],
 		icon: 'lucide:calendar-x',
 		indexes: [

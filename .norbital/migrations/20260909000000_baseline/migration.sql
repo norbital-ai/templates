@@ -212,8 +212,7 @@ CREATE TABLE "jurisdiction_holidays" (
 	"kind" text DEFAULT 'PUBLIC' NOT NULL,
 	"original_date" timestamp with time zone,
 	"source" text,
-	"published_at" timestamp with time zone,
-	"consumed_at" timestamp with time zone
+	"published_at" timestamp with time zone
 );
 
 --> statement-breakpoint
@@ -552,6 +551,7 @@ CREATE TABLE "work_days" (
 	"worked_intervals" jsonb,
 	"break_minutes" integer DEFAULT 0 NOT NULL,
 	"holiday_id" uuid,
+	"compensation" text DEFAULT 'PAY' NOT NULL,
 	"settled_payslip_id" uuid,
 	"settled_period" text
 );

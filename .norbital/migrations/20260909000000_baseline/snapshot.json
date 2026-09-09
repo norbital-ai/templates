@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "af5523db-aaf3-4dc0-bb2b-88c16e5edd14",
+  "id": "18e52824-c641-4233-8872-7e6bfc557ec8",
   "prevIds": [
-    "ca58d9ae-25bd-4286-b164-31a8cc03be2e"
+    "af5523db-aaf3-4dc0-bb2b-88c16e5edd14"
   ],
   "version": "8",
   "ddl": [
@@ -2410,19 +2410,6 @@
       "generated": null,
       "identity": null,
       "name": "published_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "jurisdiction_holidays"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "consumed_at",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_holidays"
@@ -5950,6 +5937,19 @@
       "generated": null,
       "identity": null,
       "name": "holiday_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "work_days"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PAY'",
+      "generated": null,
+      "identity": null,
+      "name": "compensation",
       "entityType": "columns",
       "schema": "public",
       "table": "work_days"
