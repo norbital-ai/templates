@@ -22,6 +22,7 @@ import { normalDailyHours } from '../../collections/payroll_runs/lib/schedule.js
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
+import { treatmentsInForce } from '../jurisdiction_settings.js';
 import type {
 	MeasuredEmployment,
 	MeasureEmploymentOptions,
@@ -43,8 +44,24 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	const sourceComponents = new Map(
 		options.configuration.catalogueComponents.map((component) => [component.id, component])
 	);
-	for (const request of bundle.payRequests)
-		sourceComponents.set(request.catalogueComponent.id, request.catalogueComponent);
+	// A request keeps the catalogue row it was raised against; a scheme sealed after that revision
+	// has no cell there and is decided by the run's row of the same code. See `treatmentsInForce`.
+	const currentByCode = new Map(
+		options.configuration.catalogueComponents.map((component) => [
+			`${component.family}:${component.code}`,
+			component
+		])
+	);
+	for (const request of bundle.payRequests) {
+		const source = request.catalogueComponent;
+		sourceComponents.set(source.id, {
+			...source,
+			contribution_treatments: treatmentsInForce(
+				source.contribution_treatments,
+				currentByCode.get(`${source.family}:${source.code}`)?.contribution_treatments
+			)
+		});
+	}
 	const configuration = {
 		...options.configuration,
 		catalogueComponents: [...sourceComponents.values()].toSorted(

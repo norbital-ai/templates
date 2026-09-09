@@ -12,7 +12,7 @@ import { activeTimeOff } from './activity.js';
 import { readLeaveContext, leaveRules, type LeaveReadApi, type LeaveContext } from './context.js';
 import { leaveBalanceAt } from './balance.js';
 import { leaveWindowOf } from './entitlement.js';
-import { settingsInForce } from '../jurisdiction_settings.js';
+import { settingsInForce, treatmentsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import {
@@ -63,13 +63,26 @@ export function prepareLeavePayroll(options: {
 			const versionIds = new Set(
 				context.versions.filter((row) => row.code === company.settings_code).map((row) => row.id)
 			);
-			const catalogues = context.catalogues.filter((row) => versionIds.has(row.settings_id));
 			const entries = context.entries.filter(
 				(row) => row.employment_id === employment.id && row.approval_id == null
 			);
 			const entryIds = new Set(entries.map((row) => row.id));
 			const current = settingsInForce(context.versions, company.settings_code, options.asOf);
 			if (!current) refuse(`No sealed leave catalogue covers ${options.asOf}.`);
+			// Approved leave keeps the catalogue revision it was taken under; a scheme sealed after
+			// that revision has no cell there and is decided by the row of the same code in the
+			// version in force. See `treatmentsInForce`.
+			const currentByCode = new Map(
+				context.catalogues
+					.filter((row) => row.settings_id === current.id)
+					.map((row) => [row.code, row])
+			);
+			const catalogues = context.catalogues
+				.filter((row) => versionIds.has(row.settings_id))
+				.map((row) => ({
+					...row,
+					treatments: treatmentsInForce(row.treatments, currentByCode.get(row.code)?.treatments)
+				}));
 			const balances: Record<string, number> = {};
 			for (const catalogue of catalogues.filter((row) => row.settings_id === current.id)) {
 				const rules = leaveRules(context, employment.id, catalogue.id);
