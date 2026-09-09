@@ -339,22 +339,54 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 
 		// Publish the festival from its row; the observance stays a draft.
 		const festival = asRecord(imported[0], 'festival');
+		// Publishing is a bulk operation: select the festival's row, then run Publish selected.
 		await perform(
 			page,
 			`(() => {
 				${ACTIVATE}
-				const button = [...document.querySelectorAll('button')]
-					.filter((node) => node.textContent?.trim() === 'Publish')
-					.find((node) => {
-						let scope = node.parentElement;
-						while (scope != null && !scope.textContent?.includes('Fixture festival')) scope = scope.parentElement;
-						return scope != null && !scope.textContent?.includes('Fixture observance');
-					});
-				if (!(button instanceof HTMLElement)) return false;
-				activate(button);
+				const box = [...document.querySelectorAll('[aria-label="Select row"]')].find((node) => {
+					let scope = node.parentElement;
+					while (scope != null && !scope.textContent?.includes('Fixture festival')) scope = scope.parentElement;
+					return scope != null && !scope.textContent?.includes('Fixture observance');
+				});
+				if (!(box instanceof HTMLElement)) return false;
+				activate(box);
 				return true;
 			})()`,
-			'publish from the row'
+			'select the festival row'
+		);
+		await perform(
+			page,
+			`(() => {
+				${ACTIVATE}
+				const node = document.querySelector('[title="Collection actions"]');
+				if (!(node instanceof HTMLElement)) return false;
+				activate(node);
+				return true;
+			})()`,
+			'open the collection actions'
+		);
+		await perform(
+			page,
+			`(() => {
+				${ACTIVATE}
+				const node = [...document.querySelectorAll('button')].find((candidate) => candidate.textContent?.trim().startsWith('Export'));
+				if (!(node instanceof HTMLElement)) return false;
+				if (node.getAttribute('aria-expanded') !== 'true') activate(node);
+				return document.querySelector('[aria-label="Run Publish selected"]') != null;
+			})()`,
+			'open the operations'
+		);
+		await perform(
+			page,
+			`(() => {
+				${ACTIVATE}
+				const node = document.querySelector('[aria-label="Run Publish selected"]');
+				if (!(node instanceof HTMLElement) || node.matches(':disabled')) return false;
+				activate(node);
+				return true;
+			})()`,
+			'publish selected'
 		);
 		await until(
 			() =>
