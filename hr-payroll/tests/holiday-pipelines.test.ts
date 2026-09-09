@@ -85,11 +85,11 @@ test('a document that is neither a spreadsheet nor a publication is refused', as
 /**
  * A holiday payroll has taken is frozen where it is read, not where it is stored.
  *
- * "Taken" is a live reference, not a stamp: a run whose frozen `holidays` snapshot still
- * captures the day, or a work day pinning it. The hook refuses the retraction while a run
- * captures it; a pin alone releases through re-saving the pinning days.
+ * The row carries no stamp: "payroll has taken this holiday" is a live reference — a run whose
+ * frozen `holidays` snapshot names it. So the fixture is the api the hook reads, not a column on
+ * the row, and the expectation is the one this test has always made.
  */
-const takenByPayroll = {
+const holiday = {
 	id: 'festival',
 	jurisdiction_code: 'TEST',
 	date: '2027-01-01',
@@ -99,49 +99,33 @@ const takenByPayroll = {
 	published_at: '2026-12-01T00:00:00.000Z'
 };
 
-const capturingApi = () =>
+/** Runs of the workspace, and the work days pinning the holiday: what the freeze is derived from. */
+const references = (runs = [], pins = []) =>
 	({
 		db: {
-			payroll_runs: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							id: 'run-1',
-							period: '2027-01',
-							lifecycle: 'DRAFT',
-							holidays: [{ id: 'festival' }]
-						}
-					])
-			},
+			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			work_days: {
-				findMany: () => Effect.succeed([]),
-				mutate: () => Effect.succeed(undefined)
+				findMany: () => Effect.succeed(pins),
+				mutate: () => Effect.void
 			}
 		}
 	}) as never;
 
-const freeApi = () =>
-	({
-		db: {
-			payroll_runs: { findMany: () => Effect.succeed([]) },
-			work_days: {
-				findMany: () => Effect.succeed([]),
-				mutate: () => Effect.succeed(undefined)
-			}
-		}
-	}) as never;
+const takenByPayroll = references([
+	{ id: 'run-1', period: '2027-01', lifecycle: 'PAID', holidays: [{ id: 'festival' }] }
+]);
 
 test('a holiday payroll has taken refuses being unpublished', async () => {
-	const unpublish = (existing: unknown, api: never) =>
+	const unpublish = (api: unknown) =>
 		Effect.runPromise(
 			holidayHooks.mutate.perRecord.before.handler({
 				input: { published_at: null },
-				existing,
+				existing: holiday,
 				api
 			} as never)
 		);
 
-	await assert.rejects(() => unpublish(takenByPayroll, capturingApi()), /cannot be unpublished/);
-	// The same write on a holiday nothing references is allowed: the refusal is about capture.
-	await unpublish(takenByPayroll, freeApi());
+	await assert.rejects(() => unpublish(takenByPayroll), /cannot be unpublished/);
+	// The same write on a holiday nothing has read is allowed: the refusal is about consumption.
+	await assert.doesNotReject(() => unpublish(references()));
 });

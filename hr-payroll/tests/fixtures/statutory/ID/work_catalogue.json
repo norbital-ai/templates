@@ -148,7 +148,9 @@
 				"discharged_by": "REST_OR_OFF",
 				"on_exceed": "WARN"
 			},
-			"night_premium": null
+			"night_premium": null,
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"JHT": {
@@ -401,7 +403,9 @@
 				"discharged_by": "REST_OR_OFF",
 				"on_exceed": "WARN"
 			},
-			"night_premium": null
+			"night_premium": null,
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"JHT": {
@@ -654,7 +658,9 @@
 				"discharged_by": "REST_OR_OFF",
 				"on_exceed": "WARN"
 			},
-			"night_premium": null
+			"night_premium": null,
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"JHT": {

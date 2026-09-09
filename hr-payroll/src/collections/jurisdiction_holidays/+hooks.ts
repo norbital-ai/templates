@@ -79,10 +79,13 @@ export default {
 								`Holiday ${date} is pinned by ${pins.length} work day(s): its day and ` +
 									`jurisdiction are what those pins point at. Add a new holiday instead.`
 							);
-						// The re-save re-classifies each pinning day — reversing any lieu credit it
-						// minted — and is refused only for a credit already taken.
+						// The release is explicit, not re-derived: this retraction is not yet written, so
+						// a day re-reading the calendar would still find the holiday published and keep
+						// its pin. `holiday_id` is in no grant mask, so only a hook can say this. The
+						// re-save reverses any lieu credit the day minted, and is refused only for a
+						// credit already taken.
 						if (pins.length > 0)
-							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id })));
+							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id, holiday_id: null })));
 						return input;
 					})
 			}
@@ -110,8 +113,9 @@ export default {
 						});
 						if (pins.length >= QUERY_LIMIT)
 							refuse('Too many work days pin this holiday to release it safely.');
+						// Released before the row goes, or the delete meets the pins' foreign key.
 						if (pins.length > 0)
-							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id })));
+							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id, holiday_id: null })));
 					})
 			}
 		}

@@ -2038,5 +2038,182 @@
 				}
 			]
 		}
+	},
+	{
+		"id": "a5a3d0ba-38dc-4032-8791-bc7fb90a27a4",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "1b957931-d254-4ab1-8e22-69ae865d1da4",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "822925d9-67a3-4198-ae6a-2e3b1c909dda",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
 	}
 ]

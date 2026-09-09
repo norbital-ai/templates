@@ -3553,5 +3553,230 @@
 				}
 			]
 		}
+	},
+	{
+		"id": "a1e7977d-d986-4692-8791-0e6b38919bcf",
+		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "ba58cac0-a35f-41b6-a8c0-036b46feb9d5",
+		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "c03247f9-b2a2-49fa-bdac-ee5acfa58e9a",
+		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"JHT": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKK": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKM": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"KESEHATAN": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"JKP": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PPH21": {
+				"absence": {
+					"kind": "INCLUDE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
 	}
 ]

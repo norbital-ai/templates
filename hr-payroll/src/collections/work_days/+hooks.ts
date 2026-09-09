@@ -1418,13 +1418,20 @@ export default {
 						// The pin is evidence, not a stamp: it stands while the same date still
 						// publishes the same holiday. A re-saved day whose holiday was retracted
 						// re-classifies here — and the lieu sync below reverses what it minted.
+						//
+						// An explicit null is the holiday hook releasing this day as it retracts the
+						// row: the retraction is not written yet, so the calendar still reads as
+						// published and only the retracting hook knows. `holiday_id` is in no grant
+						// mask, so no writer but a hook can send it.
 						const dayKey = dateKey(workDate);
 						const pinned =
-							existing?.holiday_id != null &&
-							dateKey(existing.work_date) === dayKey &&
-							existing.holiday_id === holiday.holiday_id
-								? existing.holiday_id
-								: holiday.holiday_id;
+							input.holiday_id === null
+								? null
+								: existing?.holiday_id != null &&
+									  dateKey(existing.work_date) === dayKey &&
+									  existing.holiday_id === holiday.holiday_id
+									? existing.holiday_id
+									: holiday.holiday_id;
 						// Moving employments is refused before any nested write below posts.
 						boundToContract(input, existing);
 						const compensation = input.compensation ?? existing?.compensation ?? 'PAY';

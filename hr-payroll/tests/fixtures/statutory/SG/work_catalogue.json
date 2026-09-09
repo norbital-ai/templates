@@ -133,7 +133,9 @@
 				"discharged_by": "REST",
 				"on_exceed": "WARN"
 			},
-			"holiday_rest_precedence": "SUBSTITUTE"
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"CPF": {
@@ -357,7 +359,9 @@
 				"discharged_by": "REST",
 				"on_exceed": "WARN"
 			},
-			"holiday_rest_precedence": "SUBSTITUTE"
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"CPF": {
@@ -581,7 +585,9 @@
 				"discharged_by": "REST",
 				"on_exceed": "WARN"
 			},
-			"holiday_rest_precedence": "SUBSTITUTE"
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"holiday_work_compensation": "PAY_OR_LIEU",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"CPF": {

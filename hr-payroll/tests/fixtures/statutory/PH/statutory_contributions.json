@@ -15,7 +15,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 0.01
+					"to": 0
 				},
 				"award": {
 					"kind": "FIXED",
@@ -27,7 +27,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 5250
+					"to": 5249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -39,7 +39,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 5250,
-					"to": 5750
+					"to": 5749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -51,7 +51,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 5750,
-					"to": 6250
+					"to": 6249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -63,7 +63,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 6250,
-					"to": 6750
+					"to": 6749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -75,7 +75,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 6750,
-					"to": 7250
+					"to": 7249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -87,7 +87,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7250,
-					"to": 7750
+					"to": 7749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -99,7 +99,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 7750,
-					"to": 8250
+					"to": 8249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -111,7 +111,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 8250,
-					"to": 8750
+					"to": 8749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -123,7 +123,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 8750,
-					"to": 9250
+					"to": 9249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -135,7 +135,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 9250,
-					"to": 9750
+					"to": 9749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -147,7 +147,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 9750,
-					"to": 10250
+					"to": 10249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -159,7 +159,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 10250,
-					"to": 10750
+					"to": 10749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -171,7 +171,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 10750,
-					"to": 11250
+					"to": 11249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -183,7 +183,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 11250,
-					"to": 11750
+					"to": 11749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -195,7 +195,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 11750,
-					"to": 12250
+					"to": 12249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -207,7 +207,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 12250,
-					"to": 12750
+					"to": 12749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -219,7 +219,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 12750,
-					"to": 13250
+					"to": 13249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -231,7 +231,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 13250,
-					"to": 13750
+					"to": 13749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -243,7 +243,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 13750,
-					"to": 14250
+					"to": 14249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -255,7 +255,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 14250,
-					"to": 14750
+					"to": 14749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -267,7 +267,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 14750,
-					"to": 15250
+					"to": 15249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -279,7 +279,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 15250,
-					"to": 15750
+					"to": 15749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -291,7 +291,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 15750,
-					"to": 16250
+					"to": 16249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -303,7 +303,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 16250,
-					"to": 16750
+					"to": 16749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -315,7 +315,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 16750,
-					"to": 17250
+					"to": 17249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -327,7 +327,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 17250,
-					"to": 17750
+					"to": 17749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -339,7 +339,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 17750,
-					"to": 18250
+					"to": 18249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -351,7 +351,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 18250,
-					"to": 18750
+					"to": 18749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -363,7 +363,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 18750,
-					"to": 19250
+					"to": 19249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -375,7 +375,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 19250,
-					"to": 19750
+					"to": 19749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -387,7 +387,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 19750,
-					"to": 20250
+					"to": 20249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -399,7 +399,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 20250,
-					"to": 20750
+					"to": 20749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -411,7 +411,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 20750,
-					"to": 21250
+					"to": 21249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -423,7 +423,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 21250,
-					"to": 21750
+					"to": 21749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -435,7 +435,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 21750,
-					"to": 22250
+					"to": 22249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -447,7 +447,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 22250,
-					"to": 22750
+					"to": 22749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -459,7 +459,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 22750,
-					"to": 23250
+					"to": 23249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -471,7 +471,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 23250,
-					"to": 23750
+					"to": 23749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -483,7 +483,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 23750,
-					"to": 24250
+					"to": 24249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -495,7 +495,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 24250,
-					"to": 24750
+					"to": 24749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -507,7 +507,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 24750,
-					"to": 25250
+					"to": 25249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -519,7 +519,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 25250,
-					"to": 25750
+					"to": 25749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -531,7 +531,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 25750,
-					"to": 26250
+					"to": 26249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -543,7 +543,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 26250,
-					"to": 26750
+					"to": 26749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -555,7 +555,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 26750,
-					"to": 27250
+					"to": 27249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -567,7 +567,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 27250,
-					"to": 27750
+					"to": 27749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -579,7 +579,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 27750,
-					"to": 28250
+					"to": 28249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -591,7 +591,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 28250,
-					"to": 28750
+					"to": 28749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -603,7 +603,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 28750,
-					"to": 29250
+					"to": 29249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -615,7 +615,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 29250,
-					"to": 29750
+					"to": 29749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -627,7 +627,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 29750,
-					"to": 30250
+					"to": 30249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -639,7 +639,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 30250,
-					"to": 30750
+					"to": 30749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -651,7 +651,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 30750,
-					"to": 31250
+					"to": 31249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -663,7 +663,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 31250,
-					"to": 31750
+					"to": 31749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -675,7 +675,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 31750,
-					"to": 32250
+					"to": 32249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -687,7 +687,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 32250,
-					"to": 32750
+					"to": 32749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -699,7 +699,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 32750,
-					"to": 33250
+					"to": 33249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -711,7 +711,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 33250,
-					"to": 33750
+					"to": 33749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -723,7 +723,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 33750,
-					"to": 34250
+					"to": 34249.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -735,7 +735,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 34250,
-					"to": 34750
+					"to": 34749.99
 				},
 				"award": {
 					"kind": "FIXED",
@@ -773,7 +773,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0,
-					"to": 0.01
+					"to": 0
 				},
 				"award": {
 					"kind": "FIXED",
@@ -785,7 +785,7 @@
 				"selector": {
 					"by": "WAGE",
 					"from": 0.01,
-					"to": 14750
+					"to": 14749.99
 				},
 				"award": {
 					"kind": "FIXED",

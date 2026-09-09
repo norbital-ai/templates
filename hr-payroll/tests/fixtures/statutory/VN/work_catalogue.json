@@ -123,7 +123,9 @@
 				"ordinary_add": 30,
 				"overtime_add": 20
 			},
-			"holiday_rest_precedence": "SUBSTITUTE"
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"SI": {
@@ -338,7 +340,9 @@
 				"ordinary_add": 30,
 				"overtime_add": 20
 			},
-			"holiday_rest_precedence": "SUBSTITUTE"
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"SI": {
@@ -553,7 +557,9 @@
 				"ordinary_add": 30,
 				"overtime_add": 20
 			},
-			"holiday_rest_precedence": "SUBSTITUTE"
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"holiday_work_compensation": "PAY",
+			"overtime_compensation": "PAY"
 		},
 		"treatments": {
 			"SI": {
