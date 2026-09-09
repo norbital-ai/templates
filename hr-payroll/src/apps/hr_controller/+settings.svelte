@@ -24,6 +24,7 @@
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
+	import HolidaySourceForm from '../../lib/ui/holiday-source-form.svelte';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
@@ -84,8 +85,11 @@
 
 {#snippet payroll()}
 	{#if selectedVersion}
-		<Scroll name={t('app.settings.general')}>
+		<Scroll name={t('app.settings.general')} layout="stack" gap="lg">
 			<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
+			<!-- The Google holiday source is the version's own column; it is set here, beside the
+			     version's other terms, so the Holidays tab is only the holidays. -->
+			<HolidaySourceForm version={selectedVersion} />
 		</Scroll>
 	{/if}
 {/snippet}

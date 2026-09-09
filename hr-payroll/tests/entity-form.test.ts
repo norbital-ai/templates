@@ -127,16 +127,19 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		assert.match(snippet(settings, tab!), new RegExp(`catalogueTable\\(\\s*'${collection}'`));
 	}
 	assert.match(snippet(settings, 'holidays'), /<HolidaySettings version=\{selectedVersion\}/);
+	// The Holidays tab is one live query over the jurisdiction's calendars, shown one year at a time.
 	const holidays = source('../src/lib/ui/holiday-settings.svelte');
-	assert.deepEqual(registrations(snippet(holidays, 'calendars')), ['CollectionTable']);
-	// The source is the version's own column, so its tab is a form over the version, not a query.
-	assert.deepEqual(registrations(snippet(holidays, 'sources')), []);
+	assert.deepEqual(registrations(holidays), ['db.jurisdiction_holiday_calendars.findMany']);
+	assert.match(holidays, /jurisdiction_code: \{ eq: jurisdictionCode \}/);
+	// The source is the version's own column, set under General as a form over the version.
+	assert.match(snippet(settings, 'payroll'), /<HolidaySourceForm version=\{selectedVersion\}/);
+	const sourceForm = source('../src/lib/ui/holiday-source-form.svelte');
+	assert.deepEqual(registrations(sourceForm), []);
 	// One-column write, like the seal: a whole-row form would carry sealed_at into approval.
 	assert.match(
-		snippet(holidays, 'sources'),
+		sourceForm,
 		/client\.db\.jurisdiction_settings\.mutate\(\[\{ id: version\.id, holiday_source: sourceDraft \}\]\)/
 	);
-	assert.match(snippet(holidays, 'calendars'), /jurisdiction_code: \{ eq: jurisdictionCode \}/);
 	assert.deepEqual(
 		registrations(snippet(settings, 'payroll')),
 		[],

@@ -213,9 +213,9 @@ it('Settings saves a Google source, imports a reviewed draft and publishes only 
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await waitForShell(page, 45_000);
 		await unlockDeferredQueries(page);
-		await clickNamed(page, '[role="tab"]', 'Holidays');
-		await clickNamed(page, '[role="tab"]', 'Google sources');
-		const sourceInput = (name: string) => `[role="tabpanel"] [data-holiday-source="${name}"]`;
+		// The Google source is set under General, beside the version's other terms.
+		const sourceInput = (name: string) =>
+			`[data-holiday-source-form] [data-holiday-source="${name}"]`;
 		await perform(
 			page,
 			`document.querySelector(${JSON.stringify(sourceInput('calendar_id'))}) != null`,
@@ -223,18 +223,19 @@ it('Settings saves a Google source, imports a reviewed draft and publishes only 
 		);
 		await fill(page, sourceInput('calendar_id'), 'initial-browser-fixture');
 		await fill(page, sourceInput('time_zone'), 'UTC');
-		const sourceForm = await readFormAudit(page);
-		assertFormPresentable(sourceForm, 'Google source', new Set<string>());
-		assert.deepEqual(
-			sourceForm.fields.map((field) => field.name),
-			['holiday_source']
+		const sourceField = await page.evaluate(
+			`(() => { const node = document.querySelector('[data-holiday-source-form] [data-collection-field="holiday_source"]'); return node == null ? null : { label: (node.querySelector('label')?.innerText ?? '').trim(), height: Math.round(node.getBoundingClientRect().height) }; })()`
+		);
+		assert.ok(
+			sourceField != null && sourceField.label !== '' && sourceField.height > 0,
+			`Google source field: ${JSON.stringify(sourceField)}`
 		);
 		const submitSource = () =>
 			perform(
 				page,
 				`(() => {
 				${ACTIVATE}
-				const node = document.querySelector('[role="tabpanel"] form button[type="submit"]');
+				const node = document.querySelector('[data-holiday-source-form] button[type="submit"]');
 				if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
 				activate(node);
 				return true;
@@ -284,12 +285,23 @@ it('Settings saves a Google source, imports a reviewed draft and publishes only 
 			'source edits persisted'
 		);
 		await navigate(page, SETTINGS);
-		// The import controls sit above the observed holidays; the inner strip still remembers the
-		// Google sources panel from the save above, so the panel is named rather than assumed.
+		// One year at a time: step the paginator to the year, then import it.
 		await clickNamed(page, '[role="tab"]', 'Holidays');
-		await clickNamed(page, '[role="tab"]', 'Observed holidays');
-		await fill(page, '[role="tabpanel"] input[type="number"]', String(YEAR));
-		await clickNamed(page, 'button', 'Import selected year');
+		await perform(
+			page,
+			`(() => {
+				${ACTIVATE}
+				const shown = document.querySelector('[data-holiday-year]');
+				if (!(shown instanceof HTMLElement)) return false;
+				const year = Number(shown.dataset.holidayYear);
+				if (year === ${YEAR}) return true;
+				const step = document.querySelector(year < ${YEAR} ? 'button[aria-label="Next year"]' : 'button[aria-label="Previous year"]');
+				if (step instanceof HTMLElement) activate(step);
+				return false;
+			})()`,
+			'holiday year'
+		);
+		await clickNamed(page, 'button', 'Import');
 		const drafts = await until(
 			() =>
 				session.query(
