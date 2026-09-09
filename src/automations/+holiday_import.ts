@@ -46,7 +46,7 @@ export const runHolidayImport = (
 		const sources = holidaySources(versions, options.jurisdiction_code);
 		if (options.jurisdiction_code != null && sources.length === 0)
 			refuse(
-				`Configure a Google holiday source for ${options.jurisdiction_code} under General before importing.`
+				`No Google holiday calendar is known for ${options.jurisdiction_code}. Set one under Settings → General (Holiday sources) before importing.`
 			);
 		const outcomes: Schema.Schema.Type<typeof outcomeSchema>[] = [];
 		for (const [index, source] of sources.entries()) {

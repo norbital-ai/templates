@@ -97,6 +97,20 @@ test('a named jurisdiction imports off its version even when disabled; a provide
 		Effect.runPromise(
 			runHolidayImport(harness([]).api, { jurisdiction_code: 'NOWHERE', year: 2027 })
 		),
-		/Configure a Google holiday source for NOWHERE/
+		/No Google holiday calendar is known for NOWHERE/
 	);
+});
+
+test("a jurisdiction with no configured source reads Google's own calendar for it; the schedule never does", () => {
+	const bare = { ...version, jurisdiction_code: 'SG', holiday_source: null };
+	assert.deepEqual(holidaySources([bare], 'SG'), [
+		{
+			jurisdiction_code: 'SG',
+			calendar_id: 'en.singapore#holiday@group.v.calendar.google.com',
+			time_zone: 'Asia/Singapore'
+		}
+	]);
+	assert.deepEqual(holidaySources([bare]), [], 'the 1 October job runs only enabled sources');
+	assert.deepEqual(holidaySources([bare], 'XX'), []);
+	assert.equal(holidaySources([version], 'TEST')[0]!.calendar_id, 'public-holidays');
 });
