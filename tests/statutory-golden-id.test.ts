@@ -5,16 +5,18 @@
  * PP 49/2023 Ps.16A and 18A (JKK, JKM); PP 37/2021 Ps.43 (JKP); Perpres 82/2018 Ps.30 as
  * substituted by Perpres 64/2020 (Kesehatan); PMK 168/2023 (PPh 21 TER).
  *
- * Every figure below is derived by hand from those instruments and is what the engine computes
- * — but no Indonesian run builds through `buildPayrollRun` today (first test). The sealed
- * `PPH21` row names JHT and JP in `relief_for` meaning "relieved BY them", while the engine
- * reads `relief_for` as "a relief inside [the named] scheme's computation" — the reading every
- * other lineage follows (EPF→PCB, SI/HI/UI→PIT, SSS/PHIC/HDMF→WTAX) — so validation refuses with
- * `RELIEF_ORDER`: PPH21 (sequence 600) runs after the schemes it claims to relieve (100, 200).
- * Correcting the seed (the linkage belongs on the JHT/JP rows, or nowhere — it is
- * computationally inert on a `PERCENT` award, and the monthly TER applies to gross anyway)
- * unblocks the build with exactly these figures. Until then the goldens assess the pipeline
- * short of validation and the refusal is pinned beside them.
+ * Every figure below is derived by hand from those instruments and is what the engine computes.
+ *
+ * No Indonesian run used to build at all. The sealed `PPH21` row named JHT and JP in `relief_for`
+ * meaning "relieved BY them", while the engine reads `relief_for` as "a relief inside [the named]
+ * scheme's computation" — the reading every other lineage follows (EPF→PCB, SI/HI/UI→PIT,
+ * SSS/PHIC/HDMF→WTAX) — so validation refused with `RELIEF_ORDER`: PPH21 (sequence 600) ran after
+ * the schemes it claimed to relieve (100, 200). The linkage is gone from all three sealed versions:
+ * PMK 168/2023 Ps.15 applies the monthly effective rate to `jumlah penghasilan bruto` undeducted,
+ * so there is no relief to state. Not one figure moved, because `relief_for` is inert on a
+ * `PERCENT` award and every TER band is one — the withholding was always on gross, and only
+ * validation disagreed. The goldens that assess short of validation stay as they are, because a
+ * version's schemes are the same either way.
  */
 
 import assert from 'node:assert/strict';
@@ -47,10 +49,18 @@ function idWorld(period: string) {
 	};
 }
 
-test('Indonesia — PPH21 relief linkage blocks the build until the seed is corrected', () => {
-	// `PPH21.relief_for` names this version's JHT and JP; both run before sequence 600, so
-	// validation refuses the whole run before anything is measured. See the file header.
-	assert.throws(() => assessStatutory(idWorld('2026-01')), /RELIEF_ORDER/);
+test('Indonesia — a validated run builds, and prices the same as the unvalidated one', () => {
+	// This used to assert the opposite. `PPH21.relief_for` named this version's JHT and JP, and the
+	// engine reads `relief_for` as "a relief inside the named scheme's computation" — so PPH21 at
+	// sequence 600 claimed to be a relief inside schemes that run at 100 and 200, and
+	// `validateConfiguration` refused every Indonesian run before anything was measured.
+	//
+	// The linkage was wrong on its own terms too: PMK 168/2023 Ps.15 applies the monthly effective
+	// rate to `jumlah penghasilan bruto`, undeducted. Clearing it is why the run builds — and no
+	// figure moved, because `relief_for` is inert on a `PERCENT` award, which is what every TER
+	// band is. The withholding was always on gross; only validation disagreed.
+	const validated = assessStatutory(idWorld('2026-01'));
+	assert.deepEqual(validated, assessStatutoryUnvalidated(idWorld('2026-01')));
 });
 
 test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 version', () => {
