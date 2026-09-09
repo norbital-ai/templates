@@ -105,15 +105,25 @@ export function formatCalendarDate(value: unknown): string {
  * dating is what decides which rate row prices a run. Every screen that prints an effective range
  * resolves it here, so a rate window cannot read one way on a form and another in a table.
  */
+/**
+ * A day-precision `instant()` column as the calendar day an operator picked — **`30 Jun 2026`**.
+ *
+ * A `precision: 'day'` column still stores an instant: `2026-06-30` picked in Kuala Lumpur is kept
+ * as `2026-06-29T16:00:00.000Z`. Slicing the first ten characters of that prints the day before,
+ * so a pay date read a day early off a run and an attendance window read a day early off the same
+ * run were both a formatting shift, not a calculation. Stored dates come through here; values the
+ * page itself computed as `YYYY-MM-DD` go through `formatCalendarDate` unchanged.
+ */
+export function formatCalendarInstant(value: unknown, fallback = '—'): string {
+	if (typeof value !== 'string' || value === '') return fallback;
+	const at = new Date(value);
+	if (Number.isNaN(at.getTime())) return fallback;
+	return formatCalendarDate(calendarDateInTimeZone(at, PAYROLL_TIME_ZONE));
+}
+
 export function formatEffectiveRange(value: unknown): string {
 	if (value == null || typeof value !== 'object') return '—';
-	const bound = (instant: unknown, fallback: string) => {
-		if (typeof instant !== 'string' || instant === '') return fallback;
-		const at = new Date(instant);
-		if (Number.isNaN(at.getTime())) return fallback;
-		return formatCalendarDate(calendarDateInTimeZone(at, PAYROLL_TIME_ZONE));
-	};
-	return `${bound(Reflect.get(value, 'start'), '…')} → ${bound(Reflect.get(value, 'end'), '∞')}`;
+	return `${formatCalendarInstant(Reflect.get(value, 'start'), '…')} → ${formatCalendarInstant(Reflect.get(value, 'end'), '∞')}`;
 }
 
 /**

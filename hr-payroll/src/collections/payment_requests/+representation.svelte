@@ -14,7 +14,7 @@
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { RepresentationProps } from './$types.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
-	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
+	import { formatCalendarInstant, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 	import EligibleTypes from '../../lib/ui/eligible-types.svelte';
 	import FormSection from '../../lib/ui/form-section.svelte';
@@ -48,7 +48,7 @@
 
 <RecordShell
 	title={record
-		? `${formatCalendarDate(record.effective_on)} · ${formatNumeric(record.amount)}`
+		? `${formatCalendarInstant(record.effective_on)} · ${formatNumeric(record.amount)}`
 		: t('component.create_payment')}
 >
 	<CollectionForm

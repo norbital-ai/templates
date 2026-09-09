@@ -16,7 +16,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { PAYROLL_RUN_LIST_COLUMNS } from '../../collections/payroll_runs/list-columns.js';
-	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
+	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
 	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
 	import {
 		companyPeriods,
@@ -72,7 +72,7 @@
 					payDate: payDateFor(period),
 					runState: run?.lifecycle ?? null,
 					attendance: run
-						? `${formatCalendarDate(run.attendance_from)} → ${formatCalendarDate(run.attendance_to)}`
+						? `${formatCalendarInstant(run.attendance_from)} → ${formatCalendarInstant(run.attendance_to)}`
 						: null
 				};
 			})
@@ -319,7 +319,7 @@
 							<span class="shrink-0 text-meta">{run.lifecycle}</span>
 						</Inline>
 						<p class="truncate text-sm text-muted-foreground">
-							{t('app.payroll.pays_line', { date: formatCalendarDate(run.pay_date) })}
+							{t('app.payroll.pays_line', { date: formatCalendarInstant(run.pay_date) })}
 						</p>
 					</Stack>
 				{/snippet}
