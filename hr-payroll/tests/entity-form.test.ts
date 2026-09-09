@@ -256,7 +256,8 @@ test('the person form is Person, Standing and Family; the face lifecycle is writ
 	// the pickers, and the lineage narrows the scheme picker.
 	assert.match(profile, /setContext<HrCreateScope>\(HR_CREATE_SCOPE, \{/);
 	assert.match(profile, /employmentId: \(\) => scopedEmployment\?\.id/);
-	assert.match(profile, /with: \{ employment_company: \{ columns: \{ settings_code: true \} \} \}/);
+	assert.match(profile, /client\.db\.companies\.findFirst\(\{/);
+	assert.match(profile, /settingsCode: \(\) => scopedCompanyQuery\?\.current\?\.settings_code/);
 	// Nothing on the client writes the lifecycle columns but the enrolment flow.
 	for (const path of ['../src/collections/employees/+representation.svelte'])
 		assert.doesNotMatch(
