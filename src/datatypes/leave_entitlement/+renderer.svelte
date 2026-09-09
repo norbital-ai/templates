@@ -1,16 +1,35 @@
 <script lang="ts">
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
+	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
+	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import type { RendererProps } from './$types.js';
 	import type { LeaveEntitlement } from './+definition.js';
 
+	type Band = { readonly id: string; readonly eligibility: string; readonly days: number };
+
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	/** Read top-down: the most specific tier first, the everyone row last. */
+	const BAND_COLUMNS = [
+		{
+			key: 'eligibility',
+			label: t('component.who_receives'),
+			field: { name: 'eligibility', kind: 'text', nullable: false } satisfies CollectionField,
+			placeholder: 'employment.service_months >= 24',
+			width: 320
+		},
+		{
+			key: 'days',
+			label: t('component.days'),
+			field: { name: 'days', kind: 'numeric', nullable: false } satisfies CollectionField,
+			width: 120
+		}
+	] satisfies readonly MatrixColumn<Band>[];
 	const disabled = $derived(props.mode !== 'edit' || props.disabled);
 	const current = $derived<LeaveEntitlement>(
 		props.value ?? {
@@ -30,6 +49,9 @@
 		(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS'] as const)
 			.filter((value) => current.availability !== 'MONTHLY' || value !== 'NONE')
 			.map((value) => ({ value, label: t(`leave.proration.${value}`) }))
+	);
+	const rows = $derived<Band[]>(
+		current.bands.map((band, index) => ({ id: `band-${index}`, ...band }))
 	);
 	const summary = $derived(
 		props.value == null
@@ -104,84 +126,21 @@
 			{/if}
 		</Grid>
 		{#if current.availability !== 'UNLIMITED'}
-			{#each current.bands as band, index (index)}
-				<Grid gap="sm" minimum="compact">
-					<label class="text-sm font-medium"
-						><Stack gap="xs">
-							{t('renderer.leave_entitlement.band_from')}
-							<Input
-								type="number"
-								min="0"
-								step="1"
-								value={band.band_from}
-								{disabled}
-								oninput={(event) =>
-									emit({
-										...current,
-										bands: current.bands.map((row, i) =>
-											i === index
-												? { ...row, band_from: numberFrom(event.currentTarget.value, 0) }
-												: row
-										)
-									})}
-							/>
-						</Stack></label
-					>
-					<label class="text-sm font-medium"
-						><Stack gap="xs">
-							{t('component.days')}
-							<Input
-								type="number"
-								min="0"
-								step="0.5"
-								value={band.days}
-								{disabled}
-								oninput={(event) =>
-									emit({
-										...current,
-										bands: current.bands.map((row, i) =>
-											i === index ? { ...row, days: numberFrom(event.currentTarget.value, 0) } : row
-										)
-									})}
-							/>
-						</Stack></label
-					>
-					<Cluster align="end"
-						><Button
-							variant="ghost"
-							size="sm"
-							{disabled}
-							onclick={() =>
-								emit({ ...current, bands: current.bands.filter((_, i) => i !== index) })}
-						>
-							{t('leave.remove_band')}
-						</Button></Cluster
-					>
-				</Grid>
-			{/each}
-			<Cluster
-				><Button
-					variant="outline"
-					size="sm"
-					{disabled}
-					onclick={() =>
-						emit({
-							...current,
-							bands: [
-								...current.bands,
-								{
-									band_from:
-										current.bands.length === 0
-											? 0
-											: Math.max(...current.bands.map((row) => row.band_from)) + 12,
-									days: 0
-								}
-							]
-						})}
-				>
-					{t('leave.add_band')}
-				</Button></Cluster
-			>
+			<p class="text-meta">{t('renderer.leave_entitlement.identity')}</p>
+			<MatrixRenderer
+				{rows}
+				columns={BAND_COLUMNS}
+				{disabled}
+				emptyMessage={t('renderer.leave_entitlement.empty')}
+				addRowLabel={t('leave.add_band')}
+				createRow={(): Band => ({ id: crypto.randomUUID(), eligibility: '', days: 0 })}
+				bounded={false}
+				onChange={(next) =>
+					emit({
+						...current,
+						bands: next.map(({ eligibility, days }) => ({ eligibility, days: Number(days) || 0 }))
+					})}
+			/>
 		{/if}
 	</Stack>
 {/if}

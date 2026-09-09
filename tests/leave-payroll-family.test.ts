@@ -25,15 +25,8 @@ const catalogue: PreparedLeavePayroll['catalogues'][number] = {
 	eligibility: '',
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
 	requires_certificate_after_days: null,
-	payroll_effect: {
-		kind: 'UNPAID',
-		deduction: {
-			sequence: 20,
-			eligibility: '',
-			contribution_treatments: { TEST: { kind: 'REDUCE' } }
-		}
-	},
-	encashment: { code: 'CASH', sequence: 30, contribution_treatments: { TEST: { kind: 'INCLUDE' } } }
+	paid: false,
+	treatments: { TEST: { absence: { kind: 'REDUCE' }, encashment: { kind: 'INCLUDE' } } }
 };
 function charge(date: string, days: 0.5 | 1 = 1): LeaveCharge {
 	return {
@@ -129,7 +122,7 @@ test('cross-year unpaid leave settles exact dated halves once, with each periodâ
 test('paid time off captures its exact dates even when no money is generated', () => {
 	const row = timeOff(10, [charge('2027-01-04')]);
 	const facts = prepared([row], {
-		catalogues: [{ ...catalogue, payroll_effect: { kind: 'PAID' } }]
+		catalogues: [{ ...catalogue, paid: true }]
 	});
 	const output = calculate(facts);
 	assert.equal(output.adjustments.length, 0);
@@ -179,7 +172,7 @@ test('a paid reversal preserves the original amounts and contribution direction'
 		reason: 'Approved correction'
 	});
 	const facts = prepared([original, reversal], {
-		catalogues: [{ ...catalogue, payroll_effect: { kind: 'PAID' } }],
+		catalogues: [{ ...catalogue, paid: true }],
 		captures: paid.captures.map((row) => ({ ...row, paid: true }))
 	});
 	const output = calculate(facts, january, 999);

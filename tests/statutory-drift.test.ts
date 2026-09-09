@@ -39,7 +39,7 @@ const sealed = {
 				availability: 'UPFRONT',
 				year_start_month: 1,
 				proration: 'NONE',
-				bands: [{ band_from: 0, days: 8 }]
+				bands: [{ eligibility: '', days: 8 }]
 			}
 		}
 	],
@@ -86,7 +86,7 @@ test('an unchanged table, in any key or band order, is no change', () => {
 				{
 					code: 'ANNUAL',
 					entitlement: {
-						bands: [{ days: 8, band_from: 0 }],
+						bands: [{ days: 8, eligibility: '' }],
 						proration: 'NONE',
 						year_start_month: 1,
 						availability: 'UPFRONT'

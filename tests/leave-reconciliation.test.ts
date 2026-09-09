@@ -8,23 +8,33 @@ import {
 import { leaveRules } from '../src/lib/leave/context.ts';
 import type { LeaveEntitlement } from '../src/datatypes/leave_entitlement/+definition.ts';
 import { annualWindow, id, leaveContext } from './helpers/manual-leave-context.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 const rule: LeaveEntitlement = {
 	availability: 'UPFRONT',
 	year_start_month: 1,
 	proration: 'CALENDAR_MONTHS',
-	bands: [{ band_from: 0, days: 12 }]
+	bands: [{ eligibility: '', days: 12 }]
 };
-const calculate = (overrides: Partial<Parameters<typeof computedEntitlement>[0]> = {}) =>
-	computedEntitlement({
+const calculate = (overrides: Partial<Parameters<typeof computedEntitlement>[0]> = {}) => {
+	const hireDate = overrides.hireDate ?? '2025-01-01';
+	return computedEntitlement({
 		rule,
 		window: annualWindow,
 		asOf: '2026-06-30',
-		hireDate: '2025-01-01',
+		hireDate,
 		exitDate: null,
 		eligibleOn: () => true,
+		personOn: (date) =>
+			personContext({
+				employee: null,
+				employment: { hire_date: hireDate },
+				terms: null,
+				asOf: date
+			}),
 		...overrides
 	});
+};
 
 test('annual windows handle fiscal starts and leap-year boundaries', () => {
 	assert.deepEqual(leaveWindowOf('2026-01-15', 4), { start: '2025-04-01', end: '2026-03-31' });
@@ -71,7 +81,7 @@ test('completed-month proration respects hire anniversaries and departure caps',
 
 test('calendar-day proration uses the actual leap-year denominator and rounds to half days', () => {
 	const result = calculate({
-		rule: { ...rule, proration: 'CALENDAR_DAYS', bands: [{ band_from: 0, days: 366 }] },
+		rule: { ...rule, proration: 'CALENDAR_DAYS', bands: [{ eligibility: '', days: 366 }] },
 		window: { start: '2024-01-01', end: '2024-12-31' },
 		hireDate: '2024-02-01',
 		asOf: '2024-02-29'
@@ -84,8 +94,8 @@ test('service bands use this contract hire date at the query date', () => {
 		...rule,
 		proration: 'NONE',
 		bands: [
-			{ band_from: 24, days: 16 },
-			{ band_from: 0, days: 12 }
+			{ eligibility: 'employment.service_months >= 24', days: 16 },
+			{ eligibility: '', days: 12 }
 		]
 	};
 	assert.equal(
@@ -121,7 +131,7 @@ test('effective catalogue revisions are resolved by date without posting adjustm
 		...context.catalogues[0]!,
 		id: id(21),
 		settings_id: id(20),
-		entitlement: { ...rule, proration: 'NONE', bands: [{ band_from: 0, days: 18 }] }
+		entitlement: { ...rule, proration: 'NONE', bands: [{ eligibility: '', days: 18 }] }
 	});
 	const rules = leaveRules(context, id(1), id(7));
 	assert.equal(rules.entitlementAt(annualWindow, '2026-06-30').entitlement, 12);

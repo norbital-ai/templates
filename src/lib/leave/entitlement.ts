@@ -4,13 +4,13 @@ import type { LeaveEntitlement } from '../../datatypes/leave_entitlement/+defini
 import type { LeaveWindow } from '../../datatypes/leave_event/+definition.js';
 import {
 	addDays,
-	completedMonths,
 	daysBetween,
 	inclusiveDays,
 	monthBounds,
 	monthDay
 } from '../../collections/payroll_runs/lib/dates.js';
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
+import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
 export function leaveWindowOf(date: string, startMonth: number): LeaveWindow {
 	if (!isCalendarDate(date) || !Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12)
@@ -35,6 +35,8 @@ export function computedEntitlement(options: {
 	readonly exitDate: string | null;
 	/** Eligibility is evaluated against the effective person facts on each date. */
 	readonly eligibleOn: (date: string) => boolean;
+	/** The person the entitlement bands are read against, as of the entitlement date. */
+	readonly personOn: (date: string) => PersonContext;
 }) {
 	const { rule, window } = options;
 	assertLeaveWindow(window, rule.year_start_month);
@@ -56,11 +58,10 @@ export function computedEntitlement(options: {
 	const opening = active[0] ?? null;
 	const empty = { window, opening, unlimited, entitlement: 0, earned: 0, available: 0 };
 	if (opening == null || through < opening) return empty;
-	const months = completedMonths(options.hireDate, through);
-	const target =
-		rule.bands
-			.filter((band) => band.band_from <= months)
-			.toSorted((a, b) => b.band_from - a.band_from)[0]?.days ?? 0;
+	// The entitlement matrix: top-down, the first band whose predicate holds on the entitlement
+	// date is the grant; nobody matched is no days.
+	const person = options.personOn(through);
+	const target = rule.bands.find((band) => isEligible(band.eligibility, person))?.days ?? 0;
 	if (unlimited)
 		return { window, opening, unlimited: true, entitlement: null, earned: null, available: null };
 	const eligible = new Set(active);

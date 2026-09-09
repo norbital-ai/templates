@@ -8,8 +8,24 @@
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
 		"requires_certificate_after_days": null,
-		"payroll_effect": {
-			"kind": "PAID"
+		"paid": true,
+		"treatments": {
+			"PUB-EPF": {
+				"absence": {
+					"kind": "UNSET"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PUB-EPF-NC": {
+				"absence": {
+					"kind": "UNSET"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
 		},
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -17,22 +33,10 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"band_from": 0,
+					"eligibility": "",
 					"days": 8
 				}
 			]
-		},
-		"encashment": {
-			"code": "ANNUAL_ENCASHMENT",
-			"sequence": 110,
-			"contribution_treatments": {
-				"PUB-EPF": {
-					"kind": "INCLUDE"
-				},
-				"PUB-EPF-NC": {
-					"kind": "INCLUDE"
-				}
-			}
 		}
 	},
 	{
@@ -44,8 +48,24 @@
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
 		"requires_certificate_after_days": null,
-		"payroll_effect": {
-			"kind": "PAID"
+		"paid": true,
+		"treatments": {
+			"PUB-EPF": {
+				"absence": {
+					"kind": "UNSET"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PUB-EPF-NC": {
+				"absence": {
+					"kind": "UNSET"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
 		},
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -53,22 +73,10 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"band_from": 0,
+					"eligibility": "",
 					"days": 60
 				}
 			]
-		},
-		"encashment": {
-			"code": "HOSPITALIZATION_ENCASHMENT",
-			"sequence": 110,
-			"contribution_treatments": {
-				"PUB-EPF": {
-					"kind": "INCLUDE"
-				},
-				"PUB-EPF-NC": {
-					"kind": "INCLUDE"
-				}
-			}
 		}
 	},
 	{
@@ -80,26 +88,30 @@
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
 		"requires_certificate_after_days": 0,
-		"payroll_effect": {
-			"kind": "PAID"
+		"paid": true,
+		"treatments": {
+			"PUB-EPF": {
+				"absence": {
+					"kind": "UNSET"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			},
+			"PUB-EPF-NC": {
+				"absence": {
+					"kind": "UNSET"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
 		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		},
-		"encashment": {
-			"code": "NS_ENCASHMENT",
-			"sequence": 110,
-			"contribution_treatments": {
-				"PUB-EPF": {
-					"kind": "INCLUDE"
-				},
-				"PUB-EPF-NC": {
-					"kind": "INCLUDE"
-				}
-			}
 		}
 	}
 ]

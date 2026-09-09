@@ -26,7 +26,7 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * ## Where an edge is not declared here
  *
  * The remaining families deliberately have NO relation:
- *   - `leave_catalogue.payroll_effect`   -> declares its own deduction; no pointer to follow
+ *   - `leave_catalogue.treatments`       -> its two pay lines are its own; no pointer to follow
  *   - `payslips.base/proration/statutory/adjustments` -> codes, keys and source ids, never edges
  * The last of those is the point of inlining: a settled payslip is a frozen statement of what was
  * paid and does not become wrong because a catalogue row was later archived. See

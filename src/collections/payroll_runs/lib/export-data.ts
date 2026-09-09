@@ -15,6 +15,7 @@ import { resolveEmployment } from '../../../lib/employment-contract.js';
 import { Effect, Schema } from 'effect';
 import type { PayrollReadApi } from './api.js';
 import { workPayItems } from '../../work_catalogue/pay-items.js';
+import { encashmentCode } from '../../../lib/leave/pay-items.js';
 import { PAGE_LIMIT, groupBy, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
@@ -237,12 +238,12 @@ export function loadRunExports(
 						.filter((row) => row.settings_id === run.settings_id)
 						.flatMap((row) => [
 							{
-								...row.encashment,
+								code: encashmentCode(row.code),
 								nature: 'EARNING',
 								settlement: 'PAYROLL' as const,
 								definition: null
 							},
-							...(row.payroll_effect.kind === 'UNPAID'
+							...(!row.paid
 								? [
 										{
 											code: row.code,

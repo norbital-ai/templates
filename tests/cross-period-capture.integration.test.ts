@@ -110,8 +110,8 @@ async function withSpanningLeave(world) {
 		eligibility: '',
 		requires_certificate_after_days: null,
 		entitlement: { availability: 'UNLIMITED', proration: 'NONE', year_start_month: 1, bands: [] },
-		payroll_effect: { kind: 'PAID' },
-		encashment: { code: 'ANNUAL_CASH', sequence: 110, contribution_treatments: {} },
+		paid: true,
+		treatments: {},
 		approval_id: null
 	});
 	const context = await Effect.runPromise(

@@ -28,11 +28,8 @@ const NPL = {
 	eligibility: '',
 	requires_certificate_after_days: null,
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
-	payroll_effect: {
-		kind: 'UNPAID',
-		deduction: { sequence: 20, eligibility: '', contribution_treatments: {} }
-	},
-	encashment: { code: 'NPL_CASH', sequence: 30, contribution_treatments: {} }
+	paid: false,
+	treatments: {}
 };
 const TERM = {
 	id: 'terms-1',

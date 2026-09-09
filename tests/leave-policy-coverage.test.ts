@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { computedEntitlement } from '../src/lib/leave/entitlement.ts';
 import { leaveRules } from '../src/lib/leave/context.ts';
 import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';
@@ -74,7 +75,7 @@ test('proration counts only eligible dates covered by approved policy', () => {
 		availability: 'UPFRONT',
 		year_start_month: 1,
 		proration: 'CALENDAR_MONTHS',
-		bands: [{ band_from: 0, days: 12 }]
+		bands: [{ eligibility: '', days: 12 }]
 	};
 	context.versions[0]!.effective_range = { start: '2026-12-01', end: null };
 	assert.equal(leaveBalanceSummaries(context, id(1), '2026-12-31')[0]?.entitlement, 1);
@@ -109,7 +110,7 @@ test('full and unmetered entitlement never inspect eligibility after the request
 				availability,
 				year_start_month: 1,
 				proration: 'NONE',
-				bands: [{ band_from: 0, days: 12 }]
+				bands: [{ eligibility: '', days: 12 }]
 			},
 			window: annualWindow,
 			asOf: '2026-01-31',
@@ -119,7 +120,14 @@ test('full and unmetered entitlement never inspect eligibility after the request
 				inspected.push(date);
 				assert.ok(date <= '2026-01-31');
 				return true;
-			}
+			},
+			personOn: (date) =>
+				personContext({
+					employee: null,
+					employment: { hire_date: '2025-01-01' },
+					terms: null,
+					asOf: date
+				})
 		});
 		assert.equal(inspected.at(-1), '2026-01-31');
 		assert.equal(result.available, availability === 'UPFRONT' ? 12 : null);

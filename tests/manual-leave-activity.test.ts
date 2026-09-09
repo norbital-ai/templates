@@ -61,14 +61,14 @@ function facts(): LeaveContext {
 				code: 'ANNUAL',
 				name: 'Annual leave',
 				is_statutory: false,
-				payroll_effect: { kind: 'PAID' },
-				encashment: { code: 'LEAVE_CASH', sequence: 10, contribution_treatments: {} },
+				paid: true,
+				treatments: {},
 				eligibility: '',
 				entitlement: {
 					availability: 'UPFRONT',
 					proration: 'NONE',
 					year_start_month: 1,
-					bands: [{ band_from: 0, days: 12 }]
+					bands: [{ eligibility: '', days: 12 }]
 				},
 				requires_certificate_after_days: null
 			}

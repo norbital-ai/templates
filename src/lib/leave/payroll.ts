@@ -15,6 +15,13 @@ import { leaveWindowOf } from './entitlement.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	LEAVE_ABSENCE_SEQUENCE,
+	LEAVE_ENCASHMENT_SEQUENCE,
+	absenceTreatments,
+	encashmentCode,
+	encashmentTreatments
+} from './pay-items.js';
 
 type LeaveCapture = {
 	readonly leave_entry_id: string;
@@ -79,14 +86,15 @@ export function prepareLeavePayroll(options: {
 				for (const charge of entry.charges) {
 					const catalogue = catalogues.find((row) => row.id === charge.leave_catalogue_id);
 					if (!catalogue) refuse('Approved leave refers to a missing catalogue revision.');
-					if (catalogue.payroll_effect.kind === 'PAID') continue;
+					if (catalogue.paid) continue;
 					const term = context.terms.find(
 						(row) => row.employment_id === employment.id && row.id === charge.employment_term_id
 					);
 					if (!term || !coversDate(term.effective_range, charge.date))
 						refuse('Approved leave has no effective captured employment terms.');
+					// The deduction covers whom the leave covers: one predicate, not two halves of one fact.
 					deductionEligibility[`${entry.id}/${charge.date}`] = isEligible(
-						catalogue.payroll_effect.deduction.eligibility,
+						catalogue.eligibility,
 						personContext({
 							employee,
 							employment,
@@ -229,7 +237,7 @@ export function calculateLeavePayroll(options: {
 		for (const charge of charges) {
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.leave_catalogue_id);
 			if (!catalogue) refuse('Approved Leave has no captured catalogue revision.');
-			if (catalogue.payroll_effect.kind === 'PAID') continue;
+			if (catalogue.paid) continue;
 			const eligible = prepared.deductionEligibility[`${entry.id}/${charge.date}`];
 			if (eligible == null) refuse('The Leave deduction eligibility was not prepared.');
 			if (!eligible) continue;
@@ -239,8 +247,8 @@ export function calculateLeavePayroll(options: {
 			const amount = fromMinorUnits(toMinorUnits(rate * charge.days, currency), currency);
 			if (amount === 0) continue;
 			items.push({
-				sequence: catalogue.payroll_effect.deduction.sequence,
-				contribution_treatments: catalogue.payroll_effect.deduction.contribution_treatments,
+				sequence: LEAVE_ABSENCE_SEQUENCE,
+				contribution_treatments: absenceTreatments(catalogue.treatments),
 				catalogue_id: catalogue.id,
 				settings_id: catalogue.settings_id,
 				code: catalogue.code,
@@ -266,7 +274,9 @@ export function calculateLeavePayroll(options: {
 				[],
 				[
 					{
-						...catalogue.encashment,
+						code: encashmentCode(catalogue.code),
+						sequence: LEAVE_ENCASHMENT_SEQUENCE,
+						contribution_treatments: encashmentTreatments(catalogue.treatments),
 						catalogue_id: catalogue.id,
 						settings_id: catalogue.settings_id,
 						is_statutory: catalogue.is_statutory,
