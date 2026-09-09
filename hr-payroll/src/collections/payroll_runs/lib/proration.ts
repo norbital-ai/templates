@@ -98,9 +98,16 @@ export function prorationSegment(options: ProrationFractionOptions): {
 				// to: a monthly-paid employee present all month earns the monthly rate (DOLE
 				// Handbook ch.2 §E), so the numerator there is the divisor itself and only a partial
 				// period is measured — at the daily rate the factor states.
+				//
+				// A part period is capped at the divisor: a roster that works more days in a month
+				// than the factor counts — the Philippine 21.75 beside a six-day pattern, where June
+				// 2026 holds 26 working days — would otherwise price 22 covered days at 22/21.75 and
+				// pay someone present for part of the month more than someone present for all of it.
+				// The cap is on the days, not the fraction, so the segment a payslip stores and the
+				// money it was paid cannot disagree.
 				const whole = covered.start <= options.period.start && covered.end >= options.period.end;
 				return {
-					days: whole ? divisor : options.workingDaysIn(covered),
+					days: whole ? divisor : Math.min(options.workingDaysIn(covered), divisor),
 					denominator: divisor
 				};
 			}
