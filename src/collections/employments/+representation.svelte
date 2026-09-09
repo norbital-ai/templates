@@ -6,9 +6,20 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import { Button } from '@norbital-ai/ui/button';
+	import * as Dialog from '@norbital-ai/ui/dialog';
+	import Icon from '@iconify/svelte';
+	import OffboardingFlow from '../../lib/ui/offboarding/offboarding-flow.svelte';
+	import ChangeTermsFlow from '../../lib/ui/offboarding/change-terms-flow.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	/**
+	 * Off-boarding and contract changes open from here and nowhere else: both write the sealed
+	 * contract's departure or terms, so they stay beside the departure section they settle.
+	 */
+	let offboardOpen = $state(false);
+	let changeTermsOpen = $state(false);
 	// A contract is sealed by the rows that reference it; the hook is the guard, this is the hint.
 	const consumers = $derived(
 		record == null
@@ -46,6 +57,55 @@
 <RecordShell title={record?.employee_number ?? t('component.create_employment')}>
 	<Stack gap="md">
 		{#if sealed}<p class="text-sm text-muted-foreground">{t('component.employment_sealed')}</p>{/if}
+		{#if record != null && record.exit_date == null}
+			<div class="flex gap-2">
+				<Button variant="secondary" onclick={() => (changeTermsOpen = true)}>
+					<Icon icon="lucide:file-signature" class="size-4" />
+					{t('offboarding.change_terms')}
+				</Button>
+				<Button variant="destructive" onclick={() => (offboardOpen = true)}>
+					<Icon icon="lucide:log-out" class="size-4" />
+					{t('offboarding.open')}
+				</Button>
+			</div>
+			<Dialog.Root bind:open={changeTermsOpen}>
+				<Dialog.Content class="max-w-2xl">
+					<Dialog.Header>
+						<Dialog.Title>{t('offboarding.change_terms_title')}</Dialog.Title>
+						<Dialog.Description>{t('offboarding.change_terms_description')}</Dialog.Description>
+					</Dialog.Header>
+					{#if changeTermsOpen}
+						<ChangeTermsFlow
+							employment={{ id: record.id, company_id: record.company_id }}
+							onclose={() => {
+								changeTermsOpen = false;
+							}}
+						/>
+					{/if}
+				</Dialog.Content>
+			</Dialog.Root>
+			<Dialog.Root bind:open={offboardOpen}>
+				<Dialog.Content class="max-w-2xl">
+					<Dialog.Header>
+						<Dialog.Title>{t('offboarding.title')}</Dialog.Title>
+						<Dialog.Description>{t('offboarding.description')}</Dialog.Description>
+					</Dialog.Header>
+					{#if offboardOpen}
+						<OffboardingFlow
+							employment={{
+								id: record.id,
+								hire_date: record.hire_date,
+								company_id: record.company_id,
+								employee_number: record.employee_number
+							}}
+							onclose={() => {
+								offboardOpen = false;
+							}}
+						/>
+					{/if}
+				</Dialog.Content>
+			</Dialog.Root>
+		{/if}
 		<CollectionForm
 			{client}
 			collection="employments"
