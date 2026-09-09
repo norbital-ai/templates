@@ -22,8 +22,7 @@ const MY_RULE = {
 	wage_basis: 'STATUTORY_WAGES',
 	category_basis: 'STATUTORY_WORK_CATEGORY',
 	exempt_categories: ['MANUAL_LABOUR', 'MANUAL_LABOUR_SUPERVISOR', 'COMMERCIAL_VEHICLE_OPERATOR'],
-	excluded_categories: ['VESSEL_WORK'],
-	authority: 'Employment Act 1955 First Schedule para 1A'
+	excluded_categories: ['VESSEL_WORK']
 };
 
 const wages = (value, currency = 'MYR') => ({ STATUTORY_WAGES: { value, currency } });
@@ -105,8 +104,7 @@ test('a rule with no ceiling covers by category alone — the Philippine and Ind
 		wage_basis: null,
 		category_basis: 'WORK_CLASSIFICATION',
 		exempt_categories: [],
-		excluded_categories: ['MANAGERIAL'],
-		authority: 'Labor Code of the Philippines art.82'
+		excluded_categories: ['MANAGERIAL']
 	};
 	assert.equal(
 		decideOvertimeCoverage(noCeiling, subject({ workClassification: 'EA_COVERED', wages: {} }))
@@ -272,6 +270,7 @@ const runCoverage = (overrides = {}) =>
 		statutoryWorkCategory: 'NON_MANUAL',
 		workClassification: 'EA_COVERED',
 		employeeNumber: 'PUBEM0002',
+		authority: 'Employment Act 1955 First Schedule para 1A',
 		...overrides
 	});
 
@@ -350,8 +349,7 @@ test('the Philippines excludes by category only — art.82 names no wage figure'
 		wage_basis: null,
 		category_basis: 'WORK_CLASSIFICATION',
 		exempt_categories: [],
-		excluded_categories: ['MANAGERIAL'],
-		authority: 'Labor Code of the Philippines art.82'
+		excluded_categories: ['MANAGERIAL']
 	};
 	// No wage was ever asked for: an empty wages map is enough to decide.
 	assert.equal(
@@ -386,9 +384,7 @@ test('Indonesia covers by job group, and the unencodable group keeps everyone co
 		wage_basis: null,
 		category_basis: 'WORK_CLASSIFICATION',
 		exempt_categories: [],
-		excluded_categories: [],
-		authority:
-			'Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group'
+		excluded_categories: []
 	};
 	const decision = decideOvertimeCoverage(
 		ID_RULE,

@@ -113,8 +113,7 @@ const CoverageRuleSchema = Schema.Struct({
 	wage_basis: Schema.NullOr(Schema.String),
 	category_basis: Schema.NullOr(Schema.String),
 	exempt_categories: Schema.NullOr(Schema.Array(Schema.String)),
-	excluded_categories: Schema.NullOr(Schema.Array(Schema.String)),
-	authority: Schema.String
+	excluded_categories: Schema.NullOr(Schema.Array(Schema.String))
 });
 type CoverageRule = Schema.Schema.Type<typeof CoverageRuleSchema>;
 
@@ -172,7 +171,7 @@ function categoryOf(rule: CoverageRule, subject: CoverageSubject): string | null
 	const basis = CATEGORY_BASES.find((candidate) => candidate === rule.category_basis);
 	if (basis == null)
 		throw new Error(
-			`Overtime coverage rule "${rule.authority}" names categories from ` +
+			'The overtime coverage rule names categories from ' +
 				`"${rule.category_basis ?? 'nothing'}", which is not an employment column this engine reads.`
 		);
 	return basis === 'STATUTORY_WORK_CATEGORY'
@@ -207,12 +206,12 @@ export function decideOvertimeCoverage(
 	const basis = WAGE_BASES.find((candidate) => candidate === rule.wage_basis);
 	if (basis == null)
 		throw new Error(
-			`Overtime coverage rule "${rule.authority}" sets a wage ceiling but names no wage basis this ` +
+			'The overtime coverage rule sets a wage ceiling but names no wage basis this ' +
 				`engine reads (got "${rule.wage_basis ?? 'nothing'}"), so there is no figure to compare it against.`
 		);
 	if (rule.ceiling_is_inclusive == null)
 		throw new Error(
-			`Overtime coverage rule "${rule.authority}" sets a wage ceiling but does not say whether ` +
+			'The overtime coverage rule sets a wage ceiling but does not say whether ' +
 				'the ceiling amount itself is covered.'
 		);
 

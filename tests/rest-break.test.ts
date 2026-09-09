@@ -26,8 +26,7 @@ const MY_GENERAL = {
 	minimum_minutes: 30,
 	counts_as_worked_time: null,
 	applies_when: 'ALWAYS',
-	on_exceed: 'WARN',
-	authority: 'Employment Act 1955 s.60A(1)(a)'
+	on_exceed: 'WARN'
 };
 
 const MY_CONTINUOUS = {
@@ -36,8 +35,7 @@ const MY_CONTINUOUS = {
 	minimum_minutes: 45,
 	counts_as_worked_time: null,
 	applies_when: 'CONTINUOUS_ATTENDANCE',
-	on_exceed: 'WARN',
-	authority: 'Employment Act 1955 s.60A(1) proviso (ii)'
+	on_exceed: 'WARN'
 };
 
 const PH_MEAL = {
@@ -46,8 +44,7 @@ const PH_MEAL = {
 	minimum_minutes: 60,
 	counts_as_worked_time: null,
 	applies_when: 'ALWAYS',
-	on_exceed: 'WARN',
-	authority: 'Labor Code of the Philippines art.85'
+	on_exceed: 'WARN'
 };
 
 const ID_REST = {
@@ -56,8 +53,7 @@ const ID_REST = {
 	minimum_minutes: 30,
 	counts_as_worked_time: false,
 	applies_when: 'ALWAYS',
-	on_exceed: 'WARN',
-	authority: 'Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a)'
+	on_exceed: 'WARN'
 };
 
 const SG_LEISURE = {
@@ -66,8 +62,7 @@ const SG_LEISURE = {
 	minimum_minutes: null,
 	counts_as_worked_time: null,
 	applies_when: 'ALWAYS',
-	on_exceed: 'WARN',
-	authority: 'Employment Act 1968 s.38(1)(a)'
+	on_exceed: 'WARN'
 };
 
 /** `HH:MM` on one day, in a fixed offset. The offset is irrelevant to every span measured here. */
@@ -153,7 +148,7 @@ describe('Malaysia — EA 1955 s.60A(1)(a)', () => {
 		assert.equal(result.shortfallMinutes, 0);
 	});
 
-	it('the message names the figures and cites the section', () => {
+	it('the message names the figures', () => {
 		const result = restBreakAssessment({
 			intervals: worked(['08:00', '12:00'], ['12:20', '17:00']),
 			breakMinutes: 20,
@@ -162,7 +157,6 @@ describe('Malaysia — EA 1955 s.60A(1)(a)', () => {
 		const message = restBreakMessage(result, '11 Aug');
 		assert.match(message, /^11 Aug: 9 consecutive hours worked with 20 minutes of break/);
 		assert.match(message, /10 minutes short/);
-		assert.match(message, /Employment Act 1955 s\.60A\(1\)\(a\)/);
 	});
 });
 
@@ -287,7 +281,7 @@ describe('Singapore — a trigger with no stated duration', () => {
 		assert.equal(restBreakShort(result), false);
 	});
 
-	it('still says the trigger was crossed, with the citation', () => {
+	it('still says the trigger was crossed', () => {
 		const result = restBreakAssessment({
 			intervals: worked(['08:00', '17:00']),
 			breakMinutes: 45,
@@ -295,7 +289,6 @@ describe('Singapore — a trigger with no stated duration', () => {
 		});
 		const message = restBreakMessage(result, '11 Aug');
 		assert.match(message, /does not put a length on/);
-		assert.match(message, /Employment Act 1968 s\.38\(1\)\(a\)/);
 	});
 
 	// With no minimum prescribed, the shortest observed pause is still "a period of leisure".

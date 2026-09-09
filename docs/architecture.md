@@ -47,8 +47,9 @@ inferred from nationality or a shared employee-profile value.
 | Contribution | `statutory_contributions` (with their `bands`) | Contract statutory facts and source-family results                              | Employee deductions and employer costs                                                       |
 
 Different business inputs retain typed collections. A family interface does not require a universal
-entry table. `lib/payroll/family.ts` carries the shared pay-item metadata. Work declares metadata for
-salary, overtime, excess overtime and absence; Leave declares the metadata of its distinct monetary
+entry table. `lib/payroll/family.ts` carries the shared pay-item metadata. Work's four lines (salary,
+overtime, excess overtime, absence) have constant codes and orders (`work_catalogue/pay-items.ts`)
+and one `treatments` matrix, scheme by line; Leave declares the metadata of its distinct monetary
 outputs. Contribution consumes that metadata rather than inspecting the activity that produced it.
 
 ## Catalogue revisions and jurisdiction calendars
@@ -314,8 +315,8 @@ output workbook.
 
 ### Excess overtime and compliance
 
-Work has separate overtime and excess-overtime output metadata. Both amounts are derived from the
-same priced dated hours. An `INCENTIVE` boundary in the Work regime can classify ordinary-day value
+Work settles overtime and excess overtime as two lines, `OVERTIME` and `OVERTIME_EXCESS`, each with
+its own column of the treatments matrix. Both amounts are derived from the same priced dated hours. An `INCENTIVE` boundary in the Work regime can classify ordinary-day value
 above an explicit total-work boundary as excess. With no such arrangement, the daily/monthly controls
 provide the classification boundaries. Reclassification retains the value of earned work.
 
@@ -335,7 +336,8 @@ amount is not proof that scheduling complied with the law.
 ### Coverage
 
 `work_catalogue.regime.overtime_coverage` states a wage basis, ceiling and inclusivity, category
-basis, exemptions/exclusions and authority. `coverage.ts` evaluates excluded categories first,
+basis and exemptions/exclusions; the row's one `authority` is the citation for the whole regime,
+and refusals quote it. `coverage.ts` evaluates excluded categories first,
 then exemptions, then the wage test. It returns COVERED, NOT_COVERED or UNDETERMINED. Missing wage
 basis or mismatched currency cannot be replaced with a convenient salary field. A null coverage
 rule currently means universal coverage; it does not establish that the jurisdiction has been
@@ -447,7 +449,7 @@ work. The source assessment below distinguishes primary instruments from reprodu
 The earlier research did not establish the paid/unpaid status of the Malaysian leisure break or
 the Philippine ordinary meal period from the cited primary wording. The current Work regime stores
 optional `rest_break_rules` with a consecutive-hours trigger, minimum duration, working-time treatment,
-applicability, enforcement choice and authority. Omitted or empty rules produce no assessment.
+applicability and enforcement choice. Omitted or empty rules produce no assessment.
 
 `restBreakAssessment` reads worked intervals, qualifying gaps and recorded break minutes.
 `deriveDailyOvertime` reduces raw payable overtime by a quantified break shortfall only when the

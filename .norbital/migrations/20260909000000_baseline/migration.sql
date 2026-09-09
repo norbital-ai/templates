@@ -524,16 +524,12 @@ CREATE TABLE "work_catalogue" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", ''))) STORED,
 	"settings_id" uuid NOT NULL,
-	"code" text NOT NULL,
 	"proration" jsonb NOT NULL,
 	"ordinary_rate" jsonb NOT NULL,
 	"regime" jsonb NOT NULL,
-	"salary" jsonb NOT NULL,
-	"overtime" jsonb NOT NULL,
-	"overtime_excess" jsonb NOT NULL,
-	"absence" jsonb
+	"treatments" jsonb NOT NULL,
+	"authority" text
 );
 
 --> statement-breakpoint
@@ -709,10 +705,6 @@ CREATE INDEX "statutory_contributions_search_document_gin_idx" ON "statutory_con
 CREATE INDEX "statutory_contributions_search_text_trgm_idx" ON "statutory_contributions" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "work_catalogue_settings_id_index" ON "work_catalogue" ("settings_id");
---> statement-breakpoint
-CREATE INDEX "work_catalogue_search_document_gin_idx" ON "work_catalogue" USING gin ("search_document");
---> statement-breakpoint
-CREATE INDEX "work_catalogue_search_text_trgm_idx" ON "work_catalogue" USING gin ((coalesce("code", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "work_days_employment_id_work_date_index" ON "work_days" ("employment_id","work_date");
 --> statement-breakpoint

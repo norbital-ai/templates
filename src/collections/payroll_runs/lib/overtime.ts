@@ -95,10 +95,9 @@ import { decodeNumber } from '@norbital-ai/std/json';
  */
 const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;
 
-/** A rule's pricing identity: day type, authority, band bounds and the award it pays. */
+/** A rule's pricing identity: day type, band bounds and the award it pays. */
 const ruleEquivalence = Equivalence.Struct({
 	day_type: Equivalence.strictEqual<string>(),
-	authority: Equivalence.strictEqual<string>(),
 	band: Equivalence.mapInput(
 		Equivalence.Array(Equivalence.strictEqual<string | number | null>()),
 		(band: OvertimeRule['band']) =>
@@ -538,9 +537,9 @@ type ResolvedRule = Schema.Schema.Type<typeof ResolvedRuleSchema>;
 function resolveRule(rule: OvertimeRule): ResolvedRule {
 	const { band, award } = rule;
 	if (band == null)
-		throw new Error(`Overtime rule ${rule.authority} has no band, so no hour can enter it.`);
+		throw new Error(`A ${rule.day_type} overtime rule has no band, so no hour can enter it.`);
 	if (award == null)
-		throw new Error(`Overtime rule ${rule.authority} has no award, so it would pay nothing.`);
+		throw new Error(`A ${rule.day_type} overtime rule has no award, so it would pay nothing.`);
 	const bounds =
 		band.measure === 'BEYOND_NORMAL'
 			? { from: band.from_hours, to: band.to_hours }

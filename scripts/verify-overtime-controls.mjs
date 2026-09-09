@@ -91,7 +91,6 @@ Effect.runPromise(
 
 			const ordinaryRule = {
 				id: 'ordinary-1.5',
-				authority: 'EA 1955 s.60A(3)(a)',
 				day_type: 'ORDINARY',
 				band: {
 					measure: 'BEYOND_NORMAL',

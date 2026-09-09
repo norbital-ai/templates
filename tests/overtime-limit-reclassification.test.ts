@@ -446,8 +446,7 @@ const NIHON_INCENTIVE_LIMIT = {
 	period: 'DAY',
 	measures: 'TOTAL_WORK_HOURS',
 	max_hours: 11,
-	on_exceed: 'INCENTIVE',
-	authority: 'Nihon Pigment arrangement stated by Kavriel Lin, 7 September 2026'
+	on_exceed: 'INCENTIVE'
 };
 const NIHON = { overtimeLimits: [...MY_OVERTIME_LIMITS, NIHON_INCENTIVE_LIMIT] };
 const MY_LIMIT_OPTIONS = {

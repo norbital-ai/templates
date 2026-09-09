@@ -52,7 +52,6 @@ const JURISDICTION = {
 const WORK = {
 	id: '00000000-0000-4000-8000-000000000006',
 	settings_id: JURISDICTION.id,
-	code: 'STANDARD',
 	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_rate: { per: 'DAY', divisor: 26 },
@@ -61,7 +60,9 @@ const WORK = {
 		overtime_rules: [],
 		overtime_limits: [],
 		rest_break_rules: []
-	}
+	},
+	treatments: {},
+	authority: null
 } as const;
 
 const EPF_ID = '00000000-0000-4000-8000-000000000003';

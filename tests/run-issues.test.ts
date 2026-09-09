@@ -20,7 +20,6 @@ import {
 
 const DAY_WAGE_RULE = {
 	id: 'rule-rest-day-wage',
-	authority: 'EA 1955 s.60(3)',
 	day_type: 'REST_DAY',
 	band: { measure: 'FROM_START_OF_DAY', from_fraction: 0.5, to_fraction: null },
 	award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 1 }
@@ -32,7 +31,11 @@ const configuration = (overrides = {}) => ({
 		id: 'jur-my',
 		code: 'MY'
 	},
-	work: { id: 'work-my', proration: { by: 'CALENDAR_DAYS' } },
+	work: {
+		id: 'work-my',
+		proration: { by: 'CALENDAR_DAYS' },
+		authority: 'Employment (Limitation of Overtime Work) Regulations 1980'
+	},
 	company: {
 		id: 'co-my',
 		name: 'Public Fixture Co',
@@ -150,8 +153,7 @@ test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK ref
 		period: 'MONTH',
 		measures: 'OVERTIME_HOURS',
 		max_hours: 104,
-		on_exceed,
-		authority: 'Employment (Limitation of Overtime Work) Regulations 1980'
+		on_exceed
 	});
 	const warned = validateOvertimeLimits({
 		configuration: configuration({ overtimeLimits: [limit('WARN')] }),
@@ -189,8 +191,7 @@ test('a total-hours ceiling is not compared against overtime hours', () => {
 						period: 'MONTH',
 						measures: 'TOTAL_WORK_HOURS',
 						max_hours: 104,
-						on_exceed: 'BLOCK',
-						authority: 'a total-hours ceiling'
+						on_exceed: 'BLOCK'
 					}
 				]
 			}),
@@ -212,8 +213,7 @@ test('a ceiling that was not reached raises nothing', () => {
 						period: 'MONTH',
 						measures: 'OVERTIME_HOURS',
 						max_hours: 104,
-						on_exceed: 'WARN',
-						authority: '1980 Regulations'
+						on_exceed: 'WARN'
 					}
 				]
 			}),

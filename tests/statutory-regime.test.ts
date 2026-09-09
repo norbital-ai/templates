@@ -16,13 +16,11 @@ const regime = () => ({
 		wage_basis: 'STATUTORY_WAGES',
 		category_basis: 'STATUTORY_WORK_CATEGORY',
 		exempt_categories: ['MANUAL_LABOUR'],
-		excluded_categories: ['VESSEL_WORK'],
-		authority: 'Employment Act 1955 First Schedule'
+		excluded_categories: ['VESSEL_WORK']
 	},
 	overtime_rules: [
 		{
 			day_type: 'ORDINARY',
-			authority: 'Employment Act 1955 s.60A(3)(a)',
 			band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 			award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
 		}
@@ -32,8 +30,7 @@ const regime = () => ({
 			period: 'MONTH',
 			measures: 'OVERTIME_HOURS',
 			max_hours: 104,
-			on_exceed: 'BLOCK',
-			authority: 'Limitation of Overtime Work Regulations 1980 reg.2'
+			on_exceed: 'BLOCK'
 		}
 	]
 });
@@ -42,10 +39,9 @@ test('one snapshot rejects overlapping pricing bands and duplicate limit identit
 	const value = regime();
 	value.overtime_rules.push({
 		...value.overtime_rules[0],
-		authority: 'a conflicting award',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 2, to_hours: 4 }
 	});
-	value.overtime_limits.push({ ...value.overtime_limits[0], authority: 'a duplicate ceiling' });
+	value.overtime_limits.push({ ...value.overtime_limits[0] });
 
 	const issues = statutoryRegimeIssues(value, 'MYR');
 	assert.ok(issues.some((issue) => issue.includes('overtime bands overlap')));
@@ -64,7 +60,7 @@ test('coverage is coherent with the parent snapshot currency', () => {
 	assert.ok(issues.some((issue) => issue.includes('both always covered and never covered')));
 });
 
-test('the PAID configuration snapshot retains the exact regime revision and authorities', () => {
+test('the PAID configuration snapshot retains the exact regime revision', () => {
 	const value = regime();
 	const snapshot = configurationSnapshot(
 		{
@@ -107,10 +103,6 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 		effective_range: { start: '2026-01-01', end: null },
 		value
 	});
-	assert.equal(
-		snapshot.statutory_regime.value.overtime_rules[0].authority,
-		'Employment Act 1955 s.60A(3)(a)'
-	);
 });
 
 test('an INCENTIVE boundary sits beside the statutory ceilings and must be a daily total-work limit', () => {
@@ -119,7 +111,6 @@ test('an INCENTIVE boundary sits beside the statutory ceilings and must be a dai
 		measures: 'TOTAL_WORK_HOURS',
 		max_hours: 11,
 		on_exceed: 'INCENTIVE',
-		authority: 'Nihon Pigment arrangement, 7 September 2026',
 		...overrides
 	});
 	const statutory = [
@@ -127,15 +118,13 @@ test('an INCENTIVE boundary sits beside the statutory ceilings and must be a dai
 			period: 'DAY',
 			measures: 'TOTAL_WORK_HOURS',
 			max_hours: 12,
-			on_exceed: 'BLOCK',
-			authority: 'EA 1955 s.60A(7)'
+			on_exceed: 'BLOCK'
 		},
 		{
 			period: 'MONTH',
 			measures: 'OVERTIME_HOURS',
 			max_hours: 104,
-			on_exceed: 'WARN',
-			authority: 'EA 1955 s.60A(4)(a)'
+			on_exceed: 'WARN'
 		}
 	];
 	assert.deepEqual(
@@ -174,8 +163,7 @@ test('the weekly rest rule is optional, bounded and strict', () => {
 	const lawful = {
 		max_consecutive_work_days: 12,
 		discharged_by: 'REST_OR_OFF',
-		on_exceed: 'BLOCK',
-		authority: 'Employment Act 1968 s.36'
+		on_exceed: 'BLOCK'
 	};
 	assert.ok(Result.isSuccess(decode(lawful)), 'a snapshot that declares one');
 	assert.ok(Result.isSuccess(decode(undefined)), 'and one seeded before the member existed');
@@ -186,8 +174,7 @@ test('the weekly rest rule is optional, bounded and strict', () => {
 		// The hook reads a fixed 31-day neighbourhood; a limit above 30 would be unenforceable
 		// there, so the schema is where it is refused rather than where it silently under-reads.
 		['a limit past the read window', { ...lawful, max_consecutive_work_days: 31 }],
-		['an unknown discharge', { ...lawful, discharged_by: 'HOLIDAY' }],
-		['an unstated authority', { ...lawful, authority: '' }]
+		['an unknown discharge', { ...lawful, discharged_by: 'HOLIDAY' }]
 	]) {
 		assert.ok(Result.isFailure(decode(bad)), why);
 	}

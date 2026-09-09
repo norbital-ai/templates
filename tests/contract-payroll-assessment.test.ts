@@ -60,12 +60,14 @@ function rehireWorld() {
 	for (const catalogue of [world.allowance_catalogue, world.payment_catalogue])
 		for (const row of catalogue) row.contribution_treatments = { 'PUB-FIXED': { kind: 'EXCLUDE' } };
 	for (const work of world.work_catalogue)
-		for (const output of ['salary', 'overtime', 'overtime_excess', 'absence']) {
-			const metadata = work[output] as { contribution_treatments: unknown };
-			metadata.contribution_treatments = {
-				'PUB-FIXED': { kind: output === 'absence' ? 'REDUCE' : 'INCLUDE' }
-			};
-		}
+		work.treatments = {
+			'PUB-FIXED': {
+				salary: { kind: 'INCLUDE' },
+				overtime: { kind: 'INCLUDE' },
+				overtime_excess: { kind: 'INCLUDE' },
+				absence: { kind: 'REDUCE' }
+			}
+		};
 	return world;
 }
 
