@@ -22,7 +22,8 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
-	expectStatutory
+	expectStatutory,
+	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
 
 const ID_PEOPLE = [
@@ -146,4 +147,11 @@ test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025
 	// 13,750,001–15,100,000 bracket at 6.00% → 900,000.
 	expectStatutory(book, 'ID-5M', 'PPH21', 0, 0);
 	expectStatutory(book, 'ID-15M', 'PPH21', 900_000, 0);
+});
+
+test('every sealed version of `ID` is priced by a golden here', () => {
+	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
+	// golden names its version through the period it runs, so a version sealed afterwards is priced
+	// by nothing and stays green.
+	assertEveryVersionPriced('ID');
 });

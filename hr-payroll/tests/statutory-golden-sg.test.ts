@@ -15,7 +15,8 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	expectStatutory,
-	expectStatutorySkipped
+	expectStatutorySkipped,
+	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
 
 test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', () => {
@@ -204,4 +205,11 @@ test('Singapore — the 1 April 2026 version moves no contribution at all', () =
 	expectStatutory(book, 'SG-3000-30', 'SDL', 0, 7.5);
 	expectStatutory(book, 'SG-10000-30', 'SDL', 0, 11.25);
 	expectStatutory(book, 'SG-10000-30', 'SINDA', 12, 0);
+});
+
+test('every sealed version of `SG` is priced by a golden here', () => {
+	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
+	// golden names its version through the period it runs, so a version sealed afterwards is priced
+	// by nothing and stays green.
+	assertEveryVersionPriced('SG');
 });

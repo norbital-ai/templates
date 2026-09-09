@@ -10,7 +10,7 @@
  * allowances, no loans, one salary line.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
@@ -23,6 +23,17 @@ import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Every lineage snapshotted under `tests/fixtures/statutory/`, read from the directory.
+ *
+ * Listing them by hand means a lineage added to the bank is silently absent from every test that
+ * iterates them — the golden files would still pass, having never been asked about it.
+ */
+export const LINEAGES = readdirSync(resolve(here, 'statutory'), { withFileTypes: true })
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => entry.name)
+	.sort() as readonly Lineage[];
 
 export type Lineage = 'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID';
 
@@ -356,6 +367,34 @@ function indexStatutory(
 	return book;
 }
 
+/**
+ * Every `(lineage, sealed version id)` a golden in the running file has actually priced.
+ *
+ * A golden names its version indirectly, through the period it runs — so a version sealed after
+ * the golden was written is priced by nothing and nothing says so. `assertEveryVersionPriced`
+ * reads this at the foot of each golden file. Recorded per process, which is what `node --test`
+ * gives each file.
+ */
+const pricedVersions = new Set<string>();
+
+/**
+ * Fail if any sealed version of `code` was never priced by a golden in this file.
+ *
+ * A sealed version is a law in force. One with no golden is a law nothing checks, and the seed
+ * bank's whole contract is that a law change means a new sealed version — so the versions are
+ * exactly the thing coverage has to be measured against.
+ */
+export function assertEveryVersionPriced(code: Lineage): void {
+	const missing = settingsVersions(code)
+		.filter((version) => !pricedVersions.has(`${code}:${String(version.id)}`))
+		.map((version) => String(version.effective_range.start).slice(0, 10));
+	assert.deepEqual(
+		missing,
+		[],
+		`${code} has sealed versions no golden in this file prices: ${missing.join(', ')}`
+	);
+}
+
 export function assessStatutory(options: WorldOptions): StatutoryBook {
 	const world = createStatutoryWorld(options);
 	const prepared = Effect.runSync(
@@ -365,6 +404,7 @@ export function assessStatutory(options: WorldOptions): StatutoryBook {
 			period: options.period
 		})
 	);
+	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
 	return indexStatutory(
 		world.employments,
 		buildPayrollRun(prepared).payslip_payroll_run.map((payslip) => ({
@@ -389,6 +429,7 @@ export function assessStatutoryUnvalidated(options: WorldOptions): StatutoryBook
 			period: options.period
 		})
 	);
+	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
 	const { measuredContracts, chargesByEmployment } = calculateFamilyAssessments({
 		configuration: prepared.configuration,
 		gathered: prepared.gathered,
