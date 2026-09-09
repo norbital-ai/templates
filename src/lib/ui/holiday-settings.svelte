@@ -133,7 +133,7 @@
 			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
 			orderBy: { date: 'desc' }
 		}}
-		exportPipelines={[
+		bulkPipelines={[
 			{
 				id: 'holidays-publish',
 				label: t('holiday_calendar.publish_selected'),
