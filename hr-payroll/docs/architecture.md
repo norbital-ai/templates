@@ -68,43 +68,27 @@ entries that cite it. A wrong version can be voided through its supported path; 
 notes and retrieval evidence. It cannot seal its proposal or edit sealed rules. Unreachable sources
 remain visible in the outcome; a failed retrieval is not evidence that the law is unchanged.
 
-Holidays have their own annual publication lifecycle. `jurisdiction_settings.holiday_source` names
-the Google calendar identifier and time zone of a jurisdiction; it is operational configuration,
-editable under a sealed version, and the import reads it off the version in force.
-`jurisdiction_holiday_calendars` stores
-a year, revision, observed dates, provenance and import review. Holiday publication does not require
-a new catalogue version. Company closures remain schedule decisions and receive no public-holiday
-classification merely because the company is closed.
+Holidays are individual rows. `jurisdiction_settings.holiday_source` names the Google calendar
+identifier and time zone of a jurisdiction; it is operational configuration, editable under a
+sealed version, and the import reads it off the version in force. `jurisdiction_holidays` stores
+one observed day per jurisdiction: date, name, the original date when the observance moved,
+provenance, `published_at` and `consumed_at`. Publication is per holiday and needs no catalogue
+version. Company closures remain schedule decisions and receive no public-holiday classification
+merely because the company is closed.
 
-```mermaid
-flowchart LR
-    Source[Jurisdiction source and time zone] --> Import[Yearly or manual Google import]
-    Import --> Draft[Draft candidates with provenance]
-    Draft --> Review[Review observed dates and complete annual coverage]
-    Review --> Published[Published jurisdiction calendar]
-    Published --> Link[Workday or payroll input capture]
-    Link --> Seal[Permanent input seal]
-    Import --> Conflict[Changed or cancelled sealed input: preserve and report]
-```
+If it is published, it is used; if it is not, it is not there. Rosters, leave and payroll read the
+published holidays of the jurisdiction at the point of reading; nothing asks a year to be complete
+first, and a missing day is simply not a holiday. Every door in — the record form, the holidays
+spreadsheet, the Google import — passes through one dedupe: a day the jurisdiction already has is
+skipped, never duplicated or overwritten, and an import never publishes.
 
-`holiday_import` runs each 1 October for the following year; an operator can request a jurisdiction
-and year explicitly. It uses a managed connection with `GOOGLE_CALENDAR_API_KEY`, expands recurring
-events and reads all pages before saving the import. It preserves all-day dates, upstream identity
-and operator decisions. Partial or failed reads cannot replace coverage. The automation saves review
-evidence and cannot publish a calendar.
-
-An imported observance becomes a payroll holiday only after review. Publication declares complete
-annual coverage, including a reviewed empty year where appropriate. A missing or draft calendar
-blocks classification; it must not be interpreted as a year without holidays. A cross-year window
-requires every relevant year.
-
-Workday links seal their holiday input before payroll. Payroll captures also seal ordinary dates:
-adding a holiday later would change the already consumed non-holiday classification. A successor
-calendar must preserve sealed dates and observations, including their stable upstream identities.
-Deleting a consumer, re-importing or renaming a moved event cannot bypass the seal. Existing links
-keep their exact calendar revision; unlinked dates use the latest applicable published revision.
-Observed substitute dates come from the jurisdiction calendar. Work applies explicit rest/holiday
-precedence without inventing personal substitute holidays.
+A holiday that has been read is history. A work day classified as a holiday pins it
+(`work_days.holiday_id`) and payroll captures the holidays it read on the run (`payroll_runs.holidays`);
+both stamp `consumed_at` on the row, after which its day, name and publication cannot change and it
+cannot be deleted. A finished run is never touched by a holiday published later, and a holiday
+published after a run has no effect on that run. Observed substitute dates are their own rows with
+an `original_date`. Work applies explicit rest/holiday precedence without inventing personal
+substitute holidays.
 
 ## Payroll flow
 

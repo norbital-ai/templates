@@ -46,7 +46,7 @@ const DERIVED_COLUMNS = [
 	'company_id',
 	'period',
 	'configuration_hash',
-	'holiday_calendars',
+	'holidays',
 	'settings_id',
 	'calculation_version',
 	'pay_date',
@@ -69,7 +69,7 @@ type PreparedRuns = ReadonlyMap<string, PreparedRun>;
  */
 const derivedColumns = (prepared: PreparedRun) => ({
 	configuration_hash: prepared.configuration.hash,
-	holiday_calendars: prepared.configuration.holidayCalendars,
+	holidays: prepared.configuration.holidaySnapshots,
 	settings_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
 	pay_date: prepared.window.payDate,
@@ -245,7 +245,7 @@ export default {
 			},
 			after: {
 				description:
-					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist.',
+					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist, and marks the holidays it read as consumed.',
 				handler: ({ previous, record, api }) =>
 					Effect.gen(function* () {
 						if (previous !== undefined) return;
@@ -262,6 +262,12 @@ export default {
 								settled_payslip_id: payslipId,
 								settled_period: record.period
 							}));
+						// The holidays this run read are history from here on: frozen on the row itself.
+						const holidayIds = (record.holidays ?? []).map((holiday) => holiday.id);
+						if (holidayIds.length)
+							yield* api.db.jurisdiction_holidays.mutate(
+								holidayIds.map((id) => ({ id, consumed_at: new Date().toISOString() }))
+							);
 						for (const capture of captures) {
 							if (capture.workDays.length)
 								yield* api.db.work_days.mutate(stamp(capture.workDays, capture.payslipId));

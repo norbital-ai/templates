@@ -53,16 +53,16 @@ facts even when imported or displayed together.
 
 ## Jurisdiction holidays
 
-Holidays are not roster codes, employee events or per-person selections. A jurisdiction publishes
-its observed dates for each year in `jurisdiction_holiday_calendars`. Company closures remain Work
-schedule decisions. Settings → Holidays configures sources, imports candidates and reviews annual
-coverage independently of Settings → Catalog.
+Holidays are not roster codes, employee events or per-person selections. A jurisdiction's observed
+days are rows of `jurisdiction_holidays`, each published on its own. Company closures remain Work
+schedule decisions. Settings → Holidays is one table: add a day, import the holidays spreadsheet or
+the Google calendar set under General, and publish each day; Settings → Catalog is untouched.
 
-The yearly `holiday_import` automation prepares the following year each 1 October from the configured
-Google calendar. A manual run can refresh a jurisdiction/year. Imports retain upstream identities,
-all-day dates and review decisions; every page must succeed before the source update is saved.
-Credentials belong to the managed connection. An imported observance is not automatically a payroll
-holiday: an operator reviews the observed dates and complete coverage before publishing.
+The yearly `holiday_import` automation reads the following year each 1 October from the configured
+Google calendar and adds the days the jurisdiction does not have yet, unpublished. A manual run
+chooses a jurisdiction and year. Every page must succeed before a row is written; credentials
+belong to the managed connection. An imported day is not a payroll holiday until a person publishes
+it.
 
 ```mermaid
 flowchart LR

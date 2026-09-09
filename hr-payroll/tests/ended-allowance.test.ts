@@ -69,6 +69,18 @@ test('pending, future and recurring allowances do not restart a departed contrac
 	}
 });
 
+const sourceHoliday = (date: string, name: string) => ({
+	id: `holiday-${date}`,
+	jurisdiction_code: 'TEST-JUR',
+	date,
+	name,
+	original_date: null,
+	source: null,
+	published_at: '2025-12-01T00:00:00.000Z',
+	consumed_at: null,
+	approval_id: null
+});
+
 function historicalWorkingDaysWorld() {
 	const world = endedWorld();
 	world.employments[0]!.hire_date = '2025-12-10';
@@ -109,15 +121,10 @@ function historicalWorkingDaysWorld() {
 		break_minutes: null,
 		approval_id: null
 	}));
-	world.jurisdiction_holiday_calendars.find((row) => row.year === 2025)!.observations = [
-		{ date: '2025-12-12', name: 'Source holiday', original_date: null, source: null },
-		{
-			date: '2025-12-25',
-			name: 'Source holiday outside contract',
-			original_date: null,
-			source: null
-		}
-	];
+	world.jurisdiction_holidays.push(
+		sourceHoliday('2025-12-12', 'Source holiday'),
+		sourceHoliday('2025-12-25', 'Source holiday outside contract')
+	);
 	return world;
 }
 
@@ -130,19 +137,14 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 			world.employment_terms[0]!.effective_range.end = null;
 			world.shift_definitions[0]!.effective_range.end = null;
 		}
-		const original = world.jurisdiction_holiday_calendars.find((row) => row.year === 2025)!;
-		for (const day of world.work_days) day.holiday_calendar_id = original.id;
-		world.jurisdiction_holiday_calendars.push({
-			...structuredClone(original),
-			id: 'source-latest',
-			revision: 2,
-			observations: ['2025-12-13', '2025-12-25', '2025-12-26'].map((date) => ({
-				date,
-				name: 'Latest holiday',
-				original_date: null,
-				source: null
-			}))
-		});
+		// Every source day was classified when written: the 12th as its holiday, the rest as none.
+		// Two holidays published since then reach the days nothing pinned, and only those.
+		for (const day of world.work_days)
+			day.holiday_id = day.work_date === '2025-12-12' ? 'holiday-2025-12-12' : null;
+		world.jurisdiction_holidays.push(
+			sourceHoliday('2025-12-13', 'Latest holiday'),
+			sourceHoliday('2025-12-26', 'Latest holiday')
+		);
 		const prepared = await prepare(world);
 		const source = prepared.gathered.bundles[0]!.allowanceConfigurations!.get('2025-12')!;
 		assert.equal(
@@ -150,28 +152,32 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 			true,
 			'linked holiday retains its original classification'
 		);
-		assert.equal(source.holidays.has('2025-12-13'), false, 'linked ordinary day remains ordinary');
 		assert.equal(
-			source.holidays.has('2025-12-26'),
+			source.holidays.has('2025-12-13'),
 			true,
-			'unlinked date follows the latest source-year publication'
+			'a day nothing pinned takes what is published at the point of running'
+		);
+		assert.equal(source.holidays.has('2025-12-26'), true);
+		assert.equal(
+			source.holidayInputs.find((row) => row.date === '2025-12-12')!.holiday_id,
+			'holiday-2025-12-12'
 		);
 		assert.equal(
-			source.holidayInputs.find((row) => row.date === '2025-12-12')!.calendar_id,
-			original.id
+			source.holidayInputs.find((row) => row.date === '2025-12-26')!.holiday_id,
+			'holiday-2025-12-26'
 		);
-		assert.equal(
-			source.holidayInputs.find((row) => row.date === '2025-12-26')!.calendar_id,
-			'source-latest'
+		assert.ok(
+			prepared.configuration.holidaySnapshots.some((row) => row.id === 'holiday-2025-12-12')
 		);
-		assert.ok(prepared.configuration.holidayCalendars.some((row) => row.id === original.id));
-		assert.ok(prepared.configuration.holidayCalendars.some((row) => row.id === 'source-latest'));
+		assert.ok(
+			prepared.configuration.holidaySnapshots.some((row) => row.id === 'holiday-2025-12-26')
+		);
 		const built = buildPayrollRun(prepared);
 		const slip = built.payslip_payroll_run[0]!;
 		assert.equal(
 			slip.adjustments.find((row) => row.family === 'ALLOWANCE')?.amount,
-			ended ? 103.57 : 196.79,
-			'290 × pinned covered days / 28 days after the unlinked new holiday'
+			ended ? 96.67 : 193.33,
+			'290 × covered days / 27 days once the two later holidays reach the unpinned days'
 		);
 	}
 });
@@ -205,9 +211,9 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 			api: memoryPayrollApi(world)
 		} as never)
 	);
-	assert.ok(created.holiday_calendars.some((row) => row.year === 2025));
+	assert.ok(created.holidays.some((row) => row.date === '2025-12-12'));
 	const changed = structuredClone(world);
-	changed.jurisdiction_holiday_calendars.find((row) => row.year === 2025)!.observations.shift();
+	changed.jurisdiction_holidays.find((row) => row.date === '2025-12-12')!.published_at = null;
 	const next = await prepare(changed);
 	assert.notEqual(
 		next.configuration.hash,
@@ -217,11 +223,14 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 	assert.equal(buildPayrollRun(next).payslip_payroll_run[0]!.gross, 106.33);
 });
 
-test('working-day Allowance refuses missing source-year calendars or incomplete source rosters', async () => {
-	const missingCalendar = historicalWorkingDaysWorld();
-	missingCalendar.jurisdiction_holiday_calendars =
-		missingCalendar.jurisdiction_holiday_calendars.filter((row) => row.year !== 2025);
-	await assert.rejects(prepare(missingCalendar), /Publish the TEST-JUR holiday calendar for 2025/);
+test('working-day Allowance with no published holidays counts every day, and refuses incomplete source rosters', async () => {
+	const noHolidays = historicalWorkingDaysWorld();
+	noHolidays.jurisdiction_holidays = [];
+	assert.equal(
+		buildPayrollRun(await prepare(noHolidays)).payslip_payroll_run[0]!.gross,
+		102.9,
+		'290 × 11 covered days / 31 source-month days: a missing holiday is simply not a holiday'
+	);
 	const missingRoster = historicalWorkingDaysWorld();
 	missingRoster.shift_patterns[0]!.pattern = {
 		type: 'ROSTERED',

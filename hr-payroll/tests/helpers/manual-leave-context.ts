@@ -79,14 +79,7 @@ export function leaveContext(): LeaveContext {
 				}
 			}
 		],
-		calendars: [2025, 2026, 2027].map((year) => ({
-			id: id(year),
-			jurisdiction_code: 'TEST-JUR',
-			year,
-			revision: 1,
-			observations: [],
-			published_at: span.start
-		})),
+		holidays: [],
 		patterns: [
 			{
 				id: id(5),

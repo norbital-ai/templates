@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
-	import {
-		HOLIDAY_CALENDAR_QUERY_LIMIT,
-		holidayCalendarView
-	} from '../../../lib/ui/holiday-calendar.js';
+	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../../lib/workspace-client.js';
@@ -421,7 +418,7 @@
 			? null
 			: client.db.jurisdiction_settings.findMany({
 					where: onLineage(selectedSettingsCode),
-					limit: HOLIDAY_CALENDAR_QUERY_LIMIT
+					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);
 	const calendarJurisdiction = $derived(
@@ -433,20 +430,21 @@
 	const holidaysQuery = $derived(
 		calendarJurisdiction == null
 			? null
-			: client.db.jurisdiction_holiday_calendars.findMany({
+			: client.db.jurisdiction_holidays.findMany({
 					where: {
 						...approved,
 						jurisdiction_code: { eq: calendarJurisdiction },
-						year: { eq: Number(monthStart.slice(0, 4)) }
+						date: { gte: monthStart, lte: monthEnd },
+						published_at: { isNotNull: true }
 					},
-					limit: HOLIDAY_CALENDAR_QUERY_LIMIT
+					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);
 	const calendarResolution = $derived(
-		holidayCalendarView({
+		holidayView({
 			settingsCount: calendarSettingsQuery?.current?.length,
 			jurisdiction: calendarJurisdiction,
-			calendars: holidaysQuery?.current,
+			rows: holidaysQuery?.current,
 			start: monthStart,
 			end: monthEnd,
 			noJurisdiction: t('holiday_calendar.no_jurisdiction'),
@@ -1249,22 +1247,22 @@
 	{#if calendarJurisdiction != null}
 		<CollectionTable
 			{client}
-			collection="jurisdiction_holiday_calendars"
-			view="hr_controller:scheduling:holiday_calendars"
+			collection="jurisdiction_holidays"
+			view="hr_controller:scheduling:holidays"
 			title={t('holiday_calendar.title')}
+			features={{ create: false }}
 			query={{
 				where: {
 					jurisdiction_code: { eq: calendarJurisdiction },
-					year: { eq: Number(monthStart.slice(0, 4)) }
+					date: { gte: monthStart, lte: monthEnd }
 				},
-				orderBy: { revision: 'desc' }
+				orderBy: { date: 'asc' }
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column name="year" label={t('holiday_calendar.year')} card="title" />
-				<Column name="revision" label={t('holiday_calendar.revision')} />
-				<Column name="published_at" label={t('holiday_calendar.published_at')} />
-				<Column name="observations" label={t('holiday_calendar.observations')} />
+				<Column name="date" label={t('component.observed_on')} card="title" />
+				<Column name="name" label={t('component.holiday')} card="subtitle" />
+				<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
 			{/snippet}
 		</CollectionTable>
 	{:else}

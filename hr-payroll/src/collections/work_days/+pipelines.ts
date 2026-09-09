@@ -1,5 +1,5 @@
 import { resolveEmployment } from '../../lib/employment-contract.js';
-import { resolveHolidayCalendars } from '../../lib/holiday-calendar.js';
+import { resolveHolidays } from '../../lib/holiday-calendar.js';
 import { settingsInForce } from '../../lib/jurisdiction_settings.js';
 /**
  * The `work_days` import: one pipeline, two sheets, one row per person-day.
@@ -302,25 +302,26 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 			const last = dates.toSorted().at(-1)!;
 			const jurisdiction = settingsInForce(versions, company.settings_code, last);
 			if (jurisdiction == null) refuse('No published settings cover this roster month.');
-			const calendars = yield* api.db.jurisdiction_holiday_calendars.findMany({
+			const holidays = yield* api.db.jurisdiction_holidays.findMany({
 				where: {
 					jurisdiction_code: { eq: jurisdiction.jurisdiction_code },
-					year: { eq: Number(last.slice(0, 4)) },
+					date: { in: dates },
+					published_at: { isNotNull: true },
 					approval_id: { isNull: true }
 				},
 				limit: QUERY_LIMIT
 			});
-			if (calendars.length >= QUERY_LIMIT) refuse('Holiday calendar history is incomplete.');
-			const configured = resolveHolidayCalendars(
-				calendars,
+			if (holidays.length >= QUERY_LIMIT) refuse('Holiday history is incomplete.');
+			const configured = resolveHolidays(
+				holidays,
 				jurisdiction.jurisdiction_code,
 				dates.toSorted()[0]!,
 				last
-			).holidays;
+			);
 			const unknown = holidayRows.filter((row) => !configured.has(row.work_date));
 			if (unknown.length > 0) {
 				refuse(
-					`These PH rows are not published observed holidays for the jurisdiction:\n${formatNamedList(formatRosterRows(unknown))}\nPublish the jurisdiction holiday calendar first.`
+					`These PH rows are not published holidays for the jurisdiction:\n${formatNamedList(formatRosterRows(unknown))}\nPublish the holiday under Settings → Holidays first.`
 				);
 			}
 		}

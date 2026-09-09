@@ -727,9 +727,9 @@ export function finalizeFamilyConfiguration(
 		const resolved = resolveHolidayInputs(
 			[
 				...new Map(
-					[...source.holidayCalendars, ...facts.workHolidayEvidence.calendars].map((calendar) => [
-						calendar.id,
-						calendar
+					[...source.holidaySnapshots, ...facts.workHolidayEvidence.holidays].map((holiday) => [
+						holiday.id,
+						holiday
 					])
 				).values()
 			],
@@ -740,7 +740,7 @@ export function finalizeFamilyConfiguration(
 		const pinned = {
 			...source,
 			holidays: resolved.holidays,
-			holidayCalendars: resolved.calendars,
+			holidaySnapshots: resolved.snapshots,
 			holidayInputs: resolved.inputs
 		};
 		return { ...pinned, hash: sha256Json(configurationSnapshot(pinned, period)) };
@@ -775,11 +775,11 @@ export function finalizeFamilyConfiguration(
 			? current
 			: {
 					...current,
-					holidayCalendars: [
+					holidaySnapshots: [
 						...new Map(
 							[current, ...historicalCalendars]
-								.flatMap((source) => source.holidayCalendars)
-								.map((calendar) => [calendar.id, calendar])
+								.flatMap((source) => source.holidaySnapshots)
+								.map((holiday) => [holiday.id, holiday])
 						).values()
 					],
 					holidayInputs: [

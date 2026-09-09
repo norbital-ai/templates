@@ -17,14 +17,11 @@ test('the Work board reads schedule patterns through terms and jurisdiction cale
 		/with: \{ term_shift_pattern: \{ columns: \{ id: true, code: true, pattern: true \} \} \}/
 	);
 	assert.equal(reads.filter((name) => name === 'db.jurisdiction_settings.findMany').length, 1);
-	assert.equal(
-		reads.filter((name) => name === 'db.jurisdiction_holiday_calendars.findMany').length,
-		1
-	);
+	assert.equal(reads.filter((name) => name === 'db.jurisdiction_holidays.findMany').length, 1);
 	assert.ok(!reads.includes('db.company_holidays.findMany'));
-	assert.match(script, /holidayCalendarView\(/);
+	assert.match(script, /holidayView\(/);
 	const calendarView = source('lib/ui/holiday-calendar.ts');
-	assert.match(calendarView, /resolveHolidayCalendars\(/);
+	assert.match(calendarView, /resolveHolidays\(/);
 	assert.deepEqual(
 		registrations(calendarView),
 		[],
@@ -38,10 +35,10 @@ test('the Shift patterns tab registers one table', () => {
 	assert.match(tab, /collection="shift_patterns"/);
 });
 
-test('the Work holiday view reads annual jurisdiction calendars instead of employee events', () => {
+test('the Work holiday view reads published jurisdiction holidays instead of employee events', () => {
 	const tab = snippet(page, 'holidays');
 	assert.deepEqual(registrations(tab), ['CollectionTable']);
-	assert.match(tab, /collection="jurisdiction_holiday_calendars"/);
+	assert.match(tab, /collection="jurisdiction_holidays"/);
 	assert.match(tab, /jurisdiction_code/);
 	assert.doesNotMatch(tab, /collection="work_days"/);
 });

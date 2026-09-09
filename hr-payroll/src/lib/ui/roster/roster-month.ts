@@ -147,7 +147,7 @@ const dayFactsSchema = Schema.Struct({
 	assignmentCode: Schema.NullOr(Schema.String),
 	/** Where the plan came from, or null when the day carries no explicit plan. */
 	plannedOrigin: Schema.NullOr(Schema.Literals(['IMPORT', 'MANUAL'])),
-	/** Overlaid from `jurisdiction_holiday_calendars`, never stored on the entry. */
+	/** Overlaid from the published `jurisdiction_holidays`, never stored on the entry. */
 	holidayName: Schema.NullOr(Schema.String),
 	leaveCode: Schema.NullOr(Schema.String),
 	halfDayLeave: Schema.Boolean,

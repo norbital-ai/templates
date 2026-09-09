@@ -1,35 +1,30 @@
-import { resolveHolidayCalendars, type HolidayCalendar } from '../holiday-calendar.js';
+import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
+import type { HolidaySnapshot } from '../../datatypes/holiday_snapshots/+definition.js';
 
-export const HOLIDAY_CALENDAR_QUERY_LIMIT = 200;
+export const HOLIDAY_QUERY_LIMIT = 200;
 
-/** Resolve loaded calendar rows for both attendance views; each view owns its live queries. */
-export function holidayCalendarView(input: {
+/** The published holidays a roster or schedule overlays for one period; each view owns its live queries. */
+export function holidayView(input: {
 	readonly settingsCount: number | undefined;
 	readonly jurisdiction: string | null;
-	readonly calendars: readonly HolidayCalendar[] | undefined;
+	readonly rows: readonly HolidayRow[] | undefined;
 	readonly start: string;
 	readonly end: string;
 	readonly noJurisdiction: string;
 	readonly truncated: string;
-}): { readonly holidays: HolidayCalendar['observations']; readonly error: string | null } {
+}): { readonly holidays: readonly HolidaySnapshot[]; readonly error: string | null } {
 	if (input.settingsCount !== undefined && input.jurisdiction == null)
 		return { holidays: [], error: input.noJurisdiction };
 	if (
-		(input.settingsCount ?? 0) >= HOLIDAY_CALENDAR_QUERY_LIMIT ||
-		(input.calendars?.length ?? 0) >= HOLIDAY_CALENDAR_QUERY_LIMIT
+		(input.settingsCount ?? 0) >= HOLIDAY_QUERY_LIMIT ||
+		(input.rows?.length ?? 0) >= HOLIDAY_QUERY_LIMIT
 	)
 		return { holidays: [], error: input.truncated };
-	if (input.jurisdiction == null || input.calendars === undefined)
-		return { holidays: [], error: null };
+	if (input.jurisdiction == null || input.rows === undefined) return { holidays: [], error: null };
 	try {
 		return {
 			holidays: [
-				...resolveHolidayCalendars(
-					input.calendars,
-					input.jurisdiction,
-					input.start,
-					input.end
-				).holidays.values()
+				...resolveHolidays(input.rows, input.jurisdiction, input.start, input.end).values()
 			],
 			error: null
 		};

@@ -58,7 +58,7 @@ test(
 				'claim_catalogue',
 				'allowance_catalogue',
 				'payment_catalogue',
-				'jurisdiction_holiday_calendars',
+				'jurisdiction_holidays',
 				'employees',
 				'shift_definitions',
 				'shift_patterns',

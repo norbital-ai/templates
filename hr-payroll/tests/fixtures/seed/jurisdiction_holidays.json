@@ -1,0 +1,12 @@
+[
+	{
+		"id": "0d3f1c2e-6b1a-5f0e-9a1b-000000000001",
+		"jurisdiction_code": "TEST-JUR",
+		"date": "2026-12-25",
+		"name": "Fixture holiday",
+		"original_date": null,
+		"source": "Synthetic fixture",
+		"published_at": null,
+		"consumed_at": null
+	}
+]

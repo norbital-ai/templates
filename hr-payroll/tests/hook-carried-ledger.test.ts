@@ -17,9 +17,14 @@ const before = (input: Record<string, unknown>, context = leaveContext()) =>
 
 test('the entry hook freezes server-measured date charges and ignores caller-supplied quantities', () => {
 	const context = leaveContext();
-	context.calendars.find((row) => row.year === 2026)!.observations = [
-		{ date: '2026-04-02', name: 'Observed', original_date: null, source: null }
-	];
+	context.holidays.push({
+		id: id(2026),
+		jurisdiction_code: 'TEST-JUR',
+		date: '2026-04-02',
+		name: 'Observed',
+		original_date: null,
+		published_at: '2025-01-01T00:00:00.000Z'
+	});
 	const input = {
 		...submission(timeOff('2026-04-01', '2026-04-03')),
 		charges: [],
@@ -47,13 +52,13 @@ test('the entry hook freezes server-measured date charges and ignores caller-sup
 	assert.deepEqual(context.entries, []);
 });
 
-test('every charge carries the calendar it was measured against; the entry writes no side rows', () => {
+test('every charge names the holiday that excluded its day, or none; the entry writes no side rows', () => {
 	const result = before(submission(timeOff('2026-04-01', '2026-04-02')));
 	assert.deepEqual(
-		result.charges.map((row) => [row.date, row.calendar_id]),
+		result.charges.map((row) => [row.date, row.holiday_id]),
 		[
-			['2026-04-01', id(2026)],
-			['2026-04-02', id(2026)]
+			['2026-04-01', null],
+			['2026-04-02', null]
 		]
 	);
 	assert.equal(result.employment_id, id(1));

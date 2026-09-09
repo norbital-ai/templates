@@ -41,7 +41,7 @@ function charge(date: string, days: 0.5 | 1 = 1): LeaveCharge {
 		days,
 		leave_catalogue_id: id(1),
 		employment_term_id: id(3),
-		calendar_id: id(4),
+		holiday_id: null,
 		shift_definition_id: id(5),
 		work_day_id: null
 	};

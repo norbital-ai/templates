@@ -1,5 +1,5 @@
 /**
- * The two import templates operators are issued, written to `~/Desktop`.
+ * The three import templates operators are issued, written to `~/Desktop`.
  *
  * The sheets mirror exactly what the reader in `src/collections/work_days/lib` accepts as the
  * designed layout — both of them, because both sheets describe the same person-day: one entity × one month,
@@ -37,6 +37,24 @@ const EPOCH = new Date('2026-08-04T16:00:00.000Z');
  */
 createRequire(createRequire(import.meta.url).resolve('exceljs'))('jszip').defaults.date = EPOCH;
 
+const HOLIDAYS_TEMPLATE_PATH = path.join(
+	os.homedir(),
+	'Desktop',
+	'norbital-holidays-import-template.xlsx'
+);
+const HOLIDAY_HEADERS = ['jurisdiction_code', 'date', 'name', 'original_date'];
+const HOLIDAY_SAMPLE_ROWS = [
+	['MY', '2027-01-01', "New Year's Day", ''],
+	['MY', '2027-02-01', 'Federal Territory Day', ''],
+	['MY', '2027-05-03', 'Labour Day (in lieu)', '2027-05-01']
+];
+const HOLIDAY_README = [
+	'One row per jurisdiction and observed day. Columns: jurisdiction_code, date, name, original_date.',
+	'jurisdiction_code is the settings jurisdiction (MY, SG, ID, …). date is the day observed, as YYYY-MM-DD.',
+	'original_date is optional: the statutory date when the observance moved, e.g. a Sunday holiday taken on Monday.',
+	'A day the jurisdiction already has is skipped, never duplicated or overwritten. Imported holidays arrive unpublished;',
+	'publish each one under Settings → Holidays. Only published holidays are used by rosters, leave and payroll.'
+];
 const ROSTER_TEMPLATE_PATH = path.join(
 	os.homedir(),
 	'Desktop',
@@ -274,8 +292,20 @@ addTableSheet(
 	GRID_HEADERS,
 	TIME_ENTRY_SAMPLE_ROWS
 );
+const holidaysWorkbook = newWorkbook();
+addReadmeSheet(holidaysWorkbook, HOLIDAY_README);
+addTableSheet(holidaysWorkbook, 'Holidays', [18, 14, 40, 16], HOLIDAY_HEADERS, HOLIDAY_SAMPLE_ROWS);
 Effect.runPromise(
 	Effect.gen(function* () {
+		const holidaysShipped = yield* writeWorkbook(holidaysWorkbook, HOLIDAYS_TEMPLATE_PATH);
+		assert.deepEqual(
+			[...holidaysShipped.worksheets.map((sheet) => sheet.name)],
+			['Read me first', 'Holidays']
+		);
+		assert.deepEqual(headersOf(holidaysShipped, 'Holidays'), HOLIDAY_HEADERS);
+		assert.equal(cellOf(holidaysShipped, 'Holidays', 2, 'date'), '2027-01-01');
+		console.log(`${HOLIDAYS_TEMPLATE_PATH}`);
+		console.log(`  sheets: Read me first, Holidays`);
 		const rosterShipped = yield* writeWorkbook(rosterWorkbook, ROSTER_TEMPLATE_PATH);
 		assert.deepEqual(
 			[...rosterShipped.worksheets.map((sheet) => sheet.name)],

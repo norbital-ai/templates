@@ -21,7 +21,7 @@ type ReadTables =
 	| 'work_days'
 	| 'shift_patterns'
 	| 'shift_definitions'
-	| 'jurisdiction_holiday_calendars'
+	| 'jurisdiction_holidays'
 	| 'payroll_runs'
 	| 'payslip_leave_inputs'
 	| 'payslips';
@@ -83,9 +83,9 @@ export type LeaveContext = {
 		| 'payroll_effect'
 		| 'encashment'
 	>[];
-	calendars: Pick<
-		WorkspaceRow<'jurisdiction_holiday_calendars'>,
-		'id' | 'jurisdiction_code' | 'year' | 'revision' | 'observations' | 'published_at'
+	holidays: Pick<
+		WorkspaceRow<'jurisdiction_holidays'>,
+		'id' | 'jurisdiction_code' | 'date' | 'name' | 'original_date' | 'published_at'
 	>[];
 	workDays: Pick<
 		WorkspaceRow<'work_days'>,
@@ -278,30 +278,27 @@ export function readLeaveContext(
 			}),
 			'leave catalogues'
 		);
-		const calendars = complete(
-			yield* api.db.jurisdiction_holiday_calendars.findMany({
+		const holidays = complete(
+			yield* api.db.jurisdiction_holidays.findMany({
 				where: {
 					jurisdiction_code: {
 						in: window == null ? [] : [...new Set(versions.map((row) => row.jurisdiction_code))]
 					},
-					...(window == null
-						? {}
-						: {
-								year: { gte: Number(window.start.slice(0, 4)), lte: Number(window.end.slice(0, 4)) }
-							}),
+					...(window == null ? {} : { date: { gte: window.start, lte: window.end } }),
+					published_at: { isNotNull: true },
 					approval_id: { isNull: true }
 				},
 				columns: {
 					id: true,
 					jurisdiction_code: true,
-					year: true,
-					revision: true,
-					observations: true,
+					date: true,
+					name: true,
+					original_date: true,
 					published_at: true
 				},
 				limit: LIMIT
 			}),
-			'holiday calendars'
+			'holidays'
 		);
 		const entries = yield* withPendingLeaveEntries(api, ids, stored);
 		const captures = !includeSettlements
@@ -345,7 +342,7 @@ export function readLeaveContext(
 			entries,
 			versions,
 			catalogues,
-			calendars,
+			holidays,
 			workDays,
 			runs,
 			patterns,

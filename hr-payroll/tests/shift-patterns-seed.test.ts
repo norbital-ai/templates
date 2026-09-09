@@ -91,7 +91,7 @@ test('the manifest covers current source collections and stages consumers after 
 		['companies', 'employments'],
 		['employees', 'employments'],
 		['employment_terms', 'work_days'],
-		['jurisdiction_holiday_calendars', 'work_days'],
+		['jurisdiction_holidays', 'work_days'],
 		['work_days', 'leave_entries'],
 		['loans', 'loan_repayments']
 	])

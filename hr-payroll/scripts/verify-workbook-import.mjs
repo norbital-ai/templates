@@ -132,6 +132,9 @@ function matches(row, where = {}) {
 		if ('eq' in condition) return String(row[column]) === String(condition.eq);
 		if ('in' in condition) return condition.in.map(String).includes(String(row[column]));
 		if ('isNull' in condition) return (row[column] == null) === condition.isNull;
+		if ('isNotNull' in condition)
+			return condition.isNotNull ? row[column] != null : row[column] == null;
+		if ('isNull' in condition) return condition.isNull ? row[column] == null : row[column] != null;
 		throw new Error(`The stub does not implement ${JSON.stringify(condition)} on ${column}.`);
 	});
 }
@@ -195,21 +198,16 @@ function rosterApi(overrides = {}) {
 				effective_range: { start: '2020-01-01', end: null }
 			}
 		],
-		jurisdiction_holiday_calendars: [
-			{
-				id: 'calendar:test',
-				jurisdiction_code: 'TEST-JUR',
-				year: 2026,
-				revision: 1,
-				published_at: '2025-12-01T00:00:00Z',
-				observations: (overrides.holidays ?? [{ date: '2026-05-08' }]).map((row) => ({
-					date: row.date,
-					name: 'Fixture holiday',
-					original_date: null,
-					source: null
-				}))
-			}
-		],
+		jurisdiction_holidays: (overrides.holidays ?? [{ date: '2026-05-08' }]).map((row, index) => ({
+			id: `holiday:${index}`,
+			jurisdiction_code: 'TEST-JUR',
+			date: row.date,
+			name: 'Fixture holiday',
+			original_date: null,
+			source: null,
+			published_at: '2025-12-01T00:00:00Z',
+			consumed_at: null
+		})),
 		employments: employments(),
 		shift_definitions: [
 			{
@@ -398,10 +396,7 @@ const program = Effect.gen(function* () {
 				);
 			})
 		);
-		assert.match(
-			unobservedPh,
-			/These PH rows are not published observed holidays for the jurisdiction/
-		);
+		assert.match(unobservedPh, /These PH rows are not published holidays for the jurisdiction/);
 		assert.match(unobservedPh, /PUBEM0023 on 2026-05-08/);
 
 		const observedPh = yield* runHandler(

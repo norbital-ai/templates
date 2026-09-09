@@ -8,7 +8,7 @@ const clockTime = Schema.String.check(Schema.isPattern(/^([01]\d|2[0-3]):[0-5]\d
  *
  * A working code owns its scheduled clock window and unpaid break. REST and OFF are genuine
  * variants of the same roster vocabulary, so they carry no meaningless nullable clock fields.
- * PUBLIC_HOLIDAY is deliberately absent: it is resolved from `jurisdiction_holiday_calendars` for the employee,
+ * PUBLIC_HOLIDAY is deliberately absent: it is resolved from the published `jurisdiction_holidays` for the employee,
  * and can therefore never drift from a manually assigned per-person code.
  */
 export const rosterCodeVariantValueSchema = Schema.Union([

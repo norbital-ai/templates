@@ -229,7 +229,7 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 						days: 1,
 						leave_catalogue_id: catalogueId,
 						employment_term_id: terms.id,
-						calendar_id: 'public-calendar-2026',
+						holiday_id: null,
 						shift_definition_id: day.shift_definition_id,
 						work_day_id: day.id
 					}

@@ -2,12 +2,16 @@ import { parseDate } from '@internationalized/date';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
-import type {
-	HolidayImportEvent,
-	HolidayImportReview
-} from '../datatypes/holiday_import_review/+definition.js';
-import type { HolidayObservation } from '../datatypes/holiday_observations/+definition.js';
-import { changedHolidayDates } from './holiday-inputs.js';
+import type { HolidayImportRow } from './holiday-rows.js';
+
+/** One Google event, read whole: every day it covers inside the year, or none when cancelled. */
+type GoogleHolidayEvent = {
+	readonly source: string;
+	readonly event_id: string;
+	readonly name: string;
+	readonly dates: readonly string[];
+	readonly cancelled: boolean;
+};
 
 type HolidaySource = {
 	readonly jurisdiction_code: string;
@@ -139,7 +143,7 @@ export const readGoogleHolidayYear = (
 			}
 			token = page.nextPageToken || undefined;
 			if (token == null) {
-				return [...events.values()].map((event): Omit<HolidayImportEvent, 'review_required'> => {
+				return [...events.values()].map((event): GoogleHolidayEvent => {
 					const sourceUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(source.calendar_id)}/events/${encodeURIComponent(event.id)}`;
 					const dates: string[] = [];
 					if (event.status !== 'cancelled') {
@@ -159,81 +163,36 @@ export const readGoogleHolidayYear = (
 					return {
 						source: sourceUrl,
 						event_id: event.id,
-						revision: event.etag ?? '',
-						updated_at: event.updated ?? null,
 						name: event.summary?.trim() || event.id,
 						dates,
 						cancelled: event.status === 'cancelled'
 					};
 				});
 			}
-			if (tokens.has(token)) refuse('Google repeated a page token. No holiday draft was changed.');
+			if (tokens.has(token)) refuse('Google repeated a page token. No holiday was added.');
 			tokens.add(token);
 		}
-		return refuse('The annual holiday import exceeded 20 pages. No holiday draft was changed.');
+		return refuse('The annual holiday import exceeded 20 pages. No holiday was added.');
 	});
 
-/** Refresh changes source evidence only. Existing observations, including manual corrections, survive. */
-export function mergeHolidayImport(
-	source: HolidaySource,
-	retrievedAt: string,
-	incoming: readonly Omit<HolidayImportEvent, 'review_required'>[],
-	previous: HolidayImportReview | null
-): HolidayImportReview {
-	const old = new Map(previous?.events.map((event) => [event.source, event]) ?? []);
-	const current = new Map(incoming.map((event) => [event.source, event]));
-	const events = incoming.map((item) => {
-		const event =
-			item.cancelled && old.has(item.source)
-				? { ...item, name: old.get(item.source)!.name, dates: old.get(item.source)!.dates }
-				: item;
-		const existing = old.get(event.source);
-		const unchanged =
-			existing != null &&
-			existing.name === event.name &&
-			existing.cancelled === event.cancelled &&
-			JSON.stringify(existing.dates) === JSON.stringify(event.dates);
-		return {
-			...event,
-			review_required: unchanged ? existing.review_required : !event.cancelled || existing != null
-		};
-	});
-	for (const event of old.values()) {
-		if (!current.has(event.source))
-			events.push({
-				...event,
-				cancelled: true,
-				review_required: event.cancelled ? event.review_required : true
-			});
-	}
-	return {
-		calendar_id: source.calendar_id,
-		time_zone: source.time_zone,
-		retrieved_at: retrievedAt,
-		events: events.toSorted((a, b) => a.source.localeCompare(b.source))
-	};
-}
-
-export function reviewHolidayEvent(
-	observations: readonly HolidayObservation[],
-	event: HolidayImportEvent,
-	decision: 'OBSERVE' | 'IGNORE' | 'KEEP',
-	sealedDates: ReadonlySet<string>
-): HolidayObservation[] {
-	if (decision === 'KEEP') return [...observations];
-	if (decision === 'OBSERVE' && (event.cancelled || event.dates.length === 0))
-		refuse('A cancelled or out-of-year source event cannot be observed.');
-	const next = observations.filter((observation) => observation.source !== event.source);
-	if (decision === 'OBSERVE') {
-		for (const date of event.dates) {
-			if (next.some((observation) => observation.date === date))
-				refuse(
-					`Observed date ${date} already has a holiday. Review the existing observation first.`
-				);
-			next.push({ date, name: event.name, original_date: null, source: event.source });
-		}
-	}
-	const conflict = changedHolidayDates(observations, next).find((date) => sealedDates.has(date));
-	if (conflict) refuse(`Holiday input ${conflict} is sealed. Retain the existing observation.`);
-	return next.toSorted((a, b) => a.date.localeCompare(b.date));
+/**
+ * The rows a Google year proposes: one per day of every live event. A cancelled event proposes
+ * nothing; what it once added stays a person's decision to keep or delete.
+ */
+export function googleHolidayRows(
+	jurisdictionCode: string,
+	events: readonly GoogleHolidayEvent[]
+): HolidayImportRow[] {
+	return events
+		.filter((event) => !event.cancelled)
+		.flatMap((event) =>
+			event.dates.map((date) => ({
+				jurisdiction_code: jurisdictionCode,
+				date,
+				name: event.name,
+				original_date: null,
+				source: event.source
+			}))
+		)
+		.toSorted((a, b) => a.date.localeCompare(b.date) || a.source.localeCompare(b.source));
 }

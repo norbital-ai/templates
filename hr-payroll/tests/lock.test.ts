@@ -333,19 +333,7 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 						}
 					])
 			},
-			jurisdiction_holiday_calendars: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							id: 'calendar-2026',
-							jurisdiction_code: 'TEST-JUR',
-							year: 2026,
-							revision: 1,
-							published_at: '2025-12-01T00:00:00.000Z',
-							observations: []
-						}
-					])
-			},
+			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
 			// keeps its own tests.

@@ -5,10 +5,10 @@ export default defineModel(
 		company_id: uuid().notNull(),
 		period: text({ search: true }).notNull(),
 		lifecycle: enums(['DRAFT', 'PAID']).notNull(),
-		/** Hash of the selected configuration; holiday_calendars retains the annual publications themselves. */
+		/** Hash of the selected configuration; holidays retains the published holidays the run read. */
 		configuration_hash: text().notNull(),
 		/** Annual calendars publish independently of settings; preserve their full selected revisions. */
-		holiday_calendars: custom('holiday_calendar_snapshots').notNull(),
+		holidays: custom('holiday_snapshots').notNull(),
 		/** Sealed catalogue/settings version. Independently published calendars are captured alongside it. */
 		settings_id: uuid().notNull(),
 		/**
