@@ -33,6 +33,8 @@
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 
 	/** Terms as the profile reads them: the pointer, and the named pattern riding the `with`. */
 	type EmploymentTerm = Pick<
@@ -165,11 +167,40 @@
 			? null
 			: client.db.employments.findMany({
 					where: { ...approved, employee_id: { eq: record.id } },
+					columns: {
+						id: true,
+						company_id: true,
+						hire_date: true,
+						effective_range: true,
+						exit_date: true,
+						exit_reason: true
+					},
 					orderBy: { hire_date: 'desc' },
 					limit: 100
 				})
 	);
 	const employments = $derived((employmentsQuery?.current ?? []).map(resolveEmployment));
+	/**
+	 * The scope the profile hands to the forms its tables open (terms, statutory facts). A person
+	 * with one contract has it prefilled and hidden; with several, the picker offers the entity's
+	 * own people, and with none the form is unnarrowed rather than empty.
+	 */
+	const scopedEmployment = $derived(employments.length === 1 ? employments[0] : undefined);
+	// The entity's lineage rides a second read: `with` joins are untyped on the browser client,
+	// so the scope resolves the company row itself rather than joining it into the employments.
+	const scopedCompanyQuery = $derived(
+		scopedEmployment == null
+			? null
+			: client.db.companies.findFirst({
+					where: { id: { eq: scopedEmployment.company_id } },
+					columns: { settings_code: true }
+				})
+	);
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		employmentId: () => scopedEmployment?.id,
+		companyId: () => scopedEmployment?.company_id,
+		settingsCode: () => scopedCompanyQuery?.current?.settings_code ?? undefined
+	});
 	const subtitle = $derived(
 		record == null
 			? undefined
@@ -255,6 +286,7 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
+			<!-- Written by the enrolment flow and the kiosk functions only; never offered. -->
 			<Field name="user_id" hidden />
 			<Field name="face_embedding" hidden />
 			<Field name="face_photo" hidden />
@@ -264,20 +296,20 @@
 			<Field name="face_last_match_at" hidden />
 			<Field name="face_match_count" hidden />
 			<Stack gap="lg">
-				<Grid gap="md" minimum="panel">
-					<Field name="name" />
-					<Field name="email" />
-					<Field name="phone" />
-					<Field name="date_of_birth" label={t('component.date_of_birth')} />
-					<Field name="nationality" />
-					<Field name="identity_number" label={t('component.identity_number')} />
-					<Field name="gender" />
-					<Field name="spouse_status" label={t('component.spouse')} />
-					<Field name="dependents_count" label={t('component.dependents')} />
-					<Column span="all"><Field name="address" /></Column>
-				</Grid>
+				<FormSection first title={t('component.person')} hint={t('component.person_section_hint')}>
+					<Grid gap="sm" minimum="compact">
+						<Field name="name" />
+						<Field name="gender" />
+						<Field name="date_of_birth" label={t('component.date_of_birth')} />
+						<Field name="nationality" />
+						<Field name="identity_number" label={t('component.identity_number')} />
+						<Field name="email" />
+						<Field name="phone" />
+						<Column span="all"><Field name="address" /></Column>
+					</Grid>
+				</FormSection>
 				<FormSection title={t('component.standing')} hint={t('component.standing_hint')}>
-					<Grid gap="md" minimum="panel">
+					<Grid gap="sm" minimum="compact">
 						<Field name="marital_status" label={t('component.marital_status')} />
 						<Field name="solo_parent" label={t('component.solo_parent')} />
 						<Stack gap="xs">
@@ -288,6 +320,15 @@
 							<Field name="religion" label={t('component.religion')} />
 							<p class="text-meta">{t('component.race_religion_hint')}</p>
 						</Stack>
+					</Grid>
+				</FormSection>
+				<FormSection
+					title={t('component.family_section')}
+					hint={t('component.family_section_hint')}
+				>
+					<Grid gap="sm" minimum="compact">
+						<Field name="spouse_status" label={t('component.spouse')} />
+						<Field name="dependents_count" label={t('component.dependents')} />
 					</Grid>
 				</FormSection>
 			</Stack>
