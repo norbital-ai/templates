@@ -281,6 +281,23 @@
 	);
 
 	/**
+	 * The regime governing the open day sheet: lieu is offered only where the version in force
+	 * on that date permits it. One lineage-scoped read beside the leave catalogue's.
+	 */
+	const workCatalogueQuery = $derived(
+		selectedSettingsCode == null
+			? null
+			: client.db.work_catalogue.findMany({
+					where: {
+						...approved,
+						work_catalogue_settings: { some: onLineage(selectedSettingsCode) }
+					},
+					columns: { settings_id: true, regime: true },
+					limit: 100
+				})
+	);
+
+	/**
 	 * The month's person-days: ONE query where there were two.
 	 *
 	 * The board used to read the roster's own relationship for the plan and a month-scoped
@@ -737,6 +754,29 @@
 	const daySheetEntry = $derived(
 		daySheetKey == null ? null : (workDayByKey.get(daySheetKey) ?? null)
 	);
+	/** The stored pay-or-lieu choice the drawer seeds its radio from; `PAY` when unchosen. */
+	const daySheetCompensation = $derived((daySheetEntry?.compensation ?? 'PAY') as 'PAY' | 'LIEU');
+	/**
+	 * Whether the drawer offers lieu: a holiday or rest day worked, where the regime in force on
+	 * that date permits it. The hook refuses whatever slips past.
+	 */
+	const daySheetLieuOffered = $derived.by(() => {
+		const facts = daySheetDay;
+		if (facts == null || daySheet.date == null || selectedSettingsCode == null) return false;
+		const worked = facts.attendanceState === 'CLOSED' || facts.workedIntervalCount > 0;
+		if (!worked) return false;
+		if (facts.holidayName == null && (facts.overrideKind ?? facts.baseKind) !== 'REST')
+			return false;
+		const version = settingsInForce(
+			calendarSettingsQuery?.current ?? [],
+			selectedSettingsCode,
+			daySheet.date
+		);
+		const regime = (workCatalogueQuery?.current ?? []).find(
+			(row) => row.settings_id === version?.id
+		)?.regime as { holiday_work_compensation?: string } | undefined;
+		return regime?.holiday_work_compensation === 'PAY_OR_LIEU';
+	});
 	/**
 	 * The punches the drawer edits.
 	 *
@@ -1296,6 +1336,8 @@
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
 	canSwap={swapEnabled}
+	compensation={daySheetCompensation}
+	lieuOffered={daySheetLieuOffered}
 	resolveOverlap={(codeId) =>
 		daySheet.employmentId == null || daySheet.date == null
 			? null

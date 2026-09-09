@@ -15,6 +15,15 @@ import {
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
 
+/**
+ * The leave type lieu credits are earned into. Its catalogue row is `availability: UNLIMITED`
+ * with no bands — but unlike an unmetered type (NS call-ups) it is earned by credit only: the
+ * computed entitlement is zero and the work-day credits are its only days, so spending without
+ * credit is refused and reversing into spent credit is refused. The work-day hook posts and
+ * reverses the entries; this is what makes those entries the whole balance.
+ */
+export const LIEU_LEAVE_CODE = 'PUBLIC_HOLIDAY_IN_LIEU';
+
 type ReadTables =
 	| 'employments'
 	| 'employees'
@@ -443,7 +452,22 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 		const key = `${window.start}/${window.end}/${date}`;
 		const known = amounts.get(key);
 		if (known) return known;
-		// An ended employee can settle old days later using the source period’s final rule.
+		// Earned by credit only: no schedule grants days, so the meter starts at zero and every
+		// debit must be funded by a posted lieu credit in the same window. `opening` is unread
+		// downstream; the window start stands in for it.
+		if (selected.code === LIEU_LEAVE_CODE) {
+			const zeroed = {
+				window,
+				opening: window.start,
+				unlimited: false,
+				entitlement: 0,
+				earned: 0,
+				available: 0
+			};
+			amounts.set(key, zeroed);
+			return zeroed;
+		}
+		// An ended employee can settle old days later using the source period's final rule.
 		const asOf = [date, window.end, ...(exit == null ? [] : [exit])].toSorted()[0]!;
 		const ruleDate = asOf < window.start ? window.start : asOf;
 		const result = computedEntitlement({

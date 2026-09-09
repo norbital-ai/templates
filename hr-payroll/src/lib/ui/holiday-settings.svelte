@@ -22,7 +22,9 @@
 	 * selected, and the spreadsheet import a pipeline — both go through the collection's own
 	 * import handler, so no write is made from the browser. The Google calendar set under General
 	 * comes through the same dedupe, so a day the jurisdiction already has is never duplicated.
-	 * A holiday a work day or payroll run has read is frozen; Published is its status column.
+	 * A holiday a payroll run captured is frozen; unpublishing or deleting one is refused while a
+	 * run holds it, and the pinning work days are re-saved first otherwise. Published is the status
+	 * column.
 	 */
 	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
 	const jurisdictionCode = $derived(version.jurisdiction_code);
@@ -140,10 +142,6 @@
 				description: t('holiday_calendar.publish_selected_description'),
 				icon: 'lucide:calendar-check',
 				requiresSelection: true,
-				getDisabledReason: (rows) =>
-					rows.some((row) => row.consumed_at != null && row.published_at != null)
-						? t('holiday_calendar.consumed_selected')
-						: null,
 				run: ({ selectedRows }) => publication(selectedRows, true)
 			},
 			{
@@ -152,10 +150,6 @@
 				description: t('holiday_calendar.unpublish_selected_description'),
 				icon: 'lucide:calendar-minus',
 				requiresSelection: true,
-				getDisabledReason: (rows) =>
-					rows.some((row) => row.consumed_at != null)
-						? t('holiday_calendar.consumed_selected')
-						: null,
 				run: ({ selectedRows }) => publication(selectedRows, false)
 			}
 		]}
@@ -183,7 +177,6 @@
 			<Column name="kind" label={t('holiday_calendar.kind')} />
 			<Column name="original_date" label={t('holiday_calendar.original_date')} />
 			<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
-			<Column name="consumed_at" label={t('holiday_calendar.consumed_at')} card="badge" />
 		{/snippet}
 	</CollectionTable>
 </Cover>

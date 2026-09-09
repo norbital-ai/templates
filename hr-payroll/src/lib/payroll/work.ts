@@ -63,6 +63,7 @@ import {
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
+import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
 	validateDailyOvertimeHoursLimit,
@@ -480,6 +481,28 @@ function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
 	return `${title} @ ${start} · ${decodeNumber(terms.base_salary?.value ?? 0).toFixed(2)}`;
 }
 
+/**
+ * A day in lieu prices as an ordinary day.
+ *
+ * Holiday and rest-day work prices on the statute's premium ladder — except when the day chose
+ * lieu: the leave credit is the compensation, so the clocks price as an ordinary day. Hours past
+ * the shift still price as overtime, at ordinary rates; only the premium ladder is forgone.
+ * Everything else the schedule resolved — the shift, the normal hours — is untouched.
+ */
+export function pricedDay(
+	entry: { readonly compensation?: string | null },
+	day: ScheduledDay
+): ScheduledDay {
+	if (entry.compensation !== 'LIEU') return day;
+	if (
+		day.dayType !== 'PUBLIC_HOLIDAY' &&
+		day.dayType !== 'SPECIAL_HOLIDAY' &&
+		day.dayType !== 'REST_DAY'
+	)
+		return day;
+	return { ...day, dayType: 'ORDINARY' };
+}
+
 /** Prepare schedule and rates before money-family totals determine statutory overtime coverage. */
 export function prepareWorkContext(
 	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'salary'> & {
@@ -688,7 +711,8 @@ export function calculateWorkAttendance(
 		// The statutory rest break reaches pay here and nowhere else. It reduces payable overtime only
 		// where the jurisdiction states the break is not working time; where the statute is silent —
 		// Malaysia — it is assessed, carried for reporting, and priced at nothing.
-		const derived = deriveDailyOvertime(entry, day, configuration.restBreakRules);
+		// A lieu day forgone its premium at the roster: price the clocks ordinary.
+		const derived = deriveDailyOvertime(entry, pricedDay(entry, day), configuration.restBreakRules);
 		if (derived) overtimeDays.push(derived);
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
@@ -802,10 +826,11 @@ export function calculateWorkAttendance(
 					const date = requiredDateKey(entry.work_date, 'work_days.work_date');
 					if (date < overtimeAttendance.start || date > overtimeAttendance.end) return [];
 					const day = schedule.get(date);
+					const priced = day == null ? null : pricedDay(entry, day);
 					const night = nightWindowHours(
 						entry,
 						nightPremium,
-						day?.dayType === 'ORDINARY' ? day.shift : null
+						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligible ? night.overtime : 0;

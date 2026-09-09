@@ -119,6 +119,16 @@
 		overlapWarning?: string | null;
 		canSwap?: boolean;
 		/**
+		 * The stored pay-or-lieu choice, from the month's own work-day row (`PAY` when no row
+		 * carries one). The drawer seeds its radio from it; the hook owns what it earns.
+		 */
+		compensation?: 'PAY' | 'LIEU' | null;
+		/**
+		 * Whether the lieu radio is offered: a holiday or rest day worked, where the regime
+		 * permits lieu. The caller owns the regime read; the hook refuses whatever slips past.
+		 */
+		lieuOffered?: boolean;
+		/**
 		 * INTEGRATION POINT — the rest-break badge (§4 of the proposal).
 		 *
 		 * A sibling module owns `src/lib/scheduling/rest-break.ts` and the `rest_break_rules` member
@@ -214,6 +224,8 @@
 		lockRung = 'OPEN',
 		lockReason = null,
 		canSwap = false,
+		compensation = null,
+		lieuOffered = false,
 		restBreakNotice,
 		resolveOverlap,
 		onStartSwap,
@@ -233,6 +245,9 @@
 
 	let draftCodeId = $state<string | null>(null);
 	let baselineCodeId = $state<string | null>(null);
+	/** The pay-or-lieu choice as the operator left it; `null` baseline reads as `PAY`. */
+	let draftCompensation = $state<'PAY' | 'LIEU'>('PAY');
+	let baselineCompensation = $state<'PAY' | 'LIEU'>('PAY');
 	/** The caller's verdict on the currently chosen code; recomputed on seed and on every change. */
 	let overlapWarning = $state<string | null>(null);
 	let draftIntervals = $state<EditableInterval[]>([]);
@@ -257,6 +272,8 @@
 		reporting = false;
 		draftCodeId = rosterCodeId;
 		baselineCodeId = rosterCodeId;
+		draftCompensation = compensation ?? 'PAY';
+		baselineCompensation = compensation ?? 'PAY';
 		overlapWarning = resolveOverlap?.(rosterCodeId ?? null) ?? null;
 		draftBreak = day?.breakMinutes ?? 0;
 		draftAttendanceRecorded = day?.attendanceState != null;
@@ -404,8 +421,12 @@
 	const planTouched = $derived(
 		planWritable && draftCodeId != null && draftCodeId !== baselineCodeId
 	);
+	/** The pay-or-lieu choice saves like the plan half: it is the roster's, not the clock's. */
+	const compensationTouched = $derived(
+		planWritable && lieuOffered && draftCompensation !== baselineCompensation
+	);
 	const saveIntent = $derived<DaySheetSaveIntent>(
-		daySheetSaveIntent(planTouched, attendanceTouched)
+		daySheetSaveIntent(planTouched || compensationTouched, attendanceTouched)
 	);
 
 	/**
@@ -435,7 +456,7 @@
 	const daySheetSemantic: CollectionFormSemantic = (values) =>
 		Effect.sync(() => {
 			if (overlapWarning != null) return [{ message: overlapWarning }];
-			if (!planTouched && !attendanceTouched)
+			if (!planTouched && !attendanceTouched && !compensationTouched)
 				return [{ message: t('roster.day_sheet_cannot_save') }];
 			if (!attendanceTouched) return;
 			if (missingIntervalStart) return [{ message: t('roster.day_sheet_problem_missing_start') }];
@@ -444,6 +465,11 @@
 			if (problem != null) return [{ message: t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]) }];
 			return;
 		});
+
+	/** Mirror the pay-or-lieu choice into the form; the radio is custom composition. */
+	function pushCompensation(form: CollectionFormController): void {
+		form.setValues({ compensation: draftCompensation });
+	}
 
 	/** Mirror the plan half into the form; the picker is custom composition. */
 	function pushPlan(form: CollectionFormController): void {
@@ -647,6 +673,7 @@
 							<Field name="settled_payslip_id" hidden />
 							<Field name="settled_period" hidden />
 							<Field name="holiday_id" hidden />
+							<Field name="compensation" hidden />
 							<Stack gap="lg" class="pr-1">
 								<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
 								<Stack gap="sm">
@@ -761,6 +788,42 @@
 										<p class="text-xs text-muted-foreground">{planLockedReason}</p>
 									{/if}
 								</Stack>
+
+								<!-- ── PAY OR LIEU ─────────────────────────────────────────────────────────────── -->
+								{#if lieuOffered}
+									<Stack gap="xs">
+										<span class="text-xs font-medium">{t('lieu.compensation_title')}</span>
+										<label class="flex items-start gap-2 text-sm">
+											<input
+												type="radio"
+												name="day-compensation"
+												value="PAY"
+												disabled={!planWritable}
+												checked={draftCompensation === 'PAY'}
+												onchange={() => {
+													draftCompensation = 'PAY';
+													pushCompensation(form);
+												}}
+											/>
+											<span>{t('lieu.pay')}</span>
+										</label>
+										<label class="flex items-start gap-2 text-sm">
+											<input
+												type="radio"
+												name="day-compensation"
+												value="LIEU"
+												disabled={!planWritable}
+												checked={draftCompensation === 'LIEU'}
+												onchange={() => {
+													draftCompensation = 'LIEU';
+													pushCompensation(form);
+												}}
+											/>
+											<span>{t('lieu.lieu')}</span>
+										</label>
+										<p class="text-xs text-muted-foreground">{t('lieu.compensation_hint')}</p>
+									</Stack>
+								{/if}
 
 								<!-- ── ACTUAL ──────────────────────────────────────────────────────────────────── -->
 								<Stack gap="sm">

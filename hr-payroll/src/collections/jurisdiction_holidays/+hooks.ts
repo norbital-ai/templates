@@ -1,56 +1,118 @@
+import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { dateKey } from '../../lib/iso-day.js';
 import type { Hooks } from './$types.js';
 
-/** The columns a consumed holiday keeps: what a work day or payroll run already read. */
-const FROZEN = ['jurisdiction_code', 'date', 'name', 'kind', 'original_date'] as const;
+/** The identity a pin or a run snapshot points at: what a retraction must not move. */
+const IDENTITY = ['jurisdiction_code', 'date'] as const;
+const QUERY_LIMIT = 20_000;
+
+type HolidaySnapshotLike = { readonly id: string };
+type RunLike = {
+	readonly id: string;
+	readonly period: string;
+	readonly lifecycle: string;
+	readonly holidays: readonly HolidaySnapshotLike[] | null;
+};
+
+/** The runs whose frozen `holidays` snapshot still captures this holiday. */
+function capturing(runs: readonly RunLike[], holidayId: string): RunLike[] {
+	return runs.filter((run) => (run.holidays ?? []).some((holiday) => holiday.id === holidayId));
+}
+
+function refuseIfCaptured(captured: readonly RunLike[], date: string, action: string): void {
+	const run = captured[0];
+	if (run != null)
+		refuse(
+			`Holiday ${date} was captured by payroll run ${run.period} and cannot ${action}. ` +
+				`Delete that draft run to release it; a paid run holds it permanently.`
+		);
+}
 
 export default {
 	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'A holiday needs a jurisdiction, a valid day and a name; a consumed holiday keeps its day, name and publication.',
-				handler: ({ input, existing }) => {
-					const row = { ...existing, ...input };
-					if (!String(row.jurisdiction_code ?? '').trim())
-						refuse('A holiday needs a jurisdiction.');
-					if (row.date == null || !isCalendarDate(dateKey(row.date)))
-						refuse('A holiday needs a valid calendar day.');
-					if (!String(row.name ?? '').trim()) refuse('A holiday needs a name.');
-					if (row.original_date != null && !isCalendarDate(dateKey(row.original_date)))
-						refuse('The original date must be a valid calendar day.');
-					if (existing?.consumed_at != null) {
-						for (const column of FROZEN)
-							if (
+					'A holiday needs a jurisdiction, a valid day and a name; retracting one (unpublish, or moving its day or jurisdiction) is refused while a payroll run captured it or a work day pins it — otherwise the pinning days are re-saved and re-classified.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						const row = { ...existing, ...input };
+						if (!String(row.jurisdiction_code ?? '').trim())
+							refuse('A holiday needs a jurisdiction.');
+						if (row.date == null || !isCalendarDate(dateKey(row.date)))
+							refuse('A holiday needs a valid calendar day.');
+						if (!String(row.name ?? '').trim()) refuse('A holiday needs a name.');
+						if (row.original_date != null && !isCalendarDate(dateKey(row.original_date)))
+							refuse('The original date must be a valid calendar day.');
+						if (existing == null) return input;
+						const unpublishing = input.published_at === null && existing.published_at != null;
+						const movingIdentity = IDENTITY.some(
+							(column) =>
 								input[column] !== undefined &&
 								String(input[column] ?? '') !== String(existing[column] ?? '')
-							)
-								refuse(
-									`Holiday ${dateKey(existing.date)} has been read by a work day or payroll run and cannot change. Add a new holiday instead.`
-								);
-						if (input.published_at === null)
+						);
+						if (!unpublishing && !movingIdentity) return input;
+						const runs = (yield* api.db.payroll_runs.findMany({
+							where: { lifecycle: { in: ['DRAFT', 'PAID'] } },
+							columns: { id: true, period: true, lifecycle: true, holidays: true },
+							limit: QUERY_LIMIT
+						})) as readonly RunLike[];
+						if (runs.length >= QUERY_LIMIT)
+							refuse('Too many payroll runs to verify the holiday freeze safely.');
+						const date = dateKey(existing.date);
+						refuseIfCaptured(
+							capturing(runs, existing.id),
+							date,
+							unpublishing ? 'be unpublished' : 'move its day or jurisdiction'
+						);
+						const pins = yield* api.db.work_days.findMany({
+							where: { holiday_id: { eq: existing.id } },
+							columns: { id: true },
+							limit: QUERY_LIMIT
+						});
+						if (pins.length >= QUERY_LIMIT)
+							refuse('Too many work days pin this holiday to release it safely.');
+						if (movingIdentity && pins.length > 0)
 							refuse(
-								`Holiday ${dateKey(existing.date)} has been read by a work day or payroll run and cannot be unpublished.`
+								`Holiday ${date} is pinned by ${pins.length} work day(s): its day and ` +
+									`jurisdiction are what those pins point at. Add a new holiday instead.`
 							);
-						if (input.consumed_at === null) refuse('A consumed holiday stays consumed.');
-					}
-					return input;
-				}
+						// The re-save re-classifies each pinning day — reversing any lieu credit it
+						// minted — and is refused only for a credit already taken.
+						if (pins.length > 0)
+							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id })));
+						return input;
+					})
 			}
 		}
 	},
 	delete: {
 		perRecord: {
 			before: {
-				description: 'A holiday a work day or payroll run has read cannot be deleted.',
-				handler: ({ existing }) => {
-					if (existing.consumed_at != null)
-						refuse(
-							`Holiday ${dateKey(existing.date)} has been read by a work day or payroll run and cannot be deleted.`
-						);
-				}
+				description:
+					'A holiday a payroll run captured cannot be deleted; one a work day pins is released by re-saving those days first.',
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						const runs = (yield* api.db.payroll_runs.findMany({
+							where: { lifecycle: { in: ['DRAFT', 'PAID'] } },
+							columns: { id: true, period: true, lifecycle: true, holidays: true },
+							limit: QUERY_LIMIT
+						})) as readonly RunLike[];
+						if (runs.length >= QUERY_LIMIT)
+							refuse('Too many payroll runs to verify the holiday freeze safely.');
+						refuseIfCaptured(capturing(runs, existing.id), dateKey(existing.date), 'be deleted');
+						const pins = yield* api.db.work_days.findMany({
+							where: { holiday_id: { eq: existing.id } },
+							columns: { id: true },
+							limit: QUERY_LIMIT
+						});
+						if (pins.length >= QUERY_LIMIT)
+							refuse('Too many work days pin this holiday to release it safely.');
+						if (pins.length > 0)
+							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id })));
+					})
 			}
 		}
 	}

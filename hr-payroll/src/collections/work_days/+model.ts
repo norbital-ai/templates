@@ -30,7 +30,7 @@ import {
  *
  * There is no `PUBLIC_HOLIDAY` roster code. A holiday is a property of the calendar, not of one
  * person's day. The write captures its published jurisdiction calendar as immutable input evidence.
- * Subsequent publications preserve dates already linked to workdays or consumed by payroll.
+ * A holiday stays frozen while this pin or a payroll run's snapshot references it.
  */
 export default defineModel(
 	{
@@ -73,6 +73,13 @@ export default defineModel(
 		 * so a later publication or edit cannot retroactively change what this day was.
 		 */
 		holiday_id: uuid(),
+		/**
+		 * What working this day earns when the day carries a premium: the holiday/rest-day
+		 * premium (`PAY`), or a day in lieu (`LIEU`) credited to `PUBLIC_HOLIDAY_IN_LIEU`.
+		 * The day sheet offers `LIEU` only on a holiday or rest day worked where the regime
+		 * permits lieu; payroll prices `LIEU` days as ordinary days.
+		 */
+		compensation: enums(['PAY', 'LIEU']).notNull().default('PAY'),
 		/**
 		 * The payslip that settled this row, and the period it belongs to. Set by the payroll engine
 		 * when a run captures the row, cleared when a draft run is deleted; while set, the row is

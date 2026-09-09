@@ -245,7 +245,7 @@ export default {
 			},
 			after: {
 				description:
-					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist, and marks the holidays it read as consumed.',
+					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist. The holidays the run read stay on the run itself (`holidays`): a holiday is frozen while a run captures it, with no stamp on the holiday row.',
 				handler: ({ previous, record, api }) =>
 					Effect.gen(function* () {
 						if (previous !== undefined) return;
@@ -262,12 +262,6 @@ export default {
 								settled_payslip_id: payslipId,
 								settled_period: record.period
 							}));
-						// The holidays this run read are history from here on: frozen on the row itself.
-						const holidayIds = (record.holidays ?? []).map((holiday) => holiday.id);
-						if (holidayIds.length)
-							yield* api.db.jurisdiction_holidays.mutate(
-								holidayIds.map((id) => ({ id, consumed_at: new Date().toISOString() }))
-							);
 						for (const capture of captures) {
 							if (capture.workDays.length)
 								yield* api.db.work_days.mutate(stamp(capture.workDays, capture.payslipId));

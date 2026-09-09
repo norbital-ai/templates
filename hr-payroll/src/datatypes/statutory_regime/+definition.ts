@@ -162,6 +162,16 @@ export const statutoryRegimeValueSchema = Schema.Struct({
 	 * day stays a rest day and the next working day is observed as the holiday.
 	 */
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']),
+	/**
+	 * Whether holiday work is paid out or may be taken as a day in lieu. Absent is PAY: a
+	 * snapshot seeded before the switch existed never offered lieu. MY, SG and TW permit lieu by
+	 * agreement (the work day carries the choice); PH, VN and ID pay.
+	 */
+	holiday_work_compensation: Schema.optionalKey(Schema.Literals(['PAY', 'PAY_OR_LIEU'])),
+	/**
+	 * The same switch for overtime: TW compensatory leave for overtime hours. Absent is PAY.
+	 */
+	overtime_compensation: Schema.optionalKey(Schema.Literals(['PAY', 'PAY_OR_LIEU'])),
 	overtime_coverage: Schema.NullOr(overtimeCoverageValueSchema),
 	overtime_rules: Schema.Array(statutoryOvertimeRuleValueSchema),
 	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema),
