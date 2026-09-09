@@ -753,6 +753,34 @@ test('a FIXED_DAYS basis pays the days employed over the divisor the Work states
 	);
 });
 
+test('a part period on a FIXED_DAYS basis never out-pays a whole one', () => {
+	// The Philippine factor is 21.75 — 261 working days over twelve months, a five-day week — and
+	// the same jurisdiction rosters six-day patterns, so a month holds more working days than the
+	// factor counts. 6–31 March is twenty-two of this person's working days against a divisor of
+	// 21.75: uncounted, that is 22/21.75 and pays 3,490.66, more than the 3,451 someone present
+	// for the whole month earns. The days are capped at the divisor, so the segment says so too.
+	const measured = measure(
+		{
+			employedDays: { start: '2026-03-06', end: '2026-03-31' },
+			wageDays: { start: '2026-03-06', end: '2026-03-31' },
+			employment: { ...bundle().employment, hire_date: '2026-03-06' },
+			terms: [terms({ effective_range: { start: '2026-03-06', end: null } })]
+		},
+		{
+			work: {
+				...JURISDICTION,
+				jurisdiction_code: JURISDICTION.code,
+				proration: { by: 'FIXED_DAYS', days: 21.75 }
+			}
+		}
+	);
+	assert.equal(amountOf(measured, 'BASIC'), 3451);
+	assert.deepEqual(
+		measured.proration.map((segment) => [segment.days, segment.denominator]),
+		[[21.75, 21.75]]
+	);
+});
+
 test('a whole month on a FIXED_DAYS basis pays the whole salary, whatever the divisor', () => {
 	// The other half of the rule: a monthly-paid employee present all month earns the monthly rate,
 	// so a whole period prorates to exactly one however far the month's working days sit from the
