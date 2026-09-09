@@ -35,7 +35,7 @@
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { resolveWindow } from './lib/period.js';
-	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
+	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
 	import {
 		companyPeriods,
 		periodDayRange,
@@ -215,14 +215,14 @@
 					<Stack gap="xs">
 						<dt class="text-meta">{t('component.attendance_window')}</dt>
 						<dd class="font-medium tabular-nums">
-							{formatCalendarDate(record.attendance_from)} → {formatCalendarDate(
+							{formatCalendarInstant(record.attendance_from)} → {formatCalendarInstant(
 								record.attendance_to
 							)}
 						</dd>
 					</Stack>
 					<Stack gap="xs">
 						<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
-						<dd class="font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
+						<dd class="font-medium tabular-nums">{formatCalendarInstant(record.pay_date)}</dd>
 					</Stack>
 				</Grid>
 			</Stack>
