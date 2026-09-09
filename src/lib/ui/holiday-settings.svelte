@@ -4,37 +4,30 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
-	import { Input } from '@norbital-ai/ui/input';
-	import { Effect, Result, Schema } from 'effect';
-	import { toast } from 'svelte-sonner';
-	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import {
+		createCollectionRouteKey,
+		getCollectionNavigationContext
+	} from '@norbital-ai/ui/collection-navigation';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import HolidaySourceRenderer from '../../datatypes/holiday_source/+renderer.svelte';
+	import { Cluster, Cover, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import Icon from '@iconify/svelte';
+	import { Effect, Result, Schema } from 'effect';
 	import { holidayObservationInputSchema } from '../../datatypes/holiday_observations/+definition.js';
-	import { Bound, Cluster, Cover, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Tabs } from '@norbital-ai/ui/tabs';
 	import { todayKey } from './calendar.js';
-
 	import type { WorkspaceRow } from '$bolt/types.js';
 
+	/**
+	 * One year of one jurisdiction: its observed dates, and the three things a person does to
+	 * them — move a year, import it, publish it. The calendar rows, revisions and the Google
+	 * source stay out of sight; the record sheet still opens for the review an import can ask for.
+	 */
 	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
 	const jurisdictionCode = $derived(version.jurisdiction_code);
-	/**
-	 * One-column write, like the seal and the void: a whole-row form would carry `sealed_at` and
-	 * be routed to approval, while the source is operational configuration set under a seal.
-	 */
-	let sourceDraft = $state<WorkspaceRow<'jurisdiction_settings'>['holiday_source']>(null);
-	let sourceError = $state<string | null>(null);
-	// The draft follows the version, not the row: a live update after a save re-emits the same
-	// version and used to wipe whatever had been typed since.
-	let draftFor = $state<string | null>(null);
-	$effect(() => {
-		if (draftFor === version.id) return;
-		draftFor = version.id;
-		sourceDraft = version.holiday_source;
-	});
 	const { t } = useI18n<TenantI18nKeys>();
-	let year = $state(Number(todayKey().slice(0, 4)) + 1);
+	const navigation = getCollectionNavigationContext();
+	const routeKey = createCollectionRouteKey({ view: 'hr_controller:settings:holidays' });
+
+	let year = $state(Number(todayKey().slice(0, 4)));
 	let error = $state<string | null>(null);
 	/**
 	 * The run this surface started, held here rather than read back off the client: the client's
@@ -56,63 +49,71 @@
 			/GOOGLE_CALENDAR_API_KEY.*vault has no value/.test(latest.current.error ?? '')
 	);
 
-	/** Every observed date of the jurisdiction, from the newest revision of each year. */
 	const calendarsQuery = $derived(
 		client.db.jurisdiction_holiday_calendars.findMany({
 			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
 			orderBy: { year: 'desc', revision: 'desc' },
-			columns: { id: true, year: true, revision: true, published_at: true, observations: true },
+			columns: {
+				id: true,
+				year: true,
+				revision: true,
+				published_at: true,
+				observations: true,
+				import_review: true
+			},
 			limit: 200
 		})
 	);
-	const holidayRows = $derived.by(() => {
-		const newest = new Map<number, NonNullable<typeof calendarsQuery.current>[number]>();
-		for (const calendar of calendarsQuery.current ?? [])
-			if (!newest.has(calendar.year)) newest.set(calendar.year, calendar);
-		return [...newest.values()]
-			.flatMap((calendar) => {
-				const parsed = Schema.decodeUnknownResult(Schema.Array(holidayObservationInputSchema))(
-					calendar.observations ?? []
-				);
-				return (Result.isSuccess(parsed) ? parsed.success : []).map((row) => ({
-					...row,
-					year: calendar.year,
-					revision: calendar.revision,
-					published: calendar.published_at != null
-				}));
-			})
-			.toSorted((left, right) => right.date.localeCompare(left.date));
+	/** The year's newest revision, which is the one a person reads, reviews and publishes. */
+	const calendar = $derived(
+		(calendarsQuery.current ?? []).find((candidate) => candidate.year === year) ?? null
+	);
+	const rows = $derived.by(() => {
+		const parsed = Schema.decodeUnknownResult(Schema.Array(holidayObservationInputSchema))(
+			calendar?.observations ?? []
+		);
+		return (Result.isSuccess(parsed) ? parsed.success : []).toSorted((left, right) =>
+			left.date.localeCompare(right.date)
+		);
 	});
+	const reviewCount = $derived(
+		(calendar?.import_review?.events ?? []).filter((event) => event.review_required).length
+	);
+	let publishing = $state(false);
+	const openReview = () => {
+		if (calendar == null) return;
+		navigation?.open({
+			collectionName: 'jurisdiction_holiday_calendars',
+			recordId: calendar.id,
+			routeKey
+		});
+	};
 </script>
 
-{#snippet importControls()}
+{#snippet controls()}
 	<Stack gap="sm">
-		<p class="text-sm text-muted-foreground">{t('holiday_import.description')}</p>
-		{#if keyUnset}
-			<p class="rounded-md border p-3 text-sm" role="status" data-holiday-import-key-unset>
-				{t('holiday_import.configure_key')}
-			</p>
-		{/if}
-		<Cluster>
-			<label class="text-sm">
-				<Stack gap="xs">
-					{t('holiday_calendar.year')}
-					<Input
-						type="number"
-						min="1"
-						max="9998"
-						value={year}
-						oninput={(event) => {
-							year = Number(event.currentTarget.value);
-						}}
-					/>
-				</Stack>
-			</label>
+		<Cluster align="center" gap="sm">
 			<Button
-				disabled={client.automations.holiday_import.pending > 0 ||
-					!Number.isInteger(year) ||
-					year < 1 ||
-					year > 9998}
+				variant="ghost"
+				size="sm"
+				aria-label={t('holiday_calendar.previous_year')}
+				onclick={() => {
+					year -= 1;
+				}}><Icon icon="lucide:chevron-left" class="size-4" /></Button
+			>
+			<span class="text-heading tabular-nums" data-holiday-year={year}>{year}</span>
+			<Button
+				variant="ghost"
+				size="sm"
+				aria-label={t('holiday_calendar.next_year')}
+				onclick={() => {
+					year += 1;
+				}}><Icon icon="lucide:chevron-right" class="size-4" /></Button
+			>
+			<Button
+				size="sm"
+				variant="outline"
+				disabled={client.automations.holiday_import.pending > 0}
 				onclick={async () => {
 					error = null;
 					try {
@@ -128,142 +129,85 @@
 					? t('holiday_import.running')
 					: t('holiday_import.run')}</Button
 			>
+			{#if calendar?.published_at != null}
+				<span class="text-sm text-muted-foreground"
+					>{t('holiday_calendar.published_on', { date: calendar.published_at.slice(0, 10) })}</span
+				>
+			{:else if calendar != null && reviewCount > 0}
+				<Button size="sm" onclick={openReview}
+					>{t('holiday_calendar.review_count', { count: reviewCount })}</Button
+				>
+			{:else if calendar != null}
+				<Button
+					size="sm"
+					disabled={publishing}
+					onclick={() => {
+						if (calendar == null) return;
+						error = null;
+						publishing = true;
+						Effect.runFork(
+							submitCollectionMutation(() =>
+								client.db.jurisdiction_holiday_calendars.mutate([
+									{ id: calendar.id, published_at: new Date().toISOString() }
+								])
+							).pipe(
+								Effect.catch((cause) =>
+									Effect.sync(() => {
+										error = getErrorMessage(cause);
+									})
+								),
+								Effect.ensuring(
+									Effect.sync(() => {
+										publishing = false;
+									})
+								)
+							)
+						);
+					}}>{t('holiday_calendar.publish', { year })}</Button
+				>
+			{/if}
 		</Cluster>
-		{#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
 		{#if keyUnset}
-			<!-- The placeholder above already says it. -->
+			<p class="rounded-md border p-3 text-sm" role="status" data-holiday-import-key-unset>
+				{t('holiday_import.configure_key')}
+			</p>
+		{:else if error}
+			<p class="text-sm text-destructive" role="alert">{error}</p>
 		{:else if latest?.current?.status === 'failed'}
 			<p class="text-sm text-destructive" role="alert">{latest.current.error}</p>
 		{:else if latest != null}
 			<p class="text-sm text-muted-foreground" role="status">
 				{latest.current?.progress?.text ?? t('holiday_import.started')}
 			</p>
+		{:else if calendar != null && calendar.published_at == null}
+			<p class="text-sm text-muted-foreground">{t('holiday_calendar.draft_hint')}</p>
 		{/if}
 	</Stack>
 {/snippet}
 
-<!-- The holidays themselves, one row per observed date, straight under the import controls. -->
-{#snippet holidays()}
-	<Cover top={importControls}>
-		<Scroll name={t('app.settings.holidays')}>
-			{#if holidayRows.length === 0}
-				<p class="text-sm text-muted-foreground">{t('holiday_calendar.empty')}</p>
-			{:else}
-				<table class="w-full text-sm" data-holiday-rows>
-					<thead class="text-muted-foreground text-left text-xs">
-						<tr>
-							<th class="py-1 pr-3">{t('component.observed_on')}</th>
-							<th class="py-1 pr-3">{t('component.holiday')}</th>
-							<th class="py-1 pr-3">{t('holiday_calendar.original_date')}</th>
-							<th class="py-1 pr-3">{t('holiday_calendar.year')}</th>
-							<th class="py-1">{t('holiday_calendar.revision')}</th>
+<Cover top={controls} gap="md">
+	<Scroll name={t('app.settings.holidays')}>
+		{#if rows.length === 0}
+			<p class="text-sm text-muted-foreground">{t('holiday_calendar.empty', { year })}</p>
+		{:else}
+			<table class="w-full text-sm" data-holiday-rows>
+				<thead class="text-muted-foreground text-left text-xs">
+					<tr>
+						<th class="py-1 pr-3">{t('component.observed_on')}</th>
+						<th class="py-1 pr-3">{t('component.holiday')}</th>
+						<th class="py-1">{t('holiday_calendar.original_date')}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each rows as row (row.date)}
+						<tr class="border-t">
+							<td class="py-1 pr-3 tabular-nums">{row.date}</td>
+							<td class="py-1 pr-3">{row.name}</td>
+							<td class="py-1 tabular-nums">{row.original_date ?? '—'}</td>
 						</tr>
-					</thead>
-					<tbody>
-						{#each holidayRows as row (`${row.year}:${row.date}`)}
-							<tr class="border-t">
-								<td class="py-1 pr-3 tabular-nums">{row.date}</td>
-								<td class="py-1 pr-3">{row.name}</td>
-								<td class="py-1 pr-3 tabular-nums">{row.original_date ?? '—'}</td>
-								<td class="py-1 pr-3 tabular-nums">{row.year}</td>
-								<td class="py-1 tabular-nums"
-									>{row.revision}{row.published ? '' : ` · ${t('holiday_calendar.draft')}`}</td
-								>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			{/if}
-		</Scroll>
-	</Cover>
-{/snippet}
-
-{#snippet calendars()}
-	<Bound size="full">
-		<CollectionTable
-			{client}
-			collection="jurisdiction_holiday_calendars"
-			view="hr_controller:settings:holiday_calendars"
-			title={t('holiday_calendar.title')}
-			description={t('holiday_calendar.complete_list_hint')}
-			query={{
-				where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
-				orderBy: { year: 'desc', revision: 'desc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} card="title" />
-				<Column name="year" label={t('holiday_calendar.year')} />
-				<Column name="revision" label={t('holiday_calendar.revision')} />
-				<Column name="published_at" label={t('holiday_calendar.published_at')} />
-				<Column name="observations" label={t('holiday_calendar.observations')} />
-				<Column name="import_review" label={t('holiday_import.pending')} />
-			{/snippet}
-		</CollectionTable>
-	</Bound>
-{/snippet}
-
-{#snippet sources()}
-	<form
-		class="flex flex-col gap-3"
-		onsubmit={(event) => {
-			event.preventDefault();
-			sourceError = null;
-			Effect.runFork(
-				submitCollectionMutation(() =>
-					client.db.jurisdiction_settings.mutate([{ id: version.id, holiday_source: sourceDraft }])
-				).pipe(
-					Effect.tap(() => Effect.sync(() => toast.success(t('holiday_source.saved')))),
-					Effect.catch((cause) =>
-						Effect.sync(() => {
-							sourceError = getErrorMessage(cause);
-						})
-					)
-				)
-			);
-		}}
-	>
-		<div data-collection-field="holiday_source" class="flex flex-col gap-2">
-			<label class="text-sm font-semibold" for="holiday-source-calendar"
-				>{t('holiday_source.title')}</label
-			>
-			<HolidaySourceRenderer
-				mode="edit"
-				field={{ name: 'holiday_source', type: 'custom' }}
-				value={sourceDraft}
-				disabled={false}
-				onValueChange={(value) => {
-					sourceDraft = value;
-				}}
-			/>
-		</div>
-		{#if sourceError}<p class="text-sm text-destructive" role="alert">{sourceError}</p>{/if}
-		<Cluster><Button type="submit" size="sm">{t('holiday_source.save')}</Button></Cluster>
-	</form>
-{/snippet}
-
-<Tabs
-	animate={false}
-	layout="vertical"
-	variant="underline"
-	config={[
-		{
-			name: 'holidays',
-			label: t('holiday_calendar.observations'),
-			icon: 'lucide:calendar-x',
-			content: holidays
-		},
-		{
-			name: 'calendars',
-			label: t('holiday_import.calendars'),
-			icon: 'lucide:calendar-days',
-			content: calendars
-		},
-		{
-			name: 'sources',
-			label: t('holiday_import.sources'),
-			icon: 'lucide:calendar-sync',
-			content: sources
-		}
-	]}
-/>
+					{/each}
+				</tbody>
+			</table>
+		{/if}
+	</Scroll>
+</Cover>
