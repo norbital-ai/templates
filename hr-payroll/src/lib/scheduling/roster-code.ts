@@ -33,6 +33,22 @@ export function clockMinutes(value: string): number {
 export function workWindow(value: RosterCodeVariant | null | undefined): WorkWindow | null {
 	if (value == null) throw new Error('A roster code variant is required.');
 	if (value.kind !== 'WORK') return null;
+	const known = windowCache.get(value);
+	if (known !== undefined) return known;
+	const window = deriveWindow(value);
+	windowCache.set(value, window);
+	return window;
+}
+
+/**
+ * One clock parse per variant object: the schedule resolves the same roster codes for every
+ * day of every employment, and re-splitting the same `HH:MM` strings each time was visible in
+ * the build profile. Variants are never mutated in place, so identity caching cannot go stale;
+ * only successes are cached, refusals still throw every time.
+ */
+const windowCache = new WeakMap<object, WorkWindow>();
+
+function deriveWindow(value: Extract<RosterCodeVariant, { kind: 'WORK' }>): WorkWindow {
 	const variant = value;
 	const start = clockMinutes(variant.start_time);
 	const rawEnd = clockMinutes(variant.end_time);

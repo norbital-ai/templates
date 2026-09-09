@@ -58,7 +58,7 @@ export function monthDay(year: number, monthIndex: number, day: number): IsoDate
 }
 
 export function addDays(date: IsoDate, days: number): IsoDate {
-	return iso(new Date(Date.parse(`${date}T00:00:00.000Z`) + days * DAY_MS));
+	return dayString(dayNumber(date) + days);
 }
 
 /** Number of calendar days in the month a date falls in. */
@@ -77,9 +77,55 @@ export function inclusiveDays(start: IsoDate, end: IsoDate): number {
 /** Every calendar day in `[start, end]`. */
 export function daysBetween(start: IsoDate, end: IsoDate): IsoDate[] {
 	if (end < start) return [];
+	const first = dayNumber(start);
+	const last = dayNumber(end);
 	const days: IsoDate[] = [];
-	for (let day = start; day <= end; day = addDays(day, 1)) days.push(day);
+	for (let day = first; day <= last; day += 1) days.push(dayString(day));
 	return days;
+}
+
+/**
+ * Integer day arithmetic: the leave year is enumerated day by day per employment, and the
+ * `Date.parse` + `new Date` + `toISOString` round trip behind every step dominated that loop.
+ * Days-from-civil / civil-from-days (Hinnant), days since 1970-01-01, proleptic Gregorian —
+ * the same calendar `Date.UTC` computes over for in-range days.
+ */
+function dayNumber(date: IsoDate): number {
+	const year = decodeNumber(date.slice(0, 4));
+	const month = decodeNumber(date.slice(5, 7));
+	const day = decodeNumber(date.slice(8, 10));
+	const shiftedYear = month <= 2 ? year - 1 : year;
+	const era = Math.floor((shiftedYear >= 0 ? shiftedYear : shiftedYear - 399) / 400);
+	const yearOfEra = shiftedYear - era * 400;
+	const monthIndex = month > 2 ? month - 3 : month + 9;
+	const dayOfYear = Math.floor((153 * monthIndex + 2) / 5) + day - 1;
+	const dayOfEra =
+		yearOfEra * 365 + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100) + dayOfYear;
+	return era * 146097 + dayOfEra - 719468;
+}
+
+function dayString(days: number): IsoDate {
+	const shifted = days + 719468;
+	const era = Math.floor((shifted >= 0 ? shifted : shifted - 146096) / 146097);
+	const dayOfEra = shifted - era * 146097;
+	const yearOfEra = Math.floor(
+		(dayOfEra -
+			Math.floor(dayOfEra / 1460) +
+			Math.floor(dayOfEra / 36524) -
+			Math.floor(dayOfEra / 146096)) /
+			365
+	);
+	const year = yearOfEra + era * 400;
+	const dayOfYear =
+		dayOfEra - (365 * yearOfEra + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100));
+	const monthIndex = Math.floor((5 * dayOfYear + 2) / 153);
+	const day = dayOfYear - Math.floor((153 * monthIndex + 2) / 5) + 1;
+	const month = monthIndex < 10 ? monthIndex + 3 : monthIndex - 9;
+	const fullYear = month <= 2 ? year + 1 : year;
+	return (
+		`${String(fullYear).padStart(4, '0')}-${String(month).padStart(2, '0')}-` +
+		`${String(day).padStart(2, '0')}`
+	);
 }
 
 /**

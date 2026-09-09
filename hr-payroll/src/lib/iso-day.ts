@@ -29,6 +29,24 @@ export function calendarDateInTimeZone(value: Date, timeZone: string): string {
 /** Resolve stored instants in the business zone; fixed calendar-day strings retain their day. */
 export function dateKey(value: string | null | undefined): string {
 	if (value == null || value === '') return '';
+	const known = dayCache.get(value);
+	if (known !== undefined) return known;
+	const resolved = resolveDay(value);
+	if (dayCache.size > 50_000) dayCache.clear();
+	dayCache.set(value, resolved);
+	return resolved;
+}
+
+/**
+ * One parse per distinct input: a payroll asks for the day of the same range bounds, holidays
+ * and employment dates thousands of times per run, and the `Date` + `Intl` round trip behind
+ * each uncached call dominated build CPU. Bounded (a run's distinct inputs are its calendar,
+ * not its row count); the clear is a throttle, not a wraparound — dates recur, so steady state
+ * stays cached.
+ */
+const dayCache = new Map<string, string>();
+
+function resolveDay(value: string): string {
 	if (isCalendarDate(value)) return value;
 	if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) return '';
 	const instant = new Date(value);
