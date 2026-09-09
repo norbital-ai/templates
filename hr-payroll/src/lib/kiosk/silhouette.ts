@@ -39,7 +39,23 @@ type SilhouetteGeometry = Readonly<{
 
 const round = (value: number): number => Math.round(value * 100) / 100;
 
-/** The detector sees the same object-cover crop as the mirrored preview; the guide is symmetric. */
+/** The camera frame's box inside the cell it is given: the video's own ratio, never cropped. */
+export const fitFrame = (cell: FrameSize, video: FrameSize): FrameSize => {
+	const ratio = video.width > 0 && video.height > 0 ? video.width / video.height : 16 / 9;
+	const width = Math.min(cell.width, cell.height * ratio);
+	return { width: round(width), height: round(width / ratio) };
+};
+
+/** A face this share of the head's height or taller is close enough to read; smaller is background. */
+const MIN_FACE_SHARE = 0.35;
+
+/**
+ * The face the outline is asking for: its centre inside the head ellipse and its height at least
+ * `MIN_FACE_SHARE` of the head's. The outline is a guide, not a template: a box that only has to be
+ * centred admits the same person a step further back or off to one side, where "fit the whole box
+ * inside the ellipse" read as "Move closer" on every frame. `box` is in `image` pixels, the frame's
+ * object-cover crop scaled; the guide is symmetric, so the mirrored preview needs no correction.
+ */
 export const faceInsideSilhouette = (
 	box: readonly [number, number, number, number],
 	image: FrameSize,
@@ -47,16 +63,10 @@ export const faceInsideSilhouette = (
 ): boolean => {
 	const { head } = silhouetteGeometry(frame);
 	const [x, y, width, height] = box;
-	const halfWidth = (width * frame.width) / image.width / 2;
-	const halfHeight = (height * frame.height) / image.height / 2;
+	const faceHeight = (height * frame.height) / image.height;
 	const dx = (((x + width / 2) * frame.width) / image.width - head.cx) / head.rx;
 	const dy = (((y + height / 2) * frame.height) / image.height - head.cy) / head.ry;
-	return (
-		halfHeight >= head.ry * 0.45 &&
-		halfWidth > 0 &&
-		(Math.abs(dx) + halfWidth / head.rx) ** 2 + dy ** 2 <= 1 &&
-		dx ** 2 + (Math.abs(dy) + halfHeight / head.ry) ** 2 <= 1
-	);
+	return width > 0 && faceHeight >= head.ry * 2 * MIN_FACE_SHARE && dx ** 2 + dy ** 2 <= 1;
 };
 
 export const silhouetteGeometry = ({ width, height }: FrameSize): SilhouetteGeometry => {

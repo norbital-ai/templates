@@ -25,11 +25,16 @@ const engineConfig = (backend: 'webgl' | 'wasm', enrollment: boolean) => ({
 	warmup: 'none' as const,
 	cacheModels: true,
 	async: false,
+	// Equalize each face crop's histogram before the mesh and descriptor: a profile enrolled on a
+	// laptop in daylight and a scan from a wall tablet under fluorescent light reach the descriptor
+	// with the same contrast, which is the one normalization the engine offers across cameras.
+	filter: { enabled: true, equalization: true },
 	face: {
 		enabled: true,
 		detector: {
 			modelPath: 'blazeface.json',
-			rotation: false,
+			// Straighten a tilted head before the mesh and descriptor crops; upright faces are untouched.
+			rotation: true,
 			maxDetected: 3,
 			minConfidence: 0.2,
 			minSize: KIOSK_MIN_FACE_PX,
