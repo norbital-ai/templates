@@ -166,7 +166,8 @@ export function readLeaveContext(
 							base_salary: true,
 							statutory_work_category: true,
 							department: true,
-							payroll_group: true
+							payroll_group: true,
+							grade: true
 						},
 						limit: LIMIT
 					}),

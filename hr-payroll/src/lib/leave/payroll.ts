@@ -305,10 +305,6 @@ export function calculateLeavePayroll(options: {
 				...item,
 				id: `${item.catalogue_id}:${item.nature}:${item.code}`,
 				family: 'LEAVE',
-				policy:
-					item.nature === 'ABSENCE'
-						? { kind: 'ABSENCE', settlement: 'DEDUCT' }
-						: { kind: 'EARNING', settlement: 'ADD' },
 				eligibility: '',
 				settlement: 'PAYROLL'
 			};

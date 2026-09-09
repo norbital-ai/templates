@@ -43,16 +43,7 @@ const capturedBy = (family: Family, captured: boolean) => ({
 			: {
 					[`${family.family.toLowerCase()}_catalogue`]: {
 						findFirst: () =>
-							Effect.succeed({
-								code: 'TRANSPORT',
-								definition: {
-									source: 'ENTRY',
-									unit: 'MONEY',
-									evidence: 'NONE',
-									cap: null,
-									settlement: 'PAYROLL'
-								}
-							})
+							Effect.succeed({ code: 'TRANSPORT', evidence: 'NONE', cap: null, eligibility: '' })
 					}
 				})
 	}

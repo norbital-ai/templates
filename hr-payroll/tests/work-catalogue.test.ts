@@ -55,7 +55,7 @@ test('Contribution consumes Work metadata without decoding overtime labels', asy
 		.filter((row) => row.family === 'WORK')
 		.map((row) => ({
 			catalogueComponent: row,
-			nature: row.policy.kind,
+			nature: row.nature,
 			label: 'A label with no classification information',
 			amount: row.output === 'salary' ? 1000 : row.output === 'absence' ? 50 : 100
 		}));

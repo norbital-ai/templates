@@ -132,22 +132,25 @@ export function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutory
 				authority: type.authority,
 				entitlement: type.entitlement
 			})),
-		// Every catalogue that can carry a statutory row, in one list. Drift is about what the law
-		// says a component is charged, and the law does not care which of the five tables declares
-		// it — only that the row is `is_statutory`.
+		// Every catalogue in one list. Drift is about what the law says a component is charged, and
+		// the law does not care which table declares it: Work and Leave rows say whether they are the
+		// law, the money catalogues carry no such flag and are read whole.
 		pay_component: [
-			...tree.workCatalogue.flatMap(workPayItems),
-			...tree.catalogueLeaves.map((row) => ({ ...row.encashment, is_statutory: row.is_statutory })),
+			...[
+				...tree.workCatalogue.flatMap(workPayItems),
+				...tree.catalogueLeaves.map((row) => ({
+					...row.encashment,
+					is_statutory: row.is_statutory
+				}))
+			].filter((component) => component.is_statutory),
 			...tree.loanCatalogue,
 			...tree.claimCatalogue,
 			...tree.allowanceCatalogue,
 			...tree.paymentCatalogue
-		]
-			.filter((component) => component.is_statutory)
-			.map((component) => ({
-				code: component.code,
-				contribution_treatments: component.contribution_treatments
-			}))
+		].map((component) => ({
+			code: component.code,
+			contribution_treatments: component.contribution_treatments
+		}))
 	};
 }
 

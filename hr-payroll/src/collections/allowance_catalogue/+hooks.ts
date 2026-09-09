@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { admitCatalogueRow } from '../../lib/catalogue_rules.js';
 import { refuseUnlessDraftOnBoth } from '../../lib/settings_seal.js';
 import type { Hooks } from './$types.js';
 
@@ -6,17 +6,9 @@ export default {
 	mutate: {
 		perRecord: {
 			before: {
-				description: 'Preserve Allowance catalogue rows belonging to sealed settings versions.',
-				handler: ({ input, existing, api }) =>
-					Effect.as(
-						refuseUnlessDraftOnBoth(
-							api,
-							existing?.settings_id,
-							input.settings_id,
-							`Allowance ${String(input.code ?? existing?.code ?? '')}`
-						),
-						input
-					)
+				description:
+					'Preserve Allowance catalogue rows belonging to sealed settings versions; compile the eligibility expressions and require a named rule behind every special treatment.',
+				handler: ({ input, existing, api }) => admitCatalogueRow(api, input, existing, 'Allowance')
 			}
 		}
 	},

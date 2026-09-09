@@ -140,6 +140,15 @@ family assessments, applies common settlement and passes the result to `graph.ts
 prepared facts without database writes. The run core does not query family-owned source/catalogue
 tables or dispatch their calculation definitions.
 
+The money catalogues (Claim, Allowance, Payment) store flat columns — `nature`, `evidence`,
+`settlement` and an entitlement matrix `cap` — which `money.ts` lifts into the engine's `ENTRY`
+definition; a Loan catalogue row carries only code, order, eligibility and treatments, because a
+recovery is always a payroll deduction. The entitlement matrix is rows of `{eligibility, amount}`
+read top-down: the first predicate that holds for the person is their ceiling per period, and no
+band holding means no entitlement, refused when the request is written and paid nothing by the run.
+`employment_terms.grade` is the contract's benefit tier; the predicate grammar reads it as
+`terms.grade` beside department, service months and the rest.
+
 The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
 Preparation gathers the input snapshot once. Validation refuses incomplete treatments, required
 facts, open clocks, missing calendar coverage, invalid references and truncated reads. Nothing is

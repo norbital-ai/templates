@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "83a0bc04-c65b-4d37-ae47-41bfd12c90d4",
+  "id": "d23e2240-57b1-49fb-a3fb-b195b705057c",
   "prevIds": [
-    "40273331-d9f0-4b0c-829d-9a9202d90af1"
+    "e99ecc8a-e16a-4376-b2be-14a04c3bf937"
   ],
   "version": "8",
   "ddl": [
@@ -295,41 +295,12 @@
       "table": "allowance_catalogue"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_statutory",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "allowance_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "policy",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "allowance_catalogue"
-    },
-    {
       "type": "text",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "policy ->> 'kind'",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "nature",
       "entityType": "columns",
@@ -376,14 +347,40 @@
       "table": "allowance_catalogue"
     },
     {
-      "type": "jsonb",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
+      "dimensions": 0,
+      "default": "'NONE'",
+      "generated": null,
+      "identity": null,
+      "name": "evidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PAYROLL'",
+      "generated": null,
+      "identity": null,
+      "name": "settlement",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "allowance_catalogue"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "definition",
+      "name": "cap",
       "entityType": "columns",
       "schema": "public",
       "table": "allowance_catalogue"
@@ -678,41 +675,12 @@
       "table": "claim_catalogue"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_statutory",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "policy",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "claim_catalogue"
-    },
-    {
       "type": "text",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "policy ->> 'kind'",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "nature",
       "entityType": "columns",
@@ -759,14 +727,40 @@
       "table": "claim_catalogue"
     },
     {
-      "type": "jsonb",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
+      "dimensions": 0,
+      "default": "'NONE'",
+      "generated": null,
+      "identity": null,
+      "name": "evidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PAYROLL'",
+      "generated": null,
+      "identity": null,
+      "name": "settlement",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "claim_catalogue"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "definition",
+      "name": "cap",
       "entityType": "columns",
       "schema": "public",
       "table": "claim_catalogue"
@@ -1913,6 +1907,19 @@
       "generated": null,
       "identity": null,
       "name": "payroll_group",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "grade",
       "entityType": "columns",
       "schema": "public",
       "table": "employment_terms"
@@ -3350,48 +3357,6 @@
       "table": "loan_catalogue"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_statutory",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "loan_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "policy",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "loan_catalogue"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "policy ->> 'kind'",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "nature",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "loan_catalogue"
-    },
-    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
@@ -3426,19 +3391,6 @@
       "generated": null,
       "identity": null,
       "name": "eligibility",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "loan_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "definition",
       "entityType": "columns",
       "schema": "public",
       "table": "loan_catalogue"
@@ -3895,41 +3847,12 @@
       "table": "payment_catalogue"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_statutory",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "policy",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "payment_catalogue"
-    },
-    {
       "type": "text",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
-      "generated": {
-        "as": "policy ->> 'kind'",
-        "type": "stored"
-      },
+      "generated": null,
       "identity": null,
       "name": "nature",
       "entityType": "columns",
@@ -3976,14 +3899,40 @@
       "table": "payment_catalogue"
     },
     {
-      "type": "jsonb",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
+      "dimensions": 0,
+      "default": "'NONE'",
+      "generated": null,
+      "identity": null,
+      "name": "evidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payment_catalogue"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PAYROLL'",
+      "generated": null,
+      "identity": null,
+      "name": "settlement",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payment_catalogue"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "definition",
+      "name": "cap",
       "entityType": "columns",
       "schema": "public",
       "table": "payment_catalogue"

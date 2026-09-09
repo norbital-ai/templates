@@ -1,12 +1,4 @@
-import {
-	boolean,
-	custom,
-	defineModel,
-	integer,
-	sql,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -14,12 +6,15 @@ export default defineModel(
 		settings_id: uuid().notNull(),
 		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
 		code: text({ search: true }).notNull(),
-		/** The row the law names, as opposed to the entity's own claim. Frozen once its version is sealed. */
-		is_statutory: boolean().notNull().default(false),
-		/** The component's economic direction: the kind fixes how it settles, and an event may flip it. */
-		policy: custom('component_policy').notNull(),
-		/** Read-only projection used for grouping and reporting. */
-		nature: text().generatedAlwaysAs(sql`policy ->> 'kind'`),
+		/** Which way the line settles: adds to pay, takes from it, costs the employer alone, or is information only. */
+		nature: enums([
+			'EARNING',
+			'NON_WAGE_PAYMENT',
+			'DEDUCTION',
+			'EMPLOYER_COST',
+			'INFORMATION',
+			'ABSENCE'
+		]).notNull(),
 		/**
 		 * How each statutory scheme, by code, charges this component. A scheme the map does not name
 		 * is undecided and the run refuses at ACCUMULATE naming the component and the scheme.
@@ -29,12 +24,16 @@ export default defineModel(
 		sequence: integer().notNull(),
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
-		/** Units, evidence and caps for entered amounts. Calculation sources belong to the family. */
-		definition: custom('entry_component_definition').notNull()
+		/** Whether a request against this line must, may or need not attach proof. */
+		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
+		/** Whether payroll pays the line or the company pays it directly and payroll only records it. */
+		settlement: enums(['PAYROLL', 'COMPANY_DIRECT']).notNull().default('PAYROLL'),
+		/** The entitlement matrix: the first band whose predicate holds is the ceiling per period; null is no ceiling. */
+		cap: custom('entitlement_cap')
 	},
 	{
 		description:
-			'The claim catalogue of one jurisdiction settings version: code, economic direction, the treatment every statutory scheme gives it, eligibility, and the unit, evidence and entitlement ceiling of the claim raised against it. Sealed with its version; the run cites the version it priced against.',
+			'The claim catalogue of one jurisdiction settings version: code, nature, the treatment every statutory scheme gives it, eligibility, evidence, settlement route and the entitlement ceiling of the claim raised against it. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code'],
 		icon: 'lucide:receipt-text',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

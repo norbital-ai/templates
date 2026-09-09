@@ -1,5 +1,5 @@
 /**
- * Shared CEL eligibility for family catalogues and claim cap layers.
+ * Shared CEL eligibility for family catalogues and entitlement bands.
  *
  * Rules evaluate the person, contract terms and child facts on the input date. The context
  * carries empty strings and zeros for missing facts. An empty expression includes everyone;
@@ -7,7 +7,7 @@
  *
  * employee.gender  employee.age  employee.citizenship
  * employment.type  employment.classification  employment.service_months  employment.hire_date
- * terms.basic_salary  terms.workman  terms.department  terms.payroll_group
+ * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
  * children.count  children.under(age)
  *
  * compileEligibility validates syntax, available context members and a boolean result when
@@ -38,6 +38,7 @@ export type PersonContext = {
 		readonly workman: boolean;
 		readonly department: string;
 		readonly payroll_group: string;
+		readonly grade: string;
 	};
 	readonly children: {
 		readonly count: number;
@@ -50,7 +51,7 @@ export type PersonContext = {
 const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
 	employee: new Set(['gender', 'age', 'citizenship']),
 	employment: new Set(['type', 'classification', 'service_months', 'hire_date']),
-	terms: new Set(['basic_salary', 'workman', 'department', 'payroll_group']),
+	terms: new Set(['basic_salary', 'workman', 'department', 'payroll_group', 'grade']),
 	children: new Set(['count', 'under'])
 };
 
@@ -58,7 +59,7 @@ const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
 const BLANK_PERSON: PersonContext = {
 	employee: { gender: '', age: 0, citizenship: '' },
 	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
-	terms: { basic_salary: 0, workman: false, department: '', payroll_group: '' },
+	terms: { basic_salary: 0, workman: false, department: '', payroll_group: '', grade: '' },
 	children: { count: 0, ages: [] }
 };
 
@@ -77,6 +78,7 @@ type PersonInput = {
 		readonly statutory_work_category?: string | null;
 		readonly department?: string | null;
 		readonly payroll_group?: string | null;
+		readonly grade?: string | null;
 	} | null;
 	readonly children?: ReadonlyArray<{ readonly child_birthdate: string }>;
 	/** The rule date: service, age and children are measured on it. */
@@ -110,7 +112,8 @@ export function personContext(input: PersonInput): PersonContext {
 			basic_salary: salary == null ? 0 : decodeNumber(salary.value),
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			department: input.terms?.department ?? '',
-			payroll_group: input.terms?.payroll_group ?? ''
+			payroll_group: input.terms?.payroll_group ?? '',
+			grade: input.terms?.grade ?? ''
 		},
 		children: { count: ages.length, ages }
 	};
@@ -164,7 +167,7 @@ export function compileEligibility(expression: string | null | undefined): strin
 		if (root != null && member != null && !CONTEXT_MEMBERS[root]?.has(member))
 			return (
 				`Eligibility names ${root}.${member}, which the person context does not carry. ` +
-				`Use employee.gender, employee.age, employee.citizenship, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, children.count or children.under(age).`
+				`Use employee.gender, employee.age, employee.citizenship, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, children.count or children.under(age).`
 			);
 	}
 	try {

@@ -75,7 +75,6 @@ const BASIC = {
 	settings_id: JURISDICTION.id,
 	code: 'BASIC',
 	is_statutory: false,
-	policy: { kind: 'EARNING', settlement: 'ADD' },
 	contribution_treatments: {
 		EPF: { kind: 'INCLUDE' as const },
 		PCB: { kind: 'INCLUDE' as const }

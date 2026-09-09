@@ -90,7 +90,6 @@ test('derived overtime is charged through the OVERTIME rows, which a priced regi
 		code,
 		nature: 'EARNING',
 		is_statutory: true,
-		policy: { kind: 'EARNING', settlement: 'ADD' },
 		contribution_treatments: treatments,
 		sequence: 20,
 		eligibility: '',

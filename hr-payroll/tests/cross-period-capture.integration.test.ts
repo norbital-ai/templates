@@ -155,19 +155,9 @@ function withRecoverableLoan(world) {
 		settings_id: JURISDICTION_ID,
 		code: 'LOAN',
 		name: 'Loan recovery',
-		nature: 'DEDUCTION',
-		is_statutory: false,
-		policy: { kind: 'DEDUCTION', settlement: 'DEDUCT' },
 		contribution_treatments: {},
 		sequence: 80,
 		eligibility: '',
-		definition: {
-			source: 'ENTRY',
-			unit: 'MONEY',
-			evidence: 'NONE',
-			cap: null,
-			settlement: 'PAYROLL'
-		},
 		approval_id: null
 	});
 	world.loans.push({
@@ -386,20 +376,9 @@ test(
 			// A standalone schedule fixture isolates the per-payslip capture uniqueness constraint.
 			const loanCatalogueId = crypto.randomUUID();
 			await session.query(
-				`insert into loan_catalogue (id, settings_id, code, policy, contribution_treatments, sequence, eligibility, definition)
-    values ($1, $2, 'CROSS_PERIOD_LOAN', $3::jsonb, '{}'::jsonb, 80, '', $4::jsonb)`,
-				[
-					loanCatalogueId,
-					JURISDICTION_ID,
-					JSON.stringify({ kind: 'DEDUCTION', settlement: 'DEDUCT' }),
-					JSON.stringify({
-						source: 'ENTRY',
-						unit: 'MONEY',
-						evidence: 'NONE',
-						cap: null,
-						settlement: 'PAYROLL'
-					})
-				]
+				`insert into loan_catalogue (id, settings_id, code, contribution_treatments, sequence, eligibility)
+    values ($1, $2, 'CROSS_PERIOD_LOAN', '{}'::jsonb, 80, '')`,
+				[loanCatalogueId, JURISDICTION_ID]
 			);
 
 			const loanId = crypto.randomUUID();

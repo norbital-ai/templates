@@ -10,25 +10,13 @@ import {
 	EMPLOYMENT_ID
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
-import { adjust, settle } from './helpers/settlement.ts';
+import { adjust, capturesOf, settle } from './helpers/settlement.ts';
 
 type Family = 'claim' | 'payment' | 'allowance';
-const periodCap = (percentage: number, amount = 1000) => ({
+const periodCap = (amount = 1000, eligibility = '') => ({
 	period: 'CALENDAR_YEAR',
 	on_exceed: 'BLOCK',
-	matrix: {
-		merge: 'MAX_WITH_COMPANY_LAYERS',
-		layers: [
-			{
-				level: 'ORGANISATION',
-				eligibility: '',
-				authority: 'Synthetic regression fixture',
-				effective_range: { start: '2020-01-01', end: null },
-				award: { kind: 'FIXED', amount },
-				reimbursement_percentage: percentage
-			}
-		]
-	}
+	bands: [{ eligibility, amount }]
 });
 
 function capWorld(family: Family) {
@@ -56,22 +44,11 @@ function capWorld(family: Family) {
 		...structuredClone(world.payment_catalogue[0]),
 		id: 'old-catalogue',
 		code: 'BENEFIT',
-		definition: {
-			source: 'ENTRY',
-			unit: 'MONEY',
-			evidence: 'NONE',
-			settlement: 'PAYROLL',
-			cap: periodCap(50)
-		}
+		cap: periodCap()
 	};
 	world[`${family}_catalogue`] = [
 		source,
-		{
-			...structuredClone(source),
-			id: 'new-catalogue',
-			settings_id: 'new-settings',
-			definition: { ...source.definition, cap: periodCap(100) }
-		}
+		{ ...structuredClone(source), id: 'new-catalogue', settings_id: 'new-settings' }
 	];
 	const request = (id: string, catalogueId: string, amount: number, month: string) => ({
 		id,
@@ -86,7 +63,7 @@ function capWorld(family: Family) {
 		as_adjustment_entry: false
 	});
 	const prior = request('prior', 'old-catalogue', 800, '2026-01');
-	const candidate = request('candidate', 'new-catalogue', 600, '2026-02');
+	const candidate = request('candidate', 'new-catalogue', 200, '2026-02');
 	world[`${family}_requests`].push(prior);
 	return { world, prior, candidate, request };
 }
@@ -120,11 +97,11 @@ const build = async (world: PayrollWorld, period = '2026-02') =>
 	);
 
 for (const family of ['claim', 'payment', 'allowance'] as const) {
-	test(`${family} cap spans revisions without repricing an earlier source's percentage`, async () => {
+	test(`${family} cap spans catalogue revisions of the same code`, async () => {
 		const { world, candidate } = capWorld(family);
-		await admit(family, world, candidate); // 800 at 50% + 600 at 100% = 1,000.
+		await admit(family, world, candidate); // 800 under the old revision + 200 = 1,000.
 		await assert.rejects(
-			admit(family, world, { ...candidate, amount: 601 }),
+			admit(family, world, { ...candidate, amount: 201 }),
 			/1001\.00 requested against 1000\.00/
 		);
 		world[`${family}_requests`].push(candidate);
@@ -134,12 +111,50 @@ for (const family of ['claim', 'payment', 'allowance'] as const) {
 		);
 		assert.deepEqual(
 			outputs.map((row) => row.amount).sort((a, b) => a - b),
-			[400, 600]
+			[200, 800]
 		);
-		candidate.amount = 601;
+		candidate.amount = 201;
 		await assert.rejects(build(world), /1001\.00 requested against 1000\.00/);
 	});
 }
+
+test('two bands that differ by grade: the tier is read off the terms in force on the event date', async () => {
+	const { world, candidate } = capWorld('claim');
+	for (const catalogue of world.claim_catalogue)
+		catalogue.cap = {
+			period: 'CALENDAR_YEAR',
+			on_exceed: 'BLOCK',
+			bands: [
+				{ eligibility: 'terms.grade == "G3"', amount: 2000 },
+				{ eligibility: '', amount: 1000 }
+			]
+		};
+	await assert.rejects(
+		admit('claim', world, { ...candidate, amount: 201 }),
+		/1001\.00 requested against 1000\.00/
+	);
+	world.employment_terms[0].grade = 'G3';
+	await admit('claim', world, { ...candidate, amount: 1200 });
+	await assert.rejects(
+		admit('claim', world, { ...candidate, amount: 1201 }),
+		/2001\.00 requested against 2000\.00/
+	);
+});
+
+test('a person no band covers is refused at the request and paid nothing by the run', async () => {
+	const { world, candidate } = capWorld('claim');
+	for (const catalogue of world.claim_catalogue)
+		catalogue.cap = periodCap(2000, 'terms.grade == "G3"');
+	await assert.rejects(admit('claim', world, candidate), /BENEFIT has no entitlement band/);
+	world.claim_requests.push(candidate);
+	const result = await build(world);
+	const slip = result.payslip_payroll_run[0];
+	assert.equal(
+		slip.adjustments.some((row) => row.label === 'BENEFIT'),
+		false
+	);
+	assert.equal(capturesOf(result, slip).claims.length, 2, 'read and captured, priced at nothing');
+});
 
 test('prior source eligibility uses its own event date and contract terms', async () => {
 	const { world, candidate } = capWorld('claim');
@@ -153,21 +168,21 @@ test('prior source eligibility uses its own event date and contract terms', asyn
 		effective_range: { start: '2026-02-01', end: null }
 	});
 	world.claim_catalogue[0].eligibility = "terms.department == 'OPERATIONS'";
-	await assert.rejects(admit('claim', world, { ...candidate, amount: 601 }), /1001\.00 requested/);
-	world.claim_requests.push({ ...candidate, amount: 601 });
+	await assert.rejects(admit('claim', world, { ...candidate, amount: 201 }), /1001\.00 requested/);
+	world.claim_requests.push({ ...candidate, amount: 201 });
 	await assert.rejects(build(world), /1001\.00 requested/);
 });
 
-test('signed corrections restore only their source reimbursement and remain admissible above an inherited ceiling', async () => {
+test('signed corrections restore their source amount and remain admissible above an inherited ceiling', async () => {
 	const { world, candidate, request } = capWorld('claim');
 	world.claim_requests.push({
 		...request('refund', 'old-catalogue', 200, '2026-01'),
 		incurred_on: '2026-01-10',
 		as_adjustment_entry: true
 	});
-	await admit('claim', world, { ...candidate, amount: 700 }); // 400 - 100 + 700.
-	await assert.rejects(admit('claim', world, { ...candidate, amount: 701 }), /1001\.00 requested/);
-	world.claim_catalogue[1].definition.cap = periodCap(100, 200);
+	await admit('claim', world, { ...candidate, amount: 400 }); // 800 - 200 + 400.
+	await assert.rejects(admit('claim', world, { ...candidate, amount: 401 }), /1001\.00 requested/);
+	world.claim_catalogue[1].cap = periodCap(200);
 	await admit('claim', world, { ...candidate, amount: 20, as_adjustment_entry: true });
 });
 
@@ -253,7 +268,7 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 	const { world, prior } = capWorld('allowance');
 	prior.amount = 600;
 	prior.recurrence = { kind: 'RECURRING', from: '2026-01-01', to: '2027-12-31' } as never;
-	world.allowance_catalogue[0].definition.cap = periodCap(100);
+	world.allowance_catalogue[0].cap = periodCap();
 	const template = world.work_days[0];
 	world.work_days = [];
 	for (
@@ -324,7 +339,7 @@ test('a recurring declaration is accepted and its cap is applied to each payroll
 	);
 	assert.deepEqual(
 		outputs.map((row) => row.amount).sort((a, b) => a - b),
-		[400, 600]
+		[200, 800]
 	);
 });
 
@@ -350,11 +365,11 @@ test('post-departure Payment uses final terms from its own contract for eligibil
 	});
 	for (const catalogue of world.payment_catalogue) {
 		catalogue.eligibility = "employment.type == 'PERMANENT'";
-		catalogue.definition.cap.matrix.layers[0].eligibility = "employment.type == 'PERMANENT'";
+		catalogue.cap.bands[0].eligibility = "employment.type == 'PERMANENT'";
 	}
 	await admit('payment', world, candidate);
 	await assert.rejects(
-		admit('payment', world, { ...candidate, amount: 601 }),
+		admit('payment', world, { ...candidate, amount: 201 }),
 		/1001\.00 requested/
 	);
 	world.payment_requests.push(candidate);
@@ -365,7 +380,7 @@ test('post-departure Payment uses final terms from its own contract for eligibil
 			.filter((row) => row.label === 'BENEFIT')
 			.map((row) => row.amount)
 			.sort((a, b) => a - b),
-		[400, 600]
+		[200, 800]
 	);
 });
 
@@ -374,7 +389,7 @@ test('payroll cap usage values a due one-off Allowance using its actual source-m
 	world.employments[0].hire_date = '2026-01-15';
 	world.employments[0].effective_range = { start: '2026-01-15', end: null };
 	world.employment_terms[0].effective_range = { start: '2026-01-15', end: null };
-	world.allowance_catalogue[0].definition.cap = periodCap(100);
+	world.allowance_catalogue[0].cap = periodCap();
 	prior.amount = 310;
 	candidate.amount = 830;
 	// The write guard conservatively reserves the stated source magnitude before payroll prices it.

@@ -6,8 +6,7 @@ import { capSubject } from './component_entry_cap_subject.js';
 import {
 	capOccurrenceDate,
 	entryCapRefusal,
-	entryReimbursementPercentage,
-	reimbursable,
+	noEntitlementRefusal,
 	resolveEntryCap
 } from '../collections/payroll_runs/lib/entry-cap.js';
 import { isSettlementWrite, refuseIfCaptured, settledClaim } from './scheduling/lock.js';
@@ -75,7 +74,8 @@ const catalogueRowOf = (
 		id: true,
 		settings_id: true,
 		code: true,
-		definition: true,
+		evidence: true,
+		cap: true,
 		eligibility: true
 	} as const;
 	const where = { id: { eq: id } } as const;
@@ -150,7 +150,7 @@ function catalogueRevisionsOf(
 			code: { eq: component.code },
 			approval_id: { isNull: true }
 		} as const;
-		const columns = { id: true, definition: true, eligibility: true } as const;
+		const columns = { id: true, eligibility: true } as const;
 		switch (family) {
 			case 'CLAIM':
 				return yield* api.db.claim_catalogue.findMany({ where, columns, limit: SIBLING_LIMIT });
@@ -282,19 +282,16 @@ export function assertPayRequestAdmissible(
 		const componentId = String(candidate[`${guard.family.toLowerCase()}_catalogue_id`] ?? '');
 		const component = yield* catalogueRowOf(guard.family, api, componentId);
 		if (component != null) {
-			const definition = component.definition;
-			if (
-				guard.family === 'CLAIM' &&
-				definition.evidence === 'REQUIRED' &&
-				candidate.evidence_file == null
-			)
-				refuse(`Component ${component.code} requires evidence for its claims. Attach a receipt.`);
+			if (component.evidence === 'REQUIRED' && candidate.evidence_file == null)
+				refuse(
+					`Component ${component.code} requires evidence for its ${guard.noun}s. Attach a receipt.`
+				);
 
 			// A recurring declaration is an award per period; payroll bounds each occurrence by the cap.
 			const recurring =
 				guard.family === 'ALLOWANCE' &&
 				(candidate.recurrence as { kind?: unknown } | null)?.kind === 'RECURRING';
-			if (definition.cap != null && !recurring) {
+			if (component.cap != null && !recurring) {
 				const eventDate = guard.eventDate(candidate);
 				const employmentId = String(candidate.employment_id ?? '');
 				if (eventDate != null && employmentId !== '') {
@@ -316,7 +313,7 @@ export function assertPayRequestAdmissible(
 							(guard.sign ?? 1) * (row.as_adjustment_entry === true ? -1 : 1);
 						const identity = { family: guard.family, code: component.code };
 						const resolved = resolveEntryCap({
-							cap: definition.cap,
+							cap: component.cap,
 							component: identity,
 							employmentId,
 							entry: { id: String(candidate.id ?? '\uffff'), employment_id: employmentId },
@@ -349,32 +346,22 @@ export function assertPayRequestAdmissible(
 								const source = catalogueById.get(
 									String(row[`${guard.family.toLowerCase()}_catalogue_id`])
 								);
-								if (source == null) refuse('A capped request has no source catalogue definition.');
-								const date = row.event_date!;
-								const subject = person.at(date);
-								if (!isEligible(source.eligibility, subject)) return 0;
-								const percentage = entryReimbursementPercentage({
-									cap: source.definition.cap,
-									employmentId,
-									eventDate: date,
-									subject
-								});
-								return signOf(row) * reimbursable(decodeNumber(row.amount), { percentage });
+								if (source == null) refuse('A capped request has no source catalogue row.');
+								if (!isEligible(source.eligibility, person.at(row.event_date!))) return 0;
+								return signOf(row) * decodeNumber(row.amount);
 							},
-							subject: person.subject,
-							// FIXED is knowable now; a payslip formula is not.
-							evaluateAward: (layer) => (layer.award.kind === 'FIXED' ? layer.award.amount : null)
+							subject: person.subject
 						});
-						if (resolved != null) {
-							const refusal = entryCapRefusal({
-								cap: definition.cap,
-								resolved,
-								componentCode: String(component.code),
-								subject: person.label,
-								proposed: signOf(candidate) * reimbursable(amount, resolved)
-							});
-							if (refusal !== null) refuse(refusal);
-						}
+						if (resolved == null)
+							refuse(noEntitlementRefusal(String(component.code), person.label));
+						const refusal = entryCapRefusal({
+							cap: component.cap,
+							resolved,
+							componentCode: String(component.code),
+							subject: person.label,
+							proposed: signOf(candidate) * amount
+						});
+						if (refusal !== null) refuse(refusal);
 					}
 				}
 			}

@@ -16,7 +16,7 @@ import {
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
 import { workPayItems } from '../../collections/work_catalogue/pay-items.js';
-import type { ComponentDefinition } from '../../datatypes/component_definition/+definition.js';
+import type { ComponentDefinition } from '../../collections/payroll_runs/lib/configuration.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
 import {
@@ -833,7 +833,7 @@ function measureWorkComponent(
 	const definition = options.component.definition;
 	if (definition == null)
 		throw new Error(`Component ${options.component.code} has no definition to measure.`);
-	const nature = options.component.policy?.kind ?? null;
+	const nature = options.component.nature;
 
 	/**
 	 * The terms covering one calendar day, clamped to the contracted span: days past the contract
@@ -1112,7 +1112,7 @@ function measureAbsence(options: {
 	return options.days.map((day) => ({
 		input: { family: 'WORK_DAY' as const, id: day.id },
 		catalogueComponent: component,
-		nature: component.policy?.kind ?? null,
+		nature: component.nature,
 		label: component.code,
 		amount: cents(options.dayWage * day.days),
 		quantity: day.days,

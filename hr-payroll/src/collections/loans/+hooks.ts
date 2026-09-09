@@ -11,7 +11,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Require a complete nonempty repayment schedule, preserve its agreement total and period, and accept only payroll-settled deduction catalogue entries.',
+					'Require a complete nonempty repayment schedule, preserve its agreement total and period, and require a loan catalogue entry; every recovery is a payroll deduction (`lib/payroll/loan.ts`).',
 				handler: ({ input, existing, relationshipSizes, api }) =>
 					Effect.gen(function* () {
 						const principal = decodeNumber(input.principal ?? existing?.principal ?? 0);
@@ -42,20 +42,9 @@ export default {
 						}
 						const catalogue = yield* api.db.loan_catalogue.findFirst({
 							where: { id: { eq: String(input.loan_catalogue_id ?? existing?.loan_catalogue_id) } },
-							columns: { code: true, definition: true, nature: true }
+							columns: { code: true }
 						});
 						if (!catalogue) refuse('A loan must reference a loan catalogue entry.');
-						if (
-							catalogue.definition?.source !== 'ENTRY' ||
-							catalogue.definition.settlement !== 'PAYROLL'
-						)
-							refuse(
-								`Loan recoveries settle as payroll deductions, and component ${catalogue.code} is not a payroll-settled entry.`
-							);
-						if (catalogue.nature !== 'DEDUCTION')
-							refuse(
-								`Loan recoveries settle as deductions, and component ${catalogue.code} is a ${catalogue.nature}.`
-							);
 						return boundToContract(input, existing);
 					})
 			}

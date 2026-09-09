@@ -239,6 +239,7 @@ export function loadRunExports(
 							{
 								...row.encashment,
 								nature: 'EARNING',
+								settlement: 'PAYROLL' as const,
 								definition: null
 							},
 							...(row.payroll_effect.kind === 'UNPAID'
@@ -246,14 +247,17 @@ export function loadRunExports(
 										{
 											code: row.code,
 											nature: 'ABSENCE',
+											settlement: 'PAYROLL' as const,
 											definition: null
 										}
 									]
 								: [])
 						]),
-					...[...claims, ...allowances, ...payments].filter(
-						(row) => row.settings_id === run.settings_id
-					)
+					// The money catalogues store flat columns; the export reads them through the same
+					// `ENTRY` arm the run does.
+					...[...claims, ...allowances, ...payments]
+						.filter((row) => row.settings_id === run.settings_id)
+						.map((row) => ({ ...row, definition: { source: 'ENTRY' as const, cap: row.cap } }))
 				].map((row) => [row.code, row])
 			);
 
@@ -364,8 +368,7 @@ export function loadRunExports(
 							calculationSource: definition?.source ?? 'DERIVED',
 							amount,
 							quantity,
-							isCompanyDirect:
-								definition?.source === 'ENTRY' && definition.settlement === 'COMPANY_DIRECT',
+							isCompanyDirect: catalogueComponent?.settlement === 'COMPANY_DIRECT',
 							isClaim: definition?.source === 'ENTRY' && definition.cap != null,
 							isLoanInstalment: false,
 							overtimeDayType: null,

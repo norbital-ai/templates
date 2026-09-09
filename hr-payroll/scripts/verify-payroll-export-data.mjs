@@ -204,12 +204,12 @@ const FINAL_PAYMENT = {
 	settings_id: RUN.settings_id,
 	code: 'FINAL_PAYMENT',
 	nature: 'EARNING',
-	policy: { kind: 'EARNING', settlement: 'ADD' },
-	is_statutory: false,
 	sequence: 50,
 	eligibility: '',
 	contribution_treatments: {},
-	definition: { source: 'ENTRY', unit: 'MONEY', evidence: 'NONE', cap: null, settlement: 'PAYROLL' }
+	evidence: 'NONE',
+	settlement: 'PAYROLL',
+	cap: null
 };
 
 const PAYSLIPS = [

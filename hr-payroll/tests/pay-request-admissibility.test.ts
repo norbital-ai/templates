@@ -12,8 +12,8 @@
  * against a real database, on the write path the seed itself takes.
  *
  * The catalogue then split seven ways, and two more rules went with it. "This component is
- * calculated by the engine and takes no requests" is **unsayable**: the four event catalogues carry
- * only the `ENTRY` arm of a definition, so a schedule-fed row cannot exist in one. And the
+ * calculated by the engine and takes no requests" is **unsayable**: the four event catalogues are
+ * entered amounts by construction, so a schedule-fed row cannot exist in one. And the
  * `entry_kind` pairing rule is a **foreign key** — a claim request names a `claim_catalogue` row or
  * it does not write at all.
  *
@@ -29,12 +29,7 @@ import claimHooks from '../src/collections/claim_requests/+hooks.ts';
 import allowanceHooks from '../src/collections/allowance_requests/+hooks.ts';
 import paymentHooks from '../src/collections/payment_requests/+hooks.ts';
 
-const ENTRY_DEFINITION = {
-	source: 'ENTRY',
-	unit: 'MONEY',
-	evidence: 'NONE',
-	settlement: 'PAYROLL'
-};
+const ENTRY = { evidence: 'NONE', settlement: 'PAYROLL', cap: null, eligibility: '' };
 
 const apiWith = (component) => ({
 	db: {
@@ -59,15 +54,24 @@ const CLAIM = {
 	incurred_on: '2026-04-02'
 };
 
-test('a component that demands evidence gets it, and only the claim collection can carry one', () => {
-	const demanding = {
-		code: 'MEDICAL',
-		definition: { ...ENTRY_DEFINITION, evidence: 'REQUIRED' },
-		entry_kind: 'CLAIM'
-	};
+test('a component that demands evidence gets it, whichever family the request is in', () => {
+	const demanding = { code: 'MEDICAL', ...ENTRY, evidence: 'REQUIRED' };
 	assert.throws(
 		() => attempt(claimHooks, demanding, CLAIM),
 		/MEDICAL requires evidence for its claims/
+	);
+	// Evidence is a catalogue fact, not a claim fact: a payment line that demands it refuses too,
+	// and nothing but a claim can attach a receipt.
+	assert.throws(
+		() =>
+			attempt(paymentHooks, demanding, {
+				employment_id: 'e1',
+				payment_catalogue_id: 'c1',
+				amount: 100,
+				effective_on: '2026-04-02',
+				reason: 'Approved'
+			}),
+		/MEDICAL requires evidence for its payments/
 	);
 	attempt(claimHooks, demanding, {
 		...CLAIM,
@@ -78,8 +82,7 @@ test('a component that demands evidence gets it, and only the claim collection c
 			file_size: 1
 		}
 	});
-	// The refusal that said "only a claim carries an evidence file" is gone because there is no
-	// evidence column on the other four collections to refuse — a payment cannot name a receipt.
+	// There is no evidence column on the other collections — a payment cannot name a receipt.
 	assert.equal(
 		'evidence_file' in
 			{ employment_id: 'e1', payment_catalogue_id: 'c1', amount: 100, effective_on: '2026-04-02' },
@@ -90,12 +93,7 @@ test('a component that demands evidence gets it, and only the claim collection c
 test('an amount is a positive magnitude, whichever family states it', () => {
 	for (const amount of [0, -1, Number.NaN, 'not a number']) {
 		assert.throws(
-			() =>
-				attempt(
-					claimHooks,
-					{ code: 'X', definition: ENTRY_DEFINITION, entry_kind: 'CLAIM' },
-					{ ...CLAIM, amount }
-				),
+			() => attempt(claimHooks, { code: 'X', ...ENTRY }, { ...CLAIM, amount }),
 			/A claim amount is a positive magnitude/,
 			String(amount)
 		);
@@ -128,7 +126,7 @@ test('Payment requires a reason, seals its contract and rejects a correction fro
 		effective_on: '2026-04-02',
 		reason: 'Approved separation payment'
 	};
-	const component = { code: 'SEPARATION', definition: ENTRY_DEFINITION };
+	const component = { code: 'SEPARATION', ...ENTRY };
 	assert.throws(
 		() => attempt(paymentHooks, component, { ...payment, reason: ' ' }),
 		/requires a reason/

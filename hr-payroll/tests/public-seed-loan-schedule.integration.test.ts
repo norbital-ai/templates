@@ -107,20 +107,9 @@ test(
 			assert.ok(settings, 'the public seed carries a component catalogue');
 			await session.query(
 				`insert into loan_catalogue
-				 (id, settings_id, code, is_statutory, policy, contribution_treatments, sequence, eligibility, definition)
-				 values ($1, $2, 'LOAN_RECOVERY', false, $3::jsonb, '{}'::jsonb, 90, '', $4::jsonb)`,
-				[
-					COMPONENT_ID,
-					settings.settings_id,
-					JSON.stringify({ kind: 'DEDUCTION', settlement: 'DEDUCT' }),
-					JSON.stringify({
-						source: 'ENTRY',
-						unit: 'MONEY',
-						evidence: 'NONE',
-						cap: null,
-						settlement: 'PAYROLL'
-					})
-				]
+				 (id, settings_id, code, contribution_treatments, sequence, eligibility)
+				 values ($1, $2, 'LOAN_RECOVERY', '{}'::jsonb, 90, '')`,
+				[COMPONENT_ID, settings.settings_id]
 			);
 			await session.query(
 				`insert into loans (id, employment_id, loan_catalogue_id, principal, effective_range, reference)

@@ -1,8 +1,10 @@
 <script lang="ts">
 	/**
-	 * The one form behind the four money catalogues: claims, allowances, payments and loans. They
-	 * are the same row shape in four tables, and the family is the table rather than a column, so
-	 * the form takes the collection name and nothing else varies but a section title.
+	 * The one form behind the four money catalogues: claims, allowances, payments and loans. Three
+	 * are the same row shape in three tables; a loan is the same row without a nature, evidence,
+	 * ceiling or settlement route, because a recovery is always a payroll deduction. The family is
+	 * the table rather than a column, so the form takes the collection name and nothing else varies
+	 * but which sections it draws.
 	 *
 	 * `settings_id` is never a field on the Settings page: the page names the version and the form
 	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
@@ -19,6 +21,8 @@
 
 	type Collection =
 		'claim_catalogue' | 'allowance_catalogue' | 'payment_catalogue' | 'loan_catalogue';
+	/** A loan row is the money row minus four columns, and the loan branch draws only the shared ones. */
+	type MoneyCollection = Exclude<Collection, 'loan_catalogue'>;
 	let {
 		collection,
 		record,
@@ -35,7 +39,7 @@
 <RecordShell title={record?.code ?? t('component.create_catalogue_component')}>
 	<CollectionForm
 		{client}
-		{collection}
+		collection={collection as MoneyCollection}
 		defaultValues={formValues}
 		submitLabel={record
 			? t('component.save_catalogue_component')
@@ -47,7 +51,9 @@
 				<FormSection
 					first
 					title={t('component.catalogue_section_pay_line')}
-					hint={t('component.catalogue_section_pay_line_hint')}
+					hint={loan
+						? t('component.catalogue_section_pay_line_loan_hint')
+						: t('component.catalogue_section_pay_line_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
 						{#if settingsId != null}
@@ -67,11 +73,11 @@
 							/>
 						{/if}
 						<Field name="code" label={t('component.code')} />
-						<Field name="is_statutory" label={t('component.is_statutory')} />
 						{#if loan}
 							<Field name="sequence" label={t('component.order')} />
+						{:else}
+							<Field name="nature" label={t('component.economic_type')} />
 						{/if}
-						<Column span="all"><Field name="policy" label={t('component.economic_type')} /></Column>
 					</Grid>
 				</FormSection>
 
@@ -79,7 +85,9 @@
 					title={loan
 						? t('component.catalogue_section_who')
 						: t('component.catalogue_section_who_order')}
-					hint={t('component.catalogue_section_who_hint')}
+					hint={loan
+						? t('component.catalogue_section_who_hint')
+						: t('component.catalogue_section_who_order_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
 						<Column span="all"
@@ -91,12 +99,18 @@
 					</Grid>
 				</FormSection>
 
-				<FormSection
-					title={t('component.catalogue_section_limits')}
-					hint={t('component.catalogue_section_limits_hint')}
-				>
-					<Field name="definition" label={t('component.how_calculated')} />
-				</FormSection>
+				{#if !loan}
+					<FormSection
+						title={t('component.catalogue_section_limits')}
+						hint={t('component.catalogue_section_limits_hint')}
+					>
+						<Grid gap="sm" minimum="compact">
+							<Field name="evidence" label={t('component.evidence')} />
+							<Field name="settlement" label={t('component.settlement')} />
+							<Column span="all"><Field name="cap" label={t('component.ceiling')} /></Column>
+						</Grid>
+					</FormSection>
+				{/if}
 
 				<FormSection
 					title={t('component.section_contributions')}

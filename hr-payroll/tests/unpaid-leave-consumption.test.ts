@@ -14,7 +14,6 @@ const BASIC = {
 	code: 'BASIC',
 	nature: 'EARNING',
 	is_statutory: false,
-	policy: { kind: 'EARNING', settlement: 'ADD' },
 	contribution_treatments: {},
 	sequence: 10,
 	eligibility: '',

@@ -77,13 +77,16 @@ departure reason remains unresolved.
 | ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Work         | Work catalogue, effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
 | Leave        | Leave catalogue and manual `leave_entries`                                | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
-| Claim        | Claim catalogue and approved claims                                       | Preserve entered amount, original dates, receipts, caps and settlement assignment                   |
+| Claim        | Claim catalogue and approved claims                                       | Preserve entered amount, original dates, receipts, entitlement bands and settlement assignment      |
 | Allowance    | Allowance catalogue and approved awards or recurring assignments          | Preserve recurrence, amount and the original eligibility window                                     |
 | Payment      | Payment catalogue and approved one-off payments or deductions             | Preserve source and catalogue IDs, entered amount, effective date, reason and any covered periods   |
 | Loan         | Loan catalogue, agreement and `loan_repayments`                           | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
 | Contribution | Scheme catalogues, rates and contract facts                               | Preserve effective applicability and the explicit treatments declared by source-family outputs      |
 
-Bonuses, notice pay and separation payments are Payment catalogue definitions. Encashment and
+Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
+claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and
+entitlement matrix, judged against the contract terms in force on the event date; `grade` on the
+terms is the tier those predicates read. Encashment and
 carry-forward remain manual Leave categories. No annual account rows, accrual scheduler, automatic
 departure payments or automatic carry-forward policies are seeded.
 
