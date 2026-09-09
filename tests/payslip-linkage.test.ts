@@ -721,6 +721,35 @@ test('a mid-month joiner is paid the days they were employed, over the month’s
 	assert.equal(amountOf(withOvertime, OT_ORDINARY), 74.66);
 });
 
+test('a FIXED_DAYS basis pays the days employed over the divisor the Work states', () => {
+	const joined = {
+		employedDays: { start: '2026-03-16', end: '2026-03-31' },
+		wageDays: { start: '2026-03-16', end: '2026-03-31' },
+		employment: { ...bundle().employment, hire_date: '2026-03-16' },
+		terms: [terms({ effective_range: { start: '2026-03-16', end: null } })]
+	};
+	const measured = measure(joined, {
+		work: {
+			...JURISDICTION,
+			jurisdiction_code: JURISDICTION.code,
+			proration: { by: 'FIXED_DAYS', days: 30 }
+		}
+	});
+	// 3,451 × 16/30 = 1,840.5333…, to the cent. The same sixteen days over March's own thirty-one
+	// pay 1,781.16, so the divisor is the Work's and not the month's.
+	assert.equal(amountOf(measured, 'BASIC'), 1840.53);
+	assert.deepEqual(
+		measured.proration.map((segment) => [
+			segment.basis.by,
+			segment.days,
+			segment.denominator,
+			segment.prorated_amount
+		]),
+		[['FIXED_DAYS', 16, 30, 1840.53]],
+		'the segment records the divisor it was taken over, not the month it fell in'
+	);
+});
+
 test('a mid-month leaver is paid to their last day', () => {
 	const measured = measure({
 		employedDays: { start: '2026-03-01', end: '2026-03-17' },

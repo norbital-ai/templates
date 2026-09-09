@@ -180,6 +180,102 @@ type Report = {
 	readonly formFields: number | null;
 };
 
+/**
+ * Scope is context, never a field.
+ *
+ * A scoped page knows the settings version, the legal entity and — in self-service — the
+ * employment, and every create form it opens prefills them and hides them. That contract has only
+ * ever been checked by grepping the source for `<Field ... hidden />`, which proves that a line was
+ * written and nothing about what the browser drew: a hidden declaration on the wrong branch, a
+ * renderer that ignores `hidden`, or a page that forgot to publish its scope all leave the picker
+ * on screen with the source still reading correctly.
+ *
+ * So this walks the scoped forms and asks the DOM. The same probe asks the opposite question in
+ * the same breath — the form still shows its first section title — because a form that renders
+ * nothing at all would pass "no scope control is on screen" perfectly.
+ */
+const SCOPE_FIELDS = ['settings_id', 'company_id'] as const;
+
+/** The seven tables of Settings → Catalog, by the tab that opens each. */
+const CATALOGUE_TABS = [
+	'Contribution',
+	'Work',
+	'Leave catalogue',
+	'Claim catalogue',
+	'Allowance catalogue',
+	'Adhoc',
+	'Loan catalogue'
+] as const;
+
+const SETTINGS_PATH = '/app/hr_controller/settings';
+
+/**
+ * Create forms this walk cannot open, as a declared fact.
+ *
+ * A create button that is absent or disabled is not a passing assertion — it is a form nobody
+ * looked at — so each one is named here with the reason, and the walk fails when the set changes.
+ * `<path> → <button>` is the surface and the button's own label.
+ */
+const UNOPENABLE_FORMS = new Set<string>([]);
+
+/**
+ * Scoped surfaces that offer no create button at all, as a declared fact for the same reason.
+ *
+ * The scheduling board is a month calendar: a person-day is created by opening the day, not by a
+ * table's New. Its other tabs are the entity's shift codes and patterns, which are not events and
+ * carry no scope contract.
+ */
+const NO_CREATE_SURFACES = new Set(['/app/hr_controller/events/work']);
+
+const NEW_BUTTONS = `(() => JSON.stringify(
+	[...document.querySelectorAll('button')]
+		.filter((node) => /^New\\b/.test((node.textContent ?? '').trim()))
+		.map((node) => ({
+			label: (node.textContent ?? '').trim(),
+			usable:
+				!node.disabled &&
+				node.getAttribute('aria-disabled') !== 'true' &&
+				node.getBoundingClientRect().height > 0
+		}))
+))()`;
+
+const activateNamed = (selector: string, label: string): string => `(() => {
+	const node = [...document.querySelectorAll(${JSON.stringify(selector)})].find(
+		(candidate) =>
+			(candidate.textContent ?? '').trim() === ${JSON.stringify(label)} &&
+			candidate.getBoundingClientRect().height > 0
+	);
+	if (!(node instanceof HTMLElement) || node.getAttribute('aria-disabled') === 'true' || node.matches(':disabled'))
+		return false;
+	node.scrollIntoView({ block: 'center' });
+	node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+	node.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+	node.click();
+	return true;
+})()`;
+
+/** What the open form put on screen for the scope it was opened with, and for its own first section. */
+const scopeProbe = (names: readonly string[]): string => `(() => {
+	const dialog = [...document.querySelectorAll('[role="dialog"]')].at(-1) ?? document;
+	const form = dialog.querySelector('form');
+	if (form == null) return JSON.stringify({ form: false, operable: [], section: '', fields: 0 });
+	const operable = [];
+	for (const name of ${JSON.stringify(names)})
+		for (const node of form.querySelectorAll('[data-collection-field="' + name + '"]')) {
+			const control = node.querySelector(
+				'input, textarea, select, button, [role="combobox"], [role="switch"], [role="radiogroup"], [contenteditable="true"], .cm-content'
+			);
+			if (control != null && node.getBoundingClientRect().height > 0)
+				operable.push({ name, label: (node.querySelector('label')?.innerText ?? '').trim() });
+		}
+	return JSON.stringify({
+		form: true,
+		operable,
+		section: (form.querySelector('h3')?.innerText ?? '').trim(),
+		fields: form.querySelectorAll('[data-collection-field]').length
+	});
+})()`;
+
 it('every app surface and every representation paints, scrolls and forms cleanly', async () => {
 	const { apps, collections } = authoredNames(
 		generatedTypesPath,
@@ -366,6 +462,144 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 		assert.ok(
 			reports.some((report) => report.formFields !== null && report.formFields > 0),
 			'the sweep never opened a create form, so its layout contract proved nothing'
+		);
+	} finally {
+		if (browser !== undefined) await browser.close();
+		if (gateway !== undefined) await gateway.stop();
+		await session.stop();
+	}
+});
+
+it('every scoped create form hides the scope it was opened with, and still draws its sections', async () => {
+	const { apps } = authoredNames(generatedTypesPath, readFileSync(generatedTypesPath, 'utf8'));
+	const eventPages = apps
+		.filter((app) => app.startsWith('hr_controller/events/'))
+		.map((app) => `/app/${app}`);
+	assert.ok(eventPages.length > 0, 'the controller declares no events pages to walk');
+	const surfaces = [
+		...CATALOGUE_TABS.map((tab) => ({
+			path: SETTINGS_PATH,
+			tabs: ['Catalog', tab],
+			forbidden: SCOPE_FIELDS
+		})),
+		...eventPages.map((path) => ({ path, tabs: [] as string[], forbidden: SCOPE_FIELDS })),
+		// Self-service adds the employment: the record is the reader's own and is never picked.
+		// Its two create forms are the leave and claim families under My events; allowances,
+		// payments and loans are read-only there and declare `create: false`.
+		...['Leave', 'Claim'].map((family) => ({
+			path: '/app/hr_employee',
+			tabs: ['My events', family],
+			forbidden: [...SCOPE_FIELDS, 'employment_id']
+		}))
+	];
+
+	const session = await startPublicSeedHost(`${LABEL}-scope`, { host: '0.0.0.0' });
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		// Self-service resolves the reader's employee by their email, and its tables are disabled
+		// while nobody is resolved — which would leave the one surface where `employment_id` is
+		// hidden as the one surface this walk never opened. One seeded person is given the walker's
+		// address, exactly as the H5 board test does.
+		const bound = (await session.query(
+			'update employees set email = $1 where id = (select employee_id from employments where exit_date is null order by employee_number limit 1) returning id',
+			[`${LABEL}-founder@example.test`]
+		)) as readonly unknown[];
+		assert.equal(bound.length, 1, 'the public seed carries no employment to read self-service as');
+		gateway = await openGateway(session);
+		browser = await launchChromiumOrSkip(ERROR_RECORDER);
+		assert.ok(
+			browser !== undefined,
+			'Playwright Chromium is not installed; this must not pass vacuously'
+		);
+		const page: HeadedPage = await browser.openPage(
+			guestUrlForChromium('127.0.0.1', gateway.address.port, '/')
+		);
+		await page.setViewportSize({ width: 1280, height: 900 });
+		await waitForShell(page, SETTLE_TIMEOUT_MS);
+		await unlockDeferredQueries(page);
+
+		let seenErrors = 0;
+		const opened: string[] = [];
+		const unopenable: string[] = [];
+		const noCreate: string[] = [];
+		for (const surface of surfaces) {
+			const label = [surface.path, ...surface.tabs].join(' → ');
+			await navigate(page, surface.path);
+			await settle(
+				page,
+				(current) => current.path.startsWith(surface.path),
+				label,
+				SETTLE_TIMEOUT_MS
+			);
+			for (const tab of surface.tabs) {
+				assert.equal(
+					await page.evaluate(activateNamed('[role="tab"]', tab)),
+					true,
+					`${label}: the tab ${tab} is not on screen`
+				);
+				await settle(page, () => true, `${label}: ${tab}`, SETTLE_TIMEOUT_MS);
+			}
+			const buttons = JSON.parse(String(await page.evaluate(NEW_BUTTONS))) as readonly {
+				readonly label: string;
+				readonly usable: boolean;
+			}[];
+			if (buttons.length === 0) {
+				noCreate.push(surface.path);
+				continue;
+			}
+			for (const button of buttons) {
+				const formLabel = `${label} → ${button.label}`;
+				if (!button.usable) {
+					unopenable.push(formLabel);
+					continue;
+				}
+				assert.equal(
+					await page.evaluate(activateNamed('button', button.label)),
+					true,
+					`${formLabel} could not be activated`
+				);
+				await settle(page, (current) => current.dialogs > 0, formLabel, SETTLE_TIMEOUT_MS);
+				const probe = JSON.parse(String(await page.evaluate(scopeProbe(surface.forbidden)))) as {
+					readonly form: boolean;
+					readonly operable: readonly { readonly name: string; readonly label: string }[];
+					readonly section: string;
+					readonly fields: number;
+				};
+				assert.equal(probe.form, true, `${formLabel} opened no form`);
+				assert.deepEqual(
+					probe.operable,
+					[],
+					`${formLabel} offers a control for the scope it was opened with`
+				);
+				// The form is a form: it has fields, and its first section says what they decide.
+				assert.ok(probe.fields > 0, `${formLabel} rendered a form with no fields`);
+				assert.ok(
+					probe.section.length > 0,
+					`${formLabel} rendered no section title, so the form is not sectioned`
+				);
+				seenErrors = assertNoErrors(await readErrors(page), formLabel, seenErrors);
+				opened.push(formLabel);
+				await closeOverlay(page);
+			}
+		}
+		// repository-health:allow LOG1 -- the forms this walk actually opened are the artefact.
+		console.log(
+			`scoped create forms\n${JSON.stringify({ opened, unopenable, noCreate }, null, 2)}`
+		);
+		assert.deepEqual(
+			unopenable.toSorted(),
+			[...UNOPENABLE_FORMS].toSorted(),
+			'the set of create forms this walk cannot open has changed'
+		);
+		assert.deepEqual(
+			noCreate.toSorted(),
+			[...NO_CREATE_SURFACES].toSorted(),
+			'the set of scoped surfaces offering no create button has changed'
+		);
+		assert.ok(
+			opened.length >= surfaces.length - noCreate.length,
+			'a scoped surface contributed no opened form'
 		);
 	} finally {
 		if (browser !== undefined) await browser.close();
