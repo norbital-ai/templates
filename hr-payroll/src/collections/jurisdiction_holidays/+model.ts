@@ -40,9 +40,6 @@ export default defineModel(
 			'One observed public holiday of one legal entity on one day. Published individually; a row a payroll run captured or a work day pins is frozen. Imported from a spreadsheet or a Google holiday calendar, or entered by hand.',
 		recordLabel: ['date', 'name'],
 		icon: 'lucide:calendar-x',
-		indexes: [
-			{ columns: ['company_id', 'date'], unique: true },
-			{ columns: ['published_at'] }
-		]
+		indexes: [{ columns: ['company_id', 'date'], unique: true }, { columns: ['published_at'] }]
 	}
 );

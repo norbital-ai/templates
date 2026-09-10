@@ -139,7 +139,5 @@ test('a Google year proposes one row per live day, and a cancelled event propose
 			['2027-01-02', 'Two days', null]
 		]
 	);
-	assert.ok(
-		rows.every((row) => row.company_id === 'TEST' && row.source?.includes('/events/'))
-	);
+	assert.ok(rows.every((row) => row.company_id === 'TEST' && row.source?.includes('/events/')));
 });

@@ -309,11 +309,14 @@ function addPeriodSheet(
 	// The vendor layout's machine-readable half sits beside the catalogue matrix, so the two cannot
 	// take the same sheet name. The matrix keeps the bare period, which is what every reader of this
 	// file already looks for.
-	const worksheet = workbook.addWorksheet(vendor ? `${sheet.period} Vendor`.slice(0, 31) : sheet.period, {
-		// The identity block and the two masthead rows stay put when the reader scrolls into the
-		// statutory columns: a number no one can put a name to is worthless.
-		views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: SECTION_BAND_ROW }]
-	});
+	const worksheet = workbook.addWorksheet(
+		vendor ? `${sheet.period} Vendor`.slice(0, 31) : sheet.period,
+		{
+			// The identity block and the two masthead rows stay put when the reader scrolls into the
+			// statutory columns: a number no one can put a name to is worthless.
+			views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: SECTION_BAND_ROW }]
+		}
+	);
 	if (vendor) worksheet.state = 'veryHidden';
 	worksheet.properties.defaultRowHeight = 20;
 	// A collapsed column group summarises into the column on its right — which is what makes
@@ -399,7 +402,14 @@ function addVendorSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void 
  */
 function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
 	const rows = workbookRows(sheet.payslips);
-	addPeriodSheet(workbook, sheet, rows, outputGroups(sheet.payslips, rows), false, IDENTITY_COLUMNS.length);
+	addPeriodSheet(
+		workbook,
+		sheet,
+		rows,
+		outputGroups(sheet.payslips, rows),
+		false,
+		IDENTITY_COLUMNS.length
+	);
 }
 
 /**

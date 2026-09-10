@@ -1,4 +1,8 @@
-import { oilExceptions, type OilCandidate, type OilException } from '../../scheduling/oil-exceptions.js';
+import {
+	oilExceptions,
+	type OilCandidate,
+	type OilException
+} from '../../scheduling/oil-exceptions.js';
 
 /**
  * Build the person set for the month board's local unresolved-clock-out prefilter.

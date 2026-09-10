@@ -39,11 +39,7 @@ export function resolveHolidayInputs(
 	const pinnedByDate = new Map<string, string>();
 	for (const input of pinned) {
 		const date = dateKey(input.date);
-		if (
-			input.company_id !== companyId ||
-			!requested.has(date) ||
-			input.holiday_id == null
-		)
+		if (input.company_id !== companyId || !requested.has(date) || input.holiday_id == null)
 			continue;
 		const previous = pinnedByDate.get(date);
 		if (previous !== undefined && previous !== input.holiday_id)

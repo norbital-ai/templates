@@ -89,19 +89,28 @@ test('the annual job reads every page, adds the days the entity lacks, and never
 test('a named entity imports even when its source is disabled; a provider failure writes nothing', async () => {
 	const disabled = { ...company, holiday_source: { ...company.holiday_source, enabled: false } };
 	assert.equal(holidaySources([disabled]).length, 0, 'the scheduled job runs enabled sources only');
-	assert.equal(holidaySources([disabled], '11111111-1111-4111-8111-111111111111').length, 1, 'a named entity runs regardless');
+	assert.equal(
+		holidaySources([disabled], '11111111-1111-4111-8111-111111111111').length,
+		1,
+		'a named entity runs regardless'
+	);
 	const { api, writes } = harness([]);
 	(api as { connection: unknown }).connection = {
 		get: () => Effect.succeed({ status: 503, headers: {}, body: {} })
 	};
 	await assert.rejects(
-		Effect.runPromise(runHolidayImport(api, { company_id: '11111111-1111-4111-8111-111111111111', year: 2027 })),
+		Effect.runPromise(
+			runHolidayImport(api, { company_id: '11111111-1111-4111-8111-111111111111', year: 2027 })
+		),
 		/HTTP 503/
 	);
 	assert.equal(writes.length, 0);
 	await assert.rejects(
 		Effect.runPromise(
-			runHolidayImport(harness([]).api, { company_id: '22222222-2222-4222-8222-222222222222', year: 2027 })
+			runHolidayImport(harness([]).api, {
+				company_id: '22222222-2222-4222-8222-222222222222',
+				year: 2027
+			})
 		),
 		/No Google holiday calendar is known for this entity/
 	);
@@ -125,5 +134,8 @@ test("an entity with no source of its own reads its country's Google calendar; t
 		[],
 		'a country Google has no calendar for falls back to nothing'
 	);
-	assert.equal(holidaySources([company], '11111111-1111-4111-8111-111111111111')[0]!.calendar_id, 'public-holidays');
+	assert.equal(
+		holidaySources([company], '11111111-1111-4111-8111-111111111111')[0]!.calendar_id,
+		'public-holidays'
+	);
 });

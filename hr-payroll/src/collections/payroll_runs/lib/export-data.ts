@@ -63,13 +63,7 @@ type BankDestination = Schema.Schema.Type<typeof BankDestinationSchema>;
 
 type RunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
-	| 'id'
-	| 'company_id'
-	| 'settings_id'
-	| 'period'
-	| 'pay_date'
-	| 'attendance_from'
-	| 'attendance_to'
+	'id' | 'company_id' | 'settings_id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
 >;
 
 function timestampHours(row: WorkDayLike): number {

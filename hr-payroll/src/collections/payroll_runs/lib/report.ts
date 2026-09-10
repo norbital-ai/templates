@@ -450,7 +450,6 @@ function derivedTotals(payslip: ReportPayslip): Record<string, number> {
 	};
 }
 
-
 /** One payslip as the catalogue-driven matrix sees it. */
 function workbookRow(payslip: ReportPayslip): Record<string, number> {
 	const derived = derivedTotals(payslip);
@@ -520,7 +519,10 @@ export function outputGroups(
 		for (const line of payslip.lines) {
 			const codes = byNature.get(line.nature) ?? new Map<string, number>();
 			// The lowest sequence wins where one code appears under two rows of a lineage's history.
-			codes.set(line.componentCode, Math.min(codes.get(line.componentCode) ?? Infinity, line.sequence));
+			codes.set(
+				line.componentCode,
+				Math.min(codes.get(line.componentCode) ?? Infinity, line.sequence)
+			);
 			byNature.set(line.nature, codes);
 		}
 	const claimed = new Set<string>();

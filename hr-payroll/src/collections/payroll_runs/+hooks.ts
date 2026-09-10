@@ -314,8 +314,7 @@ export default {
 						columns: { id: true, period: true },
 						limit: 20_000
 					});
-					if (siblings.length >= 20_000)
-						refuse('Too many payrolls to verify deletion order.');
+					if (siblings.length >= 20_000) refuse('Too many payrolls to verify deletion order.');
 					const staying = siblings.filter((run) => !going.has(run.id));
 					for (const run of existing)
 						if (run.company_id === companyId) assertPayrollRunDeletable(staying, run.period);

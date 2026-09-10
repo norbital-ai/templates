@@ -85,7 +85,11 @@ test('a government loan is left owing rather than swept into the final payslip',
 		undefined,
 		'the borrower owes the authority, and the employer has no claim on the last payslip'
 	);
-	assert.equal(slip.net, 100, 'the final payment is paid out rather than withheld against the loan');
+	assert.equal(
+		slip.net,
+		100,
+		'the final payment is paid out rather than withheld against the loan'
+	);
 	assert.deepEqual(slip.payslip_loan_repayment_input_payslip, [], 'nothing is captured either');
 });
 

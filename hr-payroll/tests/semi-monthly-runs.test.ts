@@ -191,8 +191,14 @@ for (const [name, proration] of [
 		assert.equal(cents(half1.gross + half2.gross), BEFORE.semiMonthly.gross);
 		assert.equal(cents(half1.net + half2.net), BEFORE.semiMonthly.net);
 		// Neither half is a whole month on its own, which is the shape the bug had.
-		assert.ok(half1.gross < SEMI_MONTHLY_BASE, `half 1 paid ${half1.gross} of ${SEMI_MONTHLY_BASE}`);
-		assert.ok(half2.gross < SEMI_MONTHLY_BASE, `half 2 paid ${half2.gross} of ${SEMI_MONTHLY_BASE}`);
+		assert.ok(
+			half1.gross < SEMI_MONTHLY_BASE,
+			`half 1 paid ${half1.gross} of ${SEMI_MONTHLY_BASE}`
+		);
+		assert.ok(
+			half2.gross < SEMI_MONTHLY_BASE,
+			`half 2 paid ${half2.gross} of ${SEMI_MONTHLY_BASE}`
+		);
 		// A monthly run measures the whole month, so its figures do not move with the basis at all.
 		const monthly = slipOf(second.built, MONTHLY_EMPLOYMENT_ID);
 		assert.equal(monthly.gross, BEFORE.monthly.gross);
