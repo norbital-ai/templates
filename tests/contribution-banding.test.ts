@@ -160,6 +160,18 @@ test('a combination no band admits is refused rather than charged on the nearest
 	);
 	// Age is a filter applied before the wage ceiling, so an unknown age matches no age band at all.
 	assert.throws(() => selectBand(aged, context(3000), 'PUB'), /no band for a base of 3000/);
+	// The boundary itself, which the two probes above straddle without touching. An age window is
+	// half-open — `[age_from, age_to)` — so the year named by `age_to` belongs to the NEXT band. A
+	// seeded ladder is written against this rule: Singapore's CPF bands were authored a year high
+	// and every probe in the suite sat mid-band, so eleven months of every senior employee's
+	// contributions were charged on the ladder below theirs and nothing failed.
+	assert.equal(selectBand(aged, context(3000, { age: 0 }), 'PUB').award.employee, 11);
+	assert.equal(selectBand(aged, context(3000, { age: 59 }), 'PUB').award.employee, 11);
+	assert.throws(
+		() => selectBand(aged, context(3000, { age: 60 }), 'PUB'),
+		/PUB has no band for a base of 3000 at age 60/,
+		'the year named by age_to opens the next band, it does not close this one'
+	);
 });
 
 test('a band whose predicate does not hold is skipped before the wage ceiling is read', () => {
