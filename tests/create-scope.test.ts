@@ -192,6 +192,29 @@ test('no representation offers a column its page scope already decides', () => {
 	assert.deepEqual(failures, []);
 });
 
+test('no representation asks for a scoped column with a control of its own', () => {
+	// The rule above reads `<Field name="company_id">`, and the payroll run form did not use one: it
+	// hid the Field and drove it from a `Combobox` of its own, writing through `form.setValues`. So
+	// the page was scoped to one legal entity, its table was filtered by that entity, and the form
+	// in front of it asked again — an operator who answered differently built a run for an entity
+	// the table does not show.
+	//
+	// A form may still own the control; what it may not do is own it without reading the scope.
+	const failures: string[] = [];
+	for (const name of collections) {
+		const model = collectionSource(name, '+model.ts');
+		const representation = collectionSource(name, '+representation.svelte');
+		if (model == null || representation == null) continue;
+		for (const column of ['company_id', 'settings_id'] as const) {
+			if (!new RegExp(`\\b${column}:`).test(model)) continue;
+			const writes = new RegExp(`setValues\\(\\{[^}]*\\b${column}\\b`).test(representation);
+			if (writes && !/hrCreateScope\(\)/.test(representation))
+				failures.push(`${name} writes ${column} from its own control without reading the scope`);
+		}
+	}
+	assert.deepEqual(failures, []);
+});
+
 test('every employment picker is narrowed to the page entity', () => {
 	// An unnarrowed employment picker offers every person in the workspace, in every entity. It is
 	// the same fault as the catalogue picker and it is invisible until a second entity is seeded.
