@@ -81,6 +81,35 @@ test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 
 	expectStatutory(book, 'TW-60000', 'LABOR_PENSION', 0, 3648); // 60,800 × 6%
 });
 
+test('Taiwan — labour and employment insurance end at 65, and the run still builds', () => {
+	// 勞保條例 §6(1) and 就保法 §5 both cover 「年滿十五歲以上，六十五歲以下」, so cover ends at 65.
+	// The limit was on the BANDS, and a band that has no row for an age refuses the whole run by
+	// name — so one 65-year-old employee stopped every Taiwanese payroll, for everybody. A scheme
+	// the person is outside is skipped instead: no charge, no zero row, and the payslip is built.
+	//
+	// 職災保險 and 健保 keep going: 災保法 covers a worker whatever their age, which is why it is a
+	// separate scheme, and 健保 is residence-based rather than employment-age-based.
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		people: [
+			{ key: 'TW-64', wage: 40_000, age: 64, citizenship: 'CITIZEN' },
+			{ key: 'TW-65', wage: 40_000, age: 65, citizenship: 'CITIZEN' },
+			{ key: 'TW-70', wage: 40_000, age: 70, citizenship: 'CITIZEN' }
+		]
+	});
+	expectStatutory(book, 'TW-64', 'LI', 922.3, 3228.05);
+	expectStatutory(book, 'TW-64', 'EI', 80.2, 280.7);
+	for (const key of ['TW-65', 'TW-70']) {
+		expectStatutorySkipped(book, key, 'LI');
+		expectStatutorySkipped(book, key, 'EI');
+		// Still insured for health and for occupational injury, and still priced.
+		expectStatutory(book, key, 'NHI', 621.95, 1940.48);
+		expectStatutory(book, key, 'OCC_INJURY', 0, 100);
+	}
+});
+
 test('Taiwan — occupational-injury insurance is charged on the wage, not the insured salary', () => {
 	const book = assessStatutory({
 		code: 'TW',
