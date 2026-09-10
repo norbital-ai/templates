@@ -319,7 +319,7 @@ Effect.runPromise(
 			const { overtimeBandCode } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/overtime.ts')
 			);
-			const { vendorWorkbookRow } = yield* Effect.tryPromise(() =>
+			const { workbookRows } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/report.ts')
 			);
 
@@ -377,12 +377,13 @@ Effect.runPromise(
 			assert.equal(patterned.lines[2].isOvertimeExcess, true);
 			assert.equal(patterned.lines[2].calculationSource, 'OVERTIME_EXCESS');
 
-			const row = vendorWorkbookRow(patterned);
-			assert.equal(row.overtime, 132.73, 'statutory overtime is the Overtime column');
-			assert.equal(row.incentive_ot, 33.18, 'reclassified overtime is the OT Incentive column');
-			assert.equal(row.allowance, 0, 'neither arm leaks into the allowance column');
-			assert.equal(row.att_ot_2x_hours, 8, 'rest-day hours are the 2.0× bucket');
-			assert.equal(row.att_ot_1x_hours, 1, 'excess hours are valued plain, so they read 1.0×');
+			// The workbook's columns are the catalogue's: each overtime arm reports under the Work
+			// component it settled on, and the hours still split by the day type the band priced.
+			const [row] = workbookRows([patterned]);
+			assert.equal(row.OVERTIME, 132.73, 'statutory overtime settles on the OVERTIME component');
+			assert.equal(row.OVERTIME_EXCESS, 33.18, 'reclassified overtime on OVERTIME_EXCESS');
+			assert.equal(row.ot20Hours, 8, 'rest-day hours are the 2.0× bucket');
+			assert.equal(row.ot10Hours, 1, 'excess hours are valued plain, so they read 1.0×');
 
 			// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
 			const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;
@@ -401,8 +402,9 @@ Effect.runPromise(
 				['D', 'N', 'REST'],
 				'the codes are the pattern’s own plus the day that departed from it'
 			);
-			assert.equal(row.att_normal_hours, patterned.attendance.normalHours);
-			assert.equal(row.att_shift_codes, 'D, N, REST');
+			// Normal hours and the shift codes are attendance facts on the payslip, asserted above;
+			// they were vendor-projection columns and the catalogue has no component for either.
+			assert.equal(patterned.attendance.normalHours, 158);
 
 			// ── a leaver keeps their identity, and is scheduled only up to their last day ──────────────────
 			assert.equal(leaver.employeeNumber, 'PUBEM0400');

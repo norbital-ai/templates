@@ -230,6 +230,14 @@ test(
 			);
 			requireAccepted(created.value, 'create January payroll');
 
+			// The lock is the payslip's, so paying the run means paying its slips. Marking the run
+			// alone would leave a run that disagrees with its own payslips — a state no write path
+			// can produce, and one that locks nothing.
+			await session.query(
+				`update payslips set paid_at = now() where payroll_run_id in
+					(select id from payroll_runs where company_id = $1 and period = $2)`,
+				[COMPANY_ID, JANUARY_2026]
+			);
 			await session.query(
 				`update payroll_runs set lifecycle = 'PAID' where company_id = $1 and period = $2`,
 				[COMPANY_ID, JANUARY_2026]

@@ -360,11 +360,20 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 
 		const runs = yield* api.db.payroll_runs.findMany({
 			where: { company_id: { eq: companyId } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			columns: { id: true, period: true, attendance_from: true, attendance_to: true },
 			limit: QUERY_LIMIT
 		});
-		const windows = payrollWindows(runs);
-		for (const row of assignments) assertNotSettled(windows, row.work_date, 'Importing roster');
+		// The lock is the payslip's, so a row is refused only where *its own* person has been paid.
+		const runPayslips = runs.length
+			? yield* api.db.payslips.findMany({
+					where: { payroll_run_id: { in: runs.map((run) => run.id) } },
+					columns: { payroll_run_id: true, employment_id: true, paid_at: true },
+					limit: QUERY_LIMIT
+				})
+			: [];
+		const windows = payrollWindows(runs, runPayslips);
+		for (const row of assignments)
+			assertNotSettled(windows, row.work_date, 'Importing roster', contractFor(row).id);
 
 		// Every column the sheet is read for is written. `planned_origin` is `IMPORT` because that is
 		// what these rows are — the board writes `MANUAL`, and leaving provenance unset would have
@@ -582,22 +591,36 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			const runs = yield* api.db.payroll_runs.findMany({
 				where: { company_id: { in: companyIds } },
 				columns: {
+					id: true,
 					company_id: true,
 					period: true,
-					lifecycle: true,
 					attendance_from: true,
 					attendance_to: true
 				},
 				limit: QUERY_LIMIT
 			});
+			const runPayslips = runs.length
+				? yield* api.db.payslips.findMany({
+						where: { payroll_run_id: { in: runs.map((run) => run.id) } },
+						columns: { payroll_run_id: true, employment_id: true, paid_at: true },
+						limit: QUERY_LIMIT
+					})
+				: [];
 			const windowsByCompany = new Map(
-				companyIds.map((id) => [id, payrollWindows(runs.filter((run) => run.company_id === id))])
+				companyIds.map((id) => [
+					id,
+					payrollWindows(
+						runs.filter((run) => run.company_id === id),
+						runPayslips
+					)
+				])
 			);
 			for (const row of rows)
 				assertNotSettled(
 					windowsByCompany.get(contractFor(row).company_id)!,
 					row.work_date,
-					'Importing attendance'
+					'Importing attendance',
+					contractFor(row).id
 				);
 		}
 		const leaveRows = yield* api.db.leave_entries.findMany({

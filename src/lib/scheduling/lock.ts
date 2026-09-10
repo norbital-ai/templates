@@ -4,13 +4,28 @@ import type { WorkspaceRow } from '$bolt/types.js';
 import { dateKey } from '../iso-day.js';
 
 /**
- * The lock state of one calendar day, derived from the payroll runs that cover it.
+ * The lock state of one person's calendar day, derived from the payroll that covers it.
  *
- * A day is either untouched, inside a draft run's assessment window (mutable, but on its way to
- * being settled), or inside a paid run's window (no *new* record may appear — corrections arrive as
- * adjustment entries in a later draft). Nothing about *this* is stored: the day lock is arithmetic
- * over `payroll_runs` windows, so the same derived state drives the board's stripes and the write
- * hooks' refusals, and the two can never disagree.
+ * A day is either untouched, inside a draft assessment window (mutable, but on its way to being
+ * settled), or inside a window whose payment has already happened (no *new* record may appear —
+ * corrections arrive as adjustment entries in a later draft). Nothing about *this* is stored: the
+ * day lock is arithmetic over `payroll_runs` windows and the payslips inside them, so the same
+ * derived state drives the board's stripes and the write hooks' refusals, and the two can never
+ * disagree.
+ *
+ * ────────────────────────────────────────────────────────────────────────────────────────────────
+ * THE LOCK IS THE PAYSLIP'S, NOT THE RUN'S.
+ *
+ * A run is the container its payslips arrive in and nothing more. Payment is recorded on the slip
+ * (`payslips.paid_at`), so whether January is closed is a question about *this person's* January
+ * payslip — not about whether every colleague's has been paid. A window is therefore settled *for
+ * an employment*, and every question below takes the employment it is being asked about.
+ *
+ * Both halves of that matter. A person whose slip is paid is locked even though the run still reads
+ * DRAFT because a colleague is held; and a person whose slip is held stays open even though
+ * everyone around them has been paid. Asking the run gave the wrong answer in both directions the
+ * moment payment stopped moving as a block.
+ * ────────────────────────────────────────────────────────────────────────────────────────────────
  *
  * It is a question about **days**, and it used to be asked about records too. That was the mistake:
  * a record is settled because a payslip consumed it, not because it happens to be dated inside a
@@ -37,15 +52,23 @@ import { dateKey } from '../iso-day.js';
 
 type PayrollRunLike = Pick<
 	WorkspaceRow<'payroll_runs'>,
-	'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
->;
+	'period' | 'attendance_from' | 'attendance_to'
+> & { readonly id?: string | undefined };
+
+/** The payslips a window's settlement is read from: one per person, paid or not. */
+type PayslipLike = {
+	readonly payroll_run_id?: string | undefined;
+	readonly employment_id: string;
+	readonly paid_at?: unknown;
+};
 
 /** One run's assessment window, reduced to the arithmetic the day questions need. */
 const payrollWindowSchema = Schema.Struct({
 	start: Schema.String,
 	end: Schema.String,
 	period: Schema.String,
-	settled: Schema.Boolean
+	/** The employments whose payslip in this run has been paid. Everyone else is still open. */
+	settledFor: Schema.ReadonlySet(Schema.String)
 });
 export type PayrollWindow = Schema.Schema.Type<typeof payrollWindowSchema>;
 
@@ -57,13 +80,29 @@ export const dayLockSchema = Schema.Union([
 ]);
 export type DayLock = Schema.Schema.Type<typeof dayLockSchema>;
 
-export function payrollWindows(runs: readonly PayrollRunLike[]): PayrollWindow[] {
+export function payrollWindows(
+	runs: readonly PayrollRunLike[],
+	payslips: readonly PayslipLike[] = []
+): PayrollWindow[] {
+	const paidByRun = new Map<string, Set<string>>();
+	for (const slip of payslips) {
+		if (slip.paid_at == null) continue;
+		const runId = slip.payroll_run_id ?? '';
+		const held = paidByRun.get(runId) ?? new Set<string>();
+		held.add(slip.employment_id);
+		paidByRun.set(runId, held);
+	}
 	const windows: PayrollWindow[] = [];
 	for (const run of runs) {
 		const start = dateKey(run.attendance_from);
 		const end = dateKey(run.attendance_to);
 		if (start === '' || end === '' || end < start) continue;
-		windows.push({ start, end, period: run.period, settled: run.lifecycle === 'PAID' });
+		windows.push({
+			start,
+			end,
+			period: run.period,
+			settledFor: paidByRun.get(run.id ?? '') ?? new Set<string>()
+		});
 	}
 	return windows;
 }
@@ -73,32 +112,43 @@ function windowForDate(windows: readonly PayrollWindow[], date: string): Payroll
 	return windows.find((window) => date >= window.start && date <= window.end) ?? null;
 }
 
-/** The lock of one date. */
-export function lockStateForDate(windows: readonly PayrollWindow[], date: string): DayLock {
+/** The lock of one person's date. */
+export function lockStateForDate(
+	windows: readonly PayrollWindow[],
+	date: string,
+	employmentId: string
+): DayLock {
 	const window = windowForDate(windows, date);
 	if (window == null) return { kind: 'NONE' };
-	return window.settled
+	return window.settledFor.has(employmentId)
 		? { kind: 'SETTLED', period: window.period }
 		: { kind: 'IN_WINDOW', period: window.period };
 }
 
-/** One lock per date, for a board or a batch of writes. */
+/** The key a person-day lock is filed under, so a board can read one map for every cell. */
+export const dayLockKey = (employmentId: string, date: string): string => `${employmentId}:${date}`;
+
+/** One lock per person-day, for a board or a batch of writes. */
 export function lockMap(
 	windows: readonly PayrollWindow[],
-	dates: readonly string[]
+	dates: readonly string[],
+	employmentIds: readonly string[]
 ): Map<string, DayLock> {
 	const locks = new Map<string, DayLock>();
-	for (const date of dates) locks.set(date, lockStateForDate(windows, date));
+	for (const employmentId of employmentIds)
+		for (const date of dates)
+			locks.set(dayLockKey(employmentId, date), lockStateForDate(windows, date, employmentId));
 	return locks;
 }
 
-/** The write-side guard: refuse a record *appearing* on a day a paid run has already settled. */
+/** The write-side guard: refuse a record *appearing* on a day this person has already been paid for. */
 export function assertNotSettled(
 	windows: readonly PayrollWindow[],
 	date: string,
-	action: string
+	action: string,
+	employmentId: string
 ): void {
-	const lock = lockStateForDate(windows, date);
+	const lock = lockStateForDate(windows, date, employmentId);
 	if (lock.kind === 'SETTLED') {
 		refuse(settledDayMessage(lock.period, date, action));
 	}

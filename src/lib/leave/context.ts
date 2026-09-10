@@ -129,7 +129,7 @@ export type LeaveContext = {
 		WorkspaceRow<'payslip_leave_inputs'>,
 		'leave_entry_id' | 'payslip_id' | 'gross_amount' | 'charges' | 'pay_items'
 	>[];
-	payslips: Pick<WorkspaceRow<'payslips'>, 'id' | 'payroll_run_id' | 'paid_at'>[];
+	payslips: Pick<WorkspaceRow<'payslips'>, 'id' | 'payroll_run_id' | 'employment_id' | 'paid_at'>[];
 };
 
 /** One batched, guarded read of employment history and manual activity. No balance rows or writes. */
@@ -361,7 +361,7 @@ export function readLeaveContext(
 								id: { in: [...new Set(captures.map((row) => row.payslip_id))] },
 								approval_id: { isNull: true }
 							},
-							columns: { id: true, payroll_run_id: true, paid_at: true },
+							columns: { id: true, payroll_run_id: true, employment_id: true, paid_at: true },
 							limit: LIMIT
 						}),
 						'capturing payslips'

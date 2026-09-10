@@ -379,6 +379,13 @@ test('approval refuses paid date insertion', () => {
 		attendance_from: '2026-01-01',
 		attendance_to: '2026-01-31'
 	});
+	// This person's own payslip is what closes the day: the run is only where it lives.
+	context.payslips.push({
+		id: id(22),
+		payroll_run_id: id(20),
+		employment_id: id(1),
+		paid_at: '2026-01-31'
+	});
 	assert.throws(() => approve(context, timeOff('2026-01-01')), /PAID_PAYROLL/);
 });
 
