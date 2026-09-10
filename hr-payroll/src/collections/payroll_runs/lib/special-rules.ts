@@ -26,6 +26,7 @@
  * | `PERIODIC_PROGRESSIVE`       | apply a period table directly; do not annualise or spread          |
  * | `FLOOR:MINIMUM_WAGE`         | the chargeable base is at least the company's regional minimum wage |
  * | `CAP:MINIMUM_WAGE_X:<n>`     | the chargeable base is at most n × that minimum wage               |
+ * | `EMPLOYEE_PER_DEPENDANT:<n>` | the employee share is charged once more per dependant, up to `n`   |
  *
  * Reliefs and caps are annual amounts because that is how every tax authority states them. The
  * numbers live on a row; nothing here is a magic constant.
@@ -64,7 +65,17 @@ export const SpecialRulesSchema = Schema.Struct({
 	/** Floor the base at the company region's minimum wage (`jurisdiction_settings.minimum_wages`). */
 	minimumWageFloor: Schema.Boolean,
 	/** Cap the base at this many regional minimum wages; `null` is no cap. */
-	minimumWageCapMultiple: Schema.NullOr(Schema.Number)
+	minimumWageCapMultiple: Schema.NullOr(Schema.Number),
+	/**
+	 * The employee share is charged for the insured person and again for each dependant, up to
+	 * this many. `null` is the ordinary case: one charge, whoever else the person supports.
+	 *
+	 * Taiwan's National Health Insurance is the scheme that needs it — 健保法 §18(2) charges the
+	 * insured person for their dependants too, capped at three. The employer leg is unaffected:
+	 * it is already an average over the whole insured population (眷口數), which is what the
+	 * ×1.56 in the seeded rate is.
+	 */
+	employeePerDependant: Schema.NullOr(Schema.Number)
 });
 export type SpecialRules = Schema.Schema.Type<typeof SpecialRulesSchema>;
 
@@ -82,7 +93,8 @@ const EMPTY: SpecialRules = {
 	additionalRemuneration: false,
 	periodicProgressive: false,
 	minimumWageFloor: false,
-	minimumWageCapMultiple: null
+	minimumWageCapMultiple: null,
+	employeePerDependant: null
 };
 
 /** Decoder for one `ROUND:<method>` name, built once and reused per token. */
@@ -161,6 +173,13 @@ export function parseSpecialRules(
 					throw new Error(`Special rule "${token}" caps on nothing the engine knows.`);
 				parsed = { ...parsed, minimumWageCapMultiple: amount(token, second) };
 				break;
+			case 'EMPLOYEE_PER_DEPENDANT': {
+				const cap = amount(token, first);
+				if (!(cap >= 0))
+					throw new Error(`Special rule "${token}" needs a dependant ceiling of zero or more.`);
+				parsed = { ...parsed, employeePerDependant: cap };
+				break;
+			}
 			default:
 				throw new Error(
 					`Statutory contribution ${contributionCode} declares an unknown special rule "${token}".`

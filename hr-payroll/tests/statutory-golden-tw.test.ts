@@ -31,7 +31,11 @@ test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 
 		people: [
 			{ key: 'TW-28590', wage: 28_590, age: 30, citizenship: 'CITIZEN' },
 			{ key: 'TW-40000', wage: 40_000, age: 55, citizenship: 'CITIZEN' },
-			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' }
+			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' },
+			// The same 40,000 wage with two dependants, and with four — 健保法 §18(2) charges the
+			// insured person for their dependants as well, counted to a maximum of three.
+			{ key: 'TW-40000-D2', wage: 40_000, age: 55, citizenship: 'CITIZEN', children: 2 },
+			{ key: 'TW-40000-D4', wage: 40_000, age: 55, citizenship: 'CITIZEN', children: 4 }
 		]
 	});
 
@@ -61,6 +65,13 @@ test('Taiwan — LI, EI, NHI, labour pension and occupational-injury insurance, 
 	expectStatutory(book, 'TW-28590', 'NHI', 457.55, 1427.54);
 	// 40,000 insures at NHI grade 40,100: 2,073.17 → 621.951 → 621.95; × 0.936 = 1,940.48.
 	expectStatutory(book, 'TW-40000', 'NHI', 621.95, 1940.48);
+	// The dependant legs, on the same 621.95 the childless 40,000 earner pays. Two dependants is
+	// three heads, four is capped at three, so four dependants pays the same as three. The insured
+	// unit's leg never moves: it is already an average over the whole insured population (眷口數
+	// 0.56), which is the ×1.56 inside the seeded rate. Omitting this under-withheld every insured
+	// person who supports anyone — up to NT$1,865.85 a month at this grade alone.
+	expectStatutory(book, 'TW-40000-D2', 'NHI', 1865.85, 1940.48);
+	expectStatutory(book, 'TW-40000-D4', 'NHI', 2487.8, 1940.48);
 	// 60,000 insures at NHI grade 60,800: 3,143.36 → 943.008 → 943.01; × 0.936 = 2,942.19.
 	expectStatutory(book, 'TW-60000', 'NHI', 943.01, 2942.19);
 
