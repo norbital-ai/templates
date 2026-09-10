@@ -36,6 +36,7 @@
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
+	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 	import {
 		companyPeriods,
 		periodDayRange,
@@ -87,7 +88,17 @@
 		})
 	);
 
+	/**
+	 * The entity the page is already scoped to. Every operator page here is scoped by the combobox
+	 * in its header, and this form asked for the same thing a second time — an operator who picked
+	 * a different one built a run for an entity the table in front of them does not show.
+	 */
+	const createScope = hrCreateScope();
+	const scopedCompanyId = $derived(createScope?.companyId());
 	let companyId = $state<string | null>(null);
+	$effect(() => {
+		if (scopedCompanyId != null && companyId !== scopedCompanyId) companyId = scopedCompanyId;
+	});
 	let period = $state<string | null>(null);
 
 	const companies = $derived(companiesQuery.current ?? []);
@@ -324,6 +335,7 @@
 			collection="payroll_runs"
 			submitLabel={t('component.create_payroll_run')}
 			onAfterSubmit={close}
+			defaultValues={scopedCompanyId == null ? undefined : { company_id: scopedCompanyId }}
 		>
 			{#snippet children({ form, Field })}
 				<Field name="company_id" hidden />
@@ -331,24 +343,33 @@
 				<Field name="lifecycle" hidden />
 				<Stack gap="lg">
 					<Grid gap="md" minimum="compact">
-						<label class="text-sm font-medium">
+						{#if scopedCompanyId != null}
 							<Stack gap="xs">
-								{t('component.legal_entity')}
-								<Combobox
-									ariaLabel={t('component.legal_entity')}
-									options={companyOptions}
-									value={companyId}
-									onValueChange={(value) => {
-										companyId = value;
-										period = null;
-										form.setValues({ company_id: value });
-									}}
-									searchPlaceholder={t('component.search_companies')}
-									emptyPlaceholder={t('component.choose_legal_entity')}
-									disabled={companiesQuery.loading || settingsQuery.loading}
-								/>
+								<span class="text-meta">{t('component.legal_entity')}</span>
+								<span class="font-medium">
+									{companyOptions.find((option) => option.value === scopedCompanyId)?.label ?? '—'}
+								</span>
 							</Stack>
-						</label>
+						{:else}
+							<label class="text-sm font-medium">
+								<Stack gap="xs">
+									{t('component.legal_entity')}
+									<Combobox
+										ariaLabel={t('component.legal_entity')}
+										options={companyOptions}
+										value={companyId}
+										onValueChange={(value) => {
+											companyId = value;
+											period = null;
+											form.setValues({ company_id: value });
+										}}
+										searchPlaceholder={t('component.search_companies')}
+										emptyPlaceholder={t('component.choose_legal_entity')}
+										disabled={companiesQuery.loading || settingsQuery.loading}
+									/>
+								</Stack>
+							</label>
+						{/if}
 						<label class="text-sm font-medium">
 							<Stack gap="xs">
 								{t('component.pay_period')}

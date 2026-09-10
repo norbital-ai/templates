@@ -43,19 +43,6 @@ const waitFor = async (
 	throw new Error(`${label} timeout: ${last.slice(0, 1200)}\n${pageText.slice(-4000)}`);
 };
 
-/** Select from the form; the page's entity scope has the same accessible name. */
-const chooseOption = async (page: HeadedPage, name: string, filter: string) => {
-	try {
-		await page.click(`[role="dialog"] [role="combobox"][aria-label="${name}"]`);
-	} catch (cause) {
-		throw new Error(
-			`${name} picker unavailable: ${String(await page.evaluate('JSON.stringify({ body: document.body.innerText, errors: window.__payrollErrors })'))}`,
-			{ cause }
-		);
-	}
-	await page.click(`[role="option"]:has-text("${filter}")`);
-};
-
 /**
  * Opens the month grid picker by its accessible name, walks the year navigation to the target
  * year, and activates the month cell. The payroll period is a MonthPicker, not a searchable
@@ -143,12 +130,21 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 		);
 		await page.click('[role="tab"]:has-text("Payroll runs")');
 		await page.click('button:has-text("New Payroll Run")');
-		await chooseOption(page, 'Legal entity', 'Public Fixture Co');
+		// The entity is NOT picked here. The page is scoped to one legal entity by the combobox in its
+		// header and the runs table is filtered by it; this form used to ask again, and an operator
+		// who answered differently built a run for an entity the table does not show. It is stated
+		// now, not asked — so the dialog carries the name and no control for it.
 		await waitFor(
 			page,
-			`document.querySelector('[role="dialog"] [role="combobox"][aria-label="Legal entity"]')?.textContent`,
-			(value) => value.includes('Public Fixture Co'),
-			'entity-chosen'
+			`document.querySelector('[role="dialog"]')?.innerText ?? ''`,
+			(text) => text.includes('Legal entity') && text.includes('Public Fixture Co'),
+			'entity-stated'
+		);
+		await waitFor(
+			page,
+			`String(document.querySelectorAll('[role="dialog"] [role="combobox"][aria-label="Legal entity"]').length)`,
+			(count) => count === '0',
+			'entity-not-asked'
 		);
 		await chooseMonth(page, 'Pay period', '2026-02', 'period');
 		await waitFor(

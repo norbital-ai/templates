@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import { Effect, Schema } from 'effect';
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
@@ -31,6 +33,15 @@
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const selectedCompany = $derived(companyById(selectedCompanyId));
+	/**
+	 * The scope this page hands to the run form it opens. The page is scoped by the combobox in its
+	 * header and its table is filtered by it, and the form asked for the same entity a second time:
+	 * an operator who answered differently built a run for an entity the table does not show.
+	 */
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => selectedCompanyId ?? undefined,
+		settingsCode: () => selectedCompany?.settings_code ?? undefined
+	});
 	const companiesUnknown = $derived(companiesUnknownOf());
 
 	const today = todayKey();
