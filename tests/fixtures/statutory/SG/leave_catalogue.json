@@ -569,7 +569,7 @@
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
 		"is_statutory": true,
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 6 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
 		"requires_certificate_after_days": null,
 		"paid": false,
@@ -630,7 +630,7 @@
 			"bands": [
 				{
 					"eligibility": "",
-					"days": 6
+					"days": 12
 				}
 			]
 		}
@@ -1416,7 +1416,7 @@
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
 		"is_statutory": true,
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 6 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
 		"requires_certificate_after_days": null,
 		"paid": false,
@@ -1477,7 +1477,7 @@
 			"bands": [
 				{
 					"eligibility": "",
-					"days": 6
+					"days": 12
 				}
 			]
 		}
@@ -2263,7 +2263,7 @@
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
 		"is_statutory": true,
-		"authority": "Child Development Co-Savings Act 2001 s.12D — 6 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
 		"requires_certificate_after_days": null,
 		"paid": false,
@@ -2324,7 +2324,7 @@
 			"bands": [
 				{
 					"eligibility": "",
-					"days": 6
+					"days": 12
 				}
 			]
 		}
