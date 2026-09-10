@@ -47,6 +47,30 @@
 					}
 				},
 				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
 					"day_type": "REST_DAY",
 					"band": {
 						"measure": "FROM_START_OF_DAY",
@@ -302,6 +326,30 @@
 					}
 				},
 				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
 					"day_type": "REST_DAY",
 					"band": {
 						"measure": "FROM_START_OF_DAY",
@@ -546,6 +594,30 @@
 				},
 				{
 					"day_type": "ORDINARY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 1,
+						"to_hours": null
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 2
+					}
+				},
+				{
+					"day_type": "SPECIAL_HOLIDAY",
+					"band": {
+						"measure": "BEYOND_NORMAL",
+						"from_hours": 0,
+						"to_hours": 1
+					},
+					"award": {
+						"kind": "HOURLY_MULTIPLE",
+						"multiple": 1.5
+					}
+				},
+				{
+					"day_type": "SPECIAL_HOLIDAY",
 					"band": {
 						"measure": "BEYOND_NORMAL",
 						"from_hours": 1,

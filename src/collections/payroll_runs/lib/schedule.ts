@@ -148,6 +148,21 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		throw new Error('The Work rules must specify public-holiday/rest-day precedence.');
 	/** Under SUBSTITUTE: holidays that fell on a rest day, waiting for the next working day. */
 	const carried: RuleDayType[] = [];
+	/**
+	 * The rest-day holidays the calendar already substitutes itself, by the date they came from.
+	 *
+	 * A gazette usually publishes the substitute as its own dated row — Malaysia, Singapore, Taiwan
+	 * and Vietnam all seed one per rest-day holiday, each naming its `original_date`. Carrying such
+	 * a holiday forward as well observes it twice: the seeded substitute prices as a holiday from
+	 * its own row without consuming the carry, and the carry then lands on the next ordinary day
+	 * after that. Fourteen seeded rows across the bank, so fourteen extra paid holidays a year.
+	 *
+	 * The carry is for the other shape — a calendar that states only the original date and leaves
+	 * the observation to the rule.
+	 */
+	const substitutedFrom = new Set<IsoDate>();
+	for (const holiday of options.configuration.holidays.values())
+		if (holiday.original_date != null) substitutedFrom.add(holiday.original_date);
 
 	for (const date of options.dates) {
 		const terms = options.terms(date);
@@ -173,7 +188,7 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			// working day of the window; one that falls past the window is nobody's to observe here.
 			if (precedence === 'SUBSTITUTE') {
 				dayType = 'REST_DAY';
-				carried.push(holidayDayType(holiday));
+				if (!substitutedFrom.has(date)) carried.push(holidayDayType(holiday));
 			} else dayType = precedence;
 		} else if (!holiday && baseDayType === 'ORDINARY' && carried.length > 0)
 			dayType = carried.shift()!;
