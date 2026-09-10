@@ -51,8 +51,11 @@ export function prepareLeavePayroll(options: {
 		const captures = context.captures.flatMap((capture) => {
 			const payslip = payslipById.get(capture.payslip_id);
 			const run = payslip == null ? undefined : runById.get(payslip.payroll_run_id);
-			if (!run) refuse('A Leave capture has no owning payroll run.');
-			return [{ ...capture, paid: run.lifecycle === 'PAID' }];
+			if (!run || payslip == null) refuse('A Leave capture has no owning payroll run.');
+			// This person's own payslip, not their run's summary. A capture on a slip that has been
+			// paid is paid; a colleague still waiting on a correction no longer makes it unpaid, and
+			// the run reading DRAFT because of that colleague no longer makes it so either.
+			return [{ ...capture, paid: payslip.paid_at != null }];
 		});
 		const result = new Map<string, PreparedLeavePayroll>();
 		for (const employment of context.employments) {

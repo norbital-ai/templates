@@ -79,6 +79,8 @@ function persistPayslip(world, options) {
 		id: options.payslipId,
 		payroll_run_id: options.runId,
 		employment_id: EMPLOYMENT_ID,
+		// A run filed as PAID has paid its slips; history reads the slip's own payment.
+		paid_at: options.lifecycle === 'PAID' ? `${options.period}-28` : null,
 		approval_id: null
 	});
 	for (const capture of options.leaveCaptures ?? []) {

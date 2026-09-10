@@ -166,6 +166,7 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			id: 'payslip-2026-01',
 			payroll_run_id: 'run-2026-01',
 			employment_id: EMPLOYMENT_ID,
+			paid_at: '2026-01-31',
 			statutory: [],
 			adjustments: [
 				{ family: 'LOAN_REPAYMENT', source_id: REPAYMENT_ID, amount: options.alreadyRecovered }

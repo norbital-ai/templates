@@ -331,11 +331,16 @@ test('payroll writes the consumed terms date on the payslip; previews leave sour
 	assert.ok(payslip);
 	assert.equal(dateKey(payslip.terms_through), '2026-01-31');
 	const parent = { collection: 'payroll_runs', id: id(40), column: 'payroll_run_id', values: {} };
+	// The handler is an Effect since a payslip gained its one editable column: recording payment
+	// has to read the run and the person's earlier slips, so the create path runs through the
+	// runtime like the edit path does.
 	assert.doesNotThrow(() =>
-		payslipHooks.mutate.perRecord.before.handler({ input: payslip, parent } as never)
+		Effect.runSync(
+			payslipHooks.mutate.perRecord.before.handler({ input: payslip, parent } as never)
+		)
 	);
 	assert.throws(
-		() => payslipHooks.mutate.perRecord.before.handler({ input: payslip } as never),
+		() => Effect.runSync(payslipHooks.mutate.perRecord.before.handler({ input: payslip } as never)),
 		/payroll run/
 	);
 });

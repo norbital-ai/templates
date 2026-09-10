@@ -108,10 +108,11 @@
 	const recoveriesQuery = $derived.by(() => {
 		const ids = [...new Set((capturesQuery?.current ?? []).map((row) => row.payslip_id))];
 		if (ids.length === 0) return null;
+		// The slip's own payment, not its run's summary: recovery recovered is this person's money,
+		// and a colleague's held payslip used to make the run read DRAFT and under-report it.
 		return client.db.payslips.findMany({
-			where: { id: { in: ids } },
+			where: { id: { in: ids }, paid_at: { isNotNull: true } },
 			columns: { id: true, adjustments: true },
-			with: { payslip_payroll_run: { columns: { lifecycle: true } } },
 			limit: 10_000
 		});
 	});
@@ -119,9 +120,6 @@
 	const recoveryRowSchema = Schema.Struct({
 		adjustments: Schema.Array(
 			Schema.Struct({ family: Schema.String, source_id: Schema.String, amount: Schema.Unknown })
-		),
-		payslip_payroll_run: Schema.optional(
-			Schema.NullOr(Schema.Struct({ lifecycle: Schema.optional(Schema.NullOr(Schema.String)) }))
 		)
 	});
 	const decodeRecoveryRow = Schema.decodeUnknownResult(recoveryRowSchema);
@@ -131,7 +129,6 @@
 		for (const row of recoveriesQuery?.current ?? []) {
 			const parsed = decodeRecoveryRow(row);
 			if (!Result.isSuccess(parsed)) continue;
-			if (parsed.success.payslip_payroll_run?.lifecycle !== 'PAID') continue;
 			for (const claim of parsed.success.adjustments) {
 				if (claim.family !== 'LOAN_REPAYMENT') continue;
 				const amount = decodeNumber(claim.amount);

@@ -257,10 +257,30 @@ export default {
 			},
 			after: {
 				description:
-					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist. The holidays the run read stay on the run itself (`holidays`): a holiday is frozen while a run captures it, with no stamp on the holiday row.',
-				handler: ({ previous, record, api }) =>
+					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist, and — when the run is marked paid — records the payment on every one of its unpaid payslips, because payment is a fact of the slip. The holidays the run read stay on the run itself (`holidays`): a holiday is frozen while a run captures it, with no stamp on the holiday row.',
+				handler: ({ previous, record, api }): Effect.Effect<void> =>
 					Effect.gen(function* () {
-						if (previous !== undefined) return;
+						if (previous !== undefined) {
+							/**
+							 * Marking the run paid is the bulk gesture, and the bulk gesture is "pay every
+							 * slip still unpaid". The record of payment is the slip's, so this is where it
+							 * is written; the run's own `lifecycle` is the summary those slips produce.
+							 * Each write goes through the payslip's own hook, so a person whose earlier
+							 * period is still unpaid refuses here by name rather than being swept along.
+							 */
+							if (previous.lifecycle === 'PAID' || record.lifecycle !== 'PAID') return;
+							const unpaid = yield* api.db.payslips.findMany({
+								where: { payroll_run_id: { eq: record.id }, paid_at: { isNull: true } },
+								columns: { id: true },
+								limit: 20_000
+							});
+							if (unpaid.length >= 20_000) refuse('Too many payslips to pay in one run.');
+							if (unpaid.length > 0)
+								yield* api.db.payslips.mutate(
+									unpaid.map((slip) => ({ id: slip.id, paid_at: record.pay_date }))
+								);
+							return;
+						}
 						const key = runKey(record.company_id, record.period);
 						const captures = PENDING_CAPTURES.get(key);
 						PENDING_CAPTURES.delete(key);
@@ -330,6 +350,18 @@ export default {
 						// The refusal that makes a paid run's locks permanent. Deleting a PAID run would
 						// release every record behind money that has already left the building — so the
 						// correction path is the only path, and the message says so.
+						// A paid slip is money that left the building, whatever its run's summary says. The
+						// run's own lifecycle is a reading of these, so this is the same rule stated where
+						// the fact lives — and it still refuses a half-paid run, which reads DRAFT.
+						const paid = yield* api.db.payslips.findFirst({
+							where: { payroll_run_id: { eq: existing.id }, paid_at: { isNotNull: true } },
+							columns: { id: true }
+						});
+						if (paid != null)
+							refuse(
+								`Payroll run ${existing.period} has payslips that have been paid and cannot be ` +
+									'deleted. Correct it with a component entry in a later draft run.'
+							);
 						if (existing.lifecycle !== 'DRAFT')
 							refuse(
 								`Payroll run ${existing.period} is ${existing.lifecycle} and cannot be deleted. ` +

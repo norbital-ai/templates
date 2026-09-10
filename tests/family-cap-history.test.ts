@@ -199,6 +199,8 @@ test('paid captured amounts, including zero, replace source estimates without ch
 			id: 'paid-slip',
 			employment_id: EMPLOYMENT_ID,
 			payroll_run_id: 'paid-run',
+			// Paid, because history is the slip's own payment rather than the run's summary.
+			paid_at: '2026-01-31',
 			statutory: []
 		});
 		settle(world, 'claim_requests', 'prior', 'paid-slip', '2026-01');
@@ -308,7 +310,12 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 			period,
 			lifecycle: 'PAID'
 		});
-		world.payslips.push({ ...slip, id: payslipId, payroll_run_id: `run-${period}` });
+		world.payslips.push({
+			...slip,
+			id: payslipId,
+			payroll_run_id: `run-${period}`,
+			paid_at: `${period}-28`
+		});
 		world.payslip_allowance_request_inputs.push(
 			...slip.payslip_allowance_request_input_payslip.map((row) => ({
 				...row,

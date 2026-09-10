@@ -61,7 +61,14 @@ function settle(world, period, prepared, built) {
 		approval_id: null
 	});
 	for (const slip of built.payslip_payroll_run) {
-		world.payslips.push({ ...slip, payroll_run_id: runId, approval_id: null });
+		// Filed as PAID means its slips are paid: payment is the slip's fact, and the next run
+		// reads history off `paid_at` rather than off the run's summary.
+		world.payslips.push({
+			...slip,
+			payroll_run_id: runId,
+			paid_at: prepared.window.payDate,
+			approval_id: null
+		});
 		world.payslip_allowance_request_inputs.push(
 			...slip.payslip_allowance_request_input_payslip.map((row) => ({
 				...row,

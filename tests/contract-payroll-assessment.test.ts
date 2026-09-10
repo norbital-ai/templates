@@ -110,6 +110,53 @@ test('the payroll engine measures two rehire contracts but charges one contribut
 		);
 });
 
+/**
+ * A colleague's held payslip does not erase this person's paid history.
+ *
+ * `payroll_runs.lifecycle` is a reading of the slips, so a run where one person is still unpaid
+ * reads DRAFT. Selecting prior *runs* by that summary — which is what this gather did while a run
+ * was the unit of payment — would drop every paid slip inside it: loan instalments recovered a
+ * second time, single-use entries paid twice, year-to-date reset to nothing. The history is the
+ * paid slips, and it is read off them.
+ */
+test('a half-paid earlier run still contributes the slips that were paid', async () => {
+	const world = rehireWorld();
+	// One earlier run, reading DRAFT because a colleague is still held, holding this person's
+	// paid slip.
+	world.payroll_runs.push({
+		id: 'january',
+		company_id: COMPANY_ID,
+		period: '2026-01',
+		lifecycle: 'DRAFT'
+	});
+	world.payslips.push({
+		id: 'january-paid',
+		payroll_run_id: 'january',
+		employment_id: EMPLOYMENT_ID,
+		paid_at: '2026-01-31',
+		statutory: [
+			{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
+		]
+	});
+	world.payslips.push({
+		id: 'january-held',
+		payroll_run_id: 'january',
+		employment_id: 'colleague-contract',
+		paid_at: null,
+		statutory: [
+			{ scheme_code: 'PUB-FIXED', employee_amount: 99, employer_amount: 99, base_amount: 9999 }
+		]
+	});
+	const prepared = await Effect.runPromise(
+		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-02' })
+	);
+	assert.deepEqual(
+		prepared.gathered.yearToDate.get(`${EMPLOYEE_ID}:PUB-FIXED`),
+		{ employee: 30, employer: 60, base: 1000 },
+		'the paid slip is history even though its run reads DRAFT'
+	);
+});
+
 test('rehire gathers prior paid YTD across old contracts while excluding another entity and drafts', async () => {
 	const world = rehireWorld();
 	world.employments.push({
@@ -117,15 +164,18 @@ test('rehire gathers prior paid YTD across old contracts while excluding another
 		id: 'other-entity-contract',
 		company_id: 'other-company'
 	});
-	for (const [id, company, lifecycle] of [
-		['old-paid', COMPANY_ID, 'PAID'],
-		['old-draft', COMPANY_ID, 'DRAFT'],
-		['other-paid', 'other-company', 'PAID']
+	// History is the *slip's* payment, not the run's summary. `old-draft` contributes nothing
+	// because its slip was never paid, which is the same guarantee the old lifecycle filter gave.
+	for (const [id, company, lifecycle, paid_at] of [
+		['old-paid', COMPANY_ID, 'PAID', '2026-01-31'],
+		['old-draft', COMPANY_ID, 'DRAFT', null],
+		['other-paid', 'other-company', 'PAID', '2026-01-31']
 	]) {
 		world.payroll_runs.push({ id, company_id: company, period: '2026-01', lifecycle });
 		world.payslips.push({
 			id: `${id}-slip`,
 			payroll_run_id: id,
+			paid_at,
 			employment_id: company === COMPANY_ID ? EMPLOYMENT_ID : 'other-entity-contract',
 			statutory: [
 				{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }

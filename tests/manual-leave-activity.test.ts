@@ -352,7 +352,8 @@ test('a paid reversal uses captured money exactly; a draft holding the source mu
 		gross_amount: { value: 150, currency: 'MYR' }
 	});
 	assert.throws(() => approve(context, reversal(original), 11), /draft payroll/);
-	context.runs[0]!.lifecycle = 'PAID';
+	// Payment is the slip's fact, so this is what settles the capture — not its run's summary.
+	context.payslips.find((row) => row.id === id(21))!.paid_at = '2027-03-31';
 	const correction = approve(context, reversal(original), 11);
 	assert.deepEqual(correction.event.kind === 'REVERSAL' && correction.event.gross_amount, {
 		value: -150,
