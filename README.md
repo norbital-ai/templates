@@ -186,8 +186,9 @@ src/
 ├── envoys/                   sales_desk
 ├── lib/
 │   ├── pricing.ts            the only place rounding is decided
-│   ├── numbering.ts          PREFIX-YYYY-NNNN document numbering
-│   └── calendar.ts           calendar-day derivation in the desk's timezone
+│   ├── document-numbers.ts   PREFIX-YYYY-NNNN document numbering
+│   ├── desk-date.ts          calendar-day derivation in the desk's timezone
+│   └── clock.ts              the injected workflow clock
 ├── i18n/                     messages.en.json + messages.zh.json, identical key sets
 └── +env.ts                   EXTERNAL_SYSTEM_TOKEN, declared by name only
 ```
@@ -196,13 +197,13 @@ src/
   transition maps, document numbering, quantity caps (received and invoiced quantities can never
   pass the ordered or quoted quantity), the credit gate, and the line-to-document rollup that keeps
   `net` / `tax` / `gross` on every document equal to the sum of its printed lines.
-- **Document numbering** (`lib/numbering.ts`) issues `QT-`, `PO-`, `SI-`, `PI-`, and `GRN-YYYY-NNNN`
+- **Document numbering** (`lib/document-numbers.ts`) issues `QT-`, `PO-`, `SI-`, `PI-`, and `GRN-YYYY-NNNN`
   numbers by reading the highest number already issued in the series; the unique index on `doc_no`
   is what actually guarantees uniqueness, and the losing transaction fails and is retried.
 - **Money** (`lib/pricing.ts`): `roundHalfUp` shifts the decimal exponent so `1.005` rounds to
   `1.01`, tax-inclusive lines take tax as the residual `gross − net`, and `documentTotals` sums
   already-rounded lines in minor units so a total always equals what a reader can add up.
-- **Calendar days** (`lib/calendar.ts`) resolve in `Asia/Singapore` — `new Date().toISOString()`
+- **Calendar days** (`lib/desk-date.ts`) resolve in `Asia/Singapore` — `new Date().toISOString()`
   would be the UTC day, a day behind for part of every day on a server west of Greenwich. Task
   `due_date` defaults and purchase-order `expected_date` (two weeks out) use it.
 - **Apps** are declarative: `$state` for operator input (account selector, rep filter), `$derived`
@@ -232,14 +233,14 @@ template (`pnpm --dir crm sync`, `pnpm --dir crm lint`, and repo-root `pnpm temp
 which proves each template installs, syncs, and lints from tracked files alone).
 
 - `bolt sync` may create or update `.norbital/migrations/`. That directory is generated but
-  **committed** — commit it with the authored change. `migrationFingerprint` hashes its raw bytes,
-  so never reformat it by hand.
+  **committed** — commit it with the authored change. `workspaceSchemaFingerprint` hashes the
+  committed mutation-visible schema, so never edit the generated lineage by hand.
 - There is no seed script, so deployed data evolves through committed migrations, not seeds: for a
   change that must apply to existing tenants, write the next lineage entry with
   `pnpm exec bolt migrate --name <name>`, edit its SQL, and run it through the update flow below.
 - Publishing: pushing to `main` of the templates repository republishes
   `refs/heads/templates/crm` — a fast-forward-only subtree split of this directory. A tenant is
   forked from the exact advertised commit when Colony provisions it, so it shares ancestry but never
-  moves merely because the ref advances. From the realm root, `pnpm env -- link` tests
+  moves merely because the ref advances. From the realm root, `pnpm run env -- link` tests
   local OSS packages inside this template; it does not link a template release into Colony or
   update a tenant. The templates repository README documents the full release and tenant lifecycle.
