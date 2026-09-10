@@ -95,9 +95,10 @@ claims, project documents, and current permits to work). Site locations, asset d
 permits to work have no tab of their own anywhere and are reached only through a project — the only
 context in which any of them means much.
 
-Four files split one policy contract: `+construction_read.ts` owns the twelve unconditional read
-grants, and the three app policies carry only `capabilities` — they open an application, and the
-application opens the grants. The narrowing is `apps`, not `where`. That is deliberate rather
+Five files split one policy contract: `+construction_read.ts` owns the twelve unconditional read
+grants, the three app policies carry only `capabilities` — they open an application, and the
+application opens the grants — and `+reports_integration.ts` is the reports import's RFI write
+authority. The narrowing is `apps`, not `where`. That is deliberate rather
 than lazy — construction carries no requestor-bearing column on any of these collections, so there
 is nothing for a `where` clause to scope to, and what actually separates a delivery user from a
 settings administrator is which application they can open. The shared grant list lives in one file
@@ -128,7 +129,7 @@ under `.norbital/`.
 
 ```text
 src/apps/                              the three applications (+<app>.svelte)
-src/access/policies/                   one shared read authority + one per application (+<name>.ts)
+src/access/policies/                   one shared read authority, one per application, and the reports integration (+<name>.ts)
 src/collections/                       models (+model.ts), relations (+relationship.ts),
                                        the compliance hook, and form/detail representations
 src/automations/                       the four daily review watches (+<name>.ts)
