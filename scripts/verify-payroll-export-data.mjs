@@ -43,6 +43,7 @@ const viteResource = Effect.acquireRelease(
 /** The window a Malaysian cutoff of 21 gives March, and the day it pays. */
 const RUN = {
 	id: 'run:2026-03',
+	company_id: 'company:1',
 	settings_id: 'settings:test',
 	period: '2026-03',
 	pay_date: '2026-03-28',
@@ -324,6 +325,7 @@ Effect.runPromise(
 
 			const api = stubApi({
 				payslips: PAYSLIPS,
+				companies: [{ id: 'company:1', workbook_layout: 'VENDOR' }],
 				employments: EMPLOYMENTS,
 				work_catalogue: [WORK],
 				leave_catalogue: [],

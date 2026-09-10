@@ -15,7 +15,11 @@ import { resolveEmployment } from '../../../lib/employment-contract.js';
 import { Effect, Schema } from 'effect';
 import type { PayrollReadApi } from './api.js';
 import { workPayItems } from '../../work_catalogue/pay-items.js';
-import { encashmentCode } from '../../../lib/leave/pay-items.js';
+import {
+	LEAVE_ABSENCE_SEQUENCE,
+	LEAVE_ENCASHMENT_SEQUENCE,
+	encashmentCode
+} from '../../../lib/leave/pay-items.js';
 import { PAGE_LIMIT, groupBy, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
@@ -34,6 +38,8 @@ type RunExport = {
 	readonly runId: string;
 	readonly period: string;
 	readonly payDate: string;
+	/** The entity's named workbook layout, carried so the export never infers one from a currency. */
+	readonly layout: 'MATRIX' | 'VENDOR';
 	readonly payslips: readonly ReportPayslip[];
 	readonly bank: readonly BankDestination[];
 	/** Employments whose payslip has no bank destination and is therefore not in the bank file. */
@@ -57,7 +63,13 @@ type BankDestination = Schema.Schema.Type<typeof BankDestinationSchema>;
 
 type RunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
-	'id' | 'settings_id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
+	| 'id'
+	| 'company_id'
+	| 'settings_id'
+	| 'period'
+	| 'pay_date'
+	| 'attendance_from'
+	| 'attendance_to'
 >;
 
 function timestampHours(row: WorkDayLike): number {
@@ -103,6 +115,18 @@ export function loadRunExports(
 		const runIds = runs.map((run) => run.id);
 		if (runIds.length === 0) return [];
 
+		const companies = yield* readApi.db.companies.findMany({
+			where: { id: { in: [...new Set(runs.map((run) => run.company_id))] } },
+			columns: { id: true, workbook_layout: true },
+			limit: PAGE_LIMIT
+		});
+		readApi.reads.assertComplete(companies, 'export entities');
+		/** The named layout of each run's entity; an entity that states none takes the matrix. */
+		const layoutOf = (run: RunRow): 'MATRIX' | 'VENDOR' =>
+			companies.find((row) => row.id === run.company_id)?.workbook_layout === 'VENDOR'
+				? 'VENDOR'
+				: 'MATRIX';
+
 		const payslips = yield* readApi.db.payslips.findMany({
 			where: { payroll_run_id: { in: runIds } },
 			limit: PAGE_LIMIT
@@ -113,6 +137,7 @@ export function loadRunExports(
 				runId: run.id,
 				period: run.period,
 				payDate: requiredDateKey(run.pay_date, 'payroll_runs.pay_date'),
+				layout: layoutOf(run),
 				payslips: [],
 				bank: [],
 				skippedEmploymentIds: []
@@ -238,6 +263,7 @@ export function loadRunExports(
 							{
 								code: encashmentCode(row.code),
 								nature: 'EARNING',
+								sequence: LEAVE_ENCASHMENT_SEQUENCE,
 								settlement: 'PAYROLL' as const,
 								definition: null
 							},
@@ -246,6 +272,7 @@ export function loadRunExports(
 										{
 											code: row.code,
 											nature: 'ABSENCE',
+											sequence: LEAVE_ABSENCE_SEQUENCE,
 											settlement: 'PAYROLL' as const,
 											definition: null
 										}
@@ -364,6 +391,12 @@ export function loadRunExports(
 							componentCode: componentCode,
 							componentName: componentCode,
 							nature: catalogueComponent?.nature ?? 'INFORMATION',
+							// The catalogue's order is the column order. A code the run's catalogue no
+							// longer carries sorts last rather than jumping to the front.
+							sequence:
+								catalogueComponent?.sequence == null
+									? Number.MAX_SAFE_INTEGER
+									: decodeNumber(catalogueComponent.sequence),
 							calculationSource: definition?.source ?? 'DERIVED',
 							amount,
 							quantity,
@@ -464,6 +497,7 @@ export function loadRunExports(
 				runId: run.id,
 				period: run.period,
 				payDate: runPayDate,
+				layout: layoutOf(run),
 				payslips: report,
 				bank,
 				skippedEmploymentIds: skipped

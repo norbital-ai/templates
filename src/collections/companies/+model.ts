@@ -39,6 +39,18 @@ export default defineModel(
 		 * `company.region`. Empty where the jurisdiction states no regional wage.
 		 */
 		region: text(),
+		/**
+		 * Which payroll workbook this entity hands out, by name.
+		 *
+		 * `MATRIX` is the catalogue-driven sheet every export carries: one column per catalogue
+		 * component, labelled by its code, grouped by category in catalogue order. `VENDOR` adds the
+		 * customer's own salary listing beside it, in that file's settled column vocabulary.
+		 *
+		 * Named rather than inferred. The listing used to appear whenever every payslip in a period
+		 * happened to be in MYR, so one employer's Malaysian entity and its Singaporean one received
+		 * differently shaped files and neither could say otherwise.
+		 */
+		workbook_layout: enums(['MATRIX', 'VENDOR']).notNull().default('MATRIX'),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
