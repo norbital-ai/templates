@@ -112,11 +112,42 @@ test(
 					.value,
 				'payment replay'
 			);
+			/**
+			 * The figures are retained; the payment is recorded.
+			 *
+			 * Marking the run paid now writes `paid_at` on every slip it holds, because payment is
+			 * the slip's fact — so the rows are no longer byte-identical, and a comparison that
+			 * demanded they were would be asserting that nothing was recorded. What must not move is
+			 * the money: every settled column below, and the frozen input arrays behind them.
+			 */
+			const settled = await session.query(
+				'select * from payslips where payroll_run_id = $1 order by id',
+				[runId]
+			);
+			const money = (rows) =>
+				rows.map((row) => ({
+					id: row.id,
+					employment_id: row.employment_id,
+					terms_through: row.terms_through,
+					base: row.base,
+					proration: row.proration,
+					statutory: row.statutory,
+					adjustments: row.adjustments,
+					gross: row.gross,
+					total_deductions: row.total_deductions,
+					net: row.net,
+					employer_cost: row.employer_cost,
+					currency: row.currency
+				}));
+			assert.deepEqual(money(settled), money(initial));
 			assert.deepEqual(
-				await session.query('select * from payslips where payroll_run_id = $1 order by id', [
-					runId
-				]),
-				initial
+				initial.map((row) => row.paid_at),
+				initial.map(() => null),
+				'nobody was paid before the run was marked paid'
+			);
+			assert.ok(
+				settled.length > 0 && settled.every((row) => row.paid_at != null),
+				'and every slip carries its payment afterwards'
 			);
 			const [stored] = await session.query('select * from payroll_runs where id = $1', [runId]);
 			assert.equal(stored.lifecycle, 'PAID');

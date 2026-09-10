@@ -65,6 +65,8 @@ test('an ended contract recovers its due loan from later manual payments without
 			id: payslipId,
 			payroll_run_id: runId,
 			employment_id: EMPLOYMENT_ID,
+			// A run filed as PAID has paid its slips, and history is the slip's own payment.
+			paid_at: `${period}-28`,
 			statutory: slip.statutory,
 			adjustments: slip.adjustments,
 			approval_id: null

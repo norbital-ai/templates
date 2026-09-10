@@ -472,7 +472,21 @@ test('a pending approval still answers first, because it is the platform\u2019s 
 
 // ── 4. the refusal that makes a paid run's captures permanent ───────────────────────────────────
 
-const releaseApi = { db: { payslips: { findMany: () => Effect.succeed([]) } } };
+/**
+ * A run with no paid slips. Payment lives on the slip now, so the delete guard asks the slips
+ * first — `paid` below is the run whose money has left the building.
+ */
+const releaseApi = {
+	db: { payslips: { findMany: () => Effect.succeed([]), findFirst: () => Effect.succeed(null) } }
+};
+const paidApi = {
+	db: {
+		payslips: {
+			findMany: () => Effect.succeed([]),
+			findFirst: () => Effect.succeed({ id: 'slip-1' })
+		}
+	}
+};
 
 test('a PAID payroll run refuses deletion', () => {
 	assert.throws(
@@ -480,15 +494,15 @@ test('a PAID payroll run refuses deletion', () => {
 			Effect.runSync(
 				payrollRunHooks.delete.perRecord.before.handler({
 					existing: { id: 'run-1', period: '2026-03', lifecycle: 'PAID' },
-					api: releaseApi
+					api: paidApi
 				})
 			),
 		(error) => {
 			assert.match(error.message, /2026-03/);
-			assert.match(error.message, /PAID/);
 			// The reason, not just the rule: deleting it would cascade its captured inputs away and
-			// reopen every record behind money that has already been paid.
-			assert.match(error.message, /release every work day, entry, repayment and leave record/);
+			// reopen every record behind money that has already been paid. The rule is now stated
+			// where the money is — a run holding any paid payslip, which is what PAID means.
+			assert.match(error.message, /payslips that have been paid/);
 			assert.match(error.message, /component entry/);
 			return true;
 		}

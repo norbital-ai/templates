@@ -302,9 +302,11 @@ export function planLeaveActivity(
 			let currency: string | null = null;
 			let total = 0n;
 			for (const capture of captured) {
-				const runId = context.payslips.find((row) => row.id === capture.payslip_id)?.payroll_run_id;
-				const run = context.runs.find((row) => row.id === runId);
-				if (!run || run.lifecycle !== 'PAID')
+				// This person's own payslip. Payment is per slip, so a colleague still waiting on a
+				// correction no longer holds this reversal — the run reading DRAFT because of them
+				// used to refuse a reversal whose money had in fact been paid.
+				const payslip = context.payslips.find((row) => row.id === capture.payslip_id);
+				if (payslip == null || payslip.paid_at == null)
 					refuse('Delete or settle the draft payroll holding this leave before reversing it.');
 				const amount = capture.gross_amount;
 				if (currency != null && currency !== amount.currency)

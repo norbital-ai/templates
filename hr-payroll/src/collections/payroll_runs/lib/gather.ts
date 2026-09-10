@@ -471,12 +471,20 @@ function gatherPriorSettlement(
 		 * February, and reading only the current tax year would report its repayments as untouched and
 		 * deduct them a second time. One read answers both questions; only the summing differs.
 		 */
+		/**
+		 * Every earlier run, and the *paid slips* inside them — not every earlier PAID run.
+		 *
+		 * The lifecycle predicate that used to sit here was the fix for abandoned drafts feeding the
+		 * next period's projection, and it was right while a run was the unit of payment. It is
+		 * wrong now that a slip is: `lifecycle` is a reading of the slips, so a run where nine
+		 * people are paid and one is not reads `DRAFT`, and this filter would drop all nine — their
+		 * loan instalments would be recovered a second time, their single-use entries paid twice and
+		 * their year-to-date reset. Filtering the slips by their own `paid_at` (below) keeps the
+		 * original guarantee exactly — an abandoned draft has no paid slips — and stops one person's
+		 * held payslip rewriting nine colleagues' history.
+		 */
 		const priorRunRows = yield* db.payroll_runs.findMany({
-			where: {
-				company_id: { eq: options.companyId },
-				period: { lt: options.period },
-				lifecycle: { eq: 'PAID' }
-			},
+			where: { company_id: { eq: options.companyId }, period: { lt: options.period } },
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(priorRunRows, 'prior payroll runs');
@@ -518,7 +526,10 @@ function gatherPriorSettlement(
 		const priorPayslips = yield* db.payslips.findMany({
 			where: {
 				payroll_run_id: { in: priorRuns.map((run) => run.id) },
-				employment_id: { in: siblingEmployments.map((row) => row.id) }
+				employment_id: { in: siblingEmployments.map((row) => row.id) },
+				// The money actually paid. A slip still held back is not history yet, and the next run
+				// re-derives its period from the contract exactly as it always did.
+				paid_at: { isNotNull: true }
 			},
 			limit: PAGE_LIMIT
 		});

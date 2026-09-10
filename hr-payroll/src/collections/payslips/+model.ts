@@ -42,6 +42,22 @@ export default defineModel(
 		adjustments: custom('payslip_adjustments')
 			.notNull()
 			.default(sql`'[]'::jsonb`),
+		/**
+		 * When this person was paid. Null until they were.
+		 *
+		 * **This is the authority on payment, not `payroll_runs.lifecycle`.** Payment is per slip:
+		 * one person's pay can settle while a colleague's is still held for a correction, and a run
+		 * that had to move as a block made "pay everyone or nobody" the only gesture there was.
+		 * `payroll_runs.lifecycle` is derived from these — `PAID` when every slip of the run carries
+		 * one — so a reader that means "this whole run is settled" is unchanged, while a reader that
+		 * means "this person's pay is settled" reads it here and stops being wrong about a run that
+		 * is half paid.
+		 *
+		 * Set once and never cleared. It is the one column of an otherwise immutable output row that
+		 * may move, for the same reason a sealed settings version's holiday source may: paying is an
+		 * operational act, not a recalculation, and nothing about the figures changes when it happens.
+		 */
+		paid_at: instant(),
 		gross: numeric().notNull(),
 		total_deductions: numeric().notNull(),
 		net: numeric().notNull(),
