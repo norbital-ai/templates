@@ -47,9 +47,10 @@ Encashment and outgoing carry validate earned quantities, including existing com
 An empty eligibility expression includes everyone. Expressions use the shared person context:
 
 ```text
-employee.gender  employee.age  employee.citizenship
+employee.gender  employee.age  employee.citizenship  employee.spouse_status
 employment.type  employment.classification  employment.service_months  employment.hire_date
 terms.basic_salary  terms.workman  terms.department  terms.payroll_group
+terms.ordinary_hours_per_week  terms.working_days_per_week
 children.count  children.under(age)
 ```
 
