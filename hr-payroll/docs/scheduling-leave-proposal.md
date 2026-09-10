@@ -75,9 +75,13 @@ flowchart LR
 ```
 
 A missing or unpublished year blocks required classification. An ordinary date in a complete
-calendar is a deliberate non-holiday input. Workday links and payroll captures permanently seal the
-calendar inputs they use, including non-holiday dates. Removing the consumer cannot reopen those
-inputs. Import refreshes and successor revisions preserve sealed observations and report conflicts.
+calendar is a deliberate non-holiday input. The freeze derives from live references, not a stamp: a
+work day classified as a holiday pins it (`work_days.holiday_id`) and a payroll run captures the
+holidays it read (`payroll_runs.holidays`). Retracting a holiday (unpublish, moving its day or
+jurisdiction, delete) is refused while a run captures it; otherwise the pinning days are re-saved —
+re-classified, lieu credits reversed — while a credit already taken refuses the change. A finished
+run is never touched by a holiday published later, and an import skips a day the jurisdiction
+already has.
 
 Observed substitute dates come from the jurisdiction calendar. Work's explicit precedence resolves
 an overlap with a rest day without inventing a personal substitute date. Leave charging, calendar

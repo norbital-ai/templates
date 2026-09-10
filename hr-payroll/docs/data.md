@@ -65,7 +65,8 @@ is evidenced; a profile shared across jurisdictions must not propagate one globa
 contract. Unknown remains unknown and does not satisfy citizenship eligibility.
 
 The predicate facts a statute keys on are columns: `employees.marital_status` (`SINGLE` or
-`MARRIED`), `employees.solo_parent`, `employees.race` and `employees.religion` (only where a fund is
+`MARRIED`), `employees.spouse_status` (`NONE` | `WITHOUT_INCOME` | `WITH_INCOME`),
+`employees.solo_parent`, `employees.race` and `employees.religion` (only where a fund is
 selected by them), `employment_terms.residency_since`, and `companies.region`, which names the row of
 `jurisdiction_settings.minimum_wages` a scheme's floor or cap reads. A fact that is unrecorded is
 never inferred from another.

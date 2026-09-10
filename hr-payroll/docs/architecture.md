@@ -156,14 +156,15 @@ band holding means no entitlement, refused when the request is written and paid 
 
 One predicate language, `payroll_runs/lib/eligibility.ts`, is what every catalogue row, band and
 rate speaks. Its facts: `employee.gender`, `employee.age`, `employee.citizenship`,
-`employee.marital_status`, `employee.solo_parent`, `employee.race`, `employee.religion`,
-`employee.residency_months` (completed months since `employment_terms.residency_since`, 0 when
-unrecorded), `employment.type`, `employment.classification`, `employment.service_months`,
-`employment.hire_date`, `terms.basic_salary`, `terms.workman`, `terms.department`,
-`terms.payroll_group`, `terms.grade`, `children.count`, `children.under(age)` and
-`company.region`. Empty is everyone; an unrecorded fact reads as empty, false or zero and never
-claims anything. Hooks compile every predicate when the row is written. Race and religion are
-captured only where a statutory fund is selected by them.
+`employee.marital_status`, `employee.spouse_status`, `employee.solo_parent`, `employee.race`,
+`employee.religion`, `employee.residency_months` (completed months since
+`employment_terms.residency_since`, 0 when unrecorded), `employment.type`,
+`employment.classification`, `employment.service_months`, `employment.hire_date`,
+`terms.basic_salary`, `terms.workman`, `terms.department`, `terms.payroll_group`, `terms.grade`,
+`terms.ordinary_hours_per_week`, `terms.working_days_per_week`, `children.count`,
+`children.under(age)` and `company.region`. Empty is everyone; an unrecorded fact reads as empty,
+false or zero and never claims anything. Hooks compile every predicate when the row is written.
+Race and religion are captured only where a statutory fund is selected by them.
 
 The event forms speak it too. `lib/ui/eligible-types.svelte` reads the chosen employment with its
 person, terms and entity in one query, builds the same context as of today (`lib/eligible-types.ts`)
@@ -404,8 +405,14 @@ A scheme carries an `eligibility` predicate (empty is everyone): a person outsid
 whole, with no charge, no capture and no relief fed. Each band may carry its own predicate, applied
 before the wage ceiling, so one scheme holds a ladder per citizenship, marital category or
 residency year; bands with different predicates never overlap. A `PROGRESSIVE` award's optional
-`employer` is a percentage of the whole chargeable wage, read off the band the wage selected. The
-special rules `FLOOR:MINIMUM_WAGE` and `CAP:MINIMUM_WAGE_X:<n>` bound the chargeable base by the
+`employer` is a percentage of the whole chargeable wage, read off the band the wage selected.
+`statutory_contributions.special_rules` is a closed token set: `BRACKET_STEP:<upTo>:<step>`,
+`PERSONAL_RELIEF:<amount>`, `SPOUSE_RELIEF:<amount>`, `CHILD_RELIEF:<amount>`,
+`RELIEF_CAP:<amount>`, `RELIEF_POOL:<name>`, `RELIEF_PROJECTED`, `MIN_WITHHOLD:<amount>`,
+`ROUND:<method>`, `TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED`, `ADDITIONAL_REMUNERATION`,
+`PERIODIC_PROGRESSIVE`, `FLOOR:MINIMUM_WAGE`, `CAP:MINIMUM_WAGE_X:<n>`, `CAP:AMOUNT:<n>`,
+`GRADE_LADDER:<a>,<b>,…` and `EMPLOYEE_PER_DEPENDANT:<n>[:<covered>]`; an unrecognised token is an
+error. `FLOOR:MINIMUM_WAGE` and `CAP:MINIMUM_WAGE_X:<n>` bound the chargeable base by the
 company's region's wage in `jurisdiction_settings.minimum_wages`; a company in a region the version
 names no wage for stops the run under such a scheme.
 

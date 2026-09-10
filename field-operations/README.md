@@ -154,6 +154,7 @@ assignment row.
 | Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).              |
 | Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: `mutate.existing` for approved progress fields on an exact assignment owned by the linked contractor. No reads, searches, new-record mutations, deletes, evidence, logs, reviews, suspicion data or apps. |
 | Policy     | `suspicion_review_automation`     | The review automation's authority: unchecked assignments only, append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                         |
+| Policy     | `dispatch_integration`            | The jobs dispatch import's authority: read, create and update `jobs`, plus the site-code read it resolves authored site references against.                                                                                                               |
 | Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README.                  |
 
 The controller reads jobs, assignments, people, sites, and open suspicion logs directly from the
@@ -168,7 +169,7 @@ stay live without a remote query handler or refresh control.
 src/
 ├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
 ├── envoys/                         +field_ops_whatsapp.ts
-├── access/policies/                the four policies and the variation approval flow
+├── access/policies/                the five policies and the variation approval flow
 ├── collections/                    models, relationships, hooks, pipelines, representations
 │   ├── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
 │   ├── suspicion_reviews/          the review ledger (controller-only)
@@ -250,6 +251,6 @@ pnpm lint    # prettier --check + svelte-check
 - Publishing and tenant lifecycle: publish through the templates release workflow. A remote Colony
   host provisions new tenants from the exact commit advertised by
   `refs/heads/templates/field-operations`; advancing that ref does not rewrite existing tenants.
-  From the realm root, `pnpm env -- link` only tests local OSS packages inside the
+  From the realm root, `pnpm run env -- link` only tests local OSS packages inside the
   template and does not link template source into Colony. The template detail page on the website
   is generated from this README and `norbital.template.json` — no separate copy.

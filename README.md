@@ -105,9 +105,9 @@ template release appears. Local-directory origins are intentionally different: t
 checkout and make no projected-ref claim.
 
 The local framework-development overlay is managed from the **realm root** with
-`pnpm env -- link`. It replaces the templates' `@norbital-ai/*` dependencies with locally built
+`pnpm run env -- link`. It replaces the templates' `@norbital-ai/*` dependencies with locally built
 OSS packages; it does not publish a template, link template source into Colony, or update an
-existing tenant. Run `pnpm env -- retreat` there before release so every projected template
+existing tenant. Run `pnpm run env -- retreat` there before release so every projected template
 carries exact registry pins and a clean lockfile.
 
 Each template pins its own `@norbital-ai/bolt` version. Nothing propagates a bump into a template: a
