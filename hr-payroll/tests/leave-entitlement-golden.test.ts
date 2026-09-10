@@ -240,14 +240,15 @@ test('Singapore — the service ladders and the family schemes, on all three sea
 		);
 		// Extended childcare leave is asserted on its own below: the engine cannot evaluate the
 		// predicate that row is written with.
-		// Six days of unpaid infant care for a parent of a child under two; twelve weeks of adoption
-		// leave for an adoptive mother.
+		// Twelve days of unpaid infant care for a parent of a child under two — doubled from six with
+		// effect from 1 January 2024, before this lineage's first sealed version opens, so all three
+		// carried half the statutory figure. Twelve weeks of adoption leave for an adoptive mother.
 		assert.deepEqual(
 			ladder('SG', version, 'UNPAID_INFANT_CARE_LEAVE', {
 				citizenship: 'CITIZEN',
 				childAges: [1]
 			}),
-			[6, 6, 6]
+			[12, 12, 12]
 		);
 		assert.deepEqual(
 			ladder('SG', version, 'ADOPTION_LEAVE', { ...FEMALE, citizenship: 'CITIZEN' }),
