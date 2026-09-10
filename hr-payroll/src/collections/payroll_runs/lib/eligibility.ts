@@ -5,7 +5,7 @@
  * carries empty strings and zeros for missing facts. An empty expression includes everyone;
  * an ineligible entry produces no pay item, and an ineligible date earns no leave.
  *
- * employee.gender  employee.age  employee.citizenship  employee.marital_status
+ * employee.gender  employee.age  employee.citizenship  employee.marital_status  employee.spouse_status
  * employee.solo_parent  employee.race  employee.religion  employee.residency_months
  * employment.type  employment.classification  employment.service_months  employment.hire_date
  * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
@@ -28,6 +28,8 @@ export type PersonContext = {
 		readonly age: number;
 		readonly citizenship: string;
 		readonly marital_status: string;
+		/** `NONE` | `WITHOUT_INCOME` | `WITH_INCOME` — whether a spouse has income of their own. */
+		readonly spouse_status: string;
 		readonly solo_parent: boolean;
 		readonly race: string;
 		readonly religion: string;
@@ -64,6 +66,7 @@ const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
 		'age',
 		'citizenship',
 		'marital_status',
+		'spouse_status',
 		'solo_parent',
 		'race',
 		'religion',
@@ -82,6 +85,7 @@ const BLANK_PERSON: PersonContext = {
 		age: 0,
 		citizenship: '',
 		marital_status: '',
+		spouse_status: '',
 		solo_parent: false,
 		race: '',
 		religion: '',
@@ -99,6 +103,7 @@ type PersonInput = {
 		readonly date_of_birth?: string | null;
 		readonly nationality?: string | null;
 		readonly marital_status?: string | null;
+		readonly spouse_status?: string | null;
 		readonly solo_parent?: boolean | null;
 		readonly race?: string | null;
 		readonly religion?: string | null;
@@ -140,6 +145,9 @@ export function personContext(input: PersonInput): PersonContext {
 			// elsewhere may have different standing; nationality is not a substitute.
 			citizenship: input.terms?.residency_status ?? '',
 			marital_status: input.employee?.marital_status ?? '',
+			// A tax category that turns on whether a spouse has income of their own — Malaysia's MTD
+			// Category 2 against Category 3 — cannot be told from marital status alone.
+			spouse_status: input.employee?.spouse_status ?? '',
 			solo_parent: input.employee?.solo_parent === true,
 			race: input.employee?.race ?? '',
 			religion: input.employee?.religion ?? '',
@@ -226,7 +234,7 @@ export function compileEligibility(expression: string | null | undefined): strin
 		if (root != null && member != null && !CONTEXT_MEMBERS[root]?.has(member))
 			return (
 				`Eligibility names ${root}.${member}, which the person context does not carry. ` +
-				`Use employee.gender, employee.age, employee.citizenship, employee.marital_status, employee.solo_parent, employee.race, employee.religion, employee.residency_months, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, children.count, children.under(age) or company.region.`
+				`Use employee.gender, employee.age, employee.citizenship, employee.marital_status, employee.spouse_status, employee.solo_parent, employee.race, employee.religion, employee.residency_months, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, children.count, children.under(age) or company.region.`
 			);
 	}
 	try {

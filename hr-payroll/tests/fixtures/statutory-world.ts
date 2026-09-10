@@ -452,7 +452,8 @@ export function assessStatutoryUnvalidated(options: WorldOptions): StatutoryBook
 }
 
 /** The scheme's charge for that person, or a failure naming what the run did produce. */
-function priced(book: StatutoryBook, person: string, code: string): StatutoryCharge {
+/** The charge one person carries for one scheme; refuses by name when the book has none. */
+export function chargeOf(book: StatutoryBook, person: string, code: string): StatutoryCharge {
 	const rows = book.get(person);
 	assert.ok(rows, `no payslip for ${person}: the run produced ${[...book.keys()].join(', ')}`);
 	const row = rows.get(code);
@@ -472,7 +473,7 @@ export function expectStatutory(
 	employee: number,
 	employer: number
 ): void {
-	const row = priced(book, person, code);
+	const row = chargeOf(book, person, code);
 	assert.deepEqual(
 		{ employee: row.employee, employer: row.employer },
 		{ employee, employer },
@@ -499,5 +500,5 @@ export function expectStatutoryBase(
 	code: string,
 	base: number
 ): void {
-	assert.equal(priced(book, person, code).base, base, `${person} × ${code} base`);
+	assert.equal(chargeOf(book, person, code).base, base, `${person} × ${code} base`);
 }
