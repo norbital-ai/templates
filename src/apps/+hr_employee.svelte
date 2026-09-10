@@ -1035,82 +1035,104 @@
 	</Cover>
 {/snippet}
 
+<!--
+	THE BALANCES ARE THE BODY, NOT THE CHROME.
+
+	`Cover` gives its chrome an `auto` row and its body `minmax(0,1fr)`. An `auto` row takes what its
+	content asks for, so chrome that grows without bound takes everything and the body collapses —
+	which is what a list of one card per leave type does. On an 800×450 walk the Cover measured 26px
+	tall, its body measured 0, and 62px of content was CLIPPED with no scroll owner anywhere above
+	it: the same fault the schedule tab records above, arriving from the other direction. There the
+	body was too tall for the chrome's leftovers; here the chrome was too tall for the body.
+
+	So the chrome is the one thing that is genuinely fixed — the sentence explaining a missing
+	employment — and everything a reader scrolls through, balances and activity table alike, is the
+	body inside a `Scroll` that the ancestor bounds.
+-->
 {#snippet leaveChrome()}
 	<Stack gap="md">
 		{@render contextGate()}
-		{#if employmentId != null}
-			<section aria-labelledby="my-leave-balances-heading">
-				<Stack gap="sm">
-					<h3 id="my-leave-balances-heading" class="text-heading">
-						{t('app.hr_employee.leave_balances')}
-					</h3>
-					<p class="text-meta">
-						{t('app.hr_employee.leave_balances_description', {
-							date: formatCalendarDate(today)
-						})}
-					</p>
-					{#if leaveBalancesQuery?.error}
-						<Alert variant="destructive"
-							><AlertDescription>{leaveBalancesQuery.error.message}</AlertDescription></Alert
-						>
-					{:else if leaveBalancesQuery?.loading && leaveBalancesQuery.current == null}
-						<p class="text-meta">{t('leave.loading_balances')}</p>
-					{:else if leaveBalanceRows.length === 0}
-						<p class="text-meta">{t('app.hr_employee.leave_balances_empty')}</p>
-					{:else}
-						{#each leaveBalanceRows as balance (balance.catalogue_id)}
-							<Stack gap="sm" class="border-t py-3">
-								<p class="text-sm font-medium">{balance.name} · {balance.code}</p>
-								<p class="text-meta">
-									{formatCalendarDate(balance.window.start)} → {formatCalendarDate(
-										balance.window.end
-									)}
-								</p>
-								<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-									{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
-										<div>
-											<dt class="text-meta">{item.label}</dt>
-											<dd class="text-sm font-medium tabular-nums">
-												{item.value == null
-													? t('component.accrual_unlimited')
-													: formatNumeric(item.value)}
-											</dd>
-										</div>
-									{/each}
-								</dl>
-							</Stack>
-						{/each}
-					{/if}
-				</Stack>
-			</section>
-		{/if}
 	</Stack>
+{/snippet}
+
+{#snippet leaveBalances()}
+	{#if employmentId != null}
+		<section aria-labelledby="my-leave-balances-heading">
+			<Stack gap="sm">
+				<h3 id="my-leave-balances-heading" class="text-heading">
+					{t('app.hr_employee.leave_balances')}
+				</h3>
+				<p class="text-meta">
+					{t('app.hr_employee.leave_balances_description', {
+						date: formatCalendarDate(today)
+					})}
+				</p>
+				{#if leaveBalancesQuery?.error}
+					<Alert variant="destructive"
+						><AlertDescription>{leaveBalancesQuery.error.message}</AlertDescription></Alert
+					>
+				{:else if leaveBalancesQuery?.loading && leaveBalancesQuery.current == null}
+					<p class="text-meta">{t('leave.loading_balances')}</p>
+				{:else if leaveBalanceRows.length === 0}
+					<p class="text-meta">{t('app.hr_employee.leave_balances_empty')}</p>
+				{:else}
+					{#each leaveBalanceRows as balance (balance.catalogue_id)}
+						<Stack gap="sm" class="border-t py-3">
+							<p class="text-sm font-medium">{balance.name} · {balance.code}</p>
+							<p class="text-meta">
+								{formatCalendarDate(balance.window.start)} → {formatCalendarDate(
+									balance.window.end
+								)}
+							</p>
+							<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+								{#each [{ label: t('app.hr_employee.leave_entitlement'), value: balance.entitlement }, { label: t('app.hr_employee.leave_earned'), value: balance.earned }, { label: t('leave.posted_balance'), value: balance.balance }, { label: t('app.hr_employee.leave_pending'), value: balance.pending }, { label: t('leave.expired_carry'), value: balance.expired }, { label: t('app.hr_employee.leave_available'), value: balance.available }] as item (item.label)}
+									<div>
+										<dt class="text-meta">{item.label}</dt>
+										<dd class="text-sm font-medium tabular-nums">
+											{item.value == null
+												? t('component.accrual_unlimited')
+												: formatNumeric(item.value)}
+										</dd>
+									</div>
+								{/each}
+							</dl>
+						</Stack>
+					{/each}
+				{/if}
+			</Stack>
+		</section>
+	{/if}
 {/snippet}
 
 {#snippet leave()}
 	<Cover gap="md" top={leaveChrome}>
-		<CollectionTable
-			{client}
-			collection="leave_entries"
-			title={t('app.hr_employee.my_leave_title')}
-			description={t('app.hr_employee.my_leave_description')}
-			disabled={!employmentId}
-			recordMetadata={() => [
-				{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
-			]}
-			query={{
-				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-				orderBy: { effective_on: 'desc' },
-				with: { payslip_leave_input_leave_entry: { columns: { period: true } } }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
-				<Column name="event" label={t('leave.activity')} card="title" />
-				<Column name="reference" label={t('component.reference')} />
-				<Column name="days" label={t('component.days')} />
-			{/snippet}
-		</CollectionTable>
+		<Scroll name={t('app.hr_employee.leave_scroll_name')}>
+			<Stack gap="md">
+				{@render leaveBalances()}
+				<CollectionTable
+					{client}
+					collection="leave_entries"
+					title={t('app.hr_employee.my_leave_title')}
+					description={t('app.hr_employee.my_leave_description')}
+					disabled={!employmentId}
+					recordMetadata={() => [
+						{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+					]}
+					query={{
+						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+						orderBy: { effective_on: 'desc' },
+						with: { payslip_leave_input_leave_entry: { columns: { period: true } } }
+					}}
+				>
+					{#snippet columns({ Column })}
+						<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
+						<Column name="event" label={t('leave.activity')} card="title" />
+						<Column name="reference" label={t('component.reference')} />
+						<Column name="days" label={t('component.days')} />
+					{/snippet}
+				</CollectionTable>
+			</Stack>
+		</Scroll>
 	</Cover>
 {/snippet}
 

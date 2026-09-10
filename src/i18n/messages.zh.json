@@ -25,6 +25,7 @@
 	"app.hr_employee.leave_earned": "本年已累积",
 	"app.hr_employee.leave_entitlement": "应享天数",
 	"app.hr_employee.leave_pending": "待审批",
+	"app.hr_employee.leave_scroll_name": "休假结余与活动",
 	"app.hr_employee.my_allowances_description": "HR 为你设置的固定津贴，以及各自结算的期间或窗口期。",
 	"app.hr_employee.my_allowances_title": "我的津贴",
 	"app.hr_employee.my_claims_description": "你自付并申请报销的费用。报销是你唯一可以自行提交的薪酬申请。",

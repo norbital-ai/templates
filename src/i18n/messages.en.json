@@ -25,6 +25,7 @@
 	"app.hr_employee.leave_earned": "Earned to date",
 	"app.hr_employee.leave_entitlement": "Entitlement",
 	"app.hr_employee.leave_pending": "Pending",
+	"app.hr_employee.leave_scroll_name": "Leave balances and activity",
 	"app.hr_employee.my_allowances_description": "Standing allowances HR has set up for you, and the period or window each is paid across.",
 	"app.hr_employee.my_allowances_title": "My allowances",
 	"app.hr_employee.my_claims_description": "Expenses you paid for and are claiming back. A claim is the one pay request you may raise yourself.",
