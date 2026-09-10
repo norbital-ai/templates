@@ -1667,7 +1667,7 @@
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
 		"is_statutory": true,
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is not expressible, but its ceiling is: CAP:AMOUNT:72800.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class. The 民國115年 分級表 is stated on the later version as GRADE_LADDER; the 民國114年 one is not sourced, so this version carries the ceiling alone and grades nothing.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
@@ -3966,12 +3966,14 @@
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
 		"is_statutory": true,
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is not expressible, but its ceiling is: CAP:AMOUNT:72800.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
 		"sequence": 350,
-		"special_rules": ["CAP:AMOUNT:72800"],
+		"special_rules": [
+			"GRADE_LADDER:29500,30300,31800,33300,34800,36300,38200,40100,42000,43900,45800,48200,50600,53000,55400,57800,60800,63800,66800,69800,72800"
+		],
 		"bands": [
 			{
 				"selector": {

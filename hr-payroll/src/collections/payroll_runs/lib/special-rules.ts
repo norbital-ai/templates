@@ -27,7 +27,8 @@
  * | `FLOOR:MINIMUM_WAGE`         | the chargeable base is at least the company's regional minimum wage |
  * | `CAP:MINIMUM_WAGE_X:<n>`     | the chargeable base is at most n × that minimum wage               |
  * | `CAP:AMOUNT:<n>`             | the chargeable base is at most this many currency units            |
- * | `EMPLOYEE_PER_DEPENDANT:<n>` | the employee share is charged once more per dependant, up to `n`   |
+ * | `GRADE_LADDER:<a>,<b>,…`     | the chargeable base is the lowest listed grade that covers it      |
+ * | `EMPLOYEE_PER_DEPENDANT:<n>[:<covered>]` | one more employee share per household member past `covered`, up to `n` |
  *
  * Reliefs and caps are annual amounts because that is how every tax authority states them. The
  * numbers live on a row; nothing here is a magic constant.
@@ -68,6 +69,16 @@ export const SpecialRulesSchema = Schema.Struct({
 	/** Cap the base at this many regional minimum wages; `null` is no cap. */
 	minimumWageCapMultiple: Schema.NullOr(Schema.Number),
 	/**
+	 * A published grade table: the chargeable base becomes the lowest grade that covers it, and
+	 * the highest grade when it covers nothing. `null` is a base used as accumulated.
+	 *
+	 * A 分級表 is not a floor and a ceiling with a rounding rule between them — it is a list, and
+	 * its steps are irregular (29,500 · 30,300 · 31,800 … 69,800 · 72,800). Stating the list says
+	 * all three things at once: a wage under the first grade insures at the first, one over the
+	 * last insures at the last, and everything between rounds up to its own grade.
+	 */
+	gradeLadder: Schema.NullOr(Schema.Array(Schema.Number)),
+	/**
 	 * A stated ceiling on the chargeable base; `null` is no ceiling.
 	 *
 	 * Taiwan's occupational-injury premium is charged on the 職災 月投保薪資, whose own ladder
@@ -85,7 +96,15 @@ export const SpecialRulesSchema = Schema.Struct({
 	 * it is already an average over the whole insured population (眷口數), which is what the
 	 * ×1.56 in the seeded rate is.
 	 */
-	employeePerDependant: Schema.NullOr(Schema.Number)
+	employeePerDependant: Schema.NullOr(Schema.Number),
+	/**
+	 * How many people besides the insured the share already covers before another is charged.
+	 *
+	 * Zero for Taiwan, which charges from the first dependant. Indonesia's BPJS Kesehatan covers a
+	 * household of five — the worker, a spouse and three children — and charges a further 1% for
+	 * each member past that, so its `covered` is four.
+	 */
+	employeeHeadsCovered: Schema.Number
 });
 export type SpecialRules = Schema.Schema.Type<typeof SpecialRulesSchema>;
 
@@ -104,8 +123,10 @@ const EMPTY: SpecialRules = {
 	periodicProgressive: false,
 	minimumWageFloor: false,
 	minimumWageCapMultiple: null,
+	gradeLadder: null,
 	baseCap: null,
-	employeePerDependant: null
+	employeePerDependant: null,
+	employeeHeadsCovered: 0
 };
 
 /** Decoder for one `ROUND:<method>` name, built once and reused per token. */
@@ -188,11 +209,29 @@ export function parseSpecialRules(
 					throw new Error(`Special rule "${token}" caps on nothing the engine knows.`);
 				parsed = { ...parsed, minimumWageCapMultiple: amount(token, second) };
 				break;
+			case 'GRADE_LADDER': {
+				const grades = (first ?? '')
+					.split(',')
+					.filter((entry) => entry !== '')
+					.map((entry) => amount(token, entry));
+				if (grades.length === 0) throw new Error(`Special rule "${token}" lists no grades.`);
+				const ascending = grades.every((grade, index) => index === 0 || grade > grades[index - 1]!);
+				if (!ascending)
+					throw new Error(
+						`Special rule "${token}" lists its grades out of order; a table is read lowest first.`
+					);
+				parsed = { ...parsed, gradeLadder: grades };
+				break;
+			}
 			case 'EMPLOYEE_PER_DEPENDANT': {
 				const cap = amount(token, first);
 				if (!(cap >= 0))
 					throw new Error(`Special rule "${token}" needs a dependant ceiling of zero or more.`);
-				parsed = { ...parsed, employeePerDependant: cap };
+				parsed = {
+					...parsed,
+					employeePerDependant: cap,
+					employeeHeadsCovered: second === undefined ? 0 : amount(token, second)
+				};
 				break;
 			}
 			default:
