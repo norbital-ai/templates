@@ -21,8 +21,6 @@ export const overtimeBandValueSchema = Schema.Union([
 	})
 ]);
 
-export type OvertimeBand = Schema.Schema.Type<typeof overtimeBandValueSchema>;
-
 /** Strict standard view: a key no arm declares is refused rather than stripped. */
 export const overtimeBandSchema = Schema.toStandardSchemaV1(overtimeBandValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }

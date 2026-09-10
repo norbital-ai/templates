@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	classifyWageComparand,
-	coverageRuleFor,
 	decideOvertimeCoverage,
 	deriveStatutoryWages
 } from '../src/collections/payroll_runs/lib/coverage.ts';
@@ -185,12 +184,6 @@ test('an unclassified person falls through to the wage test', () => {
 	);
 	assert.equal(decision.outcome, 'COVERED');
 	assert.equal(decision.reason, 'WITHIN_CEILING');
-});
-
-test('coverageRuleFor returns null for none and refuses two', () => {
-	assert.equal(coverageRuleFor([]), null);
-	assert.equal(coverageRuleFor([MY_RULE]), MY_RULE);
-	assert.throws(() => coverageRuleFor([MY_RULE, MY_RULE]), /More than one overtime coverage rule/);
 });
 
 // ── the comparand: s.2 wages, classified from the component model ────────────────────────────

@@ -4,7 +4,6 @@
 	import { resolveEmployment } from '../../../lib/employment-contract.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
-	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -516,7 +515,7 @@
 		{ label: 'person-days', query: workDaysQuery },
 		{ label: 'filtered person-days', query: filteredWorkDaysQuery },
 		{ label: 'leave', query: leaveQuery },
-		{ label: 'holiday jurisdiction', query: calendarSettingsQuery },
+		{ label: 'holiday calendar settings', query: calendarSettingsQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
 		{ label: 'employees', query: employeesQuery },

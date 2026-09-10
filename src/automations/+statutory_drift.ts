@@ -347,12 +347,10 @@ const researchLineage = (
 			starts_on: startsOn,
 			name: `${code} proposed from ${startsOn}`
 		});
-		const created = yield* createSettingsDraft(
-			api,
-			tree,
-			{ name: draft.name, write: applyProposedChanges(draft.write, diff.changes, proposal) },
-			startsOn
-		);
+		const created = yield* createSettingsDraft(api, tree, {
+			name: draft.name,
+			write: applyProposedChanges(draft.write, diff.changes, proposal)
+		});
 		return {
 			code,
 			status: 'proposed' as const,

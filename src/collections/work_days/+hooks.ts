@@ -764,6 +764,17 @@ export function lieuReference(workDayId: string): string {
 	return `lieu:${workDayId}`;
 }
 
+/** The columns every lieu-credit read needs; the two readers must not drift. */
+const LIEU_ENTRY_COLUMNS = {
+	id: true,
+	employment_id: true,
+	reference: true,
+	event: true,
+	charges: true,
+	allocations: true,
+	approval_id: true
+} as const;
+
 /**
  * The worked hours a TW lieu credit carries: clocked hours net of the recorded break, floored to
  * the half hour like every other derived duration. An open clock is unmeasurable and earns nothing
@@ -1156,12 +1167,7 @@ export default {
 							limit: QUERY_LIMIT
 						})
 					: [];
-				const runsByCompany = new Map<string, Array<(typeof runs)[number]>>();
-				for (const run of runs) {
-					const grouped = runsByCompany.get(run.company_id) ?? [];
-					grouped.push(run);
-					runsByCompany.set(run.company_id, grouped);
-				}
+				const runsByCompany = Map.groupBy(runs, (run) => run.company_id);
 				const from = dates[0];
 				const to = dates[dates.length - 1];
 				const requests =
@@ -1184,12 +1190,7 @@ export default {
 								limit: QUERY_LIMIT
 							})
 						: [];
-				const leaveByEmployment = new Map<string, Array<LeaveRequestLike>>();
-				for (const request of requests) {
-					const grouped = leaveByEmployment.get(request.employment_id) ?? [];
-					grouped.push(request);
-					leaveByEmployment.set(request.employment_id, grouped);
-				}
+				const leaveByEmployment = Map.groupBy(requests, (request) => request.employment_id);
 				// The plan half's read, batched the same way: one three-day neighbourhood query for the
 				// whole write rather than one per row.
 				const overlap: OverlapData =
@@ -1263,15 +1264,7 @@ export default {
 											employment_id: { in: employmentIds },
 											leave_code: { eq: LIEU_LEAVE_CODE }
 										},
-										columns: {
-											id: true,
-											employment_id: true,
-											reference: true,
-											event: true,
-											charges: true,
-											allocations: true,
-											approval_id: true
-										},
+										columns: LIEU_ENTRY_COLUMNS,
 										limit: QUERY_LIMIT
 									})
 								],
@@ -1346,9 +1339,7 @@ export default {
 				}
 				return {
 					holidayByDay,
-					companyByEmployment: new Map(
-						employments.map((employment) => [employment.id, employment.company_id])
-					),
+					companyByEmployment,
 					windowsByCompany: new Map(
 						[...runsByCompany].map(([companyId, grouped]) => [
 							companyId,
@@ -1535,15 +1526,7 @@ export default {
 								employment_id: { eq: existing.employment_id },
 								leave_code: { eq: LIEU_LEAVE_CODE }
 							},
-							columns: {
-								id: true,
-								employment_id: true,
-								reference: true,
-								event: true,
-								charges: true,
-								allocations: true,
-								approval_id: true
-							},
+							columns: LIEU_ENTRY_COLUMNS,
 							limit: QUERY_LIMIT
 						})) as readonly LieuEntry[];
 						const own = entries.filter(

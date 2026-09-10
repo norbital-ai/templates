@@ -15,8 +15,6 @@ export const contributionBandSchema = Schema.Struct({
 	eligibility: Schema.optionalKey(Schema.String)
 });
 
-export type ContributionBand = Schema.Schema.Type<typeof contributionBandSchema>;
-
 const overlaps = (
 	from: number | null | undefined,
 	to: number | null | undefined,

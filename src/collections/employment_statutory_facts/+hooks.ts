@@ -3,6 +3,8 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
 import { readRange } from '../payroll_runs/lib/effective.js';
+import { addDays } from '../payroll_runs/lib/dates.js';
+import { dateKey } from '../../lib/iso-day.js';
 
 /**
  * One employment has at most one standing with one statutory scheme at any instant.
@@ -57,19 +59,34 @@ export default {
 						if (previousRange == null || successorRange == null) {
 							refuse('Both sides of a statutory successor transition need valid effective ranges.');
 						}
-						if (successorRange.start <= previousRange.start) {
-							refuse('A statutory successor must start after its predecessor started.');
+						const previousStart = dateKey(previousRange.start);
+						const successorStart = dateKey(successorRange.start);
+						if (successorStart <= previousStart) {
+							refuse(
+								'A statutory successor must start on a later day than its predecessor started.'
+							);
 						}
-						if (previousRange.end != null && previousRange.end < successorRange.start) {
-							refuse('The predecessor already ended before this statutory successor begins.');
+						// A fact is read **inclusively**, so the predecessor is closed on the day before
+						// its successor begins — the successor may overlap it and be truncated, but a gap
+						// is refused because an uncovered day falls silently back to the default standing.
+						if (
+							previousRange.end != null &&
+							dateKey(previousRange.end) < addDays(successorStart, -1)
+						) {
+							refuse(
+								'The predecessor already ended before this statutory successor begins; a successor follows it without a gap.'
+							);
 						}
+						const closedEnd = new Date(Date.parse(successorRange.start) - 86_400_000);
+						if (Number.isNaN(closedEnd.getTime()))
+							refuse('The statutory successor needs a readable start instant.');
 
 						yield* api.db.employment_statutory_facts.mutate([
 							{
 								id: predecessor.id,
 								effective_range: {
 									start: previousRange.start,
-									end: successorRange.start
+									end: closedEnd.toISOString()
 								}
 							}
 						]);

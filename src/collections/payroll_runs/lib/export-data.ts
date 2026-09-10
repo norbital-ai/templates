@@ -20,7 +20,7 @@ import {
 	LEAVE_ENCASHMENT_SEQUENCE,
 	encashmentCode
 } from '../../../lib/leave/pay-items.js';
-import { PAGE_LIMIT, groupBy, withReadLog } from './api.js';
+import { PAGE_LIMIT, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
@@ -240,10 +240,10 @@ export function loadRunExports(
 
 		const employmentById = new Map(employments.map(resolveEmployment).map((row) => [row.id, row]));
 		const employeeById = new Map(employees.map((row) => [row.id, row]));
-		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
-		const workDaysByEmployment = groupBy(workDays, (row) => row.employment_id);
+		const termsByEmployment = Map.groupBy(terms, (row) => row.employment_id);
+		const workDaysByEmployment = Map.groupBy(workDays, (row) => row.employment_id);
 		const shiftById = new Map(shifts.map((row) => [row.id, row]));
-		const payslipsByRun = groupBy(payslips, (row) => row.payroll_run_id);
+		const payslipsByRun = Map.groupBy(payslips, (row) => row.payroll_run_id);
 
 		return runs.map((run) => {
 			const componentByCode = new Map(

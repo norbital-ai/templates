@@ -135,12 +135,7 @@ export function readOverlapData(
 			refuse('This legal entity has too many roster codes or shift patterns to validate safely.');
 		}
 
-		const termsByEmployment = new Map<string, Array<(typeof terms)[number]>>();
-		for (const term of terms) {
-			const bucket = termsByEmployment.get(term.employment_id);
-			if (bucket) bucket.push(term);
-			else termsByEmployment.set(term.employment_id, [term]);
-		}
+		const termsByEmployment = Map.groupBy(terms, (term) => term.employment_id);
 		return {
 			termsByEmployment,
 			patternById: new Map(patterns.map((pattern) => [pattern.id, pattern])),

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { resolveEmployment } from '../lib/employment-contract.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../lib/ui/holiday-calendar.js';
-	import { settingsInForce } from '../lib/jurisdiction_settings.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
@@ -42,12 +41,10 @@
 		payDateFor,
 		shiftMonthKey,
 		todayKey,
-		workDateCalendarKey,
-		todayInstant
+		workDateCalendarKey
 	} from '../lib/ui/calendar.js';
 	import { inForceOnDay } from '../lib/effective_range.js';
 	import { formatDateISO } from '@norbital-ai/std/date';
-	import { getErrorMessage } from '@norbital-ai/std';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,

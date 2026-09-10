@@ -7,15 +7,15 @@
  * of the same law were invisible from the control that was supposedly scoping them.
  *
  * The scope is a grouped list now. A group is a lineage — the country code and the name its
- * newest version carries — and its options are that lineage's versions, each labelled by the range
- * it is the law across, which is a version's whole identity, and badged with its state. Only a
- * version is an option: a lineage is a family of snapshots, and "the MY settings" is not a thing
- * the page can show.
+ * newest version carries — and its options are that lineage's versions, each identified by its
+ * snapshot id `<code>_<rolling index>` (`MY_1`, `MY_2`, …) with its effective range as the
+ * description and its state badge. Only a version is an option: a lineage is a family of snapshots,
+ * and "the MY settings" is not a thing the page can show.
  */
 import { client } from '../../lib/workspace-client.js';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { WorkspaceRow } from '$bolt/types.js';
-import { formatEffectiveRange } from '../../lib/ui/display-formatters.js';
+import { formatSettingsRange } from '../../lib/ui/display-formatters.js';
 import { coversDay, isInForceCandidate, newestFirst } from '../../lib/jurisdiction_settings.js';
 import { todayKey } from '../../lib/ui/calendar.js';
 
@@ -51,13 +51,10 @@ export const jurisdictionsError = (): Error | undefined =>
 
 /** Every version of every lineage, newest first within each, keyed by code and sorted by code. */
 function lineages(): ReadonlyArray<readonly [string, JurisdictionScopeRow[]]> {
-	const byCode = new Map<string, JurisdictionScopeRow[]>();
-	for (const row of versions()) {
-		if (row.code == null || row.code === '') continue;
-		const bucket = byCode.get(row.code);
-		if (bucket === undefined) byCode.set(row.code, [row]);
-		else bucket.push(row);
-	}
+	const byCode = Map.groupBy(
+		versions().filter((row) => row.code != null && row.code !== ''),
+		(row) => row.code!
+	);
 	return [...byCode.entries()]
 		.toSorted(([left], [right]) => left.localeCompare(right))
 		.map(([code, rows]) => [code, newestFirst(rows)] as const);
@@ -91,12 +88,25 @@ export function resolveJurisdictionScope(
 }
 
 /**
+ * The snapshot id of the row at `offset` in a lineage's newest-first version list: `<code>_<index>`
+ * counts from the oldest, so `MY_1` is the first version the lineage ever sealed and a successor
+ * extends the roll without renumbering an identifier an operator already saw.
+ */
+export const snapshotId = (code: string, rows: readonly unknown[], offset: number): string =>
+	`${code}_${rows.length - offset}`;
+
+/**
  * The grouped options the header's combobox lists: one group per lineage, one option per version,
  * newest first, the badge naming the version's state so the one in force reads at a glance.
+ *
+ * A version is identified by its snapshot id, `<code>_<rolling index>` — `MY_1` is the first
+ * version the lineage ever sealed and the index rolls forward with each successor — with its
+ * effective range beside it: the id names the snapshot, the range says when it was the law.
  */
 export function jurisdictionOptions(): ReadonlyArray<{
 	readonly value: string;
 	readonly label: string;
+	readonly description: string;
 	readonly type: string;
 	readonly icon: string;
 	readonly badge: TenantI18nKeys | null;
@@ -104,7 +114,7 @@ export function jurisdictionOptions(): ReadonlyArray<{
 }> {
 	const today = todayKey();
 	return lineages().flatMap(([code, rows]) =>
-		rows.map((row) => {
+		rows.map((row, offset) => {
 			const inForce = isInForceCandidate(row) && coversDay(row.effective_range, today);
 			const state: readonly [string, TenantI18nKeys | null] =
 				row.voided_at != null
@@ -114,13 +124,16 @@ export function jurisdictionOptions(): ReadonlyArray<{
 						: row.sealed_at != null
 							? ['lucide:lock', 'app.settings.version_sealed']
 							: ['lucide:pencil', 'app.settings.version_draft'];
+			const snapshot = snapshotId(code, rows, offset);
+			const range = formatSettingsRange(row.effective_range);
 			return {
 				value: row.id,
-				label: formatEffectiveRange(row.effective_range),
+				label: snapshot,
+				description: range,
 				type: `${rows[0]?.name ?? code} · ${code}`,
 				icon: state[0],
 				badge: state[1],
-				search_term: `${code} ${rows[0]?.name ?? ''} ${formatEffectiveRange(row.effective_range)}`
+				search_term: `${snapshot} ${code} ${rows[0]?.name ?? ''} ${range}`
 			};
 		})
 	);

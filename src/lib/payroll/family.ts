@@ -76,6 +76,21 @@ export type MeasuredBase = PricedItem & {
 	readonly entry: PayslipBase;
 };
 
+/** One contracted amount as a base line: the catalogue row, how it settles, and the stored entry. */
+export function baseLine(
+	catalogueComponent: CatalogueComponent,
+	nature: string | null,
+	amount: number
+): MeasuredBase {
+	return {
+		catalogueComponent,
+		nature,
+		label: catalogueComponent.code,
+		amount,
+		entry: { component_code: catalogueComponent.code, amount }
+	};
+}
+
 /**
  * The one input that caused an adjustment, in the shape `payslip_adjustments.input` is written in.
  *

@@ -18,8 +18,6 @@ export const employeeChildSchema = Schema.Struct({
 	)
 );
 
-export type EmployeeChild = Schema.Schema.Type<typeof employeeChildSchema>;
-
 export default defineCustomType({
 	name: 'employee_children',
 	description:

@@ -88,7 +88,8 @@ test(
 					'tax_year_start_month',
 					'effective_range',
 					'minimum_wages',
-					'research_urls'
+					'research_urls',
+					'change_summary'
 				]
 			);
 			assert.equal(

@@ -9,6 +9,7 @@ import { Result, Schema } from 'effect';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
+import { addDays } from '../../collections/payroll_runs/lib/dates.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -48,21 +49,6 @@ export function formatDurationHours(value: unknown, t: Translator): string {
 	if (!Number.isFinite(minutes)) return '—';
 	return t('component.hours_short', { hours: HOURS.format(minutes / 60) });
 }
-const MONTH_NAMES = [
-	'Jan',
-	'Feb',
-	'Mar',
-	'Apr',
-	'May',
-	'Jun',
-	'Jul',
-	'Aug',
-	'Sep',
-	'Oct',
-	'Nov',
-	'Dec'
-] as const;
-
 /**
  * A `YYYY-MM-DD` calendar day from a day-precision instant, or `null` when there is not one.
  * Strings are read as characters and never routed through `Date`: precision changes presentation,
@@ -82,17 +68,23 @@ function calendarDayFrom(value: unknown): string | null {
  * 8 May to the next, and a misread pay date or work date is a real payroll error. The day is
  * zero-padded so the column stays a fixed width down a table.
  *
- * The month name is fixed, not locale-derived: `Intl` with the viewer's locale would put the month
- * first for a viewer in the United States, which is the ambiguity this format exists to remove.
+ * The format is fixed en-GB over a UTC day, not viewer-locale-derived: `Intl` with the viewer's
+ * locale would put the month first for a viewer in the United States, which is the ambiguity this
+ * format exists to remove.
  *
  * Takes a **calendar day**.
  */
+const CALENDAR_DATE = new Intl.DateTimeFormat('en-GB', {
+	day: '2-digit',
+	month: 'short',
+	year: 'numeric',
+	timeZone: 'UTC'
+});
+
 export function formatCalendarDate(value: unknown): string {
 	const day = calendarDayFrom(value);
 	if (day === null) return '—';
-	const month = MONTH_NAMES[decodeNumber(day.slice(5, 7)) - 1];
-	if (month === undefined) return '—';
-	return `${day.slice(8, 10)} ${month} ${day.slice(0, 4)}`;
+	return CALENDAR_DATE.format(new Date(`${day}T00:00:00.000Z`));
 }
 
 /**
@@ -124,6 +116,26 @@ export function formatCalendarInstant(value: unknown, fallback = '—'): string 
 export function formatEffectiveRange(value: unknown): string {
 	if (value == null || typeof value !== 'object') return '—';
 	return `${formatCalendarInstant(Reflect.get(value, 'start'), '…')} → ${formatCalendarInstant(Reflect.get(value, 'end'), '∞')}`;
+}
+
+/**
+ * A jurisdiction settings `effective_range` as the days it actually governs.
+ *
+ * Settings versions are read **half-open** — `[start, end)` — by `settingsInForce` and by the
+ * database exclusion, so the stored `end` is the first day the successor governs, not the last day
+ * this version does. Printing the stored bound unchanged made two adjacent snapshots read as if
+ * both covered the seam day (SG_1 "01 Jan 2026 → 01 Apr 2026" beside SG_2 from 01 Apr 2026), so
+ * this formatter prints the last governed day instead and renders the `9999-12-31` sentinel as an
+ * open tail. `formatEffectiveRange` stays for the inclusive collections (terms, loans).
+ */
+export function formatSettingsRange(value: unknown): string {
+	if (value == null || typeof value !== 'object') return '—';
+	const start = formatCalendarInstant(Reflect.get(value, 'start'), '…');
+	const end = Reflect.get(value, 'end');
+	if (typeof end !== 'string' || Number.isNaN(Date.parse(end))) return `${start} – open`;
+	const endDay = calendarDateInTimeZone(new Date(end), PAYROLL_TIME_ZONE);
+	if (endDay.startsWith('9999')) return `${start} – open`;
+	return `${start} – ${formatCalendarDate(addDays(endDay, -1))}`;
 }
 
 /**

@@ -27,6 +27,7 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { allowanceRecurrenceSchema } from './+definition.js';
+	import { todayKey } from '../../lib/ui/calendar.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -67,12 +68,14 @@
 	 * recurring arm opens today and stays open-ended, which is what a standing allowance is.
 	 */
 	function defaultFor(kind: RecurrenceKind): Value {
-		const today = new Date().toISOString();
+		// The payroll day, not the UTC day: before 08:00 in Kuala Lumpur the UTC date is yesterday,
+		// which would open a recurring allowance a day early and default a one-off to last month.
+		const today = todayKey();
 		switch (kind) {
 			case 'ONE_OFF':
 				return { kind: 'ONE_OFF', period: today.slice(0, 7) };
 			case 'RECURRING':
-				return { kind: 'RECURRING', from: today.slice(0, 10), to: null };
+				return { kind: 'RECURRING', from: today, to: null };
 		}
 	}
 

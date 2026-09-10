@@ -13,7 +13,7 @@ import type { Api } from './$types.js';
  */
 export default defineCommandHandler({
 	description:
-		'Clones one jurisdiction settings version and every row under it (schemes, bands, leave catalogue entries, components, holidays) into a draft of the same lineage starting on a given day.',
+		'Clones one jurisdiction settings version and every row under it (schemes, bands, leave catalogue entries, components) into a draft of the same lineage starting on a given day.',
 	schema: Schema.Struct({
 		settings_id: Schema.String.check(Schema.isUUID()),
 		/** The first day the new version governs, YYYY-MM-DD. */

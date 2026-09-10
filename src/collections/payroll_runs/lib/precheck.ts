@@ -24,6 +24,7 @@ import { employmentDates, resolveEmploymentSettlement } from './settlement.js';
 import { Effect } from 'effect';
 import { PAGE_LIMIT, type PayrollReadApi, withReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
+import { addDays, dateKey } from './dates.js';
 import { cadenceWindow, employmentPayFrequency, paysOn, type PayrollWindow } from './period.js';
 import { termPattern } from '../../../lib/scheduling/work-pattern.js';
 import {
@@ -86,13 +87,35 @@ export function payrollRunPrecheck(options: {
 			.filter((row) => !withheld.has(row.id));
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length > 0) {
+			/**
+			 * The widest attendance window any employment settles over, not the company's.
+			 *
+			 * A leaver's final period runs to the exit date, past the company window's end, and
+			 * `validateRosteredExpectations` measures the guarantee over that longer span. Reading
+			 * only the company window here meant the tail was never loaded: the check demanded 34
+			 * days of a leaver whose last week had not been read, and refused the whole company.
+			 *
+			 * The read is widened a day on each side because `work_date` is stored as an instant at
+			 * the payroll timezone's midnight, not at UTC midnight — a bound typed as a plain
+			 * calendar date would otherwise drop the first or last day it names. The exact dates are
+			 * filtered by the validator, so a superset is safe.
+			 */
+			const attendanceSpan = employments.reduce(
+				(span, employment) => {
+					const exit = dateKey(employment.exit_date);
+					const end =
+						exit != null && exit > span.end && exit <= options.window.salary.end ? exit : span.end;
+					return { start: span.start, end };
+				},
+				{ start: options.window.attendance.start, end: options.window.attendance.end }
+			);
 			const workDays = api.reads.assertComplete(
 				yield* db.work_days.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: {
-							gte: options.window.attendance.start,
-							lte: options.window.attendance.end
+							gte: addDays(attendanceSpan.start, -1),
+							lte: addDays(attendanceSpan.end, 1)
 						},
 						...approved
 					},

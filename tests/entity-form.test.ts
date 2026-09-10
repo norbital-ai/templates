@@ -72,6 +72,7 @@ test('the company form is name, registration, settings lineage, cutoff day, pay 
 test('the settings form declares lineage and jurisdiction identity while Work owns payroll rules', () => {
 	const form = source('../src/collections/jurisdiction_settings/+representation.svelte');
 	assert.deepEqual(fieldNames(form), [
+		'change_summary',
 		'cloned_from_id',
 		'code',
 		'currency',
@@ -160,6 +161,30 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	])
 		assert.doesNotMatch(settings, new RegExp(gone), `${gone} is no longer on the page`);
 	assert.doesNotMatch(settings, /statutory_research_sources|researchSources|jurisdictions\b/);
+});
+
+test('the Changes tab compares two snapshots and reads each catalogue by version', () => {
+	const page = source('../src/apps/hr_controller/+settings.svelte');
+	assert.match(page, /content: changes/, 'the tab is wired');
+	assert.match(
+		snippet(page, 'changes'),
+		/<SnapshotChanges code=\{selectedVersion\.code\}/,
+		'the surface owns its own reads'
+	);
+	const changes = source('../src/apps/hr_controller/SnapshotChanges.svelte');
+	assert.deepEqual(registrations(changes), [
+		'db.statutory_contributions.findMany',
+		'db.work_catalogue.findMany',
+		'db.leave_catalogue.findMany',
+		'db.claim_catalogue.findMany',
+		'db.allowance_catalogue.findMany',
+		'db.payment_catalogue.findMany',
+		'db.loan_catalogue.findMany'
+	]);
+	assert.match(changes, /settings_id = \{ in: \[baseVersion\.id, compareVersion\.id\] \}/);
+	assert.match(changes, /diffCollection\(collection, previous, proposed\)/);
+	assert.match(changes, /diffSettingsRoot\(baseVersion, compareVersion\)/);
+	assert.match(changes, /snapshotId\(code, versions, offset\)/, 'snapshots are CODE_INDEX');
 });
 
 /**

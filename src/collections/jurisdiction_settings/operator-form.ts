@@ -5,8 +5,8 @@
  * provenance are not typed into the form: sealing and voiding are the timeline's two actions
  * (`+settings.svelte`), written as their own one-column mutations under the HR Manager's
  * approval, `cloned_from_id` is set by the clone alone, and `research_notes` is the statutory
- * drift automation's review sheet, shown by the timeline. They are registered hidden so the form
- * still declares the whole mutable catalog.
+ * drift automation's review sheet, shown by the timeline. They are registered hidden so the
+ * form still declares the whole mutable catalog.
  */
 export const JURISDICTION_OPERATOR_HIDDEN_FIELDS = [
 	'sealed_at',
@@ -24,7 +24,8 @@ export const JURISDICTION_OPERATOR_VISIBLE_FIELDS = [
 	'tax_year_start_month',
 	'effective_range',
 	'minimum_wages',
-	'research_urls'
+	'research_urls',
+	'change_summary'
 ] as const;
 
 /** Hidden ∪ visible — the exact set the representation must register. */

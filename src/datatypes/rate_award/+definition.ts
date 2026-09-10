@@ -34,8 +34,6 @@ export const rateAwardValueSchema = Schema.Union([
 	})
 ]);
 
-export type RateAward = Schema.Schema.Type<typeof rateAwardValueSchema>;
-
 /** Strict standard view: a key no arm declares is refused rather than stripped. */
 export const rateAwardSchema = Schema.toStandardSchemaV1(rateAwardValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }

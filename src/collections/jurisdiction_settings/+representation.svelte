@@ -71,9 +71,12 @@
 							<Field name="name" />
 							<Field name="currency" />
 							<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
-							<Column span="all"
-								><Field name="effective_range" label={t('component.effective_period')} /></Column
-							>
+							<Column span="all">
+								<Stack gap="xs">
+									<Field name="effective_range" label={t('component.effective_period')} />
+									<p class="text-meta">{t('component.effective_period_hint')}</p>
+								</Stack>
+							</Column>
 							<Column span="all">
 								<Stack gap="xs">
 									<Field name="minimum_wages" label={t('component.minimum_wages')} />
@@ -81,6 +84,26 @@
 								</Stack>
 							</Column>
 						</Grid>
+					</Stack>
+
+					<Stack as="section" gap="sm">
+						<Stack gap="xs">
+							<h3 class="text-sm font-semibold">{t('component.settings_section_changes')}</h3>
+							<p class="text-meta">{t('component.settings_section_changes_hint')}</p>
+						</Stack>
+						{#if sealed}
+							{#if record?.change_summary}
+								<p class="text-sm whitespace-pre-line" data-settings-change-summary>
+									{record.change_summary}
+								</p>
+							{:else}
+								<p class="text-sm text-muted-foreground" data-settings-change-summary-missing>
+									{t('component.settings_change_summary_missing')}
+								</p>
+							{/if}
+						{:else}
+							<Field name="change_summary" label={t('component.change_summary')} />
+						{/if}
 					</Stack>
 
 					<Stack as="section" gap="sm">
