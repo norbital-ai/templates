@@ -225,8 +225,8 @@ to route around it.
 A draft is a frozen calculation. Replacing it means deleting it and creating another. Paid results
 cannot be edited or deleted. A late approved entry or correction remains outstanding for a later
 regular period. **A standing draft does not block the next period** — a month waiting on one
-person's correction used to freeze the next month's payroll for everybody — but *payment* stays
-ordered (a run cannot be marked paid while an earlier one is a draft) and so does *deletion*: runs
+person's correction used to freeze the next month's payroll for everybody — but _payment_ stays
+ordered (a run cannot be marked paid while an earlier one is a draft) and so does _deletion_: runs
 are unwound newest first, judged over the whole delete batch, because a run below a later one holds
 inputs that later run has already read and priced. A period the company skipped is still refused,
 because the skip is the fault.

@@ -83,7 +83,9 @@ export function holidaySources(
 ): HolidaySource[] {
 	const named = companyId == null ? companies : companies.filter((row) => row.id === companyId);
 	const configured = named
-		.filter((row) => row.holiday_source != null && (companyId != null || row.holiday_source.enabled))
+		.filter(
+			(row) => row.holiday_source != null && (companyId != null || row.holiday_source.enabled)
+		)
 		.map((row) => ({
 			company_id: row.id,
 			company_name: row.name,

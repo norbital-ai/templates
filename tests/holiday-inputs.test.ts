@@ -39,11 +39,21 @@ test('a work day pin keeps its holiday after it was unpublished; an unpinned day
 		[unpublished, later],
 		'11111111-1111-4111-8111-111111111111',
 		['2026-02-03', '2026-06-01'],
-		[{ company_id: '11111111-1111-4111-8111-111111111111', date: '2026-02-03', holiday_id: 'festival' }]
+		[
+			{
+				company_id: '11111111-1111-4111-8111-111111111111',
+				date: '2026-02-03',
+				holiday_id: 'festival'
+			}
+		]
 	);
 	assert.equal(pinned.holidays.get('2026-02-03')?.id, 'festival');
 	assert.equal(pinned.holidays.get('2026-06-01')?.id, 'later');
-	const unpinned = resolveHolidayInputs([unpublished, later], '11111111-1111-4111-8111-111111111111', ['2026-02-03']);
+	const unpinned = resolveHolidayInputs(
+		[unpublished, later],
+		'11111111-1111-4111-8111-111111111111',
+		['2026-02-03']
+	);
 	assert.equal(unpinned.holidays.has('2026-02-03'), false);
 });
 
@@ -54,11 +64,23 @@ test('two pins disagreeing on one day, or a pin to a missing holiday, refuse', (
 		holiday_id
 	});
 	assert.throws(
-		() => resolveHolidayInputs([festival], '11111111-1111-4111-8111-111111111111', ['2026-02-03'], [pin('festival'), pin('other')]),
+		() =>
+			resolveHolidayInputs(
+				[festival],
+				'11111111-1111-4111-8111-111111111111',
+				['2026-02-03'],
+				[pin('festival'), pin('other')]
+			),
 		/disagree/
 	);
 	assert.throws(
-		() => resolveHolidayInputs([], '11111111-1111-4111-8111-111111111111', ['2026-02-03'], [pin('gone')]),
+		() =>
+			resolveHolidayInputs(
+				[],
+				'11111111-1111-4111-8111-111111111111',
+				['2026-02-03'],
+				[pin('gone')]
+			),
 		/missing holiday/
 	);
 });

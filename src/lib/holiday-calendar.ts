@@ -43,8 +43,7 @@ export function resolveHolidays(
 		if (row.company_id !== companyId || row.published_at == null) continue;
 		const date = dateKey(row.date);
 		if (date < start || date > end) continue;
-		if (holidays.has(date))
-			refuse(`Entity ${companyId} has two published holidays on ${date}.`);
+		if (holidays.has(date)) refuse(`Entity ${companyId} has two published holidays on ${date}.`);
 		holidays.set(date, holidaySnapshot(row));
 	}
 	return holidays;

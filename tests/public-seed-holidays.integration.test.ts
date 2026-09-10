@@ -60,7 +60,11 @@ test(
 			);
 		try {
 			const draftId = crypto.randomUUID();
-			const holiday = { company_id: '11111111-1111-4111-8111-111111111111', date: '2026-02-03', name: 'Festival' };
+			const holiday = {
+				company_id: '11111111-1111-4111-8111-111111111111',
+				date: '2026-02-03',
+				name: 'Festival'
+			};
 			requireAccepted(
 				(await write('jurisdiction_holidays', { id: draftId, ...holiday })).value,
 				'add'
@@ -148,7 +152,10 @@ test(
 				'the day pins the published holiday'
 			);
 			// Frozen by reference: the day and the jurisdiction are what the pin points at.
-			for (const change of [{ date: '2026-02-05' }, { company_id: '22222222-2222-4222-8222-222222222222' }]) {
+			for (const change of [
+				{ date: '2026-02-05' },
+				{ company_id: '22222222-2222-4222-8222-222222222222' }
+			]) {
 				const refused = asRecord(
 					(await write('jurisdiction_holidays', { id: publishedId, ...change }, true)).value,
 					'move a pinned holiday'

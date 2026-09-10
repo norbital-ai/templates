@@ -129,7 +129,6 @@
 		withheld = {};
 	});
 
-
 	const companies = $derived(companiesQuery.current ?? []);
 	// Every version of a lineage states the same currency; the first one read names it.
 	const currencyByLineage = $derived(

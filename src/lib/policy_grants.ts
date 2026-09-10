@@ -301,8 +301,7 @@ const draftOnly = ({
 }) =>
 	Effect.succeed(
 		(record.sealed_at == null && record.voided_at == null) ||
-			(changes != null &&
-				Object.keys(changes).every((key) => ['id', 'row_version'].includes(key)))
+			(changes != null && Object.keys(changes).every((key) => ['id', 'row_version'].includes(key)))
 	);
 
 /**

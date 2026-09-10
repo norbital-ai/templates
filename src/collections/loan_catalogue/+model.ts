@@ -1,4 +1,12 @@
-import { custom, defineModel, enums, integer, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	custom,
+	defineModel,
+	enums,
+	integer,
+	numeric,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /** A loan recovery is always a payroll deduction (`lib/payroll/loan.ts`); the row captures only what varies. */
 export default defineModel(

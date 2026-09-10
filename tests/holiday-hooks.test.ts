@@ -38,18 +38,12 @@ const remove = (existing: Record<string, unknown>, db = api()) =>
 	Effect.runPromise(hooks.delete.perRecord.before.handler({ existing, api: db } as never));
 
 test('a holiday needs an entity, a real day and a name', async () => {
-	await assert.rejects(
-		() => mutate({ company_id: '', date: '2027-01-01', name: 'x' }),
-		/entity/
-	);
+	await assert.rejects(() => mutate({ company_id: '', date: '2027-01-01', name: 'x' }), /entity/);
 	await assert.rejects(
 		() => mutate({ company_id: 'TEST', date: '2027-02-30', name: 'x' }),
 		/calendar day/
 	);
-	await assert.rejects(
-		() => mutate({ company_id: 'TEST', date: '2027-01-01', name: ' ' }),
-		/name/
-	);
+	await assert.rejects(() => mutate({ company_id: 'TEST', date: '2027-01-01', name: ' ' }), /name/);
 	await assert.rejects(
 		() => mutate({ company_id: 'TEST', date: '2027-01-01', name: 'x', original_date: 'no' }),
 		/original date/
