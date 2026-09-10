@@ -172,6 +172,15 @@ export const statutoryRegimeValueSchema = Schema.Struct({
 	 * The same switch for overtime: TW compensatory leave for overtime hours. Absent is PAY.
 	 */
 	overtime_compensation: Schema.optionalKey(Schema.Literals(['PAY', 'PAY_OR_LIEU'])),
+	/**
+	 * The unit a day in lieu is credited in. Absent is `DAY`: a day worked earns a day back.
+	 *
+	 * Taiwan credits 補休 in **hours** — 勞基法 §32-1 「勞工加班後選擇補休…其補休時數應依勞工加班
+	 * 時數計算」 — so an employee who works three hours on a premium day earns three hours, not a
+	 * day. This was a `=== 'TW'` test in the work-day hook; it is a property of the regime, and
+	 * any jurisdiction that credits by the hour states it the same way.
+	 */
+	lieu_unit: Schema.optionalKey(Schema.Literals(['DAY', 'HOUR'])),
 	overtime_coverage: Schema.NullOr(overtimeCoverageValueSchema),
 	overtime_rules: Schema.Array(statutoryOvertimeRuleValueSchema),
 	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema),

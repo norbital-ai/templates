@@ -56,6 +56,8 @@ const preparedFor = (overrides = {}) => ({
 	versions: versions(),
 	settingsCodeByCompany: new Map([['co-1', 'SG']]),
 	lieuPermittedBySettings: new Map([['v-1', true]]),
+	// Absent decodes as DAY, which is what every jurisdiction but Taiwan states.
+	lieuUnitBySettings: new Map([['v-1', 'DAY' as const]]),
 	lieuCatalogueBySettings: new Map([['v-1', { id: 'lc-1', yearStartMonth: 1 }]]),
 	lieuEntries: [],
 	...overrides
@@ -245,7 +247,12 @@ test('TW credits the worked hours, not a day', async () => {
 			compensation: 'LIEU'
 		},
 		undefined,
-		preparedFor({ versions: versions('TW') }),
+		// 勞基法 §32-1 credits 補休 by the hour, and the TAIWANESE REGIME says so — the engine used to
+		// test the jurisdiction code here, which put Taiwan's rule in the engine instead of its seed.
+		preparedFor({
+			versions: versions('TW'),
+			lieuUnitBySettings: new Map([['v-1', 'HOUR' as const]])
+		}),
 		stubWorkApi(captured),
 		'wd-4'
 	);

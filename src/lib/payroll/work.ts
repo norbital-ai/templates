@@ -607,6 +607,14 @@ export function prepareWorkContext(
 		employee: bundle.employee,
 		employment: bundle.employment,
 		terms: closingTerms,
+		// The working week the roster produced, so a rate row can turn on it. The Philippine day
+		// factor is 261 annual days for a five-day week and 313 for a six-day one, which is
+		// employee-level law: it cannot be a company-wide divisor, and it is not the engine's to
+		// know either — the Work states one rate row per week shape and the predicate picks.
+		week: {
+			ordinary_hours_per_week: rateTerms.ordinary_hours_per_week,
+			working_days_per_week: rateTerms.working_days_per_week
+		},
 		children: bundle.children,
 		company: configuration.company,
 		asOf: options.salary.end

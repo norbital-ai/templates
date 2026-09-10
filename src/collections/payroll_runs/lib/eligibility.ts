@@ -6,6 +6,7 @@
  * an ineligible entry produces no pay item, and an ineligible date earns no leave.
  *
  * employee.gender  employee.age  employee.citizenship  employee.marital_status  employee.spouse_status
+ * terms.ordinary_hours_per_week  terms.working_days_per_week
  * employee.solo_parent  employee.race  employee.religion  employee.residency_months
  * employment.type  employment.classification  employment.service_months  employment.hire_date
  * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
@@ -48,6 +49,16 @@ export type PersonContext = {
 		readonly department: string;
 		readonly payroll_group: string;
 		readonly grade: string;
+		/**
+		 * The working week this contract actually works, derived from the roster rather than typed.
+		 *
+		 * A statutory rate can turn on it — the Philippine day factor is 261 annual days for a
+		 * five-day week and 313 for a six-day one (DOLE Handbook ch.2), which is employee-level law
+		 * and cannot be a company-wide divisor. Zero where no workload has been measured, which no
+		 * seeded predicate should match on.
+		 */
+		readonly ordinary_hours_per_week: number;
+		readonly working_days_per_week: number;
 	};
 	readonly children: {
 		readonly count: number;
@@ -73,7 +84,15 @@ const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
 		'residency_months'
 	]),
 	employment: new Set(['type', 'classification', 'service_months', 'hire_date']),
-	terms: new Set(['basic_salary', 'workman', 'department', 'payroll_group', 'grade']),
+	terms: new Set([
+		'basic_salary',
+		'workman',
+		'department',
+		'payroll_group',
+		'grade',
+		'ordinary_hours_per_week',
+		'working_days_per_week'
+	]),
 	children: new Set(['count', 'under']),
 	company: new Set(['region'])
 };
@@ -92,7 +111,15 @@ const BLANK_PERSON: PersonContext = {
 		residency_months: 0
 	},
 	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
-	terms: { basic_salary: 0, workman: false, department: '', payroll_group: '', grade: '' },
+	terms: {
+		basic_salary: 0,
+		workman: false,
+		department: '',
+		payroll_group: '',
+		grade: '',
+		ordinary_hours_per_week: 0,
+		working_days_per_week: 0
+	},
 	children: { count: 0, ages: [] },
 	company: { region: '' }
 };
@@ -119,6 +146,14 @@ type PersonInput = {
 		readonly payroll_group?: string | null;
 		readonly grade?: string | null;
 		readonly residency_since?: string | null;
+	} | null;
+	/**
+	 * The working week the roster produced, where one has been measured. Separate from `terms`
+	 * because it is derived from the workload rather than stated on the contract row.
+	 */
+	readonly week?: {
+		readonly ordinary_hours_per_week?: number | null;
+		readonly working_days_per_week?: number | null;
 	} | null;
 	/** The employing entity; `company.region` picks its minimum wage. Absent reads as no region. */
 	readonly company?: { readonly region?: string | null } | null;
@@ -165,7 +200,9 @@ export function personContext(input: PersonInput): PersonContext {
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
-			grade: input.terms?.grade ?? ''
+			grade: input.terms?.grade ?? '',
+			ordinary_hours_per_week: input.week?.ordinary_hours_per_week ?? 0,
+			working_days_per_week: input.week?.working_days_per_week ?? 0
 		},
 		children: { count: ages.length, ages },
 		company: { region: input.company?.region ?? '' }
@@ -234,7 +271,7 @@ export function compileEligibility(expression: string | null | undefined): strin
 		if (root != null && member != null && !CONTEXT_MEMBERS[root]?.has(member))
 			return (
 				`Eligibility names ${root}.${member}, which the person context does not carry. ` +
-				`Use employee.gender, employee.age, employee.citizenship, employee.marital_status, employee.spouse_status, employee.solo_parent, employee.race, employee.religion, employee.residency_months, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, children.count, children.under(age) or company.region.`
+				`Use employee.gender, employee.age, employee.citizenship, employee.marital_status, employee.spouse_status, employee.solo_parent, employee.race, employee.religion, employee.residency_months, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, terms.ordinary_hours_per_week, terms.working_days_per_week, children.count, children.under(age) or company.region.`
 			);
 	}
 	try {

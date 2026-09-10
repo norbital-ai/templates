@@ -65,7 +65,7 @@ const CLAUSES = [
 			'a public holiday is paid at its own statutory rate',
 			'a special holiday is its own day type',
 			'the night premium adds a share of the hourly rate',
-			'prices a day over 313/12'
+			'priced over 313/12'
 		]
 	},
 	{
@@ -100,6 +100,7 @@ const CLAUSES = [
 		id: '1.6',
 		says: 'statutory contributions, every sealed version priced',
 		files: [
+			'no-jurisdiction-in-engine.test.ts',
 			'statutory-golden-my.test.ts',
 			'statutory-golden-ph.test.ts',
 			'statutory-golden-sg.test.ts',
@@ -111,6 +112,7 @@ const CLAUSES = [
 		phrases: ['is priced by a golden here'],
 		// Some behaviour is pinned inside a test rather than named by one. A band boundary is the
 		// clearest case: it belongs beside the band tests, not in a test of its own.
+		phrases: ['is priced by a golden here', 'no engine condition tests a jurisdiction code'],
 		asserts: ['the year named by age_to opens the next band', 'assertEveryVersionPriced(']
 	},
 	{
