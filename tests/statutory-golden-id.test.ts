@@ -29,6 +29,8 @@ import {
 } from './fixtures/statutory-world.ts';
 
 const ID_PEOPLE = [
+	// Exactly the Kabupaten Bekasi UMK 2026: what five of the bank's sixteen contracts are paid.
+	{ key: 'ID-UMK', wage: 5_938_885, age: 30, marital_status: 'SINGLE', children: 0 },
 	{ key: 'ID-5M', wage: 5_000_000, age: 25, marital_status: 'SINGLE', children: 0 },
 	{ key: 'ID-15M', wage: 15_000_000, marital_status: 'SINGLE', children: 0 },
 	{ key: 'ID-25M', wage: 25_000_000, age: 55, marital_status: 'SINGLE', children: 0 },
@@ -61,6 +63,25 @@ test('Indonesia — a validated run builds, and prices the same as the unvalidat
 	// band is. The withholding was always on gross; only validation disagreed.
 	const validated = assessStatutory(idWorld('2026-01'));
 	assert.deepEqual(validated, assessStatutoryUnvalidated(idWorld('2026-01')));
+});
+
+test('Indonesia — the workplace region is stated, so a run builds at all', () => {
+	// The second Indonesian blocker, and it outlived the first. `KESEHATAN` carries
+	// `FLOOR:MINIMUM_WAGE`, which refuses by name when the company's region has no wage in the
+	// version — and the bank's Indonesian company stated no region at all, so every Indonesian
+	// payroll stopped before it measured anyone.
+	//
+	// Perpres 64/2020 art.32(2) floors the chargeable wage at the workplace UMK, the UMP being only
+	// the art.32(3) fallback, and the workplace is Kabupaten Bekasi: five of the sixteen contracts
+	// are paid Rp 5,938,885, its UMK 2026 to the rupiah.
+	assert.throws(
+		() => assessStatutory({ ...idWorld('2026-01'), region: undefined }),
+		/KESEHATAN bounds its base by the regional minimum wage/,
+		'a company with no region still refuses, by name'
+	);
+	const book = assessStatutory({ ...idWorld('2026-01'), region: 'Kabupaten Bekasi' });
+	// 5% on the UMK itself — 1% participant, 4% employer — for a person paid exactly the floor.
+	expectStatutory(book, 'ID-UMK', 'KESEHATAN', 59_389, 237_555);
 });
 
 test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 version', () => {

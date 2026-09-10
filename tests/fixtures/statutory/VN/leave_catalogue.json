@@ -680,6 +680,129 @@
 		}
 	},
 	{
+		"id": "a5a3d0ba-38dc-4032-8791-bc7fb90a27a4",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "4f6dca9e-ede7-5434-b019-0bbd3c57b15a",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "FOREIGN_NATIONAL_LEAVE",
+		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. The DAYS are seeded; WHICH days they fall on is the employee's own country's calendar and is not a jurisdiction holiday row — see NOT APPLIED.",
+		"eligibility": "employee.citizenship == \"FOREIGNER\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
 		"id": "3a0553af-cebc-5864-a33d-b3006e99bc03",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "ANNUAL_LEAVE",
@@ -1360,6 +1483,129 @@
 		}
 	},
 	{
+		"id": "1b957931-d254-4ab1-8e22-69ae865d1da4",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		}
+	},
+	{
+		"id": "2e64d930-b657-5724-b6e0-6ea81f18b1cc",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "FOREIGN_NATIONAL_LEAVE",
+		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. The DAYS are seeded; WHICH days they fall on is the employee's own country's calendar and is not a jurisdiction holiday row — see NOT APPLIED.",
+		"eligibility": "employee.citizenship == \"FOREIGNER\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		}
+	},
+	{
 		"id": "8abc3f5f-88d0-5365-a21a-fbe4cfc70a60",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "ANNUAL_LEAVE",
@@ -1981,7 +2227,7 @@
 		"code": "PUBLIC_HOLIDAY",
 		"name": "Public holidays (Nghỉ lễ, tết)",
 		"is_statutory": true,
-		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day.",
+		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day. Twelve from 1 July 2026: Nghị quyết 28/2026/QH16 điều 2 (passed 24 April 2026, in force 1 July 2026) makes 24 November each year Ngày Văn hóa Việt Nam — \"người lao động được nghỉ làm việc và hưởng nguyên lương\", the same formula art.112(1) uses. The resolution stands alone and does NOT amend art.112(1), which still reads eleven; the amendment that would insert it into the Code is a separate draft not yet passed, so both instruments are cited and the count is theirs together.",
 		"eligibility": "",
 		"requires_certificate_after_days": null,
 		"paid": true,
@@ -2034,127 +2280,9 @@
 			"bands": [
 				{
 					"eligibility": "",
-					"days": 11
+					"days": 12
 				}
 			]
-		}
-	},
-	{
-		"id": "a5a3d0ba-38dc-4032-8791-bc7fb90a27a4",
-		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
-		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
-		"is_statutory": false,
-		"authority": null,
-		"eligibility": "",
-		"requires_certificate_after_days": null,
-		"paid": true,
-		"treatments": {
-			"SI": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HI": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"UI": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"UNION_FEE": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PIT": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
-		"entitlement": {
-			"availability": "UNLIMITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
-		}
-	},
-	{
-		"id": "1b957931-d254-4ab1-8e22-69ae865d1da4",
-		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
-		"code": "PUBLIC_HOLIDAY_IN_LIEU",
-		"name": "Public holiday in lieu",
-		"is_statutory": false,
-		"authority": null,
-		"eligibility": "",
-		"requires_certificate_after_days": null,
-		"paid": true,
-		"treatments": {
-			"SI": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HI": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"UI": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"UNION_FEE": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PIT": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
-		"entitlement": {
-			"availability": "UNLIMITED",
-			"year_start_month": 1,
-			"proration": "NONE",
-			"bands": []
 		}
 	},
 	{
@@ -2214,6 +2342,70 @@
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
+		}
+	},
+	{
+		"id": "0d6f7d5f-0f33-5d37-a8ae-1f600b3ff962",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "FOREIGN_NATIONAL_LEAVE",
+		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
+		"is_statutory": true,
+		"authority": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. The DAYS are seeded; WHICH days they fall on is the employee's own country's calendar and is not a jurisdiction holiday row — see NOT APPLIED.",
+		"eligibility": "employee.citizenship == \"FOREIGNER\"",
+		"requires_certificate_after_days": null,
+		"paid": true,
+		"treatments": {
+			"SI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"HI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UI": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"UNION_FEE": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "EXCLUDE"
+				}
+			},
+			"PIT": {
+				"absence": {
+					"kind": "REDUCE"
+				},
+				"encashment": {
+					"kind": "INCLUDE"
+				}
+			}
+		},
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
 		}
 	}
 ]
