@@ -166,6 +166,40 @@ test('the two halves add up to what one monthly run paid, and the monthly employ
 	assert.equal(monthly.employer_cost, BEFORE.monthly.employerCost);
 });
 
+/**
+ * The proration divisor is the month, on every basis.
+ *
+ * The two halves above add up because `CALENDAR_DAYS` always divided by `monthDays`. The other two
+ * bases divided by the *period*, so each half of a semi-monthly month measured itself against its
+ * own working days, came out at a fraction of 1.0, and paid a whole month's salary — twice. The
+ * halves are asserted against the same monthly figures the calendar basis reaches, because a month
+ * is a month whatever counts its days.
+ */
+for (const [name, proration] of [
+	['WORKING_DAYS', { by: 'WORKING_DAYS' }],
+	['FIXED_DAYS', { by: 'FIXED_DAYS', days: 21.75 }]
+]) {
+	test(`the two halves add up to one month on a ${name} basis, not to two`, async () => {
+		const world = createSemiMonthlyPayrollWorld();
+		world.work_catalogue[0].proration = proration;
+		const first = await build(world, '2026-02-1');
+		settle(world, '2026-02-1', first.prepared, first.built);
+		const second = await build(world, '2026-02-2');
+
+		const half1 = slipOf(first.built, SEMI_MONTHLY_EMPLOYMENT_ID);
+		const half2 = slipOf(second.built, SEMI_MONTHLY_EMPLOYMENT_ID);
+		assert.equal(cents(half1.gross + half2.gross), BEFORE.semiMonthly.gross);
+		assert.equal(cents(half1.net + half2.net), BEFORE.semiMonthly.net);
+		// Neither half is a whole month on its own, which is the shape the bug had.
+		assert.ok(half1.gross < SEMI_MONTHLY_BASE, `half 1 paid ${half1.gross} of ${SEMI_MONTHLY_BASE}`);
+		assert.ok(half2.gross < SEMI_MONTHLY_BASE, `half 2 paid ${half2.gross} of ${SEMI_MONTHLY_BASE}`);
+		// A monthly run measures the whole month, so its figures do not move with the basis at all.
+		const monthly = slipOf(second.built, MONTHLY_EMPLOYMENT_ID);
+		assert.equal(monthly.gross, BEFORE.monthly.gross);
+		assert.equal(monthly.net, BEFORE.monthly.net);
+	});
+}
+
 test('a one-off entry settles in the half its day falls in, for a semi-monthly employment', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	const transport = world.payment_catalogue.find((component) => component.code === 'TRANSPORT');
