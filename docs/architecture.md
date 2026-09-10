@@ -346,10 +346,12 @@ and `overtime_add`% on overtime hours, one `NIGHT_PREMIUM` line per work day und
 output, whose scheme treatments are the matrix's fifth column (undecided until a run prices one,
 like absence).
 
-Base salary is segmented at effective term boundaries and each segment uses the same full-period
-proration denominator. Proration is Work catalogue configuration. Calendar-day proration uses the
-month's actual days; a fixed-day basis uses its configured divisor. Neither is inferred from an
-output workbook.
+Base salary is segmented at effective term boundaries and each segment uses the same full-month
+proration denominator — the month the period sits in, never the run period, so a semi-monthly
+company's two halves sum to one month rather than to two. Proration is Work catalogue
+configuration. Calendar-day proration uses the month's actual days; working-day proration uses the
+month's working days; a fixed-day basis uses its configured divisor, and a run covering part of a
+month takes that instalment's share of the divisor. None is inferred from an output workbook.
 
 ### Excess overtime and compliance
 

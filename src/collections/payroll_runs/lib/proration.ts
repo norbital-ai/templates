@@ -10,18 +10,27 @@
  * do, a one-off claim, a payment and a loan instalment do not. Keying on cadence is what removes the
  * type-name branch the plan itself worries about (decision E7 / E22).
  *
- * The denominator is the whole period measured on the basis's own units — the month's calendar
- * days, its working days, or the statutory factor a `FIXED_DAYS` basis names — and the numerator is
- * counted in those same units. A salary change mid-month produces two terms rows, each prorated
- * against that same full-period divisor and summed — 4,000 × 15/31 + 4,600 × 16/31 — so on
- * `CALENDAR_DAYS` and `WORKING_DAYS` the two halves of the month never add up to more or less than a
- * month. On `FIXED_DAYS` they add up to the month's working days over the factor, which is the point
- * of a fixed factor: a part month is priced at the statutory daily rate, not at the month's own.
+ * The denominator is the whole calendar **month** measured on the basis's own units — the month's
+ * calendar days, its working days, or the statutory factor a `FIXED_DAYS` basis names — and the
+ * numerator is counted in those same units. It is the month rather than the run period because a
+ * semi-monthly company runs two periods inside one month, and a divisor taken from the period makes
+ * each half a whole month.
+ *
+ * A salary change mid-month produces two terms rows, each prorated against that same divisor and
+ * summed — 4,000 × 15/31 + 4,600 × 16/31 — so the two halves of the month never add up to more or
+ * less than a month, on any basis and at any pay frequency.
  */
 
 import { Schema } from 'effect';
 import type { Work } from './configuration.js';
-import { inclusiveDays, intersectDays, monthDays, type IsoDate } from './dates.js';
+import {
+	inclusiveDays,
+	intersectDays,
+	monthBounds,
+	monthDays,
+	monthKey,
+	type IsoDate
+} from './dates.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 const DayWindowSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
@@ -74,6 +83,17 @@ export function prorationSegment(options: ProrationFractionOptions): {
 		);
 	const covered = intersectDays(options.covered, options.period);
 	if (covered == null) return null;
+	/**
+	 * The divisor is the whole calendar month the period sits in — never the period itself.
+	 *
+	 * A semi-monthly company runs two instalments inside one month. Measured against its own
+	 * working days, each half is a whole period: fraction 1.0, twice, and the monthly salary paid
+	 * twice. `CALENDAR_DAYS` always read the month (`monthDays`), which is why Malaysia was right
+	 * and the Philippines, Singapore and Vietnam were not. Read on the month, the instalments of a
+	 * month sum to exactly one month on all three bases, and a monthly run — whose period *is* the
+	 * month — computes what it always did.
+	 */
+	const month = monthBounds(monthKey(options.period.start));
 	const measured = ((): { days: number; denominator: number } => {
 		switch (basis.by) {
 			case 'CALENDAR_DAYS':
@@ -84,7 +104,7 @@ export function prorationSegment(options: ProrationFractionOptions): {
 			case 'WORKING_DAYS':
 				return {
 					days: options.workingDaysIn(covered),
-					denominator: options.workingDaysIn(options.period)
+					denominator: options.workingDaysIn(month)
 				};
 			case 'FIXED_DAYS': {
 				const divisor = decodeNumber(basis.days);
@@ -105,9 +125,20 @@ export function prorationSegment(options: ProrationFractionOptions): {
 				// pay someone present for part of the month more than someone present for all of it.
 				// The cap is on the days, not the fraction, so the segment a payslip stores and the
 				// money it was paid cannot disagree.
+				//
+				// The factor is a month's worth of days, so an instalment that is only part of a
+				// month is worth only its share of one — measured in the same working days the
+				// factor itself counts. A monthly run's share is 1 and the arithmetic below is
+				// unchanged; a semi-monthly month's two shares sum to 1, so the halves pay one
+				// month between them rather than one month each.
+				const monthWorkingDays = options.workingDaysIn(month);
+				const instalment =
+					monthWorkingDays > 0
+						? divisor * (options.workingDaysIn(options.period) / monthWorkingDays)
+						: divisor;
 				const whole = covered.start <= options.period.start && covered.end >= options.period.end;
 				return {
-					days: whole ? divisor : Math.min(options.workingDaysIn(covered), divisor),
+					days: whole ? instalment : Math.min(options.workingDaysIn(covered), instalment),
 					denominator: divisor
 				};
 			}
