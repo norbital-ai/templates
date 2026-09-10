@@ -413,12 +413,12 @@
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
 		"is_statutory": true,
-		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56.",
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population.",
 		"eligibility": "",
 		"rounding": "TABLE",
 		"relief_for": [],
 		"sequence": 200,
-		"special_rules": [],
+		"special_rules": ["EMPLOYEE_PER_DEPENDANT:3"],
 		"bands": [
 			{
 				"selector": {
@@ -2736,12 +2736,12 @@
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
 		"is_statutory": true,
-		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56.",
+		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population.",
 		"eligibility": "",
 		"rounding": "TABLE",
 		"relief_for": [],
 		"sequence": 200,
-		"special_rules": [],
+		"special_rules": ["EMPLOYEE_PER_DEPENDANT:3"],
 		"bands": [
 			{
 				"selector": {

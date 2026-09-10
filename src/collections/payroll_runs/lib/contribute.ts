@@ -217,6 +217,29 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		);
 		const chain = roundingFor(contribution, rules);
 		const hasFlatOverride = status?.kind === 'REGISTERED' && status.rate_override != null;
+		/**
+		 * How many people this employee's own share covers: themselves, and each dependant a scheme
+		 * charges them for, up to the ceiling it names.
+		 *
+		 * Taiwan's National Health Insurance is the one scheme in the bank that does this — 健保法
+		 * §18(2) charges the insured person for their dependants as well, capped at three. It never
+		 * touches the employer leg, which is already an average over the whole insured population
+		 * (眷口數) and is carried in the seeded rate. Every other scheme names no ceiling and covers
+		 * one head, so the factor is 1 and nothing moves.
+		 */
+		const heads =
+			rules.employeePerDependant == null
+				? 1
+				: 1 + Math.min(Math.max(0, input.dependents), rules.employeePerDependant);
+		/**
+		 * The premium is stated and billed per insured head, so the rounded per-head amount is what
+		 * is multiplied — not the raw share, which would round the total once and land a cent away
+		 * from what the Bureau's own table bills for the same household. Summing heads is
+		 * arithmetic rather than a table lookup, so the product lands on a cent whatever the
+		 * scheme's own rounding is; Taiwan's is `TABLE`, which is the identity.
+		 */
+		const perHead = (employee: number): number =>
+			heads === 1 ? employee : roundMoney(employee * heads, 'NEAREST_CENT');
 
 		let employee = 0;
 		let employer = 0;
@@ -235,6 +258,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				// award carrying 各類所得扣繳率標準 §13's NT$2,000 exemption; ignoring the rule here
 				// withheld on every wage. Every other scheme states no threshold and is unmoved.
 				if (employee < rules.minWithhold) employee = 0;
+				employee = perHead(employee);
 				break;
 			}
 			case 'FIXED': {
@@ -246,6 +270,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					chain,
 					rules
 				));
+				employee = perHead(employee);
 				break;
 			}
 			case 'PROGRESSIVE': {
