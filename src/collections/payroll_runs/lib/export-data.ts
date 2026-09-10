@@ -381,35 +381,29 @@ export function loadRunExports(
 					),
 					...payslipAdjustments.flatMap((row): ReportLine[] => {
 						const ruleKey = row.statutory_rule_key;
-						// A derived overtime row links to no component, because there is none: it
-						// names the statutory rule that priced it, and that rule key supplies its code,
-						// its day type and the fact that it is an earning. The rule key spells the band
-						// as `OT_[EXCESS_]<day type>_<measure>_<from>` — the same shape `overtimeBandCode`
-						// writes — so the workbook reads the key rather than decoding a band blob.
-						if (ruleKey != null) {
-							return [
-								{
-									componentCode: ruleKey,
-									componentName: ruleKey,
-									nature: 'EARNING',
-									calculationSource: overtimeRuleKeyIsExcess(ruleKey)
-										? 'OVERTIME_EXCESS'
-										: 'OVERTIME',
-									amount: decodeNumber(row.amount),
-									quantity: row.quantity == null ? null : decodeNumber(row.quantity),
-									isCompanyDirect: false,
-									isClaim: false,
-									isLoanInstalment: false,
-									overtimeDayType: overtimeRuleKeyDayType(ruleKey),
-									isOvertimeExcess: overtimeRuleKeyIsExcess(ruleKey)
-								}
-							];
-						}
-						return reportLine(
-							row.label,
+						// A derived overtime row is settled under the Work catalogue's `OVERTIME` or
+						// `OVERTIME_EXCESS` component, which `component_code` carries like every other
+						// row — the workbook groups by the catalogue, so the column has to be the
+						// catalogue's. The rule key is provenance beside it, and the workbook still
+						// reads it for the day type and the excess flag: it spells the band as
+						// `OT_[EXCESS_]<day type>_<measure>_<from>`, the shape `overtimeBandCode`
+						// writes, so neither fact has to decode a band blob.
+						const lines = reportLine(
+							row.component_code,
 							decodeNumber(row.amount),
 							row.quantity == null ? null : decodeNumber(row.quantity)
-						).map((line) => ({
+						);
+						if (ruleKey != null)
+							return lines.map((line) => ({
+								...line,
+								nature: 'EARNING',
+								calculationSource: overtimeRuleKeyIsExcess(ruleKey)
+									? 'OVERTIME_EXCESS'
+									: 'OVERTIME',
+								overtimeDayType: overtimeRuleKeyDayType(ruleKey),
+								isOvertimeExcess: overtimeRuleKeyIsExcess(ruleKey)
+							}));
+						return lines.map((line) => ({
 							...line,
 							// Recovery of a loan repayment is the one adjustment a workbook reports
 							// separately, and the input family is what says so.

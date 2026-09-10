@@ -121,6 +121,7 @@ export function payrollRunGraph(options: {
 			adjustments: payslip.settlement.adjustments.map((adjustment: MeasuredAdjustment) => ({
 				family: adjustment.input.family,
 				source_id: adjustment.input.id,
+				component_code: adjustment.catalogueComponent.code,
 				label: adjustment.label,
 				bucket: bucketOf(adjustment.nature),
 				amount: adjustment.amount,

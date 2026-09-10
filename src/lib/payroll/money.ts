@@ -523,7 +523,28 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			});
 		const eventDate = entry.recurring ? capOccurrenceDate(options.period) : entry.event_date;
 		const subject = subjectOn({ ...entry, event_date: eventDate });
-		if (!isEligible(options.component.eligibility, subject)) return null;
+		/**
+		 * A skipped request is captured, so it has to be reported.
+		 *
+		 * The junction row is the settlement lock: a request the run read is consumed whether or not
+		 * it paid. Every branch below that decides to pay nothing therefore removes the entry from
+		 * the operator's queue and leaves no line to explain it — which is how an approved allowance
+		 * disappears between one period and the next with nothing to look at.
+		 */
+		const skipped = (reason: string): null => {
+			options.note({
+				code: 'PAY_REQUEST_SKIPPED',
+				severity: 'WARNING',
+				message:
+					`${options.bundle.employment.employee_number}: ${options.component.family.toLowerCase()} ` +
+					`${options.component.code} was captured for ${options.period} and paid nothing — ${reason}.`,
+				collection: `${options.component.family.toLowerCase()}_requests`,
+				recordId: entry.id
+			});
+			return null;
+		};
+		if (!isEligible(options.component.eligibility, subject))
+			return skipped('this employment does not satisfy the component’s eligibility rule');
 		const cap =
 			definition.cap == null
 				? null
@@ -589,10 +610,12 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 						subject
 					});
 		// A person no band covers has nothing to draw on: the entry is read and captured, and pays nothing.
-		if (definition.cap != null && cap == null) return null;
+		if (definition.cap != null && cap == null)
+			return skipped('no entitlement band of the component covers this employment');
 		const sign = entry.sign;
 		const fraction = entryFraction(entry);
-		if (fraction <= 0) return null;
+		if (fraction <= 0)
+			return skipped('the employment covered none of the period the amount is prorated over');
 		// The payable share is an economic fact per entry, so it is rounded per entry.
 		let reimbursable = cents(decodeNumber(entry.amount) * fraction);
 		if (entry.recurring && entry.sign > 0 && cap != null && definition.cap?.on_exceed === 'BLOCK')

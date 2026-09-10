@@ -225,13 +225,17 @@ const PAYSLIPS = [
 		base: [{ component_code: BASIC.code, amount: 3451 }],
 		statutory: [],
 		/**
-		 * Two adjustments link to no component at all: the statutory rest-day day-wage award and the
-		 * hours the daily ceiling reclassified out of it. Contracted basic pay is inlined in `base`.
+		 * Two derived adjustments: the statutory rest-day day-wage award and the hours the daily
+		 * ceiling reclassified out of it. They settle under the Work catalogue's two overtime
+		 * components and are labelled with the statutory band that priced them — the code says
+		 * which column, the label and the rule key say which band. Contracted basic pay is inlined
+		 * in `base`.
 		 */
 		adjustments: [
 			{
 				family: 'WORK_DAY',
 				source_id: 'capture:ot-rest-day',
+				component_code: 'OVERTIME',
 				label: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
 				bucket: 'EARNING',
 				statutory_rule_key: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
@@ -242,6 +246,7 @@ const PAYSLIPS = [
 			{
 				family: 'WORK_DAY',
 				source_id: 'capture:ot-excess',
+				component_code: 'OVERTIME_EXCESS',
 				label: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
 				bucket: 'EARNING',
 				statutory_rule_key: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
@@ -266,6 +271,7 @@ const PAYSLIPS = [
 			{
 				family: 'PAYMENT',
 				source_id: 'capture:final-payment',
+				component_code: FINAL_PAYMENT.code,
 				label: FINAL_PAYMENT.code,
 				bucket: 'EARNING',
 				statutory_rule_key: null,
@@ -346,21 +352,23 @@ Effect.runPromise(
 
 			const [patterned, leaver] = run.payslips;
 
-			// ── a derived overtime line has no component and still reaches the workbook ────────────────
+			// ── a derived overtime line reports under its catalogue component, not its band ────────────
 			assert.deepEqual(
 				patterned.lines.map((line) => line.componentCode),
-				['BASIC', 'OT_REST_DAY_FROM_START_OF_DAY_0_5', 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0'],
-				'both overtime arms report under the band code they were priced by'
+				['BASIC', 'OVERTIME', 'OVERTIME_EXCESS'],
+				'both overtime arms report under the Work catalogue component they settled on'
 			);
+			// The band that priced the line is still the row's own fact, and it is still what
+			// classifies the line: the day type and the excess flag below are read off the rule key
+			// `measure.ts` wrote, not off the component code.
 			assert.equal(
-				patterned.lines[1].componentCode,
+				PAYSLIPS[0].adjustments[0].statutory_rule_key,
 				overtimeBandCode({
 					excess: false,
 					dayType: 'REST_DAY',
 					measure: 'FROM_START_OF_DAY',
 					bandFrom: 0.5
-				}),
-				'the exported code is the same one `measure.ts` labelled the line with'
+				})
 			);
 			assert.equal(patterned.lines[1].overtimeDayType, 'REST_DAY');
 			assert.equal(patterned.lines[1].isOvertimeExcess, false);

@@ -52,6 +52,7 @@ export function adjust(world, payslipId, adjustment, runId = 'prior-run') {
 	}
 	slip.adjustments ??= [];
 	slip.adjustments.push({
+		component_code: adjustment.family,
 		label: adjustment.family,
 		bucket: 'EARNING',
 		quantity: null,
