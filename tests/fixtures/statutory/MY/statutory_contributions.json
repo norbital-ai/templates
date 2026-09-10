@@ -19872,7 +19872,7 @@
 		"code": "PCB",
 		"name": "Monthly Tax Deduction (Potongan Cukai Bulanan)",
 		"is_statutory": true,
-		"authority": "Income Tax Act 1967, s.107(2); Income Tax (Deduction from Remuneration) Rules 1994. Both MTD scales are seeded: Category 1 for a taxpayer with no dependent spouse and Category 2 for one who carries a spouse with no total income, the latter holding the second RM400 rebate under ITA 1967 s.6D in its band constants. The category and the RM4,000 s.47 spouse relief are both chosen from employees.spouse_status, which is the question both provisions actually ask — NOT from marital_status, which answers a different one and disagrees with it for a quarter of this population. The flat 30% withholding on a non-resident is expressed as an employment-level PCB rate override, so it is applied only where residence evidence exists and bypasses the resident progressive scale and reliefs. A blank residence or foreign nationality alone does not create that override. NOT APPLIED: (a) the RM6,000 disabled-person and RM5,000 disabled-spouse reliefs — there is one PERSONAL_RELIEF slot and no disability input; (b) the zakat rebate, which has no data home. For the seeded Malaysian population the generator asserts that disabled-person and zakat are claimed by nobody, so only the disabled-SPOUSE relief is actually foregone, by one employee. See MY_PCB_RELIEF_CONSTANTS_UNMODELLED and report §4.4-§4.6.",
+		"authority": "Income Tax Act 1967, s.107(2); Income Tax (Deduction from Remuneration) Rules 1994. Both MTD scales are seeded: Category 1 for a taxpayer with no dependent spouse and Category 2 for one who carries a spouse with no total income, the latter holding the second RM400 rebate under ITA 1967 s.6D in its band constants. The category and the RM4,000 s.47 spouse relief are both chosen from employees.spouse_status, which is the question both provisions actually ask — NOT from marital_status, which answers a different one and disagrees with it for a quarter of this population. The flat 30% withholding on a non-resident is expressed as an employment-level PCB rate override, so it is applied only where residence evidence exists and bypasses the resident progressive scale and reliefs. A blank residence or foreign nationality alone does not create that override. NOT APPLIED: (a) the RM6,000 disabled-person and RM5,000 disabled-spouse reliefs — there is one PERSONAL_RELIEF slot and no disability input; (b) the zakat rebate, which has no data home. For the seeded Malaysian population the generator asserts that disabled-person and zakat are claimed by nobody, so only the disabled-SPOUSE relief is actually foregone, by one employee. See MY_PCB_RELIEF_CONSTANTS_UNMODELLED and report §4.4-§4.6. MTD Category 3 (married, spouse working) is assessed on the Category 1 schedule: the spouse relief and the s.6D rebate belong to Category 2 alone, so the category turns on whether the spouse has income of their own, not on marital status.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
@@ -19898,7 +19898,7 @@
 					"rate": 0,
 					"constant": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19911,7 +19911,7 @@
 					"rate": 1,
 					"constant": -400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19924,7 +19924,7 @@
 					"rate": 3,
 					"constant": -250
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19937,7 +19937,7 @@
 					"rate": 6,
 					"constant": 600
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19950,7 +19950,7 @@
 					"rate": 11,
 					"constant": 1500
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19963,7 +19963,7 @@
 					"rate": 19,
 					"constant": 3700
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19976,7 +19976,7 @@
 					"rate": 25,
 					"constant": 9400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -19989,7 +19989,7 @@
 					"rate": 26,
 					"constant": 84400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20002,7 +20002,7 @@
 					"rate": 28,
 					"constant": 136400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20015,7 +20015,7 @@
 					"rate": 30,
 					"constant": 528400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20028,7 +20028,7 @@
 					"rate": 0,
 					"constant": 0
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20041,7 +20041,7 @@
 					"rate": 1,
 					"constant": -800
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20054,7 +20054,7 @@
 					"rate": 3,
 					"constant": -650
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20067,7 +20067,7 @@
 					"rate": 6,
 					"constant": 600
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20080,7 +20080,7 @@
 					"rate": 11,
 					"constant": 1500
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20093,7 +20093,7 @@
 					"rate": 19,
 					"constant": 3700
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20106,7 +20106,7 @@
 					"rate": 25,
 					"constant": 9400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20119,7 +20119,7 @@
 					"rate": 26,
 					"constant": 84400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20132,7 +20132,7 @@
 					"rate": 28,
 					"constant": 136400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -20145,7 +20145,7 @@
 					"rate": 30,
 					"constant": 528400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			}
 		]
 	},
@@ -40880,7 +40880,7 @@
 		"code": "PCB",
 		"name": "Monthly Tax Deduction (Potongan Cukai Bulanan)",
 		"is_statutory": true,
-		"authority": "Income Tax Act 1967, s.107(2); Income Tax (Deduction from Remuneration) Rules 1994. Both MTD scales are seeded: Category 1 for a taxpayer with no dependent spouse and Category 2 for one who carries a spouse with no total income, the latter holding the second RM400 rebate under ITA 1967 s.6D in its band constants. The category and the RM4,000 s.47 spouse relief are both chosen from employees.spouse_status, which is the question both provisions actually ask — NOT from marital_status, which answers a different one and disagrees with it for a quarter of this population. The flat 30% withholding on a non-resident is expressed as an employment-level PCB rate override, so it is applied only where residence evidence exists and bypasses the resident progressive scale and reliefs. A blank residence or foreign nationality alone does not create that override. NOT APPLIED: (a) the RM6,000 disabled-person and RM5,000 disabled-spouse reliefs — there is one PERSONAL_RELIEF slot and no disability input; (b) the zakat rebate, which has no data home. For the seeded Malaysian population the generator asserts that disabled-person and zakat are claimed by nobody, so only the disabled-SPOUSE relief is actually foregone, by one employee. See MY_PCB_RELIEF_CONSTANTS_UNMODELLED and report §4.4-§4.6.",
+		"authority": "Income Tax Act 1967, s.107(2); Income Tax (Deduction from Remuneration) Rules 1994. Both MTD scales are seeded: Category 1 for a taxpayer with no dependent spouse and Category 2 for one who carries a spouse with no total income, the latter holding the second RM400 rebate under ITA 1967 s.6D in its band constants. The category and the RM4,000 s.47 spouse relief are both chosen from employees.spouse_status, which is the question both provisions actually ask — NOT from marital_status, which answers a different one and disagrees with it for a quarter of this population. The flat 30% withholding on a non-resident is expressed as an employment-level PCB rate override, so it is applied only where residence evidence exists and bypasses the resident progressive scale and reliefs. A blank residence or foreign nationality alone does not create that override. NOT APPLIED: (a) the RM6,000 disabled-person and RM5,000 disabled-spouse reliefs — there is one PERSONAL_RELIEF slot and no disability input; (b) the zakat rebate, which has no data home. For the seeded Malaysian population the generator asserts that disabled-person and zakat are claimed by nobody, so only the disabled-SPOUSE relief is actually foregone, by one employee. See MY_PCB_RELIEF_CONSTANTS_UNMODELLED and report §4.4-§4.6. MTD Category 3 (married, spouse working) is assessed on the Category 1 schedule: the spouse relief and the s.6D rebate belong to Category 2 alone, so the category turns on whether the spouse has income of their own, not on marital status.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
@@ -40906,7 +40906,7 @@
 					"rate": 0,
 					"constant": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40919,7 +40919,7 @@
 					"rate": 1,
 					"constant": -400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40932,7 +40932,7 @@
 					"rate": 3,
 					"constant": -250
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40945,7 +40945,7 @@
 					"rate": 6,
 					"constant": 600
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40958,7 +40958,7 @@
 					"rate": 11,
 					"constant": 1500
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40971,7 +40971,7 @@
 					"rate": 19,
 					"constant": 3700
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40984,7 +40984,7 @@
 					"rate": 25,
 					"constant": 9400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -40997,7 +40997,7 @@
 					"rate": 26,
 					"constant": 84400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41010,7 +41010,7 @@
 					"rate": 28,
 					"constant": 136400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41023,7 +41023,7 @@
 					"rate": 30,
 					"constant": 528400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41036,7 +41036,7 @@
 					"rate": 0,
 					"constant": 0
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41049,7 +41049,7 @@
 					"rate": 1,
 					"constant": -800
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41062,7 +41062,7 @@
 					"rate": 3,
 					"constant": -650
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41075,7 +41075,7 @@
 					"rate": 6,
 					"constant": 600
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41088,7 +41088,7 @@
 					"rate": 11,
 					"constant": 1500
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41101,7 +41101,7 @@
 					"rate": 19,
 					"constant": 3700
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41114,7 +41114,7 @@
 					"rate": 25,
 					"constant": 9400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41127,7 +41127,7 @@
 					"rate": 26,
 					"constant": 84400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41140,7 +41140,7 @@
 					"rate": 28,
 					"constant": 136400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -41153,7 +41153,7 @@
 					"rate": 30,
 					"constant": 528400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			}
 		]
 	},
@@ -61888,7 +61888,7 @@
 		"code": "PCB",
 		"name": "Monthly Tax Deduction (Potongan Cukai Bulanan)",
 		"is_statutory": true,
-		"authority": "Income Tax Act 1967, s.107(2); Income Tax (Deduction from Remuneration) Rules 1994. Both MTD scales are seeded: Category 1 for a taxpayer with no dependent spouse and Category 2 for one who carries a spouse with no total income, the latter holding the second RM400 rebate under ITA 1967 s.6D in its band constants. The category and the RM4,000 s.47 spouse relief are both chosen from employees.spouse_status, which is the question both provisions actually ask — NOT from marital_status, which answers a different one and disagrees with it for a quarter of this population. The flat 30% withholding on a non-resident is expressed as an employment-level PCB rate override, so it is applied only where residence evidence exists and bypasses the resident progressive scale and reliefs. A blank residence or foreign nationality alone does not create that override. NOT APPLIED: (a) the RM6,000 disabled-person and RM5,000 disabled-spouse reliefs — there is one PERSONAL_RELIEF slot and no disability input; (b) the zakat rebate, which has no data home. For the seeded Malaysian population the generator asserts that disabled-person and zakat are claimed by nobody, so only the disabled-SPOUSE relief is actually foregone, by one employee. See MY_PCB_RELIEF_CONSTANTS_UNMODELLED and report §4.4-§4.6.",
+		"authority": "Income Tax Act 1967, s.107(2); Income Tax (Deduction from Remuneration) Rules 1994. Both MTD scales are seeded: Category 1 for a taxpayer with no dependent spouse and Category 2 for one who carries a spouse with no total income, the latter holding the second RM400 rebate under ITA 1967 s.6D in its band constants. The category and the RM4,000 s.47 spouse relief are both chosen from employees.spouse_status, which is the question both provisions actually ask — NOT from marital_status, which answers a different one and disagrees with it for a quarter of this population. The flat 30% withholding on a non-resident is expressed as an employment-level PCB rate override, so it is applied only where residence evidence exists and bypasses the resident progressive scale and reliefs. A blank residence or foreign nationality alone does not create that override. NOT APPLIED: (a) the RM6,000 disabled-person and RM5,000 disabled-spouse reliefs — there is one PERSONAL_RELIEF slot and no disability input; (b) the zakat rebate, which has no data home. For the seeded Malaysian population the generator asserts that disabled-person and zakat are claimed by nobody, so only the disabled-SPOUSE relief is actually foregone, by one employee. See MY_PCB_RELIEF_CONSTANTS_UNMODELLED and report §4.4-§4.6. MTD Category 3 (married, spouse working) is assessed on the Category 1 schedule: the spouse relief and the s.6D rebate belong to Category 2 alone, so the category turns on whether the spouse has income of their own, not on marital status.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
@@ -61914,7 +61914,7 @@
 					"rate": 0,
 					"constant": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -61927,7 +61927,7 @@
 					"rate": 1,
 					"constant": -400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -61940,7 +61940,7 @@
 					"rate": 3,
 					"constant": -250
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -61953,7 +61953,7 @@
 					"rate": 6,
 					"constant": 600
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -61966,7 +61966,7 @@
 					"rate": 11,
 					"constant": 1500
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -61979,7 +61979,7 @@
 					"rate": 19,
 					"constant": 3700
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -61992,7 +61992,7 @@
 					"rate": 25,
 					"constant": 9400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62005,7 +62005,7 @@
 					"rate": 26,
 					"constant": 84400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62018,7 +62018,7 @@
 					"rate": 28,
 					"constant": 136400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62031,7 +62031,7 @@
 					"rate": 30,
 					"constant": 528400
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\""
+				"eligibility": "employee.marital_status != \"MARRIED\" || employee.spouse_status == \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62044,7 +62044,7 @@
 					"rate": 0,
 					"constant": 0
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62057,7 +62057,7 @@
 					"rate": 1,
 					"constant": -800
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62070,7 +62070,7 @@
 					"rate": 3,
 					"constant": -650
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62083,7 +62083,7 @@
 					"rate": 6,
 					"constant": 600
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62096,7 +62096,7 @@
 					"rate": 11,
 					"constant": 1500
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62109,7 +62109,7 @@
 					"rate": 19,
 					"constant": 3700
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62122,7 +62122,7 @@
 					"rate": 25,
 					"constant": 9400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62135,7 +62135,7 @@
 					"rate": 26,
 					"constant": 84400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62148,7 +62148,7 @@
 					"rate": 28,
 					"constant": 136400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			},
 			{
 				"selector": {
@@ -62161,7 +62161,7 @@
 					"rate": 30,
 					"constant": 528400
 				},
-				"eligibility": "employee.marital_status == \"MARRIED\""
+				"eligibility": "employee.marital_status == \"MARRIED\" && employee.spouse_status != \"WITH_INCOME\""
 			}
 		]
 	},

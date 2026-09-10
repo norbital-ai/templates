@@ -14,12 +14,14 @@
  * that names the one Part they belong to — which is what `EPF.authority` says decides it.
  */
 
+import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	assessStatutory,
 	expectStatutory,
 	expectStatutorySkipped,
-	assertEveryVersionPriced
+	assertEveryVersionPriced,
+	chargeOf
 } from './fixtures/statutory-world.ts';
 
 const OUT = { kind: 'NOT_REGISTERED' } as const;
@@ -137,6 +139,28 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 				spouse_status: 'WITHOUT_INCOME',
 				children: 2,
 				registrations: MY_LOCAL
+			},
+			// Two households at the same wage, differing only in whether the spouse has income of
+			// their own. MTD Category 3 (married, spouse working) is assessed on the Category 1
+			// schedule; the s.6D rebate belongs to Category 2 alone. The two ladders differ by
+			// exactly RM400 in the B constant, and only across a chargeable income of 5,000 to
+			// 35,000 — which is why a seed reading marital status alone looked right at most wages
+			// and, at this one, withheld nothing at all from a household that owes 16.60 a month.
+			{
+				key: 'MY-SPOUSE-DEPENDENT',
+				wage: 4000,
+				citizenship: 'CITIZEN',
+				marital_status: 'MARRIED',
+				spouse_status: 'WITHOUT_INCOME',
+				registrations: MY_LOCAL
+			},
+			{
+				key: 'MY-SPOUSE-WORKING',
+				wage: 4000,
+				citizenship: 'CITIZEN',
+				marital_status: 'MARRIED',
+				spouse_status: 'WITH_INCOME',
+				registrations: MY_LOCAL
 			}
 		]
 	});
@@ -151,6 +175,16 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 	// Category 2 shares Category 1's B from M=35,000 (only the first two bands differ): 600 +
 	// 3,976.65 × 6% = 838.599 → /12 = 69.88325 → 69.88 → 69.90.
 	expectStatutory(book, 'MY-MARRIED', 'PCB', 69.9, 0);
+	// The dependent-spouse household carries the s.47 relief and the s.6D rebate and owes nothing;
+	// the working-spouse household carries neither and owes 16.60. Reading marital status alone put
+	// both on Category 2 and withheld nothing from either.
+	expectStatutory(book, 'MY-SPOUSE-DEPENDENT', 'PCB', 0, 0);
+	expectStatutory(book, 'MY-SPOUSE-WORKING', 'PCB', 16.6, 0);
+	assert.notEqual(
+		chargeOf(book, 'MY-SPOUSE-WORKING', 'PCB').employee,
+		chargeOf(book, 'MY-SPOUSE-DEPENDENT', 'PCB').employee,
+		'the MTD category turns on the spouse’s income, not on being married'
+	);
 });
 
 test('Malaysia — SKBBK is levied from 1 June 2026 and is foreigners-only from 9 July 2026', () => {
