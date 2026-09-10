@@ -17,7 +17,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -32,7 +32,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -47,7 +47,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -63,7 +63,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -78,7 +78,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -92,8 +92,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -107,8 +107,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -122,8 +122,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -138,8 +138,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -153,8 +153,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -168,8 +168,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -183,8 +183,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -198,8 +198,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -214,8 +214,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -229,8 +229,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -244,8 +244,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -259,8 +259,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -274,8 +274,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -290,8 +290,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -305,8 +305,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -320,7 +320,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -335,7 +335,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -350,7 +350,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -366,7 +366,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -381,7 +381,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -397,7 +397,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -412,7 +412,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -427,7 +427,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -443,7 +443,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -458,7 +458,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -472,8 +472,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -487,8 +487,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -502,8 +502,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -518,8 +518,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -533,8 +533,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -548,8 +548,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -563,8 +563,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -578,8 +578,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -594,8 +594,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -609,8 +609,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -624,8 +624,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -639,8 +639,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -654,8 +654,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -670,8 +670,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -685,8 +685,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -700,7 +700,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -715,7 +715,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -730,7 +730,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -746,7 +746,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -761,7 +761,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -777,7 +777,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -792,7 +792,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -807,7 +807,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -823,7 +823,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -838,7 +838,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -852,8 +852,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -867,8 +867,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -882,8 +882,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -898,8 +898,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -913,8 +913,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -928,8 +928,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -943,8 +943,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -958,8 +958,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -974,8 +974,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -989,8 +989,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1004,8 +1004,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1019,8 +1019,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1034,8 +1034,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -1050,8 +1050,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1065,8 +1065,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1080,7 +1080,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1095,7 +1095,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1110,7 +1110,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1126,7 +1126,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1141,7 +1141,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1617,7 +1617,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1632,7 +1632,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1647,7 +1647,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -1663,7 +1663,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1678,7 +1678,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1692,8 +1692,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1707,8 +1707,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1722,8 +1722,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -1738,8 +1738,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1753,8 +1753,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1768,8 +1768,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1783,8 +1783,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1798,8 +1798,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -1814,8 +1814,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1829,8 +1829,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1844,8 +1844,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1859,8 +1859,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1874,8 +1874,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -1890,8 +1890,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -1905,8 +1905,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -1920,7 +1920,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1935,7 +1935,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1950,7 +1950,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1966,7 +1966,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1981,7 +1981,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -1997,7 +1997,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2012,7 +2012,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2027,7 +2027,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2043,7 +2043,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2058,7 +2058,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2072,8 +2072,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2087,8 +2087,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2102,8 +2102,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2118,8 +2118,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2133,8 +2133,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2148,8 +2148,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2163,8 +2163,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2178,8 +2178,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2194,8 +2194,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2209,8 +2209,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2224,8 +2224,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2239,8 +2239,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2254,8 +2254,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2270,8 +2270,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2285,8 +2285,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2300,7 +2300,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2315,7 +2315,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2330,7 +2330,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2346,7 +2346,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2361,7 +2361,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2377,7 +2377,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2392,7 +2392,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2407,7 +2407,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2423,7 +2423,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2438,7 +2438,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2452,8 +2452,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2467,8 +2467,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2482,8 +2482,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2498,8 +2498,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2513,8 +2513,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2528,8 +2528,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2543,8 +2543,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2558,8 +2558,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2574,8 +2574,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2589,8 +2589,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2604,8 +2604,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2619,8 +2619,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2634,8 +2634,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -2650,8 +2650,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -2665,8 +2665,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -2680,7 +2680,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2695,7 +2695,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2710,7 +2710,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2726,7 +2726,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -2741,7 +2741,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3217,7 +3217,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3232,7 +3232,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3247,7 +3247,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3263,7 +3263,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3278,7 +3278,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3292,8 +3292,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3307,8 +3307,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3322,8 +3322,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3338,8 +3338,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3353,8 +3353,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3368,8 +3368,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3383,8 +3383,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3398,8 +3398,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3414,8 +3414,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3429,8 +3429,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3444,8 +3444,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3459,8 +3459,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3474,8 +3474,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3490,8 +3490,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3505,8 +3505,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3520,7 +3520,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3535,7 +3535,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3550,7 +3550,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3566,7 +3566,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3581,7 +3581,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3597,7 +3597,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3612,7 +3612,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3627,7 +3627,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3643,7 +3643,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3658,7 +3658,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3672,8 +3672,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3687,8 +3687,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3702,8 +3702,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3718,8 +3718,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3733,8 +3733,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3748,8 +3748,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3763,8 +3763,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3778,8 +3778,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3794,8 +3794,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3809,8 +3809,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3824,8 +3824,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3839,8 +3839,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3854,8 +3854,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -3870,8 +3870,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -3885,8 +3885,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3900,7 +3900,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3915,7 +3915,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3930,7 +3930,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3946,7 +3946,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3961,7 +3961,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -3977,7 +3977,7 @@
 					"from": 0,
 					"to": 50,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -3992,7 +3992,7 @@
 					"from": 50.01,
 					"to": 500,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4007,7 +4007,7 @@
 					"from": 500,
 					"to": 750,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -4023,7 +4023,7 @@
 					"from": 750.01,
 					"to": 8000,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4038,7 +4038,7 @@
 					"from": 8000.01,
 					"to": null,
 					"age_from": 0,
-					"age_to": 56
+					"age_to": 55
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4052,8 +4052,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4067,8 +4067,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4082,8 +4082,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -4098,8 +4098,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4113,8 +4113,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 56,
-					"age_to": 61
+					"age_from": 55,
+					"age_to": 60
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4128,8 +4128,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4143,8 +4143,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4158,8 +4158,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -4174,8 +4174,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4189,8 +4189,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 61,
-					"age_to": 66
+					"age_from": 60,
+					"age_to": 65
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4204,8 +4204,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4219,8 +4219,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4234,8 +4234,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PROGRESSIVE",
@@ -4250,8 +4250,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "PERCENT",
@@ -4265,8 +4265,8 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 66,
-					"age_to": 71
+					"age_from": 65,
+					"age_to": 70
 				},
 				"award": {
 					"kind": "FIXED",
@@ -4280,7 +4280,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 0,
 					"to": 50,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -4295,7 +4295,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 50.01,
 					"to": 500,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -4310,7 +4310,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 500,
 					"to": 750,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -4326,7 +4326,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 750.01,
 					"to": 8000,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
@@ -4341,7 +4341,7 @@
 					"by": "WAGE_AND_AGE",
 					"from": 8000.01,
 					"to": null,
-					"age_from": 71,
+					"age_from": 70,
 					"age_to": null
 				},
 				"award": {
