@@ -29,7 +29,8 @@
 		],
 		"minimum_wages": {
 			"DKI Jakarta": 5396761,
-			"Jawa Barat": 2191232
+			"Jawa Barat": 2191232.18,
+			"Kabupaten Bekasi": 5558515.1
 		},
 		"jurisdiction_code": "ID"
 	},
@@ -55,7 +56,8 @@
 		],
 		"minimum_wages": {
 			"DKI Jakarta": 5729876,
-			"Jawa Barat": 2317601
+			"Jawa Barat": 2317601,
+			"Kabupaten Bekasi": 5938885
 		},
 		"jurisdiction_code": "ID"
 	},
@@ -80,7 +82,8 @@
 		],
 		"minimum_wages": {
 			"DKI Jakarta": 5729876,
-			"Jawa Barat": 2317601
+			"Jawa Barat": 2317601,
+			"Kabupaten Bekasi": 5938885
 		},
 		"jurisdiction_code": "ID"
 	}

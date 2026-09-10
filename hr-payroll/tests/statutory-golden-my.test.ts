@@ -187,10 +187,18 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 	);
 });
 
-test('Malaysia — SKBBK is levied from 1 June 2026 and is foreigners-only from 9 July 2026', () => {
+test('Malaysia — SKBBK is levied from 1 June 2026, and a local leaves it by releasing', () => {
 	const people = [
 		{ key: 'MY-LOCAL', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
-		{ key: 'MY-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+		{ key: 'MY-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN },
+		// A citizen who filed the Notis Perakuan Pelepasan Liabiliti: out of the scheme by their own
+		// election, which is a registration fact and not a property of the statute.
+		{
+			key: 'MY-RELEASED',
+			wage: 5001,
+			citizenship: 'CITIZEN',
+			registrations: { ...MY_LOCAL, SKBBK: OUT }
+		}
 	];
 
 	// Before 1 June 2026 the scheme does not exist at all.
@@ -205,11 +213,20 @@ test('Malaysia — SKBBK is levied from 1 June 2026 and is foreigners-only from 
 	expectStatutory(june, 'MY-LOCAL', 'SKBBK', 37.85, 0);
 	expectStatutory(june, 'MY-FOREIGN', 'SKBBK', 37.85, 0);
 
-	// 9 July 2026: made voluntary for Malaysian employees and left mandatory for foreign workers.
-	// The seeded predicate is `citizenship == "FOREIGNER"`, so a local is outside the scheme.
+	// 9 July 2026: the Cabinet made the employee contribution voluntary for citizens and permanent
+	// residents on 8 July, and PERKESO's election ran 13 July to 31 August through a Notis Perakuan
+	// Pelepasan Liabiliti. Voluntary here is opt-OUT — an employee who files no release continues to
+	// participate and contributions continue — so the scheme still reaches every local. Seeding the
+	// version as foreigners-only instead skipped every citizen from the seam onward, RM44.65 a month
+	// each at the ceiling, whether or not they had ever filed anything.
 	const july = assessStatutory({ code: 'MY', period: '2026-07', people });
-	expectStatutorySkipped(july, 'MY-LOCAL', 'SKBBK');
+	expectStatutory(july, 'MY-LOCAL', 'SKBBK', 37.85, 0);
 	expectStatutory(july, 'MY-FOREIGN', 'SKBBK', 37.85, 0);
+	// The release is what takes a person out, and it is theirs alone. A filed release is a
+	// NOT_REGISTERED fact, which gates the charge to zero rather than removing the scheme — the
+	// person is inside a scheme they owe nothing under, which is exactly what a release means.
+	expectStatutory(july, 'MY-RELEASED', 'SKBBK', 0, 0);
+	expectStatutory(july, 'MY-RELEASED', 'SOCSO', 25.25, 88.35);
 	// Nothing else moved across the two seams: SOCSO, EIS and EPF are unchanged.
 	expectStatutory(july, 'MY-LOCAL', 'SOCSO', 25.25, 88.35);
 	expectStatutory(july, 'MY-LOCAL', 'EIS', 10.1, 10.1);
@@ -269,10 +286,10 @@ test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and a
 	expectStatutory(june, 'N-5001', 'SKBBK', 37.85, 0);
 	expectStatutory(june, 'N-FOREIGN', 'SKBBK', 37.85, 0);
 
-	// 9 July 2026: voluntary for Malaysians, mandatory for foreign workers. The seeded predicate is
-	// `citizenship == "FOREIGNER"`, so a local is outside the scheme and produces no row at all.
+	// 9 July 2026: voluntary for Malaysians by release, mandatory for foreign workers. The fork
+	// carries the parent's correction — the scheme still reaches a local who has filed nothing.
 	const july = assessStatutory({ code: 'MY-nihon', period: '2026-07', people });
-	expectStatutorySkipped(july, 'N-5001', 'SKBBK');
+	expectStatutory(july, 'N-5001', 'SKBBK', 37.85, 0);
 	expectStatutory(july, 'N-FOREIGN', 'SKBBK', 37.85, 0);
 	// Nothing else moved across either seam: the fork prices EPF, SOCSO and EIS as Malaysia does,
 	// including the Part F non-citizen 2% each on the wage as it stands (2% × 5,001 = 100.02 → 101).

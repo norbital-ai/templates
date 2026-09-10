@@ -328,8 +328,25 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 		assert.deepEqual(ladder('VN', version, 'CHILD_MARRIAGE_LEAVE'), [1, 1, 1]);
 		assert.deepEqual(ladder('VN', version, 'BEREAVEMENT_LEAVE'), [3, 3, 3]);
 		assert.deepEqual(ladder('VN', version, 'BEREAVEMENT_LEAVE_UNPAID'), [1, 1, 1]);
-		// art.112(1): eleven paid public holidays, seeded as a leave head of that size.
-		assert.deepEqual(ladder('VN', version, 'PUBLIC_HOLIDAY'), [11, 11, 11]);
+		// art.112(1): eleven paid public holidays, seeded as a leave head of that size — twelve in the
+		// third version, from 1 July 2026, when Nghị quyết 28/2026/QH16 điều 2 makes 24 November each
+		// year Ngày Văn hóa Việt Nam, "nghỉ làm việc và hưởng nguyên lương". The resolution stands
+		// alone rather than amending art.112(1), which still reads eleven.
+		assert.deepEqual(
+			ladder('VN', version, 'PUBLIC_HOLIDAY'),
+			version === 2 ? [12, 12, 12] : [11, 11, 11]
+		);
+		// art.112(2): a foreign employee gets one further paid day for their own country's
+		// traditional New Year and one for its national day. A Vietnamese employee gets neither.
+		assert.deepEqual(
+			ladder('VN', version, 'FOREIGN_NATIONAL_LEAVE', { citizenship: 'FOREIGNER' }),
+			[2, 2, 2]
+		);
+		assert.deepEqual(ladder('VN', version, 'FOREIGN_NATIONAL_LEAVE', { citizenship: 'CITIZEN' }), [
+			null,
+			null,
+			null
+		]);
 	}
 });
 
