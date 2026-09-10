@@ -11,21 +11,22 @@
 	import HolidaySourceRenderer from '../../datatypes/holiday_source/+renderer.svelte';
 	import type { WorkspaceRow } from '$bolt/types.js';
 
-	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
+	let { company }: { company: WorkspaceRow<'companies'> } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	/**
-	 * One-column write, like the seal and the void: a whole-row form would carry `sealed_at` and
-	 * be routed to approval, while the source is operational configuration set under a seal.
-	 * The draft follows the version, not the row: a live update after a save re-emits the same
-	 * version and used to wipe whatever had been typed since.
+	 * One-column write. A whole-row entity form would carry the effective range and the pay
+	 * calendar, and this is the one operational field a controller sets on its own.
+	 *
+	 * The draft follows the entity, not the row: a live update after a save re-emits the same
+	 * entity and used to wipe whatever had been typed since.
 	 */
-	let sourceDraft = $state<WorkspaceRow<'jurisdiction_settings'>['holiday_source']>(null);
+	let sourceDraft = $state<WorkspaceRow<'companies'>['holiday_source']>(null);
 	let sourceError = $state<string | null>(null);
 	let draftFor = $state<string | null>(null);
 	$effect(() => {
-		if (draftFor === version.id) return;
-		draftFor = version.id;
-		sourceDraft = version.holiday_source;
+		if (draftFor === company.id) return;
+		draftFor = company.id;
+		sourceDraft = company.holiday_source;
 	});
 </script>
 
@@ -37,7 +38,7 @@
 		sourceError = null;
 		Effect.runFork(
 			submitCollectionMutation(() =>
-				client.db.jurisdiction_settings.mutate([{ id: version.id, holiday_source: sourceDraft }])
+				client.db.companies.mutate([{ id: company.id, holiday_source: sourceDraft }])
 			).pipe(
 				Effect.tap(() => Effect.sync(() => toast.success(t('holiday_source.saved')))),
 				Effect.catch((cause) =>

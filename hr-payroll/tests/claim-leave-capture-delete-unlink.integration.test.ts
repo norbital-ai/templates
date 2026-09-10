@@ -304,7 +304,7 @@ test(
 				'jurisdiction_holidays',
 				{
 					id: crypto.randomUUID(),
-					jurisdiction_code: 'TEST-JUR',
+					company_id: '11111111-1111-4111-8111-111111111111',
 					date: HOLIDAY_TUESDAY,
 					name: 'Fixture holiday',
 					published_at: '2026-01-01T00:00:00Z'

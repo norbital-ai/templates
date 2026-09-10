@@ -7,7 +7,7 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
 const holiday = (date: string, published = true) => ({
 	id: `holiday-${date}`,
-	jurisdiction_code: 'TEST-JUR',
+	company_id: '11111111-1111-4111-8111-111111111111',
 	date,
 	name: 'Festival',
 	original_date: null,

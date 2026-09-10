@@ -16,6 +16,9 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
+	import HolidaySourceForm from '../../lib/ui/holiday-source-form.svelte';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -54,7 +57,7 @@
 	]);
 </script>
 
-<RecordShell title={record?.name ?? t('component.create_company')}>
+{#snippet details()}
 	<CollectionForm
 		{client}
 		collection="companies"
@@ -63,6 +66,9 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
+			<!-- The entity's Google holiday source is set on the Holidays tab, not here; the form
+			     still declares it, because a mutable field it never names is a runtime refusal. -->
+			<Field name="holiday_source" hidden />
 			<Stack as="section" gap="sm">
 				<Stack gap="xs">
 					<h3 class="text-sm font-semibold">{t('component.legal_entity')}</h3>
@@ -85,6 +91,7 @@
 					</Stack>
 					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
 					<Field name="pay_frequency" label={t('component.pay_frequency')} />
+					<Field name="workbook_layout" label={t('component.workbook_layout')} />
 					<Field
 						name="risk_class"
 						label={t('component.statutory_risk_class')}
@@ -98,4 +105,42 @@
 			</Stack>
 		{/snippet}
 	</CollectionForm>
+{/snippet}
+
+{#snippet holidays()}
+	<Stack gap="lg">
+		<!-- The entity's own Google source, beside the calendar it fills. -->
+		<HolidaySourceForm company={record!} />
+		<HolidaySettings company={record!} />
+	</Stack>
+{/snippet}
+
+<RecordShell title={record?.name ?? t('component.create_company')}>
+	{#if record == null}
+		{@render details()}
+	{:else}
+		<!--
+			Holidays are the entity's, so they are read where the entity is: a nested view rather than
+			a jurisdiction-scoped Settings tab, which could not have shown two entities of one country
+			different calendars at all.
+		-->
+		<Tabs
+			animate={false}
+			layout="responsive"
+			config={[
+				{
+					name: 'details',
+					label: t('component.legal_entity'),
+					icon: 'lucide:building-2',
+					content: details
+				},
+				{
+					name: 'holidays',
+					label: t('app.settings.holidays'),
+					icon: 'lucide:calendar-x',
+					content: holidays
+				}
+			] satisfies TabConfig[]}
+		/>
+	{/if}
 </RecordShell>

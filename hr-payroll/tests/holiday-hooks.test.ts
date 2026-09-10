@@ -12,7 +12,7 @@ import hooks from '../src/collections/jurisdiction_holidays/+hooks.ts';
  */
 const holiday = {
 	id: 'festival',
-	jurisdiction_code: 'TEST',
+	company_id: 'TEST',
 	date: '2027-01-01',
 	name: 'Festival',
 	original_date: null,
@@ -37,25 +37,25 @@ const mutate = (input: Record<string, unknown>, existing?: Record<string, unknow
 const remove = (existing: Record<string, unknown>, db = api()) =>
 	Effect.runPromise(hooks.delete.perRecord.before.handler({ existing, api: db } as never));
 
-test('a holiday needs a jurisdiction, a real day and a name', async () => {
+test('a holiday needs an entity, a real day and a name', async () => {
 	await assert.rejects(
-		() => mutate({ jurisdiction_code: '', date: '2027-01-01', name: 'x' }),
-		/jurisdiction/
+		() => mutate({ company_id: '', date: '2027-01-01', name: 'x' }),
+		/entity/
 	);
 	await assert.rejects(
-		() => mutate({ jurisdiction_code: 'TEST', date: '2027-02-30', name: 'x' }),
+		() => mutate({ company_id: 'TEST', date: '2027-02-30', name: 'x' }),
 		/calendar day/
 	);
 	await assert.rejects(
-		() => mutate({ jurisdiction_code: 'TEST', date: '2027-01-01', name: ' ' }),
+		() => mutate({ company_id: 'TEST', date: '2027-01-01', name: ' ' }),
 		/name/
 	);
 	await assert.rejects(
-		() => mutate({ jurisdiction_code: 'TEST', date: '2027-01-01', name: 'x', original_date: 'no' }),
+		() => mutate({ company_id: 'TEST', date: '2027-01-01', name: 'x', original_date: 'no' }),
 		/original date/
 	);
 	await assert.doesNotReject(() =>
-		mutate({ jurisdiction_code: 'TEST', date: '2027-01-01', name: 'Festival' })
+		mutate({ company_id: 'TEST', date: '2027-01-01', name: 'Festival' })
 	);
 });
 
@@ -63,7 +63,7 @@ test('a holiday nothing points at can change, publish, unpublish and go', async 
 	for (const change of [
 		{ name: 'Renamed' },
 		{ date: '2027-02-02' },
-		{ jurisdiction_code: 'OTHER' },
+		{ company_id: 'OTHER' },
 		{ published_at: '2027-01-01T00:00:00.000Z' },
 		{ published_at: null }
 	])
@@ -73,7 +73,7 @@ test('a holiday nothing points at can change, publish, unpublish and go', async 
 
 test('a pinned holiday holds the identity the pins point at, and nothing else', async () => {
 	const pins = [{ id: 'work-day-1' }, { id: 'work-day-2' }];
-	for (const change of [{ date: '2027-01-02' }, { jurisdiction_code: 'OTHER' }])
+	for (const change of [{ date: '2027-01-02' }, { company_id: 'OTHER' }])
 		await assert.rejects(
 			() => mutate(change, holiday, api(pins)),
 			/pinned by 2 work day\(s\)/,

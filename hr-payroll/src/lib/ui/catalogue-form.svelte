@@ -75,6 +75,13 @@
 						<Field name="code" label={t('component.code')} />
 						{#if loan}
 							<Field name="sequence" label={t('component.order')} />
+							<!-- Only a debt has these: whose it is, and the least a month may recover. -->
+							<Field name="loan_type" label={t('component.loan_type')} />
+							<Field
+								name="minimum_repayment"
+								label={t('component.minimum_repayment')}
+								placeholder={t('component.minimum_repayment_hint')}
+							/>
 						{:else}
 							<Field name="nature" label={t('component.economic_type')} />
 						{/if}

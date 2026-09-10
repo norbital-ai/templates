@@ -3,7 +3,7 @@ import { custom, defineModel, instant, integer, text, uuid } from '@norbital-ai/
 /**
  * A settings lineage versions the family catalogues used by its companies. The settings root
  * identifies currency, tax year and effective dates; Work owns salary and working-time rules.
- * Holiday calendars publish independently for the explicit jurisdiction_code.
+ * Holidays belong to the employing entity, not to this lineage.
  *
  * A sealed version and its child catalogues are immutable. A successor clones them into a draft.
  * Companies select a lineage by code, and sealed, unvoided versions of that code cannot overlap.
@@ -32,18 +32,13 @@ export default defineModel(
 		research_urls: text().array(),
 		/** Set by the statutory drift automation on the draft it proposes; the review sheet. */
 		research_notes: custom('statutory_proposal'),
-		/**
-		 * The Google holiday calendar this jurisdiction's annual drafts are read from. Operational,
-		 * not law: it may be edited on a sealed version, and the import reads the version in force.
-		 */
-		holiday_source: custom('holiday_source'),
 		/** Region → monthly minimum wage, in the version's currency; read by `companies.region`. */
 		minimum_wages: custom('minimum_wages'),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:
-			'One version of a jurisdiction settings lineage: currency, tax year and effective period, owning its family catalogues and schemes, and naming the Google holiday source of its jurisdiction. Holiday calendars publish separately. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
+			'One version of a jurisdiction settings lineage: currency, tax year and effective period, owning its family catalogues and schemes,. Holidays belong to the entity that observes them. Sealed versions of one code never overlap; a sealed version and all its children are immutable and can only be voided.',
 		recordLabel: 'name',
 		icon: 'lucide:globe',
 		indexes: [{ columns: ['code'] }, { columns: ['code', 'sealed_at'] }],

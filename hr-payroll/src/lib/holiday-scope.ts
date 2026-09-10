@@ -1,2 +1,2 @@
-/** Context key: the jurisdiction a holiday create form opened from the Settings table starts on. */
-export const HOLIDAY_JURISDICTION = Symbol('norbital_hr.holiday_jurisdiction');
+/** Context key: the entity a holiday create form opened from an entity-scoped table starts on. */
+export const HOLIDAY_COMPANY = Symbol('norbital_hr.holiday_company');

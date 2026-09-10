@@ -800,7 +800,7 @@ export function finalizeFamilyConfiguration(
 					])
 				).values()
 			],
-			source.jurisdiction.jurisdiction_code,
+			source.company.id,
 			source.holidayInputs.map((input) => input.date),
 			facts.workHolidayEvidence.inputs
 		);
@@ -853,7 +853,7 @@ export function finalizeFamilyConfiguration(
 						...new Map(
 							[current, ...historicalCalendars]
 								.flatMap((source) => source.holidayInputs)
-								.map((input) => [`${input.jurisdiction_code}/${input.date}`, input])
+								.map((input) => [`${input.company_id}/${input.date}`, input])
 						).values()
 					],
 					hash: sha256Json({

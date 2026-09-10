@@ -1,10 +1,22 @@
-import { custom, defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, instant, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
 		period: text({ search: true }).notNull(),
 		lifecycle: enums(['DRAFT', 'PAID']).notNull(),
+		/**
+		 * The employments deliberately left out of this run, each with its stated reason.
+		 *
+		 * The run itself covers everyone eligible in the period — that is not a choice the operator
+		 * makes — and this is the exception. A withheld employment is skipped by the precheck as well
+		 * as by the calculation, which is what lets one unrostered person stop being everybody's
+		 * problem. Their period is not forgiven: nothing of theirs is consumed, and a later run
+		 * derives it from their own contract.
+		 */
+		withheld: custom('run_withholdings')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/** Hash of the selected configuration; holidays retains the published holidays the run read. */
 		configuration_hash: text().notNull(),
 		/** Annual calendars publish independently of settings; preserve their full selected revisions. */

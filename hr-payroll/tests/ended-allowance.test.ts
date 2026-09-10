@@ -71,7 +71,7 @@ test('pending, future and recurring allowances do not restart a departed contrac
 
 const sourceHoliday = (date: string, name: string) => ({
 	id: `holiday-${date}`,
-	jurisdiction_code: 'TEST-JUR',
+	company_id: '11111111-1111-4111-8111-111111111111',
 	date,
 	name,
 	original_date: null,

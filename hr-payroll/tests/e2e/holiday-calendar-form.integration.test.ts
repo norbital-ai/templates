@@ -27,7 +27,13 @@ import {
 } from '../helpers/surface-walk.ts';
 
 const LABEL = 'hr-payroll-holiday-form';
-const SETTINGS = '/app/hr_controller/settings';
+/**
+ * Holidays are the entity's, so both surfaces live on the entity record rather than on the
+ * jurisdiction-scoped Settings app. The walk opens the seeded fixture entity and works its
+ * Holidays tab: the Google source form, the import, and publication one day at a time.
+ */
+const ENTITIES = '/app/hr_controller/entities';
+const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
 const CALENDAR_ID = 'browser-fixture#holiday@group.v.calendar.google.com';
 const FAKE_KEY = 'invented-holiday-browser-key';
 const YEAR = new Date().getFullYear() + 1;
@@ -108,7 +114,7 @@ const submit = (page: HeadedPage) =>
 	);
 
 const openRecord = async (page: HeadedPage, collection: string, id: string, field: string) => {
-	await navigate(page, `${SETTINGS}${recordStackSearch(collection, id)}`);
+	await navigate(page, `${ENTITIES}${recordStackSearch(collection, id)}`);
 	await perform(
 		page,
 		`document.querySelector(${JSON.stringify(fieldInput(field))}) != null`,
@@ -116,7 +122,7 @@ const openRecord = async (page: HeadedPage, collection: string, id: string, fiel
 	);
 };
 
-it('Settings saves a Google source, imports unpublished holidays and publishes one by one', async () => {
+it('the entity saves a Google source, imports unpublished holidays and publishes one by one', async () => {
 	const requests: string[] = [];
 	const session = await startPublicSeedHost(LABEL, {
 		host: '0.0.0.0',
@@ -198,7 +204,7 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 					organizationName: 'Holiday browser fixture',
 					commandPrefix: '/__bolt/command/',
 					syncStreamUrl: `/__bolt/sync/stream?norbital_headed=${browserSession}`,
-					viewPath: SETTINGS,
+					viewPath: ENTITIES,
 					accessScope: 'operator',
 					credential: session.credential
 				})
@@ -209,12 +215,15 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 			'Chromium is required; the holiday browser regression must not pass without rendering'
 		);
 		const page = await browser.openPage(
-			guestUrlForChromium('127.0.0.1', gateway.address.port, SETTINGS)
+			guestUrlForChromium('127.0.0.1', gateway.address.port, ENTITIES)
 		);
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await waitForShell(page, 45_000);
 		await unlockDeferredQueries(page);
-		// The Google source is set under General, beside the version's other terms.
+		// Open the entity, then its Holidays tab: the source form and the calendar sit together
+		// there, because both belong to the entity that observes the days.
+		await navigate(page, `${ENTITIES}${recordStackSearch('companies', COMPANY_ID)}`);
+		await clickNamed(page, '[role="tab"]', 'Holidays');
 		const sourceInput = (name: string) =>
 			`[data-holiday-source-form] [data-holiday-source="${name}"]`;
 		await perform(
@@ -249,8 +258,8 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 		const sources = await until(
 			() =>
 				session.query(
-					'select holiday_source from jurisdiction_settings where jurisdiction_code = $1 and holiday_source is not null',
-					['TEST-JUR']
+					'select holiday_source from companies where id = $1 and holiday_source is not null',
+					[COMPANY_ID]
 				),
 			(rows) => rows.length === 1,
 			'source persisted on the settings version'
@@ -275,8 +284,8 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 		await until(
 			() =>
 				session.query(
-					'select holiday_source from jurisdiction_settings where jurisdiction_code = $1 and holiday_source is not null',
-					['TEST-JUR']
+					'select holiday_source from companies where id = $1 and holiday_source is not null',
+					[COMPANY_ID]
 				),
 			(rows) =>
 				rows.length === 1 &&
@@ -285,15 +294,13 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 				sourceOf(rows[0]).time_zone === 'Asia/Singapore',
 			'source edits persisted'
 		);
-		await navigate(page, SETTINGS);
 		// Holidays: import from the Google source set above, then publish one day.
-		await clickNamed(page, '[role="tab"]', 'Holidays');
 		await clickNamed(page, 'button', 'Import from Google');
 		const imported = await until(
 			() =>
 				session.query(
-					'select id, date, name, published_at, source from jurisdiction_holidays where jurisdiction_code = $1 and date >= $2 order by date',
-					['TEST-JUR', `${YEAR}-01-01`]
+					'select id, date, name, published_at, source from jurisdiction_holidays where company_id = $1 and date >= $2 order by date',
+					[COMPANY_ID, `${YEAR}-01-01`]
 				),
 			(rows) => rows.length === 2,
 			'google import completed'
@@ -330,8 +337,8 @@ it('Settings saves a Google source, imports unpublished holidays and publishes o
 		assert.equal(
 			(
 				await session.query(
-					'select count(*)::int as count from jurisdiction_holidays where jurisdiction_code = $1 and date >= $2',
-					['TEST-JUR', `${YEAR}-01-01`]
+					'select count(*)::int as count from jurisdiction_holidays where company_id = $1 and date >= $2',
+					[COMPANY_ID, `${YEAR}-01-01`]
 				)
 			).map((row) => asRecord(row, 'count').count)[0],
 			2

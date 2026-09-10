@@ -91,6 +91,8 @@ test('the manifest covers current source collections and stages consumers after 
 		['companies', 'employments'],
 		['employees', 'employments'],
 		['employment_terms', 'work_days'],
+		// A holiday now carries a company FK, so it stages after the entity that observes it.
+		['companies', 'jurisdiction_holidays'],
 		['jurisdiction_holidays', 'work_days'],
 		['work_days', 'leave_entries'],
 		['loans', 'loan_repayments']

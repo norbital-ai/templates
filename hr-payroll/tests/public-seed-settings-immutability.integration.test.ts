@@ -262,7 +262,7 @@ test(
 							action: 'create',
 							values: {
 								id,
-								jurisdiction_code: HOLIDAY.jurisdiction_code,
+								company_id: HOLIDAY.company_id,
 								date: `203${index}-01-01`,
 								name: 'Fixture holiday'
 							}

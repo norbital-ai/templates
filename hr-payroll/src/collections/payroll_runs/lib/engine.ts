@@ -138,13 +138,24 @@ export function gatherPayrollRun(options: {
 	readonly api: PayrollReadApi;
 	readonly companyId: string;
 	readonly period: string;
+	/**
+	 * The employments this run withholds. They are skipped before anything is read about them, so a
+	 * withheld person costs the run nothing and — crucially — cannot refuse it: the precheck and
+	 * every per-employment validation only see the people the run is actually paying.
+	 */
+	readonly withheld?: readonly string[];
 }): Effect.Effect<PreparedRun, never, never> {
 	return Effect.gen(function* () {
 		const api = withReadLog(options.api);
 		const t0 = yield* Clock.currentTimeMillis;
 		const { window, configuration } = yield* preparePayrollRun(options);
 		const pick = yield* Clock.currentTimeMillis;
-		const facts = yield* gatherRun({ api, configuration, window });
+		const facts = yield* gatherRun({
+			api,
+			configuration,
+			window,
+			withheld: options.withheld ?? []
+		});
 		const { configuration: preparedConfiguration, gathered } = finalizeFamilyConfiguration(
 			configuration,
 			facts,

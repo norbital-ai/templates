@@ -72,7 +72,10 @@
 	} from '../../../lib/ui/roster/roster-month.js';
 	import { patternRosterCodeId, termPattern } from '../../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
-	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../../lib/ui/roster/roster-month-board-filter.js';
+	import {
+		oilDecisionsOfMonth,
+		unresolvedClockOutEmploymentIds as openClockOutEmploymentIds
+	} from '../../../lib/ui/roster/roster-month-board-filter.js';
 	import {
 		MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS,
 		MONTH_BOARD_QUERY_LIMITS,
@@ -118,6 +121,8 @@
 	const swap = $state({ source: null as BoardCell | null });
 	/** Local-only eye filter: it narrows the already-loaded month facts and never issues a query. */
 	let unresolvedClockOutsOnly = $state(false);
+	/** The same kind of local eye, for the days a lieu decision is owed on. */
+	let oilDecisionsOnly = $state(false);
 	/**
 	 * Search and filter state in the same model every collection surface uses.
 	 *
@@ -445,19 +450,16 @@
 					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);
-	const calendarJurisdiction = $derived(
-		selectedSettingsCode == null
-			? null
-			: (settingsInForce(calendarSettingsQuery?.current ?? [], selectedSettingsCode, monthEnd)
-					?.jurisdiction_code ?? null)
-	);
+	// The calendar is the entity's. The settings lineage no longer decides which holidays a roster
+	// month shows — it could not tell two entities of one country apart — so the scope is the entity
+	// the page is already on.
 	const holidaysQuery = $derived(
-		calendarJurisdiction == null
+		selectedCompanyId == null
 			? null
 			: client.db.jurisdiction_holidays.findMany({
 					where: {
 						...approved,
-						jurisdiction_code: { eq: calendarJurisdiction },
+						company_id: { eq: selectedCompanyId },
 						date: { gte: monthStart, lte: monthEnd },
 						published_at: { isNotNull: true }
 					},
@@ -467,7 +469,7 @@
 	const calendarResolution = $derived(
 		holidayView({
 			settingsCount: calendarSettingsQuery?.current?.length,
-			jurisdiction: calendarJurisdiction,
+			jurisdiction: selectedCompanyId,
 			rows: holidaysQuery?.current,
 			start: monthStart,
 			end: monthEnd,
@@ -581,6 +583,14 @@
 		if (!unresolvedClockOutsOnly) return null;
 		return openClockOutEmploymentIds(facts.values());
 	});
+	/**
+	 * The month's pending time-off-in-lieu decisions.
+	 *
+	 * Derived from the same loaded facts, like the clock-out eye, and for the same reason: a
+	 * separate exception list would be a second place to read one month. The count is shown whether
+	 * or not the filter is on, because the point is that the decision stops being invisible.
+	 */
+	const oilDecisions = $derived(oilDecisionsOfMonth(facts.values(), workDays));
 	const boardPeople = $derived(
 		people.filter((person) => {
 			const term = boardQuery.search.toLowerCase();
@@ -592,6 +602,7 @@
 				!unresolvedClockOutEmploymentIds.has(person.id)
 			)
 				return false;
+			if (oilDecisionsOnly && !oilDecisions.employmentIds.has(person.id)) return false;
 			return (
 				boardQuery.filters.length === 0 ||
 				filteredWorkDaysQuery?.current === undefined ||
@@ -1048,6 +1059,19 @@
 				</Badge>
 			{/each}
 		{/if}
+		{#if oilDecisions.exceptions.length > 0 || oilDecisionsOnly}
+			<Button
+				size="sm"
+				variant={oilDecisionsOnly ? 'default' : 'outline'}
+				aria-pressed={oilDecisionsOnly}
+				onclick={() => (oilDecisionsOnly = !oilDecisionsOnly)}
+			>
+				<IconWrapper name="lucide:calendar-heart" class="size-3.5" />
+				{t('app.scheduling.oil_decisions', {
+					count: oilDecisions.exceptions.length.toLocaleString()
+				})}
+			</Button>
+		{/if}
 		<Button
 			size="sm"
 			variant={unresolvedClockOutsOnly ? 'default' : 'outline'}
@@ -1285,7 +1309,7 @@
 {/snippet}
 
 {#snippet holidays()}
-	{#if calendarJurisdiction != null}
+	{#if selectedCompanyId != null}
 		<CollectionTable
 			{client}
 			collection="jurisdiction_holidays"
@@ -1294,7 +1318,7 @@
 			features={{ create: false }}
 			query={{
 				where: {
-					jurisdiction_code: { eq: calendarJurisdiction },
+					company_id: { eq: selectedCompanyId },
 					date: { gte: monthStart, lte: monthEnd }
 				},
 				orderBy: { date: 'asc' }

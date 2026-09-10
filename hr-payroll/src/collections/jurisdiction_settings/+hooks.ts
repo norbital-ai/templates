@@ -7,8 +7,14 @@ import type { Hooks, WorkspaceRow } from './$types.js';
 
 /** The two columns a sealed version may still take: the void, once. */
 const VOID_COLUMNS = ['voided_at', 'void_reason'] as const;
-/** Operational configuration, not law: the holiday source may change under a sealed version. */
-const OPERATIONAL = ['holiday_source'] as const;
+/**
+ * Operational configuration a sealed version may still take.
+ *
+ * Empty: the one member was the Google holiday source, and holidays are the entity's now, so the
+ * source sits on `companies` where no seal governs it. Kept as the named exception so the next one
+ * has somewhere to go rather than being written inline.
+ */
+const OPERATIONAL = [] as const;
 /** Columns the runtime carries on every write and no rule reads. */
 const CARRIED = ['id', 'row_version'] as const;
 

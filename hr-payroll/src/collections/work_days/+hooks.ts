@@ -1288,29 +1288,35 @@ export default {
 					employments.map((employment) => [employment.id, employment.company_id])
 				);
 				const companyById = new Map(companies.map((company) => [company.id, company]));
+				/**
+				 * Holiday scope is the **entity**, and the settings version is only consulted for the
+				 * regime beside it.
+				 *
+				 * These three maps have to be keyed alike or the failure is silent: two entities in one
+				 * country sharing a jurisdiction bucket would each be classified against the other's
+				 * calendar and produce a perfectly plausible wrong answer. Keyed by company id they
+				 * cannot collide, and a scope with no prepared input still refuses loudly below.
+				 */
 				const scopeByDay = new Map<string, string>();
-				const datesByJurisdiction = new Map<string, string[]>();
+				const datesByCompany = new Map<string, string[]>();
 				for (const coordinate of coordinates) {
 					const company = companyById.get(companyByEmployment.get(coordinate.employment_id) ?? '');
 					const version = company
 						? settingsInForce(versions, company.settings_code, coordinate.work_date)
 						: null;
-					if (!version)
+					if (!company || !version)
 						refuse(
 							`No governing jurisdiction is configured for the workday on ${coordinate.work_date}.`
 						);
-					scopeByDay.set(
-						`${coordinate.employment_id}:${coordinate.work_date}`,
-						version.jurisdiction_code
-					);
-					const dates = datesByJurisdiction.get(version.jurisdiction_code) ?? [];
+					scopeByDay.set(`${coordinate.employment_id}:${coordinate.work_date}`, company.id);
+					const dates = datesByCompany.get(company.id) ?? [];
 					dates.push(coordinate.work_date);
-					datesByJurisdiction.set(version.jurisdiction_code, dates);
+					datesByCompany.set(company.id, dates);
 				}
 				const holidayByScope = new Map<string, PreparedHolidayInput>();
-				for (const [jurisdiction, dates] of datesByJurisdiction) {
-					for (const choice of (yield* prepareHolidayInputs(api, jurisdiction, dates)).inputs)
-						holidayByScope.set(`${jurisdiction}:${choice.date}`, choice);
+				for (const [companyId, dates] of datesByCompany) {
+					for (const choice of (yield* prepareHolidayInputs(api, companyId, dates)).inputs)
+						holidayByScope.set(`${companyId}:${choice.date}`, choice);
 				}
 				const holidayByDay = new Map<string, PreparedHolidayInput>();
 				for (const coordinate of coordinates) {

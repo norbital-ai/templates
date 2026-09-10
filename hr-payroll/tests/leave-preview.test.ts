@@ -92,7 +92,7 @@ test('observed holidays remain non-chargeable in a multi-day preview', () => {
 	const context = leaveContext();
 	context.holidays.push({
 		id: 'holiday-2026-04-16',
-		jurisdiction_code: 'TEST-JUR',
+		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-04-16',
 		name: 'Observed holiday',
 		original_date: null,

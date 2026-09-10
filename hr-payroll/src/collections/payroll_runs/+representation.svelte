@@ -87,7 +87,6 @@
 			limit: 10_000
 		})
 	);
-
 	/**
 	 * The entity the page is already scoped to. Every operator page here is scoped by the combobox
 	 * in its header, and this form asked for the same thing a second time — an operator who picked
@@ -100,6 +99,36 @@
 		if (scopedCompanyId != null && companyId !== scopedCompanyId) companyId = scopedCompanyId;
 	});
 	let period = $state<string | null>(null);
+
+	/**
+	 * The people this run would pay, so the operator can name the exceptions.
+	 *
+	 * The run's population is not assembled here — it is everyone eligible in the period, decided by
+	 * the engine — and this list exists only so a person can be *taken out* of it with a reason.
+	 * Offering it as a picker to build a run from would put back exactly the failure the withhold
+	 * exists to remove: somebody left off a list is indistinguishable from somebody forgotten.
+	 */
+	const employmentsQuery = $derived(
+		companyId == null
+			? null
+			: client.db.employments.findMany({
+					where: { company_id: { eq: companyId }, approval_id: { isNull: true } },
+					columns: { id: true, employee_number: true, exit_date: true },
+					orderBy: { employee_number: 'asc' },
+					limit: 10_000
+				})
+	);
+	/** `employment_id -> reason`; an entry exists only while the person is withheld. */
+	let withheld = $state<Record<string, string>>({});
+	const withholdings = $derived(
+		Object.entries(withheld).map(([employment_id, reason]) => ({ employment_id, reason }))
+	);
+	// A person can only be withheld from the entity the form is on, so changing entity clears them.
+	$effect(() => {
+		void companyId;
+		withheld = {};
+	});
+
 
 	const companies = $derived(companiesQuery.current ?? []);
 	// Every version of a lineage states the same currency; the first one read names it.
@@ -341,6 +370,9 @@
 				<Field name="company_id" hidden />
 				<Field name="period" hidden />
 				<Field name="lifecycle" hidden />
+				<!-- Declared unconditionally: the form must state every mutable field exactly once,
+				     and the withhold section below only renders once an entity has been chosen. -->
+				<Field name="withheld" hidden />
 				<Stack gap="lg">
 					<Grid gap="md" minimum="compact">
 						{#if scopedCompanyId != null}
@@ -431,6 +463,48 @@
 								</dd>
 							</Stack>
 						</Grid>
+					{/if}
+					{#if companyId != null && (employmentsQuery?.current ?? []).length > 0}
+						<Stack gap="sm">
+							<Stack gap="xs">
+								<span class="text-meta">{t('component.withhold_section')}</span>
+								<span class="text-sm text-muted-foreground">
+									{t('component.withhold_hint')}
+								</span>
+							</Stack>
+							<Stack gap="xs" class="max-h-64 overflow-y-auto">
+								{#each employmentsQuery?.current ?? [] as employment (employment.id)}
+									{@const held = employment.id in withheld}
+									<Cluster gap="sm" align="center">
+										<label class="flex items-center gap-2 text-sm">
+											<input
+												type="checkbox"
+												checked={held}
+												onchange={(event) => {
+													const { [employment.id]: _dropped, ...rest } = withheld;
+													withheld = event.currentTarget.checked
+														? { ...rest, [employment.id]: '' }
+														: rest;
+													form.setValues({ withheld: withholdings });
+												}}
+											/>
+											<span class="tabular-nums">{employment.employee_number}</span>
+										</label>
+										{#if held}
+											<input
+												class="min-w-0 grow rounded-md border border-input bg-background px-2 py-1 text-sm"
+												placeholder={t('component.withhold_reason')}
+												value={withheld[employment.id]}
+												oninput={(event) => {
+													withheld = { ...withheld, [employment.id]: event.currentTarget.value };
+													form.setValues({ withheld: withholdings });
+												}}
+											/>
+										{/if}
+									</Cluster>
+								{/each}
+							</Stack>
+						</Stack>
 					{/if}
 					<p class="text-sm text-muted-foreground">
 						{t('component.create_run_hint')}

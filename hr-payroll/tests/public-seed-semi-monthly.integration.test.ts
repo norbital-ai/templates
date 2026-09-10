@@ -209,9 +209,9 @@ test(
 			);
 			assert.equal(Number(firstSlips[0]?.gross), 2196.43, '4,100 × 15 / 28');
 
-			// The second half waits for the first to be paid, exactly as March waits for February.
-			const early = await createRun(crypto.randomUUID(), '2026-02-2');
-			assert.match(JSON.stringify(early.value), /2026-02-1 is still a draft/);
+			// The second half no longer waits for the first to be paid: a standing draft used to
+			// refuse the next period outright, so one person's correction froze everybody's next
+			// payroll. What stays ordered is payment, which is what the mark-paid below proves.
 			requireAccepted(
 				(
 					await command(

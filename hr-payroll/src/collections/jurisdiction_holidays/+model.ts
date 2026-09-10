@@ -1,9 +1,17 @@
-import { defineModel, enums, instant, text } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
-		jurisdiction_code: text().notNull(),
-		/** The day observed. One row per jurisdiction and day. */
+		/**
+		 * The entity that observes this day.
+		 *
+		 * Holidays are the employer's, not the country's. Two entities in one jurisdiction keep
+		 * different calendars — a factory takes its state's gazetted days, the office beside it takes
+		 * the federal ones — and there is no per-jurisdiction holiday concept to reconcile them
+		 * against. The FK is declared in `+relationship.ts`, as every FK here is.
+		 */
+		company_id: uuid().notNull(),
+		/** The day observed. One row per entity and day. */
 		date: instant({ precision: 'day' }).notNull(),
 		name: text({ search: true }).notNull(),
 		/**
@@ -29,11 +37,11 @@ export default defineModel(
 	},
 	{
 		description:
-			'One observed public holiday of one jurisdiction on one day. Published individually; a row a payroll run captured or a work day pins is frozen. Imported from a spreadsheet or a Google holiday calendar, or entered by hand.',
+			'One observed public holiday of one legal entity on one day. Published individually; a row a payroll run captured or a work day pins is frozen. Imported from a spreadsheet or a Google holiday calendar, or entered by hand.',
 		recordLabel: ['date', 'name'],
 		icon: 'lucide:calendar-x',
 		indexes: [
-			{ columns: ['jurisdiction_code', 'date'], unique: true },
+			{ columns: ['company_id', 'date'], unique: true },
 			{ columns: ['published_at'] }
 		]
 	}

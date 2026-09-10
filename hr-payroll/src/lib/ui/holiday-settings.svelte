@@ -9,7 +9,7 @@
 	import { Effect } from 'effect';
 	import { setContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { HOLIDAY_JURISDICTION } from '../holiday-scope.js';
+	import { HOLIDAY_COMPANY } from '../holiday-scope.js';
 	import { holidayImportPayload } from '../holiday-workbook.js';
 	import { runWorkbookImport } from './workbook-import.js';
 	import { importCollectionRecords } from '@norbital-ai/bolt/client';
@@ -17,20 +17,28 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 
 	/**
-	 * One table, one jurisdiction: the holidays themselves, each published on its own. Create,
-	 * search and filter are the table's; publishing is a bulk operation over the rows a person
-	 * selected, and the spreadsheet import a pipeline — both go through the collection's own
-	 * import handler, so no write is made from the browser. The Google calendar set under General
-	 * comes through the same dedupe, so a day the jurisdiction already has is never duplicated.
-	 * A holiday a payroll run captured is frozen; unpublishing or deleting one is refused while a
-	 * run holds it, and the pinning work days are re-saved first otherwise. Published is the status
-	 * column.
+	 * One table, one entity, one year: the holidays themselves, each published on its own.
+	 *
+	 * Holidays belong to the employer, not the country — two entities in one jurisdiction keep
+	 * different calendars — so the table is entity-scoped and its Google source is the entity's.
+	 * The year is a page rather than a filter: a calendar is maintained a year at a time, and a
+	 * table showing every year at once is a table nobody can check against a gazette.
+	 *
+	 * Create, search and filter are the table's; publishing is a bulk operation over the rows a
+	 * person selected, and the spreadsheet import a pipeline — both go through the collection's own
+	 * import handler, so no write is made from the browser. The Google calendar set on the entity
+	 * comes through the same dedupe, so a day the entity already has is never duplicated. A holiday
+	 * a payroll run captured is frozen; unpublishing or deleting one is refused while a run holds
+	 * it, and the pinning work days are re-saved first otherwise. Published is the status column.
 	 */
-	let { version }: { version: WorkspaceRow<'jurisdiction_settings'> } = $props();
-	const jurisdictionCode = $derived(version.jurisdiction_code);
+	let { company }: { company: WorkspaceRow<'companies'> } = $props();
+	const companyId = $derived(company.id);
 	const { t } = useI18n<TenantI18nKeys>();
-	// The create form opened from this table starts on this jurisdiction.
-	setContext(HOLIDAY_JURISDICTION, () => jurisdictionCode);
+	// The create form opened from this table starts on this entity.
+	setContext(HOLIDAY_COMPANY, () => companyId);
+
+	let year = $state(new Date().getFullYear());
+	const yearRange = $derived({ start: `${year}-01-01`, end: `${year}-12-31` });
 
 	type Holiday = WorkspaceRow<'jurisdiction_holidays'>;
 	/**
@@ -87,8 +95,28 @@
 			: message;
 </script>
 
+{#snippet yearPager()}
+	<!-- The year is a page: `< 2026 >`. A calendar is maintained a year at a time. -->
+	<Cluster gap="xs" align="center">
+		<Button
+			variant="outline"
+			size="sm"
+			aria-label={t('holiday_calendar.previous_year')}
+			onclick={() => (year -= 1)}>‹</Button
+		>
+		<span class="min-w-14 text-center text-sm font-medium tabular-nums">{year}</span>
+		<Button
+			variant="outline"
+			size="sm"
+			aria-label={t('holiday_calendar.next_year')}
+			onclick={() => (year += 1)}>›</Button
+		>
+	</Cluster>
+{/snippet}
+
 {#snippet googleImport()}
 	<Cluster align="center" gap="sm">
+		{@render yearPager()}
 		<Button
 			size="sm"
 			variant="outline"
@@ -100,8 +128,8 @@
 				latestRun = undefined;
 				try {
 					latestRun = await client.automations.holiday_import.run({
-						jurisdiction_code: jurisdictionCode,
-						year: new Date().getFullYear() + 1
+						company_id: companyId,
+						year
 					});
 				} catch (cause) {
 					importNote = keyUnset(getErrorMessage(cause));
@@ -132,8 +160,12 @@
 		title={t('app.settings.holidays')}
 		description={t('holiday_calendar.description')}
 		query={{
-			where: { jurisdiction_code: { eq: jurisdictionCode }, approval_id: { isNull: true } },
-			orderBy: { date: 'desc' }
+			where: {
+				company_id: { eq: companyId },
+				date: { gte: yearRange.start, lte: yearRange.end },
+				approval_id: { isNull: true }
+			},
+			orderBy: { date: 'asc' }
 		}}
 		bulkPipelines={[
 			{

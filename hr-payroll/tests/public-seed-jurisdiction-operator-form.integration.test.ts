@@ -81,8 +81,7 @@ test(
 					'voided_at',
 					'void_reason',
 					'cloned_from_id',
-					'research_notes',
-					'holiday_source'
+					'research_notes'
 				]
 			);
 			assert.deepEqual(

@@ -52,9 +52,9 @@ export function measureLeaveDay(
 	entries: readonly LeaveActivity[]
 ) {
 	const settings = rules.settingsOn(date);
-	const resolved = resolveHolidays(context.holidays, settings.jurisdiction_code, date, date);
+	const resolved = resolveHolidays(context.holidays, rules.company.id, date, date);
 	const evidence = {
-		jurisdiction_code: settings.jurisdiction_code,
+		company_id: rules.company.id,
 		date,
 		holiday_id: resolved.get(date)?.id ?? null
 	};
