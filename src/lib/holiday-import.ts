@@ -14,16 +14,17 @@ type GoogleHolidayEvent = {
 };
 
 type HolidaySource = {
-	readonly jurisdiction_code: string;
+	readonly company_id: string;
+	readonly company_name: string;
 	readonly calendar_id: string;
 	readonly time_zone: string;
 };
 
-type SourceVersion = {
-	readonly jurisdiction_code: string;
-	readonly sealed_at: string | null;
-	readonly voided_at: string | null;
-	readonly effective_range: unknown;
+/** What `holidaySources` reads off an entity: its own configured source, and its lineage code. */
+type SourceCompany = {
+	readonly id: string;
+	readonly name: string;
+	readonly settings_code: string;
 	readonly holiday_source: {
 		readonly calendar_id: string;
 		readonly time_zone: string;
@@ -32,18 +33,16 @@ type SourceVersion = {
 };
 
 /**
- * One Google source per jurisdiction, read off its settings versions: the sealed, unvoided version
- * with the latest start wins, then the latest draft. A named jurisdiction is imported whether or
- * not its source is enabled; the yearly job takes only enabled ones.
- */
-/**
- * Google's own public holiday calendars, one per jurisdiction this template ships settings for.
+ * Google's own public holiday calendars, one per country this template ships settings for.
  *
- * A jurisdiction with no source configured under General reads these, so the API key alone is
- * enough to import; a configured source replaces the default, and the scheduled job only runs
- * the sources a person enabled.
+ * This is the one place a country legitimately survives the move to entity-owned holidays: an
+ * entity with no source configured of its own falls back to the public calendar of the country its
+ * settings lineage names, so an API key alone is enough to import. A configured source replaces the
+ * default, and the scheduled job runs only the sources a person enabled.
  */
-const DEFAULT_SOURCES: Readonly<Record<string, Omit<HolidaySource, 'jurisdiction_code'>>> = {
+const DEFAULT_SOURCES: Readonly<
+	Record<string, Omit<HolidaySource, 'company_id' | 'company_name'>>
+> = {
 	ID: {
 		calendar_id: 'en.indonesian#holiday@group.v.calendar.google.com',
 		time_zone: 'Asia/Jakarta'
@@ -67,56 +66,55 @@ const DEFAULT_SOURCES: Readonly<Record<string, Omit<HolidaySource, 'jurisdiction
 	}
 };
 
+/** The country half of a settings lineage code: `MY` from `MY`, and `SG` from `SG-norbital`. */
+const countryOfLineage = (settingsCode: string): string => settingsCode.split('-')[0] ?? '';
+
+/**
+ * One Google source per entity.
+ *
+ * There is no sealed/voided/effective ranking any more: a source used to live on a settings
+ * version, which is law and has a timeline, and the reader had to pick which version's source was
+ * in force. It lives on the entity now, which has exactly one. A named entity is imported whether
+ * or not its source is enabled; the yearly job takes only enabled ones.
+ */
 export function holidaySources(
-	versions: readonly SourceVersion[],
-	jurisdictionCode?: string
+	companies: readonly SourceCompany[],
+	companyId?: string
 ): HolidaySource[] {
-	const start = (row: SourceVersion) =>
-		String((row.effective_range as { start?: unknown } | null)?.start ?? '');
-	const rank = (row: SourceVersion) =>
-		`${row.sealed_at != null && row.voided_at == null ? 1 : 0}:${start(row)}`;
-	const byJurisdiction = new Map<string, SourceVersion>();
-	for (const row of versions) {
-		if (row.holiday_source == null) continue;
-		if (
-			jurisdictionCode == null
-				? !row.holiday_source.enabled
-				: row.jurisdiction_code !== jurisdictionCode
-		)
-			continue;
-		const held = byJurisdiction.get(row.jurisdiction_code);
-		if (held == null || rank(row) > rank(held)) byJurisdiction.set(row.jurisdiction_code, row);
-	}
-	const configured = [...byJurisdiction.values()].map((row) => ({
-		jurisdiction_code: row.jurisdiction_code,
-		calendar_id: row.holiday_source!.calendar_id,
-		time_zone: row.holiday_source!.time_zone
+	const named = companyId == null ? companies : companies.filter((row) => row.id === companyId);
+	const configured = named
+		.filter((row) => row.holiday_source != null && (companyId != null || row.holiday_source.enabled))
+		.map((row) => ({
+			company_id: row.id,
+			company_name: row.name,
+			calendar_id: row.holiday_source!.calendar_id,
+			time_zone: row.holiday_source!.time_zone
+		}));
+	// A named entity with nothing configured falls back to the public calendar of its country.
+	const fallbackFor = named.filter(
+		(row) =>
+			companyId != null &&
+			row.holiday_source == null &&
+			DEFAULT_SOURCES[countryOfLineage(row.settings_code)] !== undefined
+	);
+	const fallback = fallbackFor.map((row) => ({
+		company_id: row.id,
+		company_name: row.name,
+		...DEFAULT_SOURCES[countryOfLineage(row.settings_code)]!
 	}));
-	// A named jurisdiction with nothing configured falls back to Google's own calendar for it.
-	const fallback =
-		jurisdictionCode != null &&
-		configured.length === 0 &&
-		DEFAULT_SOURCES[jurisdictionCode] !== undefined &&
-		versions.some((row) => row.jurisdiction_code === jurisdictionCode)
-			? [{ jurisdiction_code: jurisdictionCode, ...DEFAULT_SOURCES[jurisdictionCode]! }]
-			: [];
 	return [...configured, ...fallback].toSorted((a, b) =>
-		a.jurisdiction_code.localeCompare(b.jurisdiction_code)
+		a.company_name.localeCompare(b.company_name)
 	);
 }
 
 export function validateHolidaySource(source: HolidaySource): void {
-	if (
-		!source.jurisdiction_code.trim() ||
-		source.jurisdiction_code !== source.jurisdiction_code.trim()
-	)
-		refuse('Enter a jurisdiction code without surrounding whitespace.');
+	if (!source.company_id.trim()) refuse('A holiday source needs the entity it belongs to.');
 	if (!source.calendar_id.trim() || source.calendar_id !== source.calendar_id.trim())
 		refuse('Enter a Google calendar identifier without surrounding whitespace.');
 	try {
 		new Intl.DateTimeFormat('en', { timeZone: source.time_zone });
 	} catch {
-		refuse('Enter a valid IANA time zone for this jurisdiction.');
+		refuse('Enter a valid IANA time zone for this entity.');
 	}
 	if (!source.time_zone.trim() || /^[+-]/.test(source.time_zone))
 		refuse('Enter an IANA time zone, not a fixed UTC offset.');
@@ -220,14 +218,14 @@ export const readGoogleHolidayYear = (
  * nothing; what it once added stays a person's decision to keep or delete.
  */
 export function googleHolidayRows(
-	jurisdictionCode: string,
+	companyId: string,
 	events: readonly GoogleHolidayEvent[]
 ): HolidayImportRow[] {
 	return events
 		.filter((event) => !event.cancelled)
 		.flatMap((event) =>
 			event.dates.map((date) => ({
-				jurisdiction_code: jurisdictionCode,
+				company_id: companyId,
 				date,
 				name: event.name,
 				original_date: null,

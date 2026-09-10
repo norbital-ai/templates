@@ -204,7 +204,7 @@ export function pickConfiguration(
 		const { catalogueComponents, contributions } = familyConfiguration;
 		const holidayRows = yield* db.jurisdiction_holidays.findMany({
 			where: {
-				jurisdiction_code: { eq: jurisdiction.jurisdiction_code },
+				company_id: { eq: company.id },
 				date: { gte: windowStart, lte: windowEnd },
 				published_at: { isNotNull: true },
 				...approved
@@ -220,7 +220,7 @@ export function pickConfiguration(
 			}
 		const resolvedCalendar = resolveHolidayInputs(
 			live(holidayRows),
-			jurisdiction.jurisdiction_code,
+			company.id,
 			daysBetween(windowStart, windowEnd)
 		);
 
@@ -299,8 +299,8 @@ export function configurationSnapshot(
 		},
 		// The holidays read stay in the run's immutable snapshot. Only classified dates affect
 		// arithmetic identity; a holiday published later for another period changes nothing here.
-		holiday_inputs: configuration.holidayInputs.map(({ jurisdiction_code, date }) => ({
-			jurisdiction_code,
+		holiday_inputs: configuration.holidayInputs.map(({ company_id, date }) => ({
+			company_id,
 			date,
 			observation: configuration.holidays.get(date) ?? null
 		})),

@@ -5,7 +5,7 @@ import { dateKey } from '../../lib/iso-day.js';
 import type { Hooks } from './$types.js';
 
 /** The identity a pin or a run snapshot points at: what a retraction must not move. */
-const IDENTITY = ['jurisdiction_code', 'date'] as const;
+const IDENTITY = ['company_id', 'date'] as const;
 const QUERY_LIMIT = 20_000;
 
 type HolidaySnapshotLike = { readonly id: string };
@@ -35,12 +35,12 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'A holiday needs a jurisdiction, a valid day and a name; retracting one (unpublish, or moving its day or jurisdiction) is refused while a payroll run captured it or a work day pins it — otherwise the pinning days are re-saved and re-classified.',
+					'A holiday needs a jurisdiction, a valid day and a name; retracting one (unpublish, or moving its day or entity) is refused while a payroll run captured it or a work day pins it — otherwise the pinning days are re-saved and re-classified.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
-						if (!String(row.jurisdiction_code ?? '').trim())
-							refuse('A holiday needs a jurisdiction.');
+						if (!String(row.company_id ?? '').trim())
+							refuse('A holiday needs the entity that observes it.');
 						if (row.date == null || !isCalendarDate(dateKey(row.date)))
 							refuse('A holiday needs a valid calendar day.');
 						if (!String(row.name ?? '').trim()) refuse('A holiday needs a name.');
@@ -65,7 +65,7 @@ export default {
 						refuseIfCaptured(
 							capturing(runs, existing.id),
 							date,
-							unpublishing ? 'be unpublished' : 'move its day or jurisdiction'
+							unpublishing ? 'be unpublished' : 'move its day or entity'
 						);
 						const pins = yield* api.db.work_days.findMany({
 							where: { holiday_id: { eq: existing.id } },

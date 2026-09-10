@@ -25,10 +25,9 @@
 				"loan_catalogue",
 				"claim_catalogue",
 				"allowance_catalogue",
-				"payment_catalogue",
-				"jurisdiction_holidays"
+				"payment_catalogue"
 			],
-			["employees", "shift_definitions"],
+			["employees", "shift_definitions", "jurisdiction_holidays"],
 			["shift_patterns"],
 			["employments"],
 			["employment_statutory_facts", "employment_terms"],

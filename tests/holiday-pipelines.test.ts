@@ -19,17 +19,28 @@ import { Effect } from 'effect';
 import holidayHooks from '../src/collections/jurisdiction_holidays/+hooks.ts';
 import holidayPipelines from '../src/collections/jurisdiction_holidays/+pipelines.ts';
 
-/** A read-only api whose holidays table holds exactly the days the jurisdiction already has. */
-const api = (existing: ReadonlyArray<{ jurisdiction_code: string; date: string }> = []) =>
-	({ db: { jurisdiction_holidays: { findMany: () => Effect.succeed(existing) } } }) as never;
+/** The one entity the sheet may name, and the days it already has. */
+const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
+const api = (existing: ReadonlyArray<{ company_id: string; date: string }> = []) =>
+	({
+		db: {
+			companies: {
+				findMany: () =>
+					Effect.succeed([
+						{ id: COMPANY_ID, name: 'Public Fixture Co', registration_number: 'PUB-CO-0001' }
+					])
+			},
+			jurisdiction_holidays: { findMany: () => Effect.succeed(existing) }
+		}
+	}) as never;
 
 const runImport = (
 	input: unknown,
-	existing?: ReadonlyArray<{ jurisdiction_code: string; date: string }>
+	existing?: ReadonlyArray<{ company_id: string; date: string }>
 ) => Effect.runPromise(holidayPipelines.import.handler({ input }, api(existing)));
 
-const row = (date: string, name = 'Festival', jurisdiction_code = 'MY') => ({
-	jurisdiction_code,
+const row = (date: string, name = 'Festival', legal_entity = 'Public Fixture Co') => ({
+	legal_entity,
 	date,
 	name,
 	original_date: null,
@@ -63,13 +74,13 @@ test('unpublishing the selected rows answers the same rows with no stamp', async
 	assert.deepEqual(await runImport({ publish: [], published: true }), []);
 });
 
-test('the spreadsheet arm still skips a day the jurisdiction already has', async () => {
+test('the spreadsheet arm still skips a day the entity already has', async () => {
 	const answered = await runImport({ rows: [row('2027-01-01'), row('2027-02-01', 'New day')] }, [
-		{ jurisdiction_code: 'MY', date: '2027-01-01' }
+		{ company_id: COMPANY_ID, date: '2027-01-01' }
 	]);
 	assert.deepEqual(
-		answered.map((written) => [written.jurisdiction_code, written.date, written.name]),
-		[['MY', '2027-02-01', 'New day']],
+		answered.map((written) => [written.company_id, written.date, written.name]),
+		[[COMPANY_ID, '2027-02-01', 'New day']],
 		'the day already held is skipped, never duplicated or overwritten'
 	);
 	// An imported row arrives unpublished and names where it came from: an import proposes.
@@ -91,7 +102,7 @@ test('a document that is neither a spreadsheet nor a publication is refused', as
  */
 const holiday = {
 	id: 'festival',
-	jurisdiction_code: 'TEST',
+	company_id: 'TEST',
 	date: '2027-01-01',
 	name: 'Festival',
 	original_date: null,

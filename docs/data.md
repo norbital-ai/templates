@@ -7,7 +7,7 @@ flowchart LR
   RAW["Original source evidence"] --> CLEAN["Normalised source records"]
   CLEAN --> REVIEW["Verify contract identity and input evidence"]
   REVIEW --> INPUT["Family catalogues and approved entries"]
-  HOLIDAY["Published jurisdiction holidays"] --> RUN
+  HOLIDAY["The entity's published holidays"] --> RUN
   INPUT --> RUN["One regular run per entity and period"]
   RUN --> OUT["One payslip per employment contract"]
   OUT --> EXPORT["Generated workbook"]
@@ -120,11 +120,14 @@ can change within a year. Distinguish missing policy on an actual activity date 
 future year-end valuation. Do not invent opening adjustments or carry-forward credits merely to
 make an old usage total fit a formula.
 
-Holidays are standalone jurisdiction rows, one per observed day, each published on its own, with a
-`kind` (`PUBLIC`, `SPECIAL`, `SUBSTITUTE`) the run classifies the day by and freezes with it.
-Company closures and personal roster labels do not establish jurisdiction-observed holidays.
-Imported rows keep their provenance and arrive unpublished; every bank holiday is unpublished
-pending review, and an unpublished holiday is not observed anywhere.
+Holidays are standalone **entity** rows — `unique(company_id, date)` — one per observed day, each
+published on its own, with a `kind` (`PUBLIC`, `SPECIAL`, `SUBSTITUTE`) the run classifies the day
+by and freezes with it. There is no per-jurisdiction holiday concept: two entities in one country
+keep different calendars, and the seed bank carries each entity's own rows under
+`records/<entity>/jurisdiction_holidays.json` rather than under `statutory/<lineage>/`. Company
+closures and personal roster labels do not establish observed holidays. Imported rows keep their
+provenance and arrive unpublished; every bank holiday is unpublished pending review, and an
+unpublished holiday is not observed anywhere.
 
 A Work day classified as a holiday pins it (`work_days.holiday_id`), each Leave charge carries the
 `holiday_id` that excluded its day when one did, and a run captures the holidays it read

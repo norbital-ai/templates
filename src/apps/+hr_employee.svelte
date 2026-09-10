@@ -391,22 +391,16 @@
 					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);
-	const scheduleCalendarJurisdiction = $derived(
-		activeSettingsCode == null
-			? null
-			: (settingsInForce(
-					scheduleCalendarSettingsQuery?.current ?? [],
-					activeSettingsCode,
-					scheduleMonthEnd
-				)?.jurisdiction_code ?? null)
-	);
+	// The calendar is the employing entity's, which the active employment already names — not the
+	// settings lineage's, which cannot tell two entities of one country apart.
+	const scheduleCalendarCompanyId = $derived(activeEmployment?.company_id ?? null);
 	const scheduleHolidaysQuery = $derived(
-		scheduleCalendarJurisdiction == null
+		scheduleCalendarCompanyId == null
 			? null
 			: client.db.jurisdiction_holidays.findMany({
 					where: {
 						...approved,
-						jurisdiction_code: { eq: scheduleCalendarJurisdiction },
+						company_id: { eq: scheduleCalendarCompanyId },
 						date: { gte: scheduleMonthStart, lte: scheduleMonthEnd },
 						published_at: { isNotNull: true }
 					},
@@ -416,7 +410,7 @@
 	const scheduleCalendarResolution = $derived(
 		holidayView({
 			settingsCount: scheduleCalendarSettingsQuery?.current?.length,
-			jurisdiction: scheduleCalendarJurisdiction,
+			jurisdiction: scheduleCalendarCompanyId,
 			rows: scheduleHolidaysQuery?.current,
 			start: scheduleMonthStart,
 			end: scheduleMonthEnd,

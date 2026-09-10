@@ -32,13 +32,15 @@ test('the company form is name, registration, settings lineage, cutoff day, pay 
 	const form = source('../src/collections/companies/+representation.svelte');
 	assert.deepEqual(fieldNames(form), [
 		'effective_range',
+		'holiday_source',
 		'name',
 		'pay_cutoff_day',
 		'pay_frequency',
 		'region',
 		'registration_number',
 		'risk_class',
-		'settings_code'
+		'settings_code',
+		'workbook_layout'
 	]);
 	for (const gone of [
 		'jurisdiction_id',
@@ -74,7 +76,6 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'code',
 		'currency',
 		'effective_range',
-		'holiday_source',
 		'jurisdiction_code',
 		'minimum_wages',
 		'name',
@@ -90,8 +91,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'voided_at',
 		'void_reason',
 		'cloned_from_id',
-		'research_notes',
-		'holiday_source'
+		'research_notes'
 	])
 		assert.match(form, new RegExp(`<Field name="${hidden}" hidden />`), `${hidden} is hidden`);
 	assert.match(form, /disabled=\{sealed\}/, 'a sealed version renders read-only');
@@ -128,19 +128,24 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		assert.deepEqual(registrations(snippet(settings, tab!)), [], tab);
 		assert.match(snippet(settings, tab!), new RegExp(`catalogueTable\\(\\s*'${collection}'`));
 	}
-	assert.match(snippet(settings, 'holidays'), /<HolidaySettings version=\{selectedVersion\}/);
-	// The Holidays tab is one table over the jurisdiction's holidays; its imports are pipelines.
+	// Holidays are the entity's, so the Settings app — which is scoped by jurisdiction lineage —
+	// carries no Holidays tab at all. Both surfaces live on the entity representation.
+	assert.equal(settings.includes('HolidaySettings'), false, 'holidays left the Settings app');
+	assert.equal(settings.includes('HolidaySourceForm'), false, 'so did the entity’s Google source');
+	const entity = source('../src/collections/companies/+representation.svelte');
+	assert.match(entity, /<HolidaySettings company=\{record!\}/);
+	assert.match(entity, /<HolidaySourceForm company=\{record!\}/);
+	// The Holidays tab is one table over the entity's holidays, a year at a time; imports are pipelines.
 	const holidays = source('../src/lib/ui/holiday-settings.svelte');
 	assert.deepEqual(registrations(holidays), ['CollectionTable']);
-	assert.match(holidays, /jurisdiction_code: \{ eq: jurisdictionCode \}/);
-	// The source is the version's own column, set under General as a form over the version.
-	assert.match(snippet(settings, 'payroll'), /<HolidaySourceForm version=\{selectedVersion\}/);
+	assert.match(holidays, /company_id: \{ eq: companyId \}/);
+	assert.match(holidays, /date: \{ gte: yearRange\.start, lte: yearRange\.end \}/);
 	const sourceForm = source('../src/lib/ui/holiday-source-form.svelte');
 	assert.deepEqual(registrations(sourceForm), []);
-	// One-column write, like the seal: a whole-row form would carry sealed_at into approval.
+	// One-column write: a whole-row entity form would carry the effective range and pay calendar.
 	assert.match(
 		sourceForm,
-		/client\.db\.jurisdiction_settings\.mutate\(\[\{ id: version\.id, holiday_source: sourceDraft \}\]\)/
+		/client\.db\.companies\.mutate\(\[\{ id: company\.id, holiday_source: sourceDraft \}\]\)/
 	);
 	assert.deepEqual(
 		registrations(snippet(settings, 'payroll')),

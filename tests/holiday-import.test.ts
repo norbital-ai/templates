@@ -9,7 +9,7 @@ import {
 } from '../src/lib/holiday-import.ts';
 
 const source = {
-	jurisdiction_code: 'TEST',
+	company_id: 'TEST',
 	calendar_id: 'test#holiday@group.v.calendar.google.com',
 	time_zone: 'Asia/Singapore'
 };
@@ -140,6 +140,6 @@ test('a Google year proposes one row per live day, and a cancelled event propose
 		]
 	);
 	assert.ok(
-		rows.every((row) => row.jurisdiction_code === 'TEST' && row.source?.includes('/events/'))
+		rows.every((row) => row.company_id === 'TEST' && row.source?.includes('/events/'))
 	);
 });

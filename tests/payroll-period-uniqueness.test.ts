@@ -12,10 +12,12 @@ test('a company cannot create a second payroll for a draft or paid period', () =
 		);
 });
 
-test('the next regular period requires prior settlement and cannot backfill an older run', () => {
-	assert.throws(
-		() => assertPayrollPeriodAvailable([{ period: '2026-01', lifecycle: 'DRAFT' }], '2026-02'),
-		/still a draft/
+test('the next regular period may stand on an unsettled one, and cannot backfill an older run', () => {
+	// A standing draft used to refuse the next period outright, so one person's correction froze
+	// the whole company's next payroll. Runs may now stand in order unpaid; what stays ordered is
+	// payment and deletion.
+	assert.doesNotThrow(() =>
+		assertPayrollPeriodAvailable([{ period: '2026-01', lifecycle: 'DRAFT' }], '2026-02')
 	);
 	assert.throws(
 		() => assertPayrollPeriodAvailable([{ period: '2026-02', lifecycle: 'PAID' }], '2026-01'),

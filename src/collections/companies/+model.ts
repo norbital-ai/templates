@@ -40,6 +40,14 @@ export default defineModel(
 		 */
 		region: text(),
 		/**
+		 * The Google holiday calendar this entity's annual holiday drafts are read from.
+		 *
+		 * Operational, not law, and the entity's rather than the jurisdiction's: two entities in one
+		 * country keep different calendars, so the source that fills them cannot be one per country.
+		 * The annual import iterates entities and reads this.
+		 */
+		holiday_source: custom('holiday_source'),
+		/**
 		 * Which payroll workbook this entity hands out, by name.
 		 *
 		 * `MATRIX` is the catalogue-driven sheet every export carries: one column per catalogue

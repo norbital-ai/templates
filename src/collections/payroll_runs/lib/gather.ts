@@ -173,11 +173,14 @@ type GatherRunOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
+	/** The employments this run withholds; they are dropped before anything is read about them. */
+	readonly withheld?: readonly string[];
 };
 
 export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun, never, never> {
 	return Effect.gen(function* () {
 		const { window } = options;
+		const withheld = new Set(options.withheld ?? []);
 		const period = window.period;
 		const salary = window.salary;
 		const db = options.api.db;
@@ -189,7 +192,13 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				where: { company_id: { eq: companyId }, ...approved },
 				limit: PAGE_LIMIT
 			})
-		).map(resolveEmployment);
+		)
+			.map(resolveEmployment)
+			// Withheld before anything else reads them. A run covers everyone eligible; a person the
+			// operator withheld is the stated exception, and skipping them here — rather than
+			// dropping their payslip later — is what stops one person's missing roster from refusing
+			// the whole company.
+			.filter((row) => !withheld.has(row.id));
 		options.api.reads.assertComplete(employmentRows, 'employments');
 
 		const begun = employmentRows.filter((row) => employmentDates(row).hire <= salary.end);

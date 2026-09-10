@@ -4,11 +4,17 @@ import { Effect } from 'effect';
 import { runHolidayImport } from '../src/automations/+holiday_import.ts';
 import { holidaySources } from '../src/lib/holiday-import.ts';
 
-const version = {
-	jurisdiction_code: 'TEST',
-	sealed_at: '2025-01-01T00:00:00.000Z',
-	voided_at: null,
-	effective_range: { start: '2025-01-01T00:00:00.000Z', end: null },
+/**
+ * The source is the entity's, not a settings version's.
+ *
+ * It used to hang off `jurisdiction_settings` and the reader had to rank sealed/voided/effective
+ * versions to decide which one's source was in force. An entity has exactly one, and two entities
+ * in a country each get their own read — which is the point of an entity-owned calendar.
+ */
+const company = {
+	id: '11111111-1111-4111-8111-111111111111',
+	name: 'Public Fixture Co',
+	settings_code: 'TEST',
 	holiday_source: { calendar_id: 'public-holidays', time_zone: 'Asia/Singapore', enabled: true }
 };
 const event = (id: string, date: string, next: string, summary = 'Festival') => ({
@@ -21,7 +27,7 @@ const event = (id: string, date: string, next: string, summary = 'Festival') => 
 
 const harness = (
 	pages: ReadonlyArray<unknown>,
-	existing: ReadonlyArray<{ jurisdiction_code: string; date: string }> = []
+	existing: ReadonlyArray<{ company_id: string; date: string }> = []
 ) => {
 	const calls: string[] = [];
 	const writes: Record<string, unknown>[] = [];
@@ -36,7 +42,7 @@ const harness = (
 			}
 		},
 		db: {
-			jurisdiction_settings: { findMany: () => Effect.succeed([version]) },
+			companies: { findMany: () => Effect.succeed([company]) },
 			jurisdiction_holidays: {
 				findMany: () => Effect.succeed(existing),
 				mutate: (rows: Record<string, unknown>[]) =>
@@ -49,7 +55,7 @@ const harness = (
 	return { api, calls, writes };
 };
 
-test('the annual job reads every page, adds the days the jurisdiction lacks, and never publishes', async () => {
+test('the annual job reads every page, adds the days the entity lacks, and never publishes', async () => {
 	const { api, calls, writes } = harness(
 		[
 			{ kind: 'calendar#events', items: [], nextPageToken: '1' },
@@ -62,10 +68,10 @@ test('the annual job reads every page, adds the days the jurisdiction lacks, and
 				]
 			}
 		],
-		[{ jurisdiction_code: 'TEST', date: '2027-02-02' }]
+		[{ company_id: '11111111-1111-4111-8111-111111111111', date: '2027-02-02' }]
 	);
 	const result = await Effect.runPromise(
-		runHolidayImport(api, { jurisdiction_code: 'TEST', year: 2027 })
+		runHolidayImport(api, { company_id: '11111111-1111-4111-8111-111111111111', year: 2027 })
 	);
 	assert.deepEqual(calls, ['first', '1']);
 	assert.deepEqual(
@@ -76,41 +82,48 @@ test('the annual job reads every page, adds the days the jurisdiction lacks, and
 		]
 	);
 	assert.deepEqual(result.imports, [
-		{ jurisdiction_code: 'TEST', year: 2027, inserted: 2, skipped: 1 }
+		{ company_id: '11111111-1111-4111-8111-111111111111', year: 2027, inserted: 2, skipped: 1 }
 	]);
 });
 
-test('a named jurisdiction imports off its version even when disabled; a provider failure writes nothing', async () => {
-	const disabled = { ...version, holiday_source: { ...version.holiday_source, enabled: false } };
-	assert.equal(holidaySources([disabled]).length, 0);
-	assert.equal(holidaySources([disabled], 'TEST').length, 1);
+test('a named entity imports even when its source is disabled; a provider failure writes nothing', async () => {
+	const disabled = { ...company, holiday_source: { ...company.holiday_source, enabled: false } };
+	assert.equal(holidaySources([disabled]).length, 0, 'the scheduled job runs enabled sources only');
+	assert.equal(holidaySources([disabled], '11111111-1111-4111-8111-111111111111').length, 1, 'a named entity runs regardless');
 	const { api, writes } = harness([]);
 	(api as { connection: unknown }).connection = {
 		get: () => Effect.succeed({ status: 503, headers: {}, body: {} })
 	};
 	await assert.rejects(
-		Effect.runPromise(runHolidayImport(api, { jurisdiction_code: 'TEST', year: 2027 })),
+		Effect.runPromise(runHolidayImport(api, { company_id: '11111111-1111-4111-8111-111111111111', year: 2027 })),
 		/HTTP 503/
 	);
 	assert.equal(writes.length, 0);
 	await assert.rejects(
 		Effect.runPromise(
-			runHolidayImport(harness([]).api, { jurisdiction_code: 'NOWHERE', year: 2027 })
+			runHolidayImport(harness([]).api, { company_id: '22222222-2222-4222-8222-222222222222', year: 2027 })
 		),
-		/No Google holiday calendar is known for NOWHERE/
+		/No Google holiday calendar is known for this entity/
 	);
 });
 
-test("a jurisdiction with no configured source reads Google's own calendar for it; the schedule never does", () => {
-	const bare = { ...version, jurisdiction_code: 'SG', holiday_source: null };
-	assert.deepEqual(holidaySources([bare], 'SG'), [
+test("an entity with no source of its own reads its country's Google calendar; the schedule never does", () => {
+	// The one place a country legitimately survives the move: the fallback is chosen by the country
+	// half of the entity's settings lineage, so `SG-norbital` and `SG` fall back alike.
+	const bare = { ...company, settings_code: 'SG-norbital', holiday_source: null };
+	assert.deepEqual(holidaySources([bare], '11111111-1111-4111-8111-111111111111'), [
 		{
-			jurisdiction_code: 'SG',
+			company_id: '11111111-1111-4111-8111-111111111111',
+			company_name: 'Public Fixture Co',
 			calendar_id: 'en.singapore#holiday@group.v.calendar.google.com',
 			time_zone: 'Asia/Singapore'
 		}
 	]);
-	assert.deepEqual(holidaySources([bare]), [], 'the 1 October job runs only enabled sources');
-	assert.deepEqual(holidaySources([bare], 'XX'), []);
-	assert.equal(holidaySources([version], 'TEST')[0]!.calendar_id, 'public-holidays');
+	assert.deepEqual(holidaySources([bare]), [], 'the 1 October job runs only configured sources');
+	assert.deepEqual(
+		holidaySources([{ ...bare, settings_code: 'XX' }], '11111111-1111-4111-8111-111111111111'),
+		[],
+		'a country Google has no calendar for falls back to nothing'
+	);
+	assert.equal(holidaySources([company], '11111111-1111-4111-8111-111111111111')[0]!.calendar_id, 'public-holidays');
 });

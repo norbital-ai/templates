@@ -285,8 +285,12 @@ const settingsSealApproval = {
 } as const;
 
 /**
- * A write that leaves the version a draft: the controller's whole authority over the root. The one
- * exception is the holiday source, operational configuration a controller may set under a seal.
+ * A write that leaves the version a draft: the controller's whole authority over the root.
+ *
+ * There is no exception any more. The one that existed let `holiday_source` through under a seal,
+ * because it was operational configuration rather than law — and once holidays moved to the entity
+ * that column left this collection entirely, so keeping it in the allowlist would have been a
+ * permanent hole in the seal for a column that no longer exists.
  */
 const draftOnly = ({
 	record,
@@ -298,7 +302,7 @@ const draftOnly = ({
 	Effect.succeed(
 		(record.sealed_at == null && record.voided_at == null) ||
 			(changes != null &&
-				Object.keys(changes).every((key) => ['id', 'row_version', 'holiday_source'].includes(key)))
+				Object.keys(changes).every((key) => ['id', 'row_version'].includes(key)))
 	);
 
 /**

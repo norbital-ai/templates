@@ -7,13 +7,13 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { getContext } from 'svelte';
-	import { HOLIDAY_JURISDICTION } from '../../lib/holiday-scope.js';
+	import { HOLIDAY_COMPANY } from '../../lib/holiday-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const scopedJurisdiction = getContext<(() => string) | undefined>(HOLIDAY_JURISDICTION);
+	const scopedCompany = getContext<(() => string) | undefined>(HOLIDAY_COMPANY);
 	const defaults = $derived(
-		record ?? (scopedJurisdiction ? { jurisdiction_code: scopedJurisdiction() } : undefined)
+		record ?? (scopedCompany ? { company_id: scopedCompany() } : undefined)
 	);
 </script>
 
@@ -27,8 +27,10 @@
 		>
 			{#snippet children({ Field, form })}
 				<Field name="source" hidden />
+				<!-- The entity is the page's, not a choice: the table this form opens from is already
+				     scoped to one, and offering it again is how a row lands on the wrong calendar. -->
+				<Field name="company_id" hidden />
 				<Grid gap="md" minimum="compact">
-					<Field name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} />
 					<Field name="date" label={t('component.observed_on')} />
 					<Field name="kind" label={t('holiday_calendar.kind')} />
 					<Column span="all"><Field name="name" label={t('component.holiday')} /></Column>

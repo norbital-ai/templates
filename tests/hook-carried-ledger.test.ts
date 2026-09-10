@@ -19,7 +19,7 @@ test('the entry hook freezes server-measured date charges and ignores caller-sup
 	const context = leaveContext();
 	context.holidays.push({
 		id: id(2026),
-		jurisdiction_code: 'TEST-JUR',
+		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-04-02',
 		name: 'Observed',
 		original_date: null,

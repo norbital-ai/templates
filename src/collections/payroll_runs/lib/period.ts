@@ -411,7 +411,20 @@ export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): s
 	return `${taxYearOf(period, taxYearStartMonth)}-${String(start).padStart(2, '0')}`;
 }
 
-/** One company has one run per period, with each earlier run settled before the next. */
+/**
+ * One company has one run per period, and periods are created in order.
+ *
+ * A standing draft no longer blocks the next period. It used to: an unsettled January refused a
+ * February run outright, so a month waiting on one person's correction froze the next month's
+ * payroll for everybody. Runs may now stand in order, unpaid — what stays ordered is *payment*
+ * (`+hooks.ts` refuses marking a run paid while an earlier one is still a draft) and *deletion*
+ * (only the latest run may be deleted, so a lineage is unwound from the end rather than punched
+ * a hole through).
+ *
+ * A period the company skipped is still refused, because the skip is the fault: creating March
+ * while February was never run leaves February's wages, attendance and entries unconsumed with
+ * nothing that will ever pick them up.
+ */
 export function assertPayrollPeriodAvailable(
 	runs: readonly { readonly period: string; readonly lifecycle: string }[],
 	period: string
@@ -425,7 +438,23 @@ export function assertPayrollPeriodAvailable(
 		refuse(
 			`Payroll ${later.period} already exists. Record corrections in the next payroll period.`
 		);
-	const draft = runs.find((run) => run.lifecycle !== 'PAID');
-	if (draft)
-		refuse(`Payroll ${draft.period} is still a draft. Settle or delete it before another run.`);
+}
+
+/**
+ * Drafts are unwound from the end.
+ *
+ * Deleting a run releases every source it captured. Doing that to a run with a later run standing
+ * on top of it would release rows the later run has already read and priced, so the later run's
+ * payslips would cite inputs that are free again — and nothing downstream would notice. The order
+ * was documented and unchecked; this is the check.
+ */
+export function assertPayrollRunDeletable(
+	runs: readonly { readonly period: string }[],
+	period: string
+): void {
+	const later = runs.find((run) => run.period > period);
+	if (later)
+		refuse(
+			`Payroll ${later.period} was run after ${period}. Delete payrolls newest first, or ${later.period} would cite inputs this delete releases.`
+		);
 }

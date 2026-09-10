@@ -42,7 +42,7 @@ const versions = (jurisdiction_code = 'SG') => [
 
 const preparedFor = (overrides = {}) => ({
 	holidayByDay: new Map([
-		[`emp-1:${DATE}`, { jurisdiction_code: 'SG', date: DATE, holiday_id: 'h-1' }]
+		[`emp-1:${DATE}`, { company_id: '11111111-1111-4111-8111-111111111111', date: DATE, holiday_id: 'h-1' }]
 	]),
 	companyByEmployment: new Map([['emp-1', 'co-1']]),
 	windowsByCompany: new Map(),
@@ -165,7 +165,7 @@ test('a substitute day worked earns the same way', async () => {
 		undefined,
 		preparedFor({
 			holidayByDay: new Map([
-				[`emp-1:${DATE}`, { jurisdiction_code: 'SG', date: DATE, holiday_id: 'h-substitute' }]
+				[`emp-1:${DATE}`, { company_id: '11111111-1111-4111-8111-111111111111', date: DATE, holiday_id: 'h-substitute' }]
 			])
 		}),
 		stubWorkApi(captured),
@@ -190,7 +190,7 @@ test('a rest day worked earns where no holiday is pinned', async () => {
 		undefined,
 		preparedFor({
 			holidayByDay: new Map([
-				[`emp-1:${DATE}`, { jurisdiction_code: 'SG', date: DATE, holiday_id: null }]
+				[`emp-1:${DATE}`, { company_id: '11111111-1111-4111-8111-111111111111', date: DATE, holiday_id: null }]
 			]),
 			overlap: {
 				termsByEmployment: new Map(),
@@ -220,7 +220,7 @@ test('an unworked lieu choice posts nothing until the punch arrives', async () =
 		undefined,
 		preparedFor({
 			holidayByDay: new Map([
-				[`emp-1:${DATE}`, { jurisdiction_code: 'SG', date: DATE, holiday_id: null }]
+				[`emp-1:${DATE}`, { company_id: '11111111-1111-4111-8111-111111111111', date: DATE, holiday_id: null }]
 			]),
 			overlap: {
 				termsByEmployment: new Map(),
@@ -285,7 +285,7 @@ test('lieu is refused where the regime pays and on an ordinary day', async () =>
 			undefined,
 			preparedFor({
 				holidayByDay: new Map([
-					[`emp-1:${DATE}`, { jurisdiction_code: 'SG', date: DATE, holiday_id: null }]
+					[`emp-1:${DATE}`, { company_id: '11111111-1111-4111-8111-111111111111', date: DATE, holiday_id: null }]
 				]),
 				overlap: {
 					termsByEmployment: new Map(),
@@ -500,7 +500,7 @@ test('a lieu payslip carries no premium while a paid one does', async () => {
 		};
 		world.jurisdiction_holidays.push({
 			id: 'h-2026-01-05',
-			jurisdiction_code: 'TEST-JUR',
+			company_id: '11111111-1111-4111-8111-111111111111',
 			date: '2026-01-05',
 			name: 'New Year',
 			kind: 'PUBLIC',
@@ -540,7 +540,7 @@ test('a lieu payslip carries no premium while a paid one does', async () => {
 
 const holidayRow = (overrides = {}) => ({
 	id: 'h-1',
-	jurisdiction_code: 'SG',
+	company_id: '11111111-1111-4111-8111-111111111111',
 	date: DATE,
 	name: 'Vesak',
 	kind: 'PUBLIC',

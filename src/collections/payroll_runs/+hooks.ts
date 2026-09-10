@@ -9,10 +9,11 @@ import {
 	type PreparedRun
 } from './lib/engine.js';
 import type { PayslipCaptures } from './lib/graph.js';
-import { assertPayrollPeriodAvailable } from './lib/period.js';
+import { assertPayrollPeriodAvailable, assertPayrollRunDeletable } from './lib/period.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
 import { stableJson } from '../../lib/jurisdiction_settings.js';
+import { runWithholdingValueSchema } from '../../datatypes/run_withholdings/+definition.js';
 
 /**
  * What a person actually chooses when creating a run: a company and a period. Everything else on the
@@ -31,6 +32,11 @@ const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
 	lifecycle: Schema.optional(Schema.Literal('PAID')),
 	/**
+	 * The people this run deliberately leaves out, each with a reason. Caller input, not derived:
+	 * the run's population is everyone eligible, and only a person can say who is the exception.
+	 */
+	withheld: Schema.optional(Schema.Array(runWithholdingValueSchema)),
+	/**
 	 * A month for a monthly company, a half for a semi-monthly one. The grammar is checked against
 	 * the company in `prepare`, naming its frequency; this only says what a period can look like.
 	 */
@@ -45,6 +51,10 @@ const createPayrollRunInput = Schema.Struct({
 const DERIVED_COLUMNS = [
 	'company_id',
 	'period',
+	// Not engine-derived, but frozen with everything else the calculation read: the run was
+	// calculated over the population these withholds produced, so editing them after the fact would
+	// leave a run whose payslips and whose stated population disagree.
+	'withheld',
 	'configuration_hash',
 	'holidays',
 	'settings_id',
@@ -163,7 +173,8 @@ export default {
 						const run = yield* gatherPayrollRun({
 							api,
 							companyId: one.company_id!,
-							period: one.period!
+							period: one.period!,
+							withheld: (one.withheld ?? []).map((row) => row.employment_id)
 						});
 						return [runKey(one.company_id!, one.period!), run] as const;
 					})
@@ -233,7 +244,8 @@ export default {
 						const blocking = yield* payrollRunPrecheck({
 							api,
 							configuration: facts.configuration,
-							window: facts.window
+							window: facts.window,
+							withheld: (input.withheld ?? []).map((row) => row.employment_id)
 						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
 						return {
@@ -284,6 +296,32 @@ export default {
 	 * rule verbatim: locked while the run stands, released only if the run is deleted.
 	 */
 	delete: {
+		/**
+		 * Newest first, judged over the whole batch.
+		 *
+		 * A run below a later one holds inputs that later run has already read and priced — its
+		 * payslips, its year-to-date, its loan consumption — so releasing them leaves the later run
+		 * citing rows that are free again, and nothing downstream notices. The order is judged here
+		 * rather than per record because deleting a lineage's last two drafts together is legitimate
+		 * and each of them is "below" the other's sibling until both are gone.
+		 */
+		prepare: ({ existing, api }) =>
+			Effect.gen(function* () {
+				const going = new Set(existing.map((run) => run.id));
+				for (const companyId of new Set(existing.map((run) => run.company_id))) {
+					const siblings = yield* api.db.payroll_runs.findMany({
+						where: { company_id: { eq: companyId } },
+						columns: { id: true, period: true },
+						limit: 20_000
+					});
+					if (siblings.length >= 20_000)
+						refuse('Too many payrolls to verify deletion order.');
+					const staying = siblings.filter((run) => !going.has(run.id));
+					for (const run of existing)
+						if (run.company_id === companyId) assertPayrollRunDeletable(staying, run.period);
+				}
+				return new Map() as PreparedRuns;
+			}),
 		perRecord: {
 			before: {
 				description:

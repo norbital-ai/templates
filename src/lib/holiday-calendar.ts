@@ -7,14 +7,14 @@ import { dateKey } from './iso-day.js';
 /** What a consumer reads off a holiday row; the snapshot is the same columns, dates as day keys. */
 export type HolidayRow = Pick<
 	WorkspaceRow<'jurisdiction_holidays'>,
-	'id' | 'jurisdiction_code' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
+	'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
 >;
 
 /** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
 export function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 	return {
 		id: row.id,
-		jurisdiction_code: row.jurisdiction_code,
+		company_id: row.company_id,
 		date: dateKey(row.date),
 		name: row.name,
 		kind: row.kind === 'SPECIAL' || row.kind === 'SUBSTITUTE' ? row.kind : 'PUBLIC',
@@ -32,7 +32,7 @@ export function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
  */
 export function resolveHolidays(
 	rows: readonly HolidayRow[],
-	jurisdictionCode: string,
+	companyId: string,
 	start: string,
 	end: string
 ): ReadonlyMap<string, HolidaySnapshot> {
@@ -40,11 +40,11 @@ export function resolveHolidays(
 		refuse('Holiday coverage needs a valid ordered date range.');
 	const holidays = new Map<string, HolidaySnapshot>();
 	for (const row of rows) {
-		if (row.jurisdiction_code !== jurisdictionCode || row.published_at == null) continue;
+		if (row.company_id !== companyId || row.published_at == null) continue;
 		const date = dateKey(row.date);
 		if (date < start || date > end) continue;
 		if (holidays.has(date))
-			refuse(`Jurisdiction ${jurisdictionCode} has two published holidays on ${date}.`);
+			refuse(`Entity ${companyId} has two published holidays on ${date}.`);
 		holidays.set(date, holidaySnapshot(row));
 	}
 	return holidays;

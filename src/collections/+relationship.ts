@@ -35,7 +35,12 @@ import { cascade } from '@norbital-ai/bolt/authoring';
 export default ((r) => ({
 	/** Restrict: a holiday a work day pinned is history and cannot be deleted. */
 	jurisdiction_holidays: {
-		work_day_holiday: r.many.work_days()
+		work_day_holiday: r.many.work_days(),
+		/** The entity that observes the day. A holiday is the employer's, not the country's. */
+		holiday_company: r.one.companies({
+			from: r.jurisdiction_holidays.company_id,
+			to: r.companies.id
+		})
 	},
 	/**
 	 * The sealed, shareable root. Every downstream rule row is owned by its version (`cascade`: a
@@ -75,6 +80,8 @@ export default ((r) => ({
 	},
 
 	companies: {
+		/** Restrict, like every entity-scoped catalogue: an entity with a calendar is not deleted. */
+		holiday_company: r.many.jurisdiction_holidays(),
 		employment_company: r.many.employments(),
 		shift_definition_company: r.many.shift_definitions(),
 		shift_pattern_company: r.many.shift_patterns(),

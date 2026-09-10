@@ -55,6 +55,12 @@ export function payrollRunPrecheck(options: {
 	readonly api: PayrollReadApi;
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
+	/**
+	 * The employments this run withholds. They are not checked, because they are not being paid —
+	 * which is the whole point of a withhold: an unrostered person the operator has consciously left
+	 * out must stop refusing the run for everybody else.
+	 */
+	readonly withheld?: readonly string[];
 }): Effect.Effect<RunIssue[], never, never> {
 	return Effect.gen(function* () {
 		const api = withReadLog(options.api);
@@ -64,6 +70,7 @@ export function payrollRunPrecheck(options: {
 		// The same ceiling and the same truncation guard the build reads under. A precheck that could
 		// silently see a shorter page than the engine would admit exactly the run the engine then
 		// refuses, which is the state this whole file exists to prevent.
+		const withheld = new Set(options.withheld ?? []);
 		const employments = api.reads
 			.assertComplete(
 				yield* db.employments.findMany({
@@ -75,7 +82,8 @@ export function payrollRunPrecheck(options: {
 				}),
 				'precheck employments'
 			)
-			.map(resolveEmployment);
+			.map(resolveEmployment)
+			.filter((row) => !withheld.has(row.id));
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length > 0) {
 			const workDays = api.reads.assertComplete(

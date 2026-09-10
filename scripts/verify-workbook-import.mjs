@@ -200,7 +200,7 @@ function rosterApi(overrides = {}) {
 		],
 		jurisdiction_holidays: (overrides.holidays ?? [{ date: '2026-05-08' }]).map((row, index) => ({
 			id: `holiday:${index}`,
-			jurisdiction_code: 'TEST-JUR',
+			company_id: COMPANY_ID,
 			date: row.date,
 			name: 'Fixture holiday',
 			kind: 'PUBLIC',
@@ -393,7 +393,7 @@ const program = Effect.gen(function* () {
 				);
 			})
 		);
-		assert.match(unobservedPh, /These PH rows are not published holidays for the jurisdiction/);
+		assert.match(unobservedPh, /These PH rows are not published holidays for Public Fixture Co/);
 		assert.match(unobservedPh, /PUBEM0023 on 2026-05-08/);
 
 		const observedPh = yield* runHandler(

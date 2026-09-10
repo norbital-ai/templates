@@ -10,43 +10,44 @@ import { googleHolidayRows, holidaySources, readGoogleHolidayYear } from '../lib
 import { dedupeHolidayRows } from '../lib/holiday-rows.js';
 
 const outcomeSchema = Schema.Struct({
-	jurisdiction_code: Schema.String,
+	company_id: Schema.String,
 	year: Schema.Number,
 	inserted: Schema.Number,
 	skipped: Schema.Number
 });
 
 /**
- * Reads a jurisdiction's Google holiday calendar for one year and adds the days it does not have
- * yet, unpublished. The same door a spreadsheet comes through: `dedupeHolidayRows` decides what
- * is new, so neither import can duplicate or overwrite a holiday a person already has.
+ * Reads one entity's Google holiday calendar for a year and adds the days it does not have yet,
+ * unpublished. The same door a spreadsheet comes through: `dedupeHolidayRows` decides what is new,
+ * so neither import can duplicate or overwrite a holiday a person already has.
+ *
+ * It iterates **entities**, not jurisdictions. Two entities in one country each get their own read
+ * and their own rows, which is the whole point of an entity-owned calendar — and the reason the
+ * yearly job's request count is now one per enabled entity rather than one per country.
  */
 export const runHolidayImport = (
 	api: AutomationApi,
-	options: { readonly jurisdiction_code?: string; readonly year?: number } = {}
+	options: { readonly company_id?: string; readonly year?: number } = {}
 ) =>
 	Effect.gen(function* () {
-		const versions = yield* api.db.jurisdiction_settings.findMany({
+		const companies = yield* api.db.companies.findMany({
 			where: {
-				...(options.jurisdiction_code == null
-					? {}
-					: { jurisdiction_code: { eq: options.jurisdiction_code } }),
+				...(options.company_id == null ? {} : { id: { eq: options.company_id } }),
 				approval_id: { isNull: true }
 			},
 			columns: {
-				jurisdiction_code: true,
-				sealed_at: true,
-				voided_at: true,
-				effective_range: true,
+				id: true,
+				name: true,
+				settings_code: true,
 				holiday_source: true
 			},
 			limit: 1_000
 		});
-		if (versions.length >= 1_000) refuse('Holiday import exceeded its jurisdiction read limit.');
-		const sources = holidaySources(versions, options.jurisdiction_code);
-		if (options.jurisdiction_code != null && sources.length === 0)
+		if (companies.length >= 1_000) refuse('Holiday import exceeded its entity read limit.');
+		const sources = holidaySources(companies, options.company_id);
+		if (options.company_id != null && sources.length === 0)
 			refuse(
-				`No Google holiday calendar is known for ${options.jurisdiction_code}. Set one under Settings → General (Holiday sources) before importing.`
+				`No Google holiday calendar is known for this entity. Set one on the entity before importing.`
 			);
 		const outcomes: Schema.Schema.Type<typeof outcomeSchema>[] = [];
 		for (const [index, source] of sources.entries()) {
@@ -55,7 +56,7 @@ export const runHolidayImport = (
 				options.year ?? Number(calendarDateInTimeZone(now, source.time_zone).slice(0, 4)) + 1;
 			yield* api.progress({
 				progress: index / sources.length,
-				text: `Reading ${source.jurisdiction_code} holidays for ${year}`
+				text: `Reading ${source.company_name} holidays for ${year}`
 			});
 			const events = yield* readGoogleHolidayYear(source, year, (request) =>
 				api.connection
@@ -66,7 +67,7 @@ export const runHolidayImport = (
 								? Effect.succeed(response.body)
 								: Effect.fail(
 										new Error(
-											`Google Calendar returned HTTP ${response.status} for ${source.jurisdiction_code}. No holiday was added.`
+											`Google Calendar returned HTTP ${response.status} for ${source.company_name}. No holiday was added.`
 										)
 									)
 						)
@@ -74,11 +75,11 @@ export const runHolidayImport = (
 			);
 			const { inserts, skipped } = yield* dedupeHolidayRows(
 				api,
-				googleHolidayRows(source.jurisdiction_code, events)
+				googleHolidayRows(source.company_id, events)
 			);
 			if (inserts.length > 0) yield* api.db.jurisdiction_holidays.mutate([...inserts]);
 			outcomes.push({
-				jurisdiction_code: source.jurisdiction_code,
+				company_id: source.company_id,
 				year,
 				inserted: inserts.length,
 				skipped
@@ -97,7 +98,7 @@ export default defineAutomation(
 	{ schedule: '0 3 1 10 *' },
 	{
 		input: Schema.Struct({
-			jurisdiction_code: Schema.optional(Schema.String),
+			company_id: Schema.optional(Schema.String),
 			year: Schema.optional(
 				Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 9998 }))
 			)
@@ -113,7 +114,7 @@ export default defineAutomation(
 			}
 		}),
 		description:
-			'Every 1 October, reads each enabled Google holiday calendar for next year and adds the days the jurisdiction does not have yet, unpublished. Manual runs choose a jurisdiction and year. It never publishes, changes or deletes a holiday.',
+			'Every 1 October, reads each entity’s enabled Google holiday calendar for next year and adds the days that entity does not have yet, unpublished. Manual runs choose an entity and a year. It never publishes, changes or deletes a holiday.',
 		handler: (api, { args }) => runHolidayImport(api, args)
 	}
 );

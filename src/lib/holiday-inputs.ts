@@ -7,7 +7,7 @@ import { dateKey } from './iso-day.js';
 
 /** One classified day: the holiday it was read against, or none. */
 export type PreparedHolidayInput = {
-	readonly jurisdiction_code: string;
+	readonly company_id: string;
 	readonly date: string;
 	readonly holiday_id: string | null;
 };
@@ -23,7 +23,7 @@ const LIMIT = 20_000;
  */
 export function resolveHolidayInputs(
 	rows: readonly HolidayRow[],
-	jurisdiction: string,
+	companyId: string,
 	dates: readonly string[],
 	pinned: readonly PreparedHolidayInput[] = []
 ): {
@@ -33,28 +33,28 @@ export function resolveHolidayInputs(
 } {
 	const ordered = [...new Set(dates.map(dateKey))].sort();
 	if (!ordered.length) return { holidays: new Map(), snapshots: [], inputs: [] };
-	const holidays = new Map(resolveHolidays(rows, jurisdiction, ordered[0]!, ordered.at(-1)!));
+	const holidays = new Map(resolveHolidays(rows, companyId, ordered[0]!, ordered.at(-1)!));
 	const requested = new Set(ordered);
 	const byId = new Map(rows.map((row) => [row.id, row]));
 	const pinnedByDate = new Map<string, string>();
 	for (const input of pinned) {
 		const date = dateKey(input.date);
 		if (
-			input.jurisdiction_code !== jurisdiction ||
+			input.company_id !== companyId ||
 			!requested.has(date) ||
 			input.holiday_id == null
 		)
 			continue;
 		const previous = pinnedByDate.get(date);
 		if (previous !== undefined && previous !== input.holiday_id)
-			refuse(`Work holiday inputs disagree on the observed holiday for ${jurisdiction} ${date}.`);
+			refuse(`Work holiday inputs disagree on the observed holiday for ${companyId} ${date}.`);
 		pinnedByDate.set(date, input.holiday_id);
 		const row = byId.get(input.holiday_id);
 		if (!row) refuse(`Work holiday input ${date} references a missing holiday.`);
 		holidays.set(date, holidaySnapshot(row));
 	}
 	const inputs = ordered.map((date) => ({
-		jurisdiction_code: jurisdiction,
+		company_id: companyId,
 		date,
 		holiday_id: holidays.get(date)?.id ?? null
 	}));
@@ -67,20 +67,20 @@ export function resolveHolidayInputs(
 
 export const prepareHolidayInputs = (
 	api: HolidayInputApi,
-	jurisdiction: string,
+	companyId: string,
 	dates: readonly string[]
 ) =>
 	Effect.gen(function* () {
 		const ordered = [...new Set(dates.map(dateKey))].sort();
-		if (!ordered.length) return resolveHolidayInputs([], jurisdiction, []);
+		if (!ordered.length) return resolveHolidayInputs([], companyId, []);
 		const rows = yield* api.db.jurisdiction_holidays.findMany({
 			where: {
-				jurisdiction_code: { eq: jurisdiction },
+				company_id: { eq: companyId },
 				date: { gte: ordered[0]!, lte: ordered.at(-1)! },
 				approval_id: { isNull: true }
 			},
 			limit: LIMIT
 		});
 		if (rows.length >= LIMIT) refuse('Holiday preparation exceeded its complete-read limit.');
-		return resolveHolidayInputs(rows, jurisdiction, ordered);
+		return resolveHolidayInputs(rows, companyId, ordered);
 	});

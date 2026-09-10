@@ -35,10 +35,10 @@ test('the Shift patterns tab registers one table', () => {
 	assert.match(tab, /collection="shift_patterns"/);
 });
 
-test('the Work holiday view reads published jurisdiction holidays instead of employee events', () => {
+test('the Work holiday view reads the entity’s published holidays instead of employee events', () => {
 	const tab = snippet(page, 'holidays');
 	assert.deepEqual(registrations(tab), ['CollectionTable']);
 	assert.match(tab, /collection="jurisdiction_holidays"/);
-	assert.match(tab, /jurisdiction_code/);
+	assert.match(tab, /company_id/);
 	assert.doesNotMatch(tab, /collection="work_days"/);
 });

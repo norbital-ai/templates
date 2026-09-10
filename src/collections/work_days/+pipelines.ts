@@ -292,18 +292,14 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 			PH_TOKENS.has(row.shift_code.toUpperCase()) ? Result.fail(row) : Result.succeed(row)
 		);
 		if (holidayRows.length > 0) {
+			// A PH row is validated against the entity's own calendar. It used to be validated against
+			// the jurisdiction in force, which needed the settings history read above purely to reach
+			// a country code — and which could not tell two entities of one country apart at all.
 			const dates = [...new Set(holidayRows.map((row) => row.work_date))];
-			const versions = yield* api.db.jurisdiction_settings.findMany({
-				where: { code: { eq: company.settings_code }, approval_id: { isNull: true } },
-				limit: QUERY_LIMIT
-			});
-			if (versions.length >= QUERY_LIMIT) refuse('Jurisdiction history is incomplete.');
 			const last = dates.toSorted().at(-1)!;
-			const jurisdiction = settingsInForce(versions, company.settings_code, last);
-			if (jurisdiction == null) refuse('No published settings cover this roster month.');
 			const holidays = yield* api.db.jurisdiction_holidays.findMany({
 				where: {
-					jurisdiction_code: { eq: jurisdiction.jurisdiction_code },
+					company_id: { eq: companyId },
 					date: { in: dates },
 					published_at: { isNotNull: true },
 					approval_id: { isNull: true }
@@ -311,16 +307,11 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 				limit: QUERY_LIMIT
 			});
 			if (holidays.length >= QUERY_LIMIT) refuse('Holiday history is incomplete.');
-			const configured = resolveHolidays(
-				holidays,
-				jurisdiction.jurisdiction_code,
-				dates.toSorted()[0]!,
-				last
-			);
+			const configured = resolveHolidays(holidays, companyId, dates.toSorted()[0]!, last);
 			const unknown = holidayRows.filter((row) => !configured.has(row.work_date));
 			if (unknown.length > 0) {
 				refuse(
-					`These PH rows are not published holidays for the jurisdiction:\n${formatNamedList(formatRosterRows(unknown))}\nPublish the holiday under Settings → Holidays first.`
+					`These PH rows are not published holidays for ${company.name}:\n${formatNamedList(formatRosterRows(unknown))}\nPublish the holiday on the entity first.`
 				);
 			}
 		}

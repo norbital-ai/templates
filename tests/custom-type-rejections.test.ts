@@ -419,7 +419,7 @@ describe('statutory_regime (P10)', () => {
 describe('holiday_snapshots', () => {
 	const snapshot = {
 		id: '0d3f1c2e-6b1a-4f0e-9a1b-000000000001',
-		jurisdiction_code: 'PH',
+		company_id: '11111111-1111-4111-8111-111111111111',
 		date: '2026-08-21',
 		name: 'Ninoy Aquino Day',
 		kind: 'SPECIAL',

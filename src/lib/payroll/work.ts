@@ -232,7 +232,7 @@ export function prepareWorkInputs(options: {
 			const holiday = holidayById.get(row.holiday_id!);
 			const date = requiredDateKey(row.work_date, 'work_days.work_date');
 			if (!holiday) refuse(`Work day ${date} pins a missing holiday.`);
-			return { jurisdiction_code: holiday.jurisdiction_code, date, holiday_id: holiday.id };
+			return { company_id: holiday.company_id, date, holiday_id: holiday.id };
 		});
 		return {
 			workDaysByEmployment: groupBy([...workDays.values()], (row) => row.employment_id),

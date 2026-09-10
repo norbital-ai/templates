@@ -110,7 +110,7 @@ export type LeaveContext = {
 	>[];
 	holidays: Pick<
 		WorkspaceRow<'jurisdiction_holidays'>,
-		'id' | 'jurisdiction_code' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
+		'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
 	>[];
 	workDays: Pick<
 		WorkspaceRow<'work_days'>,
@@ -312,16 +312,16 @@ export function readLeaveContext(
 		const holidays = complete(
 			yield* api.db.jurisdiction_holidays.findMany({
 				where: {
-					jurisdiction_code: {
-						in: window == null ? [] : [...new Set(versions.map((row) => row.jurisdiction_code))]
-					},
+					// The entities of the employments in scope, not their jurisdictions: a holiday
+					// belongs to the employer that observes it.
+					company_id: { in: window == null ? [] : companyIds },
 					...(window == null ? {} : { date: { gte: window.start, lte: window.end } }),
 					published_at: { isNotNull: true },
 					approval_id: { isNull: true }
 				},
 				columns: {
 					id: true,
-					jurisdiction_code: true,
+					company_id: true,
 					date: true,
 					name: true,
 					kind: true,

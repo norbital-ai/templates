@@ -56,8 +56,8 @@ outputs. Contribution consumes that metadata rather than inspecting the activity
 
 A company selects a settings lineage through `companies.settings_code`. `jurisdiction_settings`
 versions carry that lineage's effective configuration and own the family catalogues and Contribution
-rate tables through `settings_id`. `jurisdiction_code` identifies the holiday jurisdiction separately:
-companies with different catalogue lineages can share the same annual calendar.
+rate tables through `settings_id`. `jurisdiction_code` identifies the payroll jurisdiction, which
+decides the statutory regime — not the calendar: holidays belong to the employing entity.
 
 Sealing a settings version freezes its catalogue children. A change is a new draft version, reviewed
 and sealed through the existing workflow. A sealed version remains available to the runs and source
@@ -69,24 +69,35 @@ entries that cite it. A wrong version can be voided through its supported path; 
 notes and retrieval evidence. It cannot seal its proposal or edit sealed rules. Unreachable sources
 remain visible in the outcome; a failed retrieval is not evidence that the law is unchanged.
 
-Holidays are individual rows. `jurisdiction_settings.holiday_source` names the Google calendar
-identifier and time zone of a jurisdiction; it is operational configuration, editable under a
-sealed version, and the import reads it off the version in force. `jurisdiction_holidays` stores
-one observed day per jurisdiction: date, name, the original date when the observance moved,
-provenance and `published_at`. Publication is per holiday and needs no catalogue
-version. Company closures remain schedule decisions and receive no public-holiday classification
-merely because the company is closed.
+**Holidays are entity-owned. There is no per-jurisdiction holiday concept.** `jurisdiction_holidays`
+stores one observed day per entity — `unique(company_id, date)` — with its name, the original date
+when the observance moved, provenance and `published_at`. Two entities in the same country keep
+different calendars: a factory on its state's gazetted days and the office beside it on the federal
+ones is the ordinary case, not an exception to model around. Publication is per holiday and needs
+no catalogue version. Company closures remain schedule decisions and receive no public-holiday
+classification merely because the company is closed.
+
+`companies.holiday_source` names the Google calendar identifier and time zone the entity's annual
+drafts are read from; it is operational configuration on the entity, under no seal, and the annual
+import iterates entities. An entity that configures none falls back to the public calendar of the
+country its settings lineage names, so an API key alone is enough to import.
 
 If it is published, it is used; if it is not, it is not there. Rosters, leave and payroll read the
-published holidays of the jurisdiction at the point of reading; nothing asks a year to be complete
-first, and a missing day is simply not a holiday. Every door in — the record form, the holidays
-spreadsheet, the Google import — passes through one dedupe: a day the jurisdiction already has is
-skipped, never duplicated or overwritten, and an import never publishes.
+entity's published holidays at the point of reading; nothing asks a year to be complete first, and
+a missing day is simply not a holiday. Every door in — the record form, the holidays spreadsheet,
+the Google import — passes through one dedupe: a day the entity already has is skipped, never
+duplicated or overwritten, and an import never publishes. The spreadsheet names entities rather
+than ids and one file may carry every entity at once; a name that resolves to no entity refuses the
+whole file naming every such row, and a day duplicated in the file or already on record is reported
+with its reason rather than counted.
+
+The holidays surface is the entity's own, paginated a year at a time — a calendar is maintained a
+year at a time, and a table showing every year at once cannot be checked against a gazette.
 
 A holiday that has been read is history, and the freeze derives from the live references,
 not a stamp. A work day classified as a holiday pins it (`work_days.holiday_id`) and payroll
 captures the holidays it read on the run (`payroll_runs.holidays`); retracting a holiday
-(unpublish, moving its day or jurisdiction, delete) is refused while a run captures it, and
+(unpublish, moving its day or entity, delete) is refused while a run captures it, and
 otherwise the pinning days are re-saved — re-classified, lieu credits reversed — while a credit
 already taken refuses the change. A finished run is never touched by a holiday published later,
 and a holiday published after a run has no effect on that run. Observed substitute dates are
@@ -194,14 +205,31 @@ Exactly one run is permitted per company and period. There is no ad hoc or suppl
 stateDiagram-v2
     [*] --> DRAFT: Calculate and freeze inputs/results
     DRAFT --> PAID: Mark paid after earlier runs
-    DRAFT --> [*]: Delete
+    DRAFT --> [*]: Delete, newest first
     PAID --> PAID: Immutable
 ```
 
+**A run covers every employment eligible in the period.** That is not a choice an operator makes:
+a person left off a list is indistinguishable from a person nobody thought of. The exception is
+`payroll_runs.withheld` — named employments, each with a required reason, skipped by the precheck
+as well as by the calculation. Withholding forgives nothing: the period's wages, attendance and
+entries stay unconsumed for a later run to settle from the employment's own contract. It is also
+what makes a per-person projection possible at all — a draft withholding everyone but one leaver is
+that leaver's tax projection, which is what a Malaysian CP22A filing needs.
+
+The withhold exists because one person could refuse everybody. The precheck runs over the whole
+company, and an employment on rostered terms whose month was never rostered raises a blocking
+issue; two such people at one entity meant seventy-three colleagues could not be paid, with nothing
+to route around it.
+
 A draft is a frozen calculation. Replacing it means deleting it and creating another. Paid results
 cannot be edited or deleted. A late approved entry or correction remains outstanding for a later
-regular period. New runs require existing company runs to be paid so YTD does not move underneath
-the calculation.
+regular period. **A standing draft does not block the next period** — a month waiting on one
+person's correction used to freeze the next month's payroll for everybody — but *payment* stays
+ordered (a run cannot be marked paid while an earlier one is a draft) and so does *deletion*: runs
+are unwound newest first, judged over the whole delete batch, because a run below a later one holds
+inputs that later run has already read and priced. A period the company skipped is still refused,
+because the skip is the fault.
 
 `payroll_runs` stores configuration and calculation identity once per run. Each `payslip` belongs to
 one contract and holds base, proration, statutory and adjustment arrays; an adjustment names its
@@ -365,6 +393,20 @@ company's two halves sum to one month rather than to two. Proration is Work cata
 configuration. Calendar-day proration uses the month's actual days; working-day proration uses the
 month's working days; a fixed-day basis uses its configured divisor, and a run covering part of a
 month takes that instalment's share of the divisor. None is inferred from an output workbook.
+
+### Time off in lieu
+
+Working a rest day or a public holiday earns either the statutory premium (`work_days.compensation`
+= `PAY`) or a day in lieu (`LIEU`), credited to `PUBLIC_HOLIDAY_IN_LIEU` by the day's own write
+hook. **Nothing is issued automatically.** Whether a worked holiday is paid or banked is a
+conversation with the person, and a credit they have already spent refuses reversal — so the
+system's whole job is to stop the decision going unnoticed.
+
+The roster month board carries the count and a local eye filter for it, like the unresolved
+clock-outs beside it: a premium day worked and paid asks whether a lieu day is owed, and a lieu
+credit standing on a day that is no longer a worked premium day asks to be removed. Narrowing the
+board is the list — a separate exception table would be a second place to read one month — and the
+day sheet behind each cell is where the controller creates or removes the credit by hand.
 
 ### Excess overtime and compliance
 

@@ -22,8 +22,6 @@
 	 * over chrome.
 	 */
 	import { client } from '../../lib/workspace-client.js';
-	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
-	import HolidaySourceForm from '../../lib/ui/holiday-source-form.svelte';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
@@ -96,9 +94,6 @@
 	{#if selectedVersion}
 		<Scroll name={t('app.settings.general')} layout="stack" gap="lg">
 			<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
-			<!-- The Google holiday source is the version's own column; it is set here, beside the
-			     version's other terms, so the Holidays tab is only the holidays. -->
-			<HolidaySourceForm version={selectedVersion} />
 		</Scroll>
 	{/if}
 {/snippet}
@@ -293,12 +288,6 @@
 	/>
 {/snippet}
 
-{#snippet holidays()}
-	{#if selectedVersion}
-		<HolidaySettings version={selectedVersion} />
-	{/if}
-{/snippet}
-
 <AppShell
 	icon="lucide:settings-2"
 	title={t('app.settings.header_title')}
@@ -375,12 +364,6 @@
 					label: t('app.settings.catalogues'),
 					icon: 'lucide:library',
 					content: catalogues
-				},
-				{
-					name: 'holidays',
-					label: t('app.settings.holidays'),
-					icon: 'lucide:calendar-x',
-					content: holidays
 				}
 			] satisfies TabConfig[]}
 		/>

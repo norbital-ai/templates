@@ -156,7 +156,7 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 	const context = facts();
 	context.holidays.push({
 		id: id(2026),
-		jurisdiction_code: 'TEST-JUR',
+		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-01-31',
 		name: 'Test holiday',
 		original_date: null,
@@ -437,7 +437,7 @@ test('leave preview is JSON-safe and keeps the unused half available beside a ho
 	const context = facts();
 	context.holidays.push({
 		id: id(2027),
-		jurisdiction_code: 'TEST-JUR',
+		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-01-27',
 		name: 'Fixture holiday',
 		original_date: null,

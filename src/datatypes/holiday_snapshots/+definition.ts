@@ -5,7 +5,7 @@ import { calendarDay } from '../../lib/iso-day.js';
 /** One holiday exactly as a payroll run read it: values as well as the id, so a replay needs no live read. */
 export const holidaySnapshotSchema = Schema.Struct({
 	id: Schema.String.check(Schema.isUUID()),
-	jurisdiction_code: Schema.String,
+	company_id: Schema.String.check(Schema.isUUID()),
 	date: calendarDay,
 	name: Schema.String,
 	kind: Schema.Literals(['PUBLIC', 'SPECIAL', 'SUBSTITUTE']),
