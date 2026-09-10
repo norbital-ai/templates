@@ -627,6 +627,56 @@ test('SUBSTITUTE precedence keeps the rest day and observes the holiday on the n
 	);
 });
 
+test('a holiday the calendar substitutes itself is observed once, not twice', () => {
+	// The gazette usually publishes the substitute as its own dated row naming the day it comes
+	// from — Malaysia, Singapore, Taiwan and Vietnam all seed one per rest-day holiday, fourteen
+	// rows across the bank. Carrying the holiday forward as well observed it twice: the seeded
+	// Monday priced as a holiday from its own row without consuming the carry, and the carry then
+	// landed on Tuesday. Three extra paid holidays a year in Singapore alone.
+	const holidays = new Map([
+		[
+			'2026-03-15',
+			{
+				id: 'hol-sun',
+				jurisdiction_code: 'MY',
+				date: '2026-03-15',
+				name: 'Sunday festival',
+				kind: 'PUBLIC'
+			}
+		],
+		[
+			'2026-03-16',
+			{
+				id: 'hol-sub',
+				jurisdiction_code: 'MY',
+				date: '2026-03-16',
+				name: 'Sunday festival (substitute)',
+				kind: 'SUBSTITUTE',
+				original_date: '2026-03-15'
+			}
+		]
+	]);
+	const measured = measure(
+		{
+			workDays: [
+				clock('2026-03-15', '08:30', '12:30'),
+				clock('2026-03-16', '08:30', '19:30'),
+				clock('2026-03-17', '08:30', '19:30')
+			]
+		},
+		{ holidays, holidayRestPrecedence: 'SUBSTITUTE' }
+	);
+	assert.deepEqual(
+		measured.overtimeDays.map((day) => [day.date, day.dayType]),
+		[
+			['2026-03-15', 'REST_DAY'],
+			['2026-03-16', 'PUBLIC_HOLIDAY'],
+			['2026-03-17', 'ORDINARY']
+		],
+		'Tuesday is an ordinary day: the calendar already said where the Sunday is observed'
+	);
+});
+
 test('the night premium adds a share of the hourly rate to hours inside the window, per day', () => {
 	const night = component({
 		id: 'work-night',
