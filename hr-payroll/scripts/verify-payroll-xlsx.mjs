@@ -50,6 +50,7 @@ const line = (overrides) => ({
 	componentCode: 'UNUSED',
 	componentName: 'Unused',
 	nature: 'EARNING',
+	sequence: 500,
 	calculationSource: 'ENTRY',
 	amount: 0,
 	quantity: null,
@@ -81,12 +82,14 @@ const VERIFIED = {
 	lines: [
 		line({
 			componentCode: 'BASIC',
+			sequence: 100,
 			componentName: 'Basic salary',
 			calculationSource: 'SCHEDULE',
 			amount: 3451
 		}),
 		line({
 			componentCode: 'UNPAID_LEAVE_DEDUCTION',
+			sequence: 1000,
 			componentName: 'Unpaid leave',
 			nature: 'ABSENCE',
 			calculationSource: 'FORMULA',
@@ -95,6 +98,7 @@ const VERIFIED = {
 		}),
 		line({
 			componentCode: 'OT_ORDINARY',
+			sequence: 20,
 			componentName: 'Overtime',
 			calculationSource: 'OVERTIME',
 			amount: 365.44,
@@ -103,6 +107,7 @@ const VERIFIED = {
 		}),
 		line({
 			componentCode: 'MEDICAL_CLAIM',
+			sequence: 300,
 			componentName: 'Medical claim',
 			nature: 'NON_WAGE_PAYMENT',
 			amount: 93.5,
@@ -137,17 +142,20 @@ const JOINER = {
 	lines: [
 		line({
 			componentCode: 'BASIC',
+			sequence: 100,
 			componentName: 'Basic salary',
 			calculationSource: 'SCHEDULE',
 			amount: 690
 		}),
 		line({
 			componentCode: 'TRANSPORT',
+			sequence: 50,
 			componentName: 'Transport allowance',
 			amount: 150
 		}),
 		line({
 			componentCode: 'OT_REST_DAY',
+			sequence: 20,
 			componentName: 'Rest day work',
 			calculationSource: 'OVERTIME',
 			amount: 132.73,
@@ -156,6 +164,7 @@ const JOINER = {
 		}),
 		line({
 			componentCode: 'OT_INCENTIVE',
+			sequence: 21,
 			componentName: 'Incentive overtime',
 			calculationSource: 'OVERTIME_EXCESS',
 			amount: 33.18,
@@ -165,6 +174,7 @@ const JOINER = {
 		}),
 		line({
 			componentCode: 'STAFF_LOAN',
+			sequence: 900,
 			componentName: 'Staff loan instalment',
 			nature: 'DEDUCTION',
 			amount: 100,
@@ -199,12 +209,14 @@ const SINGAPORE = {
 	lines: [
 		line({
 			componentCode: 'BASIC',
+			sequence: 100,
 			componentName: 'Basic salary',
 			calculationSource: 'SCHEDULE',
 			amount: 5000
 		}),
 		line({
 			componentCode: 'OT_ORDINARY',
+			sequence: 20,
 			componentName: 'Overtime',
 			calculationSource: 'OVERTIME',
 			amount: 300,
@@ -332,7 +344,12 @@ Effect.runPromise(
 			);
 
 			const bytes = yield* payrollReportXlsx([
-				{ period: '2026-03', payDate: '2026-03-28', payslips: [VERIFIED, JOINER] },
+				{
+					period: '2026-03',
+					payDate: '2026-03-28',
+					layout: 'VENDOR',
+					payslips: [VERIFIED, JOINER]
+				},
 				{ period: '2026-04', payDate: '2026-04-28', payslips: [SINGAPORE] }
 			]);
 			const archive = Uint8Array.from(bytes);
@@ -498,35 +515,35 @@ Effect.runPromise(
 			}
 			assert.equal(listing.rowCount, totalRow, 'nothing is written below the TOTAL row');
 
-			// ── the generic sheet is kept, and kept out of the way ────────────────────────────────────────
-			const hidden = workbook.getWorksheet('2026-03');
+			// ── the vendor layout's machine-readable half is kept, and kept out of the way ────────────────
+			const hidden = workbook.getWorksheet('2026-03 Vendor');
 			assert.ok(hidden, 'the machine-readable sheet must survive the vendor layout');
 			assert.equal(hidden.state, 'veryHidden');
 			assert.equal(hidden.getRow(1).getCell(1).value, 'designation', 'row 1 stays the output ids');
 
-			// ── a non-MYR period keeps the generic layout, and its statutory columns are what CPF charged ─
+			// ── and the catalogue matrix is written for the vendor period too ─────────────────────────────
+			const vendorMatrix = workbook.getWorksheet('2026-03');
+			assert.ok(vendorMatrix, 'the catalogue matrix is written whatever the layout');
+			assert.equal(vendorMatrix.state, 'visible');
+
+			// ── a period with no named layout gets the matrix alone, one column per catalogue item ────────
 			const generic = workbook.getWorksheet('2026-04');
 			assert.ok(generic, 'the SGD period has no sheet');
 			assert.equal(generic.state, 'visible');
 			assert.equal(
 				workbook.getWorksheet('2026-04 Salary Listing'),
 				undefined,
-				'a non-MYR population must not be dressed in the Malaysian vendor layout'
+				'a population whose entity did not ask for the vendor listing must not be dressed in it'
 			);
+			// The catalogue's own codes and its own order — not a fixed vocabulary of derived sums that
+			// swallowed every code it did not recognise.
 			assert.deepEqual(rowValues(generic, 1), [
 				'Employee number',
 				'Employment ID',
 				'Currency',
-				'proratedSalary',
-				'taxableBenefits',
-				'exemptBenefits',
-				'overtimePay',
-				'totalUnpaidLeaveDeduction',
+				'OT_ORDINARY',
+				'BASIC',
 				'grossEarnings',
-				'incentiveOTPay',
-				'totalClaims',
-				'loanRecovery',
-				'adhocDeductions',
 				'netPay',
 				'cpfEmployee',
 				'cpfEmployer',
@@ -545,23 +562,16 @@ Effect.runPromise(
 			assert.equal(generic.getRow(2).getCell(1).value, null);
 			assert.equal(generic.getRow(2).getCell(2).value, 'Identity');
 			assert.equal(mergeMaster(generic, 2, 3), 'B2');
-			assert.equal(generic.getRow(2).getCell(4).value, 'Earnings & absence');
-			assert.equal(generic.getRow(2).getCell(9).value, 'Gross');
-			assert.equal(generic.getRow(2).getCell(15).value, 'Statutory');
+			assert.equal(generic.getRow(2).getCell(4).value, 'Earnings');
+			assert.equal(generic.getRow(2).getCell(6).value, 'Gross');
+			assert.equal(generic.getRow(2).getCell(8).value, 'Statutory');
 			assert.deepEqual(rowValues(generic, 3), [
 				'PUBSG0001',
 				'emp-sg-1',
 				'SGD',
-				5000,
-				0,
-				0,
 				300,
-				0,
+				5000,
 				5300,
-				0,
-				0,
-				0,
-				0,
 				4240,
 				1060,
 				901,

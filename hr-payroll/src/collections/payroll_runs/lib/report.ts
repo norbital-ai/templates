@@ -30,6 +30,8 @@ const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
 	componentName: Schema.String,
 	nature: Schema.String,
+	/** The catalogue's own order for this component, which is the order its column is written in. */
+	sequence: Schema.Number,
 	calculationSource: Schema.String,
 	amount: Schema.Number,
 	quantity: Schema.NullOr(Schema.Number),
@@ -173,10 +175,17 @@ export const VENDOR_WORKBOOK_COLUMNS = VENDOR_WORKBOOK_SECTIONS.flatMap(
 /**
  * The sections and their order.
  *
- * The order is the customer's own workbook, read column by column: identity, then what was earned
- * and what absence took away, then gross, then what is paid or recovered after gross, then net,
- * then the statutory charges, then the totals and the bases they were charged on, and finally
- * attendance. A payroll clerk who knows that workbook can read this one without being taught it.
+ * A section names either **catalogue natures** or a fixed list of output ids, and a nature section
+ * is filled by the catalogue itself: one column per component the run actually settled, labelled
+ * by its catalogue code, in the catalogue's own `sequence` order. That is the whole of the change
+ * the 2026-09-10 review asked for. Before it, this layout named a handful of derived sums —
+ * `taxableBenefits`, `totalClaims`, `adhocDeductions` — and every code the projection did not
+ * recognise disappeared into one of them: an employer with fourteen allowances exported one
+ * `allowance` column and could not reconcile a single line of it.
+ *
+ * The order is still the order a payroll clerk reads: what was earned, what absence and deductions
+ * took away, gross, what is paid after gross, net, the statutory charges, the totals and the bases
+ * they were charged on, the employer's own costs, anything informational, and finally attendance.
  *
  * `unit` is not decoration: an attendance column counts hours, and formatting hours as money — or
  * tinting them like money — is how a reader ends up reading 7.50 as seven ringgit fifty.
@@ -190,28 +199,13 @@ const SECTION_LAYOUT: readonly {
 	readonly unit: 'MONEY' | 'HOURS';
 	readonly statutoryRoles?: readonly StatutoryRole[];
 	readonly outputIds?: readonly string[];
+	/** The catalogue natures whose components are written under this heading, in `sequence` order. */
+	readonly natures?: readonly string[];
 }[] = [
-	{
-		name: 'Earnings & absence',
-		unit: 'MONEY',
-		outputIds: [
-			'proratedSalary',
-			'taxableBenefits',
-			'exemptBenefits',
-			'overtimePay',
-			'totalUnpaidLeaveDeduction'
-		]
-	},
+	{ name: 'Earnings', unit: 'MONEY', natures: ['EARNING'] },
+	{ name: 'Absence & deductions', unit: 'MONEY', natures: ['ABSENCE', 'DEDUCTION'] },
 	{ name: 'Gross', unit: 'MONEY', outputIds: ['grossEarnings'] },
-	{
-		// `incentiveOTPay` sits here because that is where the customer's workbook puts it. Note the
-		// difference behind the column: their gross excludes incentive overtime, while `gross` here
-		// is Σ EARNING − Σ ABSENCE and the reclassified hours are an earning, so this column is
-		// inside the gross to its left. The columns tally; the two grosses are not defined alike.
-		name: 'Post-gross payments & deductions',
-		unit: 'MONEY',
-		outputIds: ['incentiveOTPay', 'totalClaims', 'loanRecovery', 'adhocDeductions']
-	},
+	{ name: 'Payments', unit: 'MONEY', natures: ['NON_WAGE_PAYMENT'] },
 	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
 	{ name: 'Statutory', unit: 'MONEY', statutoryRoles: ['employee', 'employer'] },
 	{
@@ -220,19 +214,14 @@ const SECTION_LAYOUT: readonly {
 		statutoryRoles: ['total', 'base'],
 		outputIds: ['totalDeductions', 'employerCost']
 	},
+	{ name: 'Employer costs', unit: 'MONEY', natures: ['EMPLOYER_COST'] },
+	{ name: 'Information', unit: 'MONEY', natures: ['INFORMATION'] },
 	{
 		name: 'Attendance',
 		unit: 'HOURS',
 		outputIds: ['ot10Hours', 'ot15Hours', 'ot20Hours', 'ot30Hours', 'totalOTHours']
 	}
 ];
-
-/** The layout with its statutory roles resolved to every column the vocabulary can name. */
-const OUTPUT_SECTIONS: readonly OutputSection[] = SECTION_LAYOUT.map((section) => ({
-	name: section.name,
-	unit: section.unit,
-	outputIds: [...statutoryOutputIds(section.statutoryRoles ?? []), ...(section.outputIds ?? [])]
-}));
 
 /** Where output ids the vocabulary does not rank are collected, so a new id is never dropped. */
 const OTHER_SECTION_NAME = 'Other';
@@ -275,7 +264,7 @@ function componentAmount(payslip: ReportPayslip, codes: readonly string[]): numb
  * while every value is read from persisted payroll, identity, terms and attendance records.
  */
 export function vendorWorkbookRow(payslip: ReportPayslip): Record<string, string | number | null> {
-	const generic = workbookRow(payslip);
+	const generic = derivedTotals(payslip);
 	const incentiveOvertime = generic.incentiveOTPay ?? 0;
 	const medicalClaim = componentAmount(payslip, ['MEDICAL_CLAIM']);
 	const regularAllowance = sumLines(
@@ -389,7 +378,13 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 }
 
 /**
- * One payslip as the workbook sees it.
+ * The derived figures the vendor listing's fixed columns are built from.
+ *
+ * These are sums over predicates rather than catalogue columns, and that is correct **here**: the
+ * vendor listing is somebody else's file, with its own settled column names, and a projection into
+ * it is a projection. What was wrong was using the same sums for the generic matrix, where they
+ * swallowed every code the projection did not recognise. `workbookRow` no longer calls most of
+ * them; `vendorWorkbookRow` still does, because that is its contract.
  *
  * The overtime-hours columns are named for the multiplier they historically carried; they are
  * derived from the day type of the rule each line pays, which is the stable fact — a jurisdiction
@@ -401,7 +396,7 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
  * would otherwise put them in. Counting them by day type overstated the multiplied buckets by
  * exactly the excess hours, which is the tally the customer reconciles against.
  */
-function workbookRow(payslip: ReportPayslip): Record<string, number> {
+function derivedTotals(payslip: ReportPayslip): Record<string, number> {
 	const overtimePay = sumLines(
 		payslip,
 		(line) => line.calculationSource === 'OVERTIME' && !line.isOvertimeExcess
@@ -455,6 +450,33 @@ function workbookRow(payslip: ReportPayslip): Record<string, number> {
 	};
 }
 
+
+/** One payslip as the catalogue-driven matrix sees it. */
+function workbookRow(payslip: ReportPayslip): Record<string, number> {
+	const derived = derivedTotals(payslip);
+	const columns: Record<string, number> = {};
+	// One column per catalogue component the payslip actually settled, labelled by its code. Two
+	// lines under one code — two overtime bands, a claim raised twice — are one column and one sum,
+	// which is what "one column per catalogue item" means.
+	for (const line of payslip.lines)
+		columns[line.componentCode] = (columns[line.componentCode] ?? 0) + line.amount;
+	return {
+		...columns,
+		ot10Hours: derived.ot10Hours,
+		ot15Hours: derived.ot15Hours,
+		ot20Hours: derived.ot20Hours,
+		ot30Hours: derived.ot30Hours,
+		totalOTHours: derived.totalOTHours,
+		// The agreed totals, and nothing else lumped: gross, net, the two totals and the statutory
+		// block, which is already one column per scheme.
+		grossEarnings: payslip.gross,
+		totalDeductions: payslip.totalDeductions,
+		employerCost: payslip.employerCost,
+		netPay: payslip.net,
+		...statutoryOutputs(payslip)
+	};
+}
+
 /**
  * One sheet's rows, squared off.
  *
@@ -477,19 +499,50 @@ export function workbookRows(payslips: readonly ReportPayslip[]): Record<string,
 }
 
 /**
- * The sections the given rows actually populate, in vocabulary order, each holding only the output
- * ids present. An id the vocabulary does not rank is not dropped — it lands in a trailing `Other`
- * section, so adding an output to `workbookRow` can never silently lose a column.
+ * The sections the given payslips actually populate, in layout order.
+ *
+ * A nature section is filled from the catalogue: every component code these payslips settled under
+ * that nature, ordered by the catalogue's own `sequence` and then by code, so two runs of the same
+ * catalogue produce the same columns in the same order. A fixed section keeps its stated ids and
+ * drops the ones nothing populated.
+ *
+ * An id no section claims is not dropped — it lands in a trailing `Other` section — so adding an
+ * output to `workbookRow` can never silently lose a column.
  */
-export function outputGroups(rows: readonly Record<string, number>[]): OutputSection[] {
+export function outputGroups(
+	payslips: readonly ReportPayslip[],
+	rows: readonly Record<string, number>[]
+): OutputSection[] {
 	const present = new Set(rows.flatMap((row) => Object.keys(row)));
-	const ranked = new Set<string>(OUTPUT_SECTIONS.flatMap((section) => [...section.outputIds]));
-	const groups: OutputSection[] = OUTPUT_SECTIONS.map((section) => ({
-		name: section.name,
-		unit: section.unit,
-		outputIds: section.outputIds.filter((id) => present.has(id))
-	})).filter((section) => section.outputIds.length > 0);
-	const unranked = [...present].filter((id) => !ranked.has(id)).toSorted();
+	/** Catalogue order for every code these payslips settled, by the nature it settled under. */
+	const byNature = new Map<string, Map<string, number>>();
+	for (const payslip of payslips)
+		for (const line of payslip.lines) {
+			const codes = byNature.get(line.nature) ?? new Map<string, number>();
+			// The lowest sequence wins where one code appears under two rows of a lineage's history.
+			codes.set(line.componentCode, Math.min(codes.get(line.componentCode) ?? Infinity, line.sequence));
+			byNature.set(line.nature, codes);
+		}
+	const claimed = new Set<string>();
+	const groups: OutputSection[] = [];
+	for (const section of SECTION_LAYOUT) {
+		const outputIds =
+			section.natures == null
+				? [
+						...statutoryOutputIds(section.statutoryRoles ?? []),
+						...(section.outputIds ?? [])
+					].filter((id) => present.has(id))
+				: section.natures
+						.flatMap((nature) => [...(byNature.get(nature) ?? new Map()).entries()])
+						.toSorted(([leftCode, left], [rightCode, right]) =>
+							left === right ? leftCode.localeCompare(rightCode) : left - right
+						)
+						.map(([code]) => code)
+						.filter((id) => present.has(id));
+		for (const id of outputIds) claimed.add(id);
+		if (outputIds.length > 0) groups.push({ name: section.name, unit: section.unit, outputIds });
+	}
+	const unranked = [...present].filter((id) => !claimed.has(id)).toSorted();
 	return unranked.length === 0
 		? groups
 		: [...groups, { name: OTHER_SECTION_NAME, unit: 'MONEY', outputIds: unranked }];

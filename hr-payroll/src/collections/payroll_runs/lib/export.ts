@@ -116,6 +116,8 @@ type WorkbookSheet = {
 	/** The worksheet name — one sheet per period. */
 	readonly period: string;
 	readonly payDate?: string;
+	/** The entity's own named layout; the catalogue matrix is written whatever it says. */
+	readonly layout?: 'MATRIX' | 'VENDOR';
 	readonly payslips: readonly ReportPayslip[];
 };
 
@@ -275,9 +277,18 @@ function buildPayrollWorkbook(sheets: readonly WorkbookSheet[]): ExcelJS.Workboo
 	workbook.subject = 'Payroll calculation report';
 
 	for (const sheet of sheets) {
-		if (sheet.payslips.every((payslip) => payslip.currency === 'MYR'))
-			addVendorSheet(workbook, sheet);
-		else addMatrixSheet(workbook, sheet);
+		/**
+		 * Every period gets the catalogue matrix, and the entity's named layout decides whether the
+		 * vendor listing is written beside it.
+		 *
+		 * The layout used to be inferred — the vendor listing appeared when every payslip in the
+		 * period happened to be in MYR — so one employer's Malaysian entity and its Singaporean one
+		 * received differently shaped files with no way to say otherwise. It is now
+		 * `companies.workbook_layout`, and the matrix is unconditional: whatever the layout, one
+		 * column per catalogue component, grouped by category, is always in the file.
+		 */
+		addMatrixSheet(workbook, sheet);
+		if (sheet.layout === 'VENDOR') addVendorSheet(workbook, sheet);
 	}
 
 	return workbook;
@@ -295,7 +306,10 @@ function addPeriodSheet(
 	vendor: boolean,
 	identityColumnCount: number
 ): void {
-	const worksheet = workbook.addWorksheet(sheet.period, {
+	// The vendor layout's machine-readable half sits beside the catalogue matrix, so the two cannot
+	// take the same sheet name. The matrix keeps the bare period, which is what every reader of this
+	// file already looks for.
+	const worksheet = workbook.addWorksheet(vendor ? `${sheet.period} Vendor`.slice(0, 31) : sheet.period, {
 		// The identity block and the two masthead rows stay put when the reader scrolls into the
 		// statutory columns: a number no one can put a name to is worthless.
 		views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: SECTION_BAND_ROW }]
@@ -385,7 +399,7 @@ function addVendorSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void 
  */
 function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
 	const rows = workbookRows(sheet.payslips);
-	addPeriodSheet(workbook, sheet, rows, outputGroups(rows), false, IDENTITY_COLUMNS.length);
+	addPeriodSheet(workbook, sheet, rows, outputGroups(sheet.payslips, rows), false, IDENTITY_COLUMNS.length);
 }
 
 /**
