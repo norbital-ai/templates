@@ -13,6 +13,11 @@
 				"divisor": 30.4167
 			},
 			{
+				"eligibility": "terms.ordinary_hours_per_week > 40",
+				"per": "DAY",
+				"divisor": 26.0833
+			},
+			{
 				"eligibility": "",
 				"per": "DAY",
 				"divisor": 21.75

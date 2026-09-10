@@ -13,6 +13,7 @@
 			}
 		],
 		"regime": {
+			"lieu_unit": "HOUR",
 			"overtime_coverage": null,
 			"overtime_rules": [
 				{
@@ -255,6 +256,7 @@
 			}
 		],
 		"regime": {
+			"lieu_unit": "HOUR",
 			"overtime_coverage": null,
 			"overtime_rules": [
 				{

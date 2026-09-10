@@ -24,6 +24,17 @@ import { Effect } from 'effect';
 const OPAQUE = [Date, Map, Set, RegExp, WeakMap, WeakSet, Promise, Error];
 
 /**
+ * A plain object the target marks as un-proxyable, for the same reason as `OPAQUE` above but where
+ * `instanceof` cannot tell.
+ *
+ * The case that needed it: a `PersonContext` handed to the eligibility evaluator. CEL classifies
+ * every value it is given by type, and a Proxy has no type it can name — it fails with
+ * "Unsupported type: bound Object" before reading a single field. Proxying that argument does not
+ * observe the fixture, it replaces the behaviour under test.
+ */
+export const OPAQUE_TO_PROBE = Symbol.for('norbital.fixture-shape.opaque');
+
+/**
  * Property names that are protocol rather than data. A miss on these says nothing about the
  * fixture: they are probed by `JSON.stringify`, `await`, `console.log` and friends.
  */
@@ -64,6 +75,7 @@ function record(path) {
 function proxify(value, path, depth = 0) {
 	if (value === null || typeof value !== 'object') return value;
 	if (OPAQUE.some((type) => value instanceof type)) return value;
+	if (value?.[OPAQUE_TO_PROBE] === true) return value;
 	if (depth >= MAX_DEPTH) return value;
 
 	const proxy = new Proxy(value, {
@@ -96,6 +108,7 @@ function restoreReturnedArguments(value, seen = new WeakMap()) {
 	const target = proxyTargets.get(value);
 	if (target !== undefined) return target;
 	if (OPAQUE.some((type) => value instanceof type)) return value;
+	if (value?.[OPAQUE_TO_PROBE] === true) return value;
 	if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype) return value;
 	if (seen.has(value)) return seen.get(value);
 

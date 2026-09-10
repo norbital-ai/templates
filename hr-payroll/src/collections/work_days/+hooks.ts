@@ -721,6 +721,8 @@ type Prepared = {
 	readonly settingsCodeByCompany: ReadonlyMap<string, string | null>;
 	/** Whether the version's regime permits lieu, by settings id. Absent decodes as PAY. */
 	readonly lieuPermittedBySettings: ReadonlyMap<string, boolean>;
+	/** The unit a lieu credit is measured in, by settings id. Absent decodes as DAY. */
+	readonly lieuUnitBySettings: ReadonlyMap<string, 'DAY' | 'HOUR'>;
 	/** The lieu leave type, by the settings id whose catalogue carries it. */
 	readonly lieuCatalogueBySettings: ReadonlyMap<string, { id: string; yearStartMonth: number }>;
 	/** Approved and held lieu activity of every touched employment; empty unless the batch touches lieu. */
@@ -819,7 +821,9 @@ function lieuContext(
 	return {
 		permitsLieu: prepared.lieuPermittedBySettings.get(version.id) ?? false,
 		catalogue: prepared.lieuCatalogueBySettings.get(version.id) ?? null,
-		hoursBased: countryOf(version.jurisdiction_code) === 'TW',
+		// 勞基法 §32-1 credits 補休 by the hour, so a jurisdiction that does says so on its regime.
+		// Absent is DAY: a day worked earns a day back.
+		hoursBased: (prepared.lieuUnitBySettings.get(version.id) ?? 'DAY') === 'HOUR',
 		jurisdictionCode: version.jurisdiction_code
 	};
 }
@@ -1262,11 +1266,16 @@ export default {
 				)
 					refuse('Workday lieu resolution exceeded its complete-read limit.');
 				const lieuPermittedBySettings = new Map<string, boolean>();
+				const lieuUnitBySettings = new Map<string, 'DAY' | 'HOUR'>();
 				for (const row of workCatalogues) {
 					const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(row.regime);
 					lieuPermittedBySettings.set(
 						row.settings_id,
 						Result.isSuccess(decoded) && decoded.success.holiday_work_compensation === 'PAY_OR_LIEU'
+					);
+					lieuUnitBySettings.set(
+						row.settings_id,
+						(Result.isSuccess(decoded) ? decoded.success.lieu_unit : undefined) ?? 'DAY'
 					);
 				}
 				const lieuCatalogueBySettings = new Map(
@@ -1325,6 +1334,7 @@ export default {
 						companies.map((company) => [company.id, company.settings_code])
 					),
 					lieuPermittedBySettings,
+					lieuUnitBySettings,
 					lieuCatalogueBySettings,
 					lieuEntries: lieuEntries as readonly LieuEntry[]
 				};

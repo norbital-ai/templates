@@ -26,7 +26,6 @@ import type { Work } from './configuration.js';
 import type { OrdinaryRate } from '../../../datatypes/ordinary_rate/+definition.js';
 import { isEligible, type PersonContext } from './eligibility.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
-import { countryOf } from '../../../lib/jurisdiction_settings.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 import { monthDays } from './dates.js';
@@ -73,37 +72,25 @@ export function resolveOrdinaryRate(options: {
 	return { per: row.per, divisor: decodeNumber(row.divisor) };
 }
 
-/** 261 working days a year over twelve months: the Philippine five-day factor, 21.75. */
-const PH_FIVE_DAY_FACTOR = 261 / 12;
-/** 313 working days a year over twelve months: the six-day alternative, 26.0833… */
-const PH_SIX_DAY_FACTOR = 313 / 12;
-
 /**
- * The Philippines uses 261 annual days for a five-day week and 313 for a six-day week. The work row
- * stores the common monthly divisor (261 / 12 = 21.75); the employee's stated working week selects
- * the statutory 313-day alternative when it exceeds forty ordinary hours.
+ * The divisor comes from the rate row the Work's own predicates chose, and from nowhere else.
  *
- * This is employee-level law, so it cannot be represented by replacing the work's one divisor with
- * a company-wide value.
+ * This used to be a function, and inside it a branch on the jurisdiction: the Philippines uses 261
+ * annual days for a five-day week and 313 for a six-day one, and the engine substituted the six-day
+ * factor when the employee's week exceeded forty hours. That is employee-level law and cannot be a
+ * company-wide divisor — which is a reason for the *Work* to state a row per week shape, not a
+ * reason for the engine to know about the Philippines. `ordinary_rate` is a predicate list and
+ * `terms.ordinary_hours_per_week` is a member of the grammar, so the seed says it:
  *
- * It **substitutes one factor for the other**, and nothing else. A monthly-paid employee is paid
- * for all 365 days of the year, so their day is the monthly wage over 365/12 = 30.4167 whatever
- * their roster is; the 261-against-313 question is a daily-paid one. Substituting into that row
- * priced a monthly-paid six-day employee's day at 26.0833 — 16.6% high on every overtime, rest-day,
- * holiday and night hour. The Philippine seed states both rows, keyed on `terms.payroll_group`, and
- * the bank rosters a monthly-paid employee on a six-day pattern, so the case is a real one.
+ * ```
+ * terms.payroll_group == "MONTHLY"        30.4167   paid for all 365 days
+ * terms.ordinary_hours_per_week > 40      26.0833   313 / 12, the six-day factor
+ * (everyone)                              21.75     261 / 12, the five-day factor
+ * ```
+ *
+ * The ordering carries the rule the branch used to: a monthly-paid employee keeps 365/12 whatever
+ * their roster, because the 261-against-313 question is a daily-paid one.
  */
-function ordinaryRateDivisor(terms: RateTerms, work: Work, rate: ResolvedOrdinaryRate): number {
-	if (
-		countryOf(work.jurisdiction_code) === 'PH' &&
-		decodeNumber(terms.ordinary_hours_per_week) > 40 &&
-		rate.per === 'DAY' &&
-		Math.abs(rate.divisor - PH_FIVE_DAY_FACTOR) < 0.01
-	)
-		return PH_SIX_DAY_FACTOR;
-	return rate.divisor;
-}
-
 /**
  * The monthly-equivalent contract wage.
  *
@@ -143,7 +130,7 @@ export function ordinaryHourlyRate(
 	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'DAILY')
 		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
-	const divisor = ordinaryRateDivisor(terms, work, rate);
+	const divisor = rate.divisor;
 	if (!(divisor > 0)) throw new Error('work_catalogue.ordinary_rate.divisor must be positive.');
 	const monthly = monthlyBaseSalary(terms);
 	return rate.per === 'HOUR'
@@ -164,7 +151,7 @@ export function ordinaryDayWage(terms: RateTerms, work: Work, rate: ResolvedOrdi
 	if (terms.pay_frequency === 'DAILY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'HOURLY')
 		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
-	const divisor = ordinaryRateDivisor(terms, work, rate);
+	const divisor = rate.divisor;
 	const monthly = monthlyBaseSalary(terms);
 	return rate.per === 'HOUR'
 		? cents((monthly * normalDailyHours(terms)) / divisor)

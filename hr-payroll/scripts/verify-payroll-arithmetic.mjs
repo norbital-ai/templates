@@ -20,6 +20,7 @@
  */
 
 import { createServer } from 'vite';
+import { OPAQUE_TO_PROBE } from './fixture-shape-probe.mjs';
 import { Effect, Result } from 'effect';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -81,6 +82,7 @@ const modules = await Effect.runPromise(
 				Effect.tryPromise(() => server.ssrLoadModule('/src/lib/payroll/work.ts')),
 				load('coverage'),
 				load('ordinary-rate'),
+				load('eligibility'),
 				Effect.tryPromise(() => server.ssrLoadModule('/src/lib/payroll/money.ts')),
 				load('settle')
 			]);
@@ -106,14 +108,71 @@ const [
 	},
 	{ isStatutoryOvertimePayCovered },
 	{ classifyWageComparand, deriveStatutoryWages },
-	{ ordinaryHourlyRate: hourlyRateOf, ordinaryDayWage: dayWageOf, absenceDayRate },
+	{
+		ordinaryHourlyRate: hourlyRateOf,
+		ordinaryDayWage: dayWageOf,
+		absenceDayRate,
+		resolveOrdinaryRate
+	},
+	{ personContext },
 	{ allowanceRequest, paymentRequest, claimRequest, requestPayPeriod },
 	{ settle }
 ] = modules;
 
-/** The scripts price against a work row's first ordinary-rate row, which is the everyone row here. */
-const ordinaryHourlyRate = (terms, work) => hourlyRateOf(terms, work, work.ordinary_rate[0]);
-const ordinaryDayWage = (terms, work) => dayWageOf(terms, work, work.ordinary_rate[0]);
+/**
+ * The rate row is chosen the way payroll chooses it: by the Work's own predicates, against this
+ * person's week. It used to be `ordinary_rate[0]` — which never exercised the choice at all, and
+ * so did not notice when the Philippine six-day factor stopped being a branch in the engine and
+ * became a row in the Work.
+ */
+const rateFor = (terms, work) =>
+	resolveOrdinaryRate({
+		rows: work.ordinary_rate,
+		// The eligibility evaluator classifies every value it is given by type, and a Proxy has no
+		// type it can name. Marking the context keeps the fixture-shape probe out of it; every other
+		// argument in this file is still observed.
+		person: Object.assign(
+			{ [OPAQUE_TO_PROBE]: true },
+			personContext({
+				// Complete rather than convenient: this file's fixtures are what `verify-fixture-shapes`
+				// proxies, and a key the engine reads but the fixture omits reads `undefined` and takes a
+				// branch nobody intended. Only the week and the payroll group steer a rate row.
+				employee: {
+					gender: null,
+					date_of_birth: '1985-04-02',
+					nationality: null,
+					marital_status: 'SINGLE',
+					spouse_status: 'NONE',
+					solo_parent: false,
+					race: null,
+					religion: null
+				},
+				employment: { hire_date: '2020-01-01' },
+				terms: {
+					residency_status: 'CITIZEN',
+					employment_type: 'PERMANENT',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					base_salary: terms.base_salary,
+					department: null,
+					payroll_group: terms.payroll_group ?? '',
+					grade: null,
+					residency_since: null
+				},
+				week: {
+					ordinary_hours_per_week: terms.ordinary_hours_per_week,
+					working_days_per_week: terms.working_days_per_week
+				},
+				children: [],
+				company: { region: null },
+				asOf: '2026-06-30'
+			})
+		),
+		workingDays: () => 26,
+		employeeNumber: 'FIXTURE'
+	});
+const ordinaryHourlyRate = (terms, work) => hourlyRateOf(terms, work, rateFor(terms, work));
+const ordinaryDayWage = (terms, work) => dayWageOf(terms, work, rateFor(terms, work));
 const PH_NIGHT = { from: '22:00', to: '06:00' };
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -466,6 +525,18 @@ const myJurisdiction = {
 	jurisdiction_code: 'MY',
 	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
 };
+/**
+ * The Philippine Work as the bank seeds it: one rate row per week shape, because DOLE's 261-day and
+ * 313-day factors are employee-level law and one company rosters both.
+ */
+const PH_WORK = {
+	jurisdiction_code: 'PH',
+	ordinary_rate: [
+		{ eligibility: 'terms.payroll_group == "MONTHLY"', per: 'DAY', divisor: 30.4167 },
+		{ eligibility: 'terms.ordinary_hours_per_week > 40', per: 'DAY', divisor: 26.0833 },
+		{ eligibility: '', per: 'DAY', divisor: 21.75 }
+	]
+};
 check('ORP is 3,451 / 26 / 8 = 16.59', ordinaryHourlyRate(terms, myJurisdiction), 16.59);
 check('a day’s wages is 3,451 / 26 = 132.73', ordinaryDayWage(terms, myJurisdiction), 132.73);
 check(
@@ -478,10 +549,7 @@ check(
 			ordinary_hours_per_week: 40,
 			working_days_per_week: 5
 		},
-		{
-			jurisdiction_code: 'PH',
-			ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 21.75 }]
-		}
+		PH_WORK
 	),
 	89.94
 );
@@ -495,10 +563,7 @@ check(
 			ordinary_hours_per_week: 48,
 			working_days_per_week: 6
 		},
-		{
-			jurisdiction_code: 'PH',
-			ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 21.75 }]
-		}
+		PH_WORK
 	),
 	75
 );
