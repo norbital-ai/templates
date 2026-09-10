@@ -135,19 +135,18 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	assert.equal(settings.includes('HolidaySourceForm'), false, 'so did the entity’s Google source');
 	const entity = source('../src/collections/companies/+representation.svelte');
 	assert.match(entity, /<HolidaySettings company=\{record!\}/);
-	assert.match(entity, /<HolidaySourceForm company=\{record!\}/);
+	assert.equal(
+		entity.includes('HolidaySourceForm'),
+		false,
+		'the Google source is the country calendar, not an entity form'
+	);
+	// The record shell owns the tab strip and its insets; the representation supplies the config.
+	assert.match(entity, /<RecordShell[\s\S]*?tabs=/);
 	// The Holidays tab is one table over the entity's holidays, a year at a time; imports are pipelines.
 	const holidays = source('../src/lib/ui/holiday-settings.svelte');
 	assert.deepEqual(registrations(holidays), ['CollectionTable']);
 	assert.match(holidays, /company_id: \{ eq: companyId \}/);
 	assert.match(holidays, /date: \{ gte: yearRange\.start, lte: yearRange\.end \}/);
-	const sourceForm = source('../src/lib/ui/holiday-source-form.svelte');
-	assert.deepEqual(registrations(sourceForm), []);
-	// One-column write: a whole-row entity form would carry the effective range and pay calendar.
-	assert.match(
-		sourceForm,
-		/client\.db\.companies\.mutate\(\[\{ id: company\.id, holiday_source: sourceDraft \}\]\)/
-	);
 	assert.deepEqual(
 		registrations(snippet(settings, 'payroll')),
 		[],

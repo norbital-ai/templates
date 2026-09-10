@@ -157,7 +157,6 @@
 		{client}
 		collection="jurisdiction_holidays"
 		view="hr_controller:settings:holidays"
-		title={t('app.settings.holidays')}
 		description={t('holiday_calendar.description')}
 		query={{
 			where: {

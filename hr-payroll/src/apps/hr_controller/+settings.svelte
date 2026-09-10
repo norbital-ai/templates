@@ -4,20 +4,20 @@
 	 * lineage (MY, SG, …) in force today, shared by every entity bound to it. It reads the lineage
 	 * scope the header provides (the jurisdiction picker at the top right,
 	 * `jurisdiction-scope.svelte.ts`), opens one live query for the lineage's versions, and shows
-	 * the version in force (the newest otherwise) under four tabs: Payroll (the root scalars),
-	 * Contributions (schemes and bands), Catalogues and Holidays. Sealing, voiding and cloning
-	 * versions are not surfaced here.
+	 * the version in force (the newest otherwise) under three tabs: General (the root scalars),
+	 * Catalogues and Compare snapshots. Sealing, voiding and cloning versions are not surfaced here.
 	 *
 	 * Catalogues is one tab with seven of its own, because there are seven catalogue tables where
 	 * there used to be two. Four of them are the same row — a code, a nature, the treatment every
 	 * scheme gives it, its place in the reduction order, who it covers and what bounds it — and what
 	 * tells them apart is which table a row is in, which is exactly what a tab strip says. Seven tabs at the top level would have said the same thing while
-	 * burying Payroll rules and Holidays among them; a second grouping level under Catalogues would
-	 * have been a level to explain.
+	 * burying the root scalars among them; a second grouping level under Catalogues would
+	 * have been a level to explain. Compare snapshots reads its own catalogue queries when the tab
+	 * is first opened, so the page still opens exactly one query.
 	 *
 	 * Layout is one `AppShell` (variant `full`) and no page scroll: a tab panel never scrolls, the
 	 * thing inside it does. The payroll form owns a `Scroll` of its own; every catalogue table is a
-	 * bounded `CollectionTable` owning its rows; the holidays tab does the same one level down. So a
+	 * bounded `CollectionTable` owning its rows; the Compare snapshots tab owns a `Scroll` of its own. So a
 	 * tab owns exactly one vertical scrollport and wheel events never die inside a clipped panel or
 	 * over chrome.
 	 */

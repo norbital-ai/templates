@@ -231,18 +231,13 @@
 	<Grid gap="sm" minimum="compact">
 		{#if !selfService}
 			<Column span="all"
-				><label class="text-sm font-medium"
-					><Stack gap="xs">
-						{t('leave.activity')}
-						<Combobox
-							options={kinds}
-							value={current.kind}
-							{disabled}
-							searchable={false}
-							onValueChange={selectKind}
-						/>
-					</Stack></label
-				></Column
+				><Combobox
+					options={kinds}
+					value={current.kind}
+					{disabled}
+					searchable={false}
+					onValueChange={selectKind}
+				/></Column
 			>
 		{/if}
 		{#if current.kind === 'TIME_OFF'}

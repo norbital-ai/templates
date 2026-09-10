@@ -83,21 +83,6 @@ const clickNamed = (page: HeadedPage, selector: string, label: string) =>
 		label
 	);
 
-const fill = (page: HeadedPage, selector: string, value: string) =>
-	perform(
-		page,
-		`(() => {
-			const node = document.querySelector(${JSON.stringify(selector)});
-			if (!(node instanceof HTMLInputElement) || node.disabled || node.getBoundingClientRect().height === 0) return false;
-			node.focus();
-			node.value = ${JSON.stringify(value)};
-			node.dispatchEvent(new Event('input', { bubbles: true }));
-			node.dispatchEvent(new Event('change', { bubbles: true }));
-			return true;
-		})()`,
-		`fill ${selector}`
-	);
-
 const fieldInput = (name: string) => `[role="dialog"] [data-collection-field="${name}"] input`;
 
 const submit = (page: HeadedPage) =>
@@ -224,87 +209,51 @@ it('the entity saves a Google source, imports unpublished holidays and publishes
 		// there, because both belong to the entity that observes the days.
 		await navigate(page, `${ENTITIES}${recordStackSearch('companies', COMPANY_ID)}`);
 		await clickNamed(page, '[role="tab"]', 'Holidays');
-		const sourceInput = (name: string) =>
-			`[data-holiday-source-form] [data-holiday-source="${name}"]`;
-		await perform(
-			page,
-			`document.querySelector(${JSON.stringify(sourceInput('calendar_id'))}) != null`,
-			'source form'
-		);
-		await fill(page, sourceInput('calendar_id'), 'initial-browser-fixture');
-		await fill(page, sourceInput('time_zone'), 'UTC');
-		const sourceField = await page.evaluate(
-			`(() => { const node = document.querySelector('[data-holiday-source-form] [data-collection-field="holiday_source"]'); return node == null ? null : { label: (node.querySelector('label')?.innerText ?? '').trim(), height: Math.round(node.getBoundingClientRect().height) }; })()`
-		);
-		assert.ok(
-			sourceField != null && sourceField.label !== '' && sourceField.height > 0,
-			`Google source field: ${JSON.stringify(sourceField)}`
-		);
-		const submitSource = () =>
-			perform(
-				page,
-				`(() => {
-				${ACTIVATE}
-				const node = document.querySelector('[data-holiday-source-form] button[type="submit"]');
-				if (!(node instanceof HTMLButtonElement) || node.disabled) return false;
-				activate(node);
-				return true;
-			})()`,
-				'submit holiday source'
-			);
-		await submitSource();
-		const sourceOf = (row: unknown) =>
-			asRecord(asRecord(row, 'settings version').holiday_source, 'saved source');
-		const sources = await until(
-			() =>
-				session.query(
-					'select holiday_source from companies where id = $1 and holiday_source is not null',
-					[COMPANY_ID]
-				),
-			(rows) => rows.length === 1,
-			'source persisted on the settings version'
-		);
-		assert.equal(sourceOf(sources[0]).calendar_id, 'initial-browser-fixture');
-		assert.equal(sourceOf(sources[0]).time_zone, 'UTC');
-		assert.equal(sourceOf(sources[0]).enabled, true);
-		await fill(page, sourceInput('calendar_id'), CALENDAR_ID);
-		await fill(page, sourceInput('time_zone'), 'Asia/Singapore');
+		// Holidays are the entity's. The Google source is seeded on the row — there is no source
+		// form: an entity's import reads its configured calendar, or the country calendar.
+		await session.query('update companies set holiday_source = $1::jsonb where id = $2', [
+			JSON.stringify({
+				calendar_id: CALENDAR_ID,
+				time_zone: 'Asia/Singapore',
+				enabled: false
+			}),
+			COMPANY_ID
+		]);
+		// Holidays: import from the Google source, then publish one day. The panel opens on the
+		// current year and the fixture reads the next one, so page forward first.
 		await perform(
 			page,
 			`(() => {
-			${ACTIVATE}
-			const node = document.querySelector(${JSON.stringify(sourceInput('enabled'))});
-			if (!(node instanceof HTMLInputElement)) return false;
-			if (node.checked) activate(node);
-			return true;
-		})()`,
-			'disable automatic source preparation'
+				const node = document.querySelector('[aria-label="Next year"]');
+				if (!(node instanceof HTMLElement)) return false;
+				node.click();
+				return true;
+			})()`,
+			'view next year'
 		);
-		await submitSource();
-		await until(
-			() =>
-				session.query(
-					'select holiday_source from companies where id = $1 and holiday_source is not null',
-					[COMPANY_ID]
-				),
-			(rows) =>
-				rows.length === 1 &&
-				sourceOf(rows[0]).calendar_id === CALENDAR_ID &&
-				sourceOf(rows[0]).enabled === false &&
-				sourceOf(rows[0]).time_zone === 'Asia/Singapore',
-			'source edits persisted'
+		await perform(
+			page,
+			`document.body.innerText.includes(${JSON.stringify(String(YEAR))})`,
+			`the year reads ${YEAR}`
 		);
-		// Holidays: import from the Google source set above, then publish one day.
 		await clickNamed(page, 'button', 'Import from Google');
-		const imported = await until(
-			() =>
-				session.query(
-					'select id, date, name, published_at, source from jurisdiction_holidays where company_id = $1 and date >= $2 order by date',
-					[COMPANY_ID, `${YEAR}-01-01`]
-				),
-			(rows) => rows.length === 2,
-			'google import completed'
-		);
+		let imported: readonly unknown[];
+		try {
+			imported = await until(
+				() =>
+					session.query(
+						'select id, date, name, published_at, source from jurisdiction_holidays where company_id = $1 and date >= $2 order by date',
+						[COMPANY_ID, `${YEAR}-01-01`]
+					),
+				(rows) => rows.length === 2,
+				'google import completed'
+			);
+		} catch (cause) {
+			const ui = String(await page.evaluate('document.body.innerText')).replace(/\s+/g, ' ');
+			throw new Error(
+				`${String(cause)} | requests=${JSON.stringify(requests)} | ui=${ui.slice(-600)}`
+			);
+		}
 		assert.deepEqual(requests, ['first', 'fixture-page-two']);
 		assert.deepEqual(
 			imported.map((row) => {

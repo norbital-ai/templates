@@ -50,7 +50,7 @@
 						{/if}
 						<Field name="code" />
 						<Field name="name" />
-						<Column span="all"><Field name="variant" label={t('component.shift')} /></Column>
+						<Column span="all"><Field name="variant" /></Column>
 					</Grid>
 				</FormSection>
 				<FormSection
