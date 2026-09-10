@@ -37,6 +37,7 @@ import {
 	assertFormPresentable,
 	assertNoErrors,
 	auditScroll,
+	auditFill,
 	authoredNames,
 	closeOverlay,
 	navigate,
@@ -255,6 +256,81 @@ const activateNamed = (selector: string, label: string): string => `(() => {
 })()`;
 
 /** What the open form put on screen for the scope it was opened with, and for its own first section. */
+/** The visible tab labels on screen right now, outermost first, as a JSON array. */
+const TAB_LABELS = `(() => JSON.stringify(
+	[...document.querySelectorAll('[role="tab"]')]
+		.filter((node) => node.getBoundingClientRect().height > 0)
+		.map((node) => (node.textContent ?? '').trim())
+		.filter((label) => label.length > 0)
+))()`;
+
+/**
+ * Every panel behind a tab, audited like any other surface.
+ *
+ * An app's tabs are component state, not routes: navigating to `/app/<name>` paints one panel, so a
+ * walk that only navigates audits one panel and reports the app clean. Employee Self-Service alone
+ * hides eleven panels behind two levels of tabs — My events → Work · Leave · Claim · Allowance ·
+ * Payment · Loan — and every one of them was outside this sweep.
+ *
+ * Two levels is the depth the template actually nests, and the inner labels are re-read after the
+ * outer tab is activated because activating one replaces the tablist beneath it.
+ */
+const walked: string[] = [];
+
+/** Every box the walk found leaving most of its width empty, surface by surface. */
+const underfilled: string[] = [];
+
+/**
+ * Underfilled boxes that are already known, and why they are not failures today.
+ *
+ * The fill audit is a ratchet, not a gate: a shape recorded here is debt with a fix that belongs
+ * somewhere this template does not own, and anything the audit finds that is *not* one of these
+ * fails the sweep on the spot. Each entry is asserted to still match something, so the day the
+ * underlying fix lands the sweep tells you to delete the entry rather than quietly carrying it.
+ */
+const KNOWN_UNDERFILL: readonly { shape: RegExp; note: string }[] = [
+	{
+		shape: /\[data-data-renderer-control\]/,
+		note:
+			'a complex data renderer sized to its content inside a full-width field frame — the ' +
+			'regional minimum-wage matrix draws 427px of table in a 976px field, and the interval, ' +
+			'duration and shift renderers do the same in a record sheet. The frame ' +
+			'(oss data-renderer/data-renderer-control.svelte) is `flex items-center` and stretches ' +
+			'nothing; the input renderers carry their own `w-full` and the complex ones do not. The ' +
+			'fix is in oss and it is shared by every template, so it is not made from here'
+	}
+];
+
+const walkTabs = async (page: HeadedPage, path: string, seenErrors: number): Promise<number> => {
+	const outer = JSON.parse(String(await page.evaluate(TAB_LABELS))) as string[];
+	let errors = seenErrors;
+	for (const label of outer) {
+		if (!JSON.parse(String(await page.evaluate(activateNamed('[role="tab"]', label))))) continue;
+		const surface = `${path} → ${label}`;
+		await settle(page, () => true, surface, SETTLE_TIMEOUT_MS);
+		errors = assertNoErrors(await readErrors(page), surface, errors);
+		await auditScroll(page, surface);
+		underfilled.push(...(await auditFill(page, surface)));
+		walked.push(surface);
+		const inner = (JSON.parse(String(await page.evaluate(TAB_LABELS))) as string[]).filter(
+			(name) => !outer.includes(name)
+		);
+		for (const nested of inner) {
+			if (!JSON.parse(String(await page.evaluate(activateNamed('[role="tab"]', nested))))) continue;
+			const deeper = `${surface} → ${nested}`;
+			await settle(page, () => true, deeper, SETTLE_TIMEOUT_MS);
+			errors = assertNoErrors(await readErrors(page), deeper, errors);
+			await auditScroll(page, deeper);
+			underfilled.push(...(await auditFill(page, deeper)));
+			walked.push(deeper);
+		}
+		// Back to the tab this app opens on, so the create-form probe below sees what it expects.
+		if (outer[0] != null) await page.evaluate(activateNamed('[role="tab"]', outer[0]));
+	}
+	return errors;
+};
+
+/** What the open form put on screen for the scope it was opened with, and for its own first section. */
 const scopeProbe = (names: readonly string[]): string => `(() => {
 	const dialog = [...document.querySelectorAll('[role="dialog"]')].at(-1) ?? document;
 	const form = dialog.querySelector('form');
@@ -303,6 +379,15 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 	let browser: HeadedBrowser | undefined;
 	try {
 		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
+		// Employee Self-Service finds the viewer by `employees.email`, and the sweep's founder is
+		// nobody's employee — so it painted "No active employment on your record" and this walk
+		// audited an empty state while calling the app clean. Eleven panels behind its tabs, the
+		// leave balances among them, had never been on screen in any test. Binding the founder to a
+		// seeded contract is what the headed self-service test already does.
+		await session.query(
+			'update employees set email = $1 where id = (select employee_id from employments where employee_number = $2)',
+			[`${LABEL}-founder@example.test`, 'PUB-EMP-0001']
+		);
 		const rowIds = await firstRowIds(session.query, representations);
 		gateway = await openGateway(session);
 		browser = await launchChromiumOrSkip(ERROR_RECORDER);
@@ -349,6 +434,7 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 				`${path} rendered no application header, so its module never mounted: ${paint.body.slice(0, 400)}`
 			);
 			await auditScroll(page, path);
+			underfilled.push(...(await auditFill(page, path)));
 			if (index > 0) {
 				assert.ok(
 					elapsedMs < WARM_SURFACE_BUDGET_MS,
@@ -361,6 +447,13 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 					`${path} painted nothing but chrome: ${paint.body.slice(0, 400)}`
 				);
 			}
+
+			// Every in-page tab, and every tab inside those. An app's tabs are component state rather
+			// than routes, so navigating to `/app/<name>` paints exactly one panel and the walk above
+			// audits exactly one panel — which is how a scroll trap on Employee Self-Service →
+			// My events → Leave sat in front of an operator while this sweep reported the app clean.
+			// The panel a tab opens is a surface like any other and gets the same four questions.
+			seenErrors = await walkTabs(page, path, seenErrors);
 
 			// One create form per app surface. The layout contract is the same for every collection,
 			// so opening all of them on every page would multiply the walk for no new answer.
@@ -389,6 +482,7 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 				const audit = await readFormAudit(page);
 				assertFormPresentable(audit, `${path} → create form`, STRUCTURED_FIELDS);
 				await auditScroll(page, `${path} → create form`);
+				underfilled.push(...(await auditFill(page, `${path} → create form`)));
 				seenErrors = assertNoErrors(await readErrors(page), `${path} → create form`, seenErrors);
 				formFields = audit.fields.length;
 				await closeOverlay(page);
@@ -436,6 +530,10 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 				`${label} opened an empty sheet — the representation rendered nothing`
 			);
 			await auditScroll(page, label);
+			underfilled.push(...(await auditFill(page, label)));
+			// A representation has tabs of its own — a payroll run's payslips, a settings version's
+			// schemes — and opening the sheet paints one of them. Same reason as the apps above.
+			seenErrors = await walkTabs(page, label, seenErrors);
 			assert.ok(
 				elapsedMs < WARM_SURFACE_BUDGET_MS,
 				`${label} took ${elapsedMs} ms on a warm workspace (budget ${WARM_SURFACE_BUDGET_MS} ms)`
@@ -452,6 +550,25 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 
 		// repository-health:allow LOG1 -- the walk's ledger is the artefact a human reads after a run.
 		console.log(`surface sweep\n${JSON.stringify(reports, null, 2)}`);
+		// repository-health:allow LOG1 -- wasted width is a layout finding; name every one of them.
+		console.log(`underfilled boxes (${underfilled.length})\n${underfilled.join('\n')}`);
+		const novel = underfilled.filter(
+			(finding) => !KNOWN_UNDERFILL.some((known) => known.shape.test(finding))
+		);
+		assert.deepEqual(
+			novel,
+			[],
+			`${novel.length} box(es) leave more than two fifths of their width empty, and none of ` +
+				`them is a shape this sweep already knows about:\n${novel.join('\n')}`
+		);
+		for (const known of KNOWN_UNDERFILL)
+			assert.ok(
+				underfilled.some((finding) => known.shape.test(finding)),
+				`no box matches ${known.shape} any more — ${known.note} appears to be fixed, so ` +
+					`delete its entry from KNOWN_UNDERFILL and let the sweep hold the ground`
+			);
+		// repository-health:allow LOG1 -- the panels behind tabs are surfaces too; name them.
+		console.log(`tab panels walked\n${JSON.stringify(walked, null, 2)}`);
 		// Compare the exact declared gap set: a retired or renamed collection must not disappear
 		// behind a filter, and a new representation without a fixture must be recorded explicitly.
 		assert.deepEqual(
@@ -462,6 +579,13 @@ it('every app surface and every representation paints, scrolls and forms cleanly
 		assert.ok(
 			reports.some((report) => report.formFields !== null && report.formFields > 0),
 			'the sweep never opened a create form, so its layout contract proved nothing'
+		);
+		// The scroll trap this walk was written for lived two tabs deep. If the tab probe stops
+		// finding panels — a renamed role, a lazier tablist — the walk silently becomes a no-op and
+		// the sweep goes green over surfaces it never opened. Nested depth is what proves it works.
+		assert.ok(
+			walked.filter((surface) => surface.split(' \u2192 ').length > 2).length >= 4,
+			`the tab walk opened no nested panels, so it audited nothing behind tabs: ${JSON.stringify(walked)}`
 		);
 	} finally {
 		if (browser !== undefined) await browser.close();

@@ -161,6 +161,103 @@ export type ScrollAudit = {
 };
 
 /**
+ * Boxes whose content abandons most of their width.
+ *
+ * The counterpart to the clip audit. A trap hides content inside a box too small for it; this is
+ * the opposite fault — a box far wider than anything it puts in it, so the surface reads as a
+ * strip of content adrift in empty page. The settings sheet had one: the regional minimum-wage
+ * table renders at its intrinsic 427 pixels inside a 1296-pixel field, because the renderer's
+ * wrapper centres a content-sized child instead of stretching it, and two thirds of the row is
+ * dead.
+ *
+ * Measured as *spread*: the distance from the leftmost child edge to the rightmost, against the
+ * box's content width. Spread reads a row, a column and a grid the same way — a row of chips
+ * spreads across its container even though no single chip is wide, and a column of full-width
+ * cards spreads fully on one child — so one number covers every layout without asking which it is.
+ *
+ * Absolutely positioned children are skipped: an overlay, a tooltip and a focus ring are not the
+ * box's content and a popover pinned to one corner would otherwise read as a full spread.
+ */
+const FILL_AUDIT = `(() => {
+	const describe = (node) => {
+		const parts = [node.tagName.toLowerCase()];
+		if (node.id) parts.push('#' + node.id);
+		for (const name of node.getAttributeNames())
+			if (name.startsWith('data-')) parts.push('[' + name + ']');
+		const cls = String(node.getAttribute('class') ?? '');
+		if (cls) parts.push('.' + cls.split(/\\s+/).slice(0, 6).join('.'));
+		return parts.join('');
+	};
+	const underfilled = [];
+	for (const node of document.querySelectorAll('*')) {
+		const rect = node.getBoundingClientRect();
+		if (node.clientWidth < 500 || rect.height < 80) continue;
+		const style = getComputedStyle(node);
+		if (style.visibility === 'hidden' || style.display === 'none') continue;
+		if (style.position === 'absolute' || style.position === 'fixed') continue;
+		// A box that centres or distributes its children on the inline axis is narrow on purpose:
+		// an empty state reading "No results found" in the middle of a wide panel is a choice, not
+		// abandoned width. Only boxes whose children are meant to start at the edge are measured.
+		if (style.justifyContent !== 'normal' && style.justifyContent !== 'flex-start') continue;
+		if (style.textAlign === 'center') continue;
+		let left = Infinity;
+		let right = -Infinity;
+		let children = 0;
+		for (const child of node.children) {
+			const box = child.getBoundingClientRect();
+			if (box.width < 1 || box.height < 1) continue;
+			const childStyle = getComputedStyle(child);
+			if (childStyle.position === 'absolute' || childStyle.position === 'fixed') continue;
+			children += 1;
+			left = Math.min(left, box.left);
+			right = Math.max(right, box.right);
+		}
+		if (children === 0) continue;
+		const spread = right - left;
+		const fill = spread / node.clientWidth;
+		if (fill < 0.6)
+			underfilled.push({
+				node: describe(node),
+				width: node.clientWidth,
+				spread: Math.round(spread),
+				fill: Math.round(fill * 100) / 100,
+				children
+			});
+	}
+	return JSON.stringify(underfilled);
+})()`;
+
+export type Underfilled = {
+	node: string;
+	width: number;
+	spread: number;
+	fill: number;
+	children: number;
+};
+
+/**
+ * Boxes that are wider than their content on purpose.
+ *
+ * A scroll shadow, a resize handle and a sticky rail are deliberately narrow inside a wide track;
+ * a media header holds an image that keeps its aspect ratio; a chart's own frame is drawn, not
+ * laid out. None of these read as dead page to anyone.
+ */
+const FILL_BY_DESIGN =
+	/data-collection-grid-virtual-spacer|resize-handle|sr-only|\bcm-|\bleaflet-|data-layout=.app-media-header/;
+
+/** Every box on this surface that leaves more than two fifths of its width empty. */
+export const auditFill = async (page: HeadedPage, label: string): Promise<readonly string[]> => {
+	const found = JSON.parse(String(await page.evaluate(FILL_AUDIT))) as Underfilled[];
+	return found
+		.filter((entry) => !FILL_BY_DESIGN.test(entry.node))
+		.map(
+			(entry) =>
+				`${label}: ${entry.node} is ${entry.width}px wide and its ${entry.children} ` +
+				`child(ren) span ${entry.spread}px (${Math.round(entry.fill * 100)}%)`
+		);
+};
+
+/**
  * Boxes that clip on purpose and hide nothing anyone needs to reach.
  *
  * A truncating cell, a masked fade, an avatar and a virtual spacer are all "content taller than
