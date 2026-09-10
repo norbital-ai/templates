@@ -145,8 +145,11 @@ tables or dispatch their calculation definitions.
 
 The money catalogues (Claim, Allowance, Payment) store flat columns — `nature`, `evidence`,
 `settlement` and an entitlement matrix `cap` — which `money.ts` lifts into the engine's `ENTRY`
-definition; a Loan catalogue row carries only code, order, eligibility and treatments, because a
-recovery is always a payroll deduction. The entitlement matrix is rows of `{eligibility, amount}`
+definition; a Loan catalogue row carries code, order, eligibility and treatments, because a
+recovery is always a payroll deduction, plus the two facts only a debt has: `loan_type`
+(`STAFF`, `GOVERNMENT`, `FESTIVE`) and `minimum_repayment`. A `GOVERNMENT` advance is owed to the
+authority rather than the employer, so the final payslip does not settle it and the balance
+survives the contract; the other two end with the employment like any deduction. The entitlement matrix is rows of `{eligibility, amount}`
 read top-down: the first predicate that holds for the person is their ceiling per period, and no
 band holding means no entitlement, refused when the request is written and paid nothing by the run.
 `employment_terms.grade` is the contract's benefit tier; the predicate grammar reads it as
@@ -212,6 +215,16 @@ Single-use monetary entries settle once. Loan instalments may be recovered parti
 outstanding amount is the scheduled amount less paid recoveries. Other monetary obligations and
 statutory charges settle in full. If net remains negative after the permitted Loan reduction, the
 whole calculation is refused before captures are committed.
+
+What the net-pay guard could not take is reported rather than absorbed. A recovery it trimmed
+raises `LOAN_REPAYMENT_SHORT` as a warning — the arithmetic is right and the remainder stays
+outstanding — and a month that recovers less than the catalogue row's `minimum_repayment` raises
+`LOAN_REPAYMENT_BELOW_MINIMUM`, which blocks: the operator resolves the deduction or withholds
+that person. The same rule governs money requests. A claim, allowance or payment the run read and
+priced at nothing is still captured, and every such decision — an eligibility rule the person
+fails, an entitlement matrix no band of which covers them, a period the employment did not touch —
+raises `PAY_REQUEST_SKIPPED` naming the entry and the reason, because the capture removes it from
+the operator's queue and leaves no payslip line to explain it.
 
 ### Periods, cutoffs and service boundaries
 

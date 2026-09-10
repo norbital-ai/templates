@@ -286,7 +286,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 					adjustments: [
 						{
 							input: { family: 'LOAN_REPAYMENT', id: 'rp-1' },
-							catalogueComponent: { id: 'pc-loan' },
+							catalogueComponent: { id: 'pc-loan', code: 'LOAN' },
 							nature: 'DEDUCTION',
 							label: 'LOAN',
 							amount: 80,
@@ -296,7 +296,9 @@ test('a run captures every record it consumed, and adjustments name the captures
 						},
 						{
 							input: { family: 'WORK_DAY', id: 'wd-1' },
-							catalogueComponent: null,
+							// Derived overtime settles under the Work catalogue's own overtime output; the
+							// band that priced it is the label and the rule key beside it.
+							catalogueComponent: { id: 'pc-work:overtime', code: 'OVERTIME' },
 							nature: 'EARNING',
 							label: 'OT_ORDINARY_BEYOND_NORMAL_0',
 							amount: 74.66,
@@ -306,7 +308,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 						},
 						{
 							input: { family: 'LEAVE', id: 'lr-1' },
-							catalogueComponent: null,
+							catalogueComponent: { id: 'pc-npl', code: 'NPL' },
 							nature: 'ABSENCE',
 							label: 'NPL',
 							amount: 25.8,

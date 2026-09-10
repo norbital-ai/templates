@@ -39,7 +39,10 @@ import {
 } from './money.js';
 import { prepareWorkContext, calculateWorkAttendance, prepareWorkSteps, termsAt } from './work.js';
 import { measureLoanRecoveries, validateLoanRecoveries } from './loan.js';
+import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEmployment {
+	/** What the family measurements reported about the requests they read and did not pay. */
+	const notes: RunIssue[] = [];
 	const { bundle } = options;
 	const sourceComponents = new Map(
 		options.configuration.catalogueComponents.map((component) => [component.id, component])
@@ -199,7 +202,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			workingDaysIn: () => 0,
 			allowanceWorkingDaysIn,
 			context,
-			subject
+			subject,
+			note: (issue: RunIssue) => notes.push(issue)
 		})) {
 			const measured = step.calculate();
 			if (measured == null) continue;
@@ -229,6 +233,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			base: [],
 			proration: [],
 			adjustments,
+			notes,
 			captured: {
 				workDays: [...allowanceWorkDayIds],
 				payRequests: {
@@ -473,7 +478,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		workingDaysIn,
 		allowanceWorkingDaysIn,
 		context,
-		subject
+		subject,
+		note: (issue: RunIssue) => notes.push(issue)
 	};
 	const steps = [
 		...prepareWorkSteps(stepOptions),
@@ -549,6 +555,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
 		},
 		arrears,
+		notes,
 		componentAmounts,
 		ordinaryHourlyRate: hourlyRate,
 		ordinaryDayWage: dayWage,
@@ -921,6 +928,9 @@ export function calculateFamilyAssessments(options: {
 			consumedRepayments: gathered.consumedRepayments
 		});
 
+		// What the family measurements said about requests they read and paid nothing for. Warnings:
+		// the run is correct, and the operator has to be able to see that the entry was consumed.
+		issues.push(...measured.notes);
 		issues.push(
 			...validateWorkResult({
 				configuration,

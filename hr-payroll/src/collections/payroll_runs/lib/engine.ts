@@ -52,6 +52,7 @@ import { gatherRun, type GatheredRun } from './gather.js';
 import { periodGrammarFault, resolveWindow, type PayrollWindow } from './period.js';
 import { payrollRunGraph, type PendingPayslip } from './graph.js';
 import { settle } from './settle.js';
+import { loanShortfallIssues } from '../../../lib/payroll/loan.js';
 import {
 	blockers,
 	describeIssues,
@@ -205,6 +206,16 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			adjustments: measured.adjustments,
 			charges
 		});
+		// What the guard could not take is a fact about the month, not a rounding: an agreement with
+		// a stated minimum blocks here, one without it warns. Nothing read `shortfalls` before.
+		issues.push(
+			...loanShortfallIssues({
+				employeeNumber: String(employment.employee_number),
+				employmentId: employment.id,
+				loans: measured.bundle.loans,
+				settlement
+			})
+		);
 
 		pending.push({
 			employmentId: employment.id,

@@ -90,9 +90,6 @@
 		settingsCode: () => selectedVersion?.code,
 		settingsId: () => selectedVersion?.id
 	});
-
-	const banner =
-		'/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp';
 </script>
 
 {#snippet payroll()}
@@ -306,7 +303,7 @@
 	icon="lucide:settings-2"
 	title={t('app.settings.header_title')}
 	description={t('app.settings.header_description')}
-	{banner}
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
 	variant="full"
 >
 	<AppHeaderActions>

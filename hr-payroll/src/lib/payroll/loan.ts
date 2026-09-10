@@ -10,8 +10,15 @@ import { treatmentsInForce } from '../jurisdiction_settings.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 export type Loan = WorkspaceRow<'loans'>;
+/**
+ * The loan catalogue row as a pay line, keeping the two columns only a loan has: what kind of debt
+ * it recovers and the least a month may take. `CatalogueComponent` is the shape every family's pay
+ * line shares, and neither column belongs on it.
+ */
+type LoanComponent = CatalogueComponent &
+	Pick<WorkspaceRow<'loan_catalogue'>, 'loan_type' | 'minimum_repayment'>;
 /** A loan with the catalogue row it was agreed against — the revision it pins, read at GATHER. */
-export type PreparedLoan = Loan & { readonly catalogueComponent: CatalogueComponent };
+export type PreparedLoan = Loan & { readonly catalogueComponent: LoanComponent };
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
 /** A loan recovery is always a payroll deduction; the catalogue row does not get to say otherwise. */
 const LOAN_NATURE = 'DEDUCTION' as const;
@@ -21,6 +28,8 @@ import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { overRecoversRepayment, repaymentOverRecoveredMessage } from '../settlement_refusals.js';
+import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+import type { Settlement } from '../../collections/payroll_runs/lib/settle.js';
 import {
 	PAGE_LIMIT,
 	groupBy,
@@ -59,7 +68,7 @@ type MeasureRecoveryOptions = {
 function loanRecoveryComponent(
 	loan: PreparedLoan,
 	currentByCode: ReadonlyMap<string, CatalogueComponent>
-): CatalogueComponent | null {
+): LoanComponent | null {
 	const source = loan.catalogueComponent;
 	const current = currentByCode.get(source.code);
 	if (current == null) return null;
@@ -152,6 +161,15 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 				loanComponentMissingIssue(options.bundle.employment.employee_number, loan).message
 			);
 		if (!isEligible(component.eligibility, options.subject)) continue;
+		/**
+		 * A government loan is not settled out of a final salary.
+		 *
+		 * The borrower owes the authority, not the employer: the scheme collects the balance after
+		 * the contract ends, and sweeping it into the last payslip both over-recovers a month and
+		 * takes money the employer has no claim on. An employer loan is the opposite — the
+		 * agreement ends with the employment — so only `GOVERNMENT` is exempt, and it stays owed.
+		 */
+		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) continue;
 		const due = dateKey(repayment.due_date) ?? String(repayment.due_date).slice(0, 10);
 		/**
 		 * Due by now, not due exactly now.
@@ -185,6 +203,71 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		});
 	}
 	return recoveries;
+}
+
+/** The last payslip of a contract: the exit date falls on or before this period's wage window. */
+function isFinalPayslip(bundle: EmploymentBundle): boolean {
+	const exit = employmentDates(bundle.employment).exit;
+	return exit != null && exit <= bundle.window.salary.end;
+}
+
+/**
+ * A month that recovered less than the agreement's floor is the operator's decision, not a rounding.
+ *
+ * `settle` already trims a recovery the net-pay guard cannot take and records what it could not
+ * take in `shortfalls`; nothing read them, so a person under-recovered for six months in a row and
+ * every payslip looked ordinary. A catalogue row that states `minimum_repayment` blocks the run
+ * when a month falls under it — the operator either resolves the deduction or withholds the person
+ * — and one that states no floor warns, because a trimmed recovery is still a fact worth reading.
+ */
+export function loanShortfallIssues(options: {
+	readonly employeeNumber: string;
+	readonly employmentId: string;
+	readonly loans: readonly PreparedLoan[];
+	readonly settlement: Settlement;
+}): RunIssue[] {
+	if (options.settlement.shortfalls.length === 0) return [];
+	const agreedById = new Map(
+		options.loans.map((loan) => [loan.catalogueComponent.id, loan.catalogueComponent])
+	);
+	const takenByComponent = new Map<string, number>();
+	for (const row of options.settlement.adjustments)
+		if (row.input.family === 'LOAN_REPAYMENT')
+			takenByComponent.set(
+				row.catalogueComponent.id,
+				(takenByComponent.get(row.catalogueComponent.id) ?? 0) + row.amount
+			);
+	const issues: RunIssue[] = [];
+	for (const shortfall of options.settlement.shortfalls) {
+		const component = agreedById.get(shortfall.componentCatalogueId);
+		if (component == null) continue;
+		const floor =
+			component.minimum_repayment == null ? null : decodeNumber(component.minimum_repayment);
+		const taken = takenByComponent.get(shortfall.componentCatalogueId) ?? 0;
+		const short = cents(shortfall.amount);
+		issues.push(
+			floor != null && taken < floor
+				? {
+						code: 'LOAN_REPAYMENT_BELOW_MINIMUM',
+						message:
+							`${options.employeeNumber} recovered ${taken} under ${component.code}, below the ` +
+							`agreed minimum of ${floor}: net pay could not carry ${short} of this period's ` +
+							'instalment. Resolve the deduction or withhold this person from the run.',
+						collection: 'employments',
+						recordId: options.employmentId
+					}
+				: {
+						code: 'LOAN_REPAYMENT_SHORT',
+						severity: 'WARNING',
+						message:
+							`${options.employeeNumber} could not repay ${short} under ${component.code} this ` +
+							'period; net pay would have gone negative. It stays outstanding.',
+						collection: 'employments',
+						recordId: options.employmentId
+					}
+		);
+	}
+	return issues;
 }
 
 /**

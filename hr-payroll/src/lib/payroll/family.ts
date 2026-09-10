@@ -24,6 +24,7 @@ import type {
 	CatalogueComponent,
 	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
+import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import type { PayRequest, PayRequestFamily } from './money.js';
 import type { PayslipBase } from '../../datatypes/payslip_base/+definition.js';
@@ -45,7 +46,11 @@ import type { PersonContext } from '../../collections/payroll_runs/lib/eligibili
  * satisfy structurally, so neither step reshapes anything on the way in.
  */
 export type PricedItem = {
-	/** The catalogue row this pays, or `null` for an amount the statute derived. */
+	/**
+	 * The catalogue row this pays. Always present, derived overtime included: a statutory band
+	 * decides what an overtime hour is *worth*, and the Work catalogue's `OVERTIME` /
+	 * `OVERTIME_EXCESS` output is still the line it is paid on. `label` carries the band.
+	 */
 	readonly catalogueComponent: FamilyPayItem;
 	/**
 	 * What the amount settles as, carried rather than read back off the component, because derived
@@ -121,6 +126,14 @@ export type MeasuredEmployment = {
 	/** The contracted amounts. One entry per component, never one per terms row. */
 	readonly base: readonly MeasuredBase[];
 	/**
+	 * What this employment's measurements decided not to pay, and why.
+	 *
+	 * A captured request that priced to nothing is locked and silent; these are the sentences that
+	 * make it readable. Warnings, never blockers: the arithmetic is right, the operator just has to
+	 * be able to see it happened.
+	 */
+	readonly notes: readonly RunIssue[];
+	/**
 	 * What the calendar did to the contracted wage, one entry per segment.
 	 *
 	 * These are evidence rather than money: they are the working behind a `base` amount the calendar
@@ -192,6 +205,15 @@ export type MeasureComponentOptions = {
 	readonly allowanceWorkingDaysIn: (sourceMonth: string, window: PayRange) => number;
 	readonly context: () => FormulaContext;
 	readonly subject: PersonContext;
+	/**
+	 * Where a measurement says why it produced nothing.
+	 *
+	 * A request the run read and priced at nothing is still captured — the junction row is the
+	 * settlement lock — so a skip is invisible on the payslip and invisible in the source: the
+	 * entry is marked consumed and no line names it. Every `return null` that is a decision rather
+	 * than an absence says so here, and the run reports them as warnings.
+	 */
+	readonly note: (issue: RunIssue) => void;
 };
 
 /** A family supplies a pure calculation; the coordinator only preserves common sequence order. */
