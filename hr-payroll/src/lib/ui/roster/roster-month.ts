@@ -85,7 +85,6 @@ type Designation = Schema.Schema.Type<typeof designationSchema>;
 
 /** How this employment's days are supposed to appear on the board. */
 const scheduleKindSchema = Schema.Literals(['PATTERNED', 'ROSTERED']);
-type ScheduleKind = Schema.Schema.Type<typeof scheduleKindSchema>;
 
 /** Why a planned working day has no attendance behind it, in the order an operator cares about. */
 const dayStatusSchema = Schema.Literals([
@@ -241,7 +240,6 @@ const rosterCodeDisplayLikeSchema = Schema.Struct({
 	code: Schema.String,
 	variant: rosterCodeVariantValueSchema
 });
-type RosterCodeDisplayLike = Schema.Schema.Type<typeof rosterCodeDisplayLikeSchema>;
 
 /**
  * One person-day as every board data source reads it: both halves, both optional.

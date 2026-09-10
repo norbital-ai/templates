@@ -16,8 +16,6 @@ export const overtimeAwardValueSchema = Schema.Union([
 	})
 ]);
 
-export type OvertimeAward = Schema.Schema.Type<typeof overtimeAwardValueSchema>;
-
 /** Strict standard view: a key no arm declares is refused rather than stripped. */
 export const overtimeAwardSchema = Schema.toStandardSchemaV1(overtimeAwardValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }

@@ -155,18 +155,6 @@ const CoverageDecisionSchema = Schema.Union([
 ]);
 type CoverageDecision = Schema.Schema.Type<typeof CoverageDecisionSchema>;
 
-/**
- * The one coverage rule effective for a jurisdiction, or null when none is.
- *
- * Null is a real answer and means universal coverage: a jurisdiction that imposes no coverage
- * restriction is not a jurisdiction where nobody is covered.
- */
-export function coverageRuleFor<T extends CoverageRule>(rules: readonly T[]): T | null {
-	if (rules.length > 1)
-		throw new Error('More than one overtime coverage rule is effective for this jurisdiction.');
-	return rules[0] ?? null;
-}
-
 function categoryOf(rule: CoverageRule, subject: CoverageSubject): string | null {
 	const basis = CATEGORY_BASES.find((candidate) => candidate === rule.category_basis);
 	if (basis == null)

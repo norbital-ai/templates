@@ -29,6 +29,7 @@ import type {
 	MeasuredBase,
 	MeasuredAdjustment
 } from './family.js';
+import { baseLine } from './family.js';
 import {
 	PAY_REQUEST_FAMILIES,
 	requestIsDue,
@@ -282,12 +283,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			(!options.deferredWagesOnly || request.recurring) &&
 			requestIsDue(request, options.period, options.salary, cutoffDay, cadence)
 	);
-	const entriesByComponent = new Map<string, PayRequest[]>();
-	for (const entry of periodEntries) {
-		const bucket = entriesByComponent.get(entry.component_catalogue_id);
-		if (bucket) bucket.push(entry);
-		else entriesByComponent.set(entry.component_catalogue_id, [entry]);
-	}
+	const entriesByComponent = Map.groupBy(periodEntries, (entry) => entry.component_catalogue_id);
 	const entryTotalByComponentId = new Map<string, number>();
 	for (const component of configuration.catalogueComponents) {
 		entryTotalByComponentId.set(
@@ -445,13 +441,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		// month's own contract produced it — so it is base, exactly like the wage it stands in for,
 		// and it rides the wage's own component: a second base line under the same code, which the
 		// formula context and every total sum.
-		base.push({
-			catalogueComponent: component,
-			nature: component.nature,
-			label: component.code,
-			amount: arrears.amount,
-			entry: { component_code: component.code, amount: arrears.amount }
-		});
+		base.push(baseLine(component, component.nature, arrears.amount));
 		componentAmounts.set(component.code, arrears.amount);
 		componentsByCode[component.code] = arrears.amount;
 	}

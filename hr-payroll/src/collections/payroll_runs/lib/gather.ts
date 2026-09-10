@@ -25,7 +25,7 @@ import { resolveEmployment, type ResolvedEmployment } from '../../../lib/employm
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
-import { groupBy, PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
+import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
 import {
 	prepareFamilyObligations,
@@ -237,7 +237,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 						limit: PAGE_LIMIT
 					});
 		options.api.reads.assertComplete(termRows, 'employment terms');
-		const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
+		const termsByEmployment = Map.groupBy(live(termRows), (row) => row.employment_id);
 		const company = options.configuration.company;
 		const cadenceByEmployment = new Map<
 			string,

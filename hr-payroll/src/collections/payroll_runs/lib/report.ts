@@ -183,28 +183,6 @@ function sumHours(payslip: ReportPayslip, predicate: (line: ReportLine) => boole
 	);
 }
 
-function contribution(
-	payslip: ReportPayslip,
-	code: string,
-	field: 'base' | 'employee' | 'employer'
-): number {
-	return payslip.contributions.get(code)?.[field] ?? 0;
-}
-
-function epf(payslip: ReportPayslip, field: 'base' | 'employee' | 'employer'): number {
-	const citizen = contribution(payslip, 'EPF', field);
-	const nonCitizen = contribution(payslip, 'EPF_NON_CITIZEN', field);
-	// The two schemes are mutually exclusive, but the contribution engine persists the assessed
-	// base for the non-enrolled scheme as well. Amounts can be summed because only one scheme
-	// charges; a base must select the charged scheme instead of counting the same wages twice.
-	return field === 'base' ? Math.max(citizen, nonCitizen) : citizen + nonCitizen;
-}
-
-function componentAmount(payslip: ReportPayslip, codes: readonly string[]): number {
-	const wanted = new Set(codes);
-	return sumLines(payslip, (line) => wanted.has(line.componentCode));
-}
-
 /**
  * The statutory columns, derived from the schemes the run actually charged.
  *

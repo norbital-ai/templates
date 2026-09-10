@@ -32,6 +32,12 @@ export default defineModel(
 		research_urls: text().array(),
 		/** Set by the statutory drift automation on the draft it proposes; the review sheet. */
 		research_notes: custom('statutory_proposal'),
+		/**
+		 * What this version changes against its predecessor, in the operator's words: the instrument
+		 * that moved and the value it moved. Prose for the snapshot beside its sources; the engine
+		 * never reads it.
+		 */
+		change_summary: text(),
 		/** Region → monthly minimum wage, in the version's currency; read by `companies.region`. */
 		minimum_wages: custom('minimum_wages'),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()

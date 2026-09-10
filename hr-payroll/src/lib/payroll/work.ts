@@ -10,7 +10,6 @@ import type {
 } from '../../collections/payroll_runs/lib/configuration.js';
 import type { EmploymentBundle, GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 import {
-	groupBy,
 	PAGE_LIMIT,
 	type PayrollReadApi,
 	type ReadLog
@@ -92,6 +91,7 @@ import type {
 	MeasureEmploymentOptions,
 	PayRange
 } from './family.js';
+import { baseLine } from './family.js';
 
 /** Work resolves its catalogue and the roster definitions used throughout the payroll window. */
 export function prepareWorkCatalogue(options: {
@@ -235,7 +235,7 @@ export function prepareWorkInputs(options: {
 			return { company_id: holiday.company_id, date, holiday_id: holiday.id };
 		});
 		return {
-			workDaysByEmployment: groupBy([...workDays.values()], (row) => row.employment_id),
+			workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
 			workHolidayEvidence: { inputs: workHolidayInputs, holidays: live(workHolidays) }
 		};
 	});
@@ -1009,15 +1009,7 @@ function measureWorkComponent(
 		});
 		return {
 			amount,
-			base: [
-				{
-					catalogueComponent: options.component,
-					nature,
-					label: options.component.code,
-					amount,
-					entry: { component_code: options.component.code, amount }
-				}
-			],
+			base: [baseLine(options.component, nature, amount)],
 			// A period one terms row covers whole is still one segment, and it is still recorded:
 			// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
 			// sometimes is a payslip whose reader has to know when.
@@ -1086,15 +1078,7 @@ function measureWorkComponent(
 		const amount = cents(exact);
 		return {
 			amount,
-			base: [
-				{
-					catalogueComponent: options.component,
-					nature,
-					label: options.component.code,
-					amount,
-					entry: { component_code: options.component.code, amount }
-				}
-			],
+			base: [baseLine(options.component, nature, amount)],
 			proration: [],
 			adjustments: []
 		};
@@ -1113,15 +1097,7 @@ function measureWorkComponent(
 		const magnitude = cents(Math.abs(amount));
 		return {
 			amount: magnitude,
-			base: [
-				{
-					catalogueComponent: options.component,
-					nature,
-					label: options.component.code,
-					amount: magnitude,
-					entry: { component_code: options.component.code, amount: magnitude }
-				}
-			],
+			base: [baseLine(options.component, nature, magnitude)],
 			proration: [],
 			adjustments: []
 		};

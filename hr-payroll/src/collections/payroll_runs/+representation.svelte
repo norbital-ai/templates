@@ -25,10 +25,17 @@
 	import { PAYROLL_RUN_LIST_COLUMNS } from './list-columns.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { Effect, Result } from 'effect';
+	import type { CollectionFilter } from '@norbital-ai/std/collection';
+	import { collectionCatalog } from '$bolt/collections.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import {
+		CollectionTable,
+		collectionTableRowMatchesFilters,
+		collectionTableRowMatchesSearch
+	} from '@norbital-ai/ui/collection-table';
+	import { CollectionToolbarQueryControls } from '@norbital-ai/ui/collection-toolbar';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
@@ -113,19 +120,114 @@
 			? null
 			: client.db.employments.findMany({
 					where: { company_id: { eq: companyId }, approval_id: { isNull: true } },
-					columns: { id: true, employee_number: true, exit_date: true },
+					columns: {
+						id: true,
+						employee_id: true,
+						employee_number: true,
+						hire_date: true,
+						bank: true,
+						effective_range: true,
+						exit_date: true,
+						exit_reason: true,
+						exit_note: true,
+						children: true
+					},
 					orderBy: { employee_number: 'asc' },
 					limit: 10_000
 				})
+	);
+	/** The person behind each employment number, so the matrix reads as a name, not a code. */
+	const employeeIds = $derived([
+		...new Set((employmentsQuery?.current ?? []).map((employment) => employment.employee_id))
+	]);
+	const employeesQuery = $derived(
+		employeeIds.length === 0
+			? null
+			: client.db.employees.findMany({
+					where: { id: { in: employeeIds } },
+					columns: { id: true, name: true },
+					limit: 10_000
+				})
+	);
+	const employeeNameById = $derived(
+		new Map((employeesQuery?.current ?? []).map((row) => [row.id, row.name]))
+	);
+	type PayrollPerson = {
+		readonly id: string;
+		readonly employee_id: string;
+		readonly employee_number: string;
+		readonly employee_name: string;
+		readonly exit_date: string | null;
+		readonly employment_employee: { readonly name: string };
+	};
+	const people = $derived<readonly PayrollPerson[]>(
+		(employmentsQuery?.current ?? []).map((employment) => {
+			const employeeName = employeeNameById.get(employment.employee_id) ?? '';
+			return {
+				...employment,
+				employee_name: employeeName,
+				employment_employee: { name: employeeName }
+			};
+		})
+	);
+	/** The toolbar's search and filters, evaluated against the in-memory list. */
+	let personSearch = $state('');
+	let personFilters = $state<readonly CollectionFilter[]>([]);
+	const visiblePeople = $derived(
+		people.filter(
+			(person) =>
+				collectionTableRowMatchesSearch(person, personSearch) &&
+				collectionTableRowMatchesFilters(person, personFilters)
+		)
+	);
+	/**
+	 * Who the selected period has already paid.
+	 *
+	 * A period is one run per entity, so the people on that run's payslips are already settled and
+	 * cannot be withheld into another run of the same period. They are shown rather than hidden:
+	 * "Aisyah is not in this list" and "Aisyah has already been run for January" are different
+	 * facts, and only one of them is worth investigating.
+	 */
+	const periodRunQuery = $derived(
+		companyId == null || period == null
+			? null
+			: client.db.payroll_runs.findMany({
+					where: { company_id: { eq: companyId }, period: { eq: period } },
+					columns: { id: true },
+					limit: 2
+				})
+	);
+	const periodRun = $derived(periodRunQuery?.current?.[0] ?? null);
+	const alreadyRunQuery = $derived(
+		periodRun == null
+			? null
+			: client.db.payslips.findMany({
+					where: { payroll_run_id: { eq: periodRun.id } },
+					columns: { employment_id: true },
+					limit: 10_000
+				})
+	);
+	const alreadyRun = $derived(
+		new Set((alreadyRunQuery?.current ?? []).map((row) => row.employment_id))
+	);
+	const eligibleEmployments = $derived(
+		visiblePeople.filter((person) => !alreadyRun.has(person.id))
 	);
 	/** `employment_id -> reason`; an entry exists only while the person is withheld. */
 	let withheld = $state<Record<string, string>>({});
 	const withholdings = $derived(
 		Object.entries(withheld).map(([employment_id, reason]) => ({ employment_id, reason }))
 	);
-	// A person can only be withheld from the entity the form is on, so changing entity clears them.
+	const allHeld = $derived(
+		eligibleEmployments.length > 0 &&
+			eligibleEmployments.every((employment) => employment.id in withheld)
+	);
+	const someHeld = $derived(eligibleEmployments.some((employment) => employment.id in withheld));
+	// A person can only be withheld from the entity the form is on, and who has already run depends
+	// on the period, so changing either clears the exception list.
 	$effect(() => {
 		void companyId;
+		void period;
 		withheld = {};
 	});
 
@@ -281,6 +383,7 @@
 							<Field name="company_id" hidden />
 							<Field name="period" hidden />
 							<Field name="lifecycle" hidden />
+							<Field name="withheld" hidden />
 							<p
 								class="text-sm"
 								{@attach () => {
@@ -466,43 +569,72 @@
 					{#if companyId != null && (employmentsQuery?.current ?? []).length > 0}
 						<Stack gap="sm">
 							<Stack gap="xs">
-								<span class="text-meta">{t('component.withhold_section')}</span>
+								<Cluster align="center" gap="sm" justify="between">
+									<span class="text-meta">{t('component.withhold_section')}</span>
+									<label class="flex items-center gap-2 text-sm">
+										<input
+											type="checkbox"
+											checked={allHeld}
+											indeterminate={someHeld && !allHeld}
+											onchange={(event) => {
+												withheld = event.currentTarget.checked
+													? Object.fromEntries(
+															eligibleEmployments.map((employment) => [employment.id, ''])
+														)
+													: {};
+												form.setValues({ withheld: withholdings });
+											}}
+										/>
+										{t('component.withhold_select_all')}
+									</label>
+								</Cluster>
 								<span class="text-sm text-muted-foreground">
 									{t('component.withhold_hint')}
 								</span>
 							</Stack>
-							<Stack gap="xs" class="max-h-64 overflow-y-auto">
-								{#each employmentsQuery?.current ?? [] as employment (employment.id)}
-									{@const held = employment.id in withheld}
-									<Cluster gap="sm" align="center">
-										<label class="flex items-center gap-2 text-sm">
+							<CollectionToolbarQueryControls
+								definition={collectionCatalog.employments}
+								collections={collectionCatalog}
+								onSearchChange={(search) => (personSearch = search)}
+								onFilterChange={(filters) => (personFilters = filters)}
+							/>
+							<Grid gap="xs" minimum="compact" class="max-h-64 overflow-y-auto">
+								{#each visiblePeople as person (person.id)}
+									{@const held = person.id in withheld}
+									{@const done = alreadyRun.has(person.id)}
+									<Stack gap="xs" class={done ? 'opacity-60' : ''}>
+										<label class="flex min-w-0 items-center gap-2 text-sm">
 											<input
 												type="checkbox"
 												checked={held}
+												disabled={done}
 												onchange={(event) => {
-													const { [employment.id]: _dropped, ...rest } = withheld;
+													const { [person.id]: _dropped, ...rest } = withheld;
 													withheld = event.currentTarget.checked
-														? { ...rest, [employment.id]: '' }
+														? { ...rest, [person.id]: '' }
 														: rest;
 													form.setValues({ withheld: withholdings });
 												}}
 											/>
-											<span class="tabular-nums">{employment.employee_number}</span>
+											<span class="tabular-nums">{person.employee_number}</span>
+											<span class="truncate text-muted-foreground">{person.employee_name}</span>
 										</label>
-										{#if held}
+										{#if done}
+											<span class="text-meta">{t('component.withhold_already_run')}</span>
+										{:else if held}
 											<input
-												class="min-w-0 grow rounded-md border border-input bg-background px-2 py-1 text-sm"
+												class="min-w-0 rounded-md border border-input bg-background px-2 py-1 text-sm"
 												placeholder={t('component.withhold_reason')}
-												value={withheld[employment.id]}
+												value={withheld[person.id]}
 												oninput={(event) => {
-													withheld = { ...withheld, [employment.id]: event.currentTarget.value };
+													withheld = { ...withheld, [person.id]: event.currentTarget.value };
 													form.setValues({ withheld: withholdings });
 												}}
 											/>
 										{/if}
-									</Cluster>
+									</Stack>
 								{/each}
-							</Stack>
+							</Grid>
 						</Stack>
 					{/if}
 					<p class="text-sm text-muted-foreground">

@@ -24,6 +24,7 @@
 	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 	import { AS_ASSIGNED_PATTERN } from '../../lib/scheduling/work-pattern.js';
 	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
+	import { dateKey } from '../../lib/iso-day.js';
 	import {
 		formatCalendarDate,
 		formatEffectiveRange,
@@ -67,9 +68,12 @@
 	const decodeWorkPattern = Schema.decodeUnknownResult(workPatternSchema);
 
 	function isEffectiveOn(range: StoredRange, date: string): boolean {
-		return (
-			range.start.slice(0, 10) <= date && (range.end == null || range.end.slice(0, 10) >= date)
-		);
+		// Days are resolved through the payroll zone, not sliced from the instant: a UI pick east
+		// of UTC stores the viewer's day boundary, whose text begins a day earlier.
+		const start = dateKey(range.start);
+		if (start === '' || start > date) return false;
+		const end = range.end == null ? '' : dateKey(range.end);
+		return end === '' || end >= date;
 	}
 
 	function summarizePattern(code: string, pattern: WorkPattern): string {
@@ -140,7 +144,7 @@
 			};
 		}
 		const next = candidates
-			.filter((candidate) => candidate.range.start.slice(0, 10) > date)
+			.filter((candidate) => dateKey(candidate.range.start) > date)
 			.toSorted((left, right) => left.range.start.localeCompare(right.range.start))[0];
 		if (next) {
 			return {

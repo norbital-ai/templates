@@ -77,15 +77,3 @@ function createReadLog(): ReadLog {
 export function withReadLog<A extends PayrollReadApi>(api: A): A & { readonly reads: ReadLog } {
 	return { ...api, reads: createReadLog() };
 }
-
-/** Group rows by a derived key, preserving insertion order within each bucket. */
-export function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
-	const grouped = new Map<K, T[]>();
-	for (const row of rows) {
-		const value = key(row);
-		const bucket = grouped.get(value);
-		if (bucket) bucket.push(row);
-		else grouped.set(value, [row]);
-	}
-	return grouped;
-}

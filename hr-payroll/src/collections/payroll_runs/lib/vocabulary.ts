@@ -112,7 +112,22 @@ const STATUTORY_VOCABULARY: readonly StatutoryNaming[] = [
 	{ code: 'LI', employee: 'liEmployee', employer: 'liEmployer' },
 	{ code: 'NHI', employee: 'nhiEmployee', employer: 'nhiEmployer' },
 	{ code: 'LABOR_PENSION', employer: 'laborPension' },
-	{ code: 'INCOME_TAX', employee: 'incomeTax' }
+	{ code: 'INCOME_TAX', employee: 'incomeTax' },
+
+	// ── Indonesia ─────────────────────────────────────────────────────────────────────────────────
+	{ code: 'JHT', employee: 'jhtEmployee', employer: 'jhtEmployer', total: 'totalJht' },
+	{ code: 'JP', employee: 'jpEmployee', employer: 'jpEmployer', total: 'totalJp' },
+	// JKK, JKM and JKP are employer-borne only: the employee has no share to report.
+	{ code: 'JKK', employer: 'jkkEmployer' },
+	{ code: 'JKM', employer: 'jkmEmployer' },
+	{ code: 'JKP', employer: 'jkpEmployer' },
+	{
+		code: 'KESEHATAN',
+		employee: 'kesehatanEmployee',
+		employer: 'kesehatanEmployer',
+		total: 'totalKesehatan'
+	},
+	{ code: 'PPH21', employee: 'pph21', base: 'pph21Gross' }
 ];
 
 const NAMING_BY_CODE: ReadonlyMap<string, StatutoryNaming> = new Map(

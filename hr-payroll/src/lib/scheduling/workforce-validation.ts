@@ -12,7 +12,6 @@ const validationShiftSchema = Schema.Struct({
 	end_time: Schema.String,
 	break_minutes: Schema.Number
 });
-type ValidationShift = Schema.Schema.Type<typeof validationShiftSchema>;
 
 const validationDaySchema = Schema.Struct({
 	employment_id: Schema.String,
@@ -47,18 +46,17 @@ function dayMinutes(date: string): number {
  * not. The function is shared by authored hooks, the draft UI and the publication gate.
  */
 export function overlappingWorkShifts(days: readonly ValidationDay[]): WorkShiftOverlap[] {
-	const byEmployment = new Map<string, { day: ValidationDay; start: number; end: number }[]>();
-	for (const day of days) {
-		if (day.designation !== 'WORK' || day.shift == null) continue;
-		const base = dayMinutes(day.work_date);
-		const startClock = clockMinutes(day.shift.start_time);
-		const rawEnd = clockMinutes(day.shift.end_time);
-		const endClock = rawEnd <= startClock ? rawEnd + 1440 : rawEnd;
-		const interval = { day, start: base + startClock, end: base + endClock };
-		const bucket = byEmployment.get(day.employment_id);
-		if (bucket) bucket.push(interval);
-		else byEmployment.set(day.employment_id, [interval]);
-	}
+	const byEmployment = Map.groupBy(
+		days.flatMap((day) => {
+			if (day.designation !== 'WORK' || day.shift == null) return [];
+			const base = dayMinutes(day.work_date);
+			const startClock = clockMinutes(day.shift.start_time);
+			const rawEnd = clockMinutes(day.shift.end_time);
+			const endClock = rawEnd <= startClock ? rawEnd + 1440 : rawEnd;
+			return [{ day, start: base + startClock, end: base + endClock }];
+		}),
+		(interval) => interval.day.employment_id
+	);
 
 	const overlaps: WorkShiftOverlap[] = [];
 	for (const [employmentId, intervals] of byEmployment) {

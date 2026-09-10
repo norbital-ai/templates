@@ -40,13 +40,10 @@ function allocate(amount: number, weights: readonly number[]): number[] {
 export function assessContributions(
 	contracts: readonly ContractAssessment[]
 ): Map<string, ContributionCharge[]> {
-	const groups = new Map<string, ContractAssessment[]>();
-	for (const contract of contracts) {
-		const key = `${contract.employment.company_id}:${contract.employment.employee_id}`;
-		const group = groups.get(key);
-		if (group) group.push(contract);
-		else groups.set(key, [contract]);
-	}
+	const groups = Map.groupBy(
+		contracts,
+		(contract) => `${contract.employment.company_id}:${contract.employment.employee_id}`
+	);
 	const result = new Map<string, ContributionCharge[]>();
 	for (const group of groups.values()) {
 		const ordered = group.toSorted((a, b) =>
@@ -129,7 +126,6 @@ import { Effect } from 'effect';
 import { decodeNumber } from '@norbital-ai/std/json';
 import {
 	PAGE_LIMIT,
-	groupBy,
 	type PayrollReadApi,
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
@@ -182,7 +178,7 @@ export function prepareContributionInputs(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(rows, 'statutory facts');
-		return groupBy(
+		return Map.groupBy(
 			yield* realignStatutoryFacts(options.api.db, live(rows), options.configuration),
 			(row) => row.employment_id
 		);

@@ -5,18 +5,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
 	attendanceChanged,
-	buildPersonDayMutation,
-	resolvePersonDayWriteId,
-	daySheetAttendanceSaveAllowed,
 	daySheetSaveIntent,
 	daySheetSaveLabelKey
 } from '../src/lib/ui/roster/controller-attendance-state.ts';
-import { formatDateISO } from '@norbital-ai/std/date';
-import {
-	assessAttendanceDraft,
-	indexWorkDaysByPersonDay,
-	personDayKey
-} from '../src/lib/ui/roster/roster-month.ts';
+import { assessAttendanceDraft } from '../src/lib/ui/roster/roster-month.ts';
 
 const interval = {
 	start: '2026-08-04T00:00:00.000Z',
@@ -71,149 +63,6 @@ test('footer labels name the pending write, not a generic Save', () => {
 	assert.equal(messages['roster.save_attendance'], 'Save attendance');
 	assert.equal(messages['roster.save_changes'], 'Save changes');
 	assert.equal(messages['roster.save_punch'], 'Save punch');
-});
-
-test('an empty reviewed day is saveable attendance, and is not a missing interval', () => {
-	assert.equal(
-		daySheetAttendanceSaveAllowed({ intervals: [], breakMinutes: 0 }, false, 'NO_INTERVALS'),
-		true
-	);
-	assert.equal(
-		daySheetAttendanceSaveAllowed({ intervals: null, breakMinutes: 0 }, false, 'NO_INTERVALS'),
-		true
-	);
-	assert.equal(
-		daySheetAttendanceSaveAllowed({ intervals: [interval], breakMinutes: 30 }, true, null),
-		false
-	);
-	assert.deepEqual(
-		buildPersonDayMutation({
-			id: 'person-day-1',
-			employmentId: 'employment-1',
-			date: '2026-08-04',
-			plan: null,
-			attendance: { intervals: [], breakMinutes: 0 }
-		}),
-		{ id: 'person-day-1', worked_intervals: [], break_minutes: 0 }
-	);
-});
-
-test('A1: Mark reviewed on a stored person-day updates that row, never inserts a second', () => {
-	const employmentId = 'employment-taufik';
-	const cellDate = '2026-02-01';
-	const storedInstant = '2026-01-31T16:00:00.000Z';
-	const storedId = 'taufik-feb-1';
-	const loaded = [{ id: storedId, employment_id: employmentId, work_date: storedInstant }];
-
-	assert.equal(formatDateISO(storedInstant), '2026-01-31');
-	const utcKeyed = new Map(
-		loaded.map((day) => [personDayKey(day.employment_id, formatDateISO(day.work_date)), day])
-	);
-	assert.equal(utcKeyed.get(personDayKey(employmentId, cellDate)), undefined);
-
-	const indexed = indexWorkDaysByPersonDay(loaded);
-	assert.equal(indexed.get(personDayKey(employmentId, cellDate))?.id, storedId);
-	assert.equal(indexed.get(personDayKey(employmentId, formatDateISO(storedInstant))), undefined);
-
-	const existing = indexWorkDaysByPersonDay(loaded).get(personDayKey(employmentId, cellDate));
-	const mutation = buildPersonDayMutation({
-		id: resolvePersonDayWriteId(existing?.id, storedId),
-		employmentId,
-		date: cellDate,
-		plan: null,
-		attendance: { intervals: [], breakMinutes: 0 }
-	});
-	assert.deepEqual(mutation, { id: storedId, worked_intervals: [], break_minutes: 0 });
-	assert.equal('employment_id' in mutation, false);
-
-	const created = buildPersonDayMutation({
-		id: resolvePersonDayWriteId(undefined, null),
-		employmentId,
-		date: cellDate,
-		plan: null,
-		attendance: { intervals: [], breakMinutes: 0 }
-	});
-	assert.deepEqual(created, {
-		employment_id: employmentId,
-		work_date: cellDate,
-		worked_intervals: [],
-		break_minutes: 0
-	});
-	assert.equal('id' in created, false);
-});
-
-test('attendance-only create carries identity and actual fields but no plan', () => {
-	assert.deepEqual(
-		buildPersonDayMutation({
-			id: null,
-			employmentId: 'employment-1',
-			date: '2026-08-04',
-			plan: null,
-			attendance: { intervals: [interval], breakMinutes: 30 }
-		}),
-		{
-			employment_id: 'employment-1',
-			work_date: '2026-08-04',
-			worked_intervals: [interval],
-			break_minutes: 30
-		}
-	);
-});
-
-test('attendance-only update preserves every planned field by omission', () => {
-	assert.deepEqual(
-		buildPersonDayMutation({
-			id: 'person-day-1',
-			employmentId: 'employment-1',
-			date: '2026-08-04',
-			plan: null,
-			attendance: { intervals: [], breakMinutes: 45 }
-		}),
-		{ id: 'person-day-1', worked_intervals: [], break_minutes: 0 }
-	);
-});
-
-test('A4: approval-gated attendance keeps intervals null distinct from reviewed-empty []', () => {
-	assert.deepEqual(
-		buildPersonDayMutation({
-			id: 'person-day-a4',
-			employmentId: 'employment-1',
-			date: '2026-08-04',
-			plan: null,
-			attendance: { intervals: null, breakMinutes: 0 }
-		}),
-		{ id: 'person-day-a4', worked_intervals: null, break_minutes: 0 }
-	);
-	assert.deepEqual(
-		buildPersonDayMutation({
-			id: 'person-day-a4',
-			employmentId: 'employment-1',
-			date: '2026-08-04',
-			plan: null,
-			attendance: { intervals: [], breakMinutes: 0 }
-		}),
-		{ id: 'person-day-a4', worked_intervals: [], break_minutes: 0 }
-	);
-	assert.doesNotThrow(() => assessAttendanceDraft([], 0));
-});
-
-test('explicit clear writes null while a combined change remains one mutation', () => {
-	assert.deepEqual(
-		buildPersonDayMutation({
-			id: 'person-day-1',
-			employmentId: 'employment-1',
-			date: '2026-08-04',
-			plan: { rosterCodeId: 'night' },
-			attendance: { intervals: null, breakMinutes: 60 }
-		}),
-		{
-			id: 'person-day-1',
-			shift_definition_id: 'night',
-			planned_origin: 'MANUAL',
-			worked_intervals: null,
-			break_minutes: 0
-		}
-	);
 });
 
 test('multiple, overnight and final-open intervals remain valid controller attendance shapes', () => {

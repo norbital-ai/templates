@@ -24,8 +24,6 @@ export const runWithholdingValueSchema = Schema.Struct({
 	reason: Schema.NonEmptyString
 });
 
-export type RunWithholding = Schema.Schema.Type<typeof runWithholdingValueSchema>;
-
 export default defineCustomType({
 	name: 'run_withholdings',
 	description:

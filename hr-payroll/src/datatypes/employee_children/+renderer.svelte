@@ -6,6 +6,7 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { employeeChildSchema } from './+definition.js';
+	import { dateKey } from '../../lib/iso-day.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	let props: RendererProps = $props();
@@ -22,7 +23,9 @@
 	function edit(index: number, change: Partial<Value[number]>): void {
 		emit(rows.map((row, position) => (position === index ? { ...row, ...change } : row)));
 	}
-	const day = (value: string | null | undefined) => (value ?? '').slice(0, 10);
+	/** The stored range bounds are day-precision instants; the inputs are calendar days. */
+	const day = (value: string | null | undefined) => dateKey(value);
+	const dayInstant = (value: string) => `${value}T00:00:00.000Z`;
 </script>
 
 {#if props.mode === 'display'}
@@ -68,7 +71,10 @@
 							oninput={(event) =>
 								edit(index, {
 									effective_range: event.currentTarget.value
-										? { start: event.currentTarget.value, end: row.effective_range?.end ?? null }
+										? {
+												start: dayInstant(event.currentTarget.value),
+												end: row.effective_range?.end ?? null
+											}
 										: null
 								})}
 						/></Stack
@@ -84,7 +90,7 @@
 								edit(index, {
 									effective_range: {
 										start: row.effective_range?.start ?? '',
-										end: event.currentTarget.value || null
+										end: event.currentTarget.value ? dayInstant(event.currentTarget.value) : null
 									}
 								})}
 						/></Stack

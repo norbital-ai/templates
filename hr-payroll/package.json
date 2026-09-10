@@ -25,7 +25,6 @@
 		"@vladmandic/human": "3.3.6",
 		"effect": "4.0.0-rc.111",
 		"exceljs": "4.4.0",
-		"mode-watcher": "^1.1.0",
 		"onnxruntime-web": "1.23.2",
 		"runed": "^0.37.1",
 		"svelte": "^5.56.10",

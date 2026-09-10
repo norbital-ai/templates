@@ -11,6 +11,7 @@
 import { Number as EffectNumber, Result } from 'effect';
 import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { addDays, monthDays, shiftPeriod } from '../../collections/payroll_runs/lib/dates.js';
 
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
@@ -185,11 +186,7 @@ export function instantRangeFromDayPickerValue(
 
 /** A calendar day shifted by whole days without involving the browser's local timezone. */
 export function shiftDayKey(day: string, days: number): string {
-	const parsed = new Date(`${day}T00:00:00.000Z`);
-	if (Number.isNaN(parsed.getTime()))
-		throw new Error(`"${day}" is not a YYYY-MM-DD calendar date.`);
-	parsed.setUTCDate(parsed.getUTCDate() + Math.trunc(days));
-	return parsed.toISOString().slice(0, 10);
+	return addDays(day, Math.trunc(days));
 }
 
 /** `YYYY-MM` of a UTC calendar day (string key or live `date()` column value). */
@@ -199,17 +196,12 @@ export function monthKey(date: string | Date): string {
 
 /** `YYYY-MM` offset by whole months. */
 export function shiftMonthKey(period: string, months: number): string {
-	const year = decodeNumber(period.slice(0, 4));
-	const month = decodeNumber(period.slice(5, 7));
-	const shifted = new Date(Date.UTC(year, month - 1 + months, 1));
-	return shifted.toISOString().slice(0, 7);
+	return shiftPeriod(period, months);
 }
 
 /** Number of days in the `YYYY-MM` month. */
 export function daysInMonth(period: string): number {
-	const year = decodeNumber(period.slice(0, 4));
-	const month = decodeNumber(period.slice(5, 7));
-	return new Date(Date.UTC(year, month, 0)).getUTCDate();
+	return monthDays(`${period}-01`);
 }
 
 /**

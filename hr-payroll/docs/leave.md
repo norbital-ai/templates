@@ -108,7 +108,7 @@ different contract. Corrections use a linked reversal and, where needed, a repla
 ### Time-off approval
 
 The shared preview and submission planner check contract dates, effective catalogue eligibility,
-terms, work patterns, roster overrides, observed jurisdiction holidays, occupied halves, paid
+terms, work patterns, roster overrides, observed entity holidays, occupied halves, paid
 payroll windows, available credit and certificate requirements.
 
 A multi-day range retains each chargeable date. Holidays and rest/off days are excluded. Two
@@ -211,4 +211,4 @@ agreed transactions. There is no encashment eligibility matrix, automatic valuat
 
 Controller → Events → Leave shows the entity's manual activity. Employee → Events → Leave shows
 computed balances and the selected contract's entries. Settings → Catalog → Leave owns definitions;
-observed annual holidays belong to the jurisdiction calendar surface.
+observed annual holidays belong to the entity's holiday calendar surface.

@@ -26,8 +26,6 @@ export const holidaySourceValueSchema = Schema.Struct({
 	})
 );
 
-export type HolidaySourceValue = Schema.Schema.Type<typeof holidaySourceValueSchema>;
-
 export default defineCustomType({
 	name: 'holiday_source',
 	description:

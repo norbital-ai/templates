@@ -20,7 +20,7 @@ notice pay, separation payments and corrections.
 flowchart LR
     Contract[Employment contract] --> Prepare[Prepare approved inputs per contract]
     Catalog[Effective family catalogues] --> Prepare
-    Holidays[Published jurisdiction holidays] --> Work[Work: schedules and attendance]
+    Holidays[Published entity holidays] --> Work[Work: schedules and attendance]
     Work --> Prepare
     Leave[Leave entries and computed entitlement] --> Prepare
     Money[Claim, Allowance, Adhoc and Loan] --> Prepare
@@ -50,14 +50,14 @@ entitlement calculation. The first committed reference permanently seals the con
 a separate immutable fact and creates no financial entries. Statutory YTD retains the aggregation
 required across contracts for the same person and entity.
 
-Observed holidays are one row each in `jurisdiction_holidays`, independent of employment and
-company settings revisions, and each is published on its own: a published holiday is used by
-rosters, leave and payroll from then on, an unpublished one is not there. Payroll reads the
-holidays published for its jurisdiction at the point of running and captures them on the run; a
-finished run never changes. A holiday a work day or payroll run has read is frozen — its day, name
-and publication cannot change and it cannot be deleted. Holidays arrive by hand, from the holidays
-spreadsheet template, or from the jurisdiction's Google calendar (`holiday_import`, each 1 October
-and on demand); every door skips a day the jurisdiction already has and never publishes.
+Observed holidays are one row each per legal entity, independent of employment and settings
+revisions, and each is published on its own: a published holiday is used by rosters, leave and
+payroll from then on, an unpublished one is not there. Payroll reads the holidays published for its
+entity at the point of running and captures them on the run; a finished run never changes. A holiday
+a work day or payroll run has read is frozen — its day, name and publication cannot change and it
+cannot be deleted. Holidays arrive by hand, from the holidays spreadsheet template, or from the
+entity's Google calendar (`holiday_import`, each 1 October and on demand); every door skips a day
+the entity already has and never publishes.
 
 Payroll writes `payroll_runs`, `payslips` (adjustments inlined), the three capture junctions
 (allowance, leave, loan repayment) and the single-use sources' settlement pins as one atomic graph. Payslips contain base, proration and statutory results; adjustments reference their
@@ -131,7 +131,7 @@ dispatching their calculation definitions. See [Architecture](docs/architecture.
 The family source boundary is implemented. Artifact sync, type checks, full-suite and browser
 verification of the combined change set remain in progress; local source is not a deployed tenant
 release. Holiday imports also require a configured managed `GOOGLE_CALENDAR_API_KEY` and a reviewed
-source for each jurisdiction.
+source for each entity.
 
 Acceptance tests use invented public fixtures under `tests/fixtures/seed/` and the isolated Bolt
 self-host. Confidential reconciliation inputs are not test fixtures. See

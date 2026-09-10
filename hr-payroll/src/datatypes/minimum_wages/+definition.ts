@@ -16,8 +16,6 @@ export const minimumWagesValueSchema = Schema.Record(
 	)
 );
 
-export type MinimumWages = Schema.Schema.Type<typeof minimumWagesValueSchema>;
-
 export const minimumWagesSchema = Schema.toStandardSchemaV1(minimumWagesValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 });

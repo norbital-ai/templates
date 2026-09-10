@@ -197,7 +197,6 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import {
 	PAGE_LIMIT,
-	groupBy,
 	type PayrollReadApi,
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
@@ -235,7 +234,7 @@ export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 		];
 		const capturesByRequest = yield* requestCaptures({ api: options.api, requests });
 		const requestCatalogues = yield* prepareRequestCatalogues(options, requests);
-		const requestsByEmployment = groupBy(
+		const requestsByEmployment = Map.groupBy(
 			requests.map((request): PreparedPayRequest => ({
 				...request,
 				captured: (capturesByRequest.get(request.id) ?? []).some(
@@ -327,6 +326,44 @@ function prepareRequestCatalogues(
 const entryOf = (row: Pick<WorkspaceRow<'claim_catalogue'>, 'cap'>) =>
 	({ source: 'ENTRY', cap: row.cap }) as const;
 
+/** A source-to-payslip link: which family source settled on which payslip, and in which period. */
+type PayRequestCaptureLink = {
+	readonly family: PayRequestFamily;
+	readonly payslipId: string;
+	readonly period: string;
+	readonly sourceId: string;
+};
+
+/**
+ * Sum what each payslip actually settled per source, keyed by source id. The two capture readers —
+ * the engine's standing-capture read and the write-time guard — share this arithmetic so a captured
+ * zero means the same thing on both.
+ */
+export function captureAmounts(
+	links: readonly PayRequestCaptureLink[],
+	payslips: readonly Pick<WorkspaceRow<'payslips'>, 'id' | 'adjustments'>[]
+): ReadonlyMap<string, readonly PayRequestCapture[]> {
+	const captures = new Map<string, PayRequestCapture[]>();
+	if (links.length === 0) return captures;
+	const amounts = new Map<string, number>();
+	for (const payslip of payslips)
+		for (const row of payslip.adjustments) {
+			if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
+			const key = `${payslip.id}:${row.source_id}`;
+			amounts.set(key, (amounts.get(key) ?? 0) + decodeNumber(row.amount));
+		}
+	for (const link of links) {
+		const rows = captures.get(link.sourceId) ?? [];
+		rows.push({
+			id: link.payslipId,
+			period: link.period,
+			amount: amounts.get(`${link.payslipId}:${link.sourceId}`) ?? 0
+		});
+		captures.set(link.sourceId, rows);
+	}
+	return captures;
+}
+
 /** Standing captures exclude single-use requests, including signed corrections, from later runs. */
 function requestCaptures(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -389,23 +426,7 @@ function requestCaptures(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(payslips, 'captured pay-request outputs');
-		const amounts = new Map<string, number>();
-		for (const payslip of payslips)
-			for (const row of payslip.adjustments) {
-				if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
-				const key = `${payslip.id}:${row.source_id}`;
-				amounts.set(key, (amounts.get(key) ?? 0) + decodeNumber(row.amount));
-			}
-		for (const link of links) {
-			const rows = captures.get(link.sourceId) ?? [];
-			rows.push({
-				id: link.payslipId,
-				period: link.period,
-				amount: amounts.get(`${link.payslipId}:${link.sourceId}`) ?? 0
-			});
-			captures.set(link.sourceId, rows);
-		}
-		return captures;
+		return captureAmounts(links, payslips);
 	});
 }
 

@@ -17,6 +17,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { employedTodayFilter, todayKey } from '../../lib/ui/calendar.js';
 	import { inForceOnDay } from '../../lib/effective_range.js';
+	import { dateKey } from '../../lib/iso-day.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -54,16 +55,20 @@
 	);
 	const currentEmployees = $derived(currentEmployeeIds.size);
 	const workforceTrend = $derived.by(() => {
-		const ranges = (employmentsQuery?.current ?? []).map(resolveEmployment).flatMap((employment) =>
-			employment.effective_range?.start
-				? [
-						{
-							start: employment.effective_range.start.slice(0, 10),
-							end: employment.effective_range.end?.slice(0, 10) ?? '9999-12-31'
-						}
-					]
-				: []
-		);
+		const ranges = (employmentsQuery?.current ?? [])
+			.map(resolveEmployment)
+			.flatMap((employment) => {
+				// Resolved days, not sliced instants: a day picked in the UI is stored at the viewer's
+				// local day boundary in UTC, so slicing would file the range a day early.
+				const start = employment.effective_range?.start
+					? dateKey(employment.effective_range.start)
+					: '';
+				if (start === '') return [];
+				const resolvedEnd = employment.effective_range?.end
+					? dateKey(employment.effective_range.end)
+					: '';
+				return [{ start, end: resolvedEnd === '' ? '9999-12-31' : resolvedEnd }];
+			});
 		// The window ends on the *payroll* month. Reading getUTCMonth() instead puts a viewer east of
 		// Greenwich in last month for the first eight hours of every first-of-month.
 		const [currentYear, currentMonth] = todayKey().split('-').map(Number) as [number, number];

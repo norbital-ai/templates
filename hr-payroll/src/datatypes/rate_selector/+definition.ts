@@ -43,8 +43,6 @@ export const rateSelectorValueSchema = Schema.Union([
 	})
 );
 
-export type RateSelector = Schema.Schema.Type<typeof rateSelectorValueSchema>;
-
 /** Strict standard view: a key no arm declares is refused rather than stripped. */
 export const rateSelectorSchema = Schema.toStandardSchemaV1(rateSelectorValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }

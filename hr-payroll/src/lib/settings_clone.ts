@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import type { Api } from '$bolt/types.js';
 import { readRange } from '../collections/payroll_runs/lib/effective.js';
 import { describeVersion } from './jurisdiction_settings.js';
+import { dateKey } from './iso-day.js';
 
 /**
  * A new version of a jurisdiction settings lineage: one version and every row under it, cloned
@@ -150,10 +151,9 @@ export function settingsDraftWrite(
 		paymentCatalogue
 	} = tree;
 	const sourceRange = readRange(source.effective_range);
-	if (sourceRange != null && options.starts_on <= sourceRange.start.slice(0, 10))
-		refuse(
-			`A new version starts after ${describeVersion(source)} begins (${sourceRange.start.slice(0, 10)}).`
-		);
+	const sourceStart = sourceRange == null ? '' : dateKey(sourceRange.start);
+	if (sourceStart !== '' && options.starts_on <= sourceStart)
+		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
 	const schemeIds = new Map(schemes.map((scheme) => [scheme.id, crypto.randomUUID()]));
 	const cloneIdOf = (schemeId: string): string => schemeIds.get(schemeId) ?? crypto.randomUUID();
 	const remapRelief = (ids: readonly string[]) =>
@@ -168,6 +168,8 @@ export function settingsDraftWrite(
 		// A proposal sheet belongs to the draft it was written on, never to a clone of it; the column
 		// is left unset (a custom column refuses an explicit null) and the automation sets its own.
 		research_notes: _notes,
+		// The predecessor's change note describes the predecessor; the drafter writes this one.
+		change_summary: _summary,
 		...root
 	} = source;
 	const name = options.name ?? `${source.code} from ${options.starts_on}`;
@@ -214,27 +216,18 @@ export function settingsDraftWrite(
 	};
 }
 
-/** What a clone reports: the draft's id and how many rows came with it. */
+/** What a clone reports: the draft's id and its provenance. */
 type SettingsDraftCreated = Readonly<{
 	id: string;
 	code: string;
 	cloned_from_id: string;
-	starts_on: string;
-	schemes: number;
-	work_catalogue: number;
-	leave_catalogue: number;
-	loan_catalogue: number;
-	claim_catalogue: number;
-	allowance_catalogue: number;
-	payment_catalogue: number;
 }>;
 
 /** Writes the draft in one nested write and reads it back by its provenance. */
 export const createSettingsDraft = (
 	api: SettingsCloneApi,
 	tree: SettingsVersionTree,
-	draft: Readonly<{ name: string; write: SettingsDraftWrite }>,
-	startsOn: string
+	draft: Readonly<{ name: string; write: SettingsDraftWrite }>
 ): Effect.Effect<SettingsDraftCreated> =>
 	Effect.gen(function* () {
 		yield* api.db.jurisdiction_settings.mutate([draft.write]);
@@ -252,15 +245,7 @@ export const createSettingsDraft = (
 		return {
 			id: created.id,
 			code: tree.source.code,
-			cloned_from_id: tree.source.id,
-			starts_on: startsOn,
-			schemes: tree.schemes.length,
-			work_catalogue: tree.workCatalogue.length,
-			leave_catalogue: tree.catalogueLeaves.length,
-			loan_catalogue: tree.loanCatalogue.length,
-			claim_catalogue: tree.claimCatalogue.length,
-			allowance_catalogue: tree.allowanceCatalogue.length,
-			payment_catalogue: tree.paymentCatalogue.length
+			cloned_from_id: tree.source.id
 		};
 	});
 
@@ -273,5 +258,5 @@ export const cloneSettingsVersion = (
 	Effect.gen(function* () {
 		const tree = yield* readSettingsVersionTree(api, settingsId);
 		const draft = settingsDraftWrite(tree, options);
-		return yield* createSettingsDraft(api, tree, draft, options.starts_on);
+		return yield* createSettingsDraft(api, tree, draft);
 	});

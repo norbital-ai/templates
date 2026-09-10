@@ -32,7 +32,6 @@ import { employmentDates } from '../../collections/payroll_runs/lib/settlement.j
 import type { Settlement } from '../../collections/payroll_runs/lib/settle.js';
 import {
 	PAGE_LIMIT,
-	groupBy,
 	type PayrollReadApi,
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
@@ -170,7 +169,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		 * agreement ends with the employment — so only `GOVERNMENT` is exempt, and it stays owed.
 		 */
 		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) continue;
-		const due = dateKey(repayment.due_date) ?? String(repayment.due_date).slice(0, 10);
+		const due = dateKey(repayment.due_date) || String(repayment.due_date).slice(0, 10);
 		/**
 		 * Due by now, not due exactly now.
 		 *
@@ -355,8 +354,8 @@ export function prepareLoanPayroll(options: {
 			return { ...loan, catalogueComponent };
 		});
 		return {
-			loansByEmployment: groupBy(loans, (row) => row.employment_id),
-			repaymentsByLoan: groupBy(live(repayments), (row) => row.loan_id)
+			loansByEmployment: Map.groupBy(loans, (row) => row.employment_id),
+			repaymentsByLoan: Map.groupBy(live(repayments), (row) => row.loan_id)
 		};
 	});
 }

@@ -35,8 +35,3 @@ export function leaveCoverage(request: LeaveRequestLike, date: string): LeaveCov
 	const afternoonFree = date === to && request.half_day_end === true;
 	return { covered: true, fullDay: !morningFree && !afternoonFree };
 }
-
-/** Whether any approved request fully owns the date — the day nobody may assign work to. */
-export function fullDayLeaveCovered(requests: readonly LeaveRequestLike[], date: string): boolean {
-	return requests.some((request) => leaveCoverage(request, date).fullDay);
-}

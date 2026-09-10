@@ -37,6 +37,7 @@
 	import { newestFirst } from '../../lib/jurisdiction_settings.js';
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
 	import JurisdictionScopeCombobox from './JurisdictionScopeCombobox.svelte';
+	import SnapshotChanges from './SnapshotChanges.svelte';
 	import {
 		jurisdictionsError as jurisdictionsErrorOf,
 		jurisdictionsUnknown as jurisdictionsUnknownOf,
@@ -235,6 +236,12 @@
 	{/if}
 {/snippet}
 
+{#snippet changes()}
+	{#if selectedVersion}
+		<SnapshotChanges code={selectedVersion.code} {versions} {selectedVersion} />
+	{/if}
+{/snippet}
+
 {#snippet catalogues()}
 	<!-- Seven catalogues down the left, one table on the right; the table scrolls, the rail does not. -->
 	<Tabs
@@ -364,6 +371,12 @@
 					label: t('app.settings.catalogues'),
 					icon: 'lucide:library',
 					content: catalogues
+				},
+				{
+					name: 'changes',
+					label: t('app.settings.changes'),
+					icon: 'lucide:diff',
+					content: changes
 				}
 			] satisfies TabConfig[]}
 		/>

@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { leaveCoverage, fullDayLeaveCovered } from '../src/lib/scheduling/leave-coverage.ts';
+import { leaveCoverage } from '../src/lib/scheduling/leave-coverage.ts';
 
 const fullWeek = {
 	kind: 'TIME_OFF',
@@ -35,10 +35,12 @@ test('dates outside the range are not covered', () => {
 	assert.deepEqual(leaveCoverage(fullWeek, '2026-08-08'), { covered: false, fullDay: false });
 });
 
-test('fullDayLeaveCovered needs at least one fully owning request', () => {
-	assert.equal(fullDayLeaveCovered([fullWeek, halfBoundary], '2026-08-06'), true);
-	assert.equal(fullDayLeaveCovered([fullWeek], '2026-08-03'), true);
+test('full-day coverage needs at least one fully owning request', () => {
+	const fullDay = (requests: readonly (typeof fullWeek)[], date: string): boolean =>
+		requests.some((request) => leaveCoverage(request, date).fullDay);
+	assert.equal(fullDay([fullWeek, halfBoundary], '2026-08-06'), true);
+	assert.equal(fullDay([fullWeek], '2026-08-03'), true);
 	// Only the half-day request covers the 3rd: half days never block the other half.
-	assert.equal(fullDayLeaveCovered([halfBoundary], '2026-08-03'), false);
-	assert.equal(fullDayLeaveCovered([], '2026-08-03'), false);
+	assert.equal(fullDay([halfBoundary], '2026-08-03'), false);
+	assert.equal(fullDay([], '2026-08-03'), false);
 });

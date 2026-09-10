@@ -18,7 +18,7 @@ export default defineModel(
 		date_of_birth: instant({ precision: 'day' }),
 		gender: enums(['MALE', 'FEMALE']),
 		/** Standing a statutory band or leave may key on (`employee.marital_status`); null is unrecorded. */
-		marital_status: enums(['SINGLE', 'MARRIED']),
+		marital_status: enums(['SINGLE', 'MARRIED', 'DIVORCED']),
 		/** A solo parent under a statute that names one (PH RA 8972); `employee.solo_parent`. */
 		solo_parent: boolean().notNull().default(false),
 		/** Only where a statutory fund is selected by it (SG's SHG funds); `employee.race`, `employee.religion`. */

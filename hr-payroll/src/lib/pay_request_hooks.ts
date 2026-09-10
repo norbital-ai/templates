@@ -11,7 +11,7 @@ import {
 } from '../collections/payroll_runs/lib/entry-cap.js';
 import { isSettlementWrite, refuseIfCaptured, settledClaim } from './scheduling/lock.js';
 import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
-import type { PayRequestFamily, PayRequestCapture } from './payroll/money.js';
+import { captureAmounts, type PayRequestFamily, type PayRequestCapture } from './payroll/money.js';
 
 export type PayRequestGuard = {
 	readonly family: PayRequestFamily;
@@ -225,23 +225,10 @@ function capturedUsageOf(
 			limit: SIBLING_LIMIT
 		});
 		assertCapHistoryComplete(payslips);
-		const totals = new Map<string, number>();
-		for (const payslip of payslips)
-			for (const adjustment of payslip.adjustments) {
-				if (adjustment.family !== family) continue;
-				const key = `${payslip.id}:${adjustment.source_id}`;
-				totals.set(key, (totals.get(key) ?? 0) + decodeNumber(adjustment.amount));
-			}
-		for (const link of links) {
-			const rows = captures.get(link.sourceId) ?? [];
-			rows.push({
-				id: link.payslipId,
-				period: link.period,
-				amount: totals.get(`${link.payslipId}:${link.sourceId}`) ?? 0
-			});
-			captures.set(link.sourceId, rows);
-		}
-		return captures;
+		return captureAmounts(
+			links.map((link) => ({ ...link, family })),
+			payslips
+		);
 	});
 }
 

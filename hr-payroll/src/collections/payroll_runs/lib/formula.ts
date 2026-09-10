@@ -151,16 +151,8 @@ function createFormulaEvaluator(): (options: {
 	};
 }
 
-const evaluateFormulaOnce = createFormulaEvaluator();
-
 /** Evaluate one component's formula. Returns a number; anything else is a definition fault. */
-export function evaluateFormula(options: {
-	readonly code: string;
-	readonly expr: string;
-	readonly context: FormulaContext;
-}): number {
-	return evaluateFormulaOnce(options);
-}
+export const evaluateFormula = createFormulaEvaluator();
 
 /** A CEL identifier derived from a component code, stable and collision-free enough to name an expr. */
 function exprName(code: string): string {

@@ -577,7 +577,14 @@ export function validateRosteredExpectations(options: {
 		return dates;
 	};
 	for (const employment of options.employments) {
-		const window = employment.window ?? options.window;
+		// Bounds may arrive as instants (a run's stored window) or as calendar days; the row filter
+		// below is a string comparison, so both sides are reduced to the day they name in the
+		// payroll zone — slicing an instant files a day picked in the UI one day early.
+		const raw = employment.window ?? options.window;
+		const window = {
+			start: dateKey(raw.start) || String(raw.start).slice(0, 10),
+			end: dateKey(raw.end) || String(raw.end).slice(0, 10)
+		};
 		const windowDates = datesOf(window);
 		const touching = employment.terms.filter((term) =>
 			windowDates.some((date) => coversDate(term.effective_range, date))
