@@ -1,7 +1,7 @@
 <script lang="ts">
-	/** One loan component. The form is `lib/ui/catalogue-form.svelte`, shared by the four money catalogues. */
+	/** One loan component. Its own form: a loan row is no longer a subset of the money row. */
 	import type { RepresentationProps } from './$types.js';
-	import CatalogueForm from '../../lib/ui/catalogue-form.svelte';
+	import LoanCatalogueForm from '../../lib/ui/loan-catalogue-form.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 </script>
@@ -13,4 +13,4 @@
 	/>
 </svelte:head>
 
-<CatalogueForm collection="loan_catalogue" {record} {close} />
+<LoanCatalogueForm {record} {close} />

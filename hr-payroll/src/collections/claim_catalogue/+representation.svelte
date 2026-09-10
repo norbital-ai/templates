@@ -1,5 +1,5 @@
 <script lang="ts">
-	/** One claim component. The form is `lib/ui/catalogue-form.svelte`, shared by the four money catalogues. */
+	/** One claim component. The form is `lib/ui/catalogue-form.svelte`, shared by the three money catalogues. */
 	import type { RepresentationProps } from './$types.js';
 	import CatalogueForm from '../../lib/ui/catalogue-form.svelte';
 

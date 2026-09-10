@@ -1,15 +1,17 @@
 <script lang="ts">
 	/**
-	 * The one form behind the three money catalogues: claims, allowances and payments. One row shape
-	 * in three tables, so the family is the table rather than a column and the form takes only the
-	 * collection name.
+	 * The loan catalogue's own form.
 	 *
-	 * The loan catalogue used to be here too, as the same row minus four columns. `loan_type` and
-	 * `minimum_repayment` ended that: a form serving two row shapes can be typed against only one of
-	 * them, and a union narrows `Field` to their intersection. It has `loan-catalogue-form.svelte`.
+	 * It used to share `catalogue-form.svelte` with claims, allowances and payments, on the strength
+	 * of a loan row being that row minus a nature, evidence, a ceiling and a settlement route — a
+	 * subset, so one `CollectionForm` cast to a money catalogue could type every field. `loan_type`
+	 * and `minimum_repayment` ended the subset: a form serving two row shapes can only be typed
+	 * against one of them, and a union narrows `Field` to what they have in common, which is neither.
 	 *
-	 * `settings_id` is never a field on the Settings page: the page names the version and the form
-	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
+	 * So the two are two forms. What they share is four fields and the section chrome; what the
+	 * merge was buying was one `{#if loan}` ladder per section and a cast that had stopped being
+	 * true. `settings_id` is never a field on the Settings page: the page names the version and the
+	 * form prefills and hides it.
 	 */
 	import { client } from '../workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -21,12 +23,7 @@
 	import FormSection from './form-section.svelte';
 	import { hrCreateScope } from './create-scope.js';
 
-	type Collection = 'claim_catalogue' | 'allowance_catalogue' | 'payment_catalogue';
-	let {
-		collection,
-		record,
-		close
-	}: { collection: Collection; record: WorkspaceRow<Collection> | null; close: () => void } =
+	let { record, close }: { record: WorkspaceRow<'loan_catalogue'> | null; close: () => void } =
 		$props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const createScope = hrCreateScope();
@@ -37,7 +34,7 @@
 <RecordShell title={record?.code ?? t('component.create_catalogue_component')}>
 	<CollectionForm
 		{client}
-		{collection}
+		collection="loan_catalogue"
 		defaultValues={formValues}
 		submitLabel={record
 			? t('component.save_catalogue_component')
@@ -49,7 +46,7 @@
 				<FormSection
 					first
 					title={t('component.catalogue_section_pay_line')}
-					hint={t('component.catalogue_section_pay_line_hint')}
+					hint={t('component.catalogue_section_pay_line_loan_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
 						{#if settingsId != null}
@@ -69,30 +66,25 @@
 							/>
 						{/if}
 						<Field name="code" label={t('component.code')} />
-						<Field name="nature" label={t('component.economic_type')} />
+						<Field name="sequence" label={t('component.order')} />
+						<!-- Only a debt has these: whose it is, and the least a month may recover. -->
+						<Field name="loan_type" label={t('component.loan_type')} />
+						<Field
+							name="minimum_repayment"
+							label={t('component.minimum_repayment')}
+							placeholder={t('component.minimum_repayment_hint')}
+						/>
 					</Grid>
 				</FormSection>
 
 				<FormSection
-					title={t('component.catalogue_section_who_order')}
-					hint={t('component.catalogue_section_who_order_hint')}
+					title={t('component.catalogue_section_who')}
+					hint={t('component.catalogue_section_who_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
 						<Column span="all"
 							><Field name="eligibility" label={t('component.who_receives')} /></Column
 						>
-						<Field name="sequence" label={t('component.order')} />
-					</Grid>
-				</FormSection>
-
-				<FormSection
-					title={t('component.catalogue_section_limits')}
-					hint={t('component.catalogue_section_limits_hint')}
-				>
-					<Grid gap="sm" minimum="compact">
-						<Field name="evidence" label={t('component.evidence')} />
-						<Field name="settlement" label={t('component.settlement')} />
-						<Column span="all"><Field name="cap" label={t('component.ceiling')} /></Column>
 					</Grid>
 				</FormSection>
 
