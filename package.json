@@ -11,7 +11,7 @@
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
-		"test": "bolt sync && norbital-doctor && node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-payroll-export-data.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/*.test.ts'",
+		"test": "bolt sync && norbital-doctor && node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-payroll-export-data.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node scripts/verify-goal.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/*.test.ts'",
 		"test:e2e": "bolt sync && vitest run --config vitest.e2e.config.ts",
 		"test:e2e:headed": "PLAYWRIGHT_HEADED=1 pnpm test:e2e"
 	},

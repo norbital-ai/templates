@@ -73,21 +73,34 @@ export function resolveOrdinaryRate(options: {
 	return { per: row.per, divisor: decodeNumber(row.divisor) };
 }
 
+/** 261 working days a year over twelve months: the Philippine five-day factor, 21.75. */
+const PH_FIVE_DAY_FACTOR = 261 / 12;
+/** 313 working days a year over twelve months: the six-day alternative, 26.0833… */
+const PH_SIX_DAY_FACTOR = 313 / 12;
+
 /**
- * The Philippines uses 261 annual days for a five-day week and 313 for a six-day week. The
- * work row stores the common monthly divisor (261 / 12 = 21.75); the employee's stated
- * working week selects the statutory 313-day alternative when it exceeds forty ordinary hours.
+ * The Philippines uses 261 annual days for a five-day week and 313 for a six-day week. The work row
+ * stores the common monthly divisor (261 / 12 = 21.75); the employee's stated working week selects
+ * the statutory 313-day alternative when it exceeds forty ordinary hours.
  *
- * This is employee-level law, so it cannot be represented by replacing the work's one
- * divisor with a company-wide value.
+ * This is employee-level law, so it cannot be represented by replacing the work's one divisor with
+ * a company-wide value.
+ *
+ * It **substitutes one factor for the other**, and nothing else. A monthly-paid employee is paid
+ * for all 365 days of the year, so their day is the monthly wage over 365/12 = 30.4167 whatever
+ * their roster is; the 261-against-313 question is a daily-paid one. Substituting into that row
+ * priced a monthly-paid six-day employee's day at 26.0833 — 16.6% high on every overtime, rest-day,
+ * holiday and night hour. The Philippine seed states both rows, keyed on `terms.payroll_group`, and
+ * the bank rosters a monthly-paid employee on a six-day pattern, so the case is a real one.
  */
 function ordinaryRateDivisor(terms: RateTerms, work: Work, rate: ResolvedOrdinaryRate): number {
 	if (
 		countryOf(work.jurisdiction_code) === 'PH' &&
 		decodeNumber(terms.ordinary_hours_per_week) > 40 &&
-		rate.per === 'DAY'
+		rate.per === 'DAY' &&
+		Math.abs(rate.divisor - PH_FIVE_DAY_FACTOR) < 0.01
 	)
-		return 313 / 12;
+		return PH_SIX_DAY_FACTOR;
 	return rate.divisor;
 }
 
