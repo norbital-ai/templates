@@ -167,8 +167,25 @@
 			limit: MONTH_BOARD_QUERY_LIMITS.payrollRuns
 		});
 	});
-	const payrollRunWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
-	const monthLocks = $derived(lockMap(payrollRunWindows, monthDateKeys));
+	/**
+	 * The payslips inside those runs, because the lock is the payslip's and not the run's.
+	 *
+	 * A run is the container; whether a person's January is closed is whether *their* January
+	 * payslip has been paid. So the board's stripes are per person-day, and the map they read is
+	 * keyed by both.
+	 */
+	const payrollPayslipsQuery = $derived.by(() => {
+		const runIds = (payrollRunsQuery?.current ?? []).map((run) => run.id);
+		if (runIds.length === 0) return null;
+		return client.db.payslips.findMany({
+			where: { payroll_run_id: { in: runIds } },
+			columns: { payroll_run_id: true, employment_id: true, paid_at: true },
+			limit: MONTH_BOARD_QUERY_LIMITS.payslips
+		});
+	});
+	const payrollRunWindows = $derived(
+		payrollWindows(payrollRunsQuery?.current ?? [], payrollPayslipsQuery?.current ?? [])
+	);
 
 	/**
 	 * The attendance window the next run will settle.
@@ -233,6 +250,14 @@
 			number: employment.employee_number,
 			name: employeeNamesById.get(employment.employee_id) ?? '—'
 		}))
+	);
+
+	const monthLocks = $derived(
+		lockMap(
+			payrollRunWindows,
+			monthDateKeys,
+			people.map((person) => person.id)
+		)
 	);
 
 	const shiftsQuery = $derived(

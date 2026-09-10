@@ -188,6 +188,8 @@ function rosterApi(overrides = {}) {
 	return stubApi({
 		companies: companies(),
 		payroll_runs: overrides.payrollRuns ?? [],
+		// The lock is the payslip's, so a paid window is a window whose *people* have been paid.
+		payslips: overrides.payslips ?? [],
 		jurisdiction_settings: [
 			{
 				id: 'settings:test',
@@ -256,6 +258,7 @@ function attendanceApi(overrides = {}) {
 		employments: employments(),
 		work_days: overrides.existingDays ?? [],
 		payroll_runs: overrides.payrollRuns ?? [],
+		payslips: overrides.payslips ?? [],
 		leave_entries: overrides.leaveRequests ?? []
 	});
 }
@@ -480,13 +483,19 @@ const program = Effect.gen(function* () {
 					rosterApi({
 						payrollRuns: [
 							{
+								id: 'run:2026-05',
 								company_id: COMPANY_ID,
 								period: '2026-05',
-								lifecycle: 'PAID',
 								attendance_from: '2026-04-21',
 								attendance_to: '2026-05-20'
 							}
-						]
+						],
+						// Both people in the roster have been paid for that window, so both are locked.
+						payslips: employments().map((employment) => ({
+							payroll_run_id: 'run:2026-05',
+							employment_id: employment.id,
+							paid_at: '2026-05-31'
+						}))
 					})
 				)
 			)
@@ -502,13 +511,15 @@ const program = Effect.gen(function* () {
 				rosterApi({
 					payrollRuns: [
 						{
+							id: 'run:2026-05',
 							company_id: COMPANY_ID,
 							period: '2026-05',
-							lifecycle: 'DRAFT',
 							attendance_from: '2026-04-21',
 							attendance_to: '2026-05-20'
 						}
-					]
+					],
+					// A run with no payment behind it locks nothing, whatever it is called.
+					payslips: []
 				})
 			)
 		);

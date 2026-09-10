@@ -80,97 +80,43 @@ const OutputSectionSchema = Schema.Struct({
 });
 type OutputSection = Schema.Schema.Type<typeof OutputSectionSchema>;
 
-export const VENDOR_WORKBOOK_SECTIONS: readonly OutputSection[] = [
-	{
-		name: 'Identity',
-		unit: 'MONEY',
-		outputIds: ['designation', 'section', 'group', 'eid', 'name', 'ic_no', 'hire_date', 'last_day']
-	},
-	{
-		name: 'Earnings & absence',
-		unit: 'MONEY',
-		outputIds: [
-			'basic_salary',
-			'allowance',
-			'overtime',
-			'aws',
-			'back_pay_bonus',
-			'back_pay_ot',
-			'back_pay_basic_npl',
-			'leave_encashment',
-			'no_pay_leave',
-			'no_pay_leave_adj',
-			'annual_leave_deduction',
-			'short_notice'
-		]
-	},
-	{ name: 'Gross', unit: 'MONEY', outputIds: ['gross_salary'] },
-	{
-		name: 'Post-gross payments & deductions',
-		unit: 'MONEY',
-		outputIds: [
-			'incentive_ot',
-			'incentive_aws',
-			'medical_claim',
-			'renewal_incentive',
-			'ex_gratia_loss',
-			'attendance_allowance',
-			'loan_recovery',
-			'pcb_back_pay',
-			'medical_recover_ee',
-			'cp38_amount'
-		]
-	},
-	{ name: 'Net', unit: 'MONEY', outputIds: ['net_salary'] },
-	{
-		name: 'Statutory',
-		unit: 'MONEY',
-		outputIds: [
-			'fw_levy',
-			'check_vendor_workbook',
-			'epf_employee',
-			'socso_employee',
-			'eis_employee',
-			'tax_employee',
-			'epf_employer',
-			'socso_employer',
-			'eis_employer',
-			'hrdf',
-			'remark'
-		]
-	},
-	{
-		name: 'Totals & bases',
-		unit: 'MONEY',
-		outputIds: [
-			'total_socso',
-			'total_eis',
-			'total_epf',
-			'remuneration_for_tax',
-			'epf_gross',
-			'socso_gross',
-			'total_expenses'
-		]
-	},
-	{
-		name: 'Attendance',
-		unit: 'HOURS',
-		outputIds: [
-			'att_ot_1x_hours',
-			'att_ot_15x_hours',
-			'att_ot_2x_hours',
-			'att_ot_3x_hours',
-			'att_ot_flat_hours',
-			'att_normal_hours',
-			'att_actual_hours',
-			'att_shift_codes'
-		]
-	}
-];
+/**
+ * The salary listing's identity block: who the row is, before any money.
+ *
+ * This is all that survives of the old vendor projection. Everything to the right of it used to be
+ * a fixed list of forty-odd output ids — `basic_salary`, `allowance`, `incentive_ot` — into which
+ * the catalogue was summed: every allowance code the list did not name by hand disappeared into
+ * one `allowance` column, every non-loan deduction into `adhocDeductions`, and an employer with
+ * fourteen allowances exported one column and could not reconcile a line of it.
+ *
+ * The listing's money columns are now the catalogue's, exactly as the matrix sheet's are — same
+ * codes, same order, same category headings. The layout is the arrangement (this identity block,
+ * the masthead, the totals row), never a second vocabulary.
+ */
+export const IDENTITY_OUTPUT_IDS = [
+	'designation',
+	'section',
+	'group',
+	'eid',
+	'name',
+	'ic_no',
+	'hire_date',
+	'last_day'
+] as const;
 
-export const VENDOR_WORKBOOK_COLUMNS = VENDOR_WORKBOOK_SECTIONS.flatMap(
-	(section) => section.outputIds
-);
+/** The identity half of one listing row. The money half is `workbookRow`, like everywhere else. */
+export function identityRow(payslip: ReportPayslip): Record<string, string | number | null> {
+	return {
+		designation: payslip.designation,
+		section: payslip.section,
+		group: payslip.group,
+		eid: payslip.employeeNumber,
+		name: payslip.employeeName,
+		ic_no: payslip.identityNumber,
+		hire_date: payslip.hireDate,
+		last_day: payslip.lastDay
+	};
+}
 
 /**
  * The sections and their order.
@@ -260,89 +206,6 @@ function componentAmount(payslip: ReportPayslip, codes: readonly string[]): numb
 }
 
 /**
- * The settled vendor workbook row. Its keys and order are the source workbook contract,
- * while every value is read from persisted payroll, identity, terms and attendance records.
- */
-export function vendorWorkbookRow(payslip: ReportPayslip): Record<string, string | number | null> {
-	const generic = derivedTotals(payslip);
-	const incentiveOvertime = generic.incentiveOTPay ?? 0;
-	const medicalClaim = componentAmount(payslip, ['MEDICAL_CLAIM']);
-	const regularAllowance = sumLines(
-		payslip,
-		(line) =>
-			line.nature === 'EARNING' &&
-			!['SCHEDULE', 'OVERTIME', 'OVERTIME_EXCESS'].includes(line.calculationSource) &&
-			!line.isOvertimeExcess &&
-			!['BPAYBS', 'ALPAY', 'PHILE'].includes(line.componentCode)
-	);
-	// repository-health:allow AR5 -- The vendor's fixed workbook columns are a distinct external contract; this projection intentionally renames and derives persisted payroll fields into that schema.
-	return {
-		designation: payslip.designation,
-		section: payslip.section,
-		group: payslip.group,
-		eid: payslip.employeeNumber,
-		name: payslip.employeeName,
-		ic_no: payslip.identityNumber,
-		hire_date: payslip.hireDate,
-		last_day: payslip.lastDay,
-		basic_salary: generic.proratedSalary ?? 0,
-		allowance: regularAllowance,
-		overtime: generic.overtimePay ?? 0,
-		aws: componentAmount(payslip, ['AWS']),
-		back_pay_bonus: componentAmount(payslip, ['BACK_PAY_BONUS']),
-		back_pay_ot: componentAmount(payslip, ['BACK_PAY_OT']),
-		back_pay_basic_npl: componentAmount(payslip, ['BPAYBS']),
-		leave_encashment: componentAmount(payslip, ['ALPAY', 'PHILE']),
-		no_pay_leave: componentAmount(payslip, ['UNPAID_LEAVE_DEDUCTION', 'SOURCE_ABSENCE_CORRECTION']),
-		no_pay_leave_adj: componentAmount(payslip, ['NO_PAY_LEAVE_ADJUSTMENT']),
-		annual_leave_deduction: componentAmount(payslip, ['ANNUAL_LEAVE_DEDUCTION']),
-		short_notice: componentAmount(payslip, ['SHORT_NOTICE']),
-		gross_salary: payslip.gross,
-		incentive_ot: incentiveOvertime,
-		incentive_aws: componentAmount(payslip, ['INCENTIVE_AWS']),
-		medical_claim: medicalClaim,
-		renewal_incentive: componentAmount(payslip, ['RENEWAL_INCENTIVE']),
-		ex_gratia_loss: componentAmount(payslip, ['EX_GRATIA_LOSS']),
-		attendance_allowance: componentAmount(payslip, ['ATTENDANCE_ALLOWANCE']),
-		loan_recovery: generic.loanRecovery ?? 0,
-		pcb_back_pay: componentAmount(payslip, ['PCB_BACK_PAY']),
-		medical_recover_ee: componentAmount(payslip, ['MEDICAL_RECOVER_EE']),
-		cp38_amount: componentAmount(payslip, ['CP38']),
-		net_salary: payslip.net,
-		fw_levy: componentAmount(payslip, ['FOREIGN_WORKER_LEVY']),
-		check_vendor_workbook: null,
-		epf_employee: epf(payslip, 'employee'),
-		socso_employee: contribution(payslip, 'SOCSO', 'employee'),
-		eis_employee: contribution(payslip, 'EIS', 'employee'),
-		tax_employee: contribution(payslip, 'PCB', 'employee'),
-		epf_employer: epf(payslip, 'employer'),
-		socso_employer: contribution(payslip, 'SOCSO', 'employer'),
-		eis_employer: contribution(payslip, 'EIS', 'employer'),
-		hrdf: contribution(payslip, 'HRDF', 'employer'),
-		remark: null,
-		total_socso:
-			contribution(payslip, 'SOCSO', 'employee') + contribution(payslip, 'SOCSO', 'employer'),
-		total_eis: contribution(payslip, 'EIS', 'employee') + contribution(payslip, 'EIS', 'employer'),
-		total_epf: epf(payslip, 'employee') + epf(payslip, 'employer'),
-		// The vendor workbook labels the post-EPF remuneration here, not the PCB scheme's gross input.
-		// The contribution calculation still receives the full taxable base and applies the EPF
-		// relief itself; this subtraction is presentation parity only.
-		remuneration_for_tax: contribution(payslip, 'PCB', 'base') - epf(payslip, 'employee'),
-		epf_gross: epf(payslip, 'base'),
-		socso_gross: contribution(payslip, 'SOCSO', 'base'),
-		total_expenses: payslip.gross + incentiveOvertime + medicalClaim + payslip.employerCost,
-		att_ot_1x_hours: generic.ot10Hours ?? 0,
-		att_ot_15x_hours: generic.ot15Hours ?? 0,
-		att_ot_2x_hours: generic.ot20Hours ?? 0,
-		att_ot_3x_hours: generic.ot30Hours ?? 0,
-		att_ot_flat_hours: 0,
-		att_normal_hours: payslip.attendance.normalHours,
-		att_actual_hours: payslip.attendance.actualHours,
-		att_shift_codes: payslip.attendance.shiftCodes.join(', ')
-	};
-}
-
-/**
  * The statutory columns, derived from the schemes the run actually charged.
  *
  * Nothing here knows a country. Every statutory payslip line carries the scheme that produced
@@ -378,13 +241,12 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 }
 
 /**
- * The derived figures the vendor listing's fixed columns are built from.
+ * One payslip's money columns: the catalogue's own, plus the totals and the attendance hours.
  *
- * These are sums over predicates rather than catalogue columns, and that is correct **here**: the
- * vendor listing is somebody else's file, with its own settled column names, and a projection into
- * it is a projection. What was wrong was using the same sums for the generic matrix, where they
- * swallowed every code the projection did not recognise. `workbookRow` no longer calls most of
- * them; `vendorWorkbookRow` still does, because that is its contract.
+ * There is one vocabulary now. The fixed vendor projection this file used to also produce — a
+ * hand-written list of output ids that summed the catalogue into `allowance`, `taxableBenefits`
+ * and `adhocDeductions` — is gone, along with the argument for it: a column somebody has to add by
+ * hand for every new pay component is a column that silently lumps the ones nobody remembered.
  *
  * The overtime-hours columns are named for the multiplier they historically carried; they are
  * derived from the day type of the rule each line pays, which is the stable fact — a jurisdiction

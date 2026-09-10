@@ -62,11 +62,15 @@ export function measureLeaveDay(
 		return { eligible: false as const, reason: 'BEFORE_HIRE' as const, evidence };
 	if (rules.exit != null && date > rules.exit)
 		return { eligible: false as const, reason: 'AFTER_EXIT' as const, evidence };
+	// The lock is this person's payslip, not their run. A colleague still held no longer keeps the
+	// day open, and a colleague already paid no longer closes it.
 	const paid = lockStateForDate(
 		payrollWindows(
-			context.runs.filter((row) => row.company_id === rules.company.id && row.lifecycle === 'PAID')
+			context.runs.filter((row) => row.company_id === rules.company.id),
+			context.payslips
 		),
-		date
+		date,
+		rules.employment.id
 	);
 	if (paid.kind === 'SETTLED')
 		return {

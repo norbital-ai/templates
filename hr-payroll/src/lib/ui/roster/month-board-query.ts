@@ -13,6 +13,7 @@ export const MONTH_BOARD_QUERY_LIMITS = {
 	workDays: 10_000,
 	leaveRequests: 10_000,
 	payrollRuns: 500,
+	payslips: 10_000,
 	settlementClaims: 10_000,
 	holidays: 200,
 	filteredWorkDays: 10_000

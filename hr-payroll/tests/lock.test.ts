@@ -13,6 +13,7 @@ import { Effect } from 'effect';
 import workDayHooks from '../src/collections/work_days/+hooks.ts';
 import {
 	payrollWindows,
+	dayLockKey,
 	lockStateForDate,
 	lockMap,
 	assertNotSettled,
@@ -34,76 +35,107 @@ import {
  */
 const monthly = [
 	{
+		id: 'run-08',
 		company_id: 'co-1',
 		period: '2026-08',
-		lifecycle: 'DRAFT',
 		attendance_from: '2026-07-21',
 		attendance_to: '2026-08-20'
 	},
 	{
+		id: 'run-07',
 		company_id: 'co-1',
 		period: '2026-07',
-		lifecycle: 'PAID',
 		attendance_from: '2026-06-21',
 		attendance_to: '2026-07-20'
 	}
 ];
 
-test('windows are derived from every run, with their settled state', () => {
-	const windows = payrollWindows(monthly);
-	assert.deepEqual(windows, [
-		{ start: '2026-07-21', end: '2026-08-20', period: '2026-08', settled: false },
-		{ start: '2026-06-21', end: '2026-07-20', period: '2026-07', settled: true }
-	]);
+/**
+ * The payslips those runs hold. July is paid for `emp-1` and held for `emp-2`, which is the case a
+ * run-shaped lock could not express at all: it had one answer for a month where one colleague has
+ * been paid and another has not.
+ */
+const monthlySlips = [
+	{ payroll_run_id: 'run-07', employment_id: 'emp-1', paid_at: '2026-07-31' },
+	{ payroll_run_id: 'run-07', employment_id: 'emp-2', paid_at: null },
+	{ payroll_run_id: 'run-08', employment_id: 'emp-1', paid_at: null },
+	{ payroll_run_id: 'run-08', employment_id: 'emp-2', paid_at: null }
+];
+
+test('windows are derived from every run, and settled per person', () => {
+	const windows = payrollWindows(monthly, monthlySlips);
+	assert.deepEqual(
+		windows.map((window) => [window.start, window.end, window.period, [...window.settledFor]]),
+		[
+			['2026-07-21', '2026-08-20', '2026-08', []],
+			['2026-06-21', '2026-07-20', '2026-07', ['emp-1']]
+		]
+	);
 });
 
 test('a day outside every window is untouched', () => {
-	const windows = payrollWindows(monthly);
-	assert.deepEqual(lockStateForDate(windows, '2026-08-21'), { kind: 'NONE' });
+	const windows = payrollWindows(monthly, monthlySlips);
+	assert.deepEqual(lockStateForDate(windows, '2026-08-21', 'emp-1'), { kind: 'NONE' });
 });
 
-test('a day inside a draft window is in-window; a paid one is settled', () => {
-	const windows = payrollWindows(monthly);
-	assert.deepEqual(lockStateForDate(windows, '2026-08-01'), {
+test('a day is settled for the person who was paid and open for the one who was not', () => {
+	const windows = payrollWindows(monthly, monthlySlips);
+	assert.deepEqual(lockStateForDate(windows, '2026-08-01', 'emp-1'), {
 		kind: 'IN_WINDOW',
 		period: '2026-08'
 	});
-	assert.deepEqual(lockStateForDate(windows, '2026-07-01'), {
+	assert.deepEqual(lockStateForDate(windows, '2026-07-01', 'emp-1'), {
 		kind: 'SETTLED',
+		period: '2026-07'
+	});
+	// The same July day, the same run, the colleague whose payslip is still held.
+	assert.deepEqual(lockStateForDate(windows, '2026-07-01', 'emp-2'), {
+		kind: 'IN_WINDOW',
 		period: '2026-07'
 	});
 });
 
 test('semi-monthly periods lock the exact half they cover', () => {
-	const windows = payrollWindows([
-		{
-			period: '2026-08-1',
-			lifecycle: 'PAID',
-			attendance_from: '2026-07-21',
-			attendance_to: '2026-08-05'
-		},
-		{
-			period: '2026-08-2',
-			lifecycle: 'DRAFT',
-			attendance_from: '2026-08-06',
-			attendance_to: '2026-08-20'
-		}
-	]);
-	assert.deepEqual(lockStateForDate(windows, '2026-08-05'), {
+	const windows = payrollWindows(
+		[
+			{
+				id: 'half-1',
+				period: '2026-08-1',
+				attendance_from: '2026-07-21',
+				attendance_to: '2026-08-05'
+			},
+			{
+				id: 'half-2',
+				period: '2026-08-2',
+				attendance_from: '2026-08-06',
+				attendance_to: '2026-08-20'
+			}
+		],
+		[{ payroll_run_id: 'half-1', employment_id: 'emp-1', paid_at: '2026-08-05' }]
+	);
+	assert.deepEqual(lockStateForDate(windows, '2026-08-05', 'emp-1'), {
 		kind: 'SETTLED',
 		period: '2026-08-1'
 	});
-	assert.deepEqual(lockStateForDate(windows, '2026-08-06'), {
+	assert.deepEqual(lockStateForDate(windows, '2026-08-06', 'emp-1'), {
 		kind: 'IN_WINDOW',
 		period: '2026-08-2'
 	});
-	assert.deepEqual(lockStateForDate(windows, '2026-08-21'), { kind: 'NONE' });
+	assert.deepEqual(lockStateForDate(windows, '2026-08-21', 'emp-1'), { kind: 'NONE' });
 });
 
-test('lockMap builds one lock per date', () => {
-	const locks = lockMap(payrollWindows(monthly), ['2026-06-30', '2026-07-21', '2026-09-01']);
+test('lockMap builds one lock per person-day', () => {
+	const locks = lockMap(
+		payrollWindows(monthly, monthlySlips),
+		['2026-06-30', '2026-07-21', '2026-09-01'],
+		['emp-1', 'emp-2']
+	);
+	assert.deepEqual(locks.get(dayLockKey('emp-2', '2026-06-30')), {
+		kind: 'IN_WINDOW',
+		period: '2026-07'
+	});
 	assert.deepEqual(
-		[...locks.values()],
+		['2026-06-30', '2026-07-21', '2026-09-01'].map((date) => locks.get(dayLockKey('emp-1', date))),
 		[
 			{ kind: 'SETTLED', period: '2026-07' },
 			{ kind: 'IN_WINDOW', period: '2026-08' },
@@ -113,13 +145,21 @@ test('lockMap builds one lock per date', () => {
 });
 
 test('assertNotSettled refuses a settled day and passes every other state', () => {
-	const windows = payrollWindows(monthly);
+	const windows = payrollWindows(monthly, monthlySlips);
 	assert.throws(
-		() => assertNotSettled(windows, '2026-07-01', 'Changing attendance'),
+		() => assertNotSettled(windows, '2026-07-01', 'Changing attendance', 'emp-1'),
 		/inside paid payroll 2026-07/
 	);
-	assert.doesNotThrow(() => assertNotSettled(windows, '2026-08-01', 'Changing attendance'));
-	assert.doesNotThrow(() => assertNotSettled(windows, '2026-08-25', 'Changing attendance'));
+	assert.doesNotThrow(() =>
+		assertNotSettled(windows, '2026-08-01', 'Changing attendance', 'emp-1')
+	);
+	assert.doesNotThrow(() =>
+		assertNotSettled(windows, '2026-08-25', 'Changing attendance', 'emp-1')
+	);
+	// The same day for the colleague whose July payslip is still held: not settled, not refused.
+	assert.doesNotThrow(() =>
+		assertNotSettled(windows, '2026-07-01', 'Changing attendance', 'emp-2')
+	);
 });
 
 test('approval completion is not a lock, while passed dates remain opt-in policy', () => {
@@ -286,7 +326,7 @@ test('a claim refuses whatever the run’s lifecycle, and whatever the windows s
  * for the reason `payslip-sources-lock.test.ts` keeps its narrow: a broader fake is a second,
  * silently divergent description of the authoring api.
  */
-function fakeHookApi({ runs = [], captures = [] } = {}) {
+function fakeHookApi({ runs = [], captures = [], payslips = monthlySlips } = {}) {
 	return {
 		db: {
 			employments: {
@@ -335,6 +375,8 @@ function fakeHookApi({ runs = [], captures = [] } = {}) {
 			},
 			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
+			// The lock is the payslip's; the windows above are only where to look.
+			payslips: { findMany: () => Effect.succeed(payslips) },
 			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
 			// keeps its own tests.
 			leave_entries: { findMany: () => Effect.succeed([]) }
@@ -396,7 +438,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	assert.doesNotThrow(() => runMutateBefore({ changes: { break_minutes: 30 }, existing, api }));
 	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
 	// record appearing on that day. Two answers, because two questions.
-	assert.deepEqual(lockStateForDate(payrollWindows(monthly), '2026-07-01'), {
+	assert.deepEqual(lockStateForDate(payrollWindows(monthly, monthlySlips), '2026-07-01', 'emp-1'), {
 		kind: 'SETTLED',
 		period: '2026-07'
 	});

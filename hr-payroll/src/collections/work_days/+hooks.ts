@@ -611,10 +611,20 @@ function assertDayHasNoPaidSilence(
 		if (employment == null) return;
 		const runs = yield* api.db.payroll_runs.findMany({
 			where: { company_id: { eq: employment.company_id } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			columns: { id: true, period: true, attendance_from: true, attendance_to: true },
 			limit: QUERY_LIMIT
 		});
-		assertNotSettled(payrollWindows(runs), dateKey(workDate), action);
+		// This person's own payslips. The lock is the slip's, so a colleague's payment neither
+		// closes this day nor does a colleague's held slip keep it open.
+		const payslips = yield* api.db.payslips.findMany({
+			where: {
+				payroll_run_id: { in: runs.map((run) => run.id) },
+				employment_id: { eq: employmentId }
+			},
+			columns: { payroll_run_id: true, employment_id: true, paid_at: true },
+			limit: QUERY_LIMIT
+		});
+		assertNotSettled(payrollWindows(runs, payslips), dateKey(workDate), action, employmentId);
 	});
 }
 
@@ -1128,12 +1138,21 @@ export default {
 					? yield* api.db.payroll_runs.findMany({
 							where: { company_id: { in: companyIds } },
 							columns: {
+								id: true,
 								company_id: true,
 								period: true,
-								lifecycle: true,
 								attendance_from: true,
 								attendance_to: true
 							},
+							limit: QUERY_LIMIT
+						})
+					: [];
+				// The payslips inside those runs, because the lock is the slip's: one person paid and
+				// a colleague held is two different answers on the same day.
+				const runPayslips = runs.length
+					? yield* api.db.payslips.findMany({
+							where: { payroll_run_id: { in: runs.map((run) => run.id) } },
+							columns: { payroll_run_id: true, employment_id: true, paid_at: true },
 							limit: QUERY_LIMIT
 						})
 					: [];
@@ -1331,7 +1350,10 @@ export default {
 						employments.map((employment) => [employment.id, employment.company_id])
 					),
 					windowsByCompany: new Map(
-						[...runsByCompany].map(([companyId, grouped]) => [companyId, payrollWindows(grouped)])
+						[...runsByCompany].map(([companyId, grouped]) => [
+							companyId,
+							payrollWindows(grouped, runPayslips)
+						])
 					),
 					leaveByEmployment,
 					overlap,
@@ -1415,7 +1437,8 @@ export default {
 							assertNotSettled(
 								(companyId == null ? undefined : prepared.windowsByCompany.get(companyId)) ?? [],
 								dateKey(workDate),
-								'Recording this work day'
+								'Recording this work day',
+								employmentId
 							);
 							refuseIfLeaveOwnsDay(prepared.leaveByEmployment.get(employmentId) ?? [], workDate);
 						}

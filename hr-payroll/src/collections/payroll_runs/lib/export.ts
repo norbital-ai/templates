@@ -8,9 +8,8 @@ import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type ExcelJS from 'exceljs';
 import { Effect, Number as EffectNumber, Schema } from 'effect';
 import {
-	VENDOR_WORKBOOK_COLUMNS,
-	VENDOR_WORKBOOK_SECTIONS,
-	vendorWorkbookRow,
+	IDENTITY_OUTPUT_IDS,
+	identityRow,
 	outputGroups,
 	workbookRows,
 	type ReportPayslip
@@ -98,7 +97,13 @@ const HEADER_ACRONYMS: ReadonlySet<string> = new Set([
 
 const OVERTIME_MULTIPLE = /^\d+x$/;
 
+/** A catalogue code: upper snake, and the label the owner asked for is the code itself. */
+const CATALOGUE_CODE = /^[A-Z][A-Z0-9_]*$/;
+
 function humanHeader(outputId: string): string {
+	// A catalogue column is headed by its own code, verbatim. Title-casing it would invent a second
+	// name for a component that already has one, and the reconciliation is done against the code.
+	if (CATALOGUE_CODE.test(outputId)) return outputId;
 	return (
 		HUMAN_HEADERS[outputId] ??
 		outputId
@@ -136,33 +141,35 @@ type WorkbookSheet = {
 function vendorSalaryListingSheet(
 	workbook: ExcelJS.Workbook,
 	sheet: WorkbookSheet,
-	rows: readonly Record<string, string | number | null>[]
+	rows: readonly Record<string, string | number | null>[],
+	groups: readonly { readonly name: string; readonly outputIds: readonly string[] }[]
 ): void {
-	const identityColumnCount = 8;
+	const columns = groups.flatMap((group) => [...group.outputIds]);
+	const identityColumnCount = IDENTITY_OUTPUT_IDS.length;
 	const cleanName = `${sheet.period} Salary Listing`.slice(0, 31);
 	const clean = workbook.addWorksheet(cleanName, {
 		views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: 5 }],
 		pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
 	});
 	clean.properties.defaultRowHeight = 20;
-	clean.columns = VENDOR_WORKBOOK_COLUMNS.map((outputId) => ({
+	clean.columns = columns.map((outputId) => ({
 		key: outputId,
 		width: EffectNumber.clamp({ minimum: 12, maximum: 24 })(humanHeader(outputId).length + 2)
 	}));
-	clean.mergeCells(1, 1, 1, VENDOR_WORKBOOK_COLUMNS.length);
+	clean.mergeCells(1, 1, 1, columns.length);
 	clean.getCell(1, 1).value = 'SALARY LISTING';
 	clean.getCell(1, 1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
 	clean.getCell(1, 1).fill = fill(INFOTECH_NAVY);
 	clean.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
 	clean.getRow(1).height = 28;
-	clean.mergeCells(2, 1, 2, VENDOR_WORKBOOK_COLUMNS.length);
+	clean.mergeCells(2, 1, 2, columns.length);
 	clean.getCell(2, 1).value =
 		`Salary month: ${sheet.period}${sheet.payDate ? `   ·   Pay date: ${sheet.payDate}` : ''}`;
 	clean.getCell(2, 1).font = { bold: true, color: { argb: INFOTECH_NAVY } };
 	clean.getCell(2, 1).alignment = { horizontal: 'center' };
 
 	let cleanColumn = 1;
-	for (const group of VENDOR_WORKBOOK_SECTIONS) {
+	for (const group of groups) {
 		const from = cleanColumn;
 		const to = from + group.outputIds.length - 1;
 		clean.getCell(4, from).value = group.name;
@@ -176,7 +183,7 @@ function vendorSalaryListingSheet(
 		}
 		cleanColumn = to + 1;
 	}
-	for (const [index, outputId] of VENDOR_WORKBOOK_COLUMNS.entries()) {
+	for (const [index, outputId] of columns.entries()) {
 		const cell = clean.getCell(5, index + 1);
 		cell.value = humanHeader(outputId);
 		cell.fill = fill(INFOTECH_NAVY);
@@ -193,7 +200,8 @@ function vendorSalaryListingSheet(
 		total.font = { bold: true, color: { argb: INFOTECH_NAVY } };
 		total.fill = fill(INFOTECH_LIGHT_BLUE);
 		for (let position = identityColumnCount + 1; position <= clean.columnCount; position += 1) {
-			const outputId = VENDOR_WORKBOOK_COLUMNS[position - 1]!;
+			const outputId = columns[position - 1]!;
+			if (outputId == null) continue;
 			if (outputId === 'remark' || outputId === 'att_shift_codes') continue;
 			total.getCell(position).value = {
 				formula: `SUM(${clean.getColumn(position).letter}${firstDataRow}:${clean.getColumn(position).letter}${lastDataRow})`
@@ -323,11 +331,13 @@ function addPeriodSheet(
 	// collapsing Earnings leave Gross showing, and collapsing the post-gross block leave Net.
 	worksheet.properties.outlineProperties = { summaryBelow: false, summaryRight: true };
 	worksheet.columns = vendor
-		? VENDOR_WORKBOOK_COLUMNS.map((outputId) => ({
-				header: outputId,
-				key: outputId,
-				width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
-			}))
+		? groups
+				.flatMap((group) => [...group.outputIds])
+				.map((outputId) => ({
+					header: outputId,
+					key: outputId,
+					width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
+				}))
 		: [
 				...IDENTITY_COLUMNS,
 				...groups.flatMap((group) =>
@@ -389,9 +399,19 @@ function addPeriodSheet(
 
 /** The customer's own workbook on a period: visible vendor listing plus the hidden matrix behind it. */
 function addVendorSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
-	const rows = sheet.payslips.map((payslip) => vendorWorkbookRow(payslip));
-	vendorSalaryListingSheet(workbook, sheet, rows);
-	addPeriodSheet(workbook, sheet, rows, VENDOR_WORKBOOK_SECTIONS, true, 8);
+	// The listing's money columns are the catalogue's, same as the matrix sheet's. What the layout
+	// still owns is the arrangement: an eight-column identity block, the masthead, the totals row.
+	const money = workbookRows(sheet.payslips);
+	const groups = [
+		{ name: IDENTITY_SECTION_NAME, unit: 'MONEY' as const, outputIds: [...IDENTITY_OUTPUT_IDS] },
+		...outputGroups(sheet.payslips, money)
+	];
+	const rows = sheet.payslips.map((payslip, index) => ({
+		...identityRow(payslip),
+		...money[index]
+	}));
+	vendorSalaryListingSheet(workbook, sheet, rows, groups);
+	addPeriodSheet(workbook, sheet, rows, groups, true, IDENTITY_OUTPUT_IDS.length);
 }
 
 /**

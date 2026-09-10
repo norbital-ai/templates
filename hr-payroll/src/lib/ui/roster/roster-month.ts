@@ -41,6 +41,7 @@ import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_var
 import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import { patternRosterCodeId, termPattern, termPatternRow } from '../../scheduling/work-pattern.js';
 import {
+	dayLockKey,
 	dayLockSchema,
 	type DayLock,
 	type SettlementClaim,
@@ -448,7 +449,12 @@ const buildRosterMonthOptionsSchema = Schema.Struct({
 	employmentTerms: Schema.Array(employmentTermLikeSchema),
 	leaveCodeById: Schema.ReadonlyMap(Schema.String, Schema.String),
 	cutoff: Schema.NullOr(Schema.Struct({ start: Schema.String, end: Schema.String })),
-	/** One lock per date, derived from the company's payroll runs by `lockMap`. */
+	/**
+	 * One lock per **person-day**, keyed by `dayLockKey`, from `lockMap`.
+	 *
+	 * Per person, because payment is the payslip's fact: one colleague paid and another held are two
+	 * different answers on the same calendar day, and a single map keyed by date could only give one.
+	 */
 	locks: Schema.ReadonlyMap(Schema.String, dayLockSchema),
 	today: Schema.String
 });
@@ -611,7 +617,7 @@ function factsForDate(
 		workedMinutes: recorded == null ? null : workedMinutes(recorded, workDay?.break_minutes),
 		withinCutoff:
 			options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
-		lock: options.locks.get(date) ?? { kind: 'NONE' },
+		lock: options.locks.get(dayLockKey(employmentId, date)) ?? { kind: 'NONE' },
 		past: date < options.today,
 		conflicts
 	};

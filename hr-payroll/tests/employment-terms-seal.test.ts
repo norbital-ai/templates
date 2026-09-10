@@ -285,6 +285,8 @@ test('a Work day is classified afresh when it moves, or when its pinned holiday 
 			employments: { findFirst: () => Effect.succeed({ company_id: id(3) }) },
 			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 			payroll_runs: { findMany: () => Effect.succeed([]) },
+			// No runs, so no payslips: the lock reads the slips inside a window, not the window.
+			payslips: { findMany: () => Effect.succeed([]) },
 			leave_entries: { findMany: () => Effect.succeed([]) }
 		}
 	};

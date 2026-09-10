@@ -89,6 +89,8 @@ CREATE TABLE "companies" (
 	"pay_frequency" text DEFAULT 'MONTHLY' NOT NULL,
 	"risk_class" text,
 	"region" text,
+	"holiday_source" jsonb,
+	"workbook_layout" text DEFAULT 'MATRIX' NOT NULL,
 	"effective_range" jsonb NOT NULL
 );
 
@@ -206,7 +208,7 @@ CREATE TABLE "jurisdiction_holidays" (
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
 	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("name", ''))) STORED,
-	"jurisdiction_code" text NOT NULL,
+	"company_id" uuid NOT NULL,
 	"date" timestamp with time zone NOT NULL,
 	"name" text NOT NULL,
 	"kind" text DEFAULT 'PUBLIC' NOT NULL,
@@ -235,7 +237,6 @@ CREATE TABLE "jurisdiction_settings" (
 	"tax_year_start_month" integer NOT NULL,
 	"research_urls" text[],
 	"research_notes" jsonb,
-	"holiday_source" jsonb,
 	"minimum_wages" jsonb,
 	"effective_range" jsonb NOT NULL
 );
@@ -303,6 +304,8 @@ CREATE TABLE "loan_catalogue" (
 	"settings_id" uuid NOT NULL,
 	"code" text NOT NULL,
 	"contribution_treatments" jsonb NOT NULL,
+	"loan_type" text DEFAULT 'STAFF' NOT NULL,
+	"minimum_repayment" numeric,
 	"sequence" integer NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL
 );
@@ -391,6 +394,7 @@ CREATE TABLE "payroll_runs" (
 	"company_id" uuid NOT NULL,
 	"period" text NOT NULL,
 	"lifecycle" text NOT NULL,
+	"withheld" jsonb DEFAULT '[]' NOT NULL,
 	"configuration_hash" text NOT NULL,
 	"holidays" jsonb NOT NULL,
 	"settings_id" uuid NOT NULL,
@@ -458,6 +462,7 @@ CREATE TABLE "payslips" (
 	"proration" jsonb NOT NULL,
 	"statutory" jsonb NOT NULL,
 	"adjustments" jsonb DEFAULT '[]' NOT NULL,
+	"paid_at" timestamp with time zone,
 	"gross" numeric NOT NULL,
 	"total_deductions" numeric NOT NULL,
 	"net" numeric NOT NULL,
@@ -605,7 +610,7 @@ CREATE INDEX "employments_search_document_gin_idx" ON "employments" USING gin ("
 --> statement-breakpoint
 CREATE INDEX "employments_search_text_trgm_idx" ON "employments" USING gin ((coalesce("employee_number", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "jurisdiction_holidays_jurisdiction_code_date_index" ON "jurisdiction_holidays" ("jurisdiction_code","date");
+CREATE UNIQUE INDEX "jurisdiction_holidays_company_id_date_index" ON "jurisdiction_holidays" ("company_id","date");
 --> statement-breakpoint
 CREATE INDEX "jurisdiction_holidays_published_at_idx" ON "jurisdiction_holidays" ("published_at");
 --> statement-breakpoint
@@ -734,6 +739,8 @@ ALTER TABLE "employment_terms" ADD CONSTRAINT "employment_terms_shift_pattern_id
 ALTER TABLE "employments" ADD CONSTRAINT "employments_employee_id_employees_fk" FOREIGN KEY ("employee_id") REFERENCES "employees"("id");
 --> statement-breakpoint
 ALTER TABLE "employments" ADD CONSTRAINT "employments_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
+--> statement-breakpoint
+ALTER TABLE "jurisdiction_holidays" ADD CONSTRAINT "jurisdiction_holidays_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
 --> statement-breakpoint
 ALTER TABLE "leave_catalogue" ADD CONSTRAINT "leave_catalogue_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
 --> statement-breakpoint

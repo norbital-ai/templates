@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "b530e878-9d71-43d4-81e3-611997487490",
+  "id": "8f598928-13a0-4109-9f85-4aa8e917dbce",
   "prevIds": [
-    "d0a1b4d2-13fd-402f-a1a7-f7d47ce170aa"
+    "f9867fe7-3292-4ad1-be80-a5058982c1ea"
   ],
   "version": "8",
   "ddl": [
@@ -5031,6 +5031,19 @@
       "generated": null,
       "identity": null,
       "name": "adjustments",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "paid_at",
       "entityType": "columns",
       "schema": "public",
       "table": "payslips"
