@@ -26,6 +26,7 @@
  * | `PERIODIC_PROGRESSIVE`       | apply a period table directly; do not annualise or spread          |
  * | `FLOOR:MINIMUM_WAGE`         | the chargeable base is at least the company's regional minimum wage |
  * | `CAP:MINIMUM_WAGE_X:<n>`     | the chargeable base is at most n × that minimum wage               |
+ * | `CAP:AMOUNT:<n>`             | the chargeable base is at most this many currency units            |
  * | `EMPLOYEE_PER_DEPENDANT:<n>` | the employee share is charged once more per dependant, up to `n`   |
  *
  * Reliefs and caps are annual amounts because that is how every tax authority states them. The
@@ -67,6 +68,15 @@ export const SpecialRulesSchema = Schema.Struct({
 	/** Cap the base at this many regional minimum wages; `null` is no cap. */
 	minimumWageCapMultiple: Schema.NullOr(Schema.Number),
 	/**
+	 * A stated ceiling on the chargeable base; `null` is no ceiling.
+	 *
+	 * Taiwan's occupational-injury premium is charged on the 職災 月投保薪資, whose own ladder
+	 * tops out at NT$72,800 — a different and higher ceiling than 勞保's. A `RISK_CLASS` band
+	 * carries only the class, so the ladder itself is not expressible; the ceiling is, and it is
+	 * where the money is: a 150,000 salary was charged on all of it.
+	 */
+	baseCap: Schema.NullOr(Schema.Number),
+	/**
 	 * The employee share is charged for the insured person and again for each dependant, up to
 	 * this many. `null` is the ordinary case: one charge, whoever else the person supports.
 	 *
@@ -94,6 +104,7 @@ const EMPTY: SpecialRules = {
 	periodicProgressive: false,
 	minimumWageFloor: false,
 	minimumWageCapMultiple: null,
+	baseCap: null,
 	employeePerDependant: null
 };
 
@@ -169,6 +180,10 @@ export function parseSpecialRules(
 				parsed = { ...parsed, minimumWageFloor: true };
 				break;
 			case 'CAP':
+				if (first === 'AMOUNT') {
+					parsed = { ...parsed, baseCap: amount(token, second) };
+					break;
+				}
 				if (first !== 'MINIMUM_WAGE_X')
 					throw new Error(`Special rule "${token}" caps on nothing the engine knows.`);
 				parsed = { ...parsed, minimumWageCapMultiple: amount(token, second) };

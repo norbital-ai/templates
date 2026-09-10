@@ -1667,12 +1667,12 @@
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
 		"is_statutory": true,
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is not expressible, but its ceiling is: CAP:AMOUNT:72800.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
 		"sequence": 350,
-		"special_rules": [],
+		"special_rules": ["CAP:AMOUNT:72800"],
 		"bands": [
 			{
 				"selector": {
@@ -3966,12 +3966,12 @@
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
 		"is_statutory": true,
-		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55.",
+		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is not expressible, but its ceiling is: CAP:AMOUNT:72800.",
 		"eligibility": "",
 		"rounding": "NONE",
 		"relief_for": [],
 		"sequence": 350,
-		"special_rules": [],
+		"special_rules": ["CAP:AMOUNT:72800"],
 		"bands": [
 			{
 				"selector": {

@@ -148,13 +148,14 @@ function minimumWageBounds(
 	minimumWage: number | null,
 	code: string
 ): number {
-	if (!rules.minimumWageFloor && rules.minimumWageCapMultiple == null) return base;
+	const stated = rules.baseCap == null ? base : Math.min(base, rules.baseCap);
+	if (!rules.minimumWageFloor && rules.minimumWageCapMultiple == null) return stated;
 	if (minimumWage == null)
 		refuse(
 			`${code} bounds its base by the regional minimum wage, but the company's region has none in ` +
 				'this settings version. Set companies.region and jurisdiction_settings.minimum_wages.'
 		);
-	let bounded = base;
+	let bounded = stated;
 	if (rules.minimumWageFloor) bounded = Math.max(bounded, minimumWage);
 	if (rules.minimumWageCapMultiple != null)
 		bounded = Math.min(bounded, rules.minimumWageCapMultiple * minimumWage);
