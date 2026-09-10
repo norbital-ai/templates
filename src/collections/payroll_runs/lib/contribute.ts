@@ -85,6 +85,8 @@ type ContributeInput = {
 	 */
 	readonly spouseIsDependent: boolean;
 	readonly dependents: number;
+	/** Whether a spouse exists at all — a scheme insuring a household counts them as a covered head. */
+	readonly hasSpouse: boolean;
 	/** The person, as a scheme's or band's eligibility predicate sees them. */
 	readonly person: PersonContext;
 	/** The company region's minimum wage, or null where the version states none for it. */
@@ -148,7 +150,14 @@ function minimumWageBounds(
 	minimumWage: number | null,
 	code: string
 ): number {
-	const stated = rules.baseCap == null ? base : Math.min(base, rules.baseCap);
+	// A published grade table decides the base outright: the lowest grade that covers the wage, or
+	// the highest when none does. It is floor, rounding and ceiling in one statement, which is what
+	// a 分級表 is.
+	const graded =
+		rules.gradeLadder == null
+			? base
+			: (rules.gradeLadder.find((grade) => base <= grade) ?? rules.gradeLadder.at(-1)!);
+	const stated = rules.baseCap == null ? graded : Math.min(graded, rules.baseCap);
 	if (!rules.minimumWageFloor && rules.minimumWageCapMultiple == null) return stated;
 	if (minimumWage == null)
 		refuse(
@@ -228,10 +237,15 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		 * (眷口數) and is carried in the seeded rate. Every other scheme names no ceiling and covers
 		 * one head, so the factor is 1 and nothing moves.
 		 */
+		const household = 1 + (input.hasSpouse ? 1 : 0) + Math.max(0, input.dependents);
 		const heads =
 			rules.employeePerDependant == null
 				? 1
-				: 1 + Math.min(Math.max(0, input.dependents), rules.employeePerDependant);
+				: 1 +
+					Math.min(
+						Math.max(0, household - 1 - rules.employeeHeadsCovered),
+						rules.employeePerDependant
+					);
 		/**
 		 * The premium is stated and billed per insured head, so the rounded per-head amount is what
 		 * is multiplied — not the raw share, which would round the total once and land a cent away

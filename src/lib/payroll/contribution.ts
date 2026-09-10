@@ -265,6 +265,11 @@ export function prepareContributionAssessment(options: {
 			projection,
 			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
 			dependents: decodeNumber(bundle.employee.dependents_count ?? 0),
+			// A scheme that insures a household counts a spouse as one of the people it covers,
+			// whether or not that spouse has income of their own — which is a different question from
+			// whether a tax relief is due for them. Indonesia's BPJS Kesehatan covers the worker, a
+			// spouse and three children before it charges for a fourth family member.
+			hasSpouse: bundle.employee.spouse_status != null && bundle.employee.spouse_status !== 'NONE',
 			person: personContext({
 				employee: bundle.employee,
 				employment: bundle.employment,

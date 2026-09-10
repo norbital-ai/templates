@@ -24,6 +24,7 @@ import test from 'node:test';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
+	chargeOf,
 	expectStatutory,
 	assertEveryVersionPriced
 } from './fixtures/statutory-world.ts';
@@ -116,6 +117,46 @@ test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 ver
 	expectStatutory(book, 'ID-5M', 'KESEHATAN', 57_299, 229_195);
 	// 15,000,000 is above the ceiling: 1% and 4% of 12,000,000.
 	expectStatutory(book, 'ID-15M', 'KESEHATAN', 120_000, 480_000);
+});
+
+test('Indonesia — BPJS Kesehatan charges for a family member past the fifth', () => {
+	// Perpres 82/2018 art.30(4): the 1%/4% covers a household of five — the worker, a spouse and
+	// three children — and each member past that costs the WORKER a further 1%. The employer's 4%
+	// never moves, because it insures the employee and not their household.
+	//
+	// It was seeded as nothing at all, and was recorded as unreachable because `dependents_count`
+	// counts children. It counts children, but `spouse_status` says whether there is a spouse, so
+	// the household is known: worker + spouse + children.
+	const household = (children: number, spouse: string | null) =>
+		assessStatutory({
+			...idWorld('2026-01'),
+			region: 'Kabupaten Bekasi',
+			people: [
+				{
+					key: 'ID-FAMILY',
+					wage: 8_000_000,
+					age: 35,
+					marital_status: spouse == null ? 'SINGLE' : 'MARRIED',
+					...(spouse == null ? {} : { spouse_status: spouse }),
+					children
+				}
+			]
+		});
+	const employee = (children: number, spouse: string | null) =>
+		chargeOf(household(children, spouse), 'ID-FAMILY', 'KESEHATAN').employee;
+
+	// 1% of 8,000,000 is one share. The covered five cost exactly that.
+	assert.equal(employee(0, null), 80_000, 'a worker alone');
+	assert.equal(employee(3, 'WITHOUT_INCOME'), 80_000, 'worker, spouse and three children');
+	// A sixth and a seventh member cost one share each.
+	assert.equal(employee(4, 'WITHOUT_INCOME'), 160_000);
+	assert.equal(employee(5, 'WITH_INCOME'), 240_000, 'a spouse counts whether or not they earn');
+	// The employer's leg is unmoved throughout.
+	for (const [children, spouse] of [
+		[0, null],
+		[5, 'WITH_INCOME']
+	] as const)
+		assert.equal(chargeOf(household(children, spouse), 'ID-FAMILY', 'KESEHATAN').employer, 320_000);
 });
 
 test('Indonesia — the JP ceiling moves on 1 March 2026', () => {

@@ -106,7 +106,7 @@ test('Taiwan — labour and employment insurance end at 65, and the run still bu
 		expectStatutorySkipped(book, key, 'EI');
 		// Still insured for health and for occupational injury, and still priced.
 		expectStatutory(book, key, 'NHI', 621.95, 1940.48);
-		expectStatutory(book, key, 'OCC_INJURY', 0, 100);
+		expectStatutory(book, key, 'OCC_INJURY', 0, 100.25);
 	}
 });
 
@@ -126,20 +126,20 @@ test('Taiwan — occupational-injury insurance is charged on the wage, not the i
 	// 勞工職業災害保險及保護法 §16 charges the industry rate on the 月投保薪資 — the same graded
 	// salary every other Taiwanese premium uses — and §19(1) puts the whole of it on the insured
 	// unit. But a `RISK_CLASS` band carries only the class: the seed has no 職災 grade ladder
-	// (21 grades in 2026 — bank README NOT APPLIED #5), so `OCC_INJURY` charges its percent against
-	// an un-graded base. 費率編號 1 is 0.25% including the 0.07% commuting rate: 0.25% × 40,000 =
-	// 100 and 0.25% × 60,000 = 150. (The law's graded figure for the first would be 0.25% ×
-	// 40,100 = 100.25.)
+	// 費率編號 1 is 0.25% including the 0.07% commuting rate, and it is charged on the GRADE, not
+	// the wage: §17 gives 職災 its own 月投保薪資分級表, twenty-one grades from 29,500 to 72,800
+	// (勞動部 114年11月17日 勞動保3字第1140090499號令). 40,000 insures at 40,100 → 100.25, and
+	// 60,000 at 60,800 → 152.
 	//
-	// The ladder's CEILING is expressible even though the ladder is not, and it is where the money
-	// was: §17 tops the 職災 insured salary out at NT$72,800 — its own, higher than 勞保's — and
-	// without it a 150,000 salary was charged on all of it, 2.06 times what is due.
+	// The ceiling is the top grade, which is where the money was: a 150,000 salary was charged on
+	// all of it, 2.06 times what is due. The floor is the first grade, and everything between
+	// rounds up to its own — one `GRADE_LADDER` statement says all three.
 	//
 	// 28,590 is deliberately absent: 0.25% × 28,590 floats to 71.47500000000001 under the scheme's
 	// `NONE` rounding, which no exact assertion can pin — the two wages here are exactly
 	// representable and carry the branch.
-	expectStatutory(book, 'TW-40000', 'OCC_INJURY', 0, 100);
-	expectStatutory(book, 'TW-60000', 'OCC_INJURY', 0, 150);
+	expectStatutory(book, 'TW-40000', 'OCC_INJURY', 0, 100.25);
+	expectStatutory(book, 'TW-60000', 'OCC_INJURY', 0, 152);
 	expectStatutory(book, 'TW-150000', 'OCC_INJURY', 0, 182);
 	// The other Taiwanese schemes have their own, lower ceilings and are unmoved by this one.
 	expectStatutory(book, 'TW-150000', 'LI', 1053.4, 3686.9);
@@ -239,8 +239,9 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 	expectStatutory(book, 'TW-NR-42886', 'INCOME_TAX_NON_RESIDENT', 7719.48, 0);
 	// 就業保險法 §5 keeps employment insurance to ROC nationals on this version too.
 	expectStatutorySkipped(book, 'TW-NR-42885', 'EI');
-	// 職災 charges the industry rate on the un-graded wage here as on the later version (bank
-	// `TW/README.md` NOT APPLIED #5): 0.25% × 42,885 = 107.2125.
+	// 職災 charges on the un-graded wage on THIS version only: the 民國115年 分級表 is stated on the
+	// later one (勞動部 114年11月17日 勞動保3字第1140090499號令), and 民國114年 has its own table
+	// which this seed does not carry — see `TW/README.md` NOT APPLIED #5. 0.25% × 42,885 = 107.2125.
 	expectStatutory(book, 'TW-NR-42885', 'OCC_INJURY', 0, 107.2125);
 });
 
