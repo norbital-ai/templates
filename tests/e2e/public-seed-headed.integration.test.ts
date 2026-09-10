@@ -573,16 +573,17 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		// The settings page opens on General with the catalogues one tab over and the holiday
-		// calendars another. What the assertion is about is unchanged — the sealed version's
-		// children are all reachable from one page, and nothing else is.
+		// The settings page opens on General with the catalogues one tab over and the snapshot
+		// comparison another. Holidays belong to the entity, so the Settings app carries none.
+		// What the assertion is about is unchanged — the sealed version's children are all
+		// reachable from one page, and nothing else is.
 		const settings = await waitForBody(page, /Settings lineage|Catalog/, 'a2-settings');
 		assert.match(settings, /Catalog/);
-		assert.match(settings, /Holidays/);
+		assert.match(settings, /Compare snapshots/);
 		assert.doesNotMatch(settings, /\bCompanies\b|Research sources/);
-		// The compacted settings page identifies the version in force by the span it governs rather
-		// than by its name, so the wait follows: an open-ended sealed version is the one in force.
-		await waitForBody(page, /→ ∞/, 'a2-version');
+		// The compacted settings page identifies the version in force by its snapshot id, so the
+		// wait follows: PUB's only version is PUB_1, sealed and open-ended.
+		await waitForBody(page, /PUB_1/, 'a2-version');
 		// The page shows the version in force directly: the sealed PUB version's form.
 		const opened = await pollEvaluate(
 			page,

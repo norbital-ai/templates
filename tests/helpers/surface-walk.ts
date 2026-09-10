@@ -482,9 +482,21 @@ const FORM_AUDIT = `(() => {
 		};
 	});
 	const submit = form.querySelector('button[type="submit"]');
+	/**
+	 * Every visible label a person reads in the form, not just each field's first \`<label>\`.
+	 *
+	 * A section heading and the field it holds are both labels to a reader, and so is a control
+	 * label a renderer draws inside its own field frame. Collecting them together is what makes
+	 * "Activity" printed three times over one control a finding rather than three passing fields.
+	 */
+	const labels = [...form.querySelectorAll('label, h3, legend')]
+		.filter((node) => node.getBoundingClientRect().height > 0)
+		.map((node) => (node.innerText ?? '').trim())
+		.filter((text) => text !== '');
 	return JSON.stringify({
 		form: true,
 		submit: submit == null ? null : (submit.textContent ?? '').trim(),
+		labels,
 		fields
 	});
 })()`;
@@ -492,6 +504,7 @@ const FORM_AUDIT = `(() => {
 export type FormAudit = {
 	readonly form: boolean;
 	readonly submit: string | null;
+	readonly labels: readonly string[];
 	readonly fields: readonly {
 		readonly name: string;
 		readonly label: string;
@@ -533,6 +546,20 @@ export const assertFormPresentable = (
 	report(
 		(field) => field.codeEditor && !structuredFields.has(field.name),
 		'fell through to the raw JSON code editor for field(s) that carry no structured value'
+	);
+	/**
+	 * The same words twice in one form: a section heading that repeats the only field under it, a
+	 * renderer drawing its own copy of the label its frame already carries. Neither is an error the
+	 * browser raises, so without this the walk calls a form clean while a person reads "Activity"
+	 * three times over one control.
+	 */
+	const counts = new Map<string, number>();
+	for (const text of audit.labels) counts.set(text, (counts.get(text) ?? 0) + 1);
+	const repeated = [...counts].filter(([, count]) => count > 1).map(([text]) => text);
+	assert.deepEqual(
+		repeated,
+		[],
+		`${label} prints the same label more than once: ${JSON.stringify(repeated)}`
 	);
 };
 

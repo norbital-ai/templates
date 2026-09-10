@@ -91,6 +91,8 @@
 							<h3 class="text-sm font-semibold">{t('component.settings_section_changes')}</h3>
 							<p class="text-meta">{t('component.settings_section_changes_hint')}</p>
 						</Stack>
+						<!-- Declared on both branches: a mutable field the form never names is refused. -->
+						<Field name="change_summary" label={t('component.change_summary')} hidden={sealed} />
 						{#if sealed}
 							{#if record?.change_summary}
 								<p class="text-sm whitespace-pre-line" data-settings-change-summary>
@@ -101,8 +103,6 @@
 									{t('component.settings_change_summary_missing')}
 								</p>
 							{/if}
-						{:else}
-							<Field name="change_summary" label={t('component.change_summary')} />
 						{/if}
 					</Stack>
 

@@ -5,15 +5,15 @@ activity and calculation rules. Payroll combines monetary results, applies Contr
 one result graph. Catalogue content is the policy; there is no separate policy object for each
 business action.
 
-This document describes the implemented family source boundary. The combined contract, Adhoc and
-holiday changes remain under integration: artifact sync, generated migrations, type checks,
+This document describes the implemented family source boundary. The combined contract and Adhoc
+changes remain under integration: artifact sync, generated migrations, type checks,
 full-suite checks and browser acceptance are still required. No deployment status is implied.
 
 ## Identity and family ownership
 
 `employees` identifies a person. `employments` identifies one contract with one legal entity and one
 uninterrupted service period. Every employee event, loan instalment and payslip references its
-`employment_id`; shared catalogues and jurisdiction calendars are not employee events.
+`employment_id`; shared catalogues and entity holiday calendars are not employee events.
 
 For each employee/entity pair, service dates cannot overlap, including future contracts. Departure
 is the last active day, so a same-entity rehire starts later. A person may simultaneously have active
@@ -52,7 +52,7 @@ overtime, excess overtime, absence) have constant codes and orders (`work_catalo
 and one `treatments` matrix, scheme by line; Leave declares the metadata of its distinct monetary
 outputs. Contribution consumes that metadata rather than inspecting the activity that produced it.
 
-## Catalogue revisions and jurisdiction calendars
+## Catalogue revisions and holidays
 
 A company selects a settings lineage through `companies.settings_code`. `jurisdiction_settings`
 versions carry that lineage's effective configuration and own the family catalogues and Contribution
@@ -68,6 +68,17 @@ entries that cite it. A wrong version can be voided through its supported path; 
 `statutory_drift` checks configured research sources monthly and may propose a draft with review
 notes and retrieval evidence. It cannot seal its proposal or edit sealed rules. Unreachable sources
 remain visible in the outcome; a failed retrieval is not evidence that the law is unchanged.
+
+A version is identified by its snapshot id `<code>_<index>`, counting from the lineage's oldest
+version (`MY_1`, `MY_2`, …), so a successor extends the roll without renumbering an id an operator
+has already seen. The window is read half-open — `[start, end)` — so a version governs from its
+start day up to, but not including, its end; the end is the first day its successor governs, and the
+display prints the last governed day. `change_summary` records, in the operator's words, what the
+version changes against its predecessor; the engine never reads it. The Settings app's **Compare
+snapshots** tab diffs two versions of one lineage: the settings fields (`currency`,
+`tax_year_start_month`, `minimum_wages`) and every catalogue that hangs off a version —
+Contribution, Work, Leave, Claim, Allowance, Payment and Loan — matched by `code` with leaf-level
+changes, additions and removals. Holidays are entity-owned, so they are not part of a lineage diff.
 
 **Holidays are entity-owned. There is no per-jurisdiction holiday concept.** `jurisdiction_holidays`
 stores one observed day per entity — `unique(company_id, date)` — with its name, the original date
@@ -108,7 +119,7 @@ inventing personal substitute holidays.
 
 ```mermaid
 flowchart TD
-    Request[Company and regular period] --> Context[Resolve settings, pay window and jurisdiction calendar]
+    Request[Company and regular period] --> Context[Resolve settings, pay window and entity holidays]
     Context --> Contracts[Select contracts with service or due approved obligations]
     Contracts --> Prepare[Prepare family inputs for each contract]
     Prepare --> Work[Work: resolve schedule]
@@ -204,8 +215,8 @@ Exactly one run is permitted per company and period. There is no ad hoc or suppl
 ```mermaid
 stateDiagram-v2
     [*] --> DRAFT: Calculate and freeze inputs/results
-    DRAFT --> PAID: Mark paid after earlier runs
-    DRAFT --> [*]: Delete, newest first
+    DRAFT --> PAID: Every slip carries a payment
+    DRAFT --> [*]: Delete, newest first, no slip paid
     PAID --> PAID: Immutable
 ```
 
@@ -222,14 +233,23 @@ company, and an employment on rostered terms whose month was never rostered rais
 issue; two such people at one entity meant seventy-three colleagues could not be paid, with nothing
 to route around it.
 
-A draft is a frozen calculation. Replacing it means deleting it and creating another. Paid results
-cannot be edited or deleted. A late approved entry or correction remains outstanding for a later
+**Payment is the payslip's fact, not the run's.** `payslips.paid_at` is the authority: set once,
+from empty, never back — the one column of an immutable output row that may move.
+`payroll_runs.lifecycle` is a reading of the slips, `PAID` only when every slip of the run carries a
+payment (an empty run reads `DRAFT`); marking the run paid stamps `paid_at` on each unpaid slip, and
+a slip can be paid without its neighbours. **Locking follows the person, not the run**: a payroll
+window is settled for an employment, so a colleague's held payslip does not keep this person's day
+open and a colleague's payment does not close it. History reads the paid slips themselves, never a
+run's lifecycle, so a half-paid earlier run still contributes the slips that were paid.
+
+A draft is a frozen calculation. Replacing it means deleting it and creating another. A run whose
+slips are all paid is immutable; a run holding any paid slip refuses deletion, while its drafts
+still unwind newest first, judged over the whole delete batch, because a run below a later one
+holds inputs that later run has already read and priced. Payment stays ordered: a run cannot
+be marked paid while an earlier one is a draft, and a period the company skipped is still refused,
+because the skip is the fault. A late approved entry or correction remains outstanding for a later
 regular period. **A standing draft does not block the next period** — a month waiting on one
-person's correction used to freeze the next month's payroll for everybody — but _payment_ stays
-ordered (a run cannot be marked paid while an earlier one is a draft) and so does _deletion_: runs
-are unwound newest first, judged over the whole delete batch, because a run below a later one holds
-inputs that later run has already read and priced. A period the company skipped is still refused,
-because the skip is the fault.
+person's correction used to freeze the next month's payroll for everybody.
 
 `payroll_runs` stores configuration and calculation identity once per run. Each `payslip` belongs to
 one contract and holds base, proration, statutory and adjustment arrays; an adjustment names its
@@ -263,6 +283,13 @@ Three dates remain distinct:
 | Salary period                    | 1–31 January                |
 | Attendance window with cutoff 21 | 21 December–20 January      |
 | Pay date                         | The configured payment date |
+
+Every day-precision column (`pay_date`, `attendance_from`, `work_date`, `effective_range`, …) stores
+one canonical UTC day, not the viewer's local midnight: the picker converts at the renderer boundary
+and the day prints the same for every viewer. A stored range's membership is resolved with `dateKey`,
+never by slicing the instant prefix. Jurisdiction settings read their range half-open (`[start,
+end)`); every other effective-dated collection reads it inclusively, as its exclusion constraint
+does.
 
 The attendance cutoff is its first included day. Money-entry defaults are separate: with cutoff 21,
 an event on or before the 21st defaults to that calendar month; a later event defaults to the next
@@ -509,7 +536,7 @@ A hash alone cannot reproduce a result. Captures preserve business source identi
 
 Controller uses a shared entity selection. People holds profiles, contracts, terms, statutory facts
 and departures. Events has Work, Leave, Claim, Allowance, Adhoc and Loan pages. Settings → Catalog
-holds family definitions, including Contribution; Settings → Holidays owns import, review and annual
+holds family definitions, including Contribution; the entity's Holidays tab owns import, review and annual
 publication. Employee Events presents the same family navigation scoped to the selected contract.
 
 Scheduling and Leave use related reads for source rows, effective terms, calendars and captures.

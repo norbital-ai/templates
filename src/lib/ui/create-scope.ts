@@ -40,16 +40,25 @@ export const hrCreateScope = (): HrCreateScope | undefined =>
 	getContext<HrCreateScope | undefined>(HR_CREATE_SCOPE);
 
 /**
- * The employment picker every form shares: the entity's own people, by employee number.
+ * The employment picker every form shares: the entity's own people, by name and employee number.
+ *
+ * `with` carries the employee so an option reads as a person rather than a code; the relation is
+ * one-to-one on `employee_id` and named `employment_employee` by the compiler.
  *
  * `limit` is the workspace ceiling rather than a page: the picker searches the loaded options, so
  * a narrower limit would silently hide people from search rather than paginate to them.
  */
 export const employmentRelationOptions = (companyId: string | undefined) => ({
-	label: (employment: Record<string, unknown>) =>
-		employment.employee_number != null && employment.employee_number !== ''
-			? String(employment.employee_number)
-			: '—',
+	label: (employment: Record<string, unknown>) => {
+		const employee = employment.employment_employee as
+			{ readonly name?: unknown } | null | undefined;
+		const name = employee != null && typeof employee.name === 'string' ? employee.name : '';
+		const rawNumber = employment.employee_number;
+		const number = rawNumber != null && rawNumber !== '' ? String(rawNumber) : '';
+		if (name !== '' && number !== '') return `${name} (${number})`;
+		return name !== '' ? name : number !== '' ? number : '—';
+	},
+	with: { employment_employee: { columns: { name: true } } },
 	...(companyId == null ? {} : { where: { company_id: { eq: companyId } } }),
 	orderBy: { employee_number: 'asc' } as const,
 	limit: 10_000

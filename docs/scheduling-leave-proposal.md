@@ -2,8 +2,8 @@
 
 Work records planned assignments and observed time for an employment contract. Leave records
 approved activity against that contract and retains the dated charges used at approval. The shared
-schedule combines effective terms, named patterns, explicit Work rows and the published jurisdiction
-calendar. Payroll uses those same facts.
+schedule combines effective terms, named patterns, explicit Work rows and the entity's published
+holidays. Payroll uses those same facts.
 
 This document replaces the earlier UI proposal. The family source boundary is implemented; artifact
 sync, type checks, full-suite and browser verification of the combined changes remain in progress.
@@ -51,22 +51,23 @@ Patterned changes are validated against the required monthly days and paid minut
 changes are validated against their stated guarantee or cap. Assignment and attendance are separate
 facts even when imported or displayed together.
 
-## Jurisdiction holidays
+## Entity holidays
 
-Holidays are not roster codes, employee events or per-person selections. A jurisdiction's observed
-days are rows of `jurisdiction_holidays`, each published on its own. Company closures remain Work
-schedule decisions. Settings → Holidays is one table: add a day, import the holidays spreadsheet or
-the Google calendar set under General, and publish each day; Settings → Catalog is untouched.
+Holidays are not roster codes, employee events or per-person selections. An entity's observed days
+are rows of `jurisdiction_holidays` — `unique(company_id, date)` — each published on its own.
+Company closures remain Work schedule decisions. The entity's Holidays tab is one table: add a day,
+import the holidays spreadsheet or the Google calendar set beside it, and publish each day;
+Settings → Catalog is untouched.
 
-The yearly `holiday_import` automation reads the following year each 1 October from the configured
-Google calendar and adds the days the jurisdiction does not have yet, unpublished. A manual run
-chooses a jurisdiction and year. Every page must succeed before a row is written; credentials
+The yearly `holiday_import` automation reads the following year each 1 October from each entity's
+configured Google calendar and adds the days that entity does not have yet, unpublished. A manual
+run chooses an entity and a year. Every page must succeed before a row is written; credentials
 belong to the managed connection. An imported day is not a payroll holiday until a person publishes
 it.
 
 ```mermaid
 flowchart LR
-    Calendar[Published jurisdiction/year calendar] --> Schedule[Contract schedule and dated Work row]
+    Calendar[Entity's published holidays] --> Schedule[Contract schedule and dated Work row]
     Schedule --> Charges[Leave chargeable slots and exclusions]
     Schedule --> Classification[Ordinary, rest, off or public holiday]
     Classification --> OT[Work overtime pricing]
@@ -74,18 +75,18 @@ flowchart LR
     Coverage --> OT
 ```
 
-A missing or unpublished year blocks required classification. An ordinary date in a complete
-calendar is a deliberate non-holiday input. The freeze derives from live references, not a stamp: a
+Nothing asks a year to be complete: a day that is not published is simply not a holiday, and a
+missing year is not a block. The freeze derives from live references, not a stamp: a
 work day classified as a holiday pins it (`work_days.holiday_id`) and a payroll run captures the
 holidays it read (`payroll_runs.holidays`). Retracting a holiday (unpublish, moving its day or
-jurisdiction, delete) is refused while a run captures it; otherwise the pinning days are re-saved —
+entity, delete) is refused while a run captures it; otherwise the pinning days are re-saved —
 re-classified, lieu credits reversed — while a credit already taken refuses the change. A finished
-run is never touched by a holiday published later, and an import skips a day the jurisdiction
+run is never touched by a holiday published later, and an import skips a day the entity
 already has.
 
-Observed substitute dates come from the jurisdiction calendar. Work's explicit precedence resolves
-an overlap with a rest day without inventing a personal substitute date. Leave charging, calendar
-displays and overtime use the same resolved input and preserve existing Work links.
+Observed substitute dates are their own rows with an `original_date`. Work's explicit precedence
+resolves an overlap with a rest day without inventing a personal substitute date. Leave charging,
+calendar displays and overtime use the same resolved input and preserve existing Work links.
 
 ## Work import and overtime
 
@@ -98,7 +99,7 @@ A workbook may carry both planned roster data and actual attendance:
 ```text
 planned code  → resolve WORK / REST / OFF assignment
 blank cell    → no explicit assignment
-PH token      → validate against the jurisdiction calendar
+PH token      → validate against the entity's holiday calendar
 punch columns → normalize worked intervals
 ```
 
@@ -109,7 +110,7 @@ belong to import; the resulting Work rows follow the ordinary validation and app
 Overtime follows this order:
 
 1. Resolve effective contract terms and the base schedule.
-2. Apply dated assignments and the jurisdiction's holiday classification.
+2. Apply dated assignments and the entity's holiday classification.
 3. Validate and measure observed intervals.
 4. Determine coverage and price the applicable Work bands.
 5. Apply dated floors, compliance controls and the payroll settlement window.
@@ -159,7 +160,7 @@ to its window; a multi-month absence is not charged entirely to the first month.
 | --------------------------------------------------------------- | ------------------------------------------------------------ |
 | Contract, terms and named pattern reference                     | Service scope and projected base                             |
 | Roster-code variant and explicit dated assignment               | Normal minutes, final day type and workload                  |
-| Published annual observations and permanent input captures      | Holiday classification for each date                         |
+| Published holiday rows and permanent input captures             | Holiday classification for each date                         |
 | Observed intervals and break minutes                            | Open/closed state, duration and overtime value               |
 | Approved activity, half-day range and frozen dated charges      | Calendar presentation and period-specific charge selection   |
 | Manual carry/encashment/correction terms and source allocations | Balance, expiry and outstanding monetary obligations         |

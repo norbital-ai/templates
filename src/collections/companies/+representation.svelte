@@ -16,9 +16,8 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
-	import HolidaySourceForm from '../../lib/ui/holiday-source-form.svelte';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -108,26 +107,16 @@
 {/snippet}
 
 {#snippet holidays()}
-	<Stack gap="lg">
-		<!-- The entity's own Google source, beside the calendar it fills. -->
-		<HolidaySourceForm company={record!} />
-		<HolidaySettings company={record!} />
-	</Stack>
+	<!-- Holidays are the entity's; the Google source is the country's public calendar, and the
+	     spreadsheet import is the table's own operation. -->
+	<HolidaySettings company={record!} />
 {/snippet}
 
-<RecordShell title={record?.name ?? t('component.create_company')}>
-	{#if record == null}
-		{@render details()}
-	{:else}
-		<!--
-			Holidays are the entity's, so they are read where the entity is: a nested view rather than
-			a jurisdiction-scoped Settings tab, which could not have shown two entities of one country
-			different calendars at all.
-		-->
-		<Tabs
-			animate={false}
-			layout="responsive"
-			config={[
+<RecordShell
+	title={record?.name ?? t('component.create_company')}
+	tabs={record == null
+		? undefined
+		: ([
 				{
 					name: 'details',
 					label: t('component.legal_entity'),
@@ -140,7 +129,9 @@
 					icon: 'lucide:calendar-x',
 					content: holidays
 				}
-			] satisfies TabConfig[]}
-		/>
+			] satisfies TabConfig[])}
+>
+	{#if record == null}
+		{@render details()}
 	{/if}
 </RecordShell>

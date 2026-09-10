@@ -84,7 +84,7 @@
 					title={t('leave.activity')}
 					hint={t('component.leave_entry_section_activity_hint')}
 				>
-					<Field name="event" label={t('leave.activity')} />
+					<Field name="event" />
 				</FormSection>
 
 				<FormSection
@@ -92,7 +92,7 @@
 					hint={t('component.leave_entry_section_certificate_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
-						<Field name="certificate_file" label={t('component.certificate')} />
+						<Field name="certificate_file" />
 					</Grid>
 				</FormSection>
 			</Stack>
