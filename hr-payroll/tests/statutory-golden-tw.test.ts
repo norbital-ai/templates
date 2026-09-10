@@ -88,24 +88,32 @@ test('Taiwan — occupational-injury insurance is charged on the wage, not the i
 		riskClass: '1',
 		people: [
 			{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' },
-			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' }
+			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' },
+			// Above the 職災 ceiling, which is its own and higher than 勞保's.
+			{ key: 'TW-150000', wage: 150_000, citizenship: 'CITIZEN' }
 		]
 	});
 
 	// 勞工職業災害保險及保護法 §16 charges the industry rate on the 月投保薪資 — the same graded
 	// salary every other Taiwanese premium uses — and §19(1) puts the whole of it on the insured
 	// unit. But a `RISK_CLASS` band carries only the class: the seed has no 職災 grade ladder
-	// (floor at the minimum wage, ceiling NT$72,800, 21 grades in 2026 — bank README NOT APPLIED
-	// #5), so `OCC_INJURY` charges its percent against the uncapped, un-graded base. 費率編號 1
-	// is 0.25% including the 0.07% commuting rate: 0.25% × 40,000 = 100 and 0.25% × 60,000 = 150.
-	// (The law's graded figures would be 0.25% × 40,100 = 100.25 and, above the 職災 ladder's own
-	// reach here, unassertable for 60,000.)
+	// (21 grades in 2026 — bank README NOT APPLIED #5), so `OCC_INJURY` charges its percent against
+	// an un-graded base. 費率編號 1 is 0.25% including the 0.07% commuting rate: 0.25% × 40,000 =
+	// 100 and 0.25% × 60,000 = 150. (The law's graded figure for the first would be 0.25% ×
+	// 40,100 = 100.25.)
+	//
+	// The ladder's CEILING is expressible even though the ladder is not, and it is where the money
+	// was: §17 tops the 職災 insured salary out at NT$72,800 — its own, higher than 勞保's — and
+	// without it a 150,000 salary was charged on all of it, 2.06 times what is due.
 	//
 	// 28,590 is deliberately absent: 0.25% × 28,590 floats to 71.47500000000001 under the scheme's
 	// `NONE` rounding, which no exact assertion can pin — the two wages here are exactly
 	// representable and carry the branch.
 	expectStatutory(book, 'TW-40000', 'OCC_INJURY', 0, 100);
 	expectStatutory(book, 'TW-60000', 'OCC_INJURY', 0, 150);
+	expectStatutory(book, 'TW-150000', 'OCC_INJURY', 0, 182);
+	// The other Taiwanese schemes have their own, lower ceilings and are unmoved by this one.
+	expectStatutory(book, 'TW-150000', 'LI', 1053.4, 3686.9);
 });
 
 test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemption', () => {
