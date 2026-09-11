@@ -92,7 +92,11 @@
 					title={t('component.section_contributions')}
 					hint={t('component.catalogue_section_contributions_hint')}
 				>
-					<Field name="contribution_treatments" label={t('component.contribution_treatments')} />
+					<Field
+						name="contribution_treatments"
+						label={t('component.contribution_treatments')}
+						description={t('renderer.contribution_treatments.identity')}
+					/>
 				</FormSection>
 			</Stack>
 		{/snippet}

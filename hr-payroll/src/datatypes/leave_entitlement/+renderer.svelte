@@ -20,14 +20,12 @@
 			key: 'eligibility',
 			label: t('component.who_receives'),
 			field: { name: 'eligibility', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'employment.service_months >= 24',
-			width: 320
+			placeholder: 'employment.service_months >= 24'
 		},
 		{
 			key: 'days',
 			label: t('component.days'),
-			field: { name: 'days', kind: 'numeric', nullable: false } satisfies CollectionField,
-			width: 120
+			field: { name: 'days', kind: 'numeric', nullable: false } satisfies CollectionField
 		}
 	] satisfies readonly MatrixColumn<Band>[];
 	const disabled = $derived(props.mode !== 'edit' || props.disabled);
@@ -128,6 +126,7 @@
 		{#if current.availability !== 'UNLIMITED'}
 			<p class="text-meta">{t('renderer.leave_entitlement.identity')}</p>
 			<MatrixRenderer
+				class="w-full"
 				{rows}
 				columns={BAND_COLUMNS}
 				{disabled}

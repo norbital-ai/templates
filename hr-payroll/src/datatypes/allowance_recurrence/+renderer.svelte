@@ -95,19 +95,14 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="text-sm font-medium">
-			<Stack gap="xs">
-				{t('component.entry_cadence')}
-				<Combobox
-					options={KIND_OPTIONS}
-					value={current?.kind ?? null}
-					{disabled}
-					searchable={false}
-					emptyPlaceholder={t('renderer.allowance_recurrence.select_cadence')}
-					onValueChange={selectKind}
-				/>
-			</Stack>
-		</label>
+		<Combobox
+			options={KIND_OPTIONS}
+			value={current?.kind ?? null}
+			{disabled}
+			searchable={false}
+			emptyPlaceholder={t('renderer.allowance_recurrence.select_cadence')}
+			onValueChange={selectKind}
+		/>
 		{#if current?.kind === 'ONE_OFF'}
 			<label class="text-sm font-medium">
 				<Stack gap="xs">

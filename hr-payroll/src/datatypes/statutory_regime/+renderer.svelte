@@ -75,28 +75,24 @@
 		{
 			key: 'day_type',
 			label: r('day_type'),
-			field: enumField('day_type', RULE_DAY_TYPES),
-			width: 170
+			field: enumField('day_type', RULE_DAY_TYPES)
 		},
 		{
 			key: 'measure',
 			label: r('measure'),
-			field: enumField('measure', ['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
-			width: 190
+			field: enumField('measure', ['BEYOND_NORMAL', 'FROM_START_OF_DAY'])
 		},
 		{ key: 'from', label: r('from'), field: numericField('from'), width: 110 },
 		{
 			key: 'to',
 			label: r('to'),
 			field: numericField('to', true),
-			placeholder: r('no_limit'),
-			width: 110
+			placeholder: r('no_limit')
 		},
 		{
 			key: 'award',
 			label: r('award'),
-			field: enumField('award', ['HOURLY_MULTIPLE', 'DAY_WAGE_MULTIPLE']),
-			width: 180
+			field: enumField('award', ['HOURLY_MULTIPLE', 'DAY_WAGE_MULTIPLE'])
 		},
 		{ key: 'multiple', label: r('multiple'), field: numericField('multiple'), width: 120 }
 	] satisfies readonly MatrixColumn<PricingRow>[];
@@ -105,21 +101,18 @@
 		{
 			key: 'period',
 			label: r('period'),
-			field: enumField('period', ['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
-			width: 130
+			field: enumField('period', ['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'])
 		},
 		{
 			key: 'measures',
 			label: r('measures'),
-			field: enumField('measures', ['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
-			width: 190
+			field: enumField('measures', ['OVERTIME_HOURS', 'TOTAL_WORK_HOURS'])
 		},
 		{ key: 'max_hours', label: r('max_hours'), field: numericField('max_hours'), width: 150 },
 		{
 			key: 'on_exceed',
 			label: r('on_exceed'),
-			field: enumField('on_exceed', ['WARN', 'BLOCK', 'INCENTIVE']),
-			width: 150
+			field: enumField('on_exceed', ['WARN', 'BLOCK', 'INCENTIVE'])
 		}
 	] satisfies readonly MatrixColumn<LimitRow>[];
 
@@ -127,34 +120,29 @@
 		{
 			key: 'applies_when',
 			label: r('applies_when'),
-			field: enumField('applies_when', ['ALWAYS', 'CONTINUOUS_ATTENDANCE']),
-			width: 200
+			field: enumField('applies_when', ['ALWAYS', 'CONTINUOUS_ATTENDANCE'])
 		},
 		{
 			key: 'after_consecutive_hours',
 			label: r('after_hours'),
 			field: numericField('after_consecutive_hours', true),
-			placeholder: r('every_day'),
-			width: 140
+			placeholder: r('every_day')
 		},
 		{
 			key: 'minimum_minutes',
 			label: r('minimum_minutes'),
 			field: integerField('minimum_minutes', true),
-			placeholder: r('not_stated'),
-			width: 150
+			placeholder: r('not_stated')
 		},
 		{
 			key: 'paid_status',
 			label: r('working_time'),
-			field: enumField('paid_status', ['UNSTATED', 'WORKING_TIME', 'NOT_WORKING_TIME']),
-			width: 180
+			field: enumField('paid_status', ['UNSTATED', 'WORKING_TIME', 'NOT_WORKING_TIME'])
 		},
 		{
 			key: 'on_exceed',
 			label: r('on_shortfall'),
-			field: enumField('on_exceed', ['WARN', 'BLOCK']),
-			width: 140
+			field: enumField('on_exceed', ['WARN', 'BLOCK'])
 		}
 	] satisfies readonly MatrixColumn<BreakRow>[];
 
@@ -431,6 +419,7 @@
 		</Stack>
 
 		<MatrixRenderer
+			class="w-full"
 			rows={pricingRows}
 			columns={PRICING_COLUMNS}
 			{disabled}
@@ -539,6 +528,7 @@
 			hint={t('component.work_section_limits_hint')}
 		>
 			<MatrixRenderer
+				class="w-full"
 				rows={limitRows}
 				columns={LIMIT_COLUMNS}
 				{disabled}
@@ -565,6 +555,7 @@
 			hint={t('component.work_section_rest_hint')}
 		>
 			<MatrixRenderer
+				class="w-full"
 				rows={breakRows}
 				columns={BREAK_COLUMNS}
 				{disabled}

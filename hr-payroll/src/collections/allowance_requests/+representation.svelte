@@ -114,11 +114,12 @@
 					</Grid>
 				</FormSection>
 
-				<FormSection
-					title={t('component.allowance_section_when')}
-					hint={t('component.allowance_section_when_hint')}
-				>
-					<Field name="recurrence" label={t('component.entry_cadence')} />
+				<FormSection title={t('component.allowance_section_when')}>
+					<Field
+						name="recurrence"
+						label={t('component.entry_cadence')}
+						description={t('component.allowance_section_when_hint')}
+					/>
 				</FormSection>
 
 				<FormSection title={t('component.section_proof')} hint={t('component.section_proof_hint')}>

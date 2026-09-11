@@ -43,23 +43,20 @@
 					kind: 'enum',
 					nullable: false,
 					values: KINDS
-				} satisfies CollectionField,
-				width: 140
+				} satisfies CollectionField
 			},
 			{
 				key: `${key}_rule`,
 				label: t(`renderer.leave_treatments.${key}_rule`),
 				field: { name: `${key}_rule`, kind: 'text', nullable: true } satisfies CollectionField,
-				placeholder: t('renderer.contribution_treatments.special_rule_placeholder'),
-				width: 180
+				placeholder: t('renderer.contribution_treatments.special_rule_placeholder')
 			}
 		] satisfies readonly MatrixColumn<TreatmentRow>[];
 	const CODE = {
 		key: 'code',
 		label: t('renderer.contribution_treatments.scheme_code'),
 		field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
-		placeholder: 'EPF',
-		width: 140
+		placeholder: 'EPF'
 	} satisfies MatrixColumn<TreatmentRow>;
 	const COLUMNS = [
 		CODE,
@@ -150,6 +147,7 @@
 		<p class="text-meta">{t('renderer.leave_treatments.identity')}</p>
 		{#if scoped}
 			<MatrixRenderer
+				class="w-full"
 				{rows}
 				columns={SCOPED_COLUMNS}
 				{disabled}
@@ -161,6 +159,7 @@
 			/>
 		{:else}
 			<MatrixRenderer
+				class="w-full"
 				{rows}
 				columns={COLUMNS}
 				{disabled}

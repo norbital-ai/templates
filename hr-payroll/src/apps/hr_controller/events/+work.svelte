@@ -1008,12 +1008,6 @@
 				label: t('app.scheduling.tab_patterns'),
 				icon: 'lucide:repeat',
 				content: patterns
-			},
-			{
-				name: 'holidays',
-				label: t('app.scheduling.tab_holidays'),
-				icon: 'lucide:party-popper',
-				content: holidays
 			}
 		] satisfies TabConfig[]}
 	/>
@@ -1329,34 +1323,6 @@
 				</CollectionTable>
 			{/key}
 		</Cover>
-	{/if}
-{/snippet}
-
-{#snippet holidays()}
-	{#if selectedCompanyId != null}
-		<CollectionTable
-			{client}
-			collection="jurisdiction_holidays"
-			view="hr_controller:scheduling:holidays"
-			title={t('holiday_calendar.title')}
-			features={{ create: false }}
-			query={{
-				where: {
-					company_id: { eq: selectedCompanyId },
-					date: { gte: monthStart, lte: monthEnd }
-				},
-				orderBy: { date: 'asc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="date" label={t('component.observed_on')} card="title" />
-				<Column name="name" label={t('component.holiday')} card="subtitle" />
-				<Column name="kind" label={t('holiday_calendar.kind')} />
-				<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
-			{/snippet}
-		</CollectionTable>
-	{:else}
-		<p class="text-sm text-muted-foreground">{t('holiday_calendar.no_jurisdiction')}</p>
 	{/if}
 {/snippet}
 

@@ -17,14 +17,12 @@
 			key: 'region',
 			label: t('component.region'),
 			field: { name: 'region', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'I',
-			width: 220
+			placeholder: 'I'
 		},
 		{
 			key: 'amount',
 			label: t('renderer.minimum_wages.amount'),
-			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField,
-			width: 160
+			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField
 		}
 	] satisfies readonly MatrixColumn<Row>[];
 
@@ -45,12 +43,12 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	<Stack gap="xs">
-		<p class="text-meta">{t('renderer.minimum_wages.identity')}</p>
+	<Stack gap="xs" class="w-full">
 		<MatrixRenderer
 			{rows}
 			columns={COLUMNS}
 			{disabled}
+			class="w-full"
 			emptyMessage={t('renderer.minimum_wages.empty')}
 			addRowLabel={t('renderer.minimum_wages.add_row')}
 			createRow={(): Row => ({ id: crypto.randomUUID(), region: '', amount: 0 })}

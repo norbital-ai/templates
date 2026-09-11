@@ -17,7 +17,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import FormSection from '../../lib/ui/form-section.svelte';
@@ -30,12 +30,8 @@
 		formatEffectiveRange,
 		formatStatutoryFactStatus
 	} from '../../lib/ui/display-formatters.js';
-	import {
-		calendarDateInTimeZone,
-		daysBetweenKeys,
-		PAYROLL_TIME_ZONE,
-		todayKey
-	} from '../../lib/ui/calendar.js';
+	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE, todayKey } from '../../lib/ui/calendar.js';
+	import { humanize } from '@norbital-ai/std/string';
 	import { Button } from '@norbital-ai/ui/button';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
@@ -273,16 +269,12 @@
 		return calendarDateInTimeZone(instant, PAYROLL_TIME_ZONE);
 	}
 
-	type TimelineBar = {
+	type TimelineEvent = {
 		readonly id: string;
-		readonly companyId: string;
+		readonly dateKey: string;
+		readonly kind: 'HIRED' | 'CHANGED' | 'EXITED';
 		readonly employeeNumber: string;
-		readonly startKey: string;
-		readonly endKey: string;
-		readonly active: boolean;
-		readonly termsSummary: string | null;
-		readonly top: number;
-		readonly height: number;
+		readonly detail: string | null;
 	};
 
 	type TimelineColumn = {
@@ -290,21 +282,8 @@
 		readonly companyName: string;
 		readonly active: boolean;
 		readonly lastEndKey: string | null;
-		readonly bars: readonly TimelineBar[];
+		readonly events: readonly TimelineEvent[];
 	};
-
-	/** The terms in force on `date`: the covering row, else the latest row's summary. */
-	function termsSummaryInForce(terms: readonly EmploymentTerm[], date: string): string | null {
-		const dated = terms.flatMap((term) => {
-			const range = readRange(term.effective_range);
-			return range == null ? [] : [{ range, summary: term.summary }];
-		});
-		const covering =
-			dated.find((candidate) => isEffectiveOn(candidate.range, date)) ??
-			dated.toSorted((left, right) => right.range.start.localeCompare(left.range.start))[0];
-		const summary = covering?.summary;
-		return typeof summary === 'string' && summary !== '' ? summary : null;
-	}
 
 	// Company names for the timeline columns; the employments read carries only the id.
 	const timelineCompanyIds = $derived([
@@ -329,70 +308,87 @@
 	);
 
 	/**
-	 * One column per legal entity, time down the Y axis, one bar per employment from its hire
-	 * date to its exit date (or today when active). Overlap within an entity is refused by the
-	 * hook, so the bars are drawn as stored and never overlap by construction.
+	 * One rail per legal entity, newest event first: joined, every change of terms that followed,
+	 * and the exit when there is one. A promotion, a demotion, a new contract or a return all read
+	 * as one line — the terms summary states what changed — so the record is a history rather than
+	 * a set of bars whose overlap proves a hook.
 	 */
 	const timeline = $derived.by(() => {
-		const bars = employments.flatMap((employment) => {
-			if (typeof employment.id !== 'string' || typeof employment.company_id !== 'string') return [];
-			const startKey =
+		const byCompany = new Map<string, TimelineEvent[]>();
+		const activity = new Map<string, { active: boolean; lastEndKey: string | null }>();
+		for (const employment of employments) {
+			if (typeof employment.id !== 'string' || typeof employment.company_id !== 'string') continue;
+			const number = employment.employee_number == null ? '—' : String(employment.employee_number);
+			const hireKey =
 				timelineDayKey(employment.hire_date) ??
 				timelineDayKey(readRange(employment.effective_range)?.start) ??
 				today;
-			const storedEnd = employment.exit_date == null ? null : timelineDayKey(employment.exit_date);
-			const active = storedEnd == null || storedEnd >= today;
-			const endKey = storedEnd == null ? today : storedEnd < startKey ? startKey : storedEnd;
-			const reference = active ? today : endKey;
-			return [
+			const terms = (termsByEmployment.get(employment.id) ?? [])
+				.flatMap((term) => {
+					const range = readRange(term.effective_range);
+					const key = range == null ? null : timelineDayKey(range.start);
+					if (key == null) return [];
+					const summary =
+						typeof term.summary === 'string' && term.summary !== '' ? term.summary : null;
+					return [{ key, summary }];
+				})
+				.toSorted((left, right) => left.key.localeCompare(right.key));
+			const events: TimelineEvent[] = [
 				{
-					id: employment.id,
-					companyId: employment.company_id,
-					employeeNumber:
-						employment.employee_number == null ? '—' : String(employment.employee_number),
-					startKey,
-					endKey,
-					active,
-					termsSummary: termsSummaryInForce(termsByEmployment.get(employment.id) ?? [], reference)
+					id: `${employment.id}:hired`,
+					dateKey: hireKey,
+					kind: 'HIRED',
+					employeeNumber: number,
+					detail: terms[0]?.summary ?? null
 				}
 			];
-		});
-		if (bars.length === 0) return { columns: [], todayTop: 0, showToday: false };
-		const minKey = bars.map((bar) => bar.startKey).toSorted()[0]!;
-		const maxKey = [today, ...bars.map((bar) => bar.endKey)].toSorted().at(-1)!;
-		const spanDays = Math.max(1, daysBetweenKeys(minKey, maxKey));
-		const position = (key: string) => (daysBetweenKeys(minKey, key) / spanDays) * 100;
-		const byCompany = new Map<string, Omit<TimelineBar, 'top' | 'height'>[]>();
-		for (const bar of bars) {
-			const bucket = byCompany.get(bar.companyId);
-			if (bucket) bucket.push(bar);
-			else byCompany.set(bar.companyId, [bar]);
+			for (const [index, term] of terms.entries())
+				if (index > 0 && term.key > hireKey)
+					events.push({
+						id: `${employment.id}:term:${index}:${term.key}`,
+						dateKey: term.key,
+						kind: 'CHANGED',
+						employeeNumber: number,
+						detail: term.summary
+					});
+			const exitKey = employment.exit_date == null ? null : timelineDayKey(employment.exit_date);
+			if (exitKey != null)
+				events.push({
+					id: `${employment.id}:exit`,
+					dateKey: exitKey,
+					kind: 'EXITED',
+					employeeNumber: number,
+					detail: employment.exit_reason == null ? null : humanize(String(employment.exit_reason))
+				});
+			const bucket = byCompany.get(employment.company_id) ?? [];
+			bucket.push(...events);
+			byCompany.set(employment.company_id, bucket);
+			const prior = activity.get(employment.company_id) ?? { active: false, lastEndKey: null };
+			activity.set(employment.company_id, {
+				active: prior.active || exitKey == null,
+				lastEndKey:
+					exitKey != null && (prior.lastEndKey == null || exitKey > prior.lastEndKey)
+						? exitKey
+						: prior.lastEndKey
+			});
 		}
 		const columns: TimelineColumn[] = [...byCompany]
-			.map(([companyId, companyBars]) => {
-				const placed: TimelineBar[] = companyBars
-					.toSorted((left, right) => left.startKey.localeCompare(right.startKey))
-					.map((bar) => ({
-						...bar,
-						top: position(bar.startKey),
-						height: ((daysBetweenKeys(bar.startKey, bar.endKey) + 1) / spanDays) * 100
-					}));
-				return {
-					companyId,
-					companyName: timelineCompanyNames.get(companyId) ?? companyId,
-					active: placed.some((bar) => bar.active),
-					lastEndKey:
-						placed
-							.filter((bar) => !bar.active)
-							.map((bar) => bar.endKey)
-							.toSorted()
-							.at(-1) ?? null,
-					bars: placed
-				};
-			})
+			.map(([companyId, events]) => ({
+				companyId,
+				companyName: timelineCompanyNames.get(companyId) ?? companyId,
+				active: activity.get(companyId)?.active ?? false,
+				lastEndKey: activity.get(companyId)?.lastEndKey ?? null,
+				events: events.toSorted((left, right) => right.dateKey.localeCompare(left.dateKey))
+			}))
 			.toSorted((left, right) => left.companyName.localeCompare(right.companyName));
-		return { columns, todayTop: position(today), showToday: today >= minKey };
+		return { columns };
 	});
+
+	const EVENT_LABEL_KEYS = {
+		HIRED: 'component.timeline_hired',
+		CHANGED: 'component.timeline_changed',
+		EXITED: 'component.timeline_exited'
+	} as const satisfies Record<TimelineEvent['kind'], TenantI18nKeys>;
 
 	const storedPhotoKey = $derived.by(() => {
 		if (record === null || typeof record.face_photo !== 'object' || record.face_photo === null)
@@ -485,55 +481,52 @@
 					title={t('component.timeline_title')}
 					hint={t('component.timeline_hint')}
 				>
-					<div class="flex gap-4 overflow-x-auto pb-2">
+					<Stack gap="lg">
 						{#each timeline.columns as column (column.companyId)}
-							<div class="min-w-[14rem] flex-1">
-								<h4 class="text-sm font-semibold">{column.companyName}</h4>
-								<p class="text-meta">
-									{#if column.active}
-										{t('component.timeline_active')}
-									{:else if column.lastEndKey != null}
-										{t('component.timeline_last_ended', {
-											date: formatCalendarDate(column.lastEndKey)
-										})}
-									{/if}
-								</p>
-								<div class="relative mt-2 h-80 rounded-md bg-muted/40">
-									{#if timeline.showToday}
-										<div
-											class="absolute right-0 left-0 border-t border-dashed border-primary"
-											style="top: {timeline.todayTop}%"
-										>
-											<span class="text-meta absolute top-0 right-1 bg-card px-1"
-												>{t('component.timeline_today')}</span
-											>
-										</div>
-									{/if}
-									{#each column.bars as bar (bar.id)}
-										<div
-											class="absolute right-2 left-2 overflow-hidden rounded-md border p-2 {bar.active
-												? 'border-primary bg-card'
-												: 'border-border bg-muted text-muted-foreground'}"
-											style="top: {bar.top}%; height: {bar.height}%; min-height: 4.5rem;"
-										>
-											<p class="text-sm font-medium text-foreground">{bar.employeeNumber}</p>
-											<p class="text-meta">
-												{bar.termsSummary ?? t('component.timeline_no_terms')}
-											</p>
-											<p class="text-meta">
-												{formatCalendarDate(bar.startKey)} → {bar.active
-													? t('component.timeline_today')
-													: formatCalendarDate(bar.endKey)}
-												· {bar.active
-													? t('component.timeline_active')
-													: t('component.timeline_ended')}
-											</p>
-										</div>
+							<Stack gap="sm">
+								<Inline align="baseline" justify="between" gap="sm">
+									<h4 class="text-sm font-semibold">{column.companyName}</h4>
+									<span class="text-meta">
+										{#if column.active}
+											{t('component.timeline_active')}
+										{:else if column.lastEndKey != null}
+											{t('component.timeline_last_ended', {
+												date: formatCalendarDate(column.lastEndKey)
+											})}
+										{/if}
+									</span>
+								</Inline>
+								<ol class="ml-1 border-l border-border">
+									{#each column.events as event (event.id)}
+										<li class="relative pb-5 pl-5 last:pb-0">
+											<span
+												class="absolute top-1.5 -left-[5px] size-2 rounded-full {event.kind ===
+												'EXITED'
+													? 'bg-muted-foreground'
+													: event.kind === 'HIRED'
+														? 'bg-primary'
+														: 'bg-brand'}"
+											></span>
+											<Stack gap="xs">
+												<Inline align="baseline" gap="sm">
+													<span class="text-sm font-medium">
+														{t(EVENT_LABEL_KEYS[event.kind])}
+													</span>
+													<span class="text-meta tabular-nums">
+														{formatCalendarDate(event.dateKey)}
+													</span>
+												</Inline>
+												<span class="text-sm">
+													{event.detail ?? t('component.timeline_no_terms')}
+												</span>
+												<span class="text-meta tabular-nums">{event.employeeNumber}</span>
+											</Stack>
+										</li>
 									{/each}
-								</div>
-							</div>
+								</ol>
+							</Stack>
 						{/each}
-					</div>
+					</Stack>
 				</FormSection>
 			{/if}
 			<CollectionTable
