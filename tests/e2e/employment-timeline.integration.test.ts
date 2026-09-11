@@ -68,7 +68,7 @@ const clickNamed = (page: HeadedPage, selector: string, label: string) =>
  * history at a glance. It reads employments the record sheet's table does not: an empty column set
  * is the shape a broken read takes, and nothing else on the page notices.
  */
-it('the employee profile draws one timeline column per legal entity, with a bar per engagement', async () => {
+it('the employee profile draws a vertical event rail per legal entity', async () => {
 	const session = await startPublicSeedHost(LABEL, { host: '0.0.0.0' });
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
@@ -123,17 +123,18 @@ it('the employee profile draws one timeline column per legal entity, with a bar 
 			() =>
 				page.evaluate(`(() => {
 					const dialog = [...document.querySelectorAll('[role="dialog"]')].at(-1);
-					if (dialog == null) return { columns: 0, bars: [] };
+					if (dialog == null) return { columns: 0, events: [], text: '' };
 					const heading = [...dialog.querySelectorAll('h3')].find(
 						(node) => node.textContent?.trim() === 'Employment timeline'
 					);
-					if (heading == null) return { columns: 0, bars: [] };
+					if (heading == null) return { columns: 0, events: [], text: '' };
 					const section = heading.closest('section') ?? dialog;
 					return {
 						columns: [...section.querySelectorAll('h4')].map((node) => node.textContent?.trim()),
-						bars: [...section.querySelectorAll('h4')].map((node) =>
-							(node.parentElement?.textContent ?? '').replace(/\\s+/g, ' ').trim()
-						)
+						events: [...section.querySelectorAll('ol li')].map((node) =>
+							(node.textContent ?? '').replace(/\\s+/g, ' ').trim()
+						),
+						text: (section.textContent ?? '').replace(/\\s+/g, ' ').trim()
 					};
 				})()`),
 			(value) =>
@@ -142,16 +143,14 @@ it('the employee profile draws one timeline column per legal entity, with a bar 
 			'employment timeline columns'
 		);
 		const columns = (timeline as { columns: string[] }).columns;
-		const bars = (timeline as { bars: string[] }).bars;
-		assert.deepEqual(columns, ['Public Fixture Co'], 'one column per legal entity');
+		const events = (timeline as { events: string[] }).events;
+		const text = (timeline as { text: string }).text;
+		assert.deepEqual(columns, ['Public Fixture Co'], 'one rail per legal entity');
 		assert.ok(
-			bars.some((bar) => bar.includes('PUB-EMP-0001')),
-			`the engagement is drawn as a bar: ${JSON.stringify(bars)}`
+			events.some((event) => event.includes('Joined') && event.includes('PUB-EMP-0001')),
+			`the engagement opens with its hire event: ${JSON.stringify(events)}`
 		);
-		assert.ok(
-			bars.some((bar) => bar.includes('Active')),
-			`an open engagement reads as active: ${JSON.stringify(bars)}`
-		);
+		assert.match(text, /Active/, 'an open engagement reads as active');
 		assertNoErrors(await readErrors(page), 'employment timeline', 0);
 	} finally {
 		if (browser !== undefined) await browser.close();
