@@ -106,6 +106,24 @@
 		if (scopedCompanyId != null && companyId !== scopedCompanyId) companyId = scopedCompanyId;
 	});
 	let period = $state<string | null>(null);
+	/**
+	 * The create form's baseline, rewritten as the pickers move.
+	 *
+	 * The form is initialised once from `defaultValues` and never re-seeded — a period written
+	 * through `form.setValues` while the form is still loading is dropped, and the mutation then
+	 * carries the prepare's default (the newest open period). Keying the form on the choice and
+	 * handing it in as the baseline is what makes the picker bind.
+	 */
+	const createValues = $derived(
+		companyId == null && scopedCompanyId == null && period == null
+			? undefined
+			: {
+					...((companyId ?? scopedCompanyId) == null
+						? {}
+						: { company_id: companyId ?? scopedCompanyId! }),
+					...(period == null ? {} : { period })
+				}
+	);
 
 	/**
 	 * The people this run would pay, so the operator can name the exceptions.
@@ -461,189 +479,192 @@
 			</Stack>
 		</Stack>
 	{:else}
-		<CollectionForm
-			{client}
-			collection="payroll_runs"
-			submitLabel={t('component.create_payroll_run')}
-			onAfterSubmit={close}
-			defaultValues={scopedCompanyId == null ? undefined : { company_id: scopedCompanyId }}
-		>
-			{#snippet children({ form, Field })}
-				<Field name="company_id" hidden />
-				<Field name="period" hidden />
-				<Field name="lifecycle" hidden />
-				<!-- Declared unconditionally: the form must state every mutable field exactly once,
+		{#key `${companyId ?? scopedCompanyId ?? ''}:${period ?? ''}`}
+			<CollectionForm
+				{client}
+				collection="payroll_runs"
+				submitLabel={t('component.create_payroll_run')}
+				onAfterSubmit={close}
+				defaultValues={createValues}
+			>
+				{#snippet children({ form, Field })}
+					<Field name="company_id" hidden />
+					<Field name="period" hidden />
+					<Field name="lifecycle" hidden />
+					<!-- Declared unconditionally: the form must state every mutable field exactly once,
 				     and the withhold section below only renders once an entity has been chosen. -->
-				<Field name="withheld" hidden />
-				<Stack gap="lg">
-					<Grid gap="md" minimum="compact">
-						{#if scopedCompanyId != null}
-							<Stack gap="xs">
-								<span class="text-meta">{t('component.legal_entity')}</span>
-								<span class="font-medium">
-									{companyOptions.find((option) => option.value === scopedCompanyId)?.label ?? '—'}
-								</span>
-							</Stack>
-						{:else}
+					<Field name="withheld" hidden />
+					<Stack gap="lg">
+						<Grid gap="md" minimum="compact">
+							{#if scopedCompanyId != null}
+								<Stack gap="xs">
+									<span class="text-meta">{t('component.legal_entity')}</span>
+									<span class="font-medium">
+										{companyOptions.find((option) => option.value === scopedCompanyId)?.label ??
+											'—'}
+									</span>
+								</Stack>
+							{:else}
+								<label class="text-sm font-medium">
+									<Stack gap="xs">
+										{t('component.legal_entity')}
+										<Combobox
+											ariaLabel={t('component.legal_entity')}
+											options={companyOptions}
+											value={companyId}
+											onValueChange={(value) => {
+												companyId = value;
+												period = null;
+												form.setValues({ company_id: value });
+											}}
+											searchPlaceholder={t('component.search_companies')}
+											emptyPlaceholder={t('component.choose_legal_entity')}
+											disabled={companiesQuery.loading || settingsQuery.loading}
+										/>
+									</Stack>
+								</label>
+							{/if}
 							<label class="text-sm font-medium">
 								<Stack gap="xs">
-									{t('component.legal_entity')}
-									<Combobox
-										ariaLabel={t('component.legal_entity')}
-										options={companyOptions}
-										value={companyId}
-										onValueChange={(value) => {
-											companyId = value;
-											period = null;
-											form.setValues({ company_id: value });
-										}}
-										searchPlaceholder={t('component.search_companies')}
-										emptyPlaceholder={t('component.choose_legal_entity')}
-										disabled={companiesQuery.loading || settingsQuery.loading}
-									/>
+									{t('component.pay_period')}
+									{#if semiMonthly}
+										<Combobox
+											ariaLabel={t('component.pay_period')}
+											options={halfOptions}
+											value={period}
+											onValueChange={(next) => {
+												period = next;
+												form.setValues({ company_id: companyId, period: next ?? undefined });
+											}}
+											searchPlaceholder={t('component.search_payroll_periods')}
+											emptyPlaceholder={t('component.choose_payroll_period')}
+											disabled={!companyId || runsQuery.loading}
+										/>
+									{:else}
+										<MonthPicker
+											value={period}
+											onValueChange={(next) => {
+												period = next;
+												form.setValues({ company_id: companyId, period: next });
+											}}
+											min={periodCandidates[0]}
+											max={periodCandidates[periodCandidates.length - 1]}
+											isMonthDisabled={isPeriodDisabled}
+											placeholder={companyId
+												? t('component.choose_payroll_period')
+												: t('component.choose_entity_first')}
+											ariaLabel={t('component.pay_period')}
+											disabled={!companyId || runsQuery.loading}
+										/>
+									{/if}
 								</Stack>
 							</label>
-						{/if}
-						<label class="text-sm font-medium">
-							<Stack gap="xs">
-								{t('component.pay_period')}
-								{#if semiMonthly}
-									<Combobox
-										ariaLabel={t('component.pay_period')}
-										options={halfOptions}
-										value={period}
-										onValueChange={(next) => {
-											period = next;
-											form.setValues({ company_id: companyId, period: next ?? undefined });
-										}}
-										searchPlaceholder={t('component.search_payroll_periods')}
-										emptyPlaceholder={t('component.choose_payroll_period')}
-										disabled={!companyId || runsQuery.loading}
-									/>
-								{:else}
-									<MonthPicker
-										value={period}
-										onValueChange={(next) => {
-											period = next;
-											form.setValues({ company_id: companyId, period: next });
-										}}
-										min={periodCandidates[0]}
-										max={periodCandidates[periodCandidates.length - 1]}
-										isMonthDisabled={isPeriodDisabled}
-										placeholder={companyId
-											? t('component.choose_payroll_period')
-											: t('component.choose_entity_first')}
-										ariaLabel={t('component.pay_period')}
-										disabled={!companyId || runsQuery.loading}
-									/>
-								{/if}
-							</Stack>
-						</label>
-					</Grid>
-					{#if selectedWindow}
-						<Grid as="dl" gap="sm" minimum="compact">
-							<Stack gap="xs">
-								<dt class="text-meta">{t('component.salary_month')}</dt>
-								<dd class="font-medium tabular-nums">
-									{formatCalendarDate(selectedWindow.salary.start)} → {formatCalendarDate(
-										selectedWindow.salary.end
-									)}
-								</dd>
-							</Stack>
-							<Stack gap="xs">
-								<dt class="text-meta">{t('component.attendance_window')}</dt>
-								<dd class="font-medium tabular-nums">
-									{formatCalendarDate(selectedWindow.attendance.start)} → {formatCalendarDate(
-										selectedWindow.attendance.end
-									)}
-								</dd>
-							</Stack>
-							<Stack gap="xs">
-								<dt class="text-meta">{t('component.pay_date')}</dt>
-								<dd class="font-medium tabular-nums">
-									{formatCalendarDate(selectedWindow.payDate)}
-								</dd>
-							</Stack>
 						</Grid>
-					{/if}
-					{#if companyId != null && (employmentsQuery?.current ?? []).length > 0}
-						<Stack gap="sm">
-							<Stack gap="xs">
-								<Cluster align="center" gap="sm" justify="between">
-									<span class="text-meta">{t('component.withhold_section')}</span>
-									<label class="flex items-center gap-2 text-sm">
-										<input
-											type="checkbox"
-											checked={allHeld}
-											indeterminate={someHeld && !allHeld}
-											onchange={(event) => {
-												withheld = event.currentTarget.checked
-													? Object.fromEntries(
-															eligibleEmployments.map((employment) => [employment.id, ''])
-														)
-													: {};
-												form.setValues({ withheld: withholdings });
-											}}
-										/>
-										{t('component.withhold_select_all')}
-									</label>
-								</Cluster>
-								<span class="text-sm text-muted-foreground">
-									{t('component.withhold_hint')}
-								</span>
-							</Stack>
-							<Cluster align="center" gap="sm">
-								<CollectionToolbarQueryControls
-									definition={collectionCatalog.employments}
-									collections={collectionCatalog}
-									onSearchChange={(search) => (personSearch = search)}
-									onFilterChange={(filters) => (personFilters = filters)}
-								/>
-							</Cluster>
-							<Stack gap="xs" class="max-h-64 overflow-y-auto">
-								{#each visiblePeople as person (person.id)}
-									{@const held = person.id in withheld}
-									{@const done = alreadyRun.has(person.id)}
-									<Stack gap="xs" class="shrink-0 {done ? 'opacity-60' : ''}">
-										<label class="flex min-w-0 items-center gap-2 text-sm">
+						{#if selectedWindow}
+							<Grid as="dl" gap="sm" minimum="compact">
+								<Stack gap="xs">
+									<dt class="text-meta">{t('component.salary_month')}</dt>
+									<dd class="font-medium tabular-nums">
+										{formatCalendarDate(selectedWindow.salary.start)} → {formatCalendarDate(
+											selectedWindow.salary.end
+										)}
+									</dd>
+								</Stack>
+								<Stack gap="xs">
+									<dt class="text-meta">{t('component.attendance_window')}</dt>
+									<dd class="font-medium tabular-nums">
+										{formatCalendarDate(selectedWindow.attendance.start)} → {formatCalendarDate(
+											selectedWindow.attendance.end
+										)}
+									</dd>
+								</Stack>
+								<Stack gap="xs">
+									<dt class="text-meta">{t('component.pay_date')}</dt>
+									<dd class="font-medium tabular-nums">
+										{formatCalendarDate(selectedWindow.payDate)}
+									</dd>
+								</Stack>
+							</Grid>
+						{/if}
+						{#if companyId != null && (employmentsQuery?.current ?? []).length > 0}
+							<Stack gap="sm">
+								<Stack gap="xs">
+									<Cluster align="center" gap="sm" justify="between">
+										<span class="text-meta">{t('component.withhold_section')}</span>
+										<label class="flex items-center gap-2 text-sm">
 											<input
 												type="checkbox"
-												checked={held}
-												disabled={done}
+												checked={allHeld}
+												indeterminate={someHeld && !allHeld}
 												onchange={(event) => {
-													const { [person.id]: _dropped, ...rest } = withheld;
 													withheld = event.currentTarget.checked
-														? { ...rest, [person.id]: '' }
-														: rest;
+														? Object.fromEntries(
+																eligibleEmployments.map((employment) => [employment.id, ''])
+															)
+														: {};
 													form.setValues({ withheld: withholdings });
 												}}
 											/>
-											<span class="tabular-nums">{person.employee_number}</span>
-											<span class="truncate text-muted-foreground">{person.employee_name}</span>
+											{t('component.withhold_select_all')}
 										</label>
-										{#if done}
-											<span class="text-meta">{t('component.withhold_already_run')}</span>
-										{:else if held}
-											<input
-												class="min-w-0 rounded-md border border-input bg-background px-2 py-1 text-sm"
-												placeholder={t('component.withhold_reason')}
-												value={withheld[person.id]}
-												oninput={(event) => {
-													withheld = { ...withheld, [person.id]: event.currentTarget.value };
-													form.setValues({ withheld: withholdings });
-												}}
-											/>
-										{/if}
-									</Stack>
-								{/each}
+									</Cluster>
+									<span class="text-sm text-muted-foreground">
+										{t('component.withhold_hint')}
+									</span>
+								</Stack>
+								<Cluster align="center" gap="sm">
+									<CollectionToolbarQueryControls
+										definition={collectionCatalog.employments}
+										collections={collectionCatalog}
+										onSearchChange={(search) => (personSearch = search)}
+										onFilterChange={(filters) => (personFilters = filters)}
+									/>
+								</Cluster>
+								<Stack gap="xs" class="max-h-64 overflow-y-auto">
+									{#each visiblePeople as person (person.id)}
+										{@const held = person.id in withheld}
+										{@const done = alreadyRun.has(person.id)}
+										<Stack gap="xs" class="shrink-0 {done ? 'opacity-60' : ''}">
+											<label class="flex min-w-0 items-center gap-2 text-sm">
+												<input
+													type="checkbox"
+													checked={held}
+													disabled={done}
+													onchange={(event) => {
+														const { [person.id]: _dropped, ...rest } = withheld;
+														withheld = event.currentTarget.checked
+															? { ...rest, [person.id]: '' }
+															: rest;
+														form.setValues({ withheld: withholdings });
+													}}
+												/>
+												<span class="tabular-nums">{person.employee_number}</span>
+												<span class="truncate text-muted-foreground">{person.employee_name}</span>
+											</label>
+											{#if done}
+												<span class="text-meta">{t('component.withhold_already_run')}</span>
+											{:else if held}
+												<input
+													class="min-w-0 rounded-md border border-input bg-background px-2 py-1 text-sm"
+													placeholder={t('component.withhold_reason')}
+													value={withheld[person.id]}
+													oninput={(event) => {
+														withheld = { ...withheld, [person.id]: event.currentTarget.value };
+														form.setValues({ withheld: withholdings });
+													}}
+												/>
+											{/if}
+										</Stack>
+									{/each}
+								</Stack>
 							</Stack>
-						</Stack>
-					{/if}
-					<p class="text-sm text-muted-foreground">
-						{t('component.create_run_hint')}
-					</p>
-				</Stack>
-			{/snippet}
-		</CollectionForm>
+						{/if}
+						<p class="text-sm text-muted-foreground">
+							{t('component.create_run_hint')}
+						</p>
+					</Stack>
+				{/snippet}
+			</CollectionForm>
+		{/key}
 	{/if}
 </RecordShell>
