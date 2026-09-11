@@ -347,7 +347,13 @@ const scopeProbe = (names: readonly string[]): string => `(() => {
 	return JSON.stringify({
 		form: true,
 		operable,
-		section: (form.querySelector('h3')?.innerText ?? '').trim(),
+		// A form is sectioned by a heading or, where its segments are tabs, by the tab strip.
+		section: (
+			form.querySelector('h3') ??
+			[...form.querySelectorAll('[role="tab"]')].find(
+				(node) => node.getBoundingClientRect().height > 0
+			)
+		)?.innerText?.trim() ?? '',
 		fields: form.querySelectorAll('[data-collection-field]').length
 	});
 })()`;

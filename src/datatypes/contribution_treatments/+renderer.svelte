@@ -36,7 +36,8 @@
 			key: 'code',
 			label: t('renderer.contribution_treatments.scheme_code'),
 			field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'EPF'
+			placeholder: 'EPF',
+			width: 130
 		},
 		{
 			key: 'treatment',
@@ -46,13 +47,15 @@
 				kind: 'enum',
 				nullable: false,
 				values: ['INCLUDE', 'EXCLUDE', 'REDUCE', 'SPECIAL', 'UNSET']
-			} satisfies CollectionField
+			} satisfies CollectionField,
+			width: 140
 		},
 		{
 			key: 'special_rule',
 			label: t('renderer.contribution_treatments.special_rule'),
 			field: { name: 'special_rule', kind: 'text', nullable: true } satisfies CollectionField,
-			placeholder: t('renderer.contribution_treatments.special_rule_placeholder')
+			placeholder: t('renderer.contribution_treatments.special_rule_placeholder'),
+			width: 300
 		}
 	] satisfies readonly MatrixColumn<TreatmentRow>[];
 	const SCOPED_COLUMNS = [

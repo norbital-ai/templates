@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { diffCollection, diffSettingsRoot } from '../src/lib/snapshot_diff.ts';
+import { diffCollection, diffSettingsRoot, formatLeafPath } from '../src/lib/snapshot_diff.ts';
 
 const row = (overrides) => ({
 	settings_id: 'v1',
@@ -122,4 +122,12 @@ test('the root diff reads the payroll scalars and ignores the name', () => {
 		[['minimum_wages.DKI Jakarta', 5396761, 5729876]]
 	);
 	assert.deepEqual(diffSettingsRoot(previous, previous), []);
+});
+
+test('a leaf path is printed as the trail a reader follows, not as array syntax', () => {
+	assert.equal(formatLeafPath('bands[1].award.employer'), 'Band 2 · Award · Employer');
+	assert.equal(formatLeafPath('bands[0].selector.to'), 'Band 1 · Selector · To');
+	assert.equal(formatLeafPath('minimum_wages[2].monthly_wage'), 'Minimum wage 3 · Monthly wage');
+	assert.equal(formatLeafPath('tax_year_start_month'), 'Tax year start month');
+	assert.equal(formatLeafPath('rates[10].divisor'), 'Rate 11 · Divisor');
 });

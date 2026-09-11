@@ -15,12 +15,14 @@
 	const COLUMNS = [
 		{
 			key: 'region',
+			width: 320,
 			label: t('component.region'),
 			field: { name: 'region', kind: 'text', nullable: false } satisfies CollectionField,
 			placeholder: 'I'
 		},
 		{
 			key: 'amount',
+			width: 150,
 			label: t('renderer.minimum_wages.amount'),
 			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField
 		}

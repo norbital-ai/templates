@@ -86,6 +86,25 @@ export function diffSettingsRoot(
 }
 
 /**
+ * A leaf path as a reader reads it: `bands[1].award.employer` is "Band 2 · Award · Employer".
+ * An indexed segment is singular — "Band 2", "Minimum wage 3" — because it names one row, and a
+ * reader counts from one while the array counts from zero.
+ */
+export function formatLeafPath(path: string): string {
+	const humanize = (segment: string): string =>
+		segment.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+	return path
+		.split('.')
+		.map((segment) => {
+			const indexed = segment.match(/^(.*)\[(\d+)\]$/);
+			if (indexed == null || indexed[1] == null || indexed[2] == null) return humanize(segment);
+			const base = indexed[1].endsWith('s') ? indexed[1].slice(0, -1) : indexed[1];
+			return `${humanize(base)} ${Number(indexed[2]) + 1}`;
+		})
+		.join(' · ');
+}
+
+/**
  * The changed, added and removed rows of one collection between two snapshots, or null when the
  * collection is identical. Rows are keyed by `code`, or treated as a single row where none exists.
  */

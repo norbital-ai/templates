@@ -30,13 +30,15 @@
 			key,
 			label: t(`work.output_${key}`),
 			field: { name: key, kind: 'text', nullable: false } satisfies CollectionField,
-			renderer: TreatmentCell
+			renderer: TreatmentCell,
+			width: 96
 		}) satisfies MatrixColumn<TreatmentRow>;
 	const CODE = {
 		key: 'code',
 		label: t('renderer.contribution_treatments.scheme_code'),
 		field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
-		placeholder: 'EPF'
+		placeholder: 'EPF',
+		width: 120
 	} satisfies MatrixColumn<TreatmentRow>;
 	const COLUMNS = [
 		CODE,
