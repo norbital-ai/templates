@@ -213,7 +213,18 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 		if (naming.employee != null) add(naming.employee, charged.employee);
 		if (naming.employer != null) add(naming.employer, charged.employer);
 		if (naming.total != null) add(naming.total, charged.employee + charged.employer);
-		if (naming.base != null) add(naming.base, charged.base);
+		if (naming.base != null) {
+			/**
+			 * A base column shared by mutually exclusive schemes selects, it does not sum.
+			 *
+			 * EPF and EPF_NON_CITIZEN name the same `epfGross` column and an employment is in
+			 * exactly one of them, but the contribution engine persists the assessed base for
+			 * both, so summing doubles every member's EPF base. Picking the larger base is the
+			 * charged scheme's base: the non-enrolled scheme's is zero or its own alternative.
+			 */
+			const previous = outputs[naming.base];
+			outputs[naming.base] = previous == null ? charged.base : Math.max(previous, charged.base);
+		}
 	}
 	return outputs;
 }
