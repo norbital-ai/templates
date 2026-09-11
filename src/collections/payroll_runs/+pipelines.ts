@@ -88,10 +88,12 @@ export default {
 								name: `payroll_report_${label}.xlsx`,
 								contentType: 'XLSX',
 								content: yield* payrollReportXlsx(sheets).pipe(
-									Effect.catch(() =>
+									Effect.catch((cause) =>
 										Effect.sync(() =>
 											refuse(
-												'Payroll workbook creation failed. Reload the workspace and try again.'
+												`Payroll workbook creation failed: ${
+													cause instanceof Error ? cause.message : String(cause)
+												}`
 											)
 										)
 									)
