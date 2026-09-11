@@ -25,7 +25,7 @@ function endedWorld() {
 		...world.allowance_requests[0],
 		id: 'one-off',
 		amount: 310,
-		recurrence: { kind: 'ONE_OFF', period: '2026-01' }
+		recurrence: { kind: 'ONE_OFF', on: '2026-01-15' }
 	});
 	return world;
 }
@@ -87,7 +87,7 @@ function historicalWorkingDaysWorld() {
 	world.employments[0]!.exit_reason = 'RESIGNATION';
 	world.employment_terms[0]!.effective_range = { start: '2025-12-10', end: '2025-12-20' };
 	const oneOff = world.allowance_requests.find((row) => row.id === 'one-off')!;
-	oneOff.recurrence = { kind: 'ONE_OFF', period: '2025-12' };
+	oneOff.recurrence = { kind: 'ONE_OFF', on: '2025-12-15' };
 	oneOff.amount = 290;
 	const originalSettings = world.jurisdiction_settings[0]!;
 	originalSettings.effective_range = { ...originalSettings.effective_range, end: '2026-01-01' };

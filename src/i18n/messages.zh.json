@@ -853,7 +853,7 @@
 	"payroll.mark_paid": "标记已支付",
 	"payroll.payment_confirmation": "确认款项已支付后再标记为已支付。此操作将永久锁定本次工资结算。",
 	"renderer.allowance_recurrence.from": "生效自",
-	"renderer.allowance_recurrence.period": "结算期间",
+	"renderer.allowance_recurrence.period": "结算日",
 	"renderer.allowance_recurrence.select_cadence": "一次性发放，还是在窗口期内持续发放？",
 	"renderer.allowance_recurrence.to": "截至",
 	"renderer.allowance_recurrence.to_open_ended": "无限期",

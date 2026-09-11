@@ -853,7 +853,7 @@
 	"payroll.mark_paid": "Mark paid",
 	"payroll.payment_confirmation": "Mark paid only after payment has been completed. This closes the payroll permanently.",
 	"renderer.allowance_recurrence.from": "Live from",
-	"renderer.allowance_recurrence.period": "Paid in",
+	"renderer.allowance_recurrence.period": "Paid on",
 	"renderer.allowance_recurrence.select_cadence": "Paid once, or across a window?",
 	"renderer.allowance_recurrence.to": "Until",
 	"renderer.allowance_recurrence.to_open_ended": "Open-ended",

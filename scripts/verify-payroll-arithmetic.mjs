@@ -958,7 +958,7 @@ check(
 	'prorating is an allowance fact and nothing else',
 	allowanceRequest({
 		...ALLOWANCE,
-		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null, on_day: 1 }
 	}).prorates,
 	true
 );
@@ -972,17 +972,18 @@ check(
 	JSON.stringify(
 		allowanceRequest({
 			...ALLOWANCE,
-			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null, on_day: 1 }
 		}).window
 	),
 	JSON.stringify({ start: '2026-01-01', end: null })
 );
-// A one-off names a period, and its window is that period's own month — which is what makes it
-// depletable where a recurring allowance is not.
+// A one-off names one day; its window is that day's month, so proration measures the month,
+// while its event date — the day — is what the cutoff places. That is what makes it depletable
+// where a recurring allowance is not.
 check(
-	'a one-off allowance spans exactly the month it names',
+	'a one-off allowance window is the month its day falls in',
 	JSON.stringify(
-		allowanceRequest({ ...ALLOWANCE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).window
+		allowanceRequest({ ...ALLOWANCE, recurrence: { kind: 'ONE_OFF', on: '2026-02-15' } }).window
 	),
 	JSON.stringify({ start: '2026-02-01', end: '2026-02-28' })
 );
@@ -991,9 +992,9 @@ check(
 	[
 		allowanceRequest({
 			...ALLOWANCE,
-			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null, on_day: 1 }
 		}).depletes,
-		allowanceRequest({ ...ALLOWANCE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).depletes
+		allowanceRequest({ ...ALLOWANCE, recurrence: { kind: 'ONE_OFF', on: '2026-02-15' } }).depletes
 	].join(','),
 	'false,true'
 );

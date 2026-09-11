@@ -54,7 +54,7 @@
 
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
-		if (current.kind === 'ONE_OFF') return `${t('component.entry_one_off')} · ${current.period}`;
+		if (current.kind === 'ONE_OFF') return `${t('component.entry_one_off')} · ${current.on}`;
 		return `${t('component.entry_recurring')} · ${current.from} – ${current.to ?? '…'}`;
 	});
 
@@ -73,7 +73,7 @@
 		const today = todayKey();
 		switch (kind) {
 			case 'ONE_OFF':
-				return { kind: 'ONE_OFF', period: today.slice(0, 7) };
+				return { kind: 'ONE_OFF', on: today };
 			case 'RECURRING':
 				return { kind: 'RECURRING', from: today, to: null };
 		}
@@ -108,10 +108,14 @@
 				<Stack gap="xs">
 					{t('renderer.allowance_recurrence.period')}
 					<Input
-						type="month"
-						value={current.period}
+						type="date"
+						value={current.on}
 						{disabled}
-						oninput={(event) => emit({ ...current, period: event.currentTarget.value })}
+						oninput={(event) => {
+							const day = event.currentTarget.value;
+							if (day === '') return;
+							emit({ kind: 'ONE_OFF', on: day });
+						}}
 					/>
 				</Stack>
 			</label>

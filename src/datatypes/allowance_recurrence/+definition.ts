@@ -5,25 +5,33 @@ import { calendarDay } from '../../lib/iso-day.js';
 /**
  * Whether a standing allowance is paid once or across a window, and when.
  *
- * This is the one payload that stayed a union when `component_entry_event` was split into five
- * collections, because it is a genuine two-armed fact about a single family rather than five
- * business facts wearing one type. A one-off is a *stated* one-off, not a range that happens to
- * span a single month: `depletes` reads false for a recurring allowance, so a one-off written as a
- * one-month range would be one-off only by arithmetic accident, and widening that range later
- * would silently turn one payment into many. A semi-monthly company is where that shows — it runs
- * two periods inside the month a one-off names, and an unbounded allowance would pay whole in both.
+ * A one-off is one date: the day the amount is paid for, which the ordinary cutoff rule turns into
+ * the run that pays it.
  */
 export const allowanceRecurrenceValueSchema = Schema.Union([
 	Schema.Struct({
 		kind: Schema.Literal('ONE_OFF'),
-		/** The single period it is paid in, as `YYYY-MM`. */
-		period: Schema.String.check(Schema.isPattern(/^\d{4}-(?:0[1-9]|1[0-2])$/))
+		/**
+		 * The day the amount is paid for. A 15th entry is picked up by the first half of a
+		 * semi-monthly month, a month-end entry by the second, a day past the cutoff by the next
+		 * month's run — the same rule every other dated entry follows.
+		 */
+		on: calendarDay
 	}),
 	Schema.Struct({
 		kind: Schema.Literal('RECURRING'),
 		/** Paid whole in every period this window covers. `to` null is open-ended. */
 		from: calendarDay,
-		to: Schema.NullOr(calendarDay)
+		to: Schema.NullOr(calendarDay),
+		/**
+		 * The day of each month the instalment is incurred on, which decides the run that pays it —
+		 * a 15th instalment in the first half of a semi-monthly month, a 20th in the second, a 25th
+		 * past a 21st cutoff in the next month's run. Absent keeps the older reading: the amount is
+		 * paid whole in every period the window overlaps.
+		 */
+		on_day: Schema.optionalKey(
+			Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 31 }))
+		)
 	})
 ]);
 
@@ -37,6 +45,6 @@ export const allowanceRecurrenceSchema = Schema.toStandardSchemaV1(allowanceRecu
 export default defineCustomType({
 	name: 'allowance_recurrence',
 	description:
-		'Whether a standing allowance is paid once, in one stated period, or across a window it is live for — paid whole in every period that window covers.',
+		'Whether a standing allowance is paid once, on one stated day, or across a window it is live for — paid whole in every period that window covers.',
 	schema: allowanceRecurrenceSchema
 });
