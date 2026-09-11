@@ -385,12 +385,12 @@ function assertBatchConformsToPattern(
 				: yield* Effect.all(
 						[
 							api.db.shift_definitions.findMany({
-								where: { company_id: { in: companyIds } },
+								where: { settings_code: { in: settingsCodes } },
 								columns: { id: true, variant: true },
 								limit: QUERY_LIMIT
 							}),
 							api.db.shift_patterns.findMany({
-								where: { company_id: { in: companyIds } },
+								where: { settings_code: { in: settingsCodes } },
 								columns: { id: true, code: true, pattern: true },
 								limit: QUERY_LIMIT
 							}),

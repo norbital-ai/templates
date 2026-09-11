@@ -161,13 +161,12 @@
 	{/if}
 {/snippet}
 
-{#snippet catalogueWork()}
+{#snippet workRules()}
 	{#if selectedVersion}
 		<CollectionTable
 			{client}
 			collection="work_catalogue"
 			view="hr_controller:settings:work_catalogue"
-			title={t('app.settings.work_catalogue')}
 			description={t('app.settings.work_catalogue_description')}
 			query={{ where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } } }}
 		>
@@ -178,6 +177,79 @@
 			{/snippet}
 		</CollectionTable>
 	{/if}
+{/snippet}
+
+{#snippet rosterCodes()}
+	{#if selectedVersion}
+		<!-- The vocabulary is the lineage's, not the version's: a new version of the same law keeps
+		     the codes, so every version's Work tab lists the same rows. -->
+		<CollectionTable
+			{client}
+			collection="shift_definitions"
+			view={`hr_controller:settings:shift_definitions:${selectedVersion.code}`}
+			description={t('app.scheduling.shift_intro')}
+			query={{
+				where: { settings_code: { eq: selectedVersion.code }, approval_id: { isNull: true } },
+				orderBy: { code: 'asc' }
+			}}
+		>
+			{#snippet columns({ Column })}
+				<Column name="code" card="title" />
+				<Column name="name" card="subtitle" />
+				<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
+				<Column name="effective_range" label={t('component.effective')} />
+			{/snippet}
+		</CollectionTable>
+	{/if}
+{/snippet}
+
+{#snippet shiftPatterns()}
+	{#if selectedVersion}
+		<CollectionTable
+			{client}
+			collection="shift_patterns"
+			view={`hr_controller:settings:shift_patterns:${selectedVersion.code}`}
+			description={t('app.scheduling.pattern_intro')}
+			query={{
+				where: { settings_code: { eq: selectedVersion.code }, approval_id: { isNull: true } },
+				orderBy: { code: 'asc' }
+			}}
+		>
+			{#snippet columns({ Column })}
+				<Column name="code" card="title" />
+				<Column name="name" card="subtitle" />
+				<Column name="pattern" label={t('component.work_pattern')} />
+				<Column name="effective_range" label={t('component.effective')} />
+			{/snippet}
+		</CollectionTable>
+	{/if}
+{/snippet}
+
+{#snippet catalogueWork()}
+	<Tabs
+		animate={false}
+		variant="underline"
+		config={[
+			{
+				name: 'rules',
+				label: t('app.settings.work_rules'),
+				icon: 'lucide:receipt',
+				content: workRules
+			},
+			{
+				name: 'codes',
+				label: t('app.scheduling.tab_shifts'),
+				icon: 'lucide:clock-4',
+				content: rosterCodes
+			},
+			{
+				name: 'patterns',
+				label: t('app.scheduling.tab_patterns'),
+				icon: 'lucide:repeat',
+				content: shiftPatterns
+			}
+		] satisfies TabConfig[]}
+	/>
 {/snippet}
 
 {#snippet catalogueClaims()}

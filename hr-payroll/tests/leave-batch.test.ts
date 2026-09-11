@@ -113,7 +113,7 @@ test('a batch does not spend another contract’s balance even for the same empl
 		employment_id: id(30),
 		shift_pattern_id: id(42)
 	});
-	context.shifts.push({ ...context.shifts[0]!, id: id(41), company_id: id(40) });
+	context.shifts.push({ ...context.shifts[0]!, id: id(41), settings_code: 'TEST' });
 	context.patterns.push({
 		...context.patterns[0]!,
 		id: id(42),

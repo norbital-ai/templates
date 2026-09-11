@@ -56,57 +56,9 @@ test(
 					{ start: '2020-01-01', end: null }
 				]
 			);
-			// The company's own roster codes: shifts are per company, site operations rather than rules.
-			const shifts = fixture<
-				ReadonlyArray<{
-					id: string;
-					code: string;
-					name: string;
-					variant: unknown;
-					effective_range: unknown;
-				}>
-			>('shift_definitions');
-			const shiftIdByFixtureId = new Map(shifts.map((shift) => [shift.id, crypto.randomUUID()]));
-			for (const shift of shifts)
-				await session.query(
-					`insert into shift_definitions (id, company_id, code, name, variant, effective_range)
-					 values ($1, $2, $3, $4, $5, $6)`,
-					[
-						shiftIdByFixtureId.get(shift.id),
-						companyId,
-						shift.code,
-						shift.name,
-						shift.variant,
-						shift.effective_range
-					]
-				);
-			// The second entity shares the PUB settings lineage, so the catalogue (BASIC, the schemes and
-			// their bands) is already its own; only its shifts are per company.
-			// The second entity gets its own copy of the named pattern, its cycle naming its own
-			// shifts, and every hire below points at that copy.
-			const fixturePattern =
-				fixture<
-					ReadonlyArray<{ code: string; name: string; pattern: unknown; effective_range: unknown }>
-				>('shift_patterns')[0];
-			const pattern = JSON.parse(
-				JSON.stringify(fixturePattern?.pattern).replaceAll(
-					/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa[123]/g,
-					(id) => shiftIdByFixtureId.get(id) ?? id
-				)
-			) as unknown;
-			const patternId = crypto.randomUUID();
-			await session.query(
-				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
-				 values ($1, $2, $3, $4, $5, $6)`,
-				[
-					patternId,
-					companyId,
-					fixturePattern?.code,
-					fixturePattern?.name,
-					pattern,
-					fixturePattern?.effective_range
-				]
-			);
+			// The second entity shares the PUB lineage, so the roster vocabulary and the named pattern
+			// are already its own: both are per jurisdiction now, not per company. Nothing is copied.
+			const patternId = fixture<ReadonlyArray<{ id: string }>>('shift_patterns')[0]!.id;
 
 			const hire = async (number: string, payFrequency: string, wage: number) => {
 				const employeeId = crypto.randomUUID();

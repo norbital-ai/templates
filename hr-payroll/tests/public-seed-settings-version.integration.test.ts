@@ -13,9 +13,6 @@ import {
 	JANUARY_2026,
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
-	SHIFT_OFF_ID,
-	SHIFT_REST_ID,
-	SHIFT_WORK_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
@@ -325,42 +322,13 @@ test(
 				`insert into companies (id, settings_code, name, registration_number, pay_cutoff_day, pay_frequency, effective_range) values ($1, 'PUB', 'Public Sibling Co', 'PUB-CO-0003', 21, 'MONTHLY', $2)`,
 				[companyId, { start: '2020-01-01', end: null }]
 			);
-			const shiftIds = new Map(
-				[SHIFT_WORK_ID, SHIFT_REST_ID, SHIFT_OFF_ID].map((id) => [id, crypto.randomUUID()])
-			);
-			for (const [fixtureId, id] of shiftIds)
-				await session.query(
-					`insert into shift_definitions (id, company_id, code, name, variant, effective_range) select $1, $2, code, name, variant, effective_range from shift_definitions where id = $3`,
-					[id, companyId, fixtureId]
-				);
-			// The sibling entity gets its own copy of the named pattern, with its own roster codes
-			// inside the cycle, and its terms point at that copy.
+			// The sibling shares the PUB lineage, so the roster codes and the named pattern are
+			// already its own; its terms point at the same pattern every PUB employment does.
 			const [terms] = (await session.query(
 				'select shift_pattern_id from employment_terms where employment_id = $1',
 				['44444444-4444-4444-8444-444444444444']
 			)) as Row[];
-			const [sourcePattern] = (await session.query(
-				'select code, name, pattern, effective_range from shift_patterns where id = $1',
-				[terms!.shift_pattern_id]
-			)) as Row[];
-			const pattern = JSON.parse(
-				JSON.stringify(sourcePattern!.pattern).replaceAll(
-					/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa[123]/g,
-					(id) => shiftIds.get(id) ?? id
-				)
-			) as unknown;
-			const siblingPatternId = crypto.randomUUID();
-			await session.query(
-				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range) values ($1, $2, $3, $4, $5, $6)`,
-				[
-					siblingPatternId,
-					companyId,
-					sourcePattern!.code,
-					sourcePattern!.name,
-					pattern,
-					sourcePattern!.effective_range
-				]
-			);
+			const siblingPatternId = terms!.shift_pattern_id;
 			const employeeId = crypto.randomUUID();
 			const employmentId = crypto.randomUUID();
 			await session.query(

@@ -93,7 +93,7 @@ function facts(): LeaveContext {
 		shifts: [
 			{
 				id: id(8),
-				company_id: id(3),
+				settings_code: 'TEST',
 				effective_range: span,
 				variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 }
 			}

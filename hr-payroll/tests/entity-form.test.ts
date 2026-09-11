@@ -118,7 +118,15 @@ test('the Entities page opens one live query and the Settings page one per surfa
 		'the page is one query over the lineage'
 	);
 	assert.match(script, /where: onLineage\(code\)/, "scoped by the entity's settings code");
-	for (const tab of ['contributions', 'catalogueLeaves', 'catalogueWork', 'catalogueTable'])
+	for (const tab of ['contributions', 'catalogueLeaves', 'catalogueTable'])
+		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
+	// Work is one catalogue with three tables behind a tab strip: its rules, the roster codes and
+	// the named patterns — the vocabulary is the lineage's, so it lives here rather than on the
+	// scheduling board it serves.
+	const workTab = snippet(settings, 'catalogueWork');
+	assert.match(workTab, /<Tabs\b/);
+	assert.deepEqual(registrations(workTab), []);
+	for (const tab of ['workRules', 'rosterCodes', 'shiftPatterns'])
 		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
 	for (const [tab, collection] of [
 		['catalogueClaims', 'claim_catalogue'],

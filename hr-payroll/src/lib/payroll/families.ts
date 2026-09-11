@@ -644,7 +644,7 @@ import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js
 export function prepareFamilyCatalogues(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly jurisdiction: Jurisdiction;
-	readonly companyId: string;
+	readonly settingsCode: string;
 	readonly windowStart: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
 	readonly windowEnd: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
 }) {

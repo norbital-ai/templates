@@ -197,7 +197,7 @@ export function pickConfiguration(
 		const familyConfiguration = yield* prepareFamilyCatalogues({
 			api: options.api,
 			jurisdiction,
-			companyId: company.id,
+			settingsCode: company.settings_code,
 			windowStart,
 			windowEnd
 		});

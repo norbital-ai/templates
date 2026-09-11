@@ -53,19 +53,19 @@ const RUN = {
 
 const DAY_SHIFT = {
 	id: 'shift:D',
-	company_id: 'company:1',
+	settings_code: 'TEST',
 	code: 'D',
 	variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 }
 };
 const REST_CODE = {
 	id: 'shift:REST',
-	company_id: 'company:1',
+	settings_code: 'TEST',
 	code: 'REST',
 	variant: { kind: 'REST' }
 };
 const NIGHT_SHIFT = {
 	id: 'shift:N',
-	company_id: 'company:1',
+	settings_code: 'TEST',
 	code: 'N',
 	variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 }
 };
@@ -152,7 +152,7 @@ const EMPLOYMENTS = [
 /** The one named pattern both employments point at; the export reads it through the terms row. */
 const WEEKDAY_SHIFT_PATTERN = {
 	id: 'pattern:weekday',
-	company_id: 'company:1',
+	settings_code: 'TEST',
 	code: 'D-5x2',
 	name: '5 on D, 2 off (REST)',
 	pattern: WEEKDAY_PATTERN,

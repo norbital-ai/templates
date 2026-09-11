@@ -233,7 +233,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		shift_definitions: [
 			{
 				id: SHIFT_ID,
-				company_id: COMPANY_ID,
+				settings_code: options.settingsCode ?? code,
 				code: 'DAY',
 				name: 'Day',
 				variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
@@ -242,7 +242,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			},
 			{
 				id: REST_ID,
-				company_id: COMPANY_ID,
+				settings_code: options.settingsCode ?? code,
 				code: 'REST',
 				name: 'Rest day',
 				variant: { kind: 'REST' },
@@ -253,7 +253,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		shift_patterns: [
 			{
 				id: PATTERN_ID,
-				company_id: COMPANY_ID,
+				settings_code: options.settingsCode ?? code,
 				code: 'MON-FRI',
 				name: 'Five days, two rest days',
 				// PATTERNED, and therefore projected rather than rostered: with no `work_days` row the

@@ -83,8 +83,6 @@ export default ((r) => ({
 		/** Restrict, like every entity-scoped catalogue: an entity with a calendar is not deleted. */
 		holiday_company: r.many.jurisdiction_holidays(),
 		employment_company: r.many.employments(),
-		shift_definition_company: r.many.shift_definitions(),
-		shift_pattern_company: r.many.shift_patterns(),
 		payroll_run_company: r.many.payroll_runs()
 	},
 
@@ -143,18 +141,10 @@ export default ((r) => ({
 	},
 
 	shift_definitions: {
-		shift_definition_company: r.one.companies({
-			from: r.shift_definitions.company_id,
-			to: r.companies.id
-		}),
 		work_day_shift: r.many.work_days()
 	},
 
 	shift_patterns: {
-		shift_pattern_company: r.one.companies({
-			from: r.shift_patterns.company_id,
-			to: r.companies.id
-		}),
 		term_shift_pattern: r.many.employment_terms()
 	},
 
