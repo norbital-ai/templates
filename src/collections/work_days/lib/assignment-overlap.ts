@@ -89,6 +89,9 @@ export function readOverlapData(
 				api.db.employments.findMany({
 					where: { id: { in: employmentIds } },
 					columns: { id: true, company_id: true },
+					// The lineage rides the employment, so the roster vocabulary read below is one
+					// round and one source, not a company query of its own.
+					with: { employment_company: { columns: { id: true, settings_code: true } } },
 					limit: Math.max(1, employmentIds.length)
 				}),
 				api.db.employment_terms.findMany({
@@ -115,16 +118,23 @@ export function readOverlapData(
 		if (terms.length === QUERY_LIMIT || existingEntries.length === QUERY_LIMIT) {
 			refuse('This schedule is too large to validate safely in one write.');
 		}
-		const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
+		const settingsCodes = [
+			...new Set(
+				employments.flatMap((employment) => {
+					const code = employment.employment_company?.settings_code;
+					return code == null || code === '' ? [] : [code];
+				})
+			)
+		];
 		const [codes, patterns] = yield* Effect.all(
 			[
 				api.db.shift_definitions.findMany({
-					where: { company_id: { in: companyIds } },
+					where: { settings_code: { in: settingsCodes } },
 					columns: { id: true, code: true, variant: true },
 					limit: QUERY_LIMIT
 				}),
 				api.db.shift_patterns.findMany({
-					where: { company_id: { in: companyIds } },
+					where: { settings_code: { in: settingsCodes } },
 					columns: { id: true, code: true, pattern: true },
 					limit: QUERY_LIMIT
 				})

@@ -97,7 +97,7 @@ import { baseLine } from './family.js';
 export function prepareWorkCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly jurisdiction: Configuration['jurisdiction'];
-	readonly companyId: string;
+	readonly settingsCode: string;
 	readonly windowStart: IsoDate;
 	readonly windowEnd: IsoDate;
 }): Effect.Effect<
@@ -125,11 +125,11 @@ export function prepareWorkCatalogue(options: {
 					limit: PAGE_LIMIT
 				}),
 				db.shift_definitions.findMany({
-					where: { company_id: { eq: options.companyId }, ...approved },
+					where: { settings_code: { eq: options.settingsCode }, ...approved },
 					limit: PAGE_LIMIT
 				}),
 				db.shift_patterns.findMany({
-					where: { company_id: { eq: options.companyId }, ...approved },
+					where: { settings_code: { eq: options.settingsCode }, ...approved },
 					limit: PAGE_LIMIT
 				})
 			],

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { registrations, snippet, source } from './helpers/page-source.ts';
+import { registrations, source } from './helpers/page-source.ts';
 
 const page = source('apps/hr_controller/events/+work.svelte');
 
@@ -29,10 +29,12 @@ test('the Work board reads schedule patterns through terms and jurisdiction cale
 	);
 });
 
-test('the Shift patterns tab registers one table', () => {
-	const tab = snippet(page, 'patterns');
-	assert.deepEqual(registrations(tab), ['CollectionTable']);
-	assert.match(tab, /collection="shift_patterns"/);
+test('the Work page carries no roster-code or pattern tables: the vocabulary is the lineage’s', () => {
+	assert.doesNotMatch(page, /collection="shift_patterns"/);
+	assert.doesNotMatch(page, /collection="shift_definitions"/);
+	assert.doesNotMatch(page, /hr_controller:scheduling:(shifts|patterns)/);
+	// The board still reads the codes to render a month; it no longer edits them.
+	assert.match(page.slice(0, page.indexOf('</script>')), /db\.shift_definitions\.findMany/);
 });
 
 test('the Work page carries no holiday table: holidays are the entity’s, edited where the entity is', () => {

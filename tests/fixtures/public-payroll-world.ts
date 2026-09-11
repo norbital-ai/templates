@@ -179,7 +179,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		shift_definitions: [
 			{
 				id: WORK_SHIFT_ID,
-				company_id: COMPANY_ID,
+				settings_code: 'PF',
 				code: '7.5AM',
 				name: 'Day',
 				variant: { kind: 'WORK', start_time: '07:30', end_time: '16:30', break_minutes: 60 },
@@ -190,7 +190,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		shift_patterns: [
 			{
 				id: SHIFT_PATTERN_ID,
-				company_id: COMPANY_ID,
+				settings_code: 'PF',
 				code: 'ROSTER-6D-45H-WK',
 				name: 'Rostered, 6 days and 45 hours guaranteed per week',
 				pattern: ROSTERED,

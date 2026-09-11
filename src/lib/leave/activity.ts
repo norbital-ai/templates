@@ -91,7 +91,7 @@ export function measureLeaveDay(
 	const pattern = termPattern(term, new Map(context.patterns.map((row) => [row.id, row])));
 	const codeId = override?.shift_definition_id ?? patternRosterCodeId(pattern, date);
 	const shift = context.shifts.find(
-		(row) => row.id === codeId && row.company_id === rules.company.id
+		(row) => row.id === codeId && row.settings_code === rules.company.settings_code
 	);
 	if (!shift || !coversDate(shift.effective_range, date))
 		return { eligible: false as const, reason: 'MISSING_ROSTER_CODE' as const, evidence };

@@ -215,35 +215,35 @@ function rosterApi(overrides = {}) {
 			{
 				id: 'shift:75',
 				code: '7.5AM',
-				company_id: COMPANY_ID,
+				settings_code: 'TEST',
 				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 },
 				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:am',
 				code: 'AM0830',
-				company_id: COMPANY_ID,
+				settings_code: 'TEST',
 				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
 				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:pm',
 				code: 'PM2030',
-				company_id: COMPANY_ID,
+				settings_code: 'TEST',
 				variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 },
 				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:rest',
 				code: 'REST',
-				company_id: COMPANY_ID,
+				settings_code: 'TEST',
 				variant: { kind: 'REST' },
 				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:off',
 				code: 'OFF',
-				company_id: COMPANY_ID,
+				settings_code: 'TEST',
 				variant: { kind: 'OFF' },
 				effective_range: { start: '2020-01-01', end: null }
 			}

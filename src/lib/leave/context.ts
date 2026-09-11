@@ -123,7 +123,7 @@ export type LeaveContext = {
 	patterns: Pick<WorkspaceRow<'shift_patterns'>, 'id' | 'code' | 'pattern' | 'effective_range'>[];
 	shifts: Pick<
 		WorkspaceRow<'shift_definitions'>,
-		'id' | 'company_id' | 'variant' | 'effective_range'
+		'id' | 'settings_code' | 'variant' | 'effective_range'
 	>[];
 	captures: Pick<
 		WorkspaceRow<'payslip_leave_inputs'>,
@@ -160,113 +160,125 @@ export function readLeaveContext(
 		).map(resolveEmployment);
 		const companyIds = [...new Set(employments.map((row) => row.company_id))];
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-		const [companies, employees, terms, stored, workDays, runs, patterns, shifts] =
-			yield* Effect.all(
-				[
-					api.db.companies.findMany({
-						where: { id: { in: companyIds }, approval_id: { isNull: true } },
-						columns: { id: true, settings_code: true, region: true },
-						limit: LIMIT
-					}),
-					api.db.employees.findMany({
-						where: { id: { in: employeeIds }, approval_id: { isNull: true } },
-						columns: {
-							id: true,
-							gender: true,
-							date_of_birth: true,
-							nationality: true,
-							marital_status: true,
-							solo_parent: true,
-							race: true,
-							religion: true
-						},
-						limit: LIMIT
-					}),
-					api.db.employment_terms.findMany({
-						where: { employment_id: { in: ids }, approval_id: { isNull: true } },
-						columns: {
-							id: true,
-							employment_id: true,
-							effective_range: true,
-							shift_pattern_id: true,
-							employment_type: true,
-							residency_status: true,
-							work_classification: true,
-							base_salary: true,
-							statutory_work_category: true,
-							department: true,
-							payroll_group: true,
-							grade: true,
-							residency_since: true
-						},
-						limit: LIMIT
-					}),
-					api.db.leave_entries.findMany({
-						where: { employment_id: { in: ids }, approval_id: { isNull: true } },
-						columns: {
-							id: true,
-							employment_id: true,
-							leave_catalogue_id: true,
-							leave_code: true,
-							reference: true,
-							event: true,
-							charges: true,
-							allocations: true,
-							approval_id: true
-						},
-						limit: LIMIT
-					}),
-					api.db.work_days.findMany({
-						where: {
-							employment_id: { in: window == null ? [] : ids },
-							...(window == null ? {} : { work_date: { gte: window.start, lte: window.end } }),
-							approval_id: { isNull: true }
-						},
-						columns: { id: true, employment_id: true, work_date: true, shift_definition_id: true },
-						limit: LIMIT
-					}),
-					api.db.payroll_runs.findMany({
-						where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
-						columns: {
-							id: true,
-							company_id: true,
-							period: true,
-							lifecycle: true,
-							attendance_from: true,
-							attendance_to: true
-						},
-						limit: LIMIT
-					}),
-					api.db.shift_patterns.findMany({
-						where: {
-							company_id: { in: window == null ? [] : companyIds },
-							approval_id: { isNull: true }
-						},
-						columns: { id: true, code: true, pattern: true, effective_range: true },
-						limit: LIMIT
-					}),
-					api.db.shift_definitions.findMany({
-						where: {
-							company_id: { in: window == null ? [] : companyIds },
-							approval_id: { isNull: true }
-						},
-						columns: { id: true, company_id: true, variant: true, effective_range: true },
-						limit: LIMIT
-					})
-				],
-				{ concurrency: 'unbounded' }
-			);
+		const [companies, employees, terms, stored, workDays, runs] = yield* Effect.all(
+			[
+				api.db.companies.findMany({
+					where: { id: { in: companyIds }, approval_id: { isNull: true } },
+					columns: { id: true, settings_code: true, region: true },
+					limit: LIMIT
+				}),
+				api.db.employees.findMany({
+					where: { id: { in: employeeIds }, approval_id: { isNull: true } },
+					columns: {
+						id: true,
+						gender: true,
+						date_of_birth: true,
+						nationality: true,
+						marital_status: true,
+						solo_parent: true,
+						race: true,
+						religion: true
+					},
+					limit: LIMIT
+				}),
+				api.db.employment_terms.findMany({
+					where: { employment_id: { in: ids }, approval_id: { isNull: true } },
+					columns: {
+						id: true,
+						employment_id: true,
+						effective_range: true,
+						shift_pattern_id: true,
+						employment_type: true,
+						residency_status: true,
+						work_classification: true,
+						base_salary: true,
+						statutory_work_category: true,
+						department: true,
+						payroll_group: true,
+						grade: true,
+						residency_since: true
+					},
+					limit: LIMIT
+				}),
+				api.db.leave_entries.findMany({
+					where: { employment_id: { in: ids }, approval_id: { isNull: true } },
+					columns: {
+						id: true,
+						employment_id: true,
+						leave_catalogue_id: true,
+						leave_code: true,
+						reference: true,
+						event: true,
+						charges: true,
+						allocations: true,
+						approval_id: true
+					},
+					limit: LIMIT
+				}),
+				api.db.work_days.findMany({
+					where: {
+						employment_id: { in: window == null ? [] : ids },
+						...(window == null ? {} : { work_date: { gte: window.start, lte: window.end } }),
+						approval_id: { isNull: true }
+					},
+					columns: { id: true, employment_id: true, work_date: true, shift_definition_id: true },
+					limit: LIMIT
+				}),
+				api.db.payroll_runs.findMany({
+					where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
+					columns: {
+						id: true,
+						company_id: true,
+						period: true,
+						lifecycle: true,
+						attendance_from: true,
+						attendance_to: true
+					},
+					limit: LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		for (const [rows, name] of [
 			[companies, 'companies'],
 			[employees, 'employees'],
 			[terms, 'terms'],
 			[stored, 'leave entries'],
 			[workDays, 'workdays'],
-			[runs, 'payroll runs'],
-			[patterns, 'shift patterns'],
-			[shifts, 'shift definitions']
+			[runs, 'payroll runs']
 		] as const)
 			complete<unknown>(rows, name);
+		const settingsCodes = [
+			...new Set(
+				companies.flatMap((company) =>
+					company.settings_code == null || company.settings_code === ''
+						? []
+						: [company.settings_code]
+				)
+			)
+		];
+		// The roster vocabulary belongs to the jurisdiction lineage, which the company read above is
+		// the only thing that names; so this is one round after the batch rather than inside it.
+		const [patterns, shifts] =
+			window == null || settingsCodes.length === 0
+				? [[], []]
+				: yield* Effect.all(
+						[
+							api.db.shift_patterns.findMany({
+								where: { settings_code: { in: settingsCodes }, approval_id: { isNull: true } },
+								columns: { id: true, code: true, pattern: true, effective_range: true },
+								limit: LIMIT
+							}),
+							api.db.shift_definitions.findMany({
+								where: { settings_code: { in: settingsCodes }, approval_id: { isNull: true } },
+								columns: { id: true, settings_code: true, variant: true, effective_range: true },
+								limit: LIMIT
+							})
+						],
+						{ concurrency: 'unbounded' }
+					);
+		complete(patterns, 'shift patterns');
+		complete(shifts, 'shift definitions');
 		const versions = complete(
 			yield* api.db.jurisdiction_settings.findMany({
 				where: {

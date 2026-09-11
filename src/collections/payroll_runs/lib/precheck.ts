@@ -159,7 +159,7 @@ export function payrollRunPrecheck(options: {
 						limit: PAGE_LIMIT
 					}),
 					db.shift_definitions.findMany({
-						where: { company_id: { eq: options.configuration.company.id } },
+						where: { settings_code: { eq: options.configuration.company.settings_code } },
 						columns: { id: true, variant: true },
 						limit: PAGE_LIMIT
 					})

@@ -318,7 +318,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 
 		const codes = [...new Set(assignments.map((row) => row.shift_code))];
 		const rosterCodes = yield* api.db.shift_definitions.findMany({
-			where: { company_id: { eq: companyId }, code: { in: codes } },
+			where: { settings_code: { eq: company.settings_code ?? '' }, code: { in: codes } },
 			columns: { id: true, code: true, variant: true, effective_range: true },
 			limit: QUERY_LIMIT
 		});

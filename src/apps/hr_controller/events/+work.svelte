@@ -39,8 +39,7 @@
 		monthWorkDateInstantBounds,
 		shiftDayKey,
 		shiftMonthKey,
-		todayKey,
-		todayInstant
+		todayKey
 	} from '../../../lib/ui/calendar.js';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
@@ -133,7 +132,6 @@
 	const boardQuery = new CollectionQueryState();
 
 	const today = todayKey();
-	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 	const approved = { approval_id: { isNull: true } } as const;
 	const companiesUnknown = $derived(companiesUnknownOf());
 
@@ -259,17 +257,6 @@
 		)
 	);
 
-	const shiftsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.shift_definitions.findMany({
-					where: { ...approved, company_id: { eq: selectedCompanyId } },
-					limit: MONTH_BOARD_QUERY_LIMITS.rosterCodes
-				})
-	);
-	const rosterCodesById = $derived(
-		new Map((shiftsQuery?.current ?? []).map((code) => [code.id, code]))
-	);
 	const employmentTermsQuery = $derived.by(() => {
 		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.employment_terms.findMany({
@@ -293,6 +280,18 @@
 	// Every version of the entity's lineage: a request may cite the row an earlier version's
 	// entitlement was sealed with, and the board only needs the code behind an id.
 	const selectedSettingsCode = $derived(companyById(selectedCompanyId)?.settings_code ?? null);
+
+	const shiftsQuery = $derived(
+		selectedSettingsCode == null
+			? null
+			: client.db.shift_definitions.findMany({
+					where: { ...approved, settings_code: { eq: selectedSettingsCode } },
+					limit: MONTH_BOARD_QUERY_LIMITS.rosterCodes
+				})
+	);
+	const rosterCodesById = $derived(
+		new Map((shiftsQuery?.current ?? []).map((code) => [code.id, code]))
+	);
 	const leaveCatalogueQuery = $derived(
 		selectedSettingsCode == null
 			? null
@@ -996,18 +995,6 @@
 				label: t('app.scheduling.tab_board'),
 				icon: 'lucide:calendar-range',
 				content: board
-			},
-			{
-				name: 'shifts',
-				label: t('app.scheduling.tab_shifts'),
-				icon: 'lucide:clock-4',
-				content: shifts
-			},
-			{
-				name: 'patterns',
-				label: t('app.scheduling.tab_patterns'),
-				icon: 'lucide:repeat',
-				content: patterns
 			}
 		] satisfies TabConfig[]}
 	/>
@@ -1251,77 +1238,6 @@
 					onSelectDay={openDaySheet}
 				/>
 			{/if}
-		</Cover>
-	{/if}
-{/snippet}
-
-{#snippet shifts()}
-	{#if companiesUnknown}
-		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
-	{:else if selectedCompanyId == null}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_shifts')}</p>
-	{:else}
-		{#snippet shiftIntro()}
-			<p class="text-sm text-muted-foreground">{t('app.scheduling.shift_intro')}</p>
-		{/snippet}
-		<Cover gap="md" top={shiftIntro}>
-			{#key `${selectedCompanyId}:${month}`}
-				<CollectionTable
-					{client}
-					collection="shift_definitions"
-					view={`hr_controller:scheduling:shifts:${selectedCompanyId}`}
-					query={{
-						where: { company_id: { eq: selectedCompanyId }, ...activeRange },
-						orderBy: { code: 'asc' }
-					}}
-					class="h-full min-h-0"
-				>
-					{#snippet columns({ Column })}
-						<Column name="code" card="title" />
-						<Column name="name" card="subtitle" />
-						<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
-						<Column name="effective_range" label={t('component.effective')} />
-					{/snippet}
-				</CollectionTable>
-			{/key}
-		</Cover>
-	{/if}
-{/snippet}
-
-<!--
-	The named patterns of the entity: the base every employment on them projects its month from.
-	One `CollectionTable`, which registers the tab's only live query; the board reads the same rows
-	through the terms' `with` and never opens a query of its own for them.
--->
-{#snippet patterns()}
-	{#if companiesUnknown}
-		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
-	{:else if selectedCompanyId == null}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_patterns')}</p>
-	{:else}
-		{#snippet patternIntro()}
-			<p class="text-sm text-muted-foreground">{t('app.scheduling.pattern_intro')}</p>
-		{/snippet}
-		<Cover gap="md" top={patternIntro}>
-			{#key `${selectedCompanyId}:${month}`}
-				<CollectionTable
-					{client}
-					collection="shift_patterns"
-					view={`hr_controller:scheduling:patterns:${selectedCompanyId}`}
-					query={{
-						where: { company_id: { eq: selectedCompanyId }, ...activeRange },
-						orderBy: { code: 'asc' }
-					}}
-					class="h-full min-h-0"
-				>
-					{#snippet columns({ Column })}
-						<Column name="code" card="title" />
-						<Column name="name" card="subtitle" />
-						<Column name="pattern" label={t('component.work_pattern')} />
-						<Column name="effective_range" label={t('component.effective')} />
-					{/snippet}
-				</CollectionTable>
-			{/key}
 		</Cover>
 	{/if}
 {/snippet}
