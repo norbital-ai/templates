@@ -500,7 +500,8 @@ it('HR self-host scheduling paints the eye filter and no Exceptions tab', async 
 		assert.equal(monthPicker, 'combobox', `H12 month picker: ${monthPicker}`);
 		assert.match(body, /Month board/);
 		assert.match(body, /Roster codes/);
-		assert.match(body, /Holidays/);
+		// Holidays are the entity’s, published where the entity is; the Work page carries no tab.
+		assert.doesNotMatch(body, /\bHolidays\b/);
 		assert.doesNotMatch(body, /\bExceptions\b/);
 		assert.match(body, /Show unresolved clock-outs/);
 
