@@ -43,20 +43,23 @@
 					kind: 'enum',
 					nullable: false,
 					values: KINDS
-				} satisfies CollectionField
+				} satisfies CollectionField,
+				width: 110
 			},
 			{
 				key: `${key}_rule`,
 				label: t(`renderer.leave_treatments.${key}_rule`),
 				field: { name: `${key}_rule`, kind: 'text', nullable: true } satisfies CollectionField,
-				placeholder: t('renderer.contribution_treatments.special_rule_placeholder')
+				placeholder: t('renderer.contribution_treatments.special_rule_placeholder'),
+				width: 160
 			}
 		] satisfies readonly MatrixColumn<TreatmentRow>[];
 	const CODE = {
 		key: 'code',
 		label: t('renderer.contribution_treatments.scheme_code'),
 		field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
-		placeholder: 'EPF'
+		placeholder: 'EPF',
+		width: 110
 	} satisfies MatrixColumn<TreatmentRow>;
 	const COLUMNS = [
 		CODE,

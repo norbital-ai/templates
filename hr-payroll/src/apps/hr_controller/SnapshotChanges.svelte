@@ -17,6 +17,7 @@
 	import {
 		diffCollection,
 		diffSettingsRoot,
+		formatLeafPath,
 		type CollectionDiff,
 		type LeafChange
 	} from '../../lib/snapshot_diff.js';
@@ -131,15 +132,19 @@
 	};
 	const formatDiffValue = (value: string | number | boolean | null): string => {
 		if (value == null) return '—';
+		// Numbers keep their grouping: a ceiling of 1086300 reads as 1,086,300, and the whole
+		// value stays whole rather than being character-diffed against its predecessor.
+		if (typeof value === 'number')
+			return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
 		const text = String(value);
 		return text.length > 140 ? `${text.slice(0, 137)}…` : text;
 	};
 	/**
 	 * One changed value, trimmed to the text that actually changed.
 	 *
-	 * A long authority sentence differs in one clause — the ceiling — and printing both sentences
-	 * whole makes the reader diff them by eye. The common head and tail collapse to an ellipsis so
-	 * the line shows the change itself; the untrimmed pair stays on the hover title.
+	 * Short values print whole — a number diffed by character is how `1054.74 → 10863` becomes
+	 * "1 05474 → 10863". Only long sentences are trimmed to their changed clause; the untrimmed
+	 * pair stays on the hover title either way.
 	 */
 	const diffLine = (
 		previous: string | number | boolean | null,
@@ -148,6 +153,8 @@
 		const left = formatDiffValue(previous);
 		const right = formatDiffValue(proposed);
 		if (left === right) return { head: left, before: '', after: '', tail: '', title: left };
+		if (left.length <= 40 && right.length <= 40)
+			return { head: '', before: left, after: right, tail: '', title: `${left} → ${right}` };
 		let start = 0;
 		while (start < left.length && start < right.length && left[start] === right[start]) start++;
 		let endLeft = left.length;
@@ -230,7 +237,7 @@
 				<ul class="space-y-1 text-sm">
 					{#each rootChanges as change (change.path)}
 						<li>
-							<code class="text-xs">{change.path}</code>
+							<span class="text-xs font-medium">{formatLeafPath(change.path)}</span>
 							{@render diffValue(diffLine(change.previous, change.proposed))}
 						</li>
 					{/each}
@@ -269,7 +276,7 @@
 							<ul class="mt-2 space-y-1 text-sm">
 								{#each row.changes as change (change.path)}
 									<li>
-										<code class="text-xs">{change.path}</code>
+										<span class="text-xs font-medium">{formatLeafPath(change.path)}</span>
 										{@render diffValue(diffLine(change.previous, change.proposed))}
 									</li>
 								{/each}

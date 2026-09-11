@@ -20,12 +20,14 @@
 			key: 'eligibility',
 			label: t('component.who_receives'),
 			field: { name: 'eligibility', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'employment.service_months >= 24'
+			placeholder: 'employment.service_months >= 24',
+			width: 340
 		},
 		{
 			key: 'days',
 			label: t('component.days'),
-			field: { name: 'days', kind: 'numeric', nullable: false } satisfies CollectionField
+			field: { name: 'days', kind: 'numeric', nullable: false } satisfies CollectionField,
+			width: 110
 		}
 	] satisfies readonly MatrixColumn<Band>[];
 	const disabled = $derived(props.mode !== 'edit' || props.disabled);

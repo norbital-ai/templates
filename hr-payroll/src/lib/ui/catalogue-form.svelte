@@ -8,6 +8,10 @@
 	 * `minimum_repayment` ended that: a form serving two row shapes can be typed against only one of
 	 * them, and a union narrows `Field` to their intersection. It has `loan-catalogue-form.svelte`.
 	 *
+	 * Segments are tabs, not stacked sections: one panel is on screen at a time, its segment name is
+	 * the tab label, and its fields spread across the sheet instead of down it. The dialog chrome
+	 * already names the record, so the form adds no heading of its own.
+	 *
 	 * `settings_id` is never a field on the Settings page: the page names the version and the form
 	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
 	 */
@@ -17,8 +21,7 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import FormSection from './form-section.svelte';
+	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { hrCreateScope } from './create-scope.js';
 
 	type Collection = 'claim_catalogue' | 'allowance_catalogue' | 'payment_catalogue';
@@ -34,79 +37,108 @@
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
 </script>
 
-<RecordShell title={record?.code ?? t('component.create_catalogue_component')}>
-	<CollectionForm
-		{client}
-		{collection}
-		defaultValues={formValues}
-		submitLabel={record
-			? t('component.save_catalogue_component')
-			: t('component.create_catalogue_component')}
-		onAfterSubmit={record ? undefined : close}
-	>
-		{#snippet children({ Field })}
-			<Stack gap="lg">
-				<FormSection
-					first
-					title={t('component.catalogue_section_pay_line')}
-					hint={t('component.catalogue_section_pay_line_hint')}
-				>
-					<Grid gap="sm" minimum="compact">
-						{#if settingsId != null}
-							<Field name="settings_id" hidden />
-						{:else}
-							<Field
-								name="settings_id"
-								label={t('component.settings_version')}
-								relationOptions={{
-									label: (version) =>
-										[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
-											.filter((part) => part != null && part !== '')
-											.join(' · ') || '—',
-									orderBy: { code: 'asc' },
-									limit: 500
-								}}
-							/>
-						{/if}
-						<Field name="code" label={t('component.code')} />
-						<Field name="nature" label={t('component.economic_type')} />
-					</Grid>
-				</FormSection>
-
-				<FormSection
-					title={t('component.catalogue_section_who_order')}
-					hint={t('component.catalogue_section_who_order_hint')}
-				>
-					<Grid gap="sm" minimum="compact">
-						<Column span="all"
-							><Field name="eligibility" label={t('component.who_receives')} /></Column
-						>
-						<Field name="sequence" label={t('component.order')} />
-					</Grid>
-				</FormSection>
-
-				<FormSection
-					title={t('component.catalogue_section_limits')}
-					hint={t('component.catalogue_section_limits_hint')}
-				>
-					<Grid gap="sm" minimum="compact">
-						<Field name="evidence" label={t('component.evidence')} />
-						<Field name="settlement" label={t('component.settlement')} />
-						<Column span="all"><Field name="cap" label={t('component.ceiling')} /></Column>
-					</Grid>
-				</FormSection>
-
-				<FormSection
-					title={t('component.section_contributions')}
-					hint={t('component.catalogue_section_contributions_hint')}
-				>
-					<Field
-						name="contribution_treatments"
-						label={t('component.contribution_treatments')}
-						description={t('renderer.contribution_treatments.identity')}
-					/>
-				</FormSection>
+<CollectionForm
+	{client}
+	{collection}
+	defaultValues={formValues}
+	submitLabel={record
+		? t('component.save_catalogue_component')
+		: t('component.create_catalogue_component')}
+	onAfterSubmit={record ? undefined : close}
+>
+	{#snippet children({ Field })}
+		{#snippet payLine()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_pay_line_hint')}</p>
+				<Grid gap="md" minimum="card">
+					{#if settingsId != null}
+						<Field name="settings_id" hidden />
+					{:else}
+						<Field
+							name="settings_id"
+							label={t('component.settings_version')}
+							relationOptions={{
+								label: (version) =>
+									[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+										.filter((part) => part != null && part !== '')
+										.join(' · ') || '—',
+								orderBy: { code: 'asc' },
+								limit: 500
+							}}
+						/>
+					{/if}
+					<Field name="code" label={t('component.code')} />
+					<Field name="nature" label={t('component.economic_type')} />
+				</Grid>
 			</Stack>
 		{/snippet}
-	</CollectionForm>
-</RecordShell>
+
+		{#snippet who()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_who_order_hint')}</p>
+				<Grid gap="md" minimum="card">
+					<Column span="all"
+						><Field name="eligibility" label={t('component.who_receives')} /></Column
+					>
+					<Field name="sequence" label={t('component.order')} />
+				</Grid>
+			</Stack>
+		{/snippet}
+
+		{#snippet limits()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_limits_hint')}</p>
+				<Grid gap="md" minimum="card">
+					<Field name="evidence" label={t('component.evidence')} />
+					<Field name="settlement" label={t('component.settlement')} />
+					<Column span="all"><Field name="cap" label={t('component.ceiling')} /></Column>
+				</Grid>
+			</Stack>
+		{/snippet}
+
+		{#snippet contributions()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_contributions_hint')}</p>
+				<Field
+					name="contribution_treatments"
+					label={t('component.contribution_treatments')}
+					description={t('renderer.contribution_treatments.identity')}
+				/>
+			</Stack>
+		{/snippet}
+
+		<Tabs
+			animate={false}
+			listClass="w-full"
+			contentPadding={false}
+			lazyLoad={false}
+			keepAlive
+			config={[
+				{
+					name: 'pay_line',
+					label: t('component.catalogue_section_pay_line'),
+					icon: 'lucide:tag',
+					content: payLine
+				},
+				{
+					name: 'who',
+					label: t('component.catalogue_section_who_order'),
+					icon: 'lucide:users',
+					content: who
+				},
+				{
+					name: 'limits',
+					label: t('component.catalogue_section_limits'),
+					icon: 'lucide:shield',
+					content: limits
+				},
+				{
+					name: 'contributions',
+					label: t('component.section_contributions'),
+					icon: 'lucide:landmark',
+					content: contributions
+				}
+			] satisfies TabConfig[]}
+		/>
+	{/snippet}
+</CollectionForm>

@@ -61,6 +61,16 @@ const BENIGN_CONSOLE = [/favicon/i, /\[vite\]/i, /net::ERR_ABORTED/i, /Download 
 const SVELTE_FAULT =
 	/svelte\.dev\/e\/|effect_update_depth_exceeded|state_unsafe_mutation|derived_references_self|ownership_invalid_mutation|rune_outside_svelte|hydration_/;
 
+/**
+ * The browser's own notice that ResizeObserver callbacks coalesced in one frame. It arrives as an
+ * `error` event with no error object, and it says the observation frame was re-entered, not that
+ * the page misbehaved — Chrome's own advice is to ignore it. Kept short: any other uncaught error
+ * is still a finding, because a swallowed one is how a broken representation looks like an empty
+ * one.
+ */
+const RESIZE_OBSERVER_LOOP =
+	/ResizeObserver loop (completed with undelivered notifications|limit exceeded)/;
+
 export const readErrors = async (page: HeadedPage): Promise<readonly SweepError[]> =>
 	JSON.parse(
 		String(await page.evaluate('JSON.stringify(globalThis.__sweepErrors ?? [])'))
@@ -68,6 +78,7 @@ export const readErrors = async (page: HeadedPage): Promise<readonly SweepError[
 
 const significant = (errors: readonly SweepError[]): readonly SweepError[] =>
 	errors.filter((entry) => {
+		if (RESIZE_OBSERVER_LOOP.test(entry.message)) return false;
 		if (entry.kind !== 'console') return true;
 		if (SVELTE_FAULT.test(entry.message)) return true;
 		return !BENIGN_CONSOLE.some((pattern) => pattern.test(entry.message));

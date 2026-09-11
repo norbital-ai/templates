@@ -26,12 +26,14 @@
 			key: 'eligibility',
 			label: t('renderer.entitlement_cap.who'),
 			field: { name: 'eligibility', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'terms.grade == "G3"'
+			placeholder: 'terms.grade == "G3"',
+			width: 340
 		},
 		{
 			key: 'amount',
 			label: t('renderer.entitlement_cap.amount'),
-			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField
+			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField,
+			width: 130
 		}
 	] satisfies readonly MatrixColumn<Band>[];
 

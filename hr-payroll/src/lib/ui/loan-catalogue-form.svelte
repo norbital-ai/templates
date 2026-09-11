@@ -8,10 +8,9 @@
 	 * and `minimum_repayment` ended the subset: a form serving two row shapes can only be typed
 	 * against one of them, and a union narrows `Field` to what they have in common, which is neither.
 	 *
-	 * So the two are two forms. What they share is four fields and the section chrome; what the
-	 * merge was buying was one `{#if loan}` ladder per section and a cast that had stopped being
-	 * true. `settings_id` is never a field on the Settings page: the page names the version and the
-	 * form prefills and hides it.
+	 * So the two are two forms; both present their segments as tabs. The dialog chrome names the
+	 * record, so the form adds no heading of its own. `settings_id` is never a field on the Settings
+	 * page: the page names the version and the form prefills and hides it.
 	 */
 	import { client } from '../workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -19,8 +18,7 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import FormSection from './form-section.svelte';
+	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { hrCreateScope } from './create-scope.js';
 
 	let { record, close }: { record: WorkspaceRow<'loan_catalogue'> | null; close: () => void } =
@@ -31,74 +29,97 @@
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
 </script>
 
-<RecordShell title={record?.code ?? t('component.create_catalogue_component')}>
-	<CollectionForm
-		{client}
-		collection="loan_catalogue"
-		defaultValues={formValues}
-		submitLabel={record
-			? t('component.save_catalogue_component')
-			: t('component.create_catalogue_component')}
-		onAfterSubmit={record ? undefined : close}
-	>
-		{#snippet children({ Field })}
-			<Stack gap="lg">
-				<FormSection
-					first
-					title={t('component.catalogue_section_pay_line')}
-					hint={t('component.catalogue_section_pay_line_loan_hint')}
-				>
-					<Grid gap="sm" minimum="compact">
-						{#if settingsId != null}
-							<Field name="settings_id" hidden />
-						{:else}
-							<Field
-								name="settings_id"
-								label={t('component.settings_version')}
-								relationOptions={{
-									label: (version) =>
-										[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
-											.filter((part) => part != null && part !== '')
-											.join(' · ') || '—',
-									orderBy: { code: 'asc' },
-									limit: 500
-								}}
-							/>
-						{/if}
-						<Field name="code" label={t('component.code')} />
-						<Field name="sequence" label={t('component.order')} />
-						<!-- Only a debt has these: whose it is, and the least a month may recover. -->
-						<Field name="loan_type" label={t('component.loan_type')} />
+<CollectionForm
+	{client}
+	collection="loan_catalogue"
+	defaultValues={formValues}
+	submitLabel={record
+		? t('component.save_catalogue_component')
+		: t('component.create_catalogue_component')}
+	onAfterSubmit={record ? undefined : close}
+>
+	{#snippet children({ Field })}
+		{#snippet payLine()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_pay_line_loan_hint')}</p>
+				<Grid gap="md" minimum="card">
+					{#if settingsId != null}
+						<Field name="settings_id" hidden />
+					{:else}
 						<Field
-							name="minimum_repayment"
-							label={t('component.minimum_repayment')}
-							placeholder={t('component.minimum_repayment_hint')}
+							name="settings_id"
+							label={t('component.settings_version')}
+							relationOptions={{
+								label: (version) =>
+									[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+										.filter((part) => part != null && part !== '')
+										.join(' · ') || '—',
+								orderBy: { code: 'asc' },
+								limit: 500
+							}}
 						/>
-					</Grid>
-				</FormSection>
-
-				<FormSection
-					title={t('component.catalogue_section_who')}
-					hint={t('component.catalogue_section_who_hint')}
-				>
-					<Grid gap="sm" minimum="compact">
-						<Column span="all"
-							><Field name="eligibility" label={t('component.who_receives')} /></Column
-						>
-					</Grid>
-				</FormSection>
-
-				<FormSection
-					title={t('component.section_contributions')}
-					hint={t('component.catalogue_section_contributions_hint')}
-				>
+					{/if}
+					<Field name="code" label={t('component.code')} />
+					<Field name="sequence" label={t('component.order')} />
+					<!-- Only a debt has these: whose it is, and the least a month may recover. -->
+					<Field name="loan_type" label={t('component.loan_type')} />
 					<Field
-						name="contribution_treatments"
-						label={t('component.contribution_treatments')}
-						description={t('renderer.contribution_treatments.identity')}
+						name="minimum_repayment"
+						label={t('component.minimum_repayment')}
+						placeholder={t('component.minimum_repayment_hint')}
 					/>
-				</FormSection>
+				</Grid>
 			</Stack>
 		{/snippet}
-	</CollectionForm>
-</RecordShell>
+
+		{#snippet who()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_who_hint')}</p>
+				<Grid gap="md" minimum="card">
+					<Column span="all"
+						><Field name="eligibility" label={t('component.who_receives')} /></Column
+					>
+				</Grid>
+			</Stack>
+		{/snippet}
+
+		{#snippet contributions()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.catalogue_section_contributions_hint')}</p>
+				<Field
+					name="contribution_treatments"
+					label={t('component.contribution_treatments')}
+					description={t('renderer.contribution_treatments.identity')}
+				/>
+			</Stack>
+		{/snippet}
+
+		<Tabs
+			animate={false}
+			listClass="w-full"
+			contentPadding={false}
+			lazyLoad={false}
+			keepAlive
+			config={[
+				{
+					name: 'pay_line',
+					label: t('component.catalogue_section_pay_line'),
+					icon: 'lucide:tag',
+					content: payLine
+				},
+				{
+					name: 'who',
+					label: t('component.catalogue_section_who'),
+					icon: 'lucide:users',
+					content: who
+				},
+				{
+					name: 'contributions',
+					label: t('component.section_contributions'),
+					icon: 'lucide:landmark',
+					content: contributions
+				}
+			] satisfies TabConfig[]}
+		/>
+	{/snippet}
+</CollectionForm>
