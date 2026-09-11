@@ -85,3 +85,108 @@ test(
 		}
 	}
 );
+
+/**
+ * The operator sequence: run for one person, decide to add more, and run for everyone.
+ *
+ * A period holds one run, so "add more" is a draft delete and a rebuild — the same period is free
+ * again the moment the draft is gone, and the withheld person's inputs were never consumed.
+ */
+test(
+	'a run for one person, deleted and rebuilt for everyone',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const session = await startPublicSeedHost('hr-payroll-partial-then-full');
+		const headers = { authorization: `Bearer ${session.credential}` };
+		const command = (
+			body: Parameters<typeof mutationPush>[1],
+			bases: Parameters<typeof mutationPush>[2] = []
+		) =>
+			postGuestCommand(
+				session.host.baseUrl,
+				MUTATE,
+				mutationPush(session.schemaFingerprint, body, bases),
+				headers
+			);
+		try {
+			const employments = (await session.query(
+				'select id from employments where company_id = $1 and approval_id is null order by employee_number',
+				[COMPANY_ID]
+			)) as ReadonlyArray<{ readonly id: string }>;
+			assert.ok(
+				employments.length >= 2,
+				'a partial run needs at least two people to choose between'
+			);
+			const kept = employments[0]!.id;
+			const withheld = employments
+				.slice(1)
+				.map((row) => ({ employment_id: row.id, reason: 'QA: partial run' }));
+
+			const partialId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await command({
+						action: 'mutate',
+						collection: 'payroll_runs',
+						rows: [
+							{
+								action: 'create',
+								values: { id: partialId, company_id: COMPANY_ID, period: FEBRUARY_2026, withheld }
+							}
+						]
+					})
+				).value,
+				'create the per-person run'
+			);
+			const partialSlips = (await session.query(
+				'select employment_id from payslips where payroll_run_id = $1',
+				[partialId]
+			)) as ReadonlyArray<{ readonly employment_id: string }>;
+			assert.equal(partialSlips.length, 1, 'the per-person run paid exactly one person');
+			assert.equal(partialSlips[0]!.employment_id, kept);
+
+			const [draft] = (await session.query('select row_version from payroll_runs where id = $1', [
+				partialId
+			])) as ReadonlyArray<{ readonly row_version: number }>;
+			requireAccepted(
+				(
+					await command({ action: 'delete', collection: 'payroll_runs', ids: [partialId] }, [
+						{
+							row: { collection: 'payroll_runs', recordId: partialId },
+							rowVersion: draft!.row_version
+						}
+					])
+				).value,
+				'delete the per-person draft'
+			);
+			assert.deepEqual(
+				await session.query('select id from payroll_runs where id = $1', [partialId]),
+				[]
+			);
+
+			const fullId = crypto.randomUUID();
+			requireAccepted(
+				(
+					await command({
+						action: 'mutate',
+						collection: 'payroll_runs',
+						rows: [
+							{
+								action: 'create',
+								values: { id: fullId, company_id: COMPANY_ID, period: FEBRUARY_2026 }
+							}
+						]
+					})
+				).value,
+				'rebuild the same period for everyone'
+			);
+			const fullSlips = (await session.query(
+				'select employment_id from payslips where payroll_run_id = $1',
+				[fullId]
+			)) as ReadonlyArray<{ readonly employment_id: string }>;
+			assert.equal(fullSlips.length, employments.length, 'the rebuilt run paid everyone');
+		} finally {
+			await session.stop();
+		}
+	}
+);
