@@ -592,17 +592,19 @@
 									{t('component.withhold_hint')}
 								</span>
 							</Stack>
-							<CollectionToolbarQueryControls
-								definition={collectionCatalog.employments}
-								collections={collectionCatalog}
-								onSearchChange={(search) => (personSearch = search)}
-								onFilterChange={(filters) => (personFilters = filters)}
-							/>
-							<Grid gap="xs" minimum="compact" class="max-h-64 overflow-y-auto">
+							<Cluster align="center" gap="sm">
+								<CollectionToolbarQueryControls
+									definition={collectionCatalog.employments}
+									collections={collectionCatalog}
+									onSearchChange={(search) => (personSearch = search)}
+									onFilterChange={(filters) => (personFilters = filters)}
+								/>
+							</Cluster>
+							<Stack gap="xs" class="max-h-64 overflow-y-auto">
 								{#each visiblePeople as person (person.id)}
 									{@const held = person.id in withheld}
 									{@const done = alreadyRun.has(person.id)}
-									<Stack gap="xs" class={done ? 'opacity-60' : ''}>
+									<Stack gap="xs" class="shrink-0 {done ? 'opacity-60' : ''}">
 										<label class="flex min-w-0 items-center gap-2 text-sm">
 											<input
 												type="checkbox"
@@ -634,7 +636,7 @@
 										{/if}
 									</Stack>
 								{/each}
-							</Grid>
+							</Stack>
 						</Stack>
 					{/if}
 					<p class="text-sm text-muted-foreground">
