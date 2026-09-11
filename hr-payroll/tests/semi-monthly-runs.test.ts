@@ -339,7 +339,7 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 		allowance_catalogue_id: transport.id,
 		amount: 100,
 		pay_period: null,
-		recurrence: { kind: 'ONE_OFF', period: '2026-02' },
+		recurrence: { kind: 'ONE_OFF', on: '2026-02-28' },
 		approval_id: null
 	});
 

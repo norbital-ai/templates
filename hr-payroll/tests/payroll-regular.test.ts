@@ -160,7 +160,7 @@ test('late one-off allowances retain source-month proration', async () => {
 	const world = attendedWorld();
 	world.employments[0].hire_date = '2026-01-16';
 	world.employments[0].effective_range = { start: '2026-01-16', end: null };
-	world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', period: '2026-01' };
+	world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', on: '2026-01-15' };
 	const { slip } = await build(world);
 	const row = slip.adjustments.find((row) => row.family === 'ALLOWANCE');
 	assert.equal(row.amount, 160);
@@ -373,7 +373,7 @@ for (const family of ['payment', 'claim', 'allowance']) {
 			});
 		}
 		if (family === 'allowance') {
-			world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', period: '2026-01' };
+			world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', on: '2026-01-15' };
 			world.allowance_requests[0].amount = 100;
 		}
 		const source = world[`${family}_catalogue`][0];

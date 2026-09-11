@@ -101,7 +101,7 @@ describe('allowance_recurrence', () => {
 	// component, no amount — those are columns, because a foreign key and a field grant cannot
 	// reach inside a blob.
 	it('accepts a one-off period and an open or closed window', () => {
-		assert.ok(accepts(allowanceRecurrenceSchema, { kind: 'ONE_OFF', period: '2026-02' }));
+		assert.ok(accepts(allowanceRecurrenceSchema, { kind: 'ONE_OFF', on: '2026-02-15' }));
 		assert.ok(
 			accepts(allowanceRecurrenceSchema, { kind: 'RECURRING', from: '2026-01-01', to: null })
 		);
@@ -123,11 +123,11 @@ describe('allowance_recurrence', () => {
 		assert.ok(
 			refuses(allowanceRecurrenceSchema, {
 				kind: 'ONE_OFF',
-				period: '2026-02',
+				on: '2026-02-15',
 				from: '2026-01-01'
 			})
 		);
-		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'ONE_OFF', period: '2026-13' }));
+		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'ONE_OFF', on: '2026-13-01' }));
 		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'MONTHLY', period: '2026-02' }));
 	});
 });

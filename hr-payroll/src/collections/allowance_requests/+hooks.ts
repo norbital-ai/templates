@@ -12,12 +12,12 @@ import type { Hooks } from './$types.js';
 /**
  * The one family with no date column, so its day is read off the recurrence.
  *
- * A one-off's day is the first of the period it names and a recurring allowance's is the day its
- * window opens. Storing that beside the recurrence would be a second statement of the same fact,
- * free to disagree with the first — which is exactly what happened when a one-off was written as a
+ * A one-off's day is the day it names and a recurring allowance's is the day its window opens.
+ * Storing that beside the recurrence would be a second statement of the same fact, free to
+ * disagree with the first — which is exactly what happened when a one-off was written as a
  * recurring allowance whose range happened to span one month.
  *
-Everything the catalogue decides — that the component takes requests, that it takes *this*
+ * Everything the catalogue decides — that the component takes requests, that it takes *this*
  * family, evidence, the entitlement ceiling — the two reads that answer them, and the settlement
  * lock all live in `src/lib/pay_request_hooks.ts`. What is family-specific is exactly what is
  * below: the family this collection is, and which of its columns dates a row.
@@ -25,9 +25,7 @@ Everything the catalogue decides — that the component takes requests, that it 
 const recurrenceDay = (value: unknown): string | null => {
 	if (value == null || typeof value !== 'object') return null;
 	const recurrence = value as AllowanceRecurrence;
-	return recurrence.kind === 'ONE_OFF'
-		? dateKey(`${recurrence.period}-01`)
-		: dateKey(recurrence.from);
+	return recurrence.kind === 'ONE_OFF' ? dateKey(recurrence.on) : dateKey(recurrence.from);
 };
 
 const GUARD: PayRequestGuard = {

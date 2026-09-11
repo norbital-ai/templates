@@ -87,7 +87,7 @@ test('a component that demands evidence gets it, whichever family the request is
 		employment_id: 'e1',
 		allowance_catalogue_id: 'c1',
 		amount: 100,
-		recurrence: { kind: 'ONE_OFF', period: '2026-04' }
+		recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
 	};
 	assert.throws(
 		() => attempt(allowanceHooks, demanding, allowance),

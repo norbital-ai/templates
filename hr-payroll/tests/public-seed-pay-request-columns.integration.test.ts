@@ -106,7 +106,7 @@ test(
 				employment_id: EMPLOYMENT_ID,
 				allowance_catalogue_id: allowanceComponent,
 				amount: 100,
-				recurrence: { kind: 'ONE_OFF', period: '2026-04' }
+				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
 			});
 			assert.ok(accepted(windowed), `a stated window lands: ${JSON.stringify(windowed.value)}`);
 
@@ -116,7 +116,7 @@ test(
 				employment_id: EMPLOYMENT_ID,
 				allowance_catalogue_id: allowanceComponent,
 				amount: 100,
-				recurrence: { kind: 'ONE_OFF', period: '2026-04' },
+				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' },
 				incurred_on: '2026-04-02'
 			});
 			assert.equal(

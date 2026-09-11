@@ -57,7 +57,7 @@ function capWorld(family: Family) {
 		amount,
 		incurred_on: `${month}-05`,
 		effective_on: `${month}-05`,
-		recurrence: { kind: 'ONE_OFF', period: month },
+		recurrence: { kind: 'ONE_OFF', on: `${month}-15` },
 		reason: 'Synthetic benefit request',
 		approval_id: null,
 		as_adjustment_entry: false
@@ -73,7 +73,10 @@ const guardFor = (family: Family): PayRequestGuard => ({
 	noun: family,
 	eventDate: (row) =>
 		family === 'allowance'
-			? `${(row.recurrence as { period: string }).period}-01`
+			? (() => {
+					const recurrence = row.recurrence as { kind: string; on?: string; from?: string };
+					return String(recurrence.kind === 'ONE_OFF' ? recurrence.on : recurrence.from);
+				})()
 			: String(row[family === 'claim' ? 'incurred_on' : 'effective_on'])
 });
 

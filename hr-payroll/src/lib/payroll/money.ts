@@ -48,6 +48,8 @@ export type PayRequest = {
 	readonly depletes: boolean;
 	/** Only recurring allowances may be consumed in more than one period. */
 	readonly recurring: boolean;
+	/** A recurring allowance's incurred day of month, which picks the run that pays each instalment. */
+	readonly on_day: number | null;
 	/** A standing payslip already captured this single-use request. */
 	readonly captured: boolean;
 };
@@ -101,6 +103,7 @@ const magnitudeBase = (
 	 */
 	depletes: row.as_adjustment_entry !== true,
 	recurring: false,
+	on_day: null,
 	captured: false
 });
 
@@ -114,35 +117,50 @@ export const claimRequest = (row: ClaimRequest): PayRequest =>
 	);
 
 /**
- * A standing allowance, whose window is read off its recurrence and never off a column beside it.
+ * A standing allowance. Its window is read off its recurrence and never off a column beside it;
+ * its due run is read off its event date, the same cutoff rule every other dated entry follows.
  *
- * A one-off's window is its period's own month, and that period is the one it settles in: the
- * recurrence names it once, and `requestIsDue` reads it off the window's end, in the grammar of
- * the cadence the employment is paid on. There is no override column. Proration still measures
- * the one-off against the days actually employed — what it no longer does is masquerade as a
- * recurring allowance whose range happens to be one month long. A **recurring** allowance is bounded by nothing: it states an
- * amount **per period** and pays it whole in every period its window covers, so it never depletes
- * and its junction is the one with no unique on its source.
+ * A one-off names one day and its window is that day's own month. Proration measures it against the
+ * days actually employed in that month; the day places it — a 15th is picked up by the first half
+ * of a semi-monthly month, a month-end day by the second, a day past the cutoff by the next
+ * month's run. A **recurring** allowance is bounded by nothing: it states an amount **per period**
+ * and pays it whole in every period its window covers, so it never depletes and its junction is
+ * the one with no unique on its source.
  */
 export const allowanceRequest = (row: AllowanceRequest): PayRequest => {
 	const recurrence = row.recurrence as AllowanceRecurrence;
 	const window: RequestWindow =
 		recurrence.kind === 'ONE_OFF'
 			? {
-					start: requiredDateKey(`${recurrence.period}-01`, 'allowance period'),
-					end: requiredDateKey(monthEndDay(recurrence.period), 'allowance period end')
+					start: requiredDateKey(`${monthKey(recurrence.on)}-01`, 'allowance month'),
+					end: requiredDateKey(monthEndDay(monthKey(recurrence.on)), 'allowance month end')
 				}
 			: {
 					start: requiredDateKey(recurrence.from, 'allowance start'),
 					end: recurrence.to == null ? null : requiredDateKey(recurrence.to, 'allowance end')
 				};
 	return {
-		...magnitudeBase(row, 'ALLOWANCE', window.start, row.allowance_catalogue_id),
+		...magnitudeBase(
+			row,
+			'ALLOWANCE',
+			requiredDateKey(
+				recurrence.kind === 'ONE_OFF' ? recurrence.on : recurrence.from,
+				'allowance day'
+			),
+			row.allowance_catalogue_id
+		),
 		window,
 		prorates: true,
 		depletes: recurrence.kind === 'ONE_OFF' && row.as_adjustment_entry !== true,
-		recurring: recurrence.kind === 'RECURRING'
+		recurring: recurrence.kind === 'RECURRING',
+		on_day: recurrence.kind === 'RECURRING' ? (recurrence.on_day ?? null) : null
 	};
+};
+
+/** The last calendar day of a `YYYY-MM` month. */
+const monthEndDay = (month: string): string => {
+	const [year, index] = month.split('-').map(Number) as [number, number];
+	return `${month}-${String(new Date(Date.UTC(year, index, 0)).getUTCDate()).padStart(2, '0')}`;
 };
 
 export const paymentRequest = (row: PaymentRequest): PayRequest =>
@@ -177,21 +195,28 @@ export function requestIsDue(
 	if (request.approval_id != null || request.captured) return false;
 	if (request.recurring) {
 		const window = request.window!;
-		return window.start <= salary.end && (window.end == null || window.end >= salary.start);
+		if (request.on_day == null)
+			return window.start <= salary.end && (window.end == null || window.end >= salary.start);
+		/**
+		 * One instalment a month, incurred on `on_day`: the run the cutoff maps that month's
+		 * occurrence to is the one that pays it. A 15th at a semi-monthly company belongs to the
+		 * first half, a 20th to the second; a 25th past a 21st cutoff belongs to the next month's
+		 * run, so this run's month and the one before it are the candidates.
+		 */
+		for (const month of [monthKey(period), shiftPeriod(monthKey(period), -1)]) {
+			const day = Math.min(request.on_day, monthDays(`${month}-01`));
+			const occurrence = `${month}-${String(day).padStart(2, '0')}`;
+			if (occurrence < window.start) continue;
+			if (window.end != null && occurrence > window.end) continue;
+			if (defaultPayPeriod(occurrence, cutoffDay, cadence) === period) return true;
+		}
+		return false;
 	}
-	// A one-off allowance names its earned month explicitly, independently of the work cutoff.
-	const due =
-		request.window == null || request.pay_period != null
-			? requestPayPeriod(request, cutoffDay, cadence)
-			: defaultPayPeriod(request.window.end!, 31, cadence);
-	return due <= period;
+	// Every request is dated now, so the cutoff rule places it: a one-off allowance on its day, a
+	// claim on its incurred date, a payment on its effective date. Anything already due is picked
+	// up by this run rather than lost.
+	return requestPayPeriod(request, cutoffDay, cadence) <= period;
 }
-
-/** The last calendar day of a `YYYY-MM` period. */
-const monthEndDay = (period: string): string => {
-	const [year, month] = period.split('-').map(Number) as [number, number];
-	return `${period}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, '0')}`;
-};
 
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
@@ -437,6 +462,8 @@ import {
 	intersectDays,
 	monthKey,
 	monthBounds,
+	monthDays,
+	shiftPeriod,
 	daysBetween
 } from '../../collections/payroll_runs/lib/dates.js';
 import {

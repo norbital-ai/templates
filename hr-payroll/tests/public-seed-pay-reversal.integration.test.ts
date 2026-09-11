@@ -117,7 +117,7 @@ const postReversal = (session: Session, headers: Readonly<Record<string, string>
 						employment_id: EMPLOYMENT_ID,
 						allowance_catalogue_id: TRANSPORT_ID,
 						amount: 310,
-						recurrence: { kind: 'ONE_OFF', period: FEBRUARY_2026 },
+						recurrence: { kind: 'ONE_OFF', on: `${FEBRUARY_2026}-15` },
 						as_adjustment_entry: true
 					}
 				}
