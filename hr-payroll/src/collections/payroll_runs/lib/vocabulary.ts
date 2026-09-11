@@ -75,8 +75,9 @@ const STATUTORY_VOCABULARY: readonly StatutoryNaming[] = [
 		base: 'socsoGross'
 	},
 	// The PERKESO 24-hour add-on is additive to the tabled SOCSO amount and is charged as its own
-	// scheme, so it gets its own column rather than being folded into SOCSO's.
-	{ code: 'LINDUNG_24_JAM', employee: 'lindung24Jam' },
+	// scheme, so it gets its own column rather than being folded into SOCSO's. The seed carries it
+	// under its statutory short name, SKBBK (Skim Kemalangan Bukan Bencana Kerja).
+	{ code: 'SKBBK', employee: 'skbbkEmployee' },
 	{ code: 'EIS', employee: 'eisEmployee', employer: 'eisEmployer', total: 'totalEis' },
 	// The Malaysian workbook writes the monthly tax deduction under its statutory name, not under a
 	// generic one — which is exactly why the tax column cannot be hardcoded across jurisdictions.
