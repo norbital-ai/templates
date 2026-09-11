@@ -42,6 +42,13 @@ type ProrationFractionOptions = {
 	readonly period: DayWindow;
 	readonly covered: DayWindow | null;
 	readonly workingDaysIn: (window: DayWindow) => number;
+	/**
+	 * How many instalments of the month this period is one of — 2 for a semi-monthly employment,
+	 * 1 otherwise. A fixed-factor basis splits the month's money into equal instalments, because
+	 * that is the rate the instalment is paid at, and only the calendar and working-day bases
+	 * distribute by the days the instalment happens to hold.
+	 */
+	readonly instalments?: number;
 };
 
 /**
@@ -126,16 +133,22 @@ export function prorationSegment(options: ProrationFractionOptions): {
 				// The cap is on the days, not the fraction, so the segment a payslip stores and the
 				// money it was paid cannot disagree.
 				//
-				// The factor is a month's worth of days, so an instalment that is only part of a
-				// month is worth only its share of one — measured in the same working days the
-				// factor itself counts. A monthly run's share is 1 and the arithmetic below is
-				// unchanged; a semi-monthly month's two shares sum to 1, so the halves pay one
-				// month between them rather than one month each.
-				const monthWorkingDays = options.workingDaysIn(month);
+				// A semi-monthly instalment is one instalment's money, not a working-day share of the
+				// month's: the Philippine system pays each half of a semi-monthly month its exact
+				// half (₱15,650 → ₱7,825 twice), and books an absent day as its own deduction at the
+				// ordinary day rate. Distributing the halves by their working days made January's
+				// 12- and 14-day halves pay ₱7,223.08 and ₱8,426.92 — the same month's money, but
+				// split differently and assessed by every statutory band against the smaller half.
+				const instalments = options.instalments ?? 1;
 				const instalment =
-					monthWorkingDays > 0
-						? divisor * (options.workingDaysIn(options.period) / monthWorkingDays)
-						: divisor;
+					instalments > 1
+						? divisor / instalments
+						: (() => {
+								const monthWorkingDays = options.workingDaysIn(month);
+								return monthWorkingDays > 0
+									? divisor * (options.workingDaysIn(options.period) / monthWorkingDays)
+									: divisor;
+							})();
 				const whole = covered.start <= options.period.start && covered.end >= options.period.end;
 				return {
 					days: whole ? instalment : Math.min(options.workingDaysIn(covered), instalment),

@@ -382,7 +382,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				work: configuration.work,
 				period: options.salary,
 				covered: wageDays,
-				workingDaysIn
+				workingDaysIn,
+				instalments: closingTerms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1
 			})
 		},
 		jurisdiction: {
