@@ -30,15 +30,13 @@
 			key,
 			label: t(`work.output_${key}`),
 			field: { name: key, kind: 'text', nullable: false } satisfies CollectionField,
-			renderer: TreatmentCell,
-			width: 150
+			renderer: TreatmentCell
 		}) satisfies MatrixColumn<TreatmentRow>;
 	const CODE = {
 		key: 'code',
 		label: t('renderer.contribution_treatments.scheme_code'),
 		field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
-		placeholder: 'EPF',
-		width: 120
+		placeholder: 'EPF'
 	} satisfies MatrixColumn<TreatmentRow>;
 	const COLUMNS = [
 		CODE,
@@ -127,6 +125,7 @@
 		<p class="text-meta">{t('renderer.work_treatments.identity')}</p>
 		{#if scoped}
 			<MatrixRenderer
+				class="w-full"
 				{rows}
 				columns={SCOPED_COLUMNS}
 				{disabled}
@@ -138,6 +137,7 @@
 			/>
 		{:else}
 			<MatrixRenderer
+				class="w-full"
 				{rows}
 				columns={COLUMNS}
 				{disabled}

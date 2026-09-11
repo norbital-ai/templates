@@ -36,8 +36,7 @@
 			key: 'code',
 			label: t('renderer.contribution_treatments.scheme_code'),
 			field: { name: 'code', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'EPF',
-			width: 160
+			placeholder: 'EPF'
 		},
 		{
 			key: 'treatment',
@@ -47,15 +46,13 @@
 				kind: 'enum',
 				nullable: false,
 				values: ['INCLUDE', 'EXCLUDE', 'REDUCE', 'SPECIAL', 'UNSET']
-			} satisfies CollectionField,
-			width: 160
+			} satisfies CollectionField
 		},
 		{
 			key: 'special_rule',
 			label: t('renderer.contribution_treatments.special_rule'),
 			field: { name: 'special_rule', kind: 'text', nullable: true } satisfies CollectionField,
-			placeholder: t('renderer.contribution_treatments.special_rule_placeholder'),
-			width: 220
+			placeholder: t('renderer.contribution_treatments.special_rule_placeholder')
 		}
 	] satisfies readonly MatrixColumn<TreatmentRow>[];
 	const SCOPED_COLUMNS = [
@@ -142,13 +139,13 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	<Stack gap="xs">
-		<p class="text-meta">{t('renderer.contribution_treatments.identity')}</p>
+	<Stack gap="xs" class="w-full">
 		{#if scoped}
 			<MatrixRenderer
 				{rows}
 				columns={SCOPED_COLUMNS}
 				{disabled}
+				class="w-full"
 				emptyMessage={t('renderer.contribution_treatments.empty')}
 				allowAddRows={false}
 				allowRemoveRows={false}
@@ -160,6 +157,7 @@
 				{rows}
 				columns={COLUMNS}
 				{disabled}
+				class="w-full"
 				emptyMessage={t('renderer.contribution_treatments.empty')}
 				addRowLabel={t('renderer.contribution_treatments.add_row')}
 				createRow={(): TreatmentRow => ({

@@ -72,16 +72,18 @@
 							<Field name="currency" />
 							<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
 							<Column span="all">
-								<Stack gap="xs">
-									<Field name="effective_range" label={t('component.effective_period')} />
-									<p class="text-meta">{t('component.effective_period_hint')}</p>
-								</Stack>
+								<Field
+									name="effective_range"
+									label={t('component.effective_period')}
+									description={t('component.effective_period_hint')}
+								/>
 							</Column>
 							<Column span="all">
-								<Stack gap="xs">
-									<Field name="minimum_wages" label={t('component.minimum_wages')} />
-									<p class="text-meta">{t('component.minimum_wages_hint')}</p>
-								</Stack>
+								<Field
+									name="minimum_wages"
+									label={t('component.minimum_wages')}
+									description={t('component.minimum_wages_hint')}
+								/>
 							</Column>
 						</Grid>
 					</Stack>

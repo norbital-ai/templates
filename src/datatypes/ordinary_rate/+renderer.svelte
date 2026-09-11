@@ -26,8 +26,7 @@
 			key: 'eligibility',
 			label: t('component.who_receives'),
 			field: { name: 'eligibility', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'terms.basic_salary < 20000',
-			width: 300
+			placeholder: 'terms.basic_salary < 20000'
 		},
 		{
 			key: 'per',
@@ -37,15 +36,13 @@
 				kind: 'enum',
 				nullable: false,
 				values: ['DAY', 'HOUR']
-			} satisfies CollectionField,
-			width: 120
+			} satisfies CollectionField
 		},
 		{
 			key: 'divisor',
 			label: t('renderer.ordinary_rate.divisor'),
 			field: { name: 'divisor', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: `26 · ${WORKING_DAYS}`,
-			width: 160
+			placeholder: `26 · ${WORKING_DAYS}`
 		}
 	] satisfies readonly MatrixColumn<Row>[];
 
@@ -92,6 +89,7 @@
 	<Stack gap="xs">
 		<p class="text-meta">{t('renderer.ordinary_rate.identity')}</p>
 		<MatrixRenderer
+			class="w-full"
 			{rows}
 			columns={COLUMNS}
 			{disabled}

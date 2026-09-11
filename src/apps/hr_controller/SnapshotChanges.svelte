@@ -134,7 +134,56 @@
 		const text = String(value);
 		return text.length > 140 ? `${text.slice(0, 137)}…` : text;
 	};
+	/**
+	 * One changed value, trimmed to the text that actually changed.
+	 *
+	 * A long authority sentence differs in one clause — the ceiling — and printing both sentences
+	 * whole makes the reader diff them by eye. The common head and tail collapse to an ellipsis so
+	 * the line shows the change itself; the untrimmed pair stays on the hover title.
+	 */
+	const diffLine = (
+		previous: string | number | boolean | null,
+		proposed: string | number | boolean | null
+	) => {
+		const left = formatDiffValue(previous);
+		const right = formatDiffValue(proposed);
+		if (left === right) return { head: left, before: '', after: '', tail: '', title: left };
+		let start = 0;
+		while (start < left.length && start < right.length && left[start] === right[start]) start++;
+		let endLeft = left.length;
+		let endRight = right.length;
+		while (endLeft > start && endRight > start && left[endLeft - 1] === right[endRight - 1]) {
+			endLeft--;
+			endRight--;
+		}
+		const context = 24;
+		const headStart = Math.max(0, start - context);
+		const suffixLength = Math.min(left.length - endLeft, right.length - endRight);
+		const shownTail = Math.min(context, suffixLength);
+		return {
+			head: `${headStart > 0 ? '…' : ''}${left.slice(headStart, start)}`,
+			before: left.slice(start, endLeft),
+			after: right.slice(start, endRight),
+			tail: `${left.slice(endLeft, endLeft + shownTail)}${suffixLength > context ? '…' : ''}`,
+			title: `${left} → ${right}`
+		};
+	};
 </script>
+
+{#snippet diffValue(line: ReturnType<typeof diffLine>)}
+	<span title={line.title}>
+		<span class="text-muted-foreground">{line.head}</span>
+		{#if line.before}
+			<del class="text-destructive/80 line-through decoration-destructive/60">{line.before}</del>
+		{/if}
+		{#if line.before && line.after}<span class="text-muted-foreground"> → </span>{/if}
+		{#if line.after}
+			<ins class="font-medium text-emerald-600 no-underline dark:text-emerald-400">{line.after}</ins
+			>
+		{/if}
+		<span class="text-muted-foreground">{line.tail}</span>
+	</span>
+{/snippet}
 
 <Scroll name={t('app.settings.changes')} layout="stack" gap="lg">
 	<Stack gap="sm">
@@ -182,9 +231,7 @@
 					{#each rootChanges as change (change.path)}
 						<li>
 							<code class="text-xs">{change.path}</code>
-							<span class="text-muted-foreground">
-								{formatDiffValue(change.previous)} → {formatDiffValue(change.proposed)}
-							</span>
+							{@render diffValue(diffLine(change.previous, change.proposed))}
 						</li>
 					{/each}
 				</ul>
@@ -194,14 +241,26 @@
 			<Stack gap="sm" data-settings-diff-collection={diff.collection}>
 				<h3 class="text-sm font-semibold">{collectionLabel(diff.collection)}</h3>
 				{#each diff.rows as row (`${diff.collection}:${row.code}`)}
-					<div class="rounded-md border p-3" data-settings-diff-row={row.code}>
+					<div
+						class="rounded-md border p-3 {row.state === 'ADDED'
+							? 'border-emerald-500/40 bg-emerald-500/5'
+							: row.state === 'REMOVED'
+								? 'border-destructive/40 bg-destructive/5'
+								: ''}"
+						data-settings-diff-row={row.code}
+					>
 						<Inline justify="between" align="center" gap="sm">
 							<span class="text-sm font-medium">
 								{row.code}
 								<span class="text-muted-foreground">{row.name}</span>
 							</span>
 							{#if row.state !== 'CHANGED'}
-								<span class="text-xs font-medium text-muted-foreground">
+								<span
+									class="text-xs font-medium {row.state === 'ADDED'
+										? 'text-emerald-700 dark:text-emerald-400'
+										: 'text-destructive'}"
+								>
+									{row.state === 'ADDED' ? '+ ' : '− '}
 									{row.state === 'ADDED' ? t('component.diff_added') : t('component.diff_removed')}
 								</span>
 							{/if}
@@ -211,9 +270,7 @@
 								{#each row.changes as change (change.path)}
 									<li>
 										<code class="text-xs">{change.path}</code>
-										<span class="text-muted-foreground">
-											{formatDiffValue(change.previous)} → {formatDiffValue(change.proposed)}
-										</span>
+										{@render diffValue(diffLine(change.previous, change.proposed))}
 									</li>
 								{/each}
 							</ul>

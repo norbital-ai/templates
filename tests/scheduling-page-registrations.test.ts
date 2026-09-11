@@ -35,10 +35,9 @@ test('the Shift patterns tab registers one table', () => {
 	assert.match(tab, /collection="shift_patterns"/);
 });
 
-test('the Work holiday view reads the entity’s published holidays instead of employee events', () => {
-	const tab = snippet(page, 'holidays');
-	assert.deepEqual(registrations(tab), ['CollectionTable']);
-	assert.match(tab, /collection="jurisdiction_holidays"/);
-	assert.match(tab, /company_id/);
-	assert.doesNotMatch(tab, /collection="work_days"/);
+test('the Work page carries no holiday table: holidays are the entity’s, edited where the entity is', () => {
+	assert.doesNotMatch(page, /collection="jurisdiction_holidays"/);
+	assert.doesNotMatch(page, /hr_controller:scheduling:holidays/);
+	// The board still reads the entity's published holidays to resolve day types.
+	assert.match(page.slice(0, page.indexOf('</script>')), /holidayView\(/);
 });

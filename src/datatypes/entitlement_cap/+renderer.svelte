@@ -26,14 +26,12 @@
 			key: 'eligibility',
 			label: t('renderer.entitlement_cap.who'),
 			field: { name: 'eligibility', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'terms.grade == "G3"',
-			width: 320
+			placeholder: 'terms.grade == "G3"'
 		},
 		{
 			key: 'amount',
 			label: t('renderer.entitlement_cap.amount'),
-			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField,
-			width: 140
+			field: { name: 'amount', kind: 'numeric', nullable: false } satisfies CollectionField
 		}
 	] satisfies readonly MatrixColumn<Band>[];
 
@@ -116,6 +114,7 @@
 			</Grid>
 			<p class="text-meta">{t('renderer.entitlement_cap.identity')}</p>
 			<MatrixRenderer
+				class="w-full"
 				{rows}
 				columns={COLUMNS}
 				{disabled}
