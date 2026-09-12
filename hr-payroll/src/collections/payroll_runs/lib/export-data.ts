@@ -33,6 +33,7 @@ import {
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import type { WorkspaceRow } from '../$types.js';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { payerAccountSchema, type PayerAccount } from './bank-formats.js';
 
 type RunExport = {
 	readonly runId: string;
@@ -40,6 +41,8 @@ type RunExport = {
 	readonly payDate: string;
 	/** The entity's named workbook layout, carried so the export never infers one from a currency. */
 	readonly layout: 'MATRIX' | 'VENDOR';
+	/** The account the entity pays from, when it has one; `null` keeps the generic listing. */
+	readonly payer: PayerAccount | null;
 	readonly payslips: readonly ReportPayslip[];
 	readonly bank: readonly BankDestination[];
 	/** Employments whose payslip has no bank destination and is therefore not in the bank file. */
@@ -111,7 +114,7 @@ export function loadRunExports(
 
 		const companies = yield* readApi.db.companies.findMany({
 			where: { id: { in: [...new Set(runs.map((run) => run.company_id))] } },
-			columns: { id: true, workbook_layout: true },
+			columns: { id: true, workbook_layout: true, disbursement_account: true },
 			limit: PAGE_LIMIT
 		});
 		readApi.reads.assertComplete(companies, 'export entities');
@@ -120,6 +123,13 @@ export function loadRunExports(
 			companies.find((row) => row.id === run.company_id)?.workbook_layout === 'VENDOR'
 				? 'VENDOR'
 				: 'MATRIX';
+		/** The entity's originator account, decoded; a malformed one is no account, not a crash. */
+		const payerOf = (run: RunRow): PayerAccount | null => {
+			const decoded = Schema.decodeUnknownOption(payerAccountSchema)(
+				companies.find((row) => row.id === run.company_id)?.disbursement_account
+			);
+			return decoded._tag === 'Some' ? decoded.value : null;
+		};
 
 		const payslips = yield* readApi.db.payslips.findMany({
 			where: { payroll_run_id: { in: runIds } },
@@ -132,6 +142,7 @@ export function loadRunExports(
 				period: run.period,
 				payDate: requiredDateKey(run.pay_date, 'payroll_runs.pay_date'),
 				layout: layoutOf(run),
+				payer: payerOf(run),
 				payslips: [],
 				bank: [],
 				skippedEmploymentIds: []
@@ -492,6 +503,7 @@ export function loadRunExports(
 				period: run.period,
 				payDate: runPayDate,
 				layout: layoutOf(run),
+				payer: payerOf(run),
 				payslips: report,
 				bank,
 				skippedEmploymentIds: skipped

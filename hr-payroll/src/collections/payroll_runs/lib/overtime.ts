@@ -93,24 +93,18 @@ import { decodeNumber } from '@norbital-ai/std/json';
  * Left at 0 it would anchor each work date to UTC midnight and throw the early-clock-in clamp and
  * the shift-end comparison out by eight hours, silently mispricing every overtime hour.
  *
- * This constant is the single place a real timezone column would be consumed once one exists; a
- * third jurisdiction off UTC+8 requires that column rather than a change here.
+ * This constant is only the default for callers that pass no offset; the engine derives the real
+ * one from `configuration.jurisdiction.timezone` with `offsetMinutesFor`, so a third jurisdiction
+ * off UTC+8 is a settings row, not an edit here.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
- * CAPTURED, NOT YET BUILT: THE TIMEZONE BELONGS TO THE JURISDICTION VERSION.
+ * THE TIMEZONE IS THE JURISDICTION VERSION'S IANA ZONE.
  *
- * The offset is a fact about `jurisdiction_settings`, not about the engine, exactly as `currency`
- * and `tax_year_start_month` are. The intended shape is one column there —
- * `utc_offset_minutes` (integer; the fixed-offset step), with an IANA `timezone` text column as the
- * daylight-saving upgrade — seeded per version (480 for MY/PH/SG/ID/TW/VN today) and threaded to
- * this function as `configuration.jurisdiction.utc_offset_minutes`. Then a third jurisdiction is a
- * seed row, not an edit here.
- *
- * Attendance must be stored as UTC instants (`Z`) at every write boundary, so no reader depends on
- * the writer's frame. The seed currently writes offset-qualified instants (`+08:00`); those are the
- * same instant but a second spelling of it, and the import paths should normalise on write once the
- * column exists. Until then this constant is the one stand-in, and it is exact for the seeded
- * populations (all fixed UTC+8).
+ * `jurisdiction_settings.timezone` (an IANA name such as `Asia/Jakarta`) is the fact, exactly as
+ * `currency` and `tax_year_start_month` are; the engine derives the offset for the date it prices
+ * (`offsetMinutesFor`), so a zone that observes daylight saving needs no second column and no
+ * change here. Attendance is stored and compared as instants, so no reader depends on the writer's
+ * frame.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;

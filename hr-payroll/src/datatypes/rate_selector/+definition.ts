@@ -9,20 +9,40 @@ import { Schema } from 'effect';
 export const rateSelectorValueSchema = Schema.Union([
 	Schema.Struct({
 		by: Schema.Literal('WAGE'),
-		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
+		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
+			description: 'Lower bound of the band, inclusive.'
+		}),
+		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))).annotate({
+			description:
+				'Exclusive upper bound of the band. Null only for the highest band; otherwise always greater than `from`.'
+		})
 	}),
 	Schema.Struct({
 		by: Schema.Literal('WAGE_AND_AGE'),
-		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
-		age_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
-		age_to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
+			description: 'Lower wage bound of the band, inclusive.'
+		}),
+		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))).annotate({
+			description:
+				'Exclusive upper wage bound. Null only for the highest band; otherwise always greater than `from`.'
+		}),
+		age_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
+			description: 'Lower age bound of the band, inclusive.'
+		}),
+		age_to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))).annotate({
+			description:
+				'Exclusive upper age bound. Null only for the highest band; otherwise always greater than `age_from`.'
+		})
 	}),
 	Schema.Struct({
 		by: Schema.Literal('HEADCOUNT'),
-		from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
-		to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
+		from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
+			description: 'Lower headcount bound of the band, inclusive.'
+		}),
+		to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))).annotate({
+			description:
+				'Exclusive upper headcount bound. Null only for the highest band; otherwise always greater than `from`.'
+		})
 	}),
 	Schema.Struct({
 		by: Schema.Literal('RISK_CLASS'),
@@ -31,14 +51,17 @@ export const rateSelectorValueSchema = Schema.Union([
 ]).check(
 	Schema.makeFilter((selector) => {
 		if (selector.by === 'RISK_CLASS') return true;
-		if (selector.to != null && selector.to <= selector.from)
-			return 'A rate band must end above its lower bound.';
+		// `to` is an exclusive upper bound. A band may be zero-width — a zero-award sentinel such
+		// as `{from: 0, to: 0}` that the source tables carry and the seed preserves — but it may
+		// never end below its lower bound.
+		if (selector.to != null && selector.to < selector.from)
+			return 'A rate band must not end below its lower bound.';
 		if (
 			selector.by === 'WAGE_AND_AGE' &&
 			selector.age_to != null &&
-			selector.age_to <= selector.age_from
+			selector.age_to < selector.age_from
 		)
-			return 'An age band must end above its lower bound.';
+			return 'An age band must not end below its lower bound.';
 		return true;
 	})
 );

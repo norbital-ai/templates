@@ -49,7 +49,11 @@ test(
 			assert.equal(foreign.availability['2026-06-08']?.reason_code, 'INELIGIBLE');
 			assert.ok(foreign.issues.length > 0);
 			const balances = await leaveBalances(session, FOREIGN_EMPLOYMENT, '2026-06-08');
-			assert.equal(balances.find((row) => row.code === 'NS')?.available, 0);
+			assert.equal(
+				balances.find((row) => row.code === 'NS'),
+				undefined,
+				'an ineligible call-up type is omitted, not printed as a 0.00 row'
+			);
 			assert.equal(
 				(
 					await session.query('select id from leave_entries where employment_id = any($1)', [

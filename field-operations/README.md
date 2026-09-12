@@ -85,7 +85,7 @@ may name one `assignment_id`). It pages through every unchecked assignment, incl
 work, and assembles the assignment, its job and site, the deterministic photo facts, and bounded
 recent `communication_logs`. It passes a bounded visual sample (up to three photos, deterministic
 selection weighted by signal, capped at 4 MiB) plus a text context to a provider model
-(`openrouter/z-ai/glm-5.3-flash`). A separate scripted record of every review — the canonical basis hash, the
+(`openrouter/deepseek/deepseek-v4.1-flash`). A separate scripted record of every review — the canonical basis hash, the
 verdict, the model and the reason — lands in `suspicion_reviews`, so clear decisions are auditable
 too; a `suspicious` verdict appends an idempotent `suspicious_activity_logs` row (unique on
 `origin:job_assignment_id:md5(basis)`). The assignment's `suspicion_checked_at` is stamped only

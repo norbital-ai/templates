@@ -1,6 +1,7 @@
 /** Work owns schedules, contracted wages, attendance, and the rates supplied to Leave. */
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import { offsetMinutesFor } from '../timezone.js';
 import type { MoneyValue } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
 import type {
@@ -724,7 +725,7 @@ export function calculateWorkAttendance(
 			entry,
 			pricedDay(entry, day),
 			configuration.restBreakRules,
-			configuration.jurisdiction.utc_offset_minutes
+			offsetMinutesFor(configuration.jurisdiction.timezone, workDate)
 		);
 		if (derived) overtimeDays.push(derived);
 	}
@@ -844,7 +845,7 @@ export function calculateWorkAttendance(
 						entry,
 						nightPremium,
 						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null,
-						configuration.jurisdiction.utc_offset_minutes
+						offsetMinutesFor(configuration.jurisdiction.timezone, date)
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligible ? night.overtime : 0;
@@ -1079,7 +1080,7 @@ function measureWorkComponent(
 							ordinaryWorkedHours(
 								actual,
 								shift,
-								options.configuration.jurisdiction.utc_offset_minutes
+								offsetMinutesFor(options.configuration.jurisdiction.timezone, date)
 							) +
 								(leave[date] ?? 0) * scheduledHours
 						)

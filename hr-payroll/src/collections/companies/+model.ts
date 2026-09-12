@@ -59,6 +59,14 @@ export default defineModel(
 		 * differently shaped files and neither could say otherwise.
 		 */
 		workbook_layout: enums(['MATRIX', 'VENDOR']).notNull().default('MATRIX'),
+		/**
+		 * The account this entity pays salaries from, as the originator of a bank file.
+		 *
+		 * The employee's destination lives on the employment; this is the other side — the payer a
+		 * bank file's header names. `bank_code` here is the originator's BIC (`OCBCSGSGXXX`), not the
+		 * numeric bank code an employee row may carry. Empty where the entity hands out no bank file.
+		 */
+		disbursement_account: custom('bank_account'),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{

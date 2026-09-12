@@ -177,8 +177,8 @@ test(
 				[PUB_URL, PUB_DOWN_URL, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, utc_offset_minutes, research_urls, effective_range)
-				 values ($1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, 480, array[$2]::text[], $3)`,
+				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, timezone, research_urls, effective_range)
+				 values ($1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, 'Asia/Kuala_Lumpur', array[$2]::text[], $3)`,
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }]
 			);
 			await session.query(
@@ -352,16 +352,24 @@ test(
 			);
 			assert.equal((await drafts()).length, 1, 'no second draft while the first is open');
 
-			// Run 3: PUB2's research fails; the run reports it by name and the others proceed.
+			// Run 3: PUB2's research fails; the run still succeeds and names the failure, so the open
+			// proposal PUB already holds is not discarded by an unrelated lineage.
 			failPub2 = true;
 			const third = await start();
-			assert.ok(third.status >= 400, JSON.stringify(third.value));
-			assert.match(JSON.stringify(third.value), /PUB2: /, 'the failure names the lineage');
-			const failed = (await session.query(
-				`select status, error from automation_run where name = 'statutory_drift' and status = 'failed'`
-			)) as Row[];
-			assert.equal(failed.length, 1, 'the failed run is durable');
-			assert.match(String(failed[0]!.error), /PUB2: /);
+			assert.ok(third.status < 300, JSON.stringify(third.value));
+			const thirdRun = await runOf(asRecord(third.value, 'start').taskId);
+			assert.equal(thirdRun.status, 'done', JSON.stringify(thirdRun));
+			const thirdResult = asRecord(thirdRun.result, 'third result');
+			assert.match(
+				JSON.stringify(thirdResult.failures),
+				/PUB2: /,
+				'the failure names the lineage'
+			);
+			const thirdLineages = thirdResult.lineages as ReadonlyArray<Record<string, unknown>>;
+			assert.deepEqual(
+				thirdLineages.map((row) => [row.code, row.status, row.draft_id]),
+				[['PUB', 'proposal_open', draft.id]]
+			);
 			assert.equal((await drafts()).length, 1);
 
 			// Run 4: none of PUB2's sources answers. No draft, and the result says which lineage and why.
