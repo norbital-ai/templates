@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"key": "norbital_blank",
+	"name": "Blank",
+	"industry": "General",
+	"description": "An empty workspace with a single starter note collection, ready to be built out by the workspace agent.",
+	"visibility": "public",
+	"counts": {
+		"collections": 1,
+		"apps": 0,
+		"automations": 0
+	},
+	"tags": ["Starter", "Blank"],
+	"name_zh": "空白",
+	"description_zh": "一个没有任何集合或应用的空白工作区，可由工作区智能体从零构建。"
+}

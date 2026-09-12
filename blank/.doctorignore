@@ -1,0 +1,2 @@
+# Borrow what this workspace already declares is not source, rather than restating it.
+inherit: .gitignore .prettierignore

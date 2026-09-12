@@ -1,0 +1,4 @@
+{
+	"extends": "./.norbital/tsconfig.json",
+	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "node_modules", ".norbital/dist"]
+}
