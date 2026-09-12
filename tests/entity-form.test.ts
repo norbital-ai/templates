@@ -28,9 +28,10 @@ const snippet = (text: string, name: string): string => {
 	return text.slice(start, end);
 };
 
-test('the company form is name, registration, settings lineage, cutoff day, pay frequency, risk class and period', () => {
+test('the company form includes identity, payroll settings, payment account and period', () => {
 	const form = source('../src/collections/companies/+representation.svelte');
 	assert.deepEqual(fieldNames(form), [
+		'disbursement_account',
 		'effective_range',
 		'holiday_source',
 		'name',

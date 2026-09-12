@@ -233,6 +233,7 @@
 	"component.authority_reference": "依据文号",
 	"component.band_eligibility": "适用条件",
 	"component.bank_account_number": "银行账号",
+	"component.disbursement_account": "工资付款账户",
 	"component.bank_name": "银行名称",
 	"component.base_salary": "基本工资",
 	"component.bucket": "归集桶",

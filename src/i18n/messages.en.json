@@ -233,6 +233,7 @@
 	"component.authority_reference": "Authority reference",
 	"component.band_eligibility": "Eligibility",
 	"component.bank_account_number": "Bank account number",
+	"component.disbursement_account": "Payroll payment account",
 	"component.bank_name": "Bank name",
 	"component.base_salary": "Base salary",
 	"component.bucket": "Bucket",
