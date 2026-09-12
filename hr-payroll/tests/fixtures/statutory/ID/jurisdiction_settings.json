@@ -79,9 +79,12 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"research_urls": [
+			"https://www.bpjsketenagakerjaan.go.id/berita.html",
+			"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
+			"https://www.bpjsketenagakerjaan.go.id/penerima-upah.html",
 			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
-			"https://x.com/BPJSTKinfo/status/2028647882178388161",
-			"https://bsc.co.id/ideas/batas-upah-jaminan-pensiun-bpjs-maret-2026/"
+			"https://jateng.antaranews.com/berita/625410/bpjsketenagakerjaan-sosialisasikan-batasan-upah-jaminan-pensiun",
+			"https://www.bpjsketenagakerjaan.go.id/berita/29347/Korban-PHK-Dapat-60-persen-Gaji-Selama-6-Bulan%2C-Ini-Kata-Bos-BPJS-Ketenagakerjaan"
 		],
 		"minimum_wages": {
 			"DKI Jakarta": 5729876,

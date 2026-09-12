@@ -14,6 +14,24 @@
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"
 		},
-		"jurisdiction_code": "PH"
+		"jurisdiction_code": "PH",
+		"research_urls": [
+			"https://www.sss.gov.ph/pay-contribution/",
+			"https://www.sss.gov.ph/sss-circulars/",
+			"https://www.philhealth.gov.ph/advisories/",
+			"https://www.philhealth.gov.ph/advisories/2026/",
+			"https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf",
+			"https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf",
+			"https://naro.law.upd.edu.ph/bulletins?section=56",
+			"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+			"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf",
+			"https://nwpc.dole.gov.ph/",
+			"https://nwpc.dole.gov.ph/ncr/",
+			"https://nwpc.dole.gov.ph/region-iva/",
+			"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+			"https://lawphil.net/executive/proc/proc2025/proc_1006_2025.html",
+			"https://lawphil.net/executive/proc/proc2026/proc_1189_2026.html",
+			"https://lawphil.net/executive/proc/proc2026/proc_1264_2026.html"
+		]
 	}
 ]
