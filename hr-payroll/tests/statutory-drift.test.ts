@@ -12,6 +12,7 @@ import {
 	diffStatutoryFindings,
 	fetchStatutoryPages,
 	officialUrlFor,
+	researchPromptPages,
 	statutoryResearchTool
 } from '../src/lib/statutory_research.ts';
 import { applyProposedChanges, firstOfNextMonth } from '../src/automations/+statutory_drift.ts';
@@ -46,6 +47,68 @@ const sealed = {
 	pay_component: [{ code: 'OVERTIME', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }]
 };
 const quote = 'the employee contribution rate is 12% of wages';
+
+test('research retains statutory facts after navigation in long unpunctuated pages', () => {
+	for (const fact of [
+		'The monthly contribution rate is 12% of wages',
+		'全民健康保險投保金額自115年1月1日起調整為29500元',
+		'Kadar caruman bulanan berkuat kuasa Januari 2027',
+		'Mức lương tối thiểu có hiệu lực từ tháng 1 năm 2027'
+	]) {
+		const text = `${'Home About Contact '.repeat(250)} ${fact} ${'Other information '.repeat(250)}`;
+		const [focused] = researchPromptPages([{ ...page, text }], officialUrlFor([page.url]), {
+			perPageChars: 3_000,
+			totalChars: 3_000,
+			maxLinks: 40
+		});
+		assert.ok(focused.text.includes(fact), fact);
+	}
+});
+
+test('navigation cannot consume the research text and link budgets', async () => {
+	const nav = Array.from(
+		{ length: 50 },
+		(_, index) => `<a href="${page.url}/menu-${index}">Employee contribution information</a>`
+	).join('');
+	const table = `${page.url}/table.pdf`;
+	const read = await Effect.runPromise(
+		fetchStatutoryPages(
+			{
+				readUrl: (url) =>
+					Effect.succeed({
+						url,
+						body: `<nav>${nav}</nav><main><p>${page.text}</p><a href="${table}">Current table</a></main>`
+					})
+			},
+			[page.url],
+			officialUrlFor([page.url])
+		)
+	);
+	const [focused] = researchPromptPages(read.pages, officialUrlFor([page.url]));
+	assert.ok(focused.text.includes(page.text));
+	assert.ok(!focused.text.includes('Employee contribution information'));
+	assert.deepEqual(focused.links, [table]);
+});
+
+test('entry pages do not exhaust the budget for following official links', async () => {
+	const pages = Array.from({ length: 12 }, (_, index) => ({
+		...page,
+		url: `${page.url}/${index}`
+	}));
+	const next = `${page.url}/current-table`;
+	const tool = statutoryResearchTool(
+		{ readUrl: (url) => Effect.succeed({ url, body: page.text }) },
+		officialUrlFor([page.url]),
+		pages
+	);
+	await Effect.runPromise(tool.run({ url: next }));
+	assert.equal(pages.at(-1).url, next);
+	for (let index = 1; index < 12; index += 1) {
+		await Effect.runPromise(tool.run({ url: `${next}/${index}` }));
+	}
+	await assert.rejects(Effect.runPromise(tool.run({ url: `${next}/over-limit` })));
+	await Effect.runPromise(tool.run({ url: next }));
+});
 
 test('a changed band table standing on a quote from a retrieved page is one change', () => {
 	const diff = diffStatutoryFindings(

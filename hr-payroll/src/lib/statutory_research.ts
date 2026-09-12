@@ -40,7 +40,7 @@ const statutoryPageText = (html: string): string =>
 
 /** Words that mark a sentence as statutory payroll material rather than navigation or news. */
 const STATUTORY_CUES =
-	/\b(contribution|contributions|rate|rates|ceiling|cap|wage|wages|salary|leave|entitle|entitlement|employer|employee|percent|per cent|effective|w\.e\.f|from 1|monthly|annual|deduct|levy|premium|insured|threshold|minimum|maximum|statutory|act|regulation|amend|allowance|overtime|holiday|maternity|paternity|parental|childcare|sick)\b|\d+(?:\.\d+)?\s?%|(?:S\$|RM|NT\$|Rp|₱|₫|\$)\s?\d/i;
+	/\b(contribution|contributions|rate|rates|ceiling|cap|wage|wages|salary|leave|entitle|entitlement|employer|employee|percent|per cent|effective|w\.e\.f|from 1|monthly|annual|deduct|levy|premium|insured|threshold|minimum|maximum|statutory|act|regulation|amend|allowance|overtime|holiday|maternity|paternity|parental|childcare|sick|caruman|kadar|gaji|upah|iuran|cuti|berkuat)\b|保險|投保|薪資|工資|費率|退休|休假|生效|lương|bảo hiểm|hiệu lực|\d+(?:\.\d+)?\s?%|(?:S\$|RM|NT\$|Rp|₱|₫|\$)\s?\d/i;
 
 /**
  * The part of a retrieved page worth a model's attention, inside a fixed budget. Official pages
@@ -50,15 +50,16 @@ const STATUTORY_CUES =
  */
 const focusStatutoryText = (text: string, budget: number): string => {
 	if (text.length <= budget) return text;
-	const sentences = text.split(/(?<=[.!?。])\s+|\s{2,}/).map((sentence) => sentence.trim());
+	const sentences = text
+		.split(/(?<=[.!?。])\s+|\s{2,}/)
+		.flatMap((sentence) => sentence.match(/\S[\s\S]{0,599}(?=\s|$)|\S+/gu) ?? []);
 	const kept: string[] = [];
 	let used = 0;
 	for (const sentence of sentences) {
 		if (sentence.length === 0 || !STATUTORY_CUES.test(sentence)) continue;
-		const clipped = sentence.length > 600 ? `${sentence.slice(0, 600)}...` : sentence;
-		if (used + clipped.length + 1 > budget) break;
-		kept.push(clipped);
-		used += clipped.length + 1;
+		if (used + sentence.length + 1 > budget) break;
+		kept.push(sentence);
+		used += sentence.length + 1;
 	}
 	if (kept.length === 0) return `${text.slice(0, budget)}...`;
 	return `${kept.join(' ')} [focused: ${kept.length} statutory sentences of a ${text.length}-character page]`;
@@ -126,7 +127,8 @@ const fetchStatutoryPage = (
 		const page = yield* api.readUrl(url);
 		if (officialUrl(page.url) == null)
 			refuse('Official source redirected outside the origins the version names.');
-		const text = statutoryPageText(page.body);
+		const content = page.body.replace(/<(nav|header|footer|aside)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
+		const text = statutoryPageText(content);
 		if (/^(?:checking your browser|just a moment|verify you are human)\b/i.test(text))
 			refuse(
 				`Official page ${page.url} returned a browser challenge instead of statutory material.`
@@ -139,7 +141,7 @@ const fetchStatutoryPage = (
 			);
 		const links = [
 			...new Set(
-				[...page.body.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)].flatMap((match) => {
+				[...content.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)].flatMap((match) => {
 					const href = match[1].replaceAll('&amp;', '&');
 					if (!URL.canParse(href, page.url)) return [];
 					const link = new URL(href, page.url);
@@ -239,35 +241,38 @@ export const statutoryResearchTool = (
 	api: PageReader,
 	officialUrl: (url: string) => URL | null,
 	pages: ResearchPage[]
-): InferenceTool<{ readonly url: string }> => ({
-	name: 'read_official_page',
-	description:
-		'Open one official statutory page by its exact HTTPS URL and return its statutory sentences and the links it carries. Only the origins the settings version names as research URLs are fetched; follow a link from an entry page when the contribution table, leave entitlement or effective-date notice you need is on another page.',
-	input: Schema.Struct({ url: Schema.NonEmptyString }),
-	run: ({ url }) =>
-		Effect.gen(function* () {
-			const known = pages.find((page) => page.url === url || page.requested_url === url);
-			if (known === undefined && pages.length >= RESEARCH_TOOL_LIMITS.maxPages)
-				refuse(
-					`This research turn already opened ${RESEARCH_TOOL_LIMITS.maxPages} pages; answer from the pages you have.`
-				);
-			const page =
-				known ??
-				(yield* fetchStatutoryPage(
-					api,
-					url,
-					officialUrl,
-					new Date(yield* Clock.currentTimeMillis).toISOString()
-				));
-			if (known === undefined) pages.push(page);
-			const [view] = researchPromptPages([page], officialUrl, {
-				perPageChars: RESEARCH_TOOL_LIMITS.perPageChars,
-				totalChars: RESEARCH_TOOL_LIMITS.perPageChars,
-				maxLinks: RESEARCH_TOOL_LIMITS.maxLinks
-			});
-			return { url: page.url, text: view?.text ?? page.text, links: [...(view?.links ?? [])] };
-		})
-});
+): InferenceTool<{ readonly url: string }> => {
+	const maxPages = pages.length + RESEARCH_TOOL_LIMITS.maxPages;
+	return {
+		name: 'read_official_page',
+		description:
+			'Open one official statutory page by its exact HTTPS URL and return its statutory sentences and the links it carries. Only the origins the settings version names as research URLs are fetched; follow a link from an entry page when the contribution table, leave entitlement or effective-date notice you need is on another page.',
+		input: Schema.Struct({ url: Schema.NonEmptyString }),
+		run: ({ url }) =>
+			Effect.gen(function* () {
+				const known = pages.find((page) => page.url === url || page.requested_url === url);
+				if (known === undefined && pages.length >= maxPages)
+					refuse(
+						`This research turn already followed ${RESEARCH_TOOL_LIMITS.maxPages} additional pages; answer from the pages you have.`
+					);
+				const page =
+					known ??
+					(yield* fetchStatutoryPage(
+						api,
+						url,
+						officialUrl,
+						new Date(yield* Clock.currentTimeMillis).toISOString()
+					));
+				if (known === undefined) pages.push(page);
+				const [view] = researchPromptPages([page], officialUrl, {
+					perPageChars: RESEARCH_TOOL_LIMITS.perPageChars,
+					totalChars: RESEARCH_TOOL_LIMITS.perPageChars,
+					maxLinks: RESEARCH_TOOL_LIMITS.maxLinks
+				});
+				return { url: page.url, text: view?.text ?? page.text, links: [...(view?.links ?? [])] };
+			})
+	};
+};
 
 const evidence = {
 	/** The exact URL of a page that was given or opened. */
