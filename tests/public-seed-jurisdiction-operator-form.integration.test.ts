@@ -86,7 +86,7 @@ test(
 					'name',
 					'currency',
 					'tax_year_start_month',
-					'utc_offset_minutes',
+					'timezone',
 					'effective_range',
 					'minimum_wages',
 					'research_urls',

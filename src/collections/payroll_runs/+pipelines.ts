@@ -13,6 +13,7 @@ import { Effect } from 'effect';
 import type { Pipelines } from './$types.js';
 import { refuse, type TExportManifest } from '@norbital-ai/bolt/authoring';
 import { loadRunExports } from './lib/export-data.js';
+import { bankFileFor } from './lib/bank-formats.js';
 
 export default {
 	export: {
@@ -36,10 +37,21 @@ export default {
 
 				for (const run of exports) {
 					if (run.bank.length === 0 && run.skippedEmploymentIds.length === 0) continue;
+					// The entity's own bank governs the layout: the file is uploaded to the payer's bank.
+					// A bank with no formatter keeps the generic listing rather than a wrong fixed-width file.
+					const formatted =
+						run.payer === null
+							? null
+							: bankFileFor({
+									payDate: run.payDate,
+									period: run.period,
+									payer: run.payer,
+									payments: run.bank
+								});
 					actions.push({
 						label: `Bank file ${run.period}`,
 						attachments: [
-							{
+							formatted ?? {
 								name: `bank_payments_${run.period}.csv`,
 								contentType: 'CSV',
 								content: bankFileRows(
@@ -54,6 +66,7 @@ export default {
 						metadata: {
 							kind: 'bank-files',
 							period: run.period,
+							bank_format: formatted?.format ?? 'generic',
 							included_payslips: run.bank.length,
 							skipped_payslips: run.skippedEmploymentIds.length,
 							skipped_employment_ids: run.skippedEmploymentIds

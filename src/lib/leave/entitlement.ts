@@ -56,7 +56,9 @@ export function computedEntitlement(options: {
 	const projectionEnd = unlimited || rule.proration === 'NONE' ? through : end;
 	const active = daysBetween(start, projectionEnd).filter(options.eligibleOn);
 	const opening = active[0] ?? null;
-	const empty = { window, opening, unlimited, entitlement: 0, earned: 0, available: 0 };
+	// Ineligible (or not-yet-started) is no balance, never an unmetered one: an unlimited flag here
+	// would print a 0.00 row for a leave type the person cannot take at all.
+	const empty = { window, opening, unlimited: false, entitlement: 0, earned: 0, available: 0 };
 	if (opening == null || through < opening) return empty;
 	// The entitlement matrix: top-down, the first band whose predicate holds on the entitlement
 	// date is the grant; nobody matched is no days.

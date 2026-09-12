@@ -280,7 +280,7 @@ export const rateBandSchema = Schema.Struct({
 /**
  * What the model returns per lineage: the official position of each statutory row it found
  * evidence for, in the row's own shape. A row with no evidence on the pages is omitted, never
- * guessed. A band table is complete or absent.
+ * guessed. A scheme names only the bands that differ from the sealed row, never the whole table.
  */
 export const StatutoryFindingsSchema = Schema.Struct({
 	contributions: Schema.Array(
@@ -321,9 +321,8 @@ export type SealedStatutoryFacts = Readonly<{
 	pay_component: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
 }>;
 
-/** A band table in canonical order, so two spellings of one table compare equal. */
-const canonicalBands = (bands: ReadonlyArray<unknown>): string =>
-	stableJson([...bands.map(stableJson)].toSorted());
+/** The identity of a band within its scheme: its selector, in canonical form. */
+export const selectorKey = (selector: unknown): string => stableJson(selector);
 
 type StatutoryDiff = Readonly<{
 	changes: ReadonlyArray<StatutoryProposalChange>;
@@ -384,12 +383,28 @@ export function diffStatutoryFindings(
 			notes.push(`Scheme ${finding.code}: not a statutory scheme of this version`);
 			continue;
 		}
-		if (canonicalBands(scheme.bands) === canonicalBands(finding.bands)) continue;
+		if (finding.bands.length === 0) continue;
+		// A finding names only the bands that differ from the sealed row. Each is matched to the
+		// sealed band with the same selector: a changed award replaces it, a selector the sealed
+		// table does not hold adds a band, and a band the pages restate unchanged is dropped rather
+		// than proposed. This is what keeps a four-thousand-band table out of the model's answer.
 		const page = verified(finding, 'Scheme');
 		if (page == null) continue;
-		changes.push(
-			change('statutory_contributions', 'bands', finding, page, scheme.bands, finding.bands)
-		);
+		for (const band of finding.bands) {
+			const key = selectorKey(band.selector);
+			const prior = scheme.bands.find((row) => selectorKey(row.selector) === key);
+			if (prior !== undefined && stableJson(prior) === stableJson(band)) continue;
+			changes.push(
+				change(
+					'statutory_contributions',
+					'bands',
+					finding,
+					page,
+					prior === undefined ? [] : [prior],
+					[band]
+				)
+			);
+		}
 	}
 	for (const finding of findings.leave_catalogue) {
 		const type = sealed.leave_catalogue.find((row) => row.code === finding.code);
