@@ -91,6 +91,9 @@
 					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
 					<Field name="pay_frequency" label={t('component.pay_frequency')} />
 					<Field name="workbook_layout" label={t('component.workbook_layout')} />
+					<Column span="all">
+						<Field name="disbursement_account" label={t('component.disbursement_account')} />
+					</Column>
 					<Field
 						name="risk_class"
 						label={t('component.statutory_risk_class')}
