@@ -92,7 +92,7 @@ export function prepareLeavePayroll(options: {
 				balances[catalogue.code] =
 					leaveBalanceAt({
 						entries: entries.filter((row) => row.leave_code === catalogue.code),
-						window: leaveWindowOf(options.asOf, catalogue.entitlement.year_start_month),
+						window: leaveWindowOf(options.asOf, catalogue.entitlement),
 						date: options.asOf,
 						entitlementAt: rules.entitlementAt
 					}).balance ?? 0;

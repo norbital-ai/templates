@@ -72,6 +72,16 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-hr24-settings-version');
 		try {
+			// ID/TW seed monthly allowances must survive the same clone that drift uses.
+			await session.query(`update leave_catalogue set entitlement = $1 where settings_id = $2`, [
+				{
+					availability: 'MONTHLY',
+					proration: 'NONE',
+					year_start_month: 1,
+					bands: [{ eligibility: '', days: 1 }]
+				},
+				JURISDICTION_ID
+			]);
 			const before = await childRows(session, JURISDICTION_ID);
 
 			const originalWork = before.work_catalogue![0]!;

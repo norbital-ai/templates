@@ -2,8 +2,7 @@ import { refuse, type AutomationApi, type InferenceTool } from '@norbital-ai/bol
 import { getErrorMessage } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
-import { rateSelectorValueSchema } from '../datatypes/rate_selector/+definition.js';
-import { rateAwardValueSchema } from '../datatypes/rate_award/+definition.js';
+import { contributionBandSchema as rateBandSchema } from '../datatypes/contribution_bands/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsValueSchema } from '../datatypes/contribution_treatments/+definition.js';
 import type {
@@ -290,10 +289,7 @@ const evidence = {
 	quote: Schema.NonEmptyString
 } as const;
 
-export const rateBandSchema = Schema.Struct({
-	selector: rateSelectorValueSchema,
-	award: rateAwardValueSchema
-});
+export { rateBandSchema };
 
 /**
  * What the model returns per lineage: the official position of each statutory row it found
@@ -339,8 +335,9 @@ export type SealedStatutoryFacts = Readonly<{
 	pay_component: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
 }>;
 
-/** The identity of a band within its scheme: its selector, in canonical form. */
-export const selectorKey = (selector: unknown): string => stableJson(selector);
+/** Equal wage ranges can belong to different eligibility ladders. */
+export const bandKey = (band: Schema.Schema.Type<typeof rateBandSchema>): string =>
+	stableJson([band.selector, (band.eligibility ?? '').trim()]);
 
 type StatutoryDiff = Readonly<{
 	changes: ReadonlyArray<StatutoryProposalChange>;
@@ -409,9 +406,9 @@ export function diffStatutoryFindings(
 		const page = verified(finding, 'Scheme');
 		if (page == null) continue;
 		for (const band of finding.bands) {
-			const key = selectorKey(band.selector);
-			const prior = scheme.bands.find((row) => selectorKey(row.selector) === key);
-			if (prior !== undefined && stableJson(prior) === stableJson(band)) continue;
+			const key = bandKey(band);
+			const prior = scheme.bands.find((row) => bandKey(row) === key);
+			if (prior !== undefined && stableJson(prior.award) === stableJson(band.award)) continue;
 			changes.push(
 				change(
 					'statutory_contributions',

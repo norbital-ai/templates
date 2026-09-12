@@ -123,7 +123,7 @@ function grant(
 	if (!isEligible(row.eligibility, personOn(asOf))) return null;
 	return computedEntitlement({
 		rule: row.entitlement,
-		window: leaveWindowOf(asOf, row.entitlement.year_start_month),
+		window: leaveWindowOf(asOf, row.entitlement),
 		asOf,
 		hireDate: hire,
 		exitDate: null,

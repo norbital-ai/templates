@@ -46,9 +46,10 @@
 		}))
 	);
 	const prorationOptions = $derived(
-		(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS'] as const)
-			.filter((value) => current.availability !== 'MONTHLY' || value !== 'NONE')
-			.map((value) => ({ value, label: t(`leave.proration.${value}`) }))
+		(['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'CALENDAR_DAYS'] as const).map((value) => ({
+			value,
+			label: t(`leave.proration.${value}`)
+		}))
 	);
 	const rows = $derived<Band[]>(
 		current.bands.map((band, index) => ({ id: `band-${index}`, ...band }))
@@ -80,15 +81,7 @@
 						{disabled}
 						searchable={false}
 						onValueChange={(availability) => {
-							if (availability)
-								emit({
-									...current,
-									availability,
-									proration:
-										availability === 'MONTHLY' && current.proration === 'NONE'
-											? 'CALENDAR_MONTHS'
-											: current.proration
-								});
+							if (availability) emit({ ...current, availability });
 						}}
 					/>
 				</Stack></label

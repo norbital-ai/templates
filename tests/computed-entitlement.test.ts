@@ -106,10 +106,9 @@ test('the catalogue schema admits no automatic carry or encashment policy', () =
 	);
 });
 
-test('a monthly release without earning rules is refused', () => {
-	assert.throws(() =>
-		Schema.decodeUnknownSync(leaveEntitlementValueSchema)({ ...base, availability: 'MONTHLY' })
-	);
+test('a monthly allowance without proration is accepted', () => {
+	const monthly = { ...base, availability: 'MONTHLY' };
+	assert.deepEqual(Schema.decodeUnknownSync(leaveEntitlementValueSchema)(monthly), monthly);
 });
 
 test('bands read top-down: the first predicate that holds is the grant, and a tier can key on grade', () => {

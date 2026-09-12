@@ -877,7 +877,7 @@
 	"renderer.entitlement_cap.period": "按",
 	"renderer.entitlement_cap.who": "对象",
 	"renderer.leave_entitlement.empty": "暂无档位。有额度上限的假期没有档位时不给任何人天数。",
-	"renderer.leave_entitlement.identity": "自上而下读取：第一条条件成立的行即为额度；留空表示所有人；无一匹配则无天数。",
+	"renderer.leave_entitlement.identity": "自上而下读取：第一条匹配的行即为额度；留空表示所有人。按月且不按比例计算时，每月重新提供该天数；按比例计算时，在月末释放已赚取的年度天数。",
 	"renderer.leave_event.reason": "原因",
 	"renderer.leave_treatments.absence": "缺勤",
 	"renderer.leave_treatments.absence_rule": "缺勤规则",

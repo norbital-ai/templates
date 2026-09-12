@@ -4,7 +4,9 @@ import { Schema } from 'effect';
 /**
  * Availability and earning belong to the leave definition, never to a yearly account. The bands
  * are the entitlement matrix: rows of who and how many days, read top-down on the entitlement
- * date, the first predicate that holds being the grant; nobody matched is no days. A service
+ * date, the first predicate that holds being the grant; nobody matched is no days. MONTHLY with
+ * NONE proration grants the stated days afresh each calendar month, without automatic carry.
+ * MONTHLY with proration releases earned annual leave at month end. A service
  * tier is `employment.service_months >= 24`; a grade tier is `terms.grade == "M1"`.
  */
 export const leaveEntitlementValueSchema = Schema.Struct({
@@ -18,14 +20,7 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 			days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 		})
 	)
-}).check(
-	Schema.makeFilter(
-		(rule) =>
-			rule.availability !== 'MONTHLY' ||
-			rule.proration !== 'NONE' ||
-			'Monthly release requires a monthly or daily earning basis.'
-	)
-);
+});
 export type LeaveEntitlement = Schema.Schema.Type<typeof leaveEntitlementValueSchema>;
 export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlementValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }

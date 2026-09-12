@@ -7,7 +7,15 @@ import {
 } from '../src/lib/leave/entitlement.ts';
 import { leaveRules } from '../src/lib/leave/context.ts';
 import type { LeaveEntitlement } from '../src/datatypes/leave_entitlement/+definition.ts';
-import { annualWindow, id, leaveContext } from './helpers/manual-leave-context.ts';
+import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.ts';
+import {
+	annualWindow,
+	id,
+	leaveContext,
+	approve,
+	timeOff
+} from './helpers/manual-leave-context.ts';
+import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 const rule: LeaveEntitlement = {
@@ -42,6 +50,36 @@ test('annual windows handle fiscal starts and leap-year boundaries', () => {
 	assert.deepEqual(leaveWindowOf('2026-04-01', 4), { start: '2026-04-01', end: '2027-03-31' });
 	assert.throws(() => assertLeaveWindow(annualWindow, 4), /annual period/);
 	assert.throws(() => leaveWindowOf('2026-02-30', 1), /valid date/);
+});
+
+test('a non-prorated monthly allowance opens in full each calendar month', async () => {
+	const monthly: LeaveEntitlement = {
+		...rule,
+		availability: 'MONTHLY',
+		proration: 'NONE',
+		bands: [{ eligibility: '', days: 1 }]
+	};
+	const decoded = await leaveEntitlementSchema['~standard'].validate(monthly);
+	assert.equal(decoded.issues, undefined);
+	const window = leaveWindowOf('2024-02-15', monthly);
+	assert.deepEqual(window, { start: '2024-02-01', end: '2024-02-29' });
+	const result = calculate({ rule: monthly, window, asOf: '2024-02-01', hireDate: '2023-01-01' });
+	assert.deepEqual([result.entitlement, result.earned, result.available], [1, 1, 1]);
+});
+
+test('monthly allowances enforce each month separately and do not accumulate unused days', () => {
+	const context = leaveContext();
+	context.catalogues[0]!.entitlement = {
+		availability: 'MONTHLY',
+		proration: 'NONE',
+		year_start_month: 1,
+		bands: [{ eligibility: '', days: 1 }]
+	};
+	approve(context, timeOff('2026-01-30'));
+	assert.throws(() => approve(context, timeOff('2026-01-31'), 11), /Insufficient leave/);
+	approve(context, timeOff('2026-02-01'), 12);
+	assert.equal(leaveBalanceSummaries(context, id(1), '2026-02-28')[0]!.available, 0);
+	assert.equal(leaveBalanceSummaries(context, id(1), '2026-04-01')[0]!.available, 1);
 });
 
 test('upfront availability and earned leave are computed separately without opening or accrual writes', () => {

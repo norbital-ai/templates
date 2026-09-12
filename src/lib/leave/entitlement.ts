@@ -12,18 +12,34 @@ import {
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
-export function leaveWindowOf(date: string, startMonth: number): LeaveWindow {
+/** MONTHLY without proration is a fresh allowance per calendar month; earned annual leave keeps its annual window. */
+export function leaveWindowOf(
+	date: string,
+	period: number | Pick<LeaveEntitlement, 'year_start_month' | 'availability' | 'proration'>
+): LeaveWindow {
+	const startMonth = typeof period === 'number' ? period : period.year_start_month;
 	if (!isCalendarDate(date) || !Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12)
 		refuse('A leave window needs a valid date and annual starting month.');
+	if (
+		typeof period !== 'number' &&
+		period.availability === 'MONTHLY' &&
+		period.proration === 'NONE'
+	)
+		return monthBounds(date.slice(0, 7));
 	const year = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < startMonth ? 1 : 0);
 	const start = monthDay(year, startMonth - 1, 1);
 	return { start, end: addDays(monthDay(year + 1, startMonth - 1, 1), -1) };
 }
 
-export function assertLeaveWindow(window: LeaveWindow, startMonth: number): void {
-	const expected = leaveWindowOf(window.start, startMonth);
+export function assertLeaveWindow(
+	window: LeaveWindow,
+	period: Parameters<typeof leaveWindowOf>[1]
+): void {
+	const expected = leaveWindowOf(window.start, period);
 	if (window.start !== expected.start || window.end !== expected.end)
-		refuse('The stated window must match the leave catalogue’s annual period.');
+		refuse(
+			'The stated window must match the leave catalogue’s annual period or monthly allowance.'
+		);
 }
 
 /** An as-of query over effective rules and employment facts; this creates no records. */
@@ -39,7 +55,7 @@ export function computedEntitlement(options: {
 	readonly personOn: (date: string) => PersonContext;
 }) {
 	const { rule, window } = options;
-	assertLeaveWindow(window, rule.year_start_month);
+	assertLeaveWindow(window, rule);
 	if (
 		!isCalendarDate(options.asOf) ||
 		!isCalendarDate(options.hireDate) ||
@@ -109,7 +125,7 @@ export function computedEntitlement(options: {
 			? through
 			: addDays(monthBounds(through.slice(0, 7)).start, -1);
 	const available =
-		rule.availability === 'UPFRONT'
+		rule.availability === 'UPFRONT' || rule.proration === 'NONE'
 			? entitlement
 			: roundHalfDay(target * fraction(releasedThrough));
 	return { window, opening, unlimited: false, entitlement, earned, available };
