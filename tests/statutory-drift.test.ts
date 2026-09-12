@@ -287,6 +287,23 @@ test('every source failing is no page and every source recorded, never a silent 
 	assert.ok(read.unreachable.every((row) => /ENOTFOUND/.test(row.reason)));
 });
 
+test('an HTTP-success browser challenge is recorded as unreadable rather than statutory evidence', async () => {
+	const reader = {
+		readUrl: (url: string) =>
+			Effect.succeed({
+				url,
+				contentType: 'text/html',
+				body: '<title>Checking your browser - reCAPTCHA</title><p>Checking your browser before accessing the official site. Click here if you are not automatically redirected after 5 seconds.</p>'
+			})
+	};
+	const read = await Effect.runPromise(
+		fetchStatutoryPages(reader, [page.url], officialUrlFor([page.url]))
+	);
+	assert.deepEqual(read.pages, []);
+	assert.equal(read.unreachable.length, 1);
+	assert.match(read.unreachable[0].reason, /browser challenge/);
+});
+
 test('a refusal of this module is a recorded reason too: an origin the version does not name', async () => {
 	const officialUrl = officialUrlFor([page.url]);
 	const read = await Effect.runPromise(
