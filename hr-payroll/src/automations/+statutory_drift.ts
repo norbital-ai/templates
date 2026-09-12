@@ -84,6 +84,8 @@ const STATUTORY_RESEARCH_ATTEMPTS = 3;
  * than a dead process; it is not a performance target.
  */
 const STATUTORY_LINEAGE_TIMEOUT = '20 minutes';
+/** How many lineages one run researches at once. Bounded so a burst does not meet an upstream 429. */
+const STATUTORY_LINEAGE_CONCURRENCY = 4;
 type StatutoryFindings = Schema.Schema.Type<typeof StatutoryFindingsSchema>;
 
 /** Sealed versions of one workspace, read whole; a workspace never carries thousands. */
@@ -454,60 +456,69 @@ export const runStatutoryDrift = (api: AutomationApi, onlyCode?: string) =>
 			refuse(`No jurisdiction settings lineage is named ${onlyCode}.`);
 		const lineages = onlyCode == null ? codes : [onlyCode];
 
-		const outcomes: LineageOutcome[] = [];
-		const failures: string[] = [];
-		for (const [index, code] of lineages.entries()) {
-			yield* api.progress({
-				progress: 0.1 + (index / Math.max(1, lineages.length)) * 0.85,
-				text: `Checking ${code} (${index + 1}/${lineages.length})`
-			});
-			const exit = yield* Effect.exit(
+		// Lineages are independent, so they run concurrently: one slow lineage must not hold the rest
+		// behind it. Bounded, not unbounded — each lineage fans out to provider calls, and an
+		// unbounded burst is exactly what meets an upstream 429. Result order is preserved.
+		const perLineage = yield* Effect.forEach(
+			lineages,
+			(code, index) =>
 				Effect.gen(function* () {
-					const inForce = settingsInForce(versions, code, today);
-					if (inForce == null)
-						return {
-							code,
-							status: 'no_version_in_force' as const,
-							version_id: null,
-							draft_id: null,
-							changes: 0,
-							sources: NO_SOURCES,
-							notes: []
-						};
-					// One proposal at a time: an open drift draft of the lineage is HR's to review or
-					// delete before the next one is offered, whichever version it was cloned from.
-					const open = versions.find(
-						(version) =>
-							version.code === code &&
-							!isInForceCandidate(version) &&
-							version.sealed_at == null &&
-							version.voided_at == null &&
-							isStatutoryProposal(version.research_notes)
+					yield* api.progress({
+						progress: 0.1 + (index / Math.max(1, lineages.length)) * 0.6,
+						text: `Checking ${code} (${index + 1}/${lineages.length})`
+					});
+					const exit = yield* Effect.exit(
+						Effect.gen(function* () {
+							const inForce = settingsInForce(versions, code, today);
+							if (inForce == null)
+								return {
+									code,
+									status: 'no_version_in_force' as const,
+									version_id: null,
+									draft_id: null,
+									changes: 0,
+									sources: NO_SOURCES,
+									notes: []
+								};
+							// One proposal at a time: an open drift draft of the lineage is HR's to review or
+							// delete before the next one is offered, whichever version it was cloned from.
+							const open = versions.find(
+								(version) =>
+									version.code === code &&
+									!isInForceCandidate(version) &&
+									version.sealed_at == null &&
+									version.voided_at == null &&
+									isStatutoryProposal(version.research_notes)
+							);
+							if (open != null)
+								return {
+									code,
+									status: 'proposal_open' as const,
+									version_id: inForce.id,
+									draft_id: open.id,
+									changes: 0,
+									sources: NO_SOURCES,
+									notes: []
+								};
+							return yield* researchLineage(api, code, inForce.id, today);
+						}).pipe(
+							Effect.timeoutOrElse({
+								duration: STATUTORY_LINEAGE_TIMEOUT,
+								orElse: () =>
+									Effect.die(
+										new Error(`The ${code} lineage exceeded ${STATUTORY_LINEAGE_TIMEOUT}.`)
+									)
+							})
+						)
 					);
-					if (open != null)
-						return {
-							code,
-							status: 'proposal_open' as const,
-							version_id: inForce.id,
-							draft_id: open.id,
-							changes: 0,
-							sources: NO_SOURCES,
-							notes: []
-						};
-					return yield* researchLineage(api, code, inForce.id, today);
-				}).pipe(
-					Effect.timeoutOrElse({
-						duration: STATUTORY_LINEAGE_TIMEOUT,
-						orElse: () =>
-							Effect.die(
-								new Error(`The ${code} lineage exceeded ${STATUTORY_LINEAGE_TIMEOUT}.`)
-							)
-					})
-				)
-			);
-			if (Exit.isSuccess(exit)) outcomes.push(exit.value);
-			else failures.push(`${code}: ${describeCause(exit.cause)}`);
-		}
+					return { code, exit };
+				}),
+			{ concurrency: STATUTORY_LINEAGE_CONCURRENCY }
+		);
+		const outcomes = perLineage.flatMap(({ exit }) => (Exit.isSuccess(exit) ? [exit.value] : []));
+		const failures = perLineage.flatMap(({ code, exit }) =>
+			Exit.isSuccess(exit) ? [] : [`${code}: ${describeCause(exit.cause)}`]
+		);
 		// A partial run is a success with the failure named. Only when nothing succeeded is there no
 		// outcome to report, and then the run fails so the schedule retries it.
 		if (outcomes.length === 0 && failures.length > 0)
