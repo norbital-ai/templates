@@ -105,10 +105,19 @@ export const researchPromptPages = (
 ): ReadonlyArray<Readonly<{ url: string; text: string; links: readonly string[] }>> => {
 	const share = Math.max(2_000, Math.floor(limits.totalChars / Math.max(1, pages.length)));
 	const budget = Math.min(limits.perPageChars, share);
+	const documentPath = /\.(?:pdf|csv|json|xml|txt)$|\/(?:files|download|dataset)(?:\/|$)/i;
 	return pages.map((page) => ({
 		url: page.url,
 		text: focusStatutoryText(page.text, budget),
-		links: page.links.filter((link) => officialUrl(link) != null).slice(0, limits.maxLinks)
+		links: page.links
+			.filter((link) => officialUrl(link) != null)
+			// Older government sites use div menus; their downloads must not lose to those links.
+			.sort(
+				(left, right) =>
+					Number(documentPath.test(new URL(right).pathname)) -
+					Number(documentPath.test(new URL(left).pathname))
+			)
+			.slice(0, limits.maxLinks)
 	}));
 };
 
