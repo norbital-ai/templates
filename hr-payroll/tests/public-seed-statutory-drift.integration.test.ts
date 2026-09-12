@@ -360,11 +360,7 @@ test(
 			const thirdRun = await runOf(asRecord(third.value, 'start').taskId);
 			assert.equal(thirdRun.status, 'done', JSON.stringify(thirdRun));
 			const thirdResult = asRecord(thirdRun.result, 'third result');
-			assert.match(
-				JSON.stringify(thirdResult.failures),
-				/PUB2: /,
-				'the failure names the lineage'
-			);
+			assert.match(JSON.stringify(thirdResult.failures), /PUB2: /, 'the failure names the lineage');
 			const thirdLineages = thirdResult.lineages as ReadonlyArray<Record<string, unknown>>;
 			assert.deepEqual(
 				thirdLineages.map((row) => [row.code, row.status, row.draft_id]),

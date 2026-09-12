@@ -127,6 +127,10 @@ const fetchStatutoryPage = (
 		if (officialUrl(page.url) == null)
 			refuse('Official source redirected outside the origins the version names.');
 		const text = statutoryPageText(page.body);
+		if (/^(?:checking your browser|just a moment|verify you are human)\b/i.test(text))
+			refuse(
+				`Official page ${page.url} returned a browser challenge instead of statutory material.`
+			);
 		if (text.length < 40)
 			refuse(`Official page ${page.url} contains no readable statutory material.`);
 		if (text.length > 80_000)
