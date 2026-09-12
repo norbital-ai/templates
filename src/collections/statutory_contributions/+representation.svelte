@@ -81,6 +81,7 @@
 					<Grid gap="sm" minimum="compact">
 						<Field name="sequence" label={t('component.order')} />
 						<Field name="rounding" label={t('component.rounding')} />
+						<Field name="assessed" label={t('component.assessment_period')} />
 					</Grid>
 				</FormSection>
 

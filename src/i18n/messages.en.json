@@ -484,6 +484,7 @@
 	"component.risk_class_hint": "The occupational risk group the entity is rated in, where its regime prices a contribution by risk. Indonesia's JKK is the one such scheme here: class {class_iv} is charged at 0.89% and class {class_i} at 0.24%, so an Indonesian entity left blank matches no band and its payroll run stops by name rather than quietly charging nothing. Malaysian and Philippine entities have no risk-keyed contribution and correctly leave this empty.",
 	"component.roster_rows": "roster rows",
 	"component.rounding": "Rounding",
+	"component.assessment_period": "Assessment period",
 	"component.salary_month": "Salary month",
 	"component.save_allowance": "Save allowance",
 	"component.save_catalogue_component": "Save component",
