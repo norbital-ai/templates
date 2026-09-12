@@ -484,6 +484,7 @@
 	"component.risk_class_hint": "该实体所属的职业风险等级，其制度按风险定价缴费。印度尼西亚的 JKK 是此处唯一此类计划：{class_iv} 级按 0.89% 计费，{class_i} 级按 0.24%，因此印尼实体留空将无法匹配任何区间，其薪酬核算会按名称停住，而不是悄然不扣费。马来西亚和菲律宾实体没有按风险缴费的项目，正确做法即留空。",
 	"component.roster_rows": "条排班记录",
 	"component.rounding": "取整",
+	"component.assessment_period": "计征周期",
 	"component.salary_month": "工资月份",
 	"component.save_allowance": "保存津贴",
 	"component.save_catalogue_component": "保存薪酬项目",
