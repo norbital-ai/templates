@@ -29,7 +29,8 @@ corresponding tool result is present.** Keep final answers concise.
 - A **loan** is the agreement; a **loan repayment** is one amount due under it. Payroll consumes
   repayment rows, never the loan master.
 - A **payroll run** covers a period and produces payslips. A run that exists asserts that a period
-  was calculated, so a run without payslips under it is a fault, not a draft.
+  was calculated, so a run without payslips under it is a refused or failed build, not a calculated
+  payroll.
 - **Consumption is an exact stored link, not a date inference.** A `work_days`, `claim_requests` or
   `payment_requests` row is consumed when its own `settled_payslip_id` is set; the `settled_period`
   beside it names the period that holds it. A standing allowance, a leave entry and a loan repayment

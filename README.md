@@ -76,7 +76,7 @@ manual encashment, carry-forward, adjustments and reversals.
 
 | Area               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Entities           | Select the legal entity; its Holidays tab holds the entity's calendar and Google source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Entities           | Select the legal entity; its Holidays tab holds the entity's holidays and Google source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | People             | Profiles, contracts, departures, effective terms and statutory facts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Events             | Work, Leave, Claim, Allowance, Adhoc and Loan records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Payroll            | Create the regular period, review results, mark paid and export                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -97,7 +97,7 @@ policies remain authoritative.
 `statutory_drift` checks configured official research sources monthly. It proposes a draft settings
 revision with review notes; a person reviews and seals it. It never edits a sealed version or seals
 its own proposal. `holiday_import` uses the managed Google Calendar connection to fetch each
-entity's annual source pages and save review candidates; it cannot publish calendars. There are no automatic
+entity's source pages and save review candidates; it cannot publish holidays. There are no automatic
 encashment, carry-forward or annual entitlement jobs.
 
 ## Source layout
@@ -128,10 +128,10 @@ dispatching their calculation definitions. See [Architecture](docs/architecture.
 
 ## Verification and changes
 
-The family source boundary is implemented. Artifact sync, type checks, full-suite and browser
-verification of the combined change set remain in progress; local source is not a deployed tenant
-release. Holiday imports also require a configured managed `GOOGLE_CALENDAR_API_KEY` and a reviewed
-source for each entity.
+The family source boundary is implemented, and the combined change set is verified locally by
+artifact sync, type checks, the full suite and browser acceptance. Local source is not a deployed
+tenant release. Holiday imports also require a configured managed `GOOGLE_CALENDAR_API_KEY` and a
+reviewed source for each entity.
 
 Acceptance tests use invented public fixtures under `tests/fixtures/seed/` and the isolated Bolt
 self-host. Confidential reconciliation inputs are not test fixtures. See

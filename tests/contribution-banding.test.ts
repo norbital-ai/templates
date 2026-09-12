@@ -323,3 +323,32 @@ test('scaling through a band that is not progressive is refused by name', () => 
 		/PUB-EPF band 0 – ∞ is not a progressive award/
 	);
 });
+
+test('a MONTH-assessed scheme charges once, on the month wage, and nothing in the closing period', () => {
+	// A monthly schedule at a semi-monthly company: the first period carries the month's charge on
+	// the month's wage (2 × the half), the closing period carries none. No country names this rule.
+	const monthly = schemeOf('MONTHLY', LADDER, { assessed: 'MONTH' });
+	const opening = charge([monthly], 2000, {
+		assessment: { periodsPerMonth: 2, periodIndex: 1 }
+	})[0]!;
+	assert.equal(opening.base, 4000, 'the base is grossed to the month');
+	assert.equal(opening.employee, 120, '3% of 4,000');
+	assert.equal(opening.employer, 160, '4% of 4,000');
+
+	const closing = charge([monthly], 2000, {
+		assessment: { periodsPerMonth: 2, periodIndex: 2 }
+	})[0]!;
+	assert.equal(closing.base, 0, 'the closing period charges nothing');
+	assert.equal(closing.employee, 0);
+	assert.equal(closing.employer, 0);
+
+	// A per-period scheme is untouched, and at a monthly company (one period) neither is scaled.
+	const perPeriod = charge([schemeOf('PERIOD', LADDER)], 1000, {
+		assessment: { periodsPerMonth: 2, periodIndex: 1 }
+	})[0]!;
+	assert.equal(perPeriod.base, 1000);
+	const monthlyCompany = charge([monthly], 1000, {
+		assessment: { periodsPerMonth: 1, periodIndex: 1 }
+	})[0]!;
+	assert.equal(monthlyCompany.base, 1000);
+});

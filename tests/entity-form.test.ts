@@ -84,6 +84,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'research_urls',
 		'sealed_at',
 		'tax_year_start_month',
+		'utc_offset_minutes',
 		'void_reason',
 		'voided_at'
 	]);

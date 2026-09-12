@@ -9,6 +9,7 @@
 		"cloned_from_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
 		"currency": "MYR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "2026-06-01T00:00:00.000Z"
@@ -34,6 +35,7 @@
 		"cloned_from_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"currency": "MYR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-06-01T00:00:00.000Z",
 			"end": "2026-07-09T00:00:00.000Z"
@@ -55,6 +57,7 @@
 		"cloned_from_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"currency": "MYR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-07-09T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"

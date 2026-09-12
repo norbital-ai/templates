@@ -47,10 +47,10 @@ test(
 			await session.query(
 				`insert into jurisdiction_settings
 				   (id, code, jurisdiction_code, name, sealed_at, voided_at, void_reason, cloned_from_id, currency,
-				    tax_year_start_month, effective_range,
+				    tax_year_start_month, utc_offset_minutes, effective_range,
 				    approval_id, created_at, updated_at)
 				 select $1, code, jurisdiction_code, 'Public fixture profile (superseded)', '2018-01-01T00:00:00.000Z',
-				        null, null, id, currency, tax_year_start_month,
+				        null, null, id, currency, tax_year_start_month, utc_offset_minutes,
 				        $2::jsonb, null, created_at, updated_at
 				   from jurisdiction_settings where id = $3`,
 				[

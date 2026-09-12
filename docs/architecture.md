@@ -6,14 +6,14 @@ one result graph. Catalogue content is the policy; there is no separate policy o
 business action.
 
 This document describes the implemented family source boundary. The combined contract and Adhoc
-changes remain under integration: artifact sync, generated migrations, type checks,
-full-suite checks and browser acceptance are still required. No deployment status is implied.
+changes are verified locally by artifact sync, generated migrations, type checks, full-suite checks
+and browser acceptance. No deployment status is implied.
 
 ## Identity and family ownership
 
 `employees` identifies a person. `employments` identifies one contract with one legal entity and one
 uninterrupted service period. Every employee event, loan instalment and payslip references its
-`employment_id`; shared catalogues and entity holiday calendars are not employee events.
+`employment_id`; shared catalogues and entity holidays are not employee events.
 
 For each employee/entity pair, service dates cannot overlap, including future contracts. Departure
 is the last active day, so a same-entity rehire starts later. A person may simultaneously have active
@@ -102,8 +102,8 @@ than ids and one file may carry every entity at once; a name that resolves to no
 whole file naming every such row, and a day duplicated in the file or already on record is reported
 with its reason rather than counted.
 
-The holidays surface is the entity's own, paginated a year at a time — a calendar is maintained a
-year at a time, and a table showing every year at once cannot be checked against a gazette.
+The holidays surface is the entity's own, paginated a year at a time — a year's worth is reviewed at
+a time, and a table showing every year at once cannot be checked against a gazette.
 
 A holiday that has been read is history, and the freeze derives from the live references,
 not a stamp. A work day classified as a holiday pins it (`work_days.holiday_id`) and payroll
@@ -536,7 +536,7 @@ A hash alone cannot reproduce a result. Captures preserve business source identi
 
 Controller uses a shared entity selection. People holds profiles, contracts, terms, statutory facts
 and departures. Events has Work, Leave, Claim, Allowance, Adhoc and Loan pages. Settings → Catalog
-holds family definitions, including Contribution; the entity's Holidays tab owns import, review and annual
+holds family definitions, including Contribution; the entity's Holidays tab owns import, review and
 publication. Employee Events presents the same family navigation scoped to the selected contract.
 
 Scheduling and Leave use related reads for source rows, effective terms, calendars and captures.

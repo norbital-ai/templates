@@ -9,6 +9,7 @@
 		"cloned_from_id": null,
 		"currency": "PHP",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"

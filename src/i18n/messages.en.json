@@ -561,6 +561,7 @@
 	"component.swift_routing_code": "SWIFT or routing code",
 	"component.tab_overview": "Overview",
 	"component.tax_year_start_month": "Tax year starts (month)",
+	"component.utc_offset_minutes": "UTC offset (minutes)",
 	"component.terms_section_organisation": "Organisation",
 	"component.terms_section_organisation_hint": "Where the person sits; a catalogue tier may name the department or the payroll group.",
 	"component.terms_section_pay": "Pay",
