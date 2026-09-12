@@ -39,13 +39,20 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"research_urls": [
+			"https://www.mol.gov.tw/1607/1632/1633/",
 			"https://www.mol.gov.tw/1607/1632/1633/84947/post",
-			"https://www.bli.gov.tw/Files/25659",
+			"https://www.bli.gov.tw/0011588.html",
+			"https://www.bli.gov.tw/0106148.html",
+			"https://www.bli.gov.tw/0014162.htm",
+			"https://www.bli.gov.tw/Files/25664",
 			"https://www.bli.gov.tw/Files/25709",
-			"https://www.nhi.gov.tw/ch/cp-19421-f9533-2569-1.html",
+			"https://data.gov.tw/dataset/20251",
+			"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
 			"https://law-out.mof.gov.tw/LawContent.aspx?id=FL005962",
 			"https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=N0030006",
-			"https://www.dgpa.gov.tw/information?uid=41&pid=12573"
+			"https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=13",
+			"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
+			"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
 		],
 		"jurisdiction_code": "TW"
 	}
