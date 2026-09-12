@@ -235,8 +235,10 @@ CREATE TABLE "jurisdiction_settings" (
 	"cloned_from_id" uuid,
 	"currency" text NOT NULL,
 	"tax_year_start_month" integer NOT NULL,
+	"utc_offset_minutes" integer DEFAULT 480 NOT NULL,
 	"research_urls" text[],
 	"research_notes" jsonb,
+	"change_summary" text,
 	"minimum_wages" jsonb,
 	"effective_range" jsonb NOT NULL
 );
@@ -478,8 +480,8 @@ CREATE TABLE "shift_definitions" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", '') || ' ' || coalesce("name", ''))) STORED,
-	"company_id" uuid NOT NULL,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", '') || ' ' || coalesce("name", '') || ' ' || coalesce("settings_code", ''))) STORED,
+	"settings_code" text NOT NULL,
 	"code" text NOT NULL,
 	"name" text NOT NULL,
 	"variant" jsonb NOT NULL,
@@ -494,8 +496,8 @@ CREATE TABLE "shift_patterns" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
-	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", '') || ' ' || coalesce("name", ''))) STORED,
-	"company_id" uuid NOT NULL,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("code", '') || ' ' || coalesce("name", '') || ' ' || coalesce("settings_code", ''))) STORED,
+	"settings_code" text NOT NULL,
 	"code" text NOT NULL,
 	"name" text NOT NULL,
 	"pattern" jsonb NOT NULL,
@@ -517,6 +519,7 @@ CREATE TABLE "statutory_contributions" (
 	"is_statutory" boolean DEFAULT true NOT NULL,
 	"authority" text,
 	"rounding" text NOT NULL,
+	"assessed" text DEFAULT 'PAY_PERIOD' NOT NULL,
 	"relief_for" uuid[] NOT NULL,
 	"eligibility" text DEFAULT '' NOT NULL,
 	"sequence" integer NOT NULL,
@@ -692,17 +695,17 @@ CREATE INDEX "payslips_search_document_gin_idx" ON "payslips" USING gin ("search
 --> statement-breakpoint
 CREATE INDEX "payslips_search_text_trgm_idx" ON "payslips" USING gin ((coalesce("currency", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "shift_definitions_company_id_code_index" ON "shift_definitions" ("company_id","code");
+CREATE UNIQUE INDEX "shift_definitions_settings_code_code_index" ON "shift_definitions" ("settings_code","code");
 --> statement-breakpoint
 CREATE INDEX "shift_definitions_search_document_gin_idx" ON "shift_definitions" USING gin ("search_document");
 --> statement-breakpoint
-CREATE INDEX "shift_definitions_search_text_trgm_idx" ON "shift_definitions" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '')) gin_trgm_ops);
+CREATE INDEX "shift_definitions_search_text_trgm_idx" ON "shift_definitions" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '') || ' ' || coalesce("settings_code", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE UNIQUE INDEX "shift_patterns_company_id_code_index" ON "shift_patterns" ("company_id","code");
+CREATE UNIQUE INDEX "shift_patterns_settings_code_code_index" ON "shift_patterns" ("settings_code","code");
 --> statement-breakpoint
 CREATE INDEX "shift_patterns_search_document_gin_idx" ON "shift_patterns" USING gin ("search_document");
 --> statement-breakpoint
-CREATE INDEX "shift_patterns_search_text_trgm_idx" ON "shift_patterns" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '')) gin_trgm_ops);
+CREATE INDEX "shift_patterns_search_text_trgm_idx" ON "shift_patterns" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '') || ' ' || coalesce("settings_code", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "statutory_contributions_settings_id_code_index" ON "statutory_contributions" ("settings_id","code");
 --> statement-breakpoint
@@ -785,10 +788,6 @@ ALTER TABLE "payslip_loan_repayment_inputs" ADD CONSTRAINT "payslip_loan_repayme
 ALTER TABLE "payslips" ADD CONSTRAINT "payslips_payroll_run_id_payroll_runs_fk" FOREIGN KEY ("payroll_run_id") REFERENCES "payroll_runs"("id") ON DELETE CASCADE;
 --> statement-breakpoint
 ALTER TABLE "payslips" ADD CONSTRAINT "payslips_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("id");
---> statement-breakpoint
-ALTER TABLE "shift_definitions" ADD CONSTRAINT "shift_definitions_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
---> statement-breakpoint
-ALTER TABLE "shift_patterns" ADD CONSTRAINT "shift_patterns_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
 --> statement-breakpoint
 ALTER TABLE "statutory_contributions" ADD CONSTRAINT "statutory_contributions_settings_id_jurisdiction_settings_fk" FOREIGN KEY ("settings_id") REFERENCES "jurisdiction_settings"("id") ON DELETE CASCADE;
 --> statement-breakpoint
