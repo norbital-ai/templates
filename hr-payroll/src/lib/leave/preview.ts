@@ -116,7 +116,7 @@ export function evaluateLeavePreview(
 			(date) => date.startsWith(input.calendar_month ?? '') && rules.catalogueAt(date) != null
 		) ??
 		(input.calendar_month == null ? window.start : `${input.calendar_month}-01`);
-	const annual = leaveWindowOf(asOf, rules.catalogueOn(asOf).entitlement.year_start_month);
+	const annual = leaveWindowOf(asOf, rules.catalogueOn(asOf).entitlement);
 	assertLeaveBalanceIntegrity(sameLeave, [annual], rules.entitlementAt);
 	const balance = leaveBalanceAt({
 		entries: sameLeave,

@@ -167,8 +167,8 @@
 	function selectKind(kind: LeaveEvent['kind'] | null): void {
 		if (!kind || kind === current.kind) return;
 		const on = todayKey();
-		const startMonth = catalogueQuery?.current?.entitlement.year_start_month ?? 1;
-		const window = leaveWindowOf(on, startMonth);
+		const period = catalogueQuery?.current?.entitlement ?? 1;
+		const window = leaveWindowOf(on, period);
 		const common = { effective_on: on, reason: null };
 		switch (kind) {
 			case 'TIME_OFF':
@@ -192,7 +192,7 @@
 				emit({
 					...common,
 					kind,
-					source_window: leaveWindowOf(addDays(window.start, -1), startMonth),
+					source_window: leaveWindowOf(addDays(window.start, -1), period),
 					destination_window: window,
 					days: 0,
 					available_from: window.start,

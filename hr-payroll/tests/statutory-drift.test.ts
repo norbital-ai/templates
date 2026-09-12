@@ -288,6 +288,33 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 	assert.deepEqual(revised.payment_catalogue_settings, write.payment_catalogue_settings);
 });
 
+test('a changed rate preserves and targets its eligibility ladder', () => {
+	const first = { ...band(11), eligibility: 'terms.payroll_group == "MONTHLY"' };
+	const second = { ...band(5), eligibility: 'terms.payroll_group == "WEEKLY"' };
+	const proposed = { ...first, award: { ...first.award, employee: 12 } };
+	const facts = {
+		...sealed,
+		contributions: [{ ...sealed.contributions[0], bands: [first, second] }]
+	};
+	const diff = diffStatutoryFindings(
+		facts,
+		{
+			contributions: [{ code: 'EPF', bands: [proposed], source_url: page.url, quote }],
+			leave_catalogue: [],
+			pay_component: [],
+			notes: []
+		},
+		[page]
+	);
+	assert.equal(diff.changes.length, 1);
+	const result = applyProposedChanges(
+		{ contribution_settings: [{ code: 'EPF', bands: [first, second] }] },
+		diff.changes,
+		{}
+	);
+	assert.deepEqual(result.contribution_settings[0].bands, [proposed, second]);
+});
+
 test('a proposed version begins on the first of the month after today', () => {
 	assert.equal(firstOfNextMonth('2026-09-07'), '2026-10-01');
 	assert.equal(firstOfNextMonth('2026-12-31'), '2027-01-01');

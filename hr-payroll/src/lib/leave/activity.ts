@@ -153,7 +153,7 @@ export function planLeaveActivity(
 		days: number,
 		basis: 'available' | 'earned'
 	) => {
-		assertLeaveWindow(window, rules.catalogueOn(date).entitlement.year_start_month);
+		assertLeaveWindow(window, rules.catalogueOn(date).entitlement);
 		allocations.push(
 			...allocateLeaveDays({
 				entries: [...sameLeave, { id, event, allocations, approval_id: 'planning' }],
@@ -196,12 +196,7 @@ export function planLeaveActivity(
 					shift_definition_id: day.shift.id,
 					work_day_id: day.workDay?.id ?? null
 				});
-				debit(
-					leaveWindowOf(date, day.catalogue.entitlement.year_start_month),
-					date,
-					days,
-					'available'
-				);
+				debit(leaveWindowOf(date, day.catalogue.entitlement), date, days, 'available');
 			}
 			if (charges.length === 0) refuse('The range contains no eligible scheduled work time.');
 			const quantity = charges.reduce((sum, row) => sum + row.days, 0);
@@ -248,7 +243,7 @@ export function planLeaveActivity(
 		case 'CARRY_FORWARD': {
 			assertLeaveWindow(
 				event.destination_window,
-				rules.catalogueOn(event.available_from).entitlement.year_start_month
+				rules.catalogueOn(event.available_from).entitlement
 			);
 			if (
 				event.destination_window.start <= event.source_window.end ||
@@ -269,10 +264,7 @@ export function planLeaveActivity(
 			break;
 		}
 		case 'ADJUSTMENT': {
-			assertLeaveWindow(
-				event.window,
-				rules.catalogueOn(event.effective_on).entitlement.year_start_month
-			);
+			assertLeaveWindow(event.window, rules.catalogueOn(event.effective_on).entitlement);
 			if (!event.reason?.trim()) refuse('A leave adjustment needs a reason.');
 			if (event.effective_on < event.window.start || event.effective_on > event.window.end)
 				refuse('A leave adjustment must fall inside its stated window.');

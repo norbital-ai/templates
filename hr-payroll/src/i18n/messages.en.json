@@ -877,7 +877,7 @@
 	"renderer.entitlement_cap.period": "Per",
 	"renderer.entitlement_cap.who": "Who",
 	"renderer.leave_entitlement.empty": "No bands. A metered leave with no band grants nobody any days.",
-	"renderer.leave_entitlement.identity": "Read top-down: the first row whose predicate holds is the grant; empty is everyone; nobody matched means no days.",
+	"renderer.leave_entitlement.identity": "Read top-down: the first matching row is the grant; empty means everyone. Monthly with no proration grants these days anew each month. Monthly with proration releases earned annual days at month end.",
 	"renderer.leave_event.reason": "Reason",
 	"renderer.leave_treatments.absence": "Absence",
 	"renderer.leave_treatments.absence_rule": "Absence rule",

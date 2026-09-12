@@ -29,7 +29,7 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 		.toSorted((a, b) => a.code.localeCompare(b.code))
 		.flatMap((catalogue) => {
 			const rules = leaveRules(context, employmentId, catalogue.id);
-			const window = leaveWindowOf(through, catalogue.entitlement.year_start_month);
+			const window = leaveWindowOf(through, catalogue.entitlement);
 			const entries = context.entries.filter(
 				(row) => row.employment_id === employmentId && row.leave_code === catalogue.code
 			);

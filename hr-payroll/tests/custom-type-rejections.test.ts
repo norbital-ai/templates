@@ -170,8 +170,8 @@ describe('leave_entitlement', () => {
 		for (const year_start_month of [0, 13, 1.5])
 			assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, year_start_month }));
 	});
-	it('monthly release requires an earning basis', () => {
-		assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, availability: 'MONTHLY' }));
+	it('monthly allowances and earned annual releases are both supported', () => {
+		assert.ok(accepts(leaveEntitlementSchema, { ...entitlement, availability: 'MONTHLY' }));
 		assert.ok(
 			accepts(leaveEntitlementSchema, {
 				...entitlement,
