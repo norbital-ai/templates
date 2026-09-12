@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "f5d2738c-87a0-4bcc-be06-094cda9fb30d",
+  "id": "46c0c513-706d-4259-b1c2-e48ae982ad46",
   "prevIds": [
-    "a51d3b56-d614-43a1-be91-3b33e128cb0b"
+    "7801aa46-5e7c-4ccc-bc8a-dbdeec198560"
   ],
   "version": "8",
   "ddl": [
@@ -2647,6 +2647,19 @@
       "generated": null,
       "identity": null,
       "name": "tax_year_start_month",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdiction_settings"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "480",
+      "generated": null,
+      "identity": null,
+      "name": "utc_offset_minutes",
       "entityType": "columns",
       "schema": "public",
       "table": "jurisdiction_settings"
@@ -5612,6 +5625,19 @@
       "generated": null,
       "identity": null,
       "name": "rounding",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PAY_PERIOD'",
+      "generated": null,
+      "identity": null,
+      "name": "assessed",
       "entityType": "columns",
       "schema": "public",
       "table": "statutory_contributions"
