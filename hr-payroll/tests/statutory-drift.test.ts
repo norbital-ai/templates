@@ -90,6 +90,28 @@ test('navigation cannot consume the research text and link budgets', async () =>
 	assert.deepEqual(focused.links, [table]);
 });
 
+test('document and dataset links survive menus without semantic navigation markup', () => {
+	const documents = [
+		`${page.url}/Files/25664`,
+		`${page.url}/api/Dataset?rId=current`,
+		`${page.url}/rates.csv?year=2027`
+	];
+	const [focused] = researchPromptPages(
+		[
+			{
+				...page,
+				links: [
+					...Array.from({ length: 50 }, (_, index) => `${page.url}/menu-${index}`),
+					...documents
+				]
+			}
+		],
+		officialUrlFor([page.url]),
+		{ perPageChars: 3_000, totalChars: 3_000, maxLinks: 3 }
+	);
+	assert.deepEqual(focused.links, documents);
+});
+
 test('entry pages do not exhaust the budget for following official links', async () => {
 	const pages = Array.from({ length: 12 }, (_, index) => ({
 		...page,
