@@ -177,8 +177,8 @@ test(
 				[PUB_URL, PUB_DOWN_URL, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, research_urls, effective_range)
-				 values ($1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, array[$2]::text[], $3)`,
+				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, utc_offset_minutes, research_urls, effective_range)
+				 values ($1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, 480, array[$2]::text[], $3)`,
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }]
 			);
 			await session.query(

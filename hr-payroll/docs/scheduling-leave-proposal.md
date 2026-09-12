@@ -5,8 +5,8 @@ approved activity against that contract and retains the dated charges used at ap
 schedule combines effective terms, named patterns, explicit Work rows and the entity's published
 holidays. Payroll uses those same facts.
 
-This document replaces the earlier UI proposal. The family source boundary is implemented; artifact
-sync, type checks, full-suite and browser verification of the combined changes remain in progress.
+This document replaces the earlier UI proposal. The family source boundary is implemented, and the
+combined changes are verified by artifact sync, type checks, the full suite and browser acceptance.
 See [Architecture](architecture.md) for family processing and [Leave](leave.md) for entitlement and
 manual activity validation.
 
@@ -99,7 +99,7 @@ A workbook may carry both planned roster data and actual attendance:
 ```text
 planned code  → resolve WORK / REST / OFF assignment
 blank cell    → no explicit assignment
-PH token      → validate against the entity's holiday calendar
+PH token      → validate against the entity's published holidays
 punch columns → normalize worked intervals
 ```
 
@@ -180,8 +180,9 @@ matching and punches require the network because there is no offline queue.
 Face enrollment belongs on the employee profile. The guided five-pose flow produces the stored
 embedding and consent evidence; HR controls enrollment status. Matching reads approved profiles and
 resolves a contract before a punch. Both face matching and manual selection require the chosen entity
-and resolve exactly one active contract within it. Conflicting active contracts are refused. Browser
-acceptance of entity changes, selection and resulting Work records remains part of integration.
+and resolve exactly one active contract within it. Conflicting active contracts are refused. Entity
+selection and the resulting Work records are implemented and exercised by the kiosk and public-seed
+suites.
 
 Model assets are bundled from the pinned Human package and resolved relative to the immutable
 browser artifact. The page reports unavailable models instead of claiming the camera is ready.

@@ -9,6 +9,7 @@
 		"cloned_from_id": null,
 		"currency": "TWD",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "2026-01-01T00:00:00.000Z"
@@ -32,6 +33,7 @@
 		"cloned_from_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"currency": "TWD",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-01-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"

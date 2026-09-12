@@ -20,6 +20,12 @@ export default defineModel(
 		/** The section of law transcribed; the hook requires it when `is_statutory`. */
 		authority: text(),
 		rounding: enums(['NONE', 'NEAREST_CENT', 'UP_TO_UNIT', 'TABLE']).notNull(),
+		/**
+		 * The span the scheme is assessed over. `MONTH` states that its bands are a monthly schedule —
+		 * so a semi-monthly company charges the whole month's contribution once, on the month's wage,
+		 * rather than half of it twice. At a monthly company the two are the same.
+		 */
+		assessed: enums(['PAY_PERIOD', 'MONTH']).notNull().default('PAY_PERIOD'),
 		relief_for: uuid().array().notNull(),
 		/** Who the scheme covers at all, as a predicate; empty is everyone. The run skips the rest. */
 		eligibility: text().notNull().default(''),

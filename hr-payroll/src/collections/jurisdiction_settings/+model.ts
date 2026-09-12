@@ -24,6 +24,14 @@ export default defineModel(
 		cloned_from_id: uuid(),
 		currency: text().notNull(),
 		tax_year_start_month: integer().notNull(),
+		/**
+		 * Minutes east of UTC the jurisdiction's wall clock sits at. A shift start is a wall-clock
+		 * time and a punch is a UTC instant, so pricing overtime needs the offset the shift belongs
+		 * to; it is a fact about the law's jurisdiction, not about the engine. Fixed offset today
+		 * (480 for MY/PH/SG/ID/TW/VN); a daylight-saving jurisdiction needs an IANA `timezone` beside
+		 * it, and attendance should be stored as UTC `Z` at every write boundary.
+		 */
+		utc_offset_minutes: integer().notNull().default(480),
 
 		/**
 		 * The official pages this version was transcribed from. The statutory drift automation reads

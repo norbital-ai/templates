@@ -720,7 +720,12 @@ export function calculateWorkAttendance(
 		// where the jurisdiction states the break is not working time; where the statute is silent —
 		// Malaysia — it is assessed, carried for reporting, and priced at nothing.
 		// A lieu day forgone its premium at the roster: price the clocks ordinary.
-		const derived = deriveDailyOvertime(entry, pricedDay(entry, day), configuration.restBreakRules);
+		const derived = deriveDailyOvertime(
+			entry,
+			pricedDay(entry, day),
+			configuration.restBreakRules,
+			configuration.jurisdiction.utc_offset_minutes
+		);
 		if (derived) overtimeDays.push(derived);
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
@@ -838,7 +843,8 @@ export function calculateWorkAttendance(
 					const night = nightWindowHours(
 						entry,
 						nightPremium,
-						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null
+						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null,
+						configuration.jurisdiction.utc_offset_minutes
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligible ? night.overtime : 0;
@@ -1070,7 +1076,12 @@ function measureWorkComponent(
 				actual != null && intervals != null
 					? Math.min(
 							scheduledHours,
-							ordinaryWorkedHours(actual, shift) + (leave[date] ?? 0) * scheduledHours
+							ordinaryWorkedHours(
+								actual,
+								shift,
+								options.configuration.jurisdiction.utc_offset_minutes
+							) +
+								(leave[date] ?? 0) * scheduledHours
 						)
 					: scheduledHours;
 			const rate = decodeNumber(baseSalaryOf(dayTerms).value);

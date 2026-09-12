@@ -561,6 +561,7 @@
 	"component.swift_routing_code": "SWIFT 或清算代码",
 	"component.tab_overview": "概览",
 	"component.tax_year_start_month": "税务年度起始月份",
+	"component.utc_offset_minutes": "UTC 偏移（分钟）",
 	"component.terms_section_organisation": "组织",
 	"component.terms_section_organisation_hint": "人员所在的位置；目录档次可按部门或薪酬组命名。",
 	"component.terms_section_pay": "薪酬",

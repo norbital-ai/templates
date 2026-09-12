@@ -189,8 +189,8 @@ and agent — not only the UI:
 - A job must reference an existing site; an assignment must reference an existing job and a real
   workspace user, and be unique per job.
 - `source_message_id` is an idempotency key for inbound assignments and variations.
-- Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance
-  forces `suspect` (one-way); completion advances the job state.
+- Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance is
+  recorded as an evidence fact and never sets `suspect`; completion advances the job state.
 - Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded;
   its asset, parent, and envoy provenance cannot be swapped after those checks settle.
 
@@ -221,9 +221,9 @@ domain `communication_logs` row. The reply goes back over the same transport.
 
 ## 5. Verification
 
-Product B-row acceptance is the isolated public-seed suite: `tests/fixtures/seed/` loaded through
+Product template-suite acceptance is the isolated public-seed suite: `tests/fixtures/seed/` loaded through
 `@norbital-ai/test-utilities`. No Colony, no `seed_bank`, no `:5173`. See
-[`RFC/testing.md`](../../RFC/testing.md) I4–I5.
+[`RFC/testing.md`](../../RFC/testing.md) §4–§5.
 
 ```bash
 node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test \

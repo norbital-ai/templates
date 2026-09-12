@@ -11,6 +11,8 @@
  * accumulates IS the wage. The first test pins that; the rest price it.
  */
 
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
 	assessStatutory,
@@ -98,4 +100,24 @@ test('every sealed version of `PH` is priced by a golden here', () => {
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
 	// by nothing and stays green.
 	assertEveryVersionPriced('PH');
+});
+
+test('Philippines — the salary-based schemes are monthly schedules, not per-period ones', () => {
+	// A semi-monthly company must charge SSS, EC, PhilHealth and Pag-IBIG once a month, on the
+	// month's wage, rather than half of each twice. The engine's rule is generic; this pins the
+	// catalogue to it, so a reseed that drops `assessed` fails here rather than over- or
+	// under-charging every Philippine semi-monthly payroll.
+	const read = (file: string): readonly { code: string; assessed?: string }[] =>
+		JSON.parse(
+			readFileSync(new URL(`./fixtures/statutory/PH/${file}`, import.meta.url), 'utf8')
+		) as readonly { code: string; assessed?: string }[];
+	const schemes = read('statutory_contributions.json');
+	for (const code of ['SSS', 'SSS_EC', 'PHIC', 'HDMF']) {
+		assert.equal(
+			schemes.find((row) => row.code === code)?.assessed,
+			'MONTH',
+			`${code} must be assessed over the month`
+		);
+	}
+	assert.notEqual(schemes.find((row) => row.code === 'WTAX')?.assessed, 'MONTH');
 });

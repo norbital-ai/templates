@@ -71,6 +71,7 @@
 							<Field name="name" />
 							<Field name="currency" />
 							<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
+							<Field name="utc_offset_minutes" label={t('component.utc_offset_minutes')} />
 							<Column span="all">
 								<Field
 									name="effective_range"

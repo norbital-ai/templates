@@ -9,6 +9,7 @@
 		"cloned_from_id": null,
 		"currency": "VND",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"minimum_wages": {
 			"I": 4960000,
 			"II": 4410000,
@@ -36,6 +37,7 @@
 		"cloned_from_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"currency": "VND",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"minimum_wages": {
 			"I": 5310000,
 			"II": 4730000,
@@ -64,6 +66,7 @@
 		"cloned_from_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"currency": "VND",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"minimum_wages": {
 			"I": 5310000,
 			"II": 4730000,

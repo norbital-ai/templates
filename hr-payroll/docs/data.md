@@ -123,10 +123,10 @@ make an old usage total fit a formula.
 Holidays are standalone **entity** rows — `unique(company_id, date)` — one per observed day, each
 published on its own, with a `kind` (`PUBLIC`, `SPECIAL`, `SUBSTITUTE`) the run classifies the day
 by and freezes with it. There is no per-jurisdiction holiday concept: two entities in one country
-keep different calendars, and the seed bank carries each entity's own rows under
+keep different holiday sets, and the seed bank carries each entity's own rows under
 `records/<entity>/jurisdiction_holidays.json` rather than under `statutory/<lineage>/`. Company
 closures and personal roster labels do not establish observed holidays. Imported rows keep their
-provenance and arrive unpublished; every bank holiday is unpublished pending review, and an
+provenance and arrive unpublished; the bank's own observed rows carry their own `published_at`, and an
 unpublished holiday is not observed anywhere.
 
 A Work day classified as a holiday pins it (`work_days.holiday_id`), each Leave charge carries the

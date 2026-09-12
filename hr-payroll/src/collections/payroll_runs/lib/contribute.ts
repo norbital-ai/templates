@@ -42,7 +42,7 @@ import type { ContributionConfig } from './configuration.js';
 import type { ContributionBase } from './accumulate.js';
 import { isEligible, type PersonContext } from './eligibility.js';
 import type { PayProjection } from './period.js';
-import { roundMoney, RoundingMethodSchema, type RoundingMethod } from './rounding.js';
+import { cents, roundMoney, RoundingMethodSchema, type RoundingMethod } from './rounding.js';
 import {
 	ADDITIONAL_REMUNERATION,
 	SpecialRulesSchema,
@@ -69,6 +69,12 @@ export type ContributionCharge = {
 
 type ContributeInput = {
 	readonly bases: readonly ContributionBase[];
+	/**
+	 * How this run's period sits in the calendar month. A scheme assessed over the MONTH needs the
+	 * month's wage, not the period's: at a semi-monthly company the first half carries the month's
+	 * contribution (on the month's wage) and the second half carries none.
+	 */
+	readonly assessment?: { readonly periodsPerMonth: number; readonly periodIndex: number };
 	/** `contribution_id` → the employment's registration, or `null` where no row exists. */
 	readonly facts: ReadonlyMap<string, StatutoryFactStatus>;
 	/** `contribution_code` → what has already been charged this tax year. */
@@ -182,23 +188,42 @@ type Produced = Schema.Schema.Type<typeof ProducedSchema>;
 export function contribute(input: ContributeInput): ContributionCharge[] {
 	const charges: ContributionCharge[] = [];
 	const produced = new Map<string, Produced>();
+	// Default: one period per month, so a scheme is assessed on the period as accumulated.
+	const assessment = input.assessment ?? { periodsPerMonth: 1, periodIndex: 1 };
 
 	for (const entry of input.bases) {
 		const contribution = entry.contribution;
 		const code = contribution.row.code;
 		const rules = parseSpecialRules(contribution.row.special_rules, code);
+		// A MONTH-assessed scheme is charged once, on the month's wage: the run that owns the month's
+		// first period carries the whole month's contribution, and the later period carries none.
+		// The SAME rule serves any jurisdiction that states a monthly schedule at a finer cadence.
+		const monthlyAssessed = contribution.row.assessed === 'MONTH' && assessment.periodsPerMonth > 1;
+		const base = monthlyAssessed ? cents(entry.base * assessment.periodsPerMonth) : entry.base;
+		if (monthlyAssessed && assessment.periodIndex > 1) {
+			produced.set(code, { employee: 0, employer: 0, rules });
+			charges.push({
+				contribution,
+				base: 0,
+				employee: 0,
+				employer: 0,
+				bandReference: null,
+				special: entry.special
+			});
+			continue;
+		}
 		if (!isEligible(contribution.row.eligibility, input.person)) continue;
 		const status = input.facts.get(contribution.row.id);
 
 		// Whether a scheme charges at all: an unregistered employment contributes nothing, and
 		// therefore also nothing to any relief pool it feeds — the pool is fed by the *output*,
 		// never by a rate.
-		const open = status == null || status.kind === 'REGISTERED' || entry.base <= 0;
+		const open = status == null || status.kind === 'REGISTERED' || base <= 0;
 		if (!open) {
 			produced.set(code, { employee: 0, employer: 0, rules });
 			charges.push({
 				contribution,
-				base: entry.base,
+				base,
 				employee: 0,
 				employer: 0,
 				bandReference: null,
@@ -212,7 +237,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		// up to 5,000 while still earning the higher rate — keying the switch on the bracketed figure
 		// flips roughly one employee in 250 to the wrong rate.
 		const context: BandContext = {
-			base: entry.base,
+			base,
 			age: input.age,
 			headcount: input.headcount,
 			riskClass: input.riskClass,
@@ -220,7 +245,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		};
 		const band = selectBand(contribution.rates, context, code);
 		const awardBase = minimumWageBounds(
-			bracketBase(entry.base, rules.bracketSteps),
+			bracketBase(base, rules.bracketSteps),
 			rules,
 			input.minimumWage,
 			code
@@ -293,8 +318,8 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				// not a replacement marginal band inside the resident scale. Malaysia uses this for
 				// a proven non-resident employee: 30% of remuneration, without resident reliefs.
 				const scaled = hasFlatOverride
-					? applyRounding(entry.base * asFraction(status.rate_override), chain)
-					: progressiveWithholding({ entry, contribution, rules, input, produced, chain });
+					? applyRounding(base * asFraction(status.rate_override), chain)
+					: progressiveWithholding({ base, entry, contribution, rules, input, produced, chain });
 				// The employer leg of a graduated scheme is a percentage of the whole chargeable wage,
 				// read off the band the wage itself selected — never a slice of the ladder.
 				const employerShare =
@@ -317,7 +342,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		produced.set(code, { employee, employer, rules });
 		charges.push({
 			contribution,
-			base: entry.base,
+			base,
 			employee,
 			employer,
 			bandReference:
@@ -376,6 +401,7 @@ function isProgressiveScale(contribution: ContributionConfig): boolean {
  * the year and change the tax of every mid-band employee (decision E9).
  */
 type ProgressiveWithholdingOptions = {
+	readonly base: number;
 	readonly entry: ContributionBase;
 	readonly contribution: ContributionConfig;
 	readonly rules: SpecialRules;
@@ -385,7 +411,7 @@ type ProgressiveWithholdingOptions = {
 };
 
 function progressiveWithholding(options: ProgressiveWithholdingOptions): number {
-	const { entry, contribution, rules, input } = options;
+	const { base, entry, contribution, rules, input } = options;
 	const code = contribution.row.code;
 	const remaining = Math.max(1, input.projection.payslipsRemaining);
 	// How many payslips of this size the rest of the year holds after this one: eleven for a
@@ -409,7 +435,7 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 			if (!other.contribution.row.relief_for.includes(contribution.row.id)) return total;
 			return total + (options.produced.get(other.contribution.row.code)?.employee ?? 0);
 		}, 0);
-		const chargeable = Math.max(0, entry.base - statutoryRelief);
+		const chargeable = Math.max(0, base - statutoryRelief);
 		const context: BandContext = {
 			base: chargeable,
 			age: input.age,
@@ -425,7 +451,7 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 	}
 
 	// 1 — PROJECT
-	const annualGross = priorBase + entry.base * (1 + future);
+	const annualGross = priorBase + base * (1 + future);
 
 	// 2 — RELIEVE
 	const pools = new Map<string, { total: number; cap: number | null }>();

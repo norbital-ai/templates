@@ -9,6 +9,7 @@
 		"cloned_from_id": null,
 		"currency": "MYR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2020-01-01T00:00:00.000Z",
 			"end": null

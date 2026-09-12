@@ -95,6 +95,23 @@ import { decodeNumber } from '@norbital-ai/std/json';
  *
  * This constant is the single place a real timezone column would be consumed once one exists; a
  * third jurisdiction off UTC+8 requires that column rather than a change here.
+ *
+ * ────────────────────────────────────────────────────────────────────────────────────────────────
+ * CAPTURED, NOT YET BUILT: THE TIMEZONE BELONGS TO THE JURISDICTION VERSION.
+ *
+ * The offset is a fact about `jurisdiction_settings`, not about the engine, exactly as `currency`
+ * and `tax_year_start_month` are. The intended shape is one column there —
+ * `utc_offset_minutes` (integer; the fixed-offset step), with an IANA `timezone` text column as the
+ * daylight-saving upgrade — seeded per version (480 for MY/PH/SG/ID/TW/VN today) and threaded to
+ * this function as `configuration.jurisdiction.utc_offset_minutes`. Then a third jurisdiction is a
+ * seed row, not an edit here.
+ *
+ * Attendance must be stored as UTC instants (`Z`) at every write boundary, so no reader depends on
+ * the writer's frame. The seed currently writes offset-qualified instants (`+08:00`); those are the
+ * same instant but a second spelling of it, and the import paths should normalise on write once the
+ * column exists. Until then this constant is the one stand-in, and it is exact for the seeded
+ * populations (all fixed UTC+8).
+ * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;
 
@@ -182,8 +199,8 @@ export function normalizedWorkedIntervals(entry: WorkDayLike): readonly Interval
 }
 
 /** Midnight starting `date`, in the frame attendance is recorded in. */
-function midnight(date: IsoDate): number {
-	return Date.parse(`${date}T00:00:00.000Z`) - ATTENDANCE_UTC_OFFSET_MINUTES * MINUTE_MS;
+function midnight(date: IsoDate, utcOffsetMinutes: number): number {
+	return Date.parse(`${date}T00:00:00.000Z`) - utcOffsetMinutes * MINUTE_MS;
 }
 
 /**
@@ -220,7 +237,8 @@ function overlapHours(intervals: readonly Interval[], start: number, end: number
 /** Actual ordinary units stay inside the shift; its outside hours are priced as overtime. */
 export function ordinaryWorkedHours(
 	entry: WorkDayLike,
-	shift: NonNullable<ScheduledDay['shift']>
+	shift: NonNullable<ScheduledDay['shift']>,
+	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
 ): number {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const start = clockMinutes(shift.start_time);
@@ -228,8 +246,8 @@ export function ordinaryWorkedHours(
 	if (shift.crosses_midnight || end <= start) end += 1440;
 	const inside = overlapHours(
 		normalizedWorkedIntervals(entry),
-		midnight(workDate) + start * MINUTE_MS,
-		midnight(workDate) + end * MINUTE_MS
+		midnight(workDate, utcOffsetMinutes) + start * MINUTE_MS,
+		midnight(workDate, utcOffsetMinutes) + end * MINUTE_MS
 	);
 	return Math.min(
 		shift.paid_minutes / 60,
@@ -249,14 +267,15 @@ export function ordinaryWorkedHours(
 export function nightWindowHours(
 	entry: WorkDayLike,
 	window: Pick<NightPremium, 'from' | 'to'>,
-	shift: ScheduledDay['shift']
+	shift: ScheduledDay['shift'],
+	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
 ): { readonly ordinary: number; readonly overtime: number } {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const from = clockMinutes(window.from);
 	let to = clockMinutes(window.to);
 	if (to <= from) to += 1440;
-	const nightStart = midnight(workDate) + from * MINUTE_MS;
-	const nightEnd = midnight(workDate) + to * MINUTE_MS;
+	const nightStart = midnight(workDate, utcOffsetMinutes) + from * MINUTE_MS;
+	const nightEnd = midnight(workDate, utcOffsetMinutes) + to * MINUTE_MS;
 	const intervals = normalizedWorkedIntervals(entry);
 	const night = overlapHours(intervals, nightStart, nightEnd);
 	if (shift == null) return { ordinary: 0, overtime: night };
@@ -267,8 +286,8 @@ export function nightWindowHours(
 	// prices the break itself.
 	const ordinary = overlapHours(
 		intervals,
-		Math.max(nightStart, midnight(workDate) + start * MINUTE_MS),
-		Math.min(nightEnd, midnight(workDate) + end * MINUTE_MS)
+		Math.max(nightStart, midnight(workDate, utcOffsetMinutes) + start * MINUTE_MS),
+		Math.min(nightEnd, midnight(workDate, utcOffsetMinutes) + end * MINUTE_MS)
 	);
 	return { ordinary, overtime: night - ordinary };
 }
@@ -318,7 +337,8 @@ export type DailyOvertime = {
 export function deriveDailyOvertime(
 	entry: WorkDayLike,
 	day: ScheduledDay,
-	restBreakRules?: readonly StatutoryRestBreakRule[] | null
+	restBreakRules?: readonly StatutoryRestBreakRule[] | null,
+	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
 ): DailyOvertime | null {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const intervals = normalizedWorkedIntervals(entry);
@@ -329,8 +349,8 @@ export function deriveDailyOvertime(
 		const startMinutes = clockMinutes(day.shift.start_time);
 		let endMinutes = clockMinutes(day.shift.end_time);
 		if (day.shift.crosses_midnight || endMinutes <= startMinutes) endMinutes += 1440;
-		const shiftStart = midnight(workDate) + startMinutes * MINUTE_MS;
-		const shiftEnd = midnight(workDate) + endMinutes * MINUTE_MS;
+		const shiftStart = midnight(workDate, utcOffsetMinutes) + startMinutes * MINUTE_MS;
+		const shiftEnd = midnight(workDate, utcOffsetMinutes) + endMinutes * MINUTE_MS;
 		const before = overlapHours(intervals, Number.NEGATIVE_INFINITY, shiftStart);
 		const after = overlapHours(intervals, shiftEnd, Number.POSITIVE_INFINITY);
 		raw = before + after;

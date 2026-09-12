@@ -9,6 +9,7 @@
 		"cloned_from_id": null,
 		"currency": "IDR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "2026-01-01T00:00:00.000Z"
@@ -44,6 +45,7 @@
 		"cloned_from_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
 		"currency": "IDR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-01-01T00:00:00.000Z",
 			"end": "2026-03-01T00:00:00.000Z"
@@ -71,6 +73,7 @@
 		"cloned_from_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
 		"currency": "IDR",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-03-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"

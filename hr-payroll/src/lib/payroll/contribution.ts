@@ -277,7 +277,13 @@ export function prepareContributionAssessment(options: {
 				company: configuration.company,
 				asOf
 			}),
-			minimumWage: regionalMinimumWage(configuration)
+			minimumWage: regionalMinimumWage(configuration),
+			// How this period sits in the month: a scheme assessed over the MONTH is charged once,
+			// in the period that owns the month's start, on the month's wage.
+			assessment: {
+				periodsPerMonth: configuration.company.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
+				periodIndex: bundle.window.period.endsWith('-2') ? 2 : 1
+			}
 		}
 	};
 }

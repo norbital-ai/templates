@@ -68,8 +68,9 @@ Because `@norbital-ai/*` come from GitHub Packages, an install needs a `NODE_AUT
 
 ## Adding a template
 
-Create a directory named for the key, put `norbital.template.json` at its root, and that is the
-whole registration — discovery reads the tree, not a catalogue:
+Create a directory for the template (its directory name and its handle may differ), put
+`norbital.template.json` at its root, and that is the whole registration — discovery reads the tree,
+not a catalogue:
 
 ```json
 {

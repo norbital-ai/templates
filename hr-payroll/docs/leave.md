@@ -211,4 +211,4 @@ agreed transactions. There is no encashment eligibility matrix, automatic valuat
 
 Controller → Events → Leave shows the entity's manual activity. Employee → Events → Leave shows
 computed balances and the selected contract's entries. Settings → Catalog → Leave owns definitions;
-observed annual holidays belong to the entity's holiday calendar surface.
+observed holidays belong to the entity's holiday surface.

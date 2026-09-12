@@ -9,6 +9,7 @@
 		"cloned_from_id": null,
 		"currency": "SGD",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-01-01T00:00:00.000Z",
 			"end": "2026-04-01T00:00:00.000Z"
@@ -25,6 +26,7 @@
 		"cloned_from_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"currency": "SGD",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2026-04-01T00:00:00.000Z",
 			"end": "2027-01-01T00:00:00.000Z"
@@ -45,6 +47,7 @@
 		"cloned_from_id": "10000000-0000-5000-8000-000000000040",
 		"currency": "SGD",
 		"tax_year_start_month": 1,
+		"utc_offset_minutes": 480,
 		"effective_range": {
 			"start": "2027-01-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"
