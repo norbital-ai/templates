@@ -6,7 +6,7 @@ import { Effect } from 'effect';
 import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { settle, settledBy, stampRun } from './helpers/settlement.ts';
+import { settle, settledBy } from './helpers/settlement.ts';
 import {
 	PAYMENT_ENTRY_ID,
 	COMPANY_ID,
@@ -112,7 +112,6 @@ test('a standing allowance is captured on two periods and two payslips', async (
 test('a captured single-use request is excluded from the next regular payroll', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	const january = await createPayrollRun(world, '2026-01');
-	await stampRun(world, january);
 	const januaryPayslipId = january.payslip_payroll_run[0].id;
 	assert.deepEqual(
 		settledBy(world, 'payment_requests', januaryPayslipId),
@@ -130,7 +129,6 @@ test('a captured single-use request is excluded from the next regular payroll', 
 	settle(world, 'payment_requests', PAYMENT_ENTRY_ID, JAN_PAYSLIP, '2026-01');
 
 	const february = await createPayrollRun(world, '2026-02');
-	await stampRun(world, february);
 	assert.equal(settledBy(world, 'payment_requests', february.payslip_payroll_run[0].id).length, 0);
 	assert.equal(february.payslip_payroll_run[0].payslip_allowance_request_input_payslip.length, 1);
 });

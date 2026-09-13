@@ -8,7 +8,6 @@ import {
 	gatherPayrollRun,
 	type PreparedRun
 } from './lib/engine.js';
-import type { PayslipCaptures } from './lib/graph.js';
 import { assertPayrollPeriodAvailable, assertPayrollRunDeletable } from './lib/period.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
@@ -87,12 +86,6 @@ const derivedColumns = (prepared: PreparedRun) => ({
 	attendance_to: prepared.window.attendance.end
 });
 
-/**
- * What each new payslip settled, handed from `before` (which minted the payslip ids) to `after`
- * (where the payslips exist and the sources can name them). In-process and per request; a missing
- * entry in `after` is refused loudly rather than leaving a run's sources unlocked.
- */
-const PENDING_CAPTURES = new Map<string, readonly PayslipCaptures[]>();
 const SETTLED_SOURCES = ['work_days', 'claim_requests', 'payment_requests'] as const;
 /** Four collections, one shape: the union of their clients is not callable, the reader is. */
 type SettledReader = {
@@ -110,14 +103,10 @@ type SettledReader = {
 	) => Effect.Effect<void>;
 };
 
-/** Calculate, and hand back the run's columns with every payslip it produced nested under them. */
+/** Calculate, and hand back the run's columns, its payslips, and what each payslip settled. */
 const buildGraph = (prepared: PreparedRun) =>
 	Effect.gen(function* () {
 		const built = buildPayrollRun(prepared);
-		PENDING_CAPTURES.set(
-			runKey(prepared.configuration.company.id, prepared.period),
-			built.captures
-		);
 		if (built.warnings.length > 0)
 			yield* Effect.logWarning(`[payroll-warnings] ${prepared.period} ${built.warnings.join(' ')}`);
 		yield* Effect.log(
@@ -126,8 +115,11 @@ const buildGraph = (prepared: PreparedRun) =>
 				`captured=${built.capturedCount} | ${prepared.readLog.logString()}`
 		);
 		return {
-			...derivedColumns(prepared),
-			payslip_payroll_run: built.payslip_payroll_run
+			graph: {
+				...derivedColumns(prepared),
+				payslip_payroll_run: built.payslip_payroll_run
+			},
+			captures: built.captures
 		};
 	});
 
@@ -226,12 +218,24 @@ export default {
 								refuse(
 									`Payroll ${blocked.period} must be paid before this payroll can be marked paid.`
 								);
-							const payslip = yield* api.db.payslips.findFirst({
+							const slips = yield* api.db.payslips.findMany({
 								where: { payroll_run_id: { eq: existing.id } },
-								columns: { id: true }
+								columns: { id: true, paid_at: true },
+								limit: 20_000
 							});
-							if (payslip == null) refuse('A payroll with no payslips cannot be marked paid.');
-							return { lifecycle: 'PAID' as const };
+							if (slips.length >= 20_000) refuse('Too many payslips to pay in one run.');
+							if (slips.length === 0) refuse('A payroll with no payslips cannot be marked paid.');
+							const payDate = input.pay_date ?? existing.pay_date;
+							// Payment is a fact of the slip, so the slips ride the run's own write. Every slip
+							// is stated, not only the unpaid ones: the nested list is the parent's complete
+							// desired state, and omitting a paid slip would remove it.
+							return {
+								lifecycle: 'PAID' as const,
+								payslip_payroll_run: slips.map((slip) => ({
+									id: slip.id,
+									paid_at: slip.paid_at ?? payDate
+								}))
+							};
 						}
 						// `refuse` returns `never`, so these two narrow for the rest of the create path. The
 						// hook's own `input` schema requires both; this states it where the types can see it.
@@ -248,60 +252,34 @@ export default {
 							withheld: (input.withheld ?? []).map((row) => row.employment_id)
 						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
+						const built = yield* buildGraph(facts);
+						// Seal every captured source with the payslip that settled it as part of the run's own
+						// invocation — one mutate per collection, never one per payslip — so the stamps are
+						// upserted with the run instead of in a second pass.
+						const stampFamily = (
+							family: (capture: (typeof built.captures)[number]) => readonly string[]
+						) =>
+							built.captures.flatMap((capture) =>
+								family(capture).map((id) => ({
+									id,
+									settled_payslip_id: capture.payslipId,
+									settled_period: period
+								}))
+							);
+						const capturedWorkDays = stampFamily((capture) => capture.workDays);
+						const capturedClaims = stampFamily((capture) => capture.claims);
+						const capturedPayments = stampFamily((capture) => capture.payments);
+						if (capturedWorkDays.length > 0)
+							yield* api.db.work_days.mutate(capturedWorkDays);
+						if (capturedClaims.length > 0)
+							yield* api.db.claim_requests.mutate(capturedClaims);
+						if (capturedPayments.length > 0)
+							yield* api.db.payment_requests.mutate(capturedPayments);
 						return {
 							...input,
 							lifecycle: 'DRAFT' as const,
-							...(yield* buildGraph(facts))
+							...built.graph
 						};
-					})
-			},
-			after: {
-				description:
-					'Stamps settled_payslip_id and settled_period on every single-use source the new run captured, now that its payslips exist, and — when the run is marked paid — records the payment on every one of its unpaid payslips, because payment is a fact of the slip. The holidays the run read stay on the run itself (`holidays`): a holiday is frozen while a run captures it, with no stamp on the holiday row.',
-				handler: ({ previous, record, api }): Effect.Effect<void> =>
-					Effect.gen(function* () {
-						if (previous !== undefined) {
-							/**
-							 * Marking the run paid is the bulk gesture, and the bulk gesture is "pay every
-							 * slip still unpaid". The record of payment is the slip's, so this is where it
-							 * is written; the run's own `lifecycle` is the summary those slips produce.
-							 * Each write goes through the payslip's own hook, so a person whose earlier
-							 * period is still unpaid refuses here by name rather than being swept along.
-							 */
-							if (previous.lifecycle === 'PAID' || record.lifecycle !== 'PAID') return;
-							const unpaid = yield* api.db.payslips.findMany({
-								where: { payroll_run_id: { eq: record.id }, paid_at: { isNull: true } },
-								columns: { id: true },
-								limit: 20_000
-							});
-							if (unpaid.length >= 20_000) refuse('Too many payslips to pay in one run.');
-							if (unpaid.length > 0)
-								yield* api.db.payslips.mutate(
-									unpaid.map((slip) => ({ id: slip.id, paid_at: record.pay_date }))
-								);
-							return;
-						}
-						const key = runKey(record.company_id, record.period);
-						const captures = PENDING_CAPTURES.get(key);
-						PENDING_CAPTURES.delete(key);
-						if (captures == null)
-							refuse(
-								`Payroll ${record.period} was created without its capture list. This is a bug.`
-							);
-						const stamp = (ids: readonly string[], payslipId: string) =>
-							ids.map((id) => ({
-								id,
-								settled_payslip_id: payslipId,
-								settled_period: record.period
-							}));
-						for (const capture of captures) {
-							if (capture.workDays.length)
-								yield* api.db.work_days.mutate(stamp(capture.workDays, capture.payslipId));
-							if (capture.claims.length)
-								yield* api.db.claim_requests.mutate(stamp(capture.claims, capture.payslipId));
-							if (capture.payments.length)
-								yield* api.db.payment_requests.mutate(stamp(capture.payments, capture.payslipId));
-						}
 					})
 			}
 		}

@@ -3,13 +3,10 @@
  * What a run settled, as the tests read it.
  *
  * A single-use source (work day, claim, payment) carries `settled_payslip_id` and `settled_period`;
- * the run's `after` hook stamps them once the payslips exist, and `buildPayrollRun` hands the same
- * lists back as `captures`. These helpers are the two ends of that: read what a build captured, and
- * put a world into the state a prior run would have left it in.
+ * the run's `before` hook stamps them in the same write that creates the payslips, and
+ * `buildPayrollRun` hands the same lists back as `captures`. These helpers are the two ends of
+ * that: read what a build captured, and put a world into the state a prior run would have left it in.
  */
-import { Effect } from 'effect';
-import payrollRunHooks from '../../src/collections/payroll_runs/+hooks.ts';
-import { memoryPayrollApi } from '../fixtures/memory-payroll-api.ts';
 
 export const NO_CAPTURES = { workDays: [], claims: [], payments: [] };
 
@@ -61,17 +58,6 @@ export function adjust(world, payslipId, adjustment, runId = 'prior-run') {
 		...adjustment
 	});
 }
-
-/** Run the run hook's `after` phase against a world: stamps the sources the create captured. */
-export const stampRun = (world, created, runId = 'run') =>
-	Effect.runPromise(
-		payrollRunHooks.mutate.perRecord.after.handler({
-			previous: undefined,
-			changes: {},
-			record: { id: runId, company_id: created.company_id, period: created.period },
-			api: memoryPayrollApi(world)
-		})
-	);
 
 /** The ids of one source collection a payslip settled, read off the world. */
 export const settledBy = (world, source, payslipId) =>

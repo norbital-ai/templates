@@ -74,8 +74,8 @@ function bucketOf(nature: MeasuredAdjustment['nature']): PayslipAdjustment['buck
 	return BUCKETS.find((bucket) => bucket === nature) ?? 'EARNING';
 }
 
-/** The single-use sources one payslip settled, by family — what the run stamps after the commit. */
-export type PayslipCaptures = Readonly<{
+/** The single-use sources one payslip settled, by family — what the create stamps in the same write. */
+type PayslipCaptures = Readonly<{
 	payslipId: string;
 	workDays: readonly string[];
 	claims: readonly string[];
