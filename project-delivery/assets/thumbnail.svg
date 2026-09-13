@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="Project Delivery workspace: brief, statement of work, delivery">
+  <rect width="1600" height="900" fill="#102a35"/>
+  <path d="M96 372H1504" stroke="#315461" stroke-width="2"/>
+  <text x="96" y="158" fill="#f3f8f7" font-family="system-ui, sans-serif" font-size="76" font-weight="650">Project Delivery</text>
+  <text x="100" y="229" fill="#a7c4c7" font-family="system-ui, sans-serif" font-size="30">Client relationships. Clear scope. Delivered work.</text>
+  <g font-family="system-ui, sans-serif">
+    <rect x="96" y="432" width="418" height="332" rx="18" fill="#1b3b46" stroke="#42616b"/>
+    <rect x="591" y="432" width="418" height="332" rx="18" fill="#1b3b46" stroke="#42616b"/>
+    <rect x="1086" y="432" width="418" height="332" rx="18" fill="#254c4d" stroke="#62b7a4"/>
+    <text x="128" y="492" font-size="22" fill="#96b4bc">01 / DISCOVER</text>
+    <text x="623" y="492" font-size="22" fill="#96b4bc">02 / AGREE</text>
+    <text x="1118" y="492" font-size="22" fill="#95d6c7">03 / DELIVER</text>
+    <text x="128" y="560" font-size="37" fill="#f3f8f7">Client brief</text>
+    <text x="623" y="560" font-size="37" fill="#f3f8f7">Statement of work</text>
+    <text x="1118" y="560" font-size="37" fill="#f3f8f7">Project activity</text>
+    <g stroke="#6b8991" stroke-width="10" stroke-linecap="round">
+      <path d="M133 620H433M133 655H395M133 690H335"/>
+      <path d="M628 620H933M628 655H881M628 690H820"/>
+    </g>
+    <g fill="none" stroke="#95d6c7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m1122 620 9 9 17-20m-26 56 9 9 17-20m-26 56 9 9 17-20"/>
+      <path d="M1170 619H1438M1170 655H1405M1170 691H1340"/>
+    </g>
+  </g>
+</svg>
