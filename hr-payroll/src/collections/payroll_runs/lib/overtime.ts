@@ -552,16 +552,6 @@ export function classifyOvertimeByCalendarMonth(options: {
 		});
 }
 
-/** Ordinary/off-day OT counted by a calendar-month cap; rest-day and public-holiday work is excluded. */
-export function regulatedMonthlyOvertimeHours(
-	days: readonly DailyOvertime[],
-	period: string
-): number {
-	return days
-		.filter((day) => monthKey(day.date) === period && ruleDayType(day.dayType) === 'ORDINARY')
-		.reduce((total, day) => total + day.hours, 0);
-}
-
 const ResolvedRuleSchema = Schema.Struct({
 	row: statutoryOvertimeRuleValueSchema,
 	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),

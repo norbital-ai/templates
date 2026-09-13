@@ -10,7 +10,7 @@ import test from 'node:test';
 import { Effect } from 'effect';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { settledBy, stampRun } from './helpers/settlement.ts';
+import { settledBy } from './helpers/settlement.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -43,8 +43,6 @@ async function createJanuary() {
 			api
 		})
 	);
-	// The after hook stamps the single-use sources once the payslips exist.
-	await stampRun(world, created);
 	return created;
 }
 
