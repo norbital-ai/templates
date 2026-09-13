@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"key": "norbital_projects",
+	"name": "Project Delivery",
+	"industry": "Professional Services",
+	"description": "A project CRM for client relationships, NDA and document collection, Markdown statements of work, local meeting transcription, delivery milestones and issue tracking.",
+	"visibility": "public",
+	"counts": {
+		"collections": 7,
+		"apps": 3,
+		"automations": 0
+	},
+	"tags": ["CRM", "Projects", "Documents"],
+	"name_zh": "项目交付",
+	"description_zh": "管理客户关系、保密协议与项目文件、Markdown 工作说明书、本地会议转录、交付里程碑和问题。",
+	"seed": {
+		"bankTree": "project-delivery",
+		"layout": "snapshots",
+		"stages": [
+			["companies"],
+			["contacts"],
+			["projects"],
+			["project_documents", "activities", "issues", "notes"]
+		]
+	}
+}
