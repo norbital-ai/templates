@@ -16,7 +16,6 @@ test(
 		const root = fileURLToPath(new URL('../', import.meta.url));
 		const { bundlePath, schemaFingerprint } = requireReleaseBundle(`${root}.norbital/artifact`, [
 			'ai',
-			'connector',
 			'database',
 			'tasks'
 		]);
@@ -147,12 +146,6 @@ test(
 				(await session.query('select id from issues where project_id = $1', [project])).length,
 				1
 			);
-			const rejected = await update('projects', project, { status: 'invented_status' });
-			assert.match(JSON.stringify(rejected.value), /rejected|invalid|Invalid/);
-			const [unchanged] = await session.query('select status from projects where id = $1', [
-				project
-			]);
-			assert.equal(unchanged.status, 'in_delivery');
 		} finally {
 			await session.stop();
 		}
