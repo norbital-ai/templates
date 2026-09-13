@@ -68,9 +68,27 @@ const driftAi = (failPub2: () => boolean) => {
 		call: async (_metadata, request) => {
 			if (request._tag !== 'Generate') return testAiCatalog;
 			const prompt = JSON.stringify(request);
-			const code = /Lineage (PUB2|PUB)\b/.exec(prompt)?.[1] ?? 'PUB';
+			const code = /lineage (PUB2|PUB)\b/i.exec(prompt)?.[1] ?? 'PUB';
 			if (code === 'PUB2' && failPub2()) throw new Error('PUB2 evidence unavailable');
 			const url = code === 'PUB' ? PUB_URL : PUB2_URL;
+			const findings =
+				code === 'PUB'
+					? {
+							contributions: [
+								{ code: 'PUB-EPF', bands: [proposedBand], source_url: url, quote: pubQuote }
+							],
+							leave_catalogue: [],
+							pay_component: [],
+							notes: []
+						}
+					: {
+							contributions: [
+								{ code: 'PUB2-EPF', bands: [pub2Band], source_url: url, quote: pub2Quote }
+							],
+							leave_catalogue: [],
+							pay_component: [],
+							notes: ['No change announced.']
+						};
 			const observation = {
 				callId: request.callId,
 				provider: 'fixture',
@@ -85,6 +103,10 @@ const driftAi = (failPub2: () => boolean) => {
 				assert.ok(
 					request.output.tools?.some((tool) => tool.name === 'read_official_page'),
 					'the research turn offers read_official_page'
+				);
+				assert.ok(
+					request.output.tools?.some((tool) => tool.name === 'return_result'),
+					'the research turn offers the structured submission'
 				);
 				return {
 					_tag: 'Generated',
@@ -102,7 +124,14 @@ const driftAi = (failPub2: () => boolean) => {
 													providerExecuted: false
 												})
 											]
-										: [Prompt.textPart({ text: `Evidence gathered for ${code}.` })]
+										: [
+												Prompt.toolCallPart({
+													id: `result-${code}-${turn}`,
+													name: 'return_result',
+													params: findings as unknown as Record<string, unknown>,
+													providerExecuted: false
+												})
+											]
 							})
 						)
 					},
@@ -111,27 +140,7 @@ const driftAi = (failPub2: () => boolean) => {
 			}
 			return {
 				_tag: 'Generated',
-				result: {
-					_tag: 'Object',
-					value:
-						code === 'PUB'
-							? {
-									contributions: [
-										{ code: 'PUB-EPF', bands: [proposedBand], source_url: url, quote: pubQuote }
-									],
-									leave_catalogue: [],
-									pay_component: [],
-									notes: []
-								}
-							: {
-									contributions: [
-										{ code: 'PUB2-EPF', bands: [pub2Band], source_url: url, quote: pub2Quote }
-									],
-									leave_catalogue: [],
-									pay_component: [],
-									notes: ['No change announced.']
-								}
-				},
+				result: { _tag: 'Object', value: findings },
 				observation
 			};
 		}
