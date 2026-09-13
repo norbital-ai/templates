@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeAiBinding } from '@norbital-ai/bolt-server';
-import { asRecord, bearerHeaders, postGuestCommand, recordedSubmission, rowsOf } from '@norbital-ai/test-utilities';
+import {
+	asRecord,
+	bearerHeaders,
+	postGuestCommand,
+	recordedSubmission,
+	rowsOf
+} from '@norbital-ai/test-utilities';
 import { bootPublicSeedGuest, PUBLIC_ASSIGNMENT_ID } from './helpers/public-seed-guest.js';
 
 test(
