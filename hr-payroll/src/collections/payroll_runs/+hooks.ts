@@ -269,10 +269,8 @@ export default {
 						const capturedWorkDays = stampFamily((capture) => capture.workDays);
 						const capturedClaims = stampFamily((capture) => capture.claims);
 						const capturedPayments = stampFamily((capture) => capture.payments);
-						if (capturedWorkDays.length > 0)
-							yield* api.db.work_days.mutate(capturedWorkDays);
-						if (capturedClaims.length > 0)
-							yield* api.db.claim_requests.mutate(capturedClaims);
+						if (capturedWorkDays.length > 0) yield* api.db.work_days.mutate(capturedWorkDays);
+						if (capturedClaims.length > 0) yield* api.db.claim_requests.mutate(capturedClaims);
 						if (capturedPayments.length > 0)
 							yield* api.db.payment_requests.mutate(capturedPayments);
 						return {
