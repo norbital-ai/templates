@@ -83,7 +83,7 @@ const refusedWith = (response: { readonly value: unknown }, what: string, patter
 /** The stored schedule, in recovery order — what the assertions are actually about. */
 const schedule = async (session: Session) =>
 	(await session.query(
-		`select id, left(due_date::text, 10) as due_day, amount_due::float8 as amount_due, sequence
+		`select id, to_char(due_date at time zone 'UTC', 'YYYY-MM-DD') as due_day, amount_due::float8 as amount_due, sequence
 		 from loan_repayments where loan_id = $1 order by sequence`,
 		[LOAN_ID]
 	)) as ReadonlyArray<{

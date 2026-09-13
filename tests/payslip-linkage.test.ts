@@ -86,6 +86,7 @@ const JURISDICTION = {
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
 	tax_year_start_month: 1,
+	timezone: 'Asia/Kuala_Lumpur',
 	effective_range: { start: '2020-01-01', end: null }
 };
 

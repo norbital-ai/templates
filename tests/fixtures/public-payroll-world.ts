@@ -118,6 +118,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				cloned_from_id: null,
 				currency: 'MYR',
 				tax_year_start_month: 1,
+				timezone: 'Asia/Kuala_Lumpur',
 				effective_range: RANGE,
 				approval_id: null
 			}

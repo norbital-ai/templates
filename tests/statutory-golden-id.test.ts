@@ -2,8 +2,9 @@
  * Indonesia: expected payslips against the sealed stack, which does not build.
  *
  * PP 46/2015 Ps.16 (JHT); PP 45/2015 Ps.28–29 (JP); PP 44/2015 Ps.16 and 18 as recomposed by
- * PP 49/2023 Ps.16A and 18A (JKK, JKM); PP 37/2021 Ps.43 (JKP); Perpres 82/2018 Ps.30 as
- * substituted by Perpres 64/2020 (Kesehatan); PMK 168/2023 (PPh 21 TER).
+ * PP 49/2023 Ps.16A and 18A (JKK, JKM) and unwound by PP 6/2025 art.11 (JKM, JKP); PP 37/2021 Ps.43
+ * (JKP); Perpres 82/2018 Ps.30 as substituted by Perpres 64/2020 (Kesehatan); PMK 168/2023
+ * (PPh 21 TER).
  *
  * Every figure below is derived by hand from those instruments and is what the engine computes.
  *
@@ -102,13 +103,13 @@ test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 ver
 	// JKK, recomposed by PP 49/2023 Ps.16A for a worker registered in JKP: group II is 0.40%.
 	expectStatutory(book, 'ID-5M', 'JKK', 0, 20_000);
 	expectStatutory(book, 'ID-15M', 'JKK', 0, 60_000);
-	// JKM, recomposed by Ps.18A: 0.20%.
-	expectStatutory(book, 'ID-5M', 'JKM', 0, 10_000);
-	expectStatutory(book, 'ID-15M', 'JKM', 0, 30_000);
-	// JKP: 0.46% in total, of which 0.24% is the employer's — 0.14 recomposed out of JKK and 0.10
-	// out of JKM; the remaining 0.22% is the central government's and never reaches a payslip.
-	expectStatutory(book, 'ID-5M', 'JKP', 0, 12_000);
-	expectStatutory(book, 'ID-15M', 'JKP', 0, 36_000);
+	// JKM 0.30%: PP 6/2025 art.11 ended the PP 49/2023 recomposition, so the full 0.30% is charged.
+	expectStatutory(book, 'ID-5M', 'JKM', 0, 15_000);
+	expectStatutory(book, 'ID-15M', 'JKM', 0, 45_000);
+	// JKP: only the 0.14% recomposed out of JKK is an employer charge (PP 49/2023 Ps.16A with
+	// PP 6/2025 art.11); the rest is the central government's and never reaches a payslip.
+	expectStatutory(book, 'ID-5M', 'JKP', 0, 7_000);
+	expectStatutory(book, 'ID-15M', 'JKP', 0, 21_000);
 
 	// BPJS Kesehatan: 5% — 1% participant, 4% employer — on a salary FLOORED at the workplace's
 	// UMK/UMP and capped at Rp 12,000,000.
@@ -211,10 +212,10 @@ test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025
 	// stands until 1 March 2026 — both identical to the 1 January 2026 version.
 	expectStatutory(book, 'ID-5M', 'JHT', 100_000, 185_000);
 	expectStatutory(book, 'ID-15M', 'JP', 105_474, 210_948);
-	// JKK group II 0.40%, JKM 0.20% and the employer's 0.24% of JKP, all employer-borne.
+	// JKK group II 0.40%, JKM 0.30% and the employer's 0.14% of JKP, all employer-borne.
 	expectStatutory(book, 'ID-5M', 'JKK', 0, 20_000);
-	expectStatutory(book, 'ID-5M', 'JKM', 0, 10_000);
-	expectStatutory(book, 'ID-5M', 'JKP', 0, 12_000);
+	expectStatutory(book, 'ID-5M', 'JKM', 0, 15_000);
+	expectStatutory(book, 'ID-5M', 'JKP', 0, 7_000);
 	// PMK 168/2023 TER A: 5,000,000 is inside bracket 1 at 0.00%; 15,000,000 is in the
 	// 13,750,001–15,100,000 bracket at 6.00% → 900,000.
 	expectStatutory(book, 'ID-5M', 'PPH21', 0, 0);

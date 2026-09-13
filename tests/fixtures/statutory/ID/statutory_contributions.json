@@ -1,7 +1,7 @@
 [
 	{
-		"id": "87e05e44-d2ca-5cbe-af64-4b56d19eb8bb",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "1ed6b721-56d3-4fcf-8b52-0b96dcbaf4b6",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
 		"is_statutory": true,
@@ -26,8 +26,8 @@
 		]
 	},
 	{
-		"id": "174f7bcd-4e87-5b1d-9168-aaa5a1c93443",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "a42ee1d4-776e-4b2e-943c-6e240e132645",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
 		"is_statutory": true,
@@ -64,8 +64,8 @@
 		]
 	},
 	{
-		"id": "d8ce56fe-d5db-5a21-9163-ad20d0de18cf",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "5e3ac325-b154-42a9-9fc1-6d6c28f36fff",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
 		"is_statutory": true,
@@ -133,12 +133,12 @@
 		]
 	},
 	{
-		"id": "5d2a612c-7e64-50b6-9ae7-6ca1988cafee",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "4dcef5fc-93b3-4a01-b2f8-385e4a58f122",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
 		"is_statutory": true,
-		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage, recomposed to 0.20% by PP 49/2023 art.18A for a participant required and registered in JKP; art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block — the art.18(1) rate before the art.18A recomposition. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 400,
@@ -153,18 +153,18 @@
 				"award": {
 					"kind": "PERCENT",
 					"employee": 0,
-					"employer": 0.2
+					"employer": 0.3
 				}
 			}
 		]
 	},
 	{
-		"id": "aa14e384-36e2-539d-8fcc-7da228b02da1",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "4bf3843b-8734-408a-9735-6cd35bcede91",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
 		"is_statutory": true,
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 64/2020 art.32(1) and (2); art.31 was deleted and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 500,
@@ -197,12 +197,12 @@
 		]
 	},
 	{
-		"id": "f2ea7bfd-4551-598a-947a-1f34e6bfc841",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "302ab052-abe0-4266-bcd0-aacb86d23c84",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
 		"is_statutory": true,
-		"authority": "PP 37/2021 art.43 — 0.46% of the monthly wage, of which 0.22% is borne by the Central Government and 0.24% comes from recomposing JKK (0.14%, PP 49/2023 art.16A) and JKM (0.10%, PP 49/2023 art.18A). Only that recomposed 0.24% is an employer charge: the employer's total BPJS Ketenagakerjaan cash is unchanged at JKK + JKM + JKP = 1.19% of wage for a class III employer, exactly the 0.89 + 0.30 the source workbook charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"authority": "PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 350,
@@ -217,14 +217,14 @@
 				"award": {
 					"kind": "PERCENT",
 					"employee": 0,
-					"employer": 0.24
+					"employer": 0.14
 				}
 			}
 		]
 	},
 	{
-		"id": "b0fe6e3c-2ece-58a0-965f-63204bd21d30",
-		"settings_id": "69e41101-44f1-5ef4-a8a9-5f722dea9764",
+		"id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
 		"is_statutory": true,
@@ -245,7 +245,7 @@
 					"employee": 0,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -258,7 +258,7 @@
 					"employee": 0.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -271,7 +271,7 @@
 					"employee": 0.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -284,7 +284,7 @@
 					"employee": 0.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -297,7 +297,7 @@
 					"employee": 1,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -310,7 +310,7 @@
 					"employee": 1.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -323,7 +323,7 @@
 					"employee": 1.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -336,7 +336,7 @@
 					"employee": 1.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -349,7 +349,7 @@
 					"employee": 2,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -362,7 +362,7 @@
 					"employee": 2.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -375,7 +375,7 @@
 					"employee": 2.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -388,7 +388,7 @@
 					"employee": 3,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -401,7 +401,7 @@
 					"employee": 3.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -414,7 +414,7 @@
 					"employee": 4,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -427,7 +427,7 @@
 					"employee": 5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -440,7 +440,7 @@
 					"employee": 6,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -453,7 +453,7 @@
 					"employee": 7,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -466,7 +466,7 @@
 					"employee": 8,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -479,7 +479,7 @@
 					"employee": 9,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -492,7 +492,7 @@
 					"employee": 10,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -505,7 +505,7 @@
 					"employee": 11,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -518,7 +518,7 @@
 					"employee": 12,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -531,7 +531,7 @@
 					"employee": 13,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -544,7 +544,7 @@
 					"employee": 14,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -557,7 +557,7 @@
 					"employee": 15,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -570,7 +570,7 @@
 					"employee": 16,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -583,7 +583,7 @@
 					"employee": 17,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -596,7 +596,7 @@
 					"employee": 18,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -609,7 +609,7 @@
 					"employee": 19,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -622,7 +622,7 @@
 					"employee": 20,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -635,7 +635,7 @@
 					"employee": 21,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -648,7 +648,7 @@
 					"employee": 22,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -661,7 +661,7 @@
 					"employee": 23,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -674,7 +674,7 @@
 					"employee": 24,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -687,7 +687,7 @@
 					"employee": 25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -700,7 +700,7 @@
 					"employee": 26,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -713,7 +713,7 @@
 					"employee": 27,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -726,7 +726,7 @@
 					"employee": 28,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -739,7 +739,7 @@
 					"employee": 29,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -752,7 +752,7 @@
 					"employee": 30,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -765,7 +765,7 @@
 					"employee": 31,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -778,7 +778,7 @@
 					"employee": 32,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -791,7 +791,7 @@
 					"employee": 33,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -804,7 +804,7 @@
 					"employee": 34,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -817,7 +817,7 @@
 					"employee": 0,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -830,7 +830,7 @@
 					"employee": 0.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -843,7 +843,7 @@
 					"employee": 0.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -856,7 +856,7 @@
 					"employee": 0.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -869,7 +869,7 @@
 					"employee": 1,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -882,7 +882,7 @@
 					"employee": 1.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -895,7 +895,7 @@
 					"employee": 2,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -908,7 +908,7 @@
 					"employee": 2.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -921,7 +921,7 @@
 					"employee": 3,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -934,7 +934,7 @@
 					"employee": 4,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -947,7 +947,7 @@
 					"employee": 5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -960,7 +960,7 @@
 					"employee": 6,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -973,7 +973,7 @@
 					"employee": 7,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -986,7 +986,7 @@
 					"employee": 8,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -999,7 +999,7 @@
 					"employee": 9,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1012,7 +1012,7 @@
 					"employee": 10,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1025,7 +1025,7 @@
 					"employee": 11,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1038,7 +1038,7 @@
 					"employee": 12,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1051,7 +1051,7 @@
 					"employee": 13,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1064,7 +1064,7 @@
 					"employee": 14,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1077,7 +1077,7 @@
 					"employee": 15,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1090,7 +1090,7 @@
 					"employee": 16,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1103,7 +1103,7 @@
 					"employee": 17,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1116,7 +1116,7 @@
 					"employee": 18,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1129,7 +1129,7 @@
 					"employee": 19,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1142,7 +1142,7 @@
 					"employee": 20,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1155,7 +1155,7 @@
 					"employee": 21,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1168,7 +1168,7 @@
 					"employee": 22,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1181,7 +1181,7 @@
 					"employee": 23,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1194,7 +1194,7 @@
 					"employee": 24,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1207,7 +1207,7 @@
 					"employee": 25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1220,7 +1220,7 @@
 					"employee": 26,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1233,7 +1233,7 @@
 					"employee": 27,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1246,7 +1246,7 @@
 					"employee": 28,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1259,7 +1259,7 @@
 					"employee": 29,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1272,7 +1272,7 @@
 					"employee": 30,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1285,7 +1285,7 @@
 					"employee": 31,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1298,7 +1298,7 @@
 					"employee": 32,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1311,7 +1311,7 @@
 					"employee": 33,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1324,7 +1324,7 @@
 					"employee": 34,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -1862,8 +1862,8 @@
 		]
 	},
 	{
-		"id": "756424ff-cac4-5b46-8432-e98930a17463",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "1fc84b08-22b6-4d48-a2c4-e909eb29c62d",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
 		"is_statutory": true,
@@ -1888,8 +1888,8 @@
 		]
 	},
 	{
-		"id": "f7dc551b-bdca-5cfa-9329-901d3201d854",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "5d9cfe95-6ca8-4e8f-84a3-3113b8adba36",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
 		"is_statutory": true,
@@ -1926,8 +1926,8 @@
 		]
 	},
 	{
-		"id": "9510532b-35fe-57ce-808d-7d8bacc60fbb",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "ed8a3f29-c3c9-4dd0-b151-504d3902920e",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
 		"is_statutory": true,
@@ -1995,12 +1995,12 @@
 		]
 	},
 	{
-		"id": "f990c4f7-377d-5f99-808c-2412db545505",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "5cdd1702-5407-4fe3-a29a-5cd8c5b7da20",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
 		"is_statutory": true,
-		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage, recomposed to 0.20% by PP 49/2023 art.18A for a participant required and registered in JKP; art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block — the art.18(1) rate before the art.18A recomposition. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 400,
@@ -2015,18 +2015,18 @@
 				"award": {
 					"kind": "PERCENT",
 					"employee": 0,
-					"employer": 0.2
+					"employer": 0.3
 				}
 			}
 		]
 	},
 	{
-		"id": "77bed78a-5649-579a-9fae-cd44fa9f92f0",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "b662790f-0fee-4d21-8373-7b318a5d8ddd",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
 		"is_statutory": true,
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 64/2020 art.32(1) and (2); art.31 was deleted and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 500,
@@ -2059,12 +2059,12 @@
 		]
 	},
 	{
-		"id": "568d119b-44de-5f3f-be6b-68b6b4fb0d84",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "395ef462-7094-451a-902f-573ee961bec8",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
 		"is_statutory": true,
-		"authority": "PP 37/2021 art.43 — 0.46% of the monthly wage, of which 0.22% is borne by the Central Government and 0.24% comes from recomposing JKK (0.14%, PP 49/2023 art.16A) and JKM (0.10%, PP 49/2023 art.18A). Only that recomposed 0.24% is an employer charge: the employer's total BPJS Ketenagakerjaan cash is unchanged at JKK + JKM + JKP = 1.19% of wage for a class III employer, exactly the 0.89 + 0.30 the source workbook charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"authority": "PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 350,
@@ -2079,14 +2079,14 @@
 				"award": {
 					"kind": "PERCENT",
 					"employee": 0,
-					"employer": 0.24
+					"employer": 0.14
 				}
 			}
 		]
 	},
 	{
-		"id": "635fd0aa-423b-5df5-847d-d46cffbcf57b",
-		"settings_id": "ad447214-d587-5121-ae29-49c3fa8b6e97",
+		"id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
 		"is_statutory": true,
@@ -2107,7 +2107,7 @@
 					"employee": 0,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2120,7 +2120,7 @@
 					"employee": 0.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2133,7 +2133,7 @@
 					"employee": 0.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2146,7 +2146,7 @@
 					"employee": 0.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2159,7 +2159,7 @@
 					"employee": 1,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2172,7 +2172,7 @@
 					"employee": 1.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2185,7 +2185,7 @@
 					"employee": 1.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2198,7 +2198,7 @@
 					"employee": 1.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2211,7 +2211,7 @@
 					"employee": 2,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2224,7 +2224,7 @@
 					"employee": 2.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2237,7 +2237,7 @@
 					"employee": 2.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2250,7 +2250,7 @@
 					"employee": 3,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2263,7 +2263,7 @@
 					"employee": 3.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2276,7 +2276,7 @@
 					"employee": 4,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2289,7 +2289,7 @@
 					"employee": 5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2302,7 +2302,7 @@
 					"employee": 6,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2315,7 +2315,7 @@
 					"employee": 7,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2328,7 +2328,7 @@
 					"employee": 8,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2341,7 +2341,7 @@
 					"employee": 9,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2354,7 +2354,7 @@
 					"employee": 10,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2367,7 +2367,7 @@
 					"employee": 11,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2380,7 +2380,7 @@
 					"employee": 12,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2393,7 +2393,7 @@
 					"employee": 13,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2406,7 +2406,7 @@
 					"employee": 14,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2419,7 +2419,7 @@
 					"employee": 15,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2432,7 +2432,7 @@
 					"employee": 16,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2445,7 +2445,7 @@
 					"employee": 17,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2458,7 +2458,7 @@
 					"employee": 18,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2471,7 +2471,7 @@
 					"employee": 19,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2484,7 +2484,7 @@
 					"employee": 20,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2497,7 +2497,7 @@
 					"employee": 21,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2510,7 +2510,7 @@
 					"employee": 22,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2523,7 +2523,7 @@
 					"employee": 23,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2536,7 +2536,7 @@
 					"employee": 24,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2549,7 +2549,7 @@
 					"employee": 25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2562,7 +2562,7 @@
 					"employee": 26,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2575,7 +2575,7 @@
 					"employee": 27,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2588,7 +2588,7 @@
 					"employee": 28,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2601,7 +2601,7 @@
 					"employee": 29,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2614,7 +2614,7 @@
 					"employee": 30,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2627,7 +2627,7 @@
 					"employee": 31,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2640,7 +2640,7 @@
 					"employee": 32,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2653,7 +2653,7 @@
 					"employee": 33,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2666,7 +2666,7 @@
 					"employee": 34,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -2679,7 +2679,7 @@
 					"employee": 0,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2692,7 +2692,7 @@
 					"employee": 0.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2705,7 +2705,7 @@
 					"employee": 0.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2718,7 +2718,7 @@
 					"employee": 0.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2731,7 +2731,7 @@
 					"employee": 1,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2744,7 +2744,7 @@
 					"employee": 1.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2757,7 +2757,7 @@
 					"employee": 2,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2770,7 +2770,7 @@
 					"employee": 2.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2783,7 +2783,7 @@
 					"employee": 3,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2796,7 +2796,7 @@
 					"employee": 4,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2809,7 +2809,7 @@
 					"employee": 5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2822,7 +2822,7 @@
 					"employee": 6,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2835,7 +2835,7 @@
 					"employee": 7,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2848,7 +2848,7 @@
 					"employee": 8,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2861,7 +2861,7 @@
 					"employee": 9,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2874,7 +2874,7 @@
 					"employee": 10,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2887,7 +2887,7 @@
 					"employee": 11,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2900,7 +2900,7 @@
 					"employee": 12,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2913,7 +2913,7 @@
 					"employee": 13,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2926,7 +2926,7 @@
 					"employee": 14,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2939,7 +2939,7 @@
 					"employee": 15,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2952,7 +2952,7 @@
 					"employee": 16,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2965,7 +2965,7 @@
 					"employee": 17,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2978,7 +2978,7 @@
 					"employee": 18,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -2991,7 +2991,7 @@
 					"employee": 19,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3004,7 +3004,7 @@
 					"employee": 20,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3017,7 +3017,7 @@
 					"employee": 21,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3030,7 +3030,7 @@
 					"employee": 22,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3043,7 +3043,7 @@
 					"employee": 23,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3056,7 +3056,7 @@
 					"employee": 24,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3069,7 +3069,7 @@
 					"employee": 25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3082,7 +3082,7 @@
 					"employee": 26,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3095,7 +3095,7 @@
 					"employee": 27,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3108,7 +3108,7 @@
 					"employee": 28,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3121,7 +3121,7 @@
 					"employee": 29,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3134,7 +3134,7 @@
 					"employee": 30,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3147,7 +3147,7 @@
 					"employee": 31,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3160,7 +3160,7 @@
 					"employee": 32,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3173,7 +3173,7 @@
 					"employee": 33,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3186,7 +3186,7 @@
 					"employee": 34,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -3724,8 +3724,8 @@
 		]
 	},
 	{
-		"id": "70173cf8-2e38-5d1e-8049-782b3ce67965",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
 		"is_statutory": true,
@@ -3750,8 +3750,8 @@
 		]
 	},
 	{
-		"id": "6aed00e7-d657-59f1-9a8d-1fa4e6f7f487",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
 		"is_statutory": true,
@@ -3788,8 +3788,8 @@
 		]
 	},
 	{
-		"id": "5d27ad4c-e73b-5c27-8a1d-6ac801b9b149",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "87c1513c-2c16-41a0-8812-d611049699a3",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
 		"is_statutory": true,
@@ -3857,12 +3857,12 @@
 		]
 	},
 	{
-		"id": "853056d8-44f4-5dd3-9f78-3a6875c61f66",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
 		"is_statutory": true,
-		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage, recomposed to 0.20% by PP 49/2023 art.18A for a participant required and registered in JKP; art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block — the art.18(1) rate before the art.18A recomposition. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
+		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 400,
@@ -3877,18 +3877,18 @@
 				"award": {
 					"kind": "PERCENT",
 					"employee": 0,
-					"employer": 0.2
+					"employer": 0.3
 				}
 			}
 		]
 	},
 	{
-		"id": "252fc525-0f8d-5c7e-82dd-114a17f140e0",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
 		"is_statutory": true,
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 64/2020 art.32(1) and (2); art.31 was deleted and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 500,
@@ -3921,12 +3921,12 @@
 		]
 	},
 	{
-		"id": "769f1e0d-d8b2-5e0f-a184-297be726a656",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
 		"is_statutory": true,
-		"authority": "PP 37/2021 art.43 — 0.46% of the monthly wage, of which 0.22% is borne by the Central Government and 0.24% comes from recomposing JKK (0.14%, PP 49/2023 art.16A) and JKM (0.10%, PP 49/2023 art.18A). Only that recomposed 0.24% is an employer charge: the employer's total BPJS Ketenagakerjaan cash is unchanged at JKK + JKM + JKP = 1.19% of wage for a class III employer, exactly the 0.89 + 0.30 the source workbook charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"authority": "PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
 		"rounding": "NEAREST_UNIT",
 		"relief_for": [],
 		"sequence": 350,
@@ -3941,14 +3941,14 @@
 				"award": {
 					"kind": "PERCENT",
 					"employee": 0,
-					"employer": 0.24
+					"employer": 0.14
 				}
 			}
 		]
 	},
 	{
-		"id": "96b640d8-34f9-5b07-8a85-876188e71c36",
-		"settings_id": "dce4d1ef-db85-5a01-84be-a07bf63d522d",
+		"id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
 		"is_statutory": true,
@@ -3969,7 +3969,7 @@
 					"employee": 0,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -3982,7 +3982,7 @@
 					"employee": 0.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -3995,7 +3995,7 @@
 					"employee": 0.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4008,7 +4008,7 @@
 					"employee": 0.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4021,7 +4021,7 @@
 					"employee": 1,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4034,7 +4034,7 @@
 					"employee": 1.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4047,7 +4047,7 @@
 					"employee": 1.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4060,7 +4060,7 @@
 					"employee": 1.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4073,7 +4073,7 @@
 					"employee": 2,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4086,7 +4086,7 @@
 					"employee": 2.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4099,7 +4099,7 @@
 					"employee": 2.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4112,7 +4112,7 @@
 					"employee": 3,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4125,7 +4125,7 @@
 					"employee": 3.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4138,7 +4138,7 @@
 					"employee": 4,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4151,7 +4151,7 @@
 					"employee": 5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4164,7 +4164,7 @@
 					"employee": 6,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4177,7 +4177,7 @@
 					"employee": 7,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4190,7 +4190,7 @@
 					"employee": 8,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4203,7 +4203,7 @@
 					"employee": 9,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4216,7 +4216,7 @@
 					"employee": 10,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4229,7 +4229,7 @@
 					"employee": 11,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4242,7 +4242,7 @@
 					"employee": 12,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4255,7 +4255,7 @@
 					"employee": 13,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4268,7 +4268,7 @@
 					"employee": 14,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4281,7 +4281,7 @@
 					"employee": 15,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4294,7 +4294,7 @@
 					"employee": 16,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4307,7 +4307,7 @@
 					"employee": 17,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4320,7 +4320,7 @@
 					"employee": 18,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4333,7 +4333,7 @@
 					"employee": 19,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4346,7 +4346,7 @@
 					"employee": 20,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4359,7 +4359,7 @@
 					"employee": 21,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4372,7 +4372,7 @@
 					"employee": 22,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4385,7 +4385,7 @@
 					"employee": 23,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4398,7 +4398,7 @@
 					"employee": 24,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4411,7 +4411,7 @@
 					"employee": 25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4424,7 +4424,7 @@
 					"employee": 26,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4437,7 +4437,7 @@
 					"employee": 27,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4450,7 +4450,7 @@
 					"employee": 28,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4463,7 +4463,7 @@
 					"employee": 29,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4476,7 +4476,7 @@
 					"employee": 30,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4489,7 +4489,7 @@
 					"employee": 31,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4502,7 +4502,7 @@
 					"employee": 32,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4515,7 +4515,7 @@
 					"employee": 33,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4528,7 +4528,7 @@
 					"employee": 34,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count <= 1 || employee.marital_status == \"MARRIED\" && children.count == 0"
 			},
 			{
 				"selector": {
@@ -4541,7 +4541,7 @@
 					"employee": 0,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4554,7 +4554,7 @@
 					"employee": 0.25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4567,7 +4567,7 @@
 					"employee": 0.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4580,7 +4580,7 @@
 					"employee": 0.75,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4593,7 +4593,7 @@
 					"employee": 1,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4606,7 +4606,7 @@
 					"employee": 1.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4619,7 +4619,7 @@
 					"employee": 2,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4632,7 +4632,7 @@
 					"employee": 2.5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4645,7 +4645,7 @@
 					"employee": 3,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4658,7 +4658,7 @@
 					"employee": 4,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4671,7 +4671,7 @@
 					"employee": 5,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4684,7 +4684,7 @@
 					"employee": 6,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4697,7 +4697,7 @@
 					"employee": 7,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4710,7 +4710,7 @@
 					"employee": 8,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4723,7 +4723,7 @@
 					"employee": 9,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4736,7 +4736,7 @@
 					"employee": 10,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4749,7 +4749,7 @@
 					"employee": 11,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4762,7 +4762,7 @@
 					"employee": 12,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4775,7 +4775,7 @@
 					"employee": 13,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4788,7 +4788,7 @@
 					"employee": 14,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4801,7 +4801,7 @@
 					"employee": 15,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4814,7 +4814,7 @@
 					"employee": 16,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4827,7 +4827,7 @@
 					"employee": 17,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4840,7 +4840,7 @@
 					"employee": 18,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4853,7 +4853,7 @@
 					"employee": 19,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4866,7 +4866,7 @@
 					"employee": 20,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4879,7 +4879,7 @@
 					"employee": 21,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4892,7 +4892,7 @@
 					"employee": 22,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4905,7 +4905,7 @@
 					"employee": 23,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4918,7 +4918,7 @@
 					"employee": 24,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4931,7 +4931,7 @@
 					"employee": 25,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4944,7 +4944,7 @@
 					"employee": 26,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4957,7 +4957,7 @@
 					"employee": 27,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4970,7 +4970,7 @@
 					"employee": 28,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4983,7 +4983,7 @@
 					"employee": 29,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -4996,7 +4996,7 @@
 					"employee": 30,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -5009,7 +5009,7 @@
 					"employee": 31,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -5022,7 +5022,7 @@
 					"employee": 32,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -5035,7 +5035,7 @@
 					"employee": 33,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {
@@ -5048,7 +5048,7 @@
 					"employee": 34,
 					"employer": 0
 				},
-				"eligibility": "employee.marital_status == \"SINGLE\" && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
+				"eligibility": "(employee.marital_status == \"SINGLE\" || employee.marital_status == \"DIVORCED\") && children.count >= 2 || employee.marital_status == \"MARRIED\" && children.count >= 1 && children.count <= 2"
 			},
 			{
 				"selector": {

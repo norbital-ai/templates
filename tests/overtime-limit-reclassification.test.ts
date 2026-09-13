@@ -92,6 +92,9 @@ const clock = (date, from, to) => ({
 const jurisdiction = (overrides) => ({
 	id: `jur-${overrides.code}`,
 	tax_year_start_month: 1,
+	// Synthetic worlds state their clocks with `+08:00`; name the matching zone so pricing never
+	// reads the host clock.
+	timezone: 'Asia/Kuala_Lumpur',
 	effective_range: { start: '2020-01-01', end: null },
 	...overrides
 });
