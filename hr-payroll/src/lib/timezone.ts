@@ -8,6 +8,11 @@
 
 /** Minutes east of UTC `timezone` was at midday on `date` (a `YYYY-MM-DD` day). */
 export function offsetMinutesFor(timezone: string, date: string): number {
+	if (typeof timezone !== 'string' || timezone.trim() === '')
+		throw new TypeError(
+			'A jurisdiction timezone is required to price a day; an absent zone must not fall back ' +
+				'to the host clock.'
+		);
 	const at = new Date(`${date}T12:00:00.000Z`);
 	if (Number.isNaN(at.getTime())) throw new TypeError(`Not a calendar day: ${date}.`);
 	let parts: Intl.DateTimeFormatPart[];
