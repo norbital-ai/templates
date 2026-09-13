@@ -18,6 +18,7 @@ import {
 	launchChromiumOrSkip,
 	mutationPush,
 	postGuestCommand,
+	recordedSubmission,
 	requireAccepted,
 	rowsOf,
 	type HeadedBrowser,
@@ -1020,20 +1021,16 @@ it(
 				assert.equal(request._tag, 'Generate');
 				inferenceCount += 1;
 				await gate.promise;
-				return {
-					_tag: 'Generated',
-					result: {
-						_tag: 'Object',
-						value: {
-							job_site_review: {
-								suspicious: false,
-								reason: 'No evidence of a mismatch.',
-								evidence_asset_name: ''
-							},
-							similar_photo_reviews: []
-						}
+				return recordedSubmission(
+					{
+						job_site_review: {
+							suspicious: false,
+							reason: 'No evidence of a mismatch.',
+							evidence_asset_name: ''
+						},
+						similar_photo_reviews: []
 					},
-					observation: {
+					{
 						callId: `review-${inferenceCount}`,
 						provider: 'fixture',
 						model: 'test/language',
@@ -1041,7 +1038,7 @@ it(
 						charge: { currency: 'USD', coefficient: '125', scale: 6 },
 						chargeSource: 'provider'
 					}
-				};
+				);
 			}
 		});
 		const session = await bootFieldOps('field-ops-b6-ui', ai);
