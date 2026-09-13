@@ -74,8 +74,6 @@ import { todayKey } from '../lib/ui/calendar.js';
 // Adapter-qualified per the host model registry contract: `<adapter>/<provider-model>`.
 export const STATUTORY_RESEARCH_MODEL = 'openrouter/deepseek/deepseek-v4.1-flash';
 
-/** How many times one lineage's structured answer is re-asked after a rejection. */
-const STATUTORY_RESEARCH_ATTEMPTS = 3;
 /**
  * The most wall-clock one lineage may take before it is abandoned and named in `failures`.
  *
@@ -385,44 +383,18 @@ const researchLineage = (
 			'Put anything that is not a row (a change announced for a later date, a page without a table) in notes.'
 		].join('\n');
 		yield* api.progress({ progress: 0.5, text: `Researching ${code} official pages` });
-		// A structured answer can be rejected after the provider returns it — a mangle the JSON
-		// schema could not express (an inverted band bound) or an empty turn. Re-ask with the
-		// rejection in hand, bounded, rather than failing the whole lineage on the first miss.
-		let findings: StatutoryFindings | undefined;
-		let cause: Cause.Cause<unknown> | undefined;
-		for (
-			let attempt = 0;
-			attempt < STATUTORY_RESEARCH_ATTEMPTS && findings === undefined;
-			attempt += 1
-		) {
-			const exit = yield* Effect.exit(
-				api.infer({
-					model: STATUTORY_RESEARCH_MODEL,
-					schema: StatutoryFindingsSchema,
-					tools: [tool],
-					system,
-					prompt:
-						attempt === 0 || cause === undefined
-							? prompt
-							: `${prompt}\n\nYour previous answer was rejected: ${getErrorMessage(Cause.squash(cause))}\nReturn the corrected structured result.`
-				})
-			);
-			if (Exit.isSuccess(exit)) {
-				// A structurally valid answer whose predicates do not compile is a rejection, not a
-				// finding: re-ask with the reason instead of carrying it to the draft write.
-				const fault = statutoryFindingsFault(exit.value);
-				if (fault == null) findings = exit.value;
-				else cause = Cause.fail(new Error(fault));
-			} else cause = exit.cause;
-		}
-		if (findings === undefined)
-			return yield* Effect.die(
-				new Error(
-					cause === undefined
-						? 'The research model returned no structured answer.'
-						: getErrorMessage(Cause.squash(cause))
-				)
-			);
+		// One call, one judgement. The model either names the rows that differ or says nothing does;
+		// an answer that cannot be written (a predicate that does not compile) fails this lineage by
+		// name rather than being re-asked, because the next attempt would only re-derive the same one.
+		const findings = yield* api.infer({
+			model: STATUTORY_RESEARCH_MODEL,
+			schema: StatutoryFindingsSchema,
+			tools: [tool],
+			system,
+			prompt
+		});
+		const fault = statutoryFindingsFault(findings);
+		if (fault != null) return yield* Effect.die(new Error(fault));
 		const diff = diffStatutoryFindings(sealed, findings, pages);
 		const notes = [sourcesNote, ...diff.notes];
 		if (diff.changes.length === 0)
