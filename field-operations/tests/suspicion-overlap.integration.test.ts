@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeAiBinding } from '@norbital-ai/bolt-server';
-import { asRecord, bearerHeaders, postGuestCommand, rowsOf } from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, postGuestCommand, recordedSubmission, rowsOf } from '@norbital-ai/test-utilities';
 import { bootPublicSeedGuest, PUBLIC_ASSIGNMENT_ID } from './helpers/public-seed-guest.js';
 
 test(
@@ -19,20 +19,16 @@ test(
 				assert.ok(gates[turn], 'Each of the two runs infers exactly once.');
 				started[turn].resolve();
 				await gates[turn].promise;
-				return {
-					_tag: 'Generated',
-					result: {
-						_tag: 'Object',
-						value: {
-							job_site_review: {
-								suspicious: false,
-								reason: `Review ${turn}`,
-								evidence_asset_name: ''
-							},
-							similar_photo_reviews: []
-						}
+				return recordedSubmission(
+					{
+						job_site_review: {
+							suspicious: false,
+							reason: `Review ${turn}`,
+							evidence_asset_name: ''
+						},
+						similar_photo_reviews: []
 					},
-					observation: {
+					{
 						callId: request.callId,
 						provider: 'fixture',
 						model: request.modelId,
@@ -40,7 +36,7 @@ test(
 						charge: { currency: 'USD', coefficient: '125', scale: 6 },
 						chargeSource: 'provider'
 					}
-				};
+				);
 			}
 		});
 		const session = await bootPublicSeedGuest({

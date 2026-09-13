@@ -138,11 +138,7 @@ const driftAi = (failPub2: () => boolean) => {
 					observation
 				};
 			}
-			return {
-				_tag: 'Generated',
-				result: { _tag: 'Object', value: findings },
-				observation
-			};
+			throw new Error('api.infer asks with a Message output; there is no object-shaped answer.');
 		}
 	});
 };

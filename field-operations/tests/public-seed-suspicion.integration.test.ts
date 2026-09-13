@@ -10,6 +10,7 @@ import {
 	pageOf,
 	postGuestCommand,
 	recordedAi,
+	recordedSubmission,
 	requireAccepted,
 	requireOk,
 	rowsOf,
@@ -49,20 +50,16 @@ const sessionFindMany = async (
 		'collections.findMany'
 	);
 
-const recordedEmptyPhotoClear: RecordedGenerated = {
-	_tag: 'Generated',
-	result: {
-		_tag: 'Object',
-		value: {
-			job_site_review: {
-				suspicious: false,
-				reason: 'The evidence does not justify a suspicion.',
-				evidence_asset_name: ''
-			},
-			similar_photo_reviews: []
-		}
+const recordedEmptyPhotoClear: RecordedGenerated = recordedSubmission(
+	{
+		job_site_review: {
+			suspicious: false,
+			reason: 'The evidence does not justify a suspicion.',
+			evidence_asset_name: ''
+		},
+		similar_photo_reviews: []
 	},
-	observation: {
+	{
 		callId: 'call-1',
 		provider: 'fixture',
 		model: 'provider/model',
@@ -70,7 +67,7 @@ const recordedEmptyPhotoClear: RecordedGenerated = {
 		charge: { currency: 'USD', coefficient: '125', scale: 6 },
 		chargeSource: 'provider'
 	}
-};
+);
 
 const SUSPICION_AI_TRANSCRIPT_LENGTH = 8;
 
@@ -457,28 +454,25 @@ test(
  * supplied to the model, because a citation the prompt never carried is rejected as invented and
  * collapses back to "not suspicious" (`tests/suspicion-review.test.ts`).
  */
-const recordedPhotoSuspicious = (assetName: string): RecordedGenerated => ({
-	_tag: 'Generated',
-	result: {
-		_tag: 'Object',
-		value: {
+const recordedPhotoSuspicious = (assetName: string): RecordedGenerated =>
+	recordedSubmission(
+		{
 			job_site_review: {
 				suspicious: true,
 				reason: 'The photo shows an empty bay while the summary reports completed works.',
 				evidence_asset_name: assetName
 			},
 			similar_photo_reviews: []
+		},
+		{
+			callId: 'call-suspicious',
+			provider: 'fixture',
+			model: 'provider/model',
+			operation: 'language',
+			charge: { currency: 'USD', coefficient: '125', scale: 6 },
+			chargeSource: 'provider'
 		}
-	},
-	observation: {
-		callId: 'call-suspicious',
-		provider: 'fixture',
-		model: 'provider/model',
-		operation: 'language',
-		charge: { currency: 'USD', coefficient: '125', scale: 6 },
-		chargeSource: 'provider'
-	}
-});
+	);
 
 const LOG_PHOTO_ID = '01990000-0000-7000-8005-000000000403';
 const LOG_STORAGE_KEY = 'public-seed/flagged.jpg';

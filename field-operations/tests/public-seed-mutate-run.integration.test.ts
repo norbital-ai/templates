@@ -7,6 +7,7 @@ import {
 	pageOf,
 	postGuestCommand,
 	recordedAi,
+	recordedSubmission,
 	requireOk,
 	rowsOf,
 	type RecordedGenerated
@@ -72,20 +73,16 @@ const loadPublicAssignment = async (
  */
 const PUBLIC_SEED_GENERATE_TRANSCRIPT_LENGTH = 32;
 
-const recordedEmptyPhotoClear: RecordedGenerated = {
-	_tag: 'Generated',
-	result: {
-		_tag: 'Object',
-		value: {
-			job_site_review: {
-				suspicious: false,
-				reason: 'The evidence does not justify a suspicion.',
-				evidence_asset_name: ''
-			},
-			similar_photo_reviews: []
-		}
+const recordedEmptyPhotoClear: RecordedGenerated = recordedSubmission(
+	{
+		job_site_review: {
+			suspicious: false,
+			reason: 'The evidence does not justify a suspicion.',
+			evidence_asset_name: ''
+		},
+		similar_photo_reviews: []
 	},
-	observation: {
+	{
 		callId: 'call-1',
 		provider: 'fixture',
 		model: 'provider/model',
@@ -93,7 +90,7 @@ const recordedEmptyPhotoClear: RecordedGenerated = {
 		charge: { currency: 'USD', coefficient: '125', scale: 6 },
 		chargeSource: 'provider'
 	}
-};
+);
 
 test(
 	'public seed mutate persists completed_at and Run now records Generated progress',
