@@ -121,10 +121,7 @@ const driftAi = (failPub2: () => boolean) => {
 					offered('browser_navigate') && offered('browser_read_page'),
 					'the research turn offers the host browser'
 				);
-				assert.ok(
-					offered('return_result'),
-					'the research turn offers the structured submission'
-				);
+				assert.ok(offered('return_result'), 'the research turn offers the structured submission');
 				const content =
 					turn === 1
 						? [
