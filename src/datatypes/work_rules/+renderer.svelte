@@ -40,34 +40,34 @@
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const current = $derived((props.value ?? null) as WorkRules | null);
 
-	const option = <T extends string>(values: readonly T[], key: string) =>
-		values.map((value) => ({ value, label: t(`${key}.${value}` as TenantI18nKeys) }));
+	const option = <T extends string>(values: readonly T[], label: (value: T) => string) =>
+		values.map((value) => ({ value, label: label(value) }));
 
-	const periodOptions = option(
-		['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'] as const,
-		'renderer.work_rules.period'
+	const periodOptions = option(['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'] as const, (value) =>
+		t(`renderer.work_rules.period.${value}` as TenantI18nKeys)
 	);
 	const measureOptions = option(
 		['TOTAL_WORK_HOURS', 'OVERTIME_HOURS', 'NORMAL_HOURS', 'SPREAD_HOURS'] as const,
-		'renderer.work_rules.measure'
+		(value) => t(`renderer.work_rules.measure.${value}` as TenantI18nKeys)
 	);
-	const limitUnitOptions = option(
-		['WORKED_HOURS', 'CLOCK_HOURS'] as const,
-		'renderer.work_rules.unit'
+	const limitUnitOptions = option(['WORKED_HOURS', 'CLOCK_HOURS'] as const, (value) =>
+		t(`renderer.work_rules.unit.${value}` as TenantI18nKeys)
 	);
-	const ordinaryUnitOptions = option(['DAY', 'HOUR'] as const, 'renderer.work_rules.ordinary_unit');
-	const precedenceOptions = option(
-		['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'] as const,
-		'renderer.work_rules.precedence'
+	const ordinaryUnitOptions = option(['DAY', 'HOUR'] as const, (value) =>
+		t(`renderer.work_rules.ordinary_unit.${value}` as TenantI18nKeys)
 	);
-	const restOptions = option(['REST', 'REST_OR_OFF'] as const, 'renderer.work_rules.discharged');
-	const wageBasisOptions = option(
-		['STATUTORY_WAGES', 'BASE_SALARY'] as const,
-		'renderer.work_rules.wage_basis'
+	const precedenceOptions = option(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'] as const, (value) =>
+		t(`renderer.work_rules.precedence.${value}` as TenantI18nKeys)
+	);
+	const restOptions = option(['REST', 'REST_OR_OFF'] as const, (value) =>
+		t(`renderer.work_rules.discharged.${value}` as TenantI18nKeys)
+	);
+	const wageBasisOptions = option(['STATUTORY_WAGES', 'BASE_SALARY'] as const, (value) =>
+		t(`renderer.work_rules.wage_basis.${value}` as TenantI18nKeys)
 	);
 	const categoryBasisOptions = option(
 		['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION'] as const,
-		'renderer.work_rules.category_basis'
+		(value) => t(`renderer.work_rules.category_basis.${value}` as TenantI18nKeys)
 	);
 	const workedTimeOptions: { value: string; label: string }[] = [
 		{ value: 'STATED', label: t('renderer.work_rules.worked_time.stated') },

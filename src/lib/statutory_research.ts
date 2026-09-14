@@ -67,7 +67,7 @@ const statutoryPageText = (html: string): string =>
 		.replace(/\s+/g, ' ')
 		.trim();
 
-export type ResearchPage = Readonly<{
+type ResearchPage = Readonly<{
 	url: string;
 	requested_url: string;
 	text: string;

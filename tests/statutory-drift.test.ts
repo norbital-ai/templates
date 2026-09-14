@@ -89,9 +89,7 @@ test('an unchanged table, in any key or band order, is no change', () => {
 					quote
 				}
 			],
-			pay_component: [
-				{ code: 'OVERTIME', statutory_opt_ins: [], source_url: page.url, quote }
-			],
+			pay_component: [{ code: 'OVERTIME', statutory_opt_ins: [], source_url: page.url, quote }],
 			notes: ['A revision is announced for 2028.']
 		},
 		[page]
@@ -105,7 +103,12 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 		sealed,
 		{
 			contributions: [
-				{ code: 'EPF', bands: [band('12.0')], source_url: page.url, quote: 'invented sentence here' },
+				{
+					code: 'EPF',
+					bands: [band('12.0')],
+					source_url: page.url,
+					quote: 'invented sentence here'
+				},
 				{
 					code: 'EPF',
 					bands: [band('12.0')],
