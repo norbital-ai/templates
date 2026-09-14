@@ -99,10 +99,11 @@ export function payrollRunPrecheck(options: {
 			 */
 			const attendanceSpan = employments.reduce(
 				(span, employment) => {
-					const exit = dateKey(employment.exit_date);
-					const end =
+					const end = employment.effective_range?.end;
+					const exit = end == null ? null : dateKey(end);
+					const spanEnd =
 						exit != null && exit > span.end && exit <= options.window.salary.end ? exit : span.end;
-					return { start: span.start, end };
+					return { start: span.start, end: spanEnd };
 				},
 				{ start: options.window.attendance.start, end: options.window.attendance.end }
 			);

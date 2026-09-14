@@ -110,6 +110,8 @@
 		});
 	});
 	const lockedIds = $derived(new Set((capturedQuery?.current ?? []).map((row) => row.id)));
+	/** A payslip has captured instalments: the header carries the lock, the captured rows refuse edits. */
+	const scheduleLocked = $derived(lockedIds.size > 0);
 
 	const applySchedule = (
 		rows: readonly LoanRepaymentDraft[],
@@ -146,7 +148,7 @@
 		)) satisfies CollectionFormSemantic;
 </script>
 
-<RecordShell title={record?.reference ?? t('component.create_loan')}>
+<RecordShell icon={scheduleLocked ? 'lucide:lock-keyhole' : undefined}>
 	<CollectionForm
 		{client}
 		collection="loans"

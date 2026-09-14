@@ -62,27 +62,20 @@ const SHIFT_CODES = new Map([
 
 /** Six working days then a rest day, anchored on Monday 5 January 2026. */
 const SIX_DAY_WEEK = {
-	type: 'PATTERNED',
-	anchor_date: '2026-01-05',
-	phases: [
-		{
-			duration: { kind: 'CONTINUOUS' },
-			day_cycle: [
-				{ roster_code_id: WORK_CODE },
-				{ roster_code_id: WORK_CODE },
-				{ roster_code_id: WORK_CODE },
-				{ roster_code_id: WORK_CODE },
-				{ roster_code_id: WORK_CODE },
-				{ roster_code_id: WORK_CODE },
-				{ roster_code_id: REST_CODE }
-			]
-		}
+	days: [
+		{ roster_code_id: WORK_CODE },
+		{ roster_code_id: WORK_CODE },
+		{ roster_code_id: WORK_CODE },
+		{ roster_code_id: WORK_CODE },
+		{ roster_code_id: WORK_CODE },
+		{ roster_code_id: WORK_CODE },
+		{ roster_code_id: REST_CODE }
 	]
 };
 
 const WORK = {
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -135,8 +128,6 @@ const BASIC = component({
 	family: 'WORK',
 	output: 'salary',
 	code: 'BASIC',
-	name: 'Basic salary',
-	sequence: 10,
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 });
 
@@ -155,8 +146,6 @@ const TRANSPORT = component({
 	id: '00000000-0000-4000-8000-00000000p008',
 	family: 'ALLOWANCE',
 	code: 'TRANSPORT',
-	name: 'Transport allowance',
-	sequence: 50,
 	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
 	definition: { source: 'ENTRY' }
 });
@@ -168,7 +157,6 @@ const workComponent = (line, label) =>
 		family: 'WORK',
 		output: `${line}:${label}`,
 		code: line,
-		sequence: 20,
 		definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 	});
 
@@ -267,7 +255,15 @@ function configuration(overrides = {}) {
 		overtimeCoverageRule: null,
 		shiftById: SHIFT_CODES,
 		patternById: new Map([
-			['pattern-1', { id: 'pattern-1', code: 'SIX-DAY', pattern: SIX_DAY_WEEK }]
+			[
+				'pattern-1',
+				{
+					id: 'pattern-1',
+					code: 'SIX-DAY',
+					pattern: SIX_DAY_WEEK,
+					effective_range: { start: '2026-01-05', end: null }
+				}
+			]
 		]),
 		holidays: overrides.holidays ?? new Map(),
 		holidaySnapshots: [],
@@ -312,8 +308,6 @@ function bundle(overrides = {}) {
 			employee_id: 'ee-1',
 			employee_number: 'PUBEM0023',
 			settings_id: 'jur-my',
-			hire_date: '2021-06-01',
-			exit_date: null,
 			effective_range: { start: '2021-06-01', end: null }
 		},
 		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
@@ -712,7 +706,7 @@ test('a holiday the calendar substitutes itself is observed once, not twice', ()
 				date: '2026-03-16',
 				name: 'Sunday festival (substitute)',
 				kind: 'SUBSTITUTE',
-				original_date: '2026-03-15'
+				replaces: '2026-03-15'
 			}
 		]
 	]);
@@ -743,7 +737,6 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		family: 'WORK',
 		output: 'night',
 		code: 'NIGHT_PREMIUM',
-		sequence: 22,
 		definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 	});
 	const nightPremium = { from: '22:00', to: '06:00', ordinary_add: 10, overtime_add: 20 };
@@ -816,7 +809,10 @@ test('a mid-month joiner is paid the days they were employed, over the month’s
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
 		wageDays: { start: '2026-03-16', end: '2026-03-31' },
-		employment: { ...bundle().employment, hire_date: '2026-03-16' },
+		employment: {
+			...bundle().employment,
+			effective_range: { start: '2026-03-16', end: null }
+		},
 		terms: [terms({ effective_range: { start: '2026-03-16', end: null } })]
 	};
 	const measured = measure(joined);
@@ -835,7 +831,10 @@ test('a FIXED_DAYS basis pays the days employed over the divisor the Work states
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
 		wageDays: { start: '2026-03-16', end: '2026-03-31' },
-		employment: { ...bundle().employment, hire_date: '2026-03-16' },
+		employment: {
+			...bundle().employment,
+			effective_range: { start: '2026-03-16', end: null }
+		},
 		terms: [terms({ effective_range: { start: '2026-03-16', end: null } })]
 	};
 	const measured = measure(joined, {
@@ -873,7 +872,10 @@ test('a part period on a FIXED_DAYS basis never out-pays a whole one', () => {
 		{
 			employedDays: { start: '2026-03-06', end: '2026-03-31' },
 			wageDays: { start: '2026-03-06', end: '2026-03-31' },
-			employment: { ...bundle().employment, hire_date: '2026-03-06' },
+			employment: {
+				...bundle().employment,
+				effective_range: { start: '2026-03-06', end: null }
+			},
 			terms: [terms({ effective_range: { start: '2026-03-06', end: null } })]
 		},
 		{
@@ -917,7 +919,10 @@ test('a mid-month leaver is paid to their last day', () => {
 	const measured = measure({
 		employedDays: { start: '2026-03-01', end: '2026-03-17' },
 		wageDays: { start: '2026-03-01', end: '2026-03-17' },
-		employment: { ...bundle().employment, exit_date: '2026-03-17' },
+		employment: {
+			...bundle().employment,
+			effective_range: { start: '2021-06-01', end: '2026-03-17' }
+		},
 		terms: [terms({ effective_range: { start: '2020-01-01', end: '2026-03-17' } })]
 	});
 	// 3,451 × 17/31. The seventeen days are 1–17 March inclusive: an exclusive end would pay 16.

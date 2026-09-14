@@ -2,7 +2,7 @@ import { custom, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authorin
 
 export default defineModel(
 	{
-		employment_id: uuid().notNull(),
+		employee_id: uuid().notNull(),
 		statutory_contribution_id: uuid().notNull(),
 		/**
 		 * The predecessor this row closes when it is submitted as an automated successor.
@@ -33,10 +33,10 @@ export default defineModel(
 	},
 	{
 		description:
-			'Where one employment stands with one statutory scheme — registered with a reference number, or not registered with a reason. An absent row means registered with nothing captured.',
+			'Where one person stands with one statutory scheme — registered with a reference number, or not registered with a reason. An absent row means registered with nothing captured.',
 		recordLabel: 'summary',
 		icon: 'lucide:badge-check',
-		// Plan 02 §7: employment =, contribution =, effective range && — the same **inclusive**
+		// Plan 02 §7: employee =, contribution =, effective range && — the same **inclusive**
 		// `[]` reading the engine's `coversDate` applies to a fact, and the same conversion
 		// `employment_terms` makes beside it. A raw `bolt_daterange` is half-open, which would let
 		// a successor begin on its predecessor's last day and leave two standings on that day.
@@ -44,7 +44,7 @@ export default defineModel(
 			{
 				name: 'employment_statutory_facts_no_overlap',
 				elements: [
-					{ expr: 'employment_id', with: '=' },
+					{ expr: 'employee_id', with: '=' },
 					{ expr: 'statutory_contribution_id', with: '=' },
 					{
 						expr: "daterange(lower(bolt_daterange(effective_range - 'end')), upper(bolt_daterange(effective_range - 'start')), '[]')",

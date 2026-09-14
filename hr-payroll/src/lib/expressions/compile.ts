@@ -34,6 +34,14 @@ function expressionEngine() {
 		.registerFunction('limit', 'limit(string): double', () => 11)
 		.registerFunction('bracket', 'bracket(dyn, dyn, dyn): double', (base) => Number(base))
 		.registerFunction('ladder', 'ladder(dyn, list<dyn>): double', (base) => Number(base))
+		.registerFunction('round_cent', 'round_cent(dyn): double', (value) => Number(value))
+		.registerFunction('round_5_cents', 'round_5_cents(dyn): double', (value) => Number(value))
+		.registerFunction('truncate_cent', 'truncate_cent(dyn): double', (value) => Number(value))
+		.registerFunction('up_5_cents', 'up_5_cents(dyn): double', (value) => Number(value))
+		.registerFunction('round_unit', 'round_unit(dyn): double', (value) => Number(value))
+		.registerFunction('floor_unit', 'floor_unit(dyn): double', (value) => Number(value))
+		.registerFunction('up_to_unit', 'up_to_unit(dyn): double', (value) => Number(value))
+		.registerFunction('progressive', 'progressive(dyn, list<dyn>): double', () => 0)
 		.registerFunction('map.under', 'map.under(int): int', () => 0n)
 		.registerFunction('map.days', 'map.days(string): double', () => 0)
 		.registerFunction('map.balance', 'map.balance(string): double', () => 0);
@@ -107,16 +115,33 @@ export function compileExpression(options: {
 		exprs: { value: expression },
 		outputs: ['value']
 	};
+	// `produced.<code>` is an open map: the blank carries a zero row for every code the expression
+	// names, so the check runs against the shape the run will supply rather than refusing a legal
+	// mention of a scheme this expression cannot see declared anywhere.
+	const mentioned = [...expression.matchAll(/produced\.([A-Za-z_][A-Za-z0-9_]*)\./g)].map(
+		(match) => match[1]!
+	);
+	const blank = {
+		...context.blank,
+		produced: Object.fromEntries(
+			mentioned.map((code) => [code, { employee: 0, employer: 0 }])
+		) as Record<string, { employee: number; employer: number }>
+	};
 	let value: unknown;
 	try {
 		value = engine.runComputation<Record<string, unknown>, { value: unknown }>(definition, {
-			...context.blank
+			...blank
 		}).outputs.value;
 	} catch (error) {
 		const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
 		return `The ${options.site} expression does not compile: ${message}`;
 	}
-	const ok = options.type === 'boolean' ? typeof value === 'boolean' : typeof value === 'number';
+	// cel-js types an integral literal as a bigint. It is still a number for every site here —
+	// `evaluateNumber` converts it — so the check is on the value's kind, not its representation.
+	const ok =
+		options.type === 'boolean'
+			? typeof value === 'boolean'
+			: typeof value === 'number' || typeof value === 'bigint';
 	if (!ok)
 		return (
 			`The ${options.site} expression must produce ${options.type === 'boolean' ? 'a boolean' : 'a number'}; ` +

@@ -75,21 +75,14 @@ const DAY_PAID_HOURS = 7.5;
 /** A Monday, so the cycle below reads as an ordinary working week. */
 const ANCHOR = '2026-01-05';
 const WEEKDAY_PATTERN = {
-	type: 'PATTERNED',
-	anchor_date: ANCHOR,
-	phases: [
-		{
-			duration: { kind: 'CONTINUOUS' },
-			day_cycle: [
-				{ roster_code_id: DAY_SHIFT.id },
-				{ roster_code_id: DAY_SHIFT.id },
-				{ roster_code_id: DAY_SHIFT.id },
-				{ roster_code_id: DAY_SHIFT.id },
-				{ roster_code_id: DAY_SHIFT.id },
-				{ roster_code_id: REST_CODE.id },
-				{ roster_code_id: REST_CODE.id }
-			]
-		}
+	days: [
+		{ roster_code_id: DAY_SHIFT.id },
+		{ roster_code_id: DAY_SHIFT.id },
+		{ roster_code_id: DAY_SHIFT.id },
+		{ roster_code_id: DAY_SHIFT.id },
+		{ roster_code_id: DAY_SHIFT.id },
+		{ roster_code_id: REST_CODE.id },
+		{ roster_code_id: REST_CODE.id }
 	]
 };
 
@@ -110,7 +103,7 @@ function patternedCode(date) {
 	const offset = Math.round(
 		(Date.parse(`${date}T00:00:00.000Z`) - Date.parse(`${ANCHOR}T00:00:00.000Z`)) / DAY_MS
 	);
-	return WEEKDAY_PATTERN.phases[0].day_cycle[((offset % 7) + 7) % 7].roster_code_id;
+	return WEEKDAY_PATTERN.days[((offset % 7) + 7) % 7].roster_code_id;
 }
 const PATTERNED_WORK_DAYS = WINDOW_DAYS.filter((date) => patternedCode(date) === DAY_SHIFT.id);
 
@@ -125,10 +118,7 @@ const EMPLOYMENTS = [
 		employee_id: 'employee:pattern',
 		employee_number: 'PUBEM0002',
 		company_id: 'company:1',
-		hire_date: '2021-06-01',
 		effective_range: range('2021-06-01', null),
-		exit_date: null,
-		exit_reason: null,
 		bank: {
 			bank_account_name: 'Public Fixture Employee',
 			bank_code: 'MBBEMYKL',
@@ -141,10 +131,9 @@ const EMPLOYMENTS = [
 		employee_id: 'employee:leaver',
 		employee_number: 'PUBEM0400',
 		company_id: 'company:1',
-		hire_date: '2024-07-10',
-		effective_range: range('2024-07-10', null),
-		exit_date: '2026-03-05',
-		exit_reason: 'RESIGNATION',
+		// Range ends are payroll-timezone midnights (startOfDayInstant), never 23:59Z: the
+		// export reads the day back in the payroll zone, where 23:59Z is already tomorrow.
+		effective_range: { start: '2024-07-10T00:00:00.000Z', end: '2026-03-05T00:00:00.000Z' },
 		bank: null
 	}
 ];
@@ -156,7 +145,7 @@ const WEEKDAY_SHIFT_PATTERN = {
 	code: 'D-5x2',
 	name: '5 on D, 2 off (REST)',
 	pattern: WEEKDAY_PATTERN,
-	effective_range: range('2021-01-01', null)
+	effective_range: range(ANCHOR, null)
 };
 
 const TERMS = [
@@ -203,7 +192,7 @@ const WORK = {
 	settings_id: RUN.settings_id,
 	jurisdiction_code: 'TEST-JUR',
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -443,7 +432,7 @@ Effect.runPromise(
 				leaver.lines.map((line) => line.componentCode),
 				['BASIC', 'FINAL_PAYMENT']
 			);
-			assert.equal(leaver.lines[1].nature, 'EARNING');
+			assert.equal(leaver.lines[1].bucket, 'EARNING');
 			assert.equal(leaver.lines[1].calculationSource, 'ENTRY');
 			assert.equal(leaver.lines[1].amount, 50, 'a settled Payment stays on its ended contract');
 			assert.equal(

@@ -17,6 +17,7 @@ import {
 	STATUTORY_PUB_EPF_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { markRunPaid } from './helpers/mark-paid.ts';
 
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
@@ -110,13 +111,12 @@ const catalogueRows = new Map<string, Row>(
 	CATALOGUES.map((collection) => [
 		collection,
 		collection === 'loan_catalogue'
-			? (({ settings_id, bands, sequence, eligibility }) => ({
+			? (({ settings_id, bands, eligibility }) => ({
 					id: LOAN_ID,
 					settings_id,
 					code: 'FIXTURE_LOAN',
 					loan_type: 'STAFF',
 					bands,
-					sequence,
 					eligibility
 				}))(seedRow('claim_catalogue'))
 			: seedRow(collection)
@@ -137,22 +137,11 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 			name: 'A scheme nobody may add',
 			is_statutory: true,
 			authority: 'Public fixture',
-			sequence: 9,
 			assessment_period: 'PAY_PERIOD',
-			eligibility: '',
-			rules: {
-				relief: '',
-				base_transform: '',
-				share_for_dependants: '',
-				rounding: ['NEAREST_CENT'],
-				no_withholding_below: 0,
-				use_period_table: true,
-				additional_remuneration_channel: false,
-				employee_share_annual_cap: null,
-				shared_cap_group: null,
-				project_relief_annually: false,
-				total_rounded_employee_floored: false
-			}
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
 		}
 	},
 	...CATALOGUES.map((collection) => {
@@ -172,19 +161,15 @@ const STORED: ReadonlyArray<{
 	readonly change: Row;
 	readonly pattern?: RegExp;
 }> = [
-	{ collection: 'statutory_contributions', id: STATUTORY_PUB_EPF_ID, change: { sequence: 99 } },
 	{
 		collection: 'statutory_contributions',
 		id: STATUTORY_PUB_EPF_ID,
-		change: {
-			bands: [
-				{
-					when: 'base >= 0.0',
-					employee: 'base * 12.0 / 100.0',
-					employer: 'base * 13.0 / 100.0'
-				}
-			]
-		}
+		change: { employee_share_annual_cap: 99 }
+	},
+	{
+		collection: 'statutory_contributions',
+		id: STATUTORY_PUB_EPF_ID,
+		change: { name: 'Edited under seal' }
 	},
 	{
 		collection: 'leave_catalogue',
@@ -196,7 +181,7 @@ const STORED: ReadonlyArray<{
 	).map((collection) => ({
 		collection,
 		id: String(catalogueRows.get(collection)!.id),
-		change: { sequence: 99 }
+		change: { name: 'Edited under seal' }
 	}))
 ];
 
@@ -237,16 +222,8 @@ test(
 			// Loan has no agreement fixture; install a valid catalogue sibling beneath the existing seal.
 			const loan = catalogueRows.get('loan_catalogue')!;
 			await session.query(
-				`insert into loan_catalogue (id, settings_id, code, loan_type, bands, sequence, eligibility) values ($1,$2,$3,$4,$5,$6,$7)`,
-				[
-					loan.id,
-					loan.settings_id,
-					loan.code,
-					loan.loan_type,
-					loan.bands,
-					loan.sequence,
-					loan.eligibility
-				]
+				`insert into loan_catalogue (id, settings_id, code, loan_type, bands, eligibility) values ($1,$2,$3,$4,$5,$6)`,
+				[loan.id, loan.settings_id, loan.code, loan.loan_type, loan.bands, loan.eligibility]
 			);
 			// Holidays are independent of settings: both operators can add one even here.
 			for (const [index, team] of [CONTROLLER, MANAGER].entries()) {
@@ -344,18 +321,7 @@ test(
 				).value,
 				'January run'
 			);
-			requireAccepted(
-				(
-					await write(
-						session,
-						founder,
-						'payroll_runs',
-						{ action: 'update', values: { id: runId, lifecycle: 'PAID' } },
-						await rowVersion(session, 'payroll_runs', runId)
-					)
-				).value,
-				'January paid'
-			);
+			await markRunPaid(session, runId);
 			const [run] = (await session.query('select settings_id from payroll_runs where id = $1', [
 				runId
 			])) as ReadonlyArray<Row>;

@@ -10,7 +10,7 @@
 	import { setContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { HOLIDAY_COMPANY } from '../holiday-scope.js';
-	import { holidayImportPayload } from '../holiday-workbook.js';
+	import { holidayCompanyImportPayload } from '../holiday-workbook.js';
 	import { runWorkbookImport } from './workbook-import.js';
 	import { importCollectionRecords } from '@norbital-ai/bolt/client';
 	import { newLocalId } from '../ids.js';
@@ -195,7 +195,7 @@
 						{
 							collectionName: 'jurisdiction_holidays',
 							recordLabel: t('app.settings.holidays').toLowerCase(),
-							buildPayload: holidayImportPayload
+							buildPayload: (grids) => holidayCompanyImportPayload(company.name)(grids)
 						},
 						t
 					)
@@ -206,7 +206,7 @@
 			<Column name="date" label={t('component.observed_on')} card="title" />
 			<Column name="name" label={t('component.holiday')} card="subtitle" />
 			<Column name="kind" label={t('holiday_calendar.kind')} />
-			<Column name="original_date" label={t('holiday_calendar.original_date')} />
+			<Column name="replaces" label={t('holiday_calendar.replaces')} />
 			<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
 		{/snippet}
 	</CollectionTable>

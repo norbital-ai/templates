@@ -33,9 +33,9 @@ function allocate(amount: number, weights: readonly number[]): number[] {
 
 /**
  * Contract payslips retain their own bases and sources. Contribution assesses the person's combined
- * remuneration once within the entity and interval, then allocates each share by that scheme's
- * ordinary plus special remuneration. Existing frozen bases, special amounts, band keys and sealed
- * employment identities reconstruct both the assessment and allocation without a separate ledger.
+ * remuneration once within the entity and interval, then allocates each share by that scheme's own
+ * assessed base. Existing frozen bases, rule keys and sealed employment identities reconstruct both
+ * the assessment and allocation without a separate ledger.
  */
 export function assessContributions(
 	contracts: readonly ContractAssessment[]
@@ -81,14 +81,10 @@ export function assessContributions(
 		}
 		const bases = input.bases.map((base, index) => {
 			const parts = ordered.map((contract) => contract.calculation.bases[index]!);
-			const special: Record<string, number> = {};
-			for (const part of parts)
-				for (const [rule, amount] of Object.entries(part.special))
-					special[rule] = cents((special[rule] ?? 0) + amount);
 			return {
 				contribution: base.contribution,
 				base: cents(parts.reduce((sum, part) => sum + part.base, 0)),
-				special
+				lines: parts.flatMap((part) => part.lines)
 			};
 		});
 		const charges = contribute({ ...input, bases });
@@ -99,12 +95,7 @@ export function assessContributions(
 				(base) => base.contribution.row.id === charge.contribution.row.id
 			);
 			const parts = ordered.map((contract) => contract.calculation.bases[index]!);
-			const weights = parts.map((part) =>
-				Math.max(
-					0,
-					part.base + Object.values(part.special).reduce((sum, amount) => sum + amount, 0)
-				)
-			);
+			const weights = parts.map((part) => Math.max(0, part.base));
 			const employee = allocate(charge.employee, weights);
 			const employer = allocate(charge.employer, weights);
 			for (const [position, contract] of ordered.entries()) {
@@ -112,7 +103,7 @@ export function assessContributions(
 				result.get(contract.employment.id)!.push({
 					...charge,
 					base: part.base,
-					special: part.special,
+					inputs: part.lines,
 					employee: employee[position]!,
 					employer: employer[position]!
 				});
@@ -134,9 +125,12 @@ import { live, coversDate } from '../../collections/payroll_runs/lib/effective.j
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 import { accumulateBases } from '../../collections/payroll_runs/lib/accumulate.js';
+import { orderSchemes } from '../../collections/payroll_runs/lib/mentions.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
 import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import { serviceStart } from '../employment-contract.js';
+import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
 import type { MeasuredEmployment } from './family.js';
 export function prepareContributionCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -149,49 +143,81 @@ export function prepareContributionCatalogue(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(rows, 'statutory contributions');
-		const contributions = live(rows).toSorted(
-			(a, b) => decodeNumber(a.sequence) - decodeNumber(b.sequence)
-		);
-		// Scheme-to-scheme reliefs are junction rows, keyed by scheme id: each relieving scheme
-		// carries the ids of the schemes its employee share reduces.
-		const reliefs =
-			contributions.length === 0
-				? []
-				: yield* options.api.db.scheme_reliefs.findMany({
-						where: {
-							relieving_id: { in: contributions.map((row) => row.id) },
-							...approved
-						},
-						limit: PAGE_LIMIT
-					});
-		options.api.reads.assertComplete(reliefs, 'scheme reliefs');
-		const relievedBy = new Map<string, string[]>();
-		for (const relief of live(reliefs))
-			relievedBy.set(relief.relieving_id, [
-				...(relievedBy.get(relief.relieving_id) ?? []),
-				relief.relieved_id
-			]);
-		return contributions.map((row) => ({
-			row,
-			rates: row.bands,
-			relievedIds: relievedBy.get(row.id) ?? []
-		}));
+		return orderSchemes(live(rows).map((row) => ({ row, rules: row.rules })));
+	});
+}
+
+/**
+ * Opt-ins name scheme rows within one settings version, and a request, loan or leave entry may pin
+ * a catalogue revision sealed under an earlier version. The run levies the version in force, so
+ * each foreign id is resolved through its scheme's code to that version's row (RFC 0002 §6): a
+ * charge the pinned revision declared still lands on the scheme the run actually levies, rather
+ * than silently feeding nothing. An id whose code the version does not carry is left alone, and
+ * the run's `OPT_IN_UNKNOWN` guard names it.
+ */
+export type OptInAliases = ReadonlyMap<string, string>;
+
+export function loadOptInAliases(options: {
+	readonly api: {
+		readonly db: {
+			readonly statutory_contributions: {
+				readonly findMany: PayrollReadApi['db']['statutory_contributions']['findMany'];
+			};
+		};
+		readonly reads?: ReadLog;
+	};
+	readonly configuration: Pick<Configuration, 'jurisdiction' | 'contributions'>;
+	readonly ids: readonly string[];
+}): Effect.Effect<OptInAliases> {
+	const currentIdByCode = new Map(
+		options.configuration.contributions.map((entry) => [entry.row.code, entry.row.id])
+	);
+	const currentIds = new Set(currentIdByCode.values());
+	const foreign = [...new Set(options.ids)].filter((id) => !currentIds.has(id));
+	if (foreign.length === 0) return Effect.succeed(new Map());
+	return Effect.map(
+		options.api.db.statutory_contributions.findMany({
+			where: { id: { in: foreign }, approval_id: { isNull: true } },
+			columns: { id: true, code: true },
+			limit: PAGE_LIMIT
+		}),
+		(rows) => {
+			options.api.reads?.assertComplete(rows, 'pinned scheme revisions');
+			const aliases = new Map<string, string>();
+			for (const row of rows) {
+				const current = currentIdByCode.get(row.code);
+				if (current != null && current !== row.id) aliases.set(row.id, current);
+			}
+			return aliases;
+		}
+	);
+}
+
+/** The same opt-ins with every pinned-revision id replaced by the run's own scheme row. */
+export function aliasedOptIns(
+	optIns: readonly StatutoryOptIn[],
+	aliases: OptInAliases
+): readonly StatutoryOptIn[] {
+	if (aliases.size === 0) return optIns;
+	return optIns.map((optIn) => {
+		const current = aliases.get(optIn.contribution_id);
+		return current == null ? optIn : { ...optIn, contribution_id: current };
 	});
 }
 export function prepareContributionInputs(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly employmentIds: readonly string[];
+	readonly employeeIds: readonly string[];
 	readonly configuration: Configuration;
 }) {
 	return Effect.gen(function* () {
 		const rows = yield* options.api.db.employment_statutory_facts.findMany({
-			where: { employment_id: { in: [...options.employmentIds] }, approval_id: { isNull: true } },
+			where: { employee_id: { in: [...options.employeeIds] }, approval_id: { isNull: true } },
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(rows, 'statutory facts');
 		return Map.groupBy(
 			yield* realignStatutoryFacts(options.api.db, live(rows), options.configuration),
-			(row) => row.employment_id
+			(row) => row.employee_id
 		);
 	});
 }
@@ -272,7 +298,7 @@ export function prepareContributionAssessment(options: {
 			projection,
 			person: personContext({
 				employee: bundle.employee,
-				employment: bundle.employment,
+				employment: { service_start: serviceStart(bundle.employment) },
 				terms:
 					bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
 					bundle.terms.at(-1) ??

@@ -1,5 +1,6 @@
 import {
 	boolean,
+	custom,
 	defineModel,
 	enums,
 	file,
@@ -7,6 +8,7 @@ import {
 	instant,
 	integer,
 	phone,
+	sql,
 	text,
 	uuid,
 	vector
@@ -34,6 +36,10 @@ export default defineModel(
 		 * works qualifies for neither. `null` means unrecorded, which is read as no relief.
 		 */
 		spouse_status: enums(['NONE', 'WITHOUT_INCOME', 'WITH_INCOME']),
+		/** Append-only child facts, true of the person rather than any one contract; what `children.under(age)` counts in leave eligibility. */
+		children: custom('employee_children')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		nationality: text(),
 		identity_number: text(),
 		dependents_count: integer().notNull().default(0),

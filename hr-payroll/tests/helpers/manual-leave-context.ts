@@ -14,9 +14,7 @@ export function leaveContext(): LeaveContext {
 				id: id(1),
 				employee_id: id(2),
 				company_id: id(3),
-				hire_date: span.start,
-				exit_date: null,
-				children: []
+				effective_range: span
 			}
 		],
 		companies: [{ id: id(3), settings_code: 'TEST', region: null }],
@@ -29,7 +27,8 @@ export function leaveContext(): LeaveContext {
 				marital_status: 'SINGLE',
 				solo_parent: false,
 				race: null,
-				religion: null
+				religion: null,
+				children: []
 			}
 		],
 		terms: [
@@ -72,7 +71,6 @@ export function leaveContext(): LeaveContext {
 				code: 'ANNUAL',
 				name: 'Annual leave',
 				is_statutory: false,
-				sequence: 1,
 				destination: 'PAY',
 				direction: 'ADD',
 				bands: [],
@@ -93,11 +91,7 @@ export function leaveContext(): LeaveContext {
 				id: id(5),
 				code: 'EVERY-DAY',
 				effective_range: span,
-				pattern: {
-					type: 'PATTERNED',
-					anchor_date: span.start,
-					phases: [{ duration: { kind: 'CONTINUOUS' }, day_cycle: [{ roster_code_id: id(8) }] }]
-				}
+				pattern: { days: [{ roster_code_id: id(8) }] }
 			}
 		],
 		shifts: [

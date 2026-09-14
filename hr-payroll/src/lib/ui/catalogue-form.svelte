@@ -23,7 +23,9 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import ExpressionFields from './expression-fields.svelte';
+	import ExpressionField from './expression-field.svelte';
 	import { hrCreateScope } from './create-scope.js';
+	import { settingsVersionSealed } from './settings-sealed.svelte.js';
 
 	type Collection = 'claim_catalogue' | 'payment_catalogue';
 	let {
@@ -36,6 +38,7 @@
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
+	const sealed = $derived(settingsVersionSealed(() => record?.settings_id)());
 	/** EMPLOYER and DISPLAY settle no direction: the model keeps it null there. */
 	const takesDirection = (destination: unknown): boolean =>
 		destination === 'PAY' || destination === 'NET';
@@ -45,6 +48,7 @@
 	{client}
 	{collection}
 	defaultValues={formValues}
+	readonly={sealed}
 	submitLabel={record
 		? t('component.save_catalogue_component')
 		: t('component.create_catalogue_component')}
@@ -55,7 +59,7 @@
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.catalogue_section_pay_line_hint')}</p>
 				<Grid gap="md" minimum="card">
-					{#if settingsId != null}
+					{#if settingsId != null || record != null}
 						<Field name="settings_id" hidden />
 					{:else}
 						<Field
@@ -72,6 +76,7 @@
 						/>
 					{/if}
 					<Field name="code" label={t('component.code')} />
+					<Field name="name" label={t('component.name')} />
 					<Field name="destination" label={t('component.destination')} />
 					{#if takesDirection(form.values().destination)}
 						<Field name="direction" label={t('component.direction')} />
@@ -89,21 +94,27 @@
 			</Stack>
 		{/snippet}
 
+		{#snippet whoMembers()}
+			<ExpressionFields
+				site="person"
+				expression={String(form.values().eligibility ?? '')}
+				type="boolean"
+				mode="members"
+			/>
+		{/snippet}
+
 		{#snippet who()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.catalogue_section_who_order_hint')}</p>
-				<Grid gap="md" minimum="card">
-					<div>
-						<Field name="eligibility" label={t('component.who_receives')} />
-						<ExpressionFields
-							site="person"
-							expression={String(form.values().eligibility ?? '')}
-							type="boolean"
-						/>
-					</div>
-					<Field name="sequence" label={t('component.order')} />
-				</Grid>
-			</Stack>
+			<Grid gap="md" minimum="card">
+				<Field
+					name="eligibility"
+					label={t('component.who_receives')}
+					description={t('component.eligibility_hint')}
+					descriptionExtra={whoMembers}
+					renderer={ExpressionField}
+					rendererProps={{ site: 'person', type: 'boolean' }}
+					placeholder={t('component.eligibility_placeholder')}
+				/>
+			</Grid>
 		{/snippet}
 
 		{#snippet limits()}

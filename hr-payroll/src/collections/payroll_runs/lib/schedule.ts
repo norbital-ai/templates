@@ -70,7 +70,9 @@ export function normalDailyHours(terms: WeeklyHoursTerms): number {
 }
 
 const ScheduleTermsSchema = Schema.Struct({
-	work_pattern: workPatternValueSchema,
+	work_pattern: Schema.NullOr(workPatternValueSchema),
+	/** The pattern row's effective start, the day its cycle counts from. */
+	pattern_anchor: Schema.NullOr(Schema.String),
 	normal_daily_hours: Schema.Number
 });
 type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
@@ -145,7 +147,7 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		try {
 			const planned = plannedByDate.get(date);
 			const term = options.terms(date);
-			const projectedId = patternRosterCodeId(term.work_pattern, date);
+			const projectedId = patternRosterCodeId(term.work_pattern, date, term.pattern_anchor);
 			const codeId = planned?.shift_definition_id ?? projectedId;
 			return codeId == null ? null : scheduledCode(codeFor(codeId, date), date).kind;
 		} catch {
@@ -169,22 +171,22 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 	 * The rest-day holidays the calendar already substitutes itself, by the date they came from.
 	 *
 	 * A gazette usually publishes the substitute as its own dated row — Malaysia, Singapore, Taiwan
-	 * and Vietnam all seed one per rest-day holiday, each naming its `original_date`. Carrying such
+	 * and Vietnam all seed one per rest-day holiday, each naming its `replaces`. Carrying such
 	 * a holiday forward as well observes it twice: the seeded substitute prices as a holiday from
 	 * its own row without consuming the carry, and the carry then lands on the next ordinary day
 	 * after that. Fourteen seeded rows across the bank, so fourteen extra paid holidays a year.
 	 *
-	 * The carry is for the other shape — a calendar that states only the original date and leaves
+	 * The carry is for the other shape — a calendar that states only the replaced date and leaves
 	 * the observation to the rule.
 	 */
 	const substitutedFrom = new Set<IsoDate>();
 	for (const holiday of options.configuration.holidays.values())
-		if (holiday.original_date != null) substitutedFrom.add(holiday.original_date);
+		if (holiday.replaces != null) substitutedFrom.add(holiday.replaces);
 
 	for (const date of options.dates) {
 		const terms = options.terms(date);
 		const planned = plannedByDate.get(date);
-		const patternCodeId = patternRosterCodeId(terms.work_pattern, date);
+		const patternCodeId = patternRosterCodeId(terms.work_pattern, date, terms.pattern_anchor);
 		const assignmentCodeId = planned?.shift_definition_id ?? patternCodeId;
 		// A ROSTERED employment has no generated assignment. An absent monthly entry is simply OFF;
 		// publication validation is responsible for enforcing any guaranteed load.
@@ -203,8 +205,8 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		// observed day is an ordinary working day for them (RFC 0001 §3).
 		const holiday =
 			holidayRow?.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' &&
-			holidayRow.original_date != null &&
-			baseKindOn(holidayRow.original_date) === 'WORK'
+			holidayRow.replaces != null &&
+			baseKindOn(holidayRow.replaces) === 'WORK'
 				? undefined
 				: holidayRow;
 		// Observed dates come only from the jurisdiction calendar. The pricing rule resolves overlap.

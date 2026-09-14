@@ -18,8 +18,6 @@ const prepare = (world: ReturnType<typeof createPublicPayrollWorld>, period = '2
 
 function endedWorld() {
 	const world = createPublicPayrollWorld();
-	world.employments[0]!.exit_date = '2026-01-20';
-	world.employments[0]!.exit_reason = 'RESIGNATION';
 	world.employments[0]!.effective_range = { start: '2021-06-01', end: '2026-01-20' };
 	world.employment_terms[0]!.effective_range.end = '2026-01-20';
 	// The one-off prorates: its source-month service fraction is the whole point of the test, and
@@ -78,7 +76,7 @@ const sourceHoliday = (date: string, name: string) => ({
 	company_id: '11111111-1111-4111-8111-111111111111',
 	date,
 	name,
-	original_date: null,
+	replaces: null,
 	source: null,
 	published_at: '2025-12-01T00:00:00.000Z',
 	approval_id: null
@@ -86,9 +84,7 @@ const sourceHoliday = (date: string, name: string) => ({
 
 function historicalWorkingDaysWorld() {
 	const world = endedWorld();
-	world.employments[0]!.hire_date = '2025-12-10';
-	world.employments[0]!.exit_date = '2025-12-20';
-	world.employments[0]!.exit_reason = 'RESIGNATION';
+	world.employments[0]!.effective_range = { start: '2025-12-10', end: '2025-12-20' };
 	world.employment_terms[0]!.effective_range = { start: '2025-12-10', end: '2025-12-20' };
 	const oneOff = world.allowance_requests.find((row) => row.id === 'one-off')!;
 	oneOff.recurrence = { kind: 'ONE_OFF', on: '2025-12-15' };
@@ -112,11 +108,7 @@ function historicalWorkingDaysWorld() {
 	};
 	const shift = world.shift_definitions[0]!;
 	shift.effective_range = { ...shift.effective_range, end: '2025-12-31' };
-	world.shift_patterns[0]!.pattern = {
-		type: 'PATTERNED',
-		anchor_date: '2025-12-01',
-		phases: [{ duration: { kind: 'CONTINUOUS' }, day_cycle: [{ roster_code_id: shift.id }] }]
-	};
+	world.shift_patterns[0]!.pattern = { days: [{ roster_code_id: shift.id }] };
 	world.work_days = Array.from({ length: 11 }, (_, index) => ({
 		id: `source-day-${index}`,
 		employment_id: EMPLOYMENT_ID,
@@ -138,7 +130,7 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 		const world = historicalWorkingDaysWorld();
 		world.allowance_requests.splice(0, 1);
 		if (!ended) {
-			world.employments[0]!.exit_date = null;
+			world.employments[0]!.effective_range.end = null;
 			world.employment_terms[0]!.effective_range.end = null;
 			world.shift_definitions[0]!.effective_range.end = null;
 		}
@@ -211,7 +203,6 @@ test('working-day Allowance with no published holidays counts every day, and ref
 	);
 	const missingRoster = historicalWorkingDaysWorld();
 	missingRoster.shift_patterns[0]!.pattern = {
-		type: 'ROSTERED',
 		expectation: {
 			kind: 'GUARANTEED_SCHEDULE',
 			period: 'WEEK',
@@ -228,7 +219,6 @@ test('working-day Allowance with no published holidays counts every day, and ref
 
 test('active late approval uses the same source-month fraction without changing current wages', async () => {
 	const world = historicalWorkingDaysWorld();
-	world.employments[0]!.exit_date = null;
 	world.employments[0]!.effective_range = { start: '2025-12-10', end: null };
 	world.employment_terms[0]!.effective_range.end = '2025-12-31';
 	const currentShift = {
@@ -241,13 +231,7 @@ test('active late approval uses the same source-month fraction without changing 
 		...structuredClone(world.shift_patterns[0]),
 		id: 'current-pattern',
 		effective_range: { start: '2026-01-01', end: null },
-		pattern: {
-			type: 'PATTERNED',
-			anchor_date: '2026-01-01',
-			phases: [
-				{ duration: { kind: 'CONTINUOUS' }, day_cycle: [{ roster_code_id: currentShift.id }] }
-			]
-		}
+		pattern: { days: [{ roster_code_id: currentShift.id }] }
 	});
 	world.employment_terms.push({
 		...structuredClone(world.employment_terms[0]),

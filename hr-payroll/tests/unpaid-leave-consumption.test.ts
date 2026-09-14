@@ -8,7 +8,7 @@ const APRIL = { start: '2026-04-01', end: '2026-04-30' };
 const ATTENDANCE = { start: '2026-03-21', end: '2026-04-20' };
 const WORK = {
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -28,8 +28,6 @@ const BASIC = {
 	destination: 'PAY',
 	direction: 'ADD',
 	is_statutory: false,
-	optIns: [],
-	sequence: 10,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 };
@@ -110,8 +108,6 @@ function measure(entries) {
 				employee_id: 'employee-1',
 				employee_number: 'TEST',
 				company_id: 'company',
-				hire_date: '2021-01-01',
-				exit_date: null,
 				effective_range: { start: '2021-01-01', end: null }
 			},
 			employee: { id: 'employee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
@@ -169,7 +165,6 @@ function measure(entries) {
 						id: 'pattern-1',
 						code: 'GUARANTEED',
 						pattern: {
-							type: 'ROSTERED',
 							expectation: {
 								kind: 'GUARANTEED_SCHEDULE',
 								period: 'WEEK',

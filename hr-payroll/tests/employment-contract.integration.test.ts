@@ -42,7 +42,6 @@ test(
 				...contracts[0],
 				id,
 				company_id,
-				hire_date: '2026-06-01',
 				effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
 			});
 			const overlap = await command({
@@ -84,15 +83,22 @@ test(
 					})
 				).value
 			);
-			const recordDeparture = async (id: string, exit_date: string) => {
-				const [row] = await session.query('select row_version from employments where id = $1', [
-					id
-				]);
+			const recordDeparture = async (id: string, end: string) => {
+				const [row] = await session.query(
+					'select row_version, effective_range from employments where id = $1',
+					[id]
+				);
+				const start =
+					typeof row.effective_range === 'string'
+						? JSON.parse(row.effective_range).start
+						: row.effective_range.start;
+				// instant_range bounds are instants: a bare YYYY-MM-DD day becomes its midnight.
+				if (/^\d{4}-\d{2}-\d{2}$/.test(end)) end = `${end}T00:00:00.000Z`;
 				return command(
 					{
 						action: 'mutate',
 						collection: 'employments',
-						rows: [{ action: 'update', values: { id, exit_date, exit_reason: 'RESIGNATION' } }]
+						rows: [{ action: 'update', values: { id, effective_range: { start, end } } }]
 					},
 					[
 						{
@@ -126,7 +132,6 @@ test(
 								action: 'create',
 								values: {
 									...makeContract(id),
-									hire_date: `2026-06-0${index + 1}`,
 									effective_range: { start: `2026-06-0${index + 1}T00:00:00.000Z`, end: null }
 								}
 							}
@@ -224,7 +229,7 @@ test(
 			requireAccepted((await recordDeparture(contractId, '2026-07-31')).value, 'sealed departure');
 			const redeparture = await recordDeparture(contractId, '2026-08-15');
 			assert.notEqual(asRecord(redeparture.value, 'edit departure').resolution, 'accepted');
-			assert.match(JSON.stringify(redeparture.value), /departure cannot be edited/i);
+			assert.match(JSON.stringify(redeparture.value), /cannot be reopened/i);
 			const nestedContractId = crypto.randomUUID();
 			const nestedTermId = crypto.randomUUID();
 			const { employment_id: _oldContract, id: _oldTerm, ...nestedTerms } = terms[0];
@@ -238,7 +243,6 @@ test(
 								action: 'create',
 								values: {
 									...makeContract(nestedContractId),
-									hire_date: '2026-08-01',
 									effective_range: { start: '2026-08-01T00:00:00.000Z', end: null },
 									term_employment: [
 										{

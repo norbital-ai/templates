@@ -14,7 +14,7 @@ import { Schema } from 'effect';
  *
  * The scheme is named by its code, not by a `statutory_contributions` id. An output is a frozen
  * fact and a naked uuid with no foreign key is not a relationship; the scheme itself, with the
- * exact bands in force, is captured whole in the run's configuration snapshot, and the run's
+ * exact rules in force, is captured whole in the run's configuration snapshot, and the run's
  * `statutory_snapshot_id` names the law that governed it.
  */
 export const payslipStatutoryValueSchema = Schema.Struct({
@@ -26,10 +26,8 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 	base_amount: Schema.Finite,
 	employee_amount: Schema.Finite,
 	employer_amount: Schema.Finite,
-	/** The row of the scheme's own table the amounts were read from, where it has one. */
-	band_key: Schema.NullOr(Schema.String),
-	/** Named extras a scheme charges beside its two shares, keyed by the scheme's own name for them. */
-	special_amounts: Schema.Record(Schema.String, Schema.Finite)
+	/** The `when` of the scheme's own rule the amounts were read from, where one governed. */
+	rule_when: Schema.NullOr(Schema.String)
 });
 
 /** Strict standard view: a key the struct does not declare is refused rather than stripped. */
@@ -40,6 +38,6 @@ export const payslipStatutorySchema = Schema.toStandardSchemaV1(payslipStatutory
 export default defineCustomType({
 	name: 'payslip_statutory',
 	description:
-		'One statutory scheme charged on a payslip: the code and authority of the scheme, the wage it was charged on, what it took from the employee, what it cost the employer, the band key it was read from, and any named special amounts.',
+		'One statutory scheme charged on a payslip: the code and authority of the scheme, the wage it was charged on, what it took from the employee, what it cost the employer, and the rule condition it was read from.',
 	schema: payslipStatutorySchema
 });

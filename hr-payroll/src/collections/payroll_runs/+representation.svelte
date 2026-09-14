@@ -2,8 +2,8 @@
 	/**
 	 * Creating a payroll run is choosing two facts: which company, and which period.
 	 *
-	 * Everything else on the record — the attendance window, the pay date, the configuration hash
-	 * and the lifecycle — is derived by the create hook, which is the only place that can see the
+	 * Everything else on the record — the attendance window, the pay date, the configuration hash,
+	 * the trace — is derived by the create hook, which is the only place that can see the
 	 * whole governing configuration. The window shown here comes from the engine's own
 	 * `resolveWindow`, so the operator reads the same cutoff rule the run will be built with rather
 	 * than a second derivation of it.
@@ -27,19 +27,13 @@
 	import { Effect, Result } from 'effect';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import { CollectionForm, submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import {
-		CollectionTable,
-		type CollectionTableRowActionContext
-	} from '@norbital-ai/ui/collection-table';
-	import { Button } from '@norbital-ai/ui/button';
+	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import { getErrorMessage } from '@norbital-ai/std';
-	import { toast } from 'svelte-sonner';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
@@ -53,9 +47,9 @@
 		payrollRunPayslipsQuery,
 		payslipAmount,
 		payslipEmployeeCode,
-		type PayrollRunPayslipRow,
-		type PayslipStatus
+		type PayrollRunPayslipRow
 	} from './payslip-table.js';
+	import PayslipStatusBadge from '../payslips/status-badge.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t, intlLocale } = useI18n<TenantI18nKeys>();
@@ -220,7 +214,18 @@
 	// Only while a count has actually come back. `?? 0` on a query still in flight would flash the
 	// refusal notice on every run, including the ones that built perfectly.
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
-	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
+	const paidCountQuery = $derived(
+		record == null
+			? null
+			: client.db.payslips.count({
+					where: { payroll_run_id: { eq: record.id }, status: { eq: 'PAID' } }
+				})
+	);
+	const paidCount = $derived(paidCountQuery?.current ?? 0);
+	const paidPercent = $derived(
+		payslipCount == null || payslipCount === 0 ? 0 : Math.round((paidCount / payslipCount) * 100)
+	);
+	const emptyDraft = $derived(record != null && payslipCount === 0);
 	/** A held slip is reviewed but deliberately kept out of every bank file until it is released. */
 	const heldCountQuery = $derived(
 		record == null
@@ -232,60 +237,7 @@
 	const heldCount = $derived(heldCountQuery?.current ?? 0);
 </script>
 
-{#snippet slipAction({ row }: CollectionTableRowActionContext<PayrollRunPayslipRow>)}
-	{#if row.status === 'DRAFT' || row.status === 'ON_HOLD'}
-		<Button
-			variant="outline"
-			size="sm"
-			onclick={() => {
-				// Hold keeps a reviewed slip out of every bank file; release returns it to draft.
-				const status: PayslipStatus = row.status === 'DRAFT' ? 'ON_HOLD' : 'DRAFT';
-				Effect.runFork(
-					submitCollectionMutation(() => client.db.payslips.mutate([{ id: row.id, status }])).pipe(
-						Effect.catch((cause) =>
-							Effect.sync(() =>
-								toast.error(t('component.payslip_action_failed'), {
-									description: getErrorMessage(cause)
-								})
-							)
-						)
-					)
-				);
-			}}
-		>
-			{row.status === 'DRAFT' ? t('component.hold') : t('component.release')}
-		</Button>
-	{/if}
-	{#if row.status !== 'PAID'}
-		<Button
-			variant="outline"
-			size="sm"
-			onclick={() => {
-				// Paid is terminal; the day money left is the run's own pay date.
-				const status: PayslipStatus = 'PAID';
-				const paid_at = record?.pay_date ?? undefined;
-				Effect.runFork(
-					submitCollectionMutation(() =>
-						client.db.payslips.mutate([{ id: row.id, status, paid_at }])
-					).pipe(
-						Effect.catch((cause) =>
-							Effect.sync(() =>
-								toast.error(t('component.payslip_action_failed'), {
-									description: getErrorMessage(cause)
-								})
-							)
-						)
-					)
-				);
-			}}
-		>
-			{t('payroll.mark_paid')}
-		</Button>
-	{/if}
-{/snippet}
-
 <RecordShell
-	title={record?.period ?? t('component.create_payroll_run')}
 	subtitle={record
 		? t('component.period_line', { period: record.period, count: payslipCount ?? 0 })
 		: undefined}
@@ -305,8 +257,12 @@
 							})}
 						</p>
 					</Stack>
-					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-						{record.lifecycle}
+					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold tabular-nums">
+						{t('app.payroll.paid_progress', {
+							paid: paidCount,
+							total: payslipCount ?? 0,
+							percent: paidPercent
+						})}
 					</span>
 				</Cluster>
 				<Grid as="dl" gap="sm" minimum="compact">
@@ -325,33 +281,6 @@
 				</Grid>
 			</Stack>
 
-			{#if record.lifecycle === 'DRAFT'}
-				<Stack gap="sm">
-					<p class="text-sm text-muted-foreground">{t('payroll.frozen_hint')}</p>
-					<CollectionForm
-						{client}
-						collection="payroll_runs"
-						defaultValues={record}
-						disabled={emptyDraft}
-						submitLabel={t('payroll.mark_paid')}
-						onAfterSubmit={close}
-					>
-						{#snippet children({ Field, form })}
-							<Field name="company_id" hidden />
-							<Field name="period" hidden />
-							<Field name="lifecycle" hidden />
-							<p
-								class="text-sm"
-								{@attach () => {
-									form.setValues({ lifecycle: 'PAID' });
-								}}
-							>
-								{t('payroll.payment_confirmation')}
-							</p>
-						{/snippet}
-					</CollectionForm>
-				</Stack>
-			{/if}
 			{#if emptyDraft}
 				<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
 					{t('component.draft_built_nothing')}
@@ -371,8 +300,6 @@
 					description={t('component.payslips_description')}
 					features={{ create: false }}
 					query={payslipsTableQuery}
-					rowActions={[slipAction]}
-					bounded={false}
 				>
 					{#snippet columns({ Column })}
 						<Column
@@ -385,7 +312,7 @@
 							}}
 						/>
 						<Column name="currency" card="badge" />
-						<Column name="status" card="badge" />
+						<Column name="status" renderer={PayslipStatusBadge} />
 						<Column
 							name="gross"
 							renderer={FormattedValueRenderer}
@@ -435,7 +362,6 @@
 				{#snippet children({ form, Field })}
 					<Field name="company_id" hidden />
 					<Field name="period" hidden />
-					<Field name="lifecycle" hidden />
 					<Stack gap="lg">
 						<Grid gap="md" minimum="compact">
 							{#if scopedCompanyId != null}

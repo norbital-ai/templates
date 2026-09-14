@@ -20,27 +20,33 @@ export default defineModel(
 		/** The section of law transcribed; the hook requires it when `is_statutory`. */
 		authority: text(),
 		/**
-		 * The span the scheme is assessed over. `MONTH` states that its bands are a monthly schedule —
+		 * The span the scheme is assessed over. `MONTH` states that its rules are a monthly schedule —
 		 * so a semi-monthly company charges the whole month's contribution once, on the month's wage,
 		 * rather than half of it twice. At a monthly company the two are the same.
 		 */
 		assessment_period: enums(['PAY_PERIOD', 'MONTH']).notNull().default('PAY_PERIOD'),
-		/** Who the scheme covers at all, as a predicate; empty is everyone. The run skips the rest. */
-		eligibility: text().notNull().default(''),
-		sequence: integer().notNull(),
 		/**
-		 * The scheme's arithmetic: relief, base transform and dependant share as CEL over the scheme
-		 * context, with rounding, withholding threshold, period-table and relief-cap decisions typed.
+		 * Annual ceiling on this scheme's employee share when another scheme reads it as a relief;
+		 * null is no cap.
 		 */
-		rules: custom('statutory_rules').notNull(),
-		/** The ladder: the money expressions, in order, first matching `when` governs. Sealed with the version. */
-		bands: custom('contribution_bands')
+		employee_share_annual_cap: integer(),
+		/** Schemes in one pool share the tightest cap they name. */
+		shared_cap_group: text(),
+		/** Whether a relief read of this scheme includes the months still to run. */
+		project_relief_annually: boolean().notNull().default(false),
+		/**
+		 * The ladder: every rule states its condition and the money it charges there, in order. All
+		 * arithmetic — transform, relief, household share, rounding, threshold, annualisation — is an
+		 * expression inside these rules. A read of `produced.<code>.employee|employer` in any of them
+		 * is the only dependency declaration.
+		 */
+		rules: custom('contribution_rules')
 			.notNull()
 			.default(sql`'[]'::jsonb`)
 	},
 	{
 		description:
-			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with the expressions that say what it charges and the bands that select them. Sealed with its version. Scheme-to-scheme relief is `scheme_reliefs`; source families declare the statutory opt-ins of their monetary outputs.',
+			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with the rules that select and price its charge. Sealed with its version. A rule that names `produced.<code>.employee|employer` depends on that scheme; there is no sequence and no relief junction. Source families declare the statutory opt-ins of their monetary outputs.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

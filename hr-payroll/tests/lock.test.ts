@@ -473,7 +473,6 @@ test('a malformed run is skipped rather than locking everything', () => {
 	const windows = payrollWindows([
 		{
 			period: '2026-08',
-			lifecycle: 'PAID',
 			attendance_from: '2026-08-20',
 			attendance_to: '2026-08-01'
 		}

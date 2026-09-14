@@ -13,7 +13,7 @@ import type { IsoDate } from './dates.js';
 import { dateKey as rangeBoundDay } from '../../../lib/iso-day.js';
 
 /** A `custom('instant_range', { precision: 'day' })` column as the engine reads it; `end` of `null` is open-ended. */
-export const StoredRangeSchema = Schema.Struct({
+const StoredRangeSchema = Schema.Struct({
 	start: Schema.String,
 	end: Schema.NullOr(Schema.String)
 });

@@ -209,14 +209,16 @@ export function resolveEmploymentSettlement(options: {
 	};
 }
 
-/** Narrow a stored hire/exit pair, failing loudly on a row that has no start. */
+/** Narrow a stored stint range, failing loudly on a row that has no start. */
 export function employmentDates(
-	employment: Pick<ResolvedEmployment, 'employee_number' | 'id' | 'hire_date' | 'exit_date'>
+	employment: Pick<ResolvedEmployment, 'employee_number' | 'id' | 'effective_range'>
 ): EmploymentDates {
-	const hire = dateKey(employment.hire_date);
+	const start = employment.effective_range?.start;
+	const hire = start == null ? null : dateKey(start);
 	if (hire == null)
 		throw new Error(
-			`Employment ${employment.employee_number ?? employment.id ?? '(unknown)'} has no hire date.`
+			`Employment ${employment.employee_number ?? employment.id ?? '(unknown)'} has no service start.`
 		);
-	return { hire, exit: dateKey(employment.exit_date) };
+	const end = employment.effective_range?.end;
+	return { hire, exit: end == null ? null : dateKey(end) };
 }

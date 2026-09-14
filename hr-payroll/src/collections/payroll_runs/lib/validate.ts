@@ -21,6 +21,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 
 import { Schema } from 'effect';
 import type { Configuration } from './configuration.js';
+import { orderSchemes } from './mentions.js';
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
 import type { StatutoryOptIn } from '../../../datatypes/work_rules/+definition.js';
 import { dateKey, requiredDateKey } from './dates.js';
@@ -48,14 +49,15 @@ export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 }
 
 /**
- * A priced Work line may only opt into schemes this settings version actually levies.
+ * A priced line may only opt into schemes this settings version actually levies.
  *
  * There used to be an undecided-cell grid here: absence and night were refused by name when a run
  * priced one without an opt-in. The opt-in list is the whole answer now — silence is no effect —
  * so the fault that remains is the opposite: an opt-in naming a contribution the version does not
- * carry, which ACCUMULATE silently ignores and no screen would show.
+ * carry, which ACCUMULATE silently ignores and no screen would show. The write refuses it first
+ * (`catalogue_rules.ts`); this is the run's guard behind that, over every family.
  */
-export function validateAbsenceTreatments(options: {
+export function validateOptIns(options: {
 	readonly configuration: Configuration;
 	readonly adjustments: readonly {
 		readonly catalogueComponent: FamilyPayItem;
@@ -65,7 +67,6 @@ export function validateAbsenceTreatments(options: {
 	const levied = new Set(options.configuration.contributions.map((entry) => entry.row.id));
 	const issues: RunIssue[] = [];
 	for (const row of options.adjustments) {
-		if (row.catalogueComponent.family !== 'WORK') continue;
 		for (const optIn of row.optIns)
 			if (!levied.has(optIn.contribution_id))
 				issues.push({
@@ -116,41 +117,27 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	}
 
 	// ── the schemes ─────────────────────────────────────────────────────────────────────────────
-	const sequenceById = new Map(
-		configuration.contributions.map((entry) => [entry.row.id, decodeNumber(entry.row.sequence)])
-	);
 	for (const contribution of configuration.contributions) {
 		const code = contribution.row.code;
-		if (contribution.rates.length === 0)
+		if (contribution.rules.length === 0)
 			blocker(
 				'CONTRIBUTION_UNBANDED',
-				`${code} has no rate bands effective for this period, so it could not charge anything.`,
+				`${code} has no rules effective for this period, so it could not charge anything.`,
 				'statutory_contributions',
 				contribution.row.id
 			);
-		// Coverage is a property of the seeded expressions, not of a band's shape: the terminal rung
-		// is whichever condition an unbounded wage satisfies. A run that reaches a wage no band
-		// matches stops inside `selectBand` and names the scheme, so nothing is silently reused.
-		for (const relievedId of contribution.relievedIds) {
-			const relievedSequence = sequenceById.get(relievedId);
-			if (relievedSequence == null) {
-				blocker(
-					'RELIEF_TARGET_MISSING',
-					`${code} is a relief for a contribution that is not effective in this jurisdiction.`,
-					'statutory_contributions',
-					contribution.row.id
-				);
-				continue;
-			}
-			if (relievedSequence <= decodeNumber(contribution.row.sequence))
-				blocker(
-					'RELIEF_ORDER',
-					`${code} is a relief inside a contribution that runs before it. A relief must be ` +
-						'produced before the scheme that consumes it.',
-					'statutory_contributions',
-					contribution.row.id
-				);
-		}
+	}
+	// The dependency graph is derived from `produced.<code>` mentions and nothing else: a loop, or a
+	// mention of a scheme not in force, refuses before any charge is computed.
+	try {
+		orderSchemes(configuration.contributions);
+	} catch (error) {
+		blocker(
+			'CONTRIBUTION_DEPENDENCY',
+			error instanceof Error ? error.message : String(error),
+			'statutory_contributions',
+			configuration.contributions[0]?.row.id ?? ''
+		);
 	}
 
 	// ── overtime completeness: a rule nothing can enter is work done for nothing ────────────────
@@ -242,15 +229,21 @@ export function validateDailyWorkLimit(options: {
 	readonly employeeNumber: string;
 	readonly days: readonly DailyOvertime[];
 	readonly maxWorkHours: number;
+	/** A CLOCK_HOURS limit is a span: its evaluated ceiling subtracts the day's recorded break. */
+	readonly unit?: 'WORKED_HOURS' | 'CLOCK_HOURS';
 }): RunIssue[] {
+	const maximum = (day: DailyOvertime): number =>
+		options.unit === 'CLOCK_HOURS'
+			? Math.max(0, options.maxWorkHours - day.breakMinutes / 60)
+			: options.maxWorkHours;
 	return options.days
-		.filter((day) => day.totalWorkHours > options.maxWorkHours)
+		.filter((day) => day.totalWorkHours > maximum(day))
 		.map((day) => ({
 			code: 'DAILY_WORK_LIMIT_EXCEEDED',
 			severity: 'WARNING' as const,
 			message:
 				`${options.employeeNumber} worked ${day.totalWorkHours.toFixed(2)} hours on ${day.date}, ` +
-				`above the ${options.maxWorkHours}-hour daily limit. The run will still be built; ` +
+				`above the ${maximum(day)}-hour daily limit. The run will still be built; ` +
 				'correct the attendance for that day, or record why the hours stand.',
 			collection: 'work_days',
 			recordId: day.workDayId
@@ -441,28 +434,34 @@ export function rosteredWorkCodeMaps(
  * monthly salary with no schedule cannot derive ordinary hours. `GUARANTEED_SCHEDULE` supplies
  * them when stated.
  */
+type RosteredExpectation =
+	| {
+			readonly kind: 'GUARANTEED_SCHEDULE';
+			readonly period: 'WEEK' | 'MONTH';
+			readonly required_work_days: number;
+			readonly required_paid_minutes: number;
+	  }
+	| {
+			readonly kind: 'AS_ASSIGNED';
+			readonly period: 'WEEK' | 'MONTH';
+			readonly maximum_paid_minutes: number | null;
+	  };
+
 type RosteredValidationTerms = {
 	readonly id: string;
 	readonly pay_frequency: string | null;
 	readonly work_pattern:
-		| { readonly type: 'PATTERNED' }
-		| {
-				readonly type: 'ROSTERED';
-				readonly expectation:
-					| {
-							readonly kind: 'GUARANTEED_SCHEDULE';
-							readonly period: 'WEEK' | 'MONTH';
-							readonly required_work_days: number;
-							readonly required_paid_minutes: number;
-					  }
-					| {
-							readonly kind: 'AS_ASSIGNED';
-							readonly period: 'WEEK' | 'MONTH';
-							readonly maximum_paid_minutes: number | null;
-					  };
-		  };
+		| { readonly days: readonly { readonly roster_code_id: string }[] }
+		| { readonly expectation: RosteredExpectation }
+		| null;
 	readonly effective_range: unknown;
 };
+
+/** The expectation a term states, or null where it projects a day cycle (or names none). */
+function expectationOf(term: RosteredValidationTerms): RosteredExpectation | null {
+	const pattern = term.work_pattern;
+	return pattern != null && 'expectation' in pattern ? pattern.expectation : null;
+}
 
 type RosteredValidationDay = {
 	readonly work_date: string;
@@ -513,7 +512,7 @@ export function validateRosteredExpectations(options: {
 		const touching = employment.terms.filter((term) =>
 			windowDates.some((date) => coversDate(term.effective_range, date))
 		);
-		if (!touching.some((term) => term.work_pattern.type === 'ROSTERED')) continue;
+		if (!touching.some((term) => expectationOf(term) != null)) continue;
 		const explicitByDate = new Map<string, string>();
 		for (const day of employment.workDays) {
 			const date = dateKey(day.work_date);
@@ -534,14 +533,12 @@ export function validateRosteredExpectations(options: {
 		// `GUARANTEED_SCHEDULE` supplies them instead, and its shortfall is the
 		// `WORKLOAD_BELOW_TERMS` issue below rather than this refusal.
 		const hasGuarantee = touching.some(
-			(term) =>
-				term.work_pattern.type === 'ROSTERED' &&
-				term.work_pattern.expectation.kind === 'GUARANTEED_SCHEDULE'
+			(term) => expectationOf(term)?.kind === 'GUARANTEED_SCHEDULE'
 		);
 		if (
 			expectedInWindow.length === 0 &&
 			!hasGuarantee &&
-			touching.every((term) => term.work_pattern.type === 'ROSTERED') &&
+			touching.every((term) => expectationOf(term) != null) &&
 			touching.some((term) => term.pay_frequency === 'MONTHLY')
 		) {
 			issues.push({
@@ -557,8 +554,8 @@ export function validateRosteredExpectations(options: {
 			continue;
 		}
 		for (const term of touching) {
-			if (term.work_pattern.type !== 'ROSTERED') continue;
-			const expectation = term.work_pattern.expectation;
+			const expectation = expectationOf(term);
+			if (expectation == null) continue;
 			const activeDates = windowDates.filter((date) => coversDate(term.effective_range, date));
 			if (activeDates.length === 0) continue;
 			const referenceDays = expectation.period === 'WEEK' ? 7 : windowDates.length;

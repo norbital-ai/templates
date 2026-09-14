@@ -39,7 +39,11 @@ import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/auth
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
 import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
-import { patternRosterCodeId, termPattern, termPatternRow } from '../../scheduling/work-pattern.js';
+import {
+	patternAnchor,
+	patternRosterCodeId,
+	termPatternRow
+} from '../../scheduling/work-pattern.js';
 import {
 	dayLockKey,
 	dayLockSchema,
@@ -313,7 +317,7 @@ const holidayLikeSchema = Schema.Struct({
 	 * replaced date as WORK; the board applies the same check `resolveSchedule` does.
 	 */
 	kind: Schema.optional(Schema.NullOr(Schema.String)),
-	original_date: Schema.optional(Schema.NullOr(calendarInstantSchema)),
+	replaces: Schema.optional(Schema.NullOr(calendarInstantSchema)),
 	given_to: Schema.optional(Schema.NullOr(Schema.String))
 });
 export type HolidayLike = Schema.Schema.Type<typeof holidayLikeSchema>;
@@ -383,7 +387,7 @@ export function employmentMonthEmptyReason(
  * The board draws its holiday column from this and `buildRosterMonth` overlays the same map onto
  * every person-day, so a holiday cannot be marked in the header and missing from the cells below
  * it. The whole row rides along because a SUBSTITUTE holiday may be scoped to the staff who were
- * off on the replaced date, and that rule can only be applied with `given_to` and `original_date`.
+ * off on the replaced date, and that rule can only be applied with `given_to` and `replaces`.
  */
 export function holidaysByDate(holidays: readonly HolidayLike[]): Map<string, HolidayLike> {
 	return new Map(holidays.map((holiday) => [formatDateISO(holiday.date), holiday]));
@@ -538,14 +542,14 @@ function holidayAppliesTo(
 	indexes: DayIndexes,
 	employmentId: string
 ): boolean {
-	if (holidayAppliesToEveryone(holiday) || holiday.original_date == null) return true;
-	const replaced = formatDateISO(holiday.original_date);
+	if (holidayAppliesToEveryone(holiday) || holiday.replaces == null) return true;
+	const replaced = formatDateISO(holiday.replaces);
 	const override = indexes.workDay.get(personDayKey(employmentId, replaced));
 	const term = activeTerm(options.employmentTerms, employmentId, replaced);
-	const pattern = term == null ? null : termPattern(term);
+	const patternRow = term == null ? null : termPatternRow(term);
 	const codeId =
 		override?.shift_definition_id ??
-		(pattern == null ? null : patternRosterCodeId(pattern, replaced));
+		patternRosterCodeId(patternRow?.pattern ?? null, replaced, patternAnchor(patternRow));
 	const code = codeId == null ? null : options.rosterCodesById.get(codeId);
 	return code == null || rosterCodeKind(code.variant) !== 'WORK';
 }
@@ -576,10 +580,18 @@ function factsForDate(
 	// The base is read through the terms row: the named pattern it points at, or rostered as
 	// assigned when it points at none. A term whose pattern row did not ride the read throws here
 	// rather than quietly projecting nothing, because "no base" is a fact the board paints.
-	const pattern = term == null ? null : termPattern(term);
 	const patternRow = term == null ? null : termPatternRow(term);
-	const scheduleKind = pattern?.type ?? null;
-	const baselineId = pattern == null ? null : patternRosterCodeId(pattern, date);
+	const scheduleKind =
+		term == null
+			? null
+			: patternRow != null && 'days' in patternRow.pattern
+				? 'PATTERNED'
+				: 'ROSTERED';
+	const baselineId = patternRosterCodeId(
+		patternRow?.pattern ?? null,
+		date,
+		patternAnchor(patternRow)
+	);
 	const baselineCode = baselineId == null ? null : options.rosterCodesById.get(baselineId);
 	const baselineKind = baselineCode == null ? null : rosterCodeKind(baselineCode.variant);
 	const overrideId = workDay?.shift_definition_id ?? null;
@@ -1214,7 +1226,7 @@ export function holidayTitle(holiday: HolidayLike, t: Translator): string {
 	const base = `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday.name}`;
 	if (holidayAppliesToEveryone(holiday)) return base;
 	return `${base} · ${t('roster.holiday_recipients', {
-		date: holiday.original_date == null ? '' : formatDateISO(holiday.original_date)
+		date: holiday.replaces == null ? '' : formatDateISO(holiday.replaces)
 	})}`;
 }
 

@@ -12,7 +12,6 @@ export type PayrollWorld = {
 	readonly companies: PayrollRow[];
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
-	readonly scheme_reliefs: PayrollRow[];
 	readonly loan_catalogue: PayrollRow[];
 	readonly claim_catalogue: PayrollRow[];
 	readonly allowance_catalogue: PayrollRow[];
@@ -36,7 +35,7 @@ export type PayrollWorld = {
 	readonly payslips: PayrollRow[];
 };
 
-const OPERATORS = ['eq', 'in', 'isNull', 'isNotNull', 'lt', 'lte', 'gt', 'gte'] as const;
+const OPERATORS = ['eq', 'ne', 'in', 'isNull', 'isNotNull', 'lt', 'lte', 'gt', 'gte'] as const;
 
 function valuesEqual(left: unknown, right: unknown): boolean {
 	return left === right || (left == null && right == null);
@@ -68,6 +67,9 @@ function matchPredicate(value: unknown, predicate: unknown): boolean {
 		switch (operator) {
 			case 'eq':
 				if (!valuesEqual(value, clause.eq)) return false;
+				break;
+			case 'ne':
+				if (valuesEqual(value, clause.ne)) return false;
 				break;
 			case 'in':
 				if (
@@ -120,10 +122,6 @@ function select(rows: readonly PayrollRow[], query: { where?: unknown; limit?: n
 	return query.limit == null ? matched : matched.slice(0, query.limit);
 }
 
-export function clonePayrollWorld(world: PayrollWorld): PayrollWorld {
-	return structuredClone(world);
-}
-
 /** A read-only hook `api` whose `db` is the given world. */
 export function memoryPayrollApi(world: PayrollWorld) {
 	// A stored payslip always carries its `adjustments` array; a test that files one without it
@@ -161,7 +159,6 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			companies: collection('companies'),
 			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
-			scheme_reliefs: collection('scheme_reliefs'),
 			loan_catalogue: collection('loan_catalogue'),
 			claim_catalogue: collection('claim_catalogue'),
 			allowance_catalogue: collection('allowance_catalogue'),

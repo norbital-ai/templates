@@ -1,4 +1,4 @@
-import { childrenOn } from '../employment-contract.js';
+import { childrenOn, serviceStart } from '../employment-contract.js';
 import { PAGE_LIMIT } from '../../collections/payroll_runs/lib/api.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { fromMinorUnits, toMinorUnits, type MoneyValue } from '@norbital-ai/std/finance';
@@ -22,7 +22,9 @@ import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { runtimeExpressionEngine, evaluateBoolean } from '../expressions/evaluate.js';
-import { LEAVE_ABSENCE_SEQUENCE, LEAVE_ENCASHMENT_SEQUENCE, encashmentCode } from './pay-items.js';
+import { encashmentCode } from './pay-items.js';
+import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
+import { aliasedOptIns, loadOptInAliases } from '../payroll/contribution.js';
 
 type LeaveCatalogue = LeaveContext['catalogues'][number];
 
@@ -136,7 +138,6 @@ function settledPayItems(
 				settings_id: catalogue.settings_id,
 				code: line.component_code,
 				is_statutory: catalogue.is_statutory,
-				sequence: catalogue.sequence,
 				bucket: line.bucket === 'ABSENCE' ? 'ABSENCE' : 'EARNING',
 				statutory_opt_ins: [...leaveBandOptIns(catalogue, entry, null)],
 				date: null,
@@ -153,9 +154,19 @@ export function prepareLeavePayroll(options: {
 	readonly api: LeaveReadApi;
 	readonly employmentIds: readonly string[];
 	readonly asOf: string;
+	readonly configuration: Configuration;
 }): Effect.Effect<ReadonlyMap<string, PreparedLeavePayroll>> {
 	return Effect.gen(function* () {
 		const context = yield* readLeaveContext(options.api, options.employmentIds, undefined, true);
+		// A charge may pin a catalogue revision sealed under an earlier version; its opt-ins still
+		// charge the schemes of the version in force (RFC 0002 §6).
+		const aliases = yield* loadOptInAliases({
+			api: options.api,
+			configuration: options.configuration,
+			ids: context.catalogues.flatMap((row) =>
+				row.bands.flatMap((band) => band.statutory_opt_ins.map((optIn) => optIn.contribution_id))
+			)
+		});
 		const payslipById = new Map(context.payslips.map((row) => [row.id, row]));
 		const result = new Map<string, PreparedLeavePayroll>();
 		for (const employment of context.employments) {
@@ -171,7 +182,18 @@ export function prepareLeavePayroll(options: {
 			);
 			const current = settingsInForce(context.versions, company.settings_code, options.asOf);
 			if (!current) refuse(`No sealed leave catalogue covers ${options.asOf}.`);
-			const catalogues = context.catalogues.filter((row) => versionIds.has(row.settings_id));
+			const catalogues =
+				aliases.size === 0
+					? context.catalogues.filter((row) => versionIds.has(row.settings_id))
+					: context.catalogues
+							.filter((row) => versionIds.has(row.settings_id))
+							.map((row) => ({
+								...row,
+								bands: row.bands.map((band) => ({
+									...band,
+									statutory_opt_ins: aliasedOptIns(band.statutory_opt_ins, aliases)
+								}))
+							}));
 			// A settled entry's pin is the capture; its payslip's adjustments are the frozen outputs.
 			const captures = entries.flatMap((entry) => {
 				if (entry.payslip_id == null) return [];
@@ -219,10 +241,10 @@ export function prepareLeavePayroll(options: {
 						catalogue.eligibility,
 						personContext({
 							employee,
-							employment,
+							employment: { service_start: serviceStart(employment) },
 							terms: term,
 							asOf: charge.date,
-							children: childrenOn(employment.children, charge.date),
+							children: childrenOn(employee.children ?? [], charge.date),
 							company
 						})
 					);
@@ -376,7 +398,6 @@ export function calculateLeavePayroll(options: {
 			const amount = fromMinorUnits(toMinorUnits(rate * charge.days, currency), currency);
 			if (amount === 0) continue;
 			items.push({
-				sequence: LEAVE_ABSENCE_SEQUENCE,
 				statutory_opt_ins: [...leaveBandOptIns(catalogue, entry, charge)],
 				catalogue_id: catalogue.id,
 				settings_id: catalogue.settings_id,
@@ -404,7 +425,6 @@ export function calculateLeavePayroll(options: {
 				[
 					{
 						code: encashmentCode(catalogue.code),
-						sequence: LEAVE_ENCASHMENT_SEQUENCE,
 						statutory_opt_ins: [...leaveBandOptIns(catalogue, entry, null)],
 						catalogue_id: catalogue.id,
 						settings_id: catalogue.settings_id,
@@ -458,7 +478,6 @@ export function calculateLeavePayroll(options: {
 				direction: catalogue.direction as SettlementDirection | null,
 				bands: catalogue.bands,
 				optIns: item.statutory_opt_ins,
-				sequence: item.sequence,
 				eligibility: catalogue.eligibility,
 				family: 'LEAVE'
 			};

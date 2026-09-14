@@ -26,15 +26,13 @@ const storedContract = () => ({
 	id: id(1),
 	employee_id: id(2),
 	company_id: id(3),
-	hire_date: '2025-01-01',
-	effective_range: { start: '2025-01-01T00:00:00.000Z', end: null },
-	children: []
+	effective_range: { start: '2025-01-01T00:00:00.000Z', end: null }
 });
-const recordDeparture = (input: Record<string, unknown>) =>
+const recordWrite = (input: Record<string, unknown>, existing: Record<string, unknown>) =>
 	Effect.runSync(
 		employmentHooks.mutate.perRecord.before.handler({
 			input,
-			existing: storedContract(),
+			existing,
 			recordId: id(1),
 			prepared: {
 				candidates: [{ ...storedContract(), ...input }],
@@ -44,37 +42,78 @@ const recordDeparture = (input: Record<string, unknown>) =>
 			api: { db: {} }
 		} as never)
 	);
+/** Nothing references the contract: every consumer read is empty. */
+const unreferencedApi = {
+	db: new Proxy(
+		{},
+		{
+			get: (_target, property) => () => Effect.succeed(property === 'findPending' ? [] : undefined)
+		}
+	)
+};
+const recordUnreferencedWrite = (
+	input: Record<string, unknown>,
+	existing: Record<string, unknown>
+) =>
+	Effect.runSync(
+		employmentHooks.mutate.perRecord.before.handler({
+			input,
+			existing,
+			recordId: id(1),
+			prepared: {
+				candidates: [{ ...storedContract(), ...input }],
+				stored: [],
+				pending: []
+			},
+			api: unreferencedApi
+		} as never)
+	);
 
-test('a departure needs a last day and a reason', () => {
-	assert.throws(() => recordDeparture({ exit_date: '2026-06-30' }), /date and reason/);
-	assert.throws(() => recordDeparture({ exit_reason: 'RESIGNATION' }), /date and reason/);
-	assert.throws(() => recordDeparture({ exit_note: 'Goodbye' }), /date and reason/);
-	assert.throws(
-		() => recordDeparture({ exit_date: '2024-12-31', exit_reason: 'RESIGNATION' }),
-		/cannot end before/
+test('departure closes the range; comments stay writable after', () => {
+	assert.deepEqual(
+		recordWrite(
+			{
+				effective_range: { start: '2025-01-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' },
+				comments: 'Found a new role'
+			},
+			storedContract()
+		),
+		{
+			effective_range: { start: '2025-01-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' },
+			comments: 'Found a new role'
+		}
 	);
 	assert.deepEqual(
-		recordDeparture({
-			exit_date: '2026-06-30',
-			exit_reason: 'RESIGNATION',
-			exit_note: 'Found a new role'
-		}),
-		{
-			exit_date: '2026-06-30',
-			exit_reason: 'RESIGNATION',
-			exit_note: 'Found a new role'
-		}
+		recordWrite(
+			{ comments: 'Later note' },
+			{
+				...storedContract(),
+				effective_range: { start: '2025-01-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' }
+			}
+		),
+		{ comments: 'Later note' }
 	);
 });
 
-test('MISCONDUCT is recorded as the departure reason', () => {
-	const recorded = recordDeparture({
-		exit_date: '2026-06-30',
-		exit_reason: 'MISCONDUCT',
-		exit_note: 'Gross misconduct on shift'
-	});
-	assert.equal(recorded.exit_reason, 'MISCONDUCT');
-	assert.equal(recorded.exit_note, 'Gross misconduct on shift');
+test('a closed contract never reopens', () => {
+	assert.throws(
+		() =>
+			recordWrite(
+				{ effective_range: { start: '2025-01-01T00:00:00.000Z', end: null } },
+				{
+					...storedContract(),
+					effective_range: { start: '2025-01-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' }
+				}
+			),
+		/cannot be reopened/
+	);
+	assert.deepEqual(
+		recordUnreferencedWrite(
+			{ effective_range: { start: '2025-02-01T00:00:00.000Z', end: null } },
+			storedContract()
+		),
+		{ effective_range: { start: '2025-02-01T00:00:00.000Z', end: null } }
+	);
 });
 
 test('encash writes exactly the balance the step chose; forfeit writes nothing', () => {
@@ -85,8 +124,9 @@ test('encash writes exactly the balance the step chose; forfeit writes nothing',
 	assert.equal(encashableBalance(summaries[0]!), 11);
 	const plan = {
 		employmentId: id(1),
+		rangeStart: '2025-01-01T00:00:00.000Z',
 		lastDay: '2026-06-30',
-		reason: 'RESIGNATION',
+		rangeEnd: '2026-06-30T00:00:00.000Z',
 		note: 'Last day agreed',
 		summaries,
 		currency: 'MYR'
@@ -97,9 +137,8 @@ test('encash writes exactly the balance the step chose; forfeit writes nothing',
 	});
 	assert.deepEqual(departure, {
 		id: id(1),
-		exit_date: '2026-06-30',
-		exit_reason: 'RESIGNATION',
-		exit_note: 'Last day agreed'
+		effective_range: { start: '2025-01-01T00:00:00.000Z', end: '2026-06-30T00:00:00.000Z' },
+		comments: 'Last day agreed'
 	});
 	assert.equal(encashments.length, 1);
 	assert.deepEqual(encashments[0], {
@@ -157,10 +196,13 @@ test('encash writes exactly the balance the step chose; forfeit writes nothing',
 		choices: { ANNUAL: { encash: false, gross: 0, rate: null } }
 	});
 	assert.deepEqual(forfeited.encashments, []);
-	assert.equal(forfeited.departure.exit_reason, 'RESIGNATION');
+	assert.deepEqual(forfeited.departure.effective_range, {
+		start: '2025-01-01T00:00:00.000Z',
+		end: '2026-06-30T00:00:00.000Z'
+	});
 	assert.throws(
-		() => buildOffboardingWrites({ ...plan, reason: '', choices: {} }),
-		/needs a reason/
+		() => buildOffboardingWrites({ ...plan, lastDay: '', choices: {} }),
+		/needs a last day/
 	);
 	assert.throws(
 		() =>
@@ -181,8 +223,9 @@ test('encash of a spent balance is refused before anything is written', () => {
 		() =>
 			buildOffboardingWrites({
 				employmentId: id(1),
+				rangeStart: '2025-01-01T00:00:00.000Z',
 				lastDay: '2026-06-30',
-				reason: 'RESIGNATION',
+				rangeEnd: '2026-06-30T00:00:00.000Z',
 				note: null,
 				summaries,
 				choices: { ANNUAL: { encash: true, gross: 100, rate: null } },
@@ -195,7 +238,9 @@ test('encash of a spent balance is refused before anything is written', () => {
 /** The consumers a terms read sees; through=null is an unconsumed contract. */
 const termsApi = (through: string | null) => ({
 	db: {
-		employments: { findFirst: () => Effect.succeed({ exit_date: null }) },
+		employments: {
+			findFirst: () => Effect.succeed({ effective_range: { start: '2025-01-01', end: null } })
+		},
 		work_days: {
 			findFirst: () => Effect.succeed(undefined),
 			findPending: () => Effect.succeed([])

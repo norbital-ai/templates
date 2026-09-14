@@ -65,15 +65,12 @@ test('matching requires an explicit entity before a face probe can be submitted'
 	assert.throws(() => Schema.decodeUnknownSync(match.schema)({ probe }), /company_id/);
 });
 
-const activeContract = (id: string, company_id = companyId, exit_date: string | null = null) => ({
+const activeContract = (id: string, company_id = companyId, end: string | null = null) => ({
 	id,
 	employee_id: 'person',
 	company_id,
 	employee_number: id,
-	hire_date: '2000-01-01',
-	effective_range: { start: '2000-01-01T00:00:00.000Z', end: null },
-	exit_date,
-	exit_reason: exit_date == null ? null : 'RESIGNATION'
+	effective_range: { start: '2000-01-01T00:00:00.000Z', end }
 });
 
 const matchingApi = (

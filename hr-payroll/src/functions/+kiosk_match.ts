@@ -56,12 +56,9 @@ export default defineQueryHandler({
 					employee_id: true,
 					company_id: true,
 					employee_number: true,
-					hire_date: true,
-					effective_range: true,
-					exit_date: true,
-					exit_reason: true
+					effective_range: true
 				},
-				orderBy: { hire_date: 'desc' },
+				orderBy: { employee_number: 'desc' },
 				limit: 1_000
 			});
 			if (employments.length >= 1_000)
@@ -74,10 +71,7 @@ export default defineQueryHandler({
 				.map(resolveEmployment)
 				.filter(
 					(employment) =>
-						employment.company_id === company_id &&
-						coversDate(employment.effective_range, today) &&
-						dateKey(employment.hire_date) <= today &&
-						(employment.exit_date == null || dateKey(employment.exit_date) >= today)
+						employment.company_id === company_id && coversDate(employment.effective_range, today)
 				);
 			if (active.length > 1)
 				refuse(

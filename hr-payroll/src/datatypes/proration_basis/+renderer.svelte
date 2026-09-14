@@ -62,35 +62,29 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="text-sm font-medium">
-			<Stack gap="xs">
-				Proration basis
-				<Combobox
-					options={BASIS_OPTIONS}
-					value={current?.by ?? null}
-					{disabled}
-					searchable={false}
-					emptyPlaceholder={t('renderer.proration_basis.select_basis')}
-					onValueChange={selectBasis}
-				/>
-			</Stack>
-		</label>
+	<Stack gap="sm">
+		<Combobox
+			ariaLabel={t('renderer.proration_basis.basis')}
+			options={BASIS_OPTIONS}
+			value={current?.by ?? null}
+			{disabled}
+			searchable={false}
+			emptyPlaceholder={t('renderer.proration_basis.select_basis')}
+			onValueChange={selectBasis}
+		/>
 		{#if current?.by === 'FIXED_DAYS'}
-			<label class="text-sm font-medium">
-				<Stack gap="xs">
-					Days
-					<Input
-						type="number"
-						min="0.5"
-						step="0.5"
-						value={current.days}
-						{disabled}
-						oninput={(event) =>
-							emit({ by: 'FIXED_DAYS', days: numberFrom(event.currentTarget.value, 1) })}
-					/>
-				</Stack>
+			<label class="flex flex-col gap-1 text-xs">
+				<span class="text-muted-foreground">{t('renderer.proration_basis.days')}</span>
+				<Input
+					type="number"
+					min="0.5"
+					step="0.5"
+					value={current.days}
+					{disabled}
+					oninput={(event) =>
+						emit({ by: 'FIXED_DAYS', days: numberFrom(event.currentTarget.value, 1) })}
+				/>
 			</label>
 		{/if}
-	</Grid>
+	</Stack>
 {/if}

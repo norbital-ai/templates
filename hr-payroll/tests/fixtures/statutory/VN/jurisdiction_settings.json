@@ -16,7 +16,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
-			"lines": {
+			"engine_lines": {
 				"salary": {
 					"statutory_opt_ins": [
 						{
@@ -79,7 +79,7 @@
 				],
 				"bands": [
 					{
-						"label": "1.5",
+						"label": "OT-1.5X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
 						"take": "hours_beyond_normal",
@@ -92,7 +92,7 @@
 						]
 					},
 					{
-						"label": "2.0",
+						"label": "OT-2.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
 						"take": "normal_hours",
@@ -105,7 +105,7 @@
 						]
 					},
 					{
-						"label": "3.0",
+						"label": "OT-3.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "normal_hours",
@@ -118,7 +118,7 @@
 						]
 					},
 					{
-						"label": "2.0",
+						"label": "OT-2.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
 						"take": "hours_beyond_normal",
@@ -131,7 +131,7 @@
 						]
 					},
 					{
-						"label": "3.0",
+						"label": "OT-3.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "hours_beyond_normal",
@@ -232,7 +232,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
-			"lines": {
+			"engine_lines": {
 				"salary": {
 					"statutory_opt_ins": [
 						{
@@ -295,7 +295,7 @@
 				],
 				"bands": [
 					{
-						"label": "1.5",
+						"label": "OT-1.5X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
 						"take": "hours_beyond_normal",
@@ -308,7 +308,7 @@
 						]
 					},
 					{
-						"label": "2.0",
+						"label": "OT-2.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
 						"take": "normal_hours",
@@ -321,7 +321,7 @@
 						]
 					},
 					{
-						"label": "3.0",
+						"label": "OT-3.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "normal_hours",
@@ -334,7 +334,7 @@
 						]
 					},
 					{
-						"label": "2.0",
+						"label": "OT-2.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
 						"take": "hours_beyond_normal",
@@ -347,7 +347,7 @@
 						]
 					},
 					{
-						"label": "3.0",
+						"label": "OT-3.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "hours_beyond_normal",
@@ -449,7 +449,7 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
-			"lines": {
+			"engine_lines": {
 				"salary": {
 					"statutory_opt_ins": [
 						{
@@ -512,7 +512,7 @@
 				],
 				"bands": [
 					{
-						"label": "1.5",
+						"label": "OT-1.5X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
 						"take": "hours_beyond_normal",
@@ -525,7 +525,7 @@
 						]
 					},
 					{
-						"label": "2.0",
+						"label": "OT-2.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
 						"take": "normal_hours",
@@ -538,7 +538,7 @@
 						]
 					},
 					{
-						"label": "3.0",
+						"label": "OT-3.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "normal_hours",
@@ -551,7 +551,7 @@
 						]
 					},
 					{
-						"label": "2.0",
+						"label": "OT-2.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
 						"take": "hours_beyond_normal",
@@ -564,7 +564,7 @@
 						]
 					},
 					{
-						"label": "3.0",
+						"label": "OT-3.0X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "hours_beyond_normal",

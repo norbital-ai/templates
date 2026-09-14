@@ -12,6 +12,7 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { markRunPaid } from './helpers/mark-paid.ts';
 
 test(
 	'payroll freezes inputs, refuses nested payment writes, retains paid output and refuses a second payroll for the same period',
@@ -71,7 +72,6 @@ test(
 							action: 'update',
 							values: {
 								id: runId,
-								lifecycle: 'PAID',
 								payslip_payroll_run: initial.map((row) => ({ id: String(row.id), gross: 0 }))
 							}
 						}
@@ -85,33 +85,8 @@ test(
 					}))
 				]
 			);
-			assert.match(JSON.stringify(refused.value), /cannot change its payslips/);
-			const paidBody = mutationPush(
-				session.schemaFingerprint,
-				{
-					action: 'mutate',
-					collection: 'payroll_runs',
-					rows: [
-						{
-							action: 'update',
-							values: { id: runId, lifecycle: 'PAID' }
-						}
-					]
-				},
-				bases
-			);
-			const paid = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				paidBody,
-				headers
-			);
-			requireAccepted(paid.value, 'mark paid');
-			requireAccepted(
-				(await postGuestCommand(session.host.baseUrl, 'collections.mutate', paidBody, headers))
-					.value,
-				'payment replay'
-			);
+			assert.match(JSON.stringify(refused.value), /cannot be re-stated/);
+			await markRunPaid(session, runId);
 			/**
 			 * The figures are retained; the payment is recorded.
 			 *
@@ -149,14 +124,17 @@ test(
 				settled.length > 0 && settled.every((row) => row.paid_at != null),
 				'and every slip carries its payment afterwards'
 			);
-			const [stored] = await session.query('select * from payroll_runs where id = $1', [runId]);
-			assert.equal(stored.lifecycle, 'PAID');
+			const [paidCounts] = (await session.query(
+				"select count(*)::int as total, count(*) filter (where status = 'PAID')::int as paid from payslips where payroll_run_id = $1",
+				[runId]
+			)) as ReadonlyArray<{ readonly total: number; readonly paid: number }>;
+			assert.equal(paidCounts.paid, paidCounts.total, 'every slip carries its payment');
 			const removed = await command(
 				{ action: 'delete', collection: 'payroll_runs', ids: [runId] },
 				[
 					{
 						row: { collection: 'payroll_runs', recordId: runId },
-						rowVersion: Number(stored.row_version)
+						rowVersion: Number(run.row_version)
 					}
 				]
 			);
@@ -200,9 +178,14 @@ test(
 					mutationPush(session.schemaFingerprint, body, bases),
 					headers
 				);
-			const [contract] = await session.query('select row_version from employments where id = $1', [
-				employmentId
-			]);
+			const [contract] = await session.query(
+				'select row_version, effective_range from employments where id = $1',
+				[employmentId]
+			);
+			const rangeStart =
+				typeof contract.effective_range === 'string'
+					? JSON.parse(contract.effective_range).start
+					: contract.effective_range.start;
 			requireAccepted(
 				(
 					await command(
@@ -212,7 +195,10 @@ test(
 							rows: [
 								{
 									action: 'update',
-									values: { id: employmentId, exit_date: '2026-02-10', exit_reason: 'MISCONDUCT' }
+									values: {
+										id: employmentId,
+										effective_range: { start: rangeStart, end: '2026-02-10T00:00:00.000Z' }
+									}
 								}
 							]
 						},
@@ -303,27 +289,7 @@ test(
 				).length,
 				1
 			);
-			const [run] = await session.query('select row_version from payroll_runs where id = $1', [
-				runId
-			]);
-			requireAccepted(
-				(
-					await command(
-						{
-							action: 'mutate',
-							collection: 'payroll_runs',
-							rows: [{ action: 'update', values: { id: runId, lifecycle: 'PAID' } }]
-						},
-						[
-							{
-								row: { collection: 'payroll_runs', recordId: runId },
-								rowVersion: Number(run.row_version)
-							}
-						]
-					)
-				).value,
-				'settle March'
-			);
+			await markRunPaid(session, runId);
 			const nextId = crypto.randomUUID();
 			requireAccepted(
 				(

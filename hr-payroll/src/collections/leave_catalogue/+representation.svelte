@@ -22,13 +22,16 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
+	import ExpressionField from '../../lib/ui/expression-field.svelte';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
+	import { settingsVersionSealed } from '../../lib/ui/settings-sealed.svelte.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
+	const sealed = $derived(settingsVersionSealed(() => record?.settings_id)());
 	/** EMPLOYER and DISPLAY settle no direction: the model keeps it null there. */
 	const takesDirection = (destination: unknown): boolean =>
 		destination === 'PAY' || destination === 'NET';
@@ -38,6 +41,7 @@
 	{client}
 	collection="leave_catalogue"
 	defaultValues={formValues}
+	readonly={sealed}
 	submitLabel={record ? t('component.save_catalogue_leave') : t('component.create_catalogue_leave')}
 	onAfterSubmit={record ? undefined : close}
 >
@@ -46,7 +50,7 @@
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.leave_section_identity_hint')}</p>
 				<Grid gap="md" minimum="card">
-					{#if settingsId != null}
+					{#if settingsId != null || record != null}
 						<Field name="settings_id" hidden />
 					{:else}
 						<Field
@@ -66,25 +70,29 @@
 					<Field name="name" label={t('component.name')} />
 					<Field name="is_statutory" label={t('component.is_statutory')} />
 					<Field name="authority" label={t('component.authority')} />
-					<Field name="sequence" label={t('component.order')} />
 				</Grid>
 			</Stack>
 		{/snippet}
 
+		{#snippet whoMembers()}
+			<ExpressionFields
+				site="person"
+				expression={String(form.values().eligibility ?? '')}
+				type="boolean"
+				mode="members"
+			/>
+		{/snippet}
+
 		{#snippet who()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.leave_section_who_hint')}</p>
-				<Field
-					name="eligibility"
-					label={t('component.who_receives')}
-					placeholder={t('component.eligibility_placeholder')}
-				/>
-				<ExpressionFields
-					site="person"
-					expression={String(form.values().eligibility ?? '')}
-					type="boolean"
-				/>
-			</Stack>
+			<Field
+				name="eligibility"
+				label={t('component.who_receives')}
+				description={t('component.eligibility_hint')}
+				descriptionExtra={whoMembers}
+				renderer={ExpressionField}
+				rendererProps={{ site: 'person', type: 'boolean' }}
+				placeholder={t('component.eligibility_placeholder')}
+			/>
 		{/snippet}
 
 		{#snippet entitlement()}
@@ -126,14 +134,6 @@
 							}}
 						></span>
 					{/if}
-					<Column span="all">
-						<Field name="convertor" label={t('component.convertor')} />
-						<ExpressionFields
-							site="entry"
-							expression={String(form.values().convertor ?? '')}
-							type="number"
-						/>
-					</Column>
 				</Grid>
 			</Stack>
 		{/snippet}

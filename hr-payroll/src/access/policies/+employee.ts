@@ -37,7 +37,7 @@ const ownEmployeeRecord = {
 const ownEmployment = OWN_EMPLOYMENT;
 const ownEmploymentTerm = { term_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownEmploymentStatutoryFact = {
-	statutory_fact_employment: { some: OWN_EMPLOYMENT }
+	statutory_fact_employee: { some: ownEmployeeRecord }
 } as const;
 const ownWorkDay = { work_day_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownClaimRequest = {

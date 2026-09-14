@@ -38,7 +38,7 @@
 			? null
 			: client.db.employments.findFirst({
 					where: { id: { eq: employmentId } },
-					columns: { hire_date: true, effective_range: true, exit_date: true, children: true },
+					columns: { effective_range: true },
 					with: {
 						employment_employee: {
 							columns: {
@@ -48,7 +48,8 @@
 								marital_status: true,
 								solo_parent: true,
 								race: true,
-								religion: true
+								religion: true,
+								children: true
 							}
 						},
 						employment_company: { columns: { region: true } },

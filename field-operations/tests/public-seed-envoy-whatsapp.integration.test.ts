@@ -163,10 +163,9 @@ test(
 			) as Record<string, unknown>;
 			assert.equal(received.status, 'buffered');
 
-			const conversationId = `${ENVOY}:dm:${SENDER_JID}`;
 			const dump = async (): Promise<string> => {
 				const tables = [
-					'bolt_envoy_inbound',
+					'bolt_envoy_messages',
 					'bolt_task',
 					'conversation',
 					'turn',
@@ -184,8 +183,7 @@ test(
 			const inbound = await waitFor(async () => {
 				const state = rows(
 					await guest.query(
-						`select status from bolt_envoy_inbound where conversation_id = $1 and external_message_id = 'msg-1'`,
-						[conversationId]
+						`select status from bolt_envoy_messages where direction = 'inbound' and external_message_id = 'msg-1'`
 					)
 				)[0];
 				return state?.status === 'answered' ? state : undefined;
@@ -352,12 +350,10 @@ test(
 			) as Record<string, unknown>;
 			assert.equal(received.status, 'buffered');
 
-			const conversationId = `${ENVOY}:dm:${STRANGER_JID}`;
 			const inbound = await waitFor(async () => {
 				const state = rows(
 					await guest.query(
-						`select status from bolt_envoy_inbound where conversation_id = $1 and external_message_id = 'msg-reg-2'`,
-						[conversationId]
+						`select status from bolt_envoy_messages where direction = 'inbound' and external_message_id = 'msg-reg-2'`
 					)
 				)[0];
 				return state?.status === 'answered' ? state : undefined;

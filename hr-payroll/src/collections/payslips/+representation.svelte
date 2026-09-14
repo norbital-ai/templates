@@ -26,6 +26,7 @@
 		AccordionTrigger
 	} from '@norbital-ai/ui/accordion';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
+	import { HoverCard, HoverCardContent, HoverCardTrigger } from '@norbital-ai/ui/hover-card';
 	import { Result, Schema } from 'effect';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
@@ -88,6 +89,80 @@
 	const base = $derived(record?.base ?? []);
 	const proration = $derived(record?.proration ?? []);
 	const statutory = $derived(record?.statutory ?? []);
+
+	/**
+	 * How each statutory charge was derived, read from the run's frozen `calculation_trace`. The
+	 * trace is stored once per run; this payslip's slice is the entry matching its employment, and
+	 * each scheme's band, base lines and producer reads sit behind that scheme's info affordance.
+	 */
+	const traceQuery = $derived(
+		record == null
+			? null
+			: client.db.payroll_runs.findFirst({
+					where: { id: { eq: record.payroll_run_id } },
+					columns: { calculation_trace: true }
+				})
+	);
+	const schemeTrace = $derived.by(() => {
+		type SchemeTrace = {
+			readonly scheme_code: string;
+			readonly rule_when: string | null;
+			readonly base_amount: number;
+			readonly employee_amount: number;
+			readonly employer_amount: number;
+			readonly inputs: readonly {
+				readonly code: string;
+				readonly label: string;
+				readonly effect: 'INCLUDE' | 'REDUCE';
+				readonly amount: number;
+			}[];
+			readonly reads: readonly {
+				readonly code: string;
+				readonly employee_amount: number;
+				readonly employer_amount: number;
+			}[];
+		};
+		const trace = traceQuery?.current?.calculation_trace;
+		if (trace == null) return new Map<string, SchemeTrace>();
+		const entry = trace.find((row) => row.employment_id === record?.employment_id);
+		return new Map((entry?.schemes ?? []).map((scheme) => [scheme.scheme_code, scheme]));
+	});
+	/** A condition read top-down: every `&&`/`||` on its own line, so a band stops being one line. */
+	const prettyRule = (rule: string | null | undefined): string =>
+		(rule ?? '—').replaceAll(' && ', '\n&& ').replaceAll(' || ', '\n|| ');
+
+	/** Repeated labels (twelve 1.5 overtime bands) read as one line: same class, one summed amount. */
+	type TraceInput = {
+		readonly code: string;
+		readonly label: string;
+		readonly effect: 'INCLUDE' | 'REDUCE';
+		readonly amount: number;
+	};
+	const groupedInputs = (
+		inputs: readonly TraceInput[]
+	): ReadonlyArray<TraceInput & { readonly key: string }> => {
+		type GroupedInput = {
+			key: string;
+			code: string;
+			label: string;
+			effect: 'INCLUDE' | 'REDUCE';
+			amount: number;
+		};
+		const rows = new Map<string, GroupedInput>();
+		for (const input of inputs) {
+			const key = `${input.code}:${input.label}:${input.effect}`;
+			const row = rows.get(key) ?? {
+				key,
+				code: input.code,
+				label: input.label,
+				effect: input.effect,
+				amount: 0
+			};
+			row.amount += input.amount;
+			rows.set(key, row);
+		}
+		return [...rows.values()];
+	};
 
 	/** The adjustments, in settlement order, keyed by their position for the list below. */
 	const adjustments = $derived(
@@ -186,7 +261,6 @@
 {/snippet}
 
 <RecordShell
-	title={record ? `${record.currency} · ${formatNumeric(record.net)}` : 'New payslip'}
 	subtitle={record
 		? `${employment?.employment_employee?.name ?? t('component.employee')} · ${employment?.employee_number ?? t('component.employment')}`
 		: undefined}
@@ -230,10 +304,65 @@
 					<h3 id="payslip-base-heading" class="text-sm font-semibold">
 						{t('component.payslip_base')}
 					</h3>
-					{@render sectionInfo(
-						t('component.payslip_base_info'),
-						t('component.payslip_base_description')
-					)}
+					<Tooltip
+						side="bottom"
+						align="start"
+						contentClass="max-w-96 border bg-popover text-popover-foreground"
+						arrowClasses="text-popover"
+					>
+						{#snippet trigger({ props })}
+							<Button
+								{...props}
+								variant="ghost"
+								size="icon"
+								aria-label={t('component.payslip_base_info')}
+							>
+								<IconWrapper name="lucide:info" class="size-4" />
+							</Button>
+						{/snippet}
+						{#snippet content()}
+							<Stack gap="xs" class="max-h-96 overflow-auto">
+								<p class="text-xs leading-5">{t('component.payslip_base_description')}</p>
+								{#if proration.length > 0}
+									<p class="text-xs leading-5 text-muted-foreground">
+										{t('component.payslip_proration_description')}
+									</p>
+									<table class="w-full text-xs tabular-nums">
+										<thead>
+											<tr class="text-meta text-left">
+												<th class="py-0.5 pr-2 font-normal"
+													>{t('renderer.payslip_proration.segment')}</th
+												>
+												<th class="py-0.5 pr-2 text-right font-normal"
+													>{t('renderer.payslip_proration.fraction')}</th
+												>
+												<th class="py-0.5 text-right font-normal"
+													>{t('renderer.payslip_proration.prorated_amount')}</th
+												>
+											</tr>
+										</thead>
+										<tbody>
+											{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
+												<tr class="border-t border-border">
+													<td class="py-0.5 pr-2 whitespace-nowrap"
+														>{formatCalendarDate(segment.from)} → {formatCalendarDate(
+															segment.to
+														)}</td
+													>
+													<td class="py-0.5 pr-2 text-right"
+														>{segment.days} / {segment.denominator}</td
+													>
+													<td class="py-0.5 text-right font-medium"
+														>{formatNumeric(segment.prorated_amount)}</td
+													>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								{/if}
+							</Stack>
+						{/snippet}
+					</Tooltip>
 				</Inline>
 				{#if base.length === 0}
 					<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
@@ -248,57 +377,6 @@
 					</Stack>
 				{/if}
 			</Stack>
-
-			{#if proration.length > 0}
-				<Accordion type="multiple" class="border-t border-border">
-					<AccordionItem value="proration">
-						<AccordionTrigger class="text-sm font-semibold hover:no-underline">
-							{t('component.payslip_proration')}
-						</AccordionTrigger>
-						<AccordionContent>
-							<p class="mb-3 text-sm text-muted-foreground">
-								{t('component.payslip_proration_description')}
-							</p>
-							<Scroll axis="x" name={t('component.payslip_proration')}>
-								<table class="w-full text-sm tabular-nums">
-									<thead>
-										<tr class="text-meta text-left">
-											<th class="py-1 pr-3 font-normal"
-												>{t('renderer.payslip_proration.segment')}</th
-											>
-											<th class="py-1 pr-3 text-right font-normal"
-												>{t('renderer.payslip_proration.fraction')}</th
-											>
-											<th class="py-1 pr-3 text-right font-normal"
-												>{t('renderer.payslip_proration.contract_amount')}</th
-											>
-											<th class="py-1 text-right font-normal"
-												>{t('renderer.payslip_proration.prorated_amount')}</th
-											>
-										</tr>
-									</thead>
-									<tbody>
-										{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
-											<tr class="border-t border-border">
-												<td class="py-1 pr-3 whitespace-nowrap"
-													>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
-												>
-												<td class="py-1 pr-3 text-right">{segment.days} / {segment.denominator}</td>
-												<td class="py-1 pr-3 text-right"
-													>{formatNumeric(segment.contract_amount)}</td
-												>
-												<td class="py-1 text-right font-medium"
-													>{formatNumeric(segment.prorated_amount)}</td
-												>
-											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</Scroll>
-						</AccordionContent>
-					</AccordionItem>
-				</Accordion>
-			{/if}
 
 			{#if statutory.length > 0}
 				<Stack
@@ -321,10 +399,6 @@
 							<thead>
 								<tr class="text-meta text-left">
 									<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
-									<th class="py-1 pr-3 font-normal">{t('renderer.payslip_statutory.band')}</th>
-									<th class="py-1 pr-3 text-right font-normal"
-										>{t('renderer.payslip_statutory.base_amount')}</th
-									>
 									<th class="py-1 pr-3 text-right font-normal"
 										>{t('renderer.payslip_statutory.employee_amount')}</th
 									>
@@ -335,20 +409,98 @@
 							</thead>
 							<tbody>
 								{#each statutory as charge, index (`${charge.scheme_code}:${index}`)}
+									{@const detail = schemeTrace.get(charge.scheme_code)}
 									<tr class="border-t border-border">
 										<td class="py-1 pr-3 whitespace-nowrap">
 											<Inline gap="xs" align="center">
 												<span>{charge.scheme_code}</span>
-												{#if charge.authority}
-													{@render sectionInfo(
-														t('component.payslip_statutory_authority'),
-														charge.authority
-													)}
-												{/if}
+												<Tooltip
+													side="bottom"
+													align="start"
+													contentClass="max-w-96 border bg-popover text-popover-foreground"
+													arrowClasses="text-popover"
+												>
+													{#snippet trigger({ props })}
+														<Button
+															{...props}
+															variant="ghost"
+															size="icon"
+															aria-label={t('component.flow_derivation')}
+														>
+															<IconWrapper name="lucide:info" class="size-4" />
+														</Button>
+													{/snippet}
+													{#snippet content()}
+														<Stack gap="xs" class="max-h-96 overflow-auto">
+															{#if charge.authority}
+																<p class="text-xs text-muted-foreground">{charge.authority}</p>
+															{/if}
+															<table class="w-full text-xs tabular-nums">
+																<thead>
+																	<tr class="text-meta text-left">
+																		<th class="py-0.5 pr-2 font-normal"
+																			>{t('component.flow_rule')}</th
+																		>
+																		<th class="py-0.5 pr-2 text-right font-normal"
+																			>{t('renderer.payslip_statutory.employee_amount')}</th
+																		>
+																		<th class="py-0.5 text-right font-normal"
+																			>{t('renderer.payslip_statutory.employer_amount')}</th
+																		>
+																	</tr>
+																</thead>
+																<tbody>
+																	<tr class="border-t border-border align-top">
+																		<td class="py-0.5 pr-2 whitespace-pre-wrap break-all"
+																			>{prettyRule(charge.rule_when)}</td
+																		>
+																		<td class="py-0.5 pr-2 text-right"
+																			>{formatNumeric(charge.employee_amount)}</td
+																		>
+																		<td class="py-0.5 text-right"
+																			>{formatNumeric(charge.employer_amount)}</td
+																		>
+																	</tr>
+																</tbody>
+															</table>
+															<p class="text-xs tabular-nums">
+																{t('renderer.payslip_statutory.base_amount')}:
+																{formatNumeric(charge.base_amount)}
+															</p>
+															{#if detail != null && detail.inputs.length > 0}
+																<p class="text-meta">{t('component.flow_inputs')}</p>
+																<ul class="text-xs">
+																	{#each groupedInputs(detail.inputs) as input (input.key)}
+																		<li class="flex justify-between gap-2 tabular-nums">
+																			<span class="truncate"
+																				>{input.label === input.code
+																					? input.code
+																					: `${input.code} · ${input.label}`} · {input.effect ===
+																				'REDUCE'
+																					? '−'
+																					: '+'}</span
+																			>
+																			<span>{formatNumeric(input.amount)}</span>
+																		</li>
+																	{/each}
+																</ul>
+															{/if}
+															{#if detail != null && detail.reads.length > 0}
+																<p class="text-meta">{t('component.flow_reads')}</p>
+																<ul class="text-xs">
+																	{#each detail.reads as read (read.code)}
+																		<li class="flex justify-between gap-2 tabular-nums">
+																			<span class="truncate">produced.{read.code}.employee</span>
+																			<span>{formatNumeric(read.employee_amount)}</span>
+																		</li>
+																	{/each}
+																</ul>
+															{/if}
+														</Stack>
+													{/snippet}
+												</Tooltip>
 											</Inline>
 										</td>
-										<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
-										<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
 										<td class="py-1 pr-3 text-right font-medium"
 											>{formatNumeric(charge.employee_amount)}</td
 										>

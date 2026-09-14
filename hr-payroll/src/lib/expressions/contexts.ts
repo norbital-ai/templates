@@ -44,8 +44,8 @@ const PERSON_FIELDS: readonly ContextField[] = [
 	{ path: 'employee.residency_months', description: 'Completed months since residency began' },
 	{ path: 'employment.type', description: 'Employment type from the effective terms' },
 	{ path: 'employment.classification', description: 'Work classification' },
-	{ path: 'employment.service_months', description: 'Completed months since hire' },
-	{ path: 'employment.hire_date', description: 'Hire date' },
+	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
+	{ path: 'employment.service_start', description: 'First day of the stint' },
 	{ path: 'terms.basic_salary', description: 'Contracted monthly base salary' },
 	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
 	{ path: 'terms.department', description: 'Department' },
@@ -71,7 +71,7 @@ const PERSON_BLANK = {
 		religion: '',
 		residency_months: 0
 	},
-	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
+	employment: { type: '', classification: '', service_months: 0, service_start: '' },
 	terms: {
 		basic_salary: 0,
 		workman: false,
@@ -115,7 +115,7 @@ const PERSON_CONTEXT: ExpressionContext = {
 
 const ENTRY_CONTEXT: ExpressionContext = {
 	site: 'entry',
-	description: 'One catalogue entry as the run collects it: band amounts and the leave convertor.',
+	description: 'One catalogue entry as the run collects it: band amounts and the charged days.',
 	fields: [
 		...personFields('person.'),
 		{ path: 'entry.amount', description: 'The keyed amount; zero where the entry carries none' },
@@ -249,7 +249,6 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	fields: [
 		...personFields('person.'),
 		{ path: 'base', description: 'The assembled chargeable base' },
-		{ path: 'share', description: 'The employee share computed so far' },
 		{ path: 'code', description: 'The scheme code' },
 		{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH' },
 		{ path: 'period.key', description: 'Pay period key' },
@@ -267,14 +266,30 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		{ path: 'headcount', description: 'Active employments in the entity' },
 		{ path: 'age', description: 'Completed years on the period end' },
 		{ path: 'risk_class', description: 'The employment risk class, or empty' },
-		{ path: 'produced.<code>.employee', description: 'Employee share another scheme produced' }
+		{
+			path: 'rate_override',
+			description: 'The employment flat rate override percentage, 0 when none'
+		},
+		{
+			path: 'produced.<code>.employee',
+			description: 'Employee share another scheme produced, as a relief'
+		},
+		{ path: 'produced.<code>.employer', description: 'Employer share another scheme produced' }
 	],
-	bare: ['base', 'share', 'code', 'assessment_period', 'region', 'headcount', 'age', 'risk_class'],
+	bare: [
+		'base',
+		'code',
+		'assessment_period',
+		'region',
+		'headcount',
+		'age',
+		'risk_class',
+		'rate_override'
+	],
 	open: ['produced'],
 	blank: {
 		person: personBlank(),
 		base: 0,
-		share: 0,
 		code: '',
 		assessment_period: 'PAY_PERIOD',
 		period: { key: '', index: 1, instalments: 1 },
@@ -284,7 +299,8 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		headcount: 1,
 		age: 0,
 		risk_class: '',
-		produced: { EPF: { employee: 0 } }
+		rate_override: 0,
+		produced: { EPF: { employee: 0, employer: 0 } }
 	}
 };
 

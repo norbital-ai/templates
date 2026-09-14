@@ -22,7 +22,7 @@ test('the entry hook freezes server-measured date charges and ignores caller-sup
 		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-04-02',
 		name: 'Observed',
-		original_date: null,
+		replaces: null,
 		published_at: '2025-01-01T00:00:00.000Z'
 	});
 	const input = {

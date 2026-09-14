@@ -36,7 +36,7 @@ const calculate = (overrides: Partial<Parameters<typeof computedEntitlement>[0]>
 		personOn: (date) =>
 			personContext({
 				employee: null,
-				employment: { hire_date: hireDate },
+				employment: { service_start: hireDate },
 				terms: null,
 				asOf: date
 			}),
@@ -214,7 +214,7 @@ test('a catalogue can allow unlimited leave by gender and jurisdiction residency
 test('effective child facts open computed eligibility on the relevant date without emitting leave', () => {
 	const context = leaveContext();
 	context.catalogues[0]!.eligibility = 'children.under(7) > 0';
-	context.employments[0]!.children = [
+	context.employees[0]!.children = [
 		{
 			child_birthdate: '2026-07-10',
 			relationship: 'CHILD',

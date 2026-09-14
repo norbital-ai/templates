@@ -245,7 +245,9 @@ test('a rehire and an employment in another entity each have independent contrac
 		const contract = {
 			...world.employments[0],
 			id: 'other-contract',
-			...(elsewhere ? { company_id: 'other-company' } : { hire_date: '2026-02-01' })
+			...(elsewhere
+				? { company_id: 'other-company' }
+				: { effective_range: { start: '2026-02-01', end: null } })
 		};
 		world.employments.push(contract);
 		world.employment_terms.push({
@@ -368,16 +370,14 @@ test('a recurring declaration is accepted and its cap is applied to each payroll
 
 test('post-departure Payment uses final terms from its own contract for eligibility', async () => {
 	const { world, candidate } = capWorld('payment');
-	world.employments[0].exit_date = '2026-01-31';
-	world.employments[0].exit_reason = 'RESIGNATION';
+	world.employments[0].effective_range = { start: '2021-06-01', end: '2026-01-31' };
 	world.employment_terms[0].effective_range = { start: '2020-01-01', end: '2026-01-31' };
 	world.employment_terms[0].employment_type = 'PERMANENT';
 	world.employments.push({
 		...world.employments[0],
 		id: 'concurrent-contract',
 		company_id: 'another-entity',
-		exit_date: null,
-		exit_reason: null
+		effective_range: { start: '2021-06-01', end: null }
 	});
 	world.employment_terms.push({
 		...world.employment_terms[0],
@@ -407,7 +407,6 @@ test('post-departure Payment uses final terms from its own contract for eligibil
 
 test('payroll cap usage values a due one-off Allowance using its actual source-month proration', async () => {
 	const { world, prior, candidate } = capWorld('allowance');
-	world.employments[0].hire_date = '2026-01-15';
 	world.employments[0].effective_range = { start: '2026-01-15', end: null };
 	world.employment_terms[0].effective_range = { start: '2026-01-15', end: null };
 	world.allowance_catalogue[0].bands = capBands();
@@ -430,9 +429,16 @@ test('payroll cap usage values a due one-off Allowance using its actual source-m
 test('final terms do not fill an in-service gap or a missing departure-day record', () => {
 	const first = { id: 'early', effective_range: { start: '2026-01-01', end: '2026-01-10' } };
 	const final = { id: 'final', effective_range: { start: '2026-01-25', end: '2026-01-31' } };
-	const contract = { exit_date: '2026-01-31' };
+	const contract = { effective_range: { start: '2026-01-01', end: '2026-01-31' } };
 	assert.equal(payRequestTerms([first, final], contract, '2026-01-20'), null);
 	assert.equal(payRequestTerms([first, final], contract, '2026-02-05'), final);
 	assert.equal(payRequestTerms([first], contract, '2026-02-05'), null);
-	assert.equal(payRequestTerms([first, final], { exit_date: null }, '2026-02-05'), null);
+	assert.equal(
+		payRequestTerms(
+			[first, final],
+			{ effective_range: { start: '2026-01-01', end: null } },
+			'2026-02-05'
+		),
+		null
+	);
 });

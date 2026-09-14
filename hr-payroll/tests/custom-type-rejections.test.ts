@@ -5,7 +5,7 @@ import { instantRangeSchema } from '@norbital-ai/bolt/authoring';
 import { allowanceRecurrenceSchema } from '../src/datatypes/allowance_recurrence/+definition.js';
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
 import { holidaySnapshotsSchema } from '../src/datatypes/holiday_snapshots/+definition.js';
-import ContributionBands from '../src/datatypes/contribution_bands/+definition.js';
+import ContributionRules from '../src/datatypes/contribution_rules/+definition.js';
 
 /**
  * What these custom types *refuse*, asserted rather than inferred.
@@ -177,11 +177,11 @@ describe('leave_entitlement', () => {
 	});
 });
 
-describe('contribution_bands (P10)', () => {
-	const bands = ContributionBands.schema;
-	it('accepts band expressions and refuses a malformed one at write time', () => {
+describe('contribution_rules (P10)', () => {
+	const rules = ContributionRules.schema;
+	it('accepts rule expressions and refuses a malformed one at write time', () => {
 		assert.ok(
-			accepts(bands, [
+			accepts(rules, [
 				{
 					when: 'base <= 5000.0',
 					employee: 'base * 11.0 / 100.0',
@@ -191,21 +191,21 @@ describe('contribution_bands (P10)', () => {
 			])
 		);
 		assert.ok(
-			refuses(bands, [{ when: 'bsae <= 5000.0', employee: '0.0', employer: '0.0' }]),
+			refuses(rules, [{ when: 'bsae <= 5000.0', employee: '0.0', employer: '0.0' }]),
 			'an unknown member is refused, not discovered at payroll'
 		);
 		assert.ok(
-			refuses(bands, [
+			refuses(rules, [
 				{ when: 'base <= 5000.0', employee: 'base * 11.0 / 100.0', employer: 'nope' }
 			])
 		);
 		assert.ok(
-			refuses(bands, [{ when: 'base <= 5000.0', employee: 'true', employer: '0.0' }]),
+			refuses(rules, [{ when: 'base <= 5000.0', employee: 'true', employer: '0.0' }]),
 			'money is a number'
 		);
-		assert.ok(refuses(bands, [{ when: '', employee: '0.0', employer: '0.0' }]));
+		assert.ok(refuses(rules, [{ when: '', employee: '0.0', employer: '0.0' }]));
 		assert.ok(
-			refuses(bands, [{ when: '1.0', employee: '0.0', employer: '0.0' }]),
+			refuses(rules, [{ when: '1.0', employee: '0.0', employer: '0.0' }]),
 			'a condition must produce a boolean'
 		);
 	});
@@ -218,7 +218,7 @@ describe('holiday_snapshots', () => {
 		date: '2026-08-21',
 		name: 'Ninoy Aquino Day',
 		kind: 'SPECIAL',
-		original_date: null,
+		replaces: null,
 		given_to: 'EVERYONE',
 		published_at: '2026-01-01T00:00:00.000Z'
 	};

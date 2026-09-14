@@ -34,7 +34,7 @@ import type { Policy } from './$types.js';
  *   - `payroll_runs: delete` — the release path for the settlement lock. Deleting a run cascades to
  *     its payslips and their `payslip_adjustments` rows, which is what unlocks the work days,
  *     component entries and leave requests that run consumed. `payroll_runs/+hooks.ts` refuses the
- *     delete outright once `lifecycle = 'PAID'`, so this grant can only ever release a draft's claims.
+ *     delete outright once a slip has been paid, so this grant can only ever release an unpaid run's claims.
  *     The cascade descends as the deleting manager (`payrollRunCascadeGrants()`): delete, and only
  *     delete, on the six collections a run owns.
  *

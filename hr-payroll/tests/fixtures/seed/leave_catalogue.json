@@ -7,7 +7,6 @@
 		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
-		"sequence": 10,
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -48,7 +47,6 @@
 		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
-		"sequence": 11,
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [
@@ -89,7 +87,6 @@
 		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"sequence": 12,
 		"destination": "PAY",
 		"direction": "ADD",
 		"bands": [

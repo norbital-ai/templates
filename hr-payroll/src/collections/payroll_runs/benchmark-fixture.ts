@@ -54,7 +54,7 @@ const WORK = {
 	settings_id: JURISDICTION.id,
 	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -89,10 +89,19 @@ const BASIC = {
 		{ contribution_id: EPF_ID, effect: 'INCLUDE' as const },
 		{ contribution_id: PCB_ID, effect: 'INCLUDE' as const }
 	],
-	sequence: 10,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 } as const;
+
+// The PCB benchmark states the annual scale its old typed path did: project the year, relieve it,
+// scale it through the published ladder, spread what is left, then gate on the minimum.
+const PCB_CHARGEABLE =
+	'year_to_date.base + base * (1.0 + projection.future_equivalents) - produced.EPF.employee - ' +
+	'(9000.0 + (person.employee.spouse_status == "WITHOUT_INCOME" ? 4000.0 : 0.0) + 2000.0 * person.employee.dependents_count)';
+const PCB_CLAMPED = `(${PCB_CHARGEABLE} > 0.0 ? ${PCB_CHARGEABLE} : 0.0)`;
+const PCB_TAX = `progressive(${PCB_CLAMPED}, [0.0, 0.0, 0.0, 5000.0, 0.0, 1.0, 20000.0, 150.0, 3.0, 35000.0, 600.0, 6.0, 50000.0, 1500.0, 11.0, 70000.0, 3700.0, 19.0])`;
+const PCB_REGULAR = `up_5_cents(truncate_cent((${PCB_TAX} - year_to_date.employee) > 0.0 ? (${PCB_TAX} - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0))`;
+const PCB_EMPLOYEE = `(rate_override > 0.0 ? up_5_cents(truncate_cent(base * rate_override / 100.0)) : (${PCB_REGULAR} < 10.0 ? 0.0 : ${PCB_REGULAR}))`;
 
 const CONTRIBUTIONS = [
 	{
@@ -104,47 +113,38 @@ const CONTRIBUTIONS = [
 			name: 'Benchmark retirement fund',
 			authority: 'Synthetic benchmark schedule',
 			assessment_period: 'PAY_PERIOD',
-			eligibility: '',
-			sequence: 10,
-			rules: {
-				relief: '',
-				base_transform: 'bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0)',
-				share_for_dependants: '',
-				rounding: ['UP_TO_UNIT'],
-				no_withholding_below: 0,
-				use_period_table: true,
-				additional_remuneration_channel: false,
-				employee_share_annual_cap: 4000,
-				shared_cap_group: null,
-				project_relief_annually: true,
-				total_rounded_employee_floored: false
-			},
-			bands: [
+			employee_share_annual_cap: 4000,
+			shared_cap_group: null,
+			project_relief_annually: true,
+			rules: [
 				{
-					when: 'base <= 5000.0 && age < 60',
-					employee: 'base * 11.0 / 100.0',
-					employer: 'base * 13.0 / 100.0'
+					when: 'bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) <= 5000.0 && age < 60',
+					employee:
+						'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 11.0 / 100.0)',
+					employer:
+						'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 13.0 / 100.0)'
 				},
 				{
-					when: 'base > 5000.0 && age < 60',
-					employee: 'base * 11.0 / 100.0',
-					employer: 'base * 12.0 / 100.0'
+					when: 'bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) > 5000.0 && age < 60',
+					employee:
+						'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 11.0 / 100.0)',
+					employer:
+						'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 12.0 / 100.0)'
 				}
 			]
 		},
-		rates: [
+		rules: [
 			{
-				when: 'base <= 5000.0 && age < 60',
-				employee: 'base * 11.0 / 100.0',
-				employer: 'base * 13.0 / 100.0'
+				when: 'bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) <= 5000.0 && age < 60',
+				employee: 'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 11.0 / 100.0)',
+				employer: 'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 13.0 / 100.0)'
 			},
 			{
-				when: 'base > 5000.0 && age < 60',
-				employee: 'base * 11.0 / 100.0',
-				employer: 'base * 12.0 / 100.0'
+				when: 'bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) > 5000.0 && age < 60',
+				employee: 'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 11.0 / 100.0)',
+				employer: 'up_to_unit(bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0) * 12.0 / 100.0)'
 			}
-		],
-		relievedIds: [PCB_ID]
+		]
 	},
 	{
 		row: {
@@ -155,80 +155,12 @@ const CONTRIBUTIONS = [
 			name: 'Benchmark progressive withholding',
 			authority: 'Synthetic benchmark schedule',
 			assessment_period: 'PAY_PERIOD',
-			eligibility: '',
-			sequence: 20,
-			rules: {
-				relief:
-					'9000.0 + (person.employee.spouse_status == "WITHOUT_INCOME" ? 4000.0 : 0.0) + 2000.0 * person.employee.dependents_count',
-				base_transform: '',
-				share_for_dependants: '',
-				rounding: ['TRUNCATE_CENT', 'UP_5_CENTS'],
-				no_withholding_below: 10,
-				use_period_table: false,
-				additional_remuneration_channel: false,
-				employee_share_annual_cap: null,
-				shared_cap_group: null,
-				project_relief_annually: false,
-				total_rounded_employee_floored: false
-			},
-			bands: [
-				{ when: 'base <= 5000.0', employee: '0.0', employer: '0.0' },
-				{
-					when: 'base > 5000.0 && base <= 20000.0',
-					employee: '0.0 + (base - 5000.0) * 1.0 / 100.0',
-					employer: '0.0'
-				},
-				{
-					when: 'base > 20000.0 && base <= 35000.0',
-					employee: '150.0 + (base - 20000.0) * 3.0 / 100.0',
-					employer: '0.0'
-				},
-				{
-					when: 'base > 35000.0 && base <= 50000.0',
-					employee: '600.0 + (base - 35000.0) * 6.0 / 100.0',
-					employer: '0.0'
-				},
-				{
-					when: 'base > 50000.0 && base <= 70000.0',
-					employee: '1500.0 + (base - 50000.0) * 11.0 / 100.0',
-					employer: '0.0'
-				},
-				{
-					when: 'base > 70000.0',
-					employee: '3700.0 + (base - 70000.0) * 19.0 / 100.0',
-					employer: '0.0'
-				}
-			]
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			rules: [{ when: '', employee: PCB_EMPLOYEE, employer: '0.0' }]
 		},
-		rates: [
-			{ when: 'base <= 5000.0', employee: '0.0', employer: '0.0' },
-			{
-				when: 'base > 5000.0 && base <= 20000.0',
-				employee: '0.0 + (base - 5000.0) * 1.0 / 100.0',
-				employer: '0.0'
-			},
-			{
-				when: 'base > 20000.0 && base <= 35000.0',
-				employee: '150.0 + (base - 20000.0) * 3.0 / 100.0',
-				employer: '0.0'
-			},
-			{
-				when: 'base > 35000.0 && base <= 50000.0',
-				employee: '600.0 + (base - 35000.0) * 6.0 / 100.0',
-				employer: '0.0'
-			},
-			{
-				when: 'base > 50000.0 && base <= 70000.0',
-				employee: '1500.0 + (base - 50000.0) * 11.0 / 100.0',
-				employer: '0.0'
-			},
-			{
-				when: 'base > 70000.0',
-				employee: '3700.0 + (base - 70000.0) * 19.0 / 100.0',
-				employer: '0.0'
-			}
-		],
-		relievedIds: []
+		rules: [{ when: '', employee: PCB_EMPLOYEE, employer: '0.0' }]
 	}
 ] as const;
 
@@ -271,21 +203,14 @@ const SHIFT_PATTERN = {
 	code: 'MON-FRI',
 	name: 'Five days, two rest days',
 	pattern: {
-		type: 'PATTERNED',
-		anchor_date: '2020-01-06',
-		phases: [
-			{
-				duration: { kind: 'CONTINUOUS' },
-				day_cycle: [
-					{ roster_code_id: DAY_SHIFT.id },
-					{ roster_code_id: DAY_SHIFT.id },
-					{ roster_code_id: DAY_SHIFT.id },
-					{ roster_code_id: DAY_SHIFT.id },
-					{ roster_code_id: DAY_SHIFT.id },
-					{ roster_code_id: REST_SHIFT.id },
-					{ roster_code_id: REST_SHIFT.id }
-				]
-			}
+		days: [
+			{ roster_code_id: DAY_SHIFT.id },
+			{ roster_code_id: DAY_SHIFT.id },
+			{ roster_code_id: DAY_SHIFT.id },
+			{ roster_code_id: DAY_SHIFT.id },
+			{ roster_code_id: DAY_SHIFT.id },
+			{ roster_code_id: REST_SHIFT.id },
+			{ roster_code_id: REST_SHIFT.id }
 		]
 	},
 	effective_range: { start: '2020-01-01', end: null }
@@ -350,8 +275,6 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 			employee_id: employeeId,
 			employee_number: `BENCH${serial.toString().padStart(4, '0')}`,
 			company_id: COMPANY.id,
-			hire_date: '2020-01-01',
-			exit_date: null,
 			effective_range: { start: '2020-01-01', end: null }
 		},
 		employee: {
@@ -361,7 +284,8 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 			gender: index % 2 === 0 ? 'FEMALE' : 'MALE',
 			marital_status: index % 3 === 0 ? 'MARRIED' : 'SINGLE',
 			spouse_status: index % 3 !== 0 ? 'NONE' : index % 6 === 0 ? 'WITHOUT_INCOME' : 'WITH_INCOME',
-			dependents_count: index % 4
+			dependents_count: index % 4,
+			children: []
 		},
 		terms,
 		termsHistory: terms,

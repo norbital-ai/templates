@@ -15,17 +15,16 @@ const RANGE = { start: '2020-01-01T00:00:00.000Z', end: null };
 const WORK_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 const REST_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 
-const cycle = (work: number, rest: number, anchor: string) => ({
-	type: 'PATTERNED' as const,
-	anchor_date: anchor,
-	phases: [
-		{
-			duration: { kind: 'CONTINUOUS' as const },
-			day_cycle: [
-				...Array.from({ length: work }, () => ({ roster_code_id: WORK_ID })),
-				...Array.from({ length: rest }, () => ({ roster_code_id: REST_ID }))
-			]
-		}
+type Cycle = {
+	readonly days: readonly { readonly roster_code_id: string }[];
+	readonly anchor: string;
+};
+
+const cycle = (work: number, rest: number, anchor: string): Cycle => ({
+	anchor,
+	days: [
+		...Array.from({ length: work }, () => ({ roster_code_id: WORK_ID })),
+		...Array.from({ length: rest }, () => ({ roster_code_id: REST_ID }))
 	]
 });
 
@@ -65,18 +64,22 @@ const holiday = (givenTo: 'EVERYONE' | 'ONLY_IF_OFF_ON_REPLACED_DATE') => ({
 	date: '2026-03-23',
 	name: 'Replacement Public Holiday (in lieu of 21 Mar)',
 	kind: 'SUBSTITUTE' as const,
-	original_date: '2026-03-21',
+	replaces: '2026-03-21',
 	given_to: givenTo,
 	published_at: '2025-12-01T00:00:00.000Z'
 });
 
 const dates = ['2026-03-20', '2026-03-21', '2026-03-22', '2026-03-23', '2026-03-24', '2026-03-25'];
 
-const run = (workPattern: typeof fiveDay, givenTo: 'EVERYONE' | 'ONLY_IF_OFF_ON_REPLACED_DATE') =>
+const run = (cycleValue: Cycle, givenTo: 'EVERYONE' | 'ONLY_IF_OFF_ON_REPLACED_DATE') =>
 	resolveSchedule({
 		window: { start: '2026-03-01', end: '2026-03-31' },
 		dates,
-		terms: () => ({ work_pattern: workPattern, normal_daily_hours: 8 }),
+		terms: () => ({
+			work_pattern: { days: cycleValue.days },
+			pattern_anchor: cycleValue.anchor,
+			normal_daily_hours: 8
+		}),
 		workDays: [],
 		configuration: {
 			holidays: new Map([['2026-03-23', holiday(givenTo)]]),

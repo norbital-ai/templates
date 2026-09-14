@@ -1,4 +1,3 @@
-import { boundToContract } from '../../lib/employment-contract.js';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
@@ -7,7 +6,7 @@ import { addDays } from '../payroll_runs/lib/dates.js';
 import { dateKey } from '../../lib/iso-day.js';
 
 /**
- * One employment has at most one standing with one statutory scheme at any instant.
+ * One person has at most one standing with one statutory scheme at any instant.
  *
  * The database is the guarantee — `employment_statutory_facts_no_overlap` in +model.ts rejects an
  * overlap with SQLSTATE 23P01 whatever path the write takes, including a concurrent one or another
@@ -21,15 +20,27 @@ function requireId(value: string | null | undefined, what: string): string {
 	return value;
 }
 
+/** Facts name a person, never a contract, and never move between people. */
+function pinnedToPerson<T extends { readonly employee_id?: string | null }>(
+	input: T,
+	existing?: { readonly employee_id?: string | null }
+): T {
+	const personId = input.employee_id ?? existing?.employee_id;
+	if (!personId) refuse('A statutory fact must reference an employee profile.');
+	if (existing != null && personId !== existing.employee_id)
+		refuse('A statutory fact cannot move to another person. Close it and record a new fact.');
+	return input;
+}
+
 export default {
 	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Requires both references and, for a system successor, validates and stages the predecessor close into the same approval graph. On an edit it re-checks both references so an employment never ends up with two overlapping standings in one contribution scheme.',
+					'Requires both references and, for a system successor, validates and stages the predecessor close into the same approval graph. On an edit it re-checks both references so a person never ends up with two overlapping standings in one contribution scheme.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
-						requireId(input.employment_id ?? existing?.employment_id, 'an employment');
+						requireId(input.employee_id ?? existing?.employee_id, 'an employee profile');
 						requireId(
 							input.statutory_contribution_id ?? existing?.statutory_contribution_id,
 							'a statutory contribution'
@@ -38,7 +49,7 @@ export default {
 						// successor is edited its predecessor was already closed, so re-staging the close would
 						// move an end date that a later fact may already sit against.
 						if (existing !== undefined || input.supersedes_fact_id == null)
-							return boundToContract(input, existing);
+							return pinnedToPerson(input, existing);
 
 						const predecessor = yield* api.db.employment_statutory_facts.findFirst({
 							where: { id: { eq: input.supersedes_fact_id } }
@@ -46,10 +57,8 @@ export default {
 						if (predecessor == null) {
 							refuse('The statutory fact this successor is meant to replace no longer exists.');
 						}
-						if (predecessor.employment_id !== input.employment_id) {
-							refuse(
-								'A statutory successor must belong to the same employment as its predecessor.'
-							);
+						if (predecessor.employee_id !== input.employee_id) {
+							refuse('A statutory successor must belong to the same person as its predecessor.');
 						}
 						if (predecessor.statutory_contribution_id === input.statutory_contribution_id) {
 							refuse('A statutory successor must move onto a different contribution profile.');
@@ -90,7 +99,7 @@ export default {
 								}
 							}
 						]);
-						return boundToContract(input, existing);
+						return pinnedToPerson(input, existing);
 					})
 			}
 		}

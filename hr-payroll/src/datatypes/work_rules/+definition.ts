@@ -4,6 +4,7 @@ import {
 	nightPremiumValueSchema,
 	overtimeCoverageValueSchema
 } from '../../lib/payroll/work-rules-values.js';
+import { compileExpression } from '../../lib/expressions/compile.js';
 import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
 
 /**
@@ -73,7 +74,7 @@ export const statutoryOptInSchema = Schema.toStandardSchemaV1(statutoryOptInValu
 });
 
 export const workRateBandValueSchema = Schema.Struct({
-	/** The label printed on the payslip line, e.g. the OT class "1.5". */
+	/** The label printed on the payslip line, e.g. the OT class "OT-1.5X". */
 	label: Schema.String.check(Schema.isMinLength(1)),
 	/** The line the band emits: OVERTIME, INCENTIVE, NIGHT, ABSENCE. */
 	line: Schema.String.check(Schema.isMinLength(1)),
@@ -98,6 +99,23 @@ export const workRateBandValueSchema = Schema.Struct({
 });
 export type WorkRateBand = Schema.Schema.Type<typeof workRateBandValueSchema>;
 
+/** One CEL fault, named by the row it rides, or null when the expression compiles to its type. */
+const faultIn = (
+	expression: string,
+	site: 'person' | 'work_day',
+	type: 'boolean' | 'number',
+	label: string
+): string | null => {
+	const fault = compileExpression({ expression, site, type });
+	return fault == null ? null : `${label}: ${fault}`;
+};
+
+/**
+ * Every expression a work-rules row carries is compiled at write time against the context it will
+ * be evaluated in (RFC 0001 §7): bands and breaks over `work_day`, the ordinary-rate rows over
+ * `person`. A misspelt member or a string where hours belong is refused when the version is
+ * written, not when a payroll prices the month it governs.
+ */
 export const workRulesValueSchema = Schema.Struct({
 	/**
 	 * How a partial month is prorated. Typed, not CEL: the FIXED_DAYS arm's instalment share and
@@ -110,7 +128,7 @@ export const workRulesValueSchema = Schema.Struct({
 	 * NIGHT premium — and the schemes each opts into. A band carries its own opt-ins; these three
 	 * are produced by the engine and state theirs here. Silence means no statutory effect.
 	 */
-	lines: Schema.Struct({
+	engine_lines: Schema.Struct({
 		salary: Schema.Struct({ statutory_opt_ins: Schema.Array(statutoryOptInValueSchema) }),
 		absence: Schema.Struct({ statutory_opt_ins: Schema.Array(statutoryOptInValueSchema) }),
 		night: Schema.Struct({ statutory_opt_ins: Schema.Array(statutoryOptInValueSchema) })
@@ -131,7 +149,40 @@ export const workRulesValueSchema = Schema.Struct({
 	authority: Schema.optionalKey(Schema.String),
 	night_premium: Schema.optionalKey(Schema.NullOr(nightPremiumValueSchema)),
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'])
-});
+}).check(
+	Schema.makeFilter((rules) => {
+		for (const row of rules.rates.ordinary) {
+			const fault = faultIn(row.when, 'person', 'boolean', 'Ordinary rate row');
+			if (fault != null) return fault;
+		}
+		for (const band of rules.rates.bands) {
+			const when = faultIn(band.when, 'work_day', 'boolean', `Band ${band.label}`);
+			if (when != null) return when;
+			const take = faultIn(band.take, 'work_day', 'number', `Band ${band.label} take`);
+			if (take != null) return take;
+			const price = faultIn(band.price, 'work_day', 'number', `Band ${band.label} price`);
+			if (price != null) return price;
+			if (band.funnel != null) {
+				const above = faultIn(band.funnel.above, 'work_day', 'number', `Band ${band.label} funnel`);
+				if (above != null) return above;
+			}
+		}
+		for (const [index, brk] of rules.breaks.entries()) {
+			const when = faultIn(brk.when, 'work_day', 'boolean', `Break ${index + 1}`);
+			if (when != null) return when;
+			if (typeof brk.owed_minutes === 'string') {
+				const owed = faultIn(
+					brk.owed_minutes,
+					'work_day',
+					'number',
+					`Break ${index + 1} owed minutes`
+				);
+				if (owed != null) return owed;
+			}
+		}
+		return true;
+	})
+);
 export type WorkRules = Schema.Schema.Type<typeof workRulesValueSchema>;
 
 export default defineCustomType({

@@ -54,32 +54,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -87,27 +62,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -154,32 +129,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -187,27 +137,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -254,32 +204,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -287,27 +212,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -345,32 +270,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -378,27 +278,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -432,32 +332,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -465,27 +340,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -523,32 +398,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -556,27 +406,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -610,32 +460,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -643,27 +468,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -699,27 +524,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "REDUCE"
 					}
 				]
@@ -730,27 +555,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -784,32 +609,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -817,27 +617,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -871,32 +671,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -904,27 +679,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -954,32 +729,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -987,27 +737,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1069,32 +819,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1102,27 +827,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1169,32 +894,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1202,27 +902,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1269,32 +969,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1302,27 +977,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1360,32 +1035,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1393,27 +1043,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1447,32 +1097,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1480,27 +1105,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1538,32 +1163,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1571,27 +1171,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1625,32 +1225,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1658,27 +1233,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1714,27 +1289,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "REDUCE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "REDUCE"
 					}
 				]
@@ -1745,27 +1320,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1799,32 +1374,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1832,27 +1382,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1886,32 +1436,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -1919,27 +1444,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -1969,32 +1494,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2002,27 +1502,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -2084,32 +1584,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2184,32 +1659,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2284,32 +1734,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2375,32 +1800,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2462,32 +1862,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2553,32 +1928,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2640,32 +1990,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2814,32 +2139,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2901,32 +2201,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -2984,32 +2259,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -3066,32 +2316,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -3099,27 +2324,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
 						"effect": "INCLUDE"
 					}
 				]
@@ -3148,32 +2373,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",
@@ -3181,27 +2381,27 @@
 				"limit": null,
 				"statutory_opt_ins": [
 					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
 						"effect": "INCLUDE"
 					},
 					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
 						"effect": "INCLUDE"
 					}
 				]
@@ -3230,32 +2430,7 @@
 				"when": "entry.amount == 0.0",
 				"amount": "0.0",
 				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
+				"statutory_opt_ins": []
 			},
 			{
 				"when": "entry.amount > 0.0",

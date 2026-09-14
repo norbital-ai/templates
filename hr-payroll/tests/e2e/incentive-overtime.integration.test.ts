@@ -41,12 +41,13 @@ const create = async (
 };
 
 /**
- * The incentive boundary, end to end on a real host: the public lineage states an
- * `on_exceed: INCENTIVE` daily limit of eleven worked hours beside the statutory twelve-hour and
- * 104-hour ceilings. One weekday punch of 07:30 to 21:30 with a one-hour break is thirteen worked
- * hours on a 07:30–16:30 shift: five overtime hours, of which the two past the boundary settle as
- * incentive OT at the same 1.5× value. The row carries punches only — no plan — so it is evidence
- * on a base day, never a roster override.
+ * The incentive funnel, end to end on a real host: the public lineage's 1.5 band funnels the slice
+ * above `limits.daily_total` to `INCENTIVE` at the band's own award — eleven net worked hours beside
+ * the statutory twelve-hour and 104-hour ceilings. One weekday punch of 07:30 to 21:30 with a
+ * one-hour break is thirteen worked hours on a 07:30–16:30 shift: five overtime hours, of which the
+ * three from nine to eleven net settle as OVERTIME and the two past eleven as INCENTIVE, both at
+ * 1.5×. The row carries punches only — no plan — so it is evidence on a base day, never a roster
+ * override.
  */
 it(
 	'a weekday worked past the lineage incentive boundary pays the surplus as incentive OT',
@@ -108,22 +109,27 @@ it(
 					`select adjustments from payslips p where p.payroll_run_id = $1 and p.employment_id = $2`,
 					[runId, EMPLOYMENT_ID]
 				)) as ReadonlyArray<{
-					adjustments: ReadonlyArray<{ label: string; quantity: unknown; amount: unknown }>;
+					adjustments: ReadonlyArray<{
+						component_code: string;
+						label: string;
+						quantity: unknown;
+						amount: unknown;
+					}>;
 				}>
 			)
 				.flatMap((row) => row.adjustments)
-				.filter((line) => line.label.startsWith('OT_'))
+				.filter((line) => line.component_code === 'OVERTIME' || line.component_code === 'INCENTIVE')
 				.map((line) => ({
-					label: line.label,
+					code: line.component_code,
 					quantity: Number(line.quantity),
 					amount: Number(line.amount)
 				}))
-				.toSorted((left, right) => left.label.localeCompare(right.label));
+				.toSorted((left, right) => left.code.localeCompare(right.code));
 			assert.deepEqual(
-				lines.map((line) => [line.label, line.quantity, line.amount]),
+				lines.map((line) => [line.code, line.quantity, line.amount]),
 				[
-					['OT_EXCESS_ORDINARY_BEYOND_NORMAL_0', 2, 49.77],
-					['OT_ORDINARY_BEYOND_NORMAL_0', 3, 74.66]
+					['INCENTIVE', 2, 49.77],
+					['OVERTIME', 3, 74.66]
 				],
 				`overtime lines: ${JSON.stringify(lines)}`
 			);

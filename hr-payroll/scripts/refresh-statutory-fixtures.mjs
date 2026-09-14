@@ -8,16 +8,22 @@
  * ladder — are copied here and committed. This script is how they are refreshed when the bank
  * changes; it is never run by `pnpm test`.
  *
+ * The snapshot is curated, not a mirror: a fixture may carry fewer versions than the bank or
+ * annotated prose the bank has since moved past. Run this script to see the diff, then hand-carry
+ * only the change it is meant to carry; a blind copy rewrites what the golden tests assert.
+ *
  * Usage: node scripts/refresh-statutory-fixtures.mjs [path-to-seed-bank]
  */
 
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const template = resolve(here, '..');
-const bank = resolve(process.argv[2] ?? resolve(template, '../../seed_bank/norbital_hr/statutory'));
+const bank = resolve(
+	process.argv[2] ?? resolve(template, '../../seed_bank/norbital_hr/jurisdiction')
+);
 
 if (!existsSync(bank)) {
 	console.error(
@@ -33,8 +39,6 @@ const FILES = [
 	'statutory_contributions.json',
 	'leave_catalogue.json'
 ];
-/** Relief edges exist only for the lineages whose schemes relieve another. */
-const OPTIONAL_FILES = ['scheme_reliefs.json'];
 
 for (const code of LINEAGES) {
 	const source = resolve(bank, code);
@@ -51,11 +55,6 @@ for (const code of LINEAGES) {
 			process.exit(1);
 		}
 		cpSync(from, resolve(target, file));
-	}
-	for (const file of OPTIONAL_FILES) {
-		const from = resolve(source, file);
-		cpSync(from, resolve(target, file), { force: true });
-		if (!existsSync(from)) rmSync(resolve(target, file), { force: true });
 	}
 	console.log(`${code}: ${FILES.length} files`);
 }

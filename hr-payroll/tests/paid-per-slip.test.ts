@@ -4,18 +4,16 @@
  *
  * A run used to move DRAFT → PAID as a block, so "pay everyone or nobody" was the only gesture
  * there was: one person held back for a correction held back the whole company's payment record.
- * `payslips.paid_at` is the authority now and `payroll_runs.lifecycle` is a reading of it — PAID
- * when every slip of the run carries a payment, DRAFT while any does not, which is the
- * conservative answer and keeps every existing settlement lock closed on a half-paid run.
+ * `payslips.status` is the authority now; a run carries no state of its own, and its progress is
+ * read from the slips it holds.
  *
- * The slip is otherwise still immutable engine output. `paid_at` is its one door: it opens once,
- * from empty, and never closes.
+ * The slip is otherwise still immutable engine output. `status` and `paid_at` are its only doors:
+ * `DRAFT ↔ ON_HOLD`, then either to `PAID` with the day it happened, which is terminal.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import payslipHooks from '../src/collections/payslips/+hooks.ts';
-import { promoteRunIfFullyPaid } from '../src/collections/payroll_runs/lib/paid.ts';
 import { refusalMessage } from './fixtures/memory-payroll-api.ts';
 
 const RUN = { id: 'run-feb', company_id: 'co-1', period: '2026-02' };
@@ -23,7 +21,6 @@ const EARLIER = { id: 'run-jan', company_id: 'co-1', period: '2026-01' };
 
 /** A world of runs and slips, answering only the queries these hooks make. */
 function world(runs, slips) {
-	const written = [];
 	const match = (row, where = {}) =>
 		Object.entries(where).every(([column, condition]) => {
 			const value = row[column];
@@ -37,13 +34,7 @@ function world(runs, slips) {
 		});
 	const table = (rows) => ({
 		findMany: ({ where }) => Effect.succeed(rows.filter((row) => match(row, where))),
-		findFirst: ({ where }) => Effect.succeed(rows.find((row) => match(row, where)) ?? null),
-		mutate: (values) =>
-			Effect.sync(() => {
-				written.push(...values);
-				for (const value of values)
-					Object.assign(rows.find((row) => row.id === value.id) ?? {}, value);
-			})
+		findFirst: ({ where }) => Effect.succeed(rows.find((row) => match(row, where)) ?? null)
 	});
 	const empty = table([]);
 	return {
@@ -58,8 +49,7 @@ function world(runs, slips) {
 				leave_entries: empty,
 				loan_repayments: empty
 			}
-		},
-		written
+		}
 	};
 }
 
@@ -68,6 +58,17 @@ const pay = (api, existing, paid_at = '2026-02-28') =>
 		Effect.gen(function* () {
 			return yield* payslipHooks.mutate.perRecord.before.handler({
 				input: { id: existing.id, status: 'PAID', paid_at },
+				existing,
+				api
+			});
+		})
+	);
+
+const hold = (api, existing, status) =>
+	Effect.runPromise(
+		Effect.gen(function* () {
+			return yield* payslipHooks.mutate.perRecord.before.handler({
+				input: { id: existing.id, status },
 				existing,
 				api
 			});
@@ -83,83 +84,34 @@ const refusalOf = async (run) => {
 	}
 };
 
-test('a run is PAID only when every slip it holds is', async () => {
-	const lifecycleOf = async (slips) => {
-		const runs = [{ ...RUN, lifecycle: 'DRAFT' }];
-		const { api } = world(
-			runs,
-			slips.map((paid, index) => ({
-				id: `slip-${index}`,
-				payroll_run_id: RUN.id,
-				status: paid ? 'PAID' : 'DRAFT',
-				paid_at: paid ? '2026-02-28' : null
-			}))
-		);
-		await Effect.runPromise(promoteRunIfFullyPaid(api, RUN.id));
-		return runs[0].lifecycle;
-	};
-	assert.equal(await lifecycleOf([]), 'DRAFT', 'nothing to pay is not paid');
-	assert.equal(await lifecycleOf([true]), 'PAID');
-	assert.equal(
-		await lifecycleOf([true, false]),
-		'DRAFT',
-		'half paid reads DRAFT, which keeps every lock closed'
-	);
+const slip = (id, run, employment, overrides = {}) => ({
+	id,
+	payroll_run_id: run.id,
+	employment_id: employment,
+	status: 'DRAFT',
+	paid_at: null,
+	...overrides
 });
 
-test('one person is paid while a colleague is held, and the run stays DRAFT', async () => {
-	const slips = [
-		{
-			id: 'slip-a',
-			payroll_run_id: RUN.id,
-			employment_id: 'emp-a',
-			status: 'DRAFT',
-			paid_at: null
-		},
-		{ id: 'slip-b', payroll_run_id: RUN.id, employment_id: 'emp-b', status: 'DRAFT', paid_at: null }
-	];
-	const runs = [{ ...RUN, lifecycle: 'DRAFT' }];
-	const { api, written } = world(runs, slips);
+test('one person is paid while a colleague is held, and nothing about the run moves', async () => {
+	const slips = [slip('slip-a', RUN, 'emp-a'), slip('slip-b', RUN, 'emp-b')];
+	const { api } = world([RUN], slips);
 	await pay(api, slips[0]);
-	slips[0].status = 'PAID';
-	slips[0].paid_at = '2026-02-28';
-	await Effect.runPromise(promoteRunIfFullyPaid(api, RUN.id));
-	assert.equal(runs[0].lifecycle, 'DRAFT', 'the colleague is still unpaid');
-	assert.deepEqual(written, []);
-
+	// The hook is a validator: it hands the caller's write back, and the store records it. The
+	// colleague is untouched by it.
+	assert.equal(slips[1].status, 'DRAFT');
+	assert.equal(slips[1].paid_at, null);
 	await pay(api, slips[1]);
-	slips[1].status = 'PAID';
-	slips[1].paid_at = '2026-02-28';
-	await Effect.runPromise(promoteRunIfFullyPaid(api, RUN.id));
-	assert.equal(runs[0].lifecycle, 'PAID');
 });
 
 test('a person’s own earlier period is paid first, and a colleague’s is not their problem', async () => {
 	const slips = [
-		{
-			id: 'jan-a',
-			payroll_run_id: EARLIER.id,
-			employment_id: 'emp-a',
-			status: 'DRAFT',
-			paid_at: null
-		},
-		{
-			id: 'jan-b',
-			payroll_run_id: EARLIER.id,
-			employment_id: 'emp-b',
-			status: 'PAID',
-			paid_at: '2026-01-31'
-		},
-		{ id: 'feb-a', payroll_run_id: RUN.id, employment_id: 'emp-a', status: 'DRAFT', paid_at: null },
-		{ id: 'feb-b', payroll_run_id: RUN.id, employment_id: 'emp-b', status: 'DRAFT', paid_at: null }
+		slip('jan-a', EARLIER, 'emp-a'),
+		slip('jan-b', EARLIER, 'emp-b', { status: 'PAID', paid_at: '2026-01-31' }),
+		slip('feb-a', RUN, 'emp-a'),
+		slip('feb-b', RUN, 'emp-b')
 	];
-	const { api } = world(
-		[
-			{ ...EARLIER, lifecycle: 'DRAFT' },
-			{ ...RUN, lifecycle: 'DRAFT' }
-		],
-		slips
-	);
+	const { api } = world([EARLIER, RUN], slips);
 	assert.match(
 		await refusalOf(() => pay(api, slips[2])),
 		/2026-01 pay is still unpaid/,
@@ -170,43 +122,83 @@ test('a person’s own earlier period is paid first, and a colleague’s is not 
 });
 
 test('paid is a door that opens once and never closes', async () => {
-	const paid = {
-		id: 'slip-a',
-		payroll_run_id: RUN.id,
-		employment_id: 'emp-a',
-		status: 'PAID',
-		paid_at: '2026-02-28'
-	};
-	const { api } = world([{ ...RUN, lifecycle: 'PAID' }], [paid]);
+	const paid = slip('slip-a', RUN, 'emp-a', { status: 'PAID', paid_at: '2026-02-28' });
+	const { api } = world([RUN], [paid]);
+	assert.match(
+		await refusalOf(() => hold(api, paid, 'DRAFT')),
+		/already paid/,
+		'a paid slip cannot be un-paid'
+	);
 	assert.match(await refusalOf(() => pay(api, paid)), /already paid/);
 	assert.match(
-		await refusalOf(() => pay(api, { ...paid, status: 'DRAFT', paid_at: null }, null)),
-		/needs the day it was paid/
+		await refusalOf(() => pay(api, slip('slip-b', RUN, 'emp-a'), null)),
+		/needs the day it was paid/,
+		'paid without a day is not a payment'
 	);
 });
 
-test('every other column is still engine output', async () => {
-	const slip = {
-		id: 'slip-a',
-		payroll_run_id: RUN.id,
-		employment_id: 'emp-a',
-		status: 'DRAFT',
-		paid_at: null
-	};
-	const { api } = world([{ ...RUN, lifecycle: 'DRAFT' }], [slip]);
+test('hold is a reviewed slip kept back, released back to draft, and still payable', async () => {
+	const held = slip('slip-a', RUN, 'emp-a');
+	const { api } = world([RUN], [held]);
+	await hold(api, held, 'ON_HOLD');
+	await hold(api, { ...held, status: 'ON_HOLD' }, 'DRAFT');
+	await pay(api, { ...held, status: 'ON_HOLD' });
+});
+
+test('paid_at travels only with PAID', async () => {
+	const draft = slip('slip-a', RUN, 'emp-a');
+	const { api } = world([RUN], [draft]);
 	assert.match(
 		await refusalOf(() =>
 			Effect.runPromise(
 				Effect.gen(function* () {
 					return yield* payslipHooks.mutate.perRecord.before.handler({
-						input: { id: slip.id, net: 1 },
-						existing: slip,
+						input: { id: draft.id, status: 'ON_HOLD', paid_at: '2026-02-28' },
+						existing: draft,
+						api
+					});
+				})
+			)
+		),
+		/records the day it was paid only when it is paid/,
+		'a day alone is not a state change'
+	);
+});
+
+test('every other column is still engine output', async () => {
+	const draft = slip('slip-a', RUN, 'emp-a');
+	const { api } = world([RUN], [draft]);
+	assert.match(
+		await refusalOf(() =>
+			Effect.runPromise(
+				Effect.gen(function* () {
+					return yield* payslipHooks.mutate.perRecord.before.handler({
+						input: { id: draft.id, net: 1 },
+						existing: draft,
 						api
 					});
 				})
 			)
 		),
 		/engine output and cannot be edited/
+	);
+});
+
+test('a slip is created by its run, never standing alone', async () => {
+	const { api } = world([RUN], []);
+	assert.match(
+		await refusalOf(() =>
+			Effect.runPromise(
+				Effect.gen(function* () {
+					return yield* payslipHooks.mutate.perRecord.before.handler({
+						input: { id: 'slip-new' },
+						parent: undefined,
+						api
+					});
+				})
+			)
+		),
+		/must be created by its payroll run/
 	);
 });
 
@@ -220,22 +212,12 @@ test('a paid slip cannot be deleted, whatever its run reports', () => {
 		}
 	};
 	assert.match(
-		remove(world([{ ...RUN, lifecycle: 'PAID' }], []).api, {
-			id: 'slip-a',
-			payroll_run_id: RUN.id,
-			status: 'PAID',
-			paid_at: '2026-02-28'
-		}),
+		remove(
+			world([RUN], []).api,
+			slip('slip-a', RUN, 'emp-a', { status: 'PAID', paid_at: '2026-02-28' })
+		),
 		/has been paid and cannot be deleted/
 	);
 	// An unpaid slip still leaves with its draft recalculation.
-	assert.equal(
-		remove(world([{ ...RUN, lifecycle: 'DRAFT' }], []).api, {
-			id: 'slip-a',
-			payroll_run_id: RUN.id,
-			status: 'DRAFT',
-			paid_at: null
-		}),
-		''
-	);
+	assert.equal(remove(world([RUN], []).api, slip('slip-a', RUN, 'emp-a')), '');
 });

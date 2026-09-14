@@ -8,7 +8,7 @@ import type {
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
-export type Loan = WorkspaceRow<'loans'>;
+type Loan = WorkspaceRow<'loans'>;
 /**
  * The loan catalogue row as a pay line, keeping the two columns only a loan has: what kind of debt
  * it recovers and the least a month may take. `CatalogueComponent` is the shape every family's pay
@@ -38,6 +38,7 @@ import {
 	type SettlementDestination,
 	type SettlementDirection
 } from './family.js';
+import { aliasedOptIns, loadOptInAliases, type OptInAliases } from './contribution.js';
 
 type MeasureRecoveryOptions = {
 	readonly bundle: EmploymentBundle;
@@ -140,6 +141,8 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		(left, right) =>
 			String(left.due_date).localeCompare(String(right.due_date)) || left.sequence - right.sequence
 	);
+	/** One repayment entry per agreement per payslip; the earliest outstanding is the one taken. */
+	const takenLoanIds = new Set<string>();
 	for (const repayment of dueRepayments) {
 		// Present by construction: the bundle's repayments are gathered from these very loans.
 		const loan = loanById.get(repayment.loan_id)!;
@@ -163,17 +166,20 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) continue;
 		const due = dateKey(repayment.due_date) || String(repayment.due_date).slice(0, 10);
 		/**
-		 * Due by now, not due exactly now.
+		 * Due by now, not due exactly now — and one instalment to a payslip.
 		 *
-		 * A repayment an earlier run could not take in full is still owed, and this is where it is
-		 * recovered — by re-deriving what is outstanding against what was actually recovered, rather
-		 * than by a copy of it written into next month's schedule. A repayment already settled in
-		 * full nets to zero here and produces nothing.
+		 * A repayment an earlier run could not take in full is still owed, and this is where its
+		 * remainder is recovered — re-derived against what was actually recovered, rather than
+		 * copied into next month's schedule. But a person's arrears are not swept in one month:
+		 * each payslip links to at most one repayment entry per agreement, the earliest still
+		 * outstanding, so a monthly plan stays monthly when runs resume after a gap.
 		 */
 		if (defaultPayPeriod(due, options.cutoffDay, options.cadence) > options.period) continue;
 		const consumed = options.consumedRepayments.get(repayment.id) ?? 0;
 		const outstanding = repaymentOutstanding(repayment, consumed);
 		if (outstanding <= 0) continue;
+		if (takenLoanIds.has(repayment.loan_id)) continue;
+		takenLoanIds.add(repayment.loan_id);
 		// A repayment another unpaid slip already holds is not this run's to recover. Paid history
 		// with a remainder is: the pin stays until the source is made whole.
 		if (repayment.payslip_id != null && consumed <= 0) continue;
@@ -315,6 +321,7 @@ function assertWithinRepayment(options: RepaymentCeiling): void {
 export function prepareLoanPayroll(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly employmentIds: readonly string[];
+	readonly configuration: Configuration;
 }) {
 	return Effect.gen(function* () {
 		const rows = yield* options.api.db.loans.findMany({
@@ -348,7 +355,18 @@ export function prepareLoanPayroll(options: {
 		);
 		options.api.reads.assertComplete(catalogueRows, 'agreed loan catalogue');
 		options.api.reads.assertComplete(repayments, 'loan repayments');
-		const agreedById = new Map(live(catalogueRows).map((row) => [row.id, loanComponent(row)]));
+		// A loan pins the catalogue revision it was agreed under; its opt-ins still charge the
+		// schemes of the version in force (RFC 0002 §6).
+		const aliases = yield* loadOptInAliases({
+			api: options.api,
+			configuration: options.configuration,
+			ids: catalogueRows.flatMap((row) =>
+				row.bands.flatMap((band) => band.statutory_opt_ins.map((optIn) => optIn.contribution_id))
+			)
+		});
+		const agreedById = new Map(
+			live(catalogueRows).map((row) => [row.id, loanComponent(row, aliases)])
+		);
 		const loans = rawLoans.map((loan): PreparedLoan => {
 			const catalogueComponent = agreedById.get(loan.loan_catalogue_id);
 			if (catalogueComponent == null)
@@ -385,12 +403,15 @@ export function prepareLoanCatalogue(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(rows, 'loan catalogue');
-		return live(rows).map(loanComponent);
+		return live(rows).map((row) => loanComponent(row));
 	});
 }
 
 /** One stored catalogue row as the engine's pay line; a loan recovery is never anything else. */
-const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
+const loanComponent = (
+	row: WorkspaceRow<'loan_catalogue'>,
+	aliases: OptInAliases = new Map()
+): LoanComponent => ({
 	...row,
 	family: 'LOAN' as const,
 	// The enum columns arrive as text at the database boundary; the model constrains them to the
@@ -398,7 +419,10 @@ const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
 	destination: row.destination as SettlementDestination,
 	direction: row.direction as SettlementDirection | null,
 	// A loan recovery is engine-priced; its bands can only carry opt-ins, so every one is kept.
-	optIns: row.bands.flatMap((band) => band.statutory_opt_ins),
+	optIns: aliasedOptIns(
+		row.bands.flatMap((band) => band.statutory_opt_ins),
+		aliases
+	),
 	definition: { source: 'ENTRY' as const }
 });
 export function prepareLoanConsumption(options: {

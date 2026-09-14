@@ -7,7 +7,6 @@ export const PAYROLL_RUN_LIST_COLUMNS = {
 	id: true,
 	company_id: true,
 	period: true,
-	lifecycle: true,
 	configuration_hash: true,
 	settings_id: true,
 	calculation_version: true,

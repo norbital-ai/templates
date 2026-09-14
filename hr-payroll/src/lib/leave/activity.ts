@@ -12,7 +12,7 @@ import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../iso-day.js';
 import { pointNumber } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
-import { patternRosterCodeId, termPattern } from '../scheduling/work-pattern.js';
+import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
 import { payrollWindows, lockStateForDate } from '../scheduling/lock.js';
 import {
@@ -88,8 +88,10 @@ export function measureLeaveDay(
 	const namedPattern = context.patterns.find((row) => row.id === term.shift_pattern_id);
 	if (namedPattern != null && !coversDate(namedPattern.effective_range, date))
 		return { eligible: false as const, reason: 'NO_SCHEDULE' as const, evidence };
-	const pattern = termPattern(term, new Map(context.patterns.map((row) => [row.id, row])));
-	const codeId = override?.shift_definition_id ?? patternRosterCodeId(pattern, date);
+	const patternRow = termPatternRow(term, new Map(context.patterns.map((row) => [row.id, row])));
+	const codeId =
+		override?.shift_definition_id ??
+		patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
 	const shift = context.shifts.find(
 		(row) => row.id === codeId && row.company_id === rules.company.id
 	);

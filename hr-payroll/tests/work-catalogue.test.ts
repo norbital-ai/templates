@@ -12,7 +12,7 @@ import {
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 type WorkRules = {
-	lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+	engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
 	rates: {
 		ordinary: { when: string; unit: 'DAY' | 'HOUR'; divisor: number | 'WORKING_DAYS' }[];
 		bands: { line: string; label: string; statutory_opt_ins: unknown[] }[];
@@ -31,7 +31,7 @@ test('the ordinary rate is the first row whose predicate holds; WORKING_DAYS is 
 	const person = (terms: Record<string, unknown>) =>
 		personContext({
 			employee: null,
-			employment: { hire_date: '2024-01-01' },
+			employment: { service_start: '2024-01-01' },
 			terms,
 			asOf: '2026-03-31'
 		});
@@ -110,27 +110,15 @@ test('Contribution consumes Work metadata: opt-ins include, silence excludes', a
 		id: 'scheme',
 		settings_id: world.jurisdiction_settings[0]!.id,
 		code: 'FUND',
-		sequence: 1,
 		assessment_period: 'PAY_PERIOD',
-		eligibility: '',
-		rules: {
-			relief: '',
-			base_transform: '',
-			share_for_dependants: '',
-			rounding: ['NEAREST_CENT'],
-			no_withholding_below: 0,
-			use_period_table: true,
-			additional_remuneration_channel: false,
-			employee_share_annual_cap: null,
-			shared_cap_group: null,
-			project_relief_annually: false,
-			total_rounded_employee_floored: false
-		},
-		bands: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
 	});
 	const rules = rulesOf(world);
-	rules.lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
-	rules.lines.absence.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'REDUCE' }];
+	rules.engine_lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
+	rules.engine_lines.absence.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'REDUCE' }];
 	const { configuration } = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 	);
@@ -141,9 +129,9 @@ test('Contribution consumes Work metadata: opt-ins include, silence excludes', a
 			bucket: 'EARNING',
 			optIns:
 				row.output === 'salary'
-					? rules.lines.salary.statutory_opt_ins
+					? rules.engine_lines.salary.statutory_opt_ins
 					: row.output === 'absence'
-						? rules.lines.absence.statutory_opt_ins
+						? rules.engine_lines.absence.statutory_opt_ins
 						: [],
 			label: 'A label with no classification information',
 			amount: row.output === 'salary' ? 1000 : row.output === 'absence' ? 50 : 100
@@ -158,26 +146,14 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 		id: 'scheme',
 		settings_id: world.jurisdiction_settings[0]!.id,
 		code: 'FUND',
-		sequence: 1,
 		assessment_period: 'PAY_PERIOD',
-		eligibility: '',
-		rules: {
-			relief: '',
-			base_transform: '',
-			share_for_dependants: '',
-			rounding: ['NEAREST_CENT'],
-			no_withholding_below: 0,
-			use_period_table: true,
-			additional_remuneration_channel: false,
-			employee_share_annual_cap: null,
-			shared_cap_group: null,
-			project_relief_annually: false,
-			total_rounded_employee_floored: false
-		},
-		bands: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
 	});
 	const rules = rulesOf(world);
-	rules.lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
+	rules.engine_lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
 	// Every rostered day punched over its shift: nothing is absent, so the line is never priced.
 	const variant = world.shift_definitions[0]!.variant as {
 		start_time: string;

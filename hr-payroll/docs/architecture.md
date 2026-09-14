@@ -44,7 +44,7 @@ inferred from nationality or a shared employee-profile value.
 | Allowance    | `allowance_catalogue`                          | `allowance_requests`                                                            | One-off or recurring allowances                                                              |
 | Adhoc        | `payment_catalogue`                            | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections; the family keeps its storage names |
 | Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                   | Recovery deductions                                                                          |
-| Contribution | `statutory_contributions` (with their `bands`) | Contract statutory facts and source-family results                              | Employee deductions and employer costs                                                       |
+| Contribution | `statutory_contributions` (with their `rules`) | Person statutory facts and source-family results                                | Employee deductions and employer costs                                                       |
 
 Different business inputs retain typed collections. A family interface does not require a universal
 entry table. `lib/payroll/family.ts` carries the shared pay-item metadata: every catalogue row and
@@ -129,7 +129,7 @@ flowchart TD
     Work --> Leave[Leave: charges and absence coverage]
     Leave --> Calculate[Calculate Work, Leave, Claim, Allowance, Adhoc and Loan]
     Calculate --> Results[Amounts, destination, direction and frozen entry evidence]
-    Results --> Contribution[Contribution: bases from opt-ins, rules, bands and YTD]
+    Results --> Contribution[Contribution: bases from opt-ins, rules and YTD]
     Contribution --> Settle[Gross, deductions, net and employer cost]
     Results --> Settle
     Settle --> Commit[Atomically write run, contract payslips and entry links]
@@ -178,15 +178,15 @@ by the run. A Loan catalogue row adds the two facts only a debt has: `loan_type`
 rather than the employer, so the final payslip does not settle it and the balance survives the
 contract; the other two end with the employment like any deduction. The Allowance row adds its
 recurrence facts (`recurring`, `prorates`, `on_day`), and Leave its `paid`, `evidence_after_days`
-and encashment `convertor`. `employment_terms.grade` is the contract's benefit tier; the entry
+and the bands that price an entry. `employment_terms.grade` is the contract's benefit tier; the entry
 context reads it as `terms.grade` beside department, service months and the rest.
 
 ### Statutory grammar
 
 One expression language, CEL, is what every catalogue row, band and rate speaks, and each site has
-one documented context compiled at write time by `lib/expressions`: `person` (catalogue and scheme
-eligibility), `entry` (catalogue bands, entitlements and the leave convertor), `work_day`
-(`rates.bands`, limits and breaks), `scheme` (scheme rules and contribution bands) and `schedule`
+one documented context compiled at write time by `lib/expressions`: `person` (catalogue
+eligibility), `entry` (catalogue bands and entitlements), `work_day`
+(`rates.bands`, limits and breaks), `scheme` (scheme rules and the relief pool) and `schedule`
 (limit and break enforcement). An unknown member or a wrong result type is refused when the row is
 written, never at payroll.
 
@@ -453,7 +453,9 @@ fixed multiple. Jurisdictions without a funnel simply state their statutory ladd
 Attendance overruns are priced and reported, never blocked and never discarded. Hours a schedule
 was never allowed to contain are still paid; that a run paid them is not proof the schedule
 complied. Limits are enforced when schedules are written — a pattern or roster override whose
-projection breaches any `limits` or `breaks` entry is refused — while payroll only reports them.
+projection breaches any `limits` or `breaks` entry is refused, the projection being the pattern's
+own cycle of roster codes plus the explicit roster overlay (`src/lib/scheduling/work-limits.ts`) —
+while payroll only reports them.
 
 ### Coverage
 
@@ -482,34 +484,43 @@ catalogue band — carries `statutory_opt_ins[]` naming the scheme's `contributi
 | `REDUCE`  | Reduce the base by the applicable absence/recovery amount |
 | silence   | No effect on that scheme                                  |
 
-The run assembles each scheme's base from the lines that name it, so a scheme with no opted-in
-lines charges nothing. A scheme also carries an `eligibility` predicate (empty is everyone): a
-person outside it is skipped whole, with no charge, no link and no relief fed. Each band may carry
-its own `when`, applied before the wage ceiling, so one scheme holds a ladder per citizenship,
-marital category or residency year.
+The run assembles each scheme's base from the signed sum of the lines that name it — `INCLUDE` adds,
+`REDUCE` subtracts — so a scheme with no opted-in lines charges nothing. A scheme carries no list of
+its lines and no `eligibility` field: ineligibility is a rule whose `when` nobody matches, and a
+person who matches no rule is charged nothing and appears on no payslip.
 
-A scheme's `rules` are `statutory_rules`: `relief`, `base_transform` and `share_for_dependants` are
-CEL over the `scheme` context (`base`, `share`, `year_to_date`, `projection`, `person`,
-`minimum_wage(region)` and the rest), while the remainder is typed — `rounding`,
-`no_withholding_below`, `use_period_table`, `additional_remuneration_channel`,
-`employee_share_annual_cap`, `shared_cap_group`, `project_relief_annually` and
-`total_rounded_employee_floored`. A progressive rung is just an expression: `when base > x &&
-base <= y`, `employee: constant + (base - x) * rate`. Scheme-to-scheme relief is the
-`scheme_reliefs` junction: cascade on the relieving side, restrict on the relieved.
-`minimum_wage(region)` reads the company's region's wage in `jurisdiction_settings.wages.by_region`;
-a company in a region the version names no wage for stops the run under such a scheme.
+A scheme's `rules` are `{when, employee, employer}` expressions over the `scheme` context (`base`,
+`assessment_period`, `period`, `year_to_date`, `projection`, `person`, `region`,
+`minimum_wage(region)` and the rest), read in declaration order; the first `when` that holds
+governs. Every piece of arithmetic that used to be typed — base transform, relief, household share,
+rounding, threshold, annualisation — is a call to a registered helper (`round_cent`, `round_unit`,
+`bracket`, `ladder`, `progressive`, `up_to_unit`, …) or a plain expression inside a rule; a
+progressive rung is just `when base > x && base <= y`, `employee: constant + (base - x) * rate`. A
+rule that names `produced.<code>.employee|employer` declares its dependency: the engine reads the
+mentions from the compiled expression, computes the producers first (ties by code), and refuses an
+unknown producer or a loop when the rule is written. There is no `sequence` column and no
+`scheme_reliefs` junction. The three relief-pool columns (`employee_share_annual_cap`,
+`shared_cap_group`, `project_relief_annually`) stay columns: an annual cap shared by a set of
+producers is pool state read at the mention, not an order to declare. `minimum_wage(region)` reads
+the company's region's wage in `jurisdiction_settings.wages.by_region`; a company in a region the
+version names no wage for stops the run under such a scheme.
 
 A shared code survives catalogue revisions. Historical approved entries retain their source
-catalogue metadata; the current run resolves the applicable Contribution scheme and rates. Sequence
-orders dependencies and reliefs. Contribution persists its base, employee and employer amounts,
-band reference and special amounts so an amount-only reconciliation cannot hide an incorrect base.
+catalogue metadata; the current run resolves the applicable Contribution scheme and rules, and a
+pinned revision's opt-ins are aliased by scheme code to the version in force (`loadOptInAliases`).
+The payslip persists the base, employee and employer amounts and the governing rule's `when` as
+`rule_when`, so an amount-only reconciliation cannot hide an incorrect base. The run also keeps the
+whole derivation as `calculation_trace`: per payslip, each charged scheme's base lines, producer
+reads, governing rule and shares: read by the payslip's derivation affordance and drawn as the
+scheme card's flow, and consumed by no
+calculation.
 
 `lib/payroll/contribution.ts` groups the run's contract calculations by employee and legal entity.
-For compatible assessment intervals, it combines the scheme bases and special remuneration before
-assessing charges once. Fixed charges, thresholds and personal relief are therefore not repeated
-for each contract. The charges are allocated proportionally to the contracts' scheme remuneration,
-with fractional-cent ties resolved by contract ID. Each payslip retains its own bases and source
-links; allocations sum exactly to the combined assessment.
+For compatible assessment intervals, it combines the scheme bases before assessing charges once.
+Fixed charges, thresholds and personal relief are therefore not repeated for each contract. The
+charges are allocated proportionally to the contracts' scheme bases, with fractional-cent ties
+resolved by contract ID. Each payslip retains its own bases and source links; allocations sum
+exactly to the combined assessment.
 
 Different entities remain separate assessments. Conflicting salary windows, projection cadences,
 registration statuses or rate overrides refuse the grouped calculation rather than selecting one
@@ -605,8 +616,11 @@ is below the owed minimum. A granted break at or above it is never deducted twic
 Remaining research/model limitations include commission/subsistence wage classification; formula
 wages in the coverage comparison; Philippine exclusions beyond represented categories; Indonesia's
 contract-dependent exempt occupational groups; and unverified Singapore, Vietnam and Taiwan coverage.
-Normal-work limits such as weekly hours and daily spread require their own measured facts. This
-record must not be read as evidence that those gaps are closed by the family migration.
+Daily normal, daily spread and weekly totals are enforced when schedules are written
+(`src/lib/scheduling/work-limits.ts`), and a projected overtime figure is measured against the
+version's own day `NORMAL_HOURS` limit — a version that declares none projects no overtime, so
+those overtime ceilings stay attendance-only there. This record must not be read as evidence that
+the coverage gaps are closed by the family migration.
 
 ### Reference links
 

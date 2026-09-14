@@ -20,7 +20,6 @@ export const PAYMENT_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
 
 const RANGE = { start: '2020-01-01', end: null };
 const ROSTERED = {
-	type: 'ROSTERED',
 	expectation: {
 		kind: 'GUARANTEED_SCHEDULE',
 		period: 'WEEK',
@@ -59,7 +58,7 @@ function rosteredWorkDays(): PayrollWorld['work_days'] {
 
 const WORK_RULES = {
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -152,7 +151,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			}
 		],
 		statutory_contributions: [],
-		scheme_reliefs: [],
 
 		/**
 		 * One code, two catalogues, two rows. A standing transport allowance and a one-off transport
@@ -227,10 +225,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				employee_id: EMPLOYEE_ID,
 				company_id: COMPANY_ID,
 				employee_number: 'PF0001',
-				hire_date: '2021-06-01',
-				exit_date: null,
-				exit_reason: null,
-				children: [],
 				bank: null,
 				effective_range: { start: '2021-06-01', end: null },
 				approval_id: null
@@ -245,6 +239,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				marital_status: 'SINGLE',
 				spouse_status: 'NONE',
 				dependents_count: 0,
+				children: [],
 				approval_id: null
 			}
 		],

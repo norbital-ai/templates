@@ -2,60 +2,59 @@
 	/**
 	 * The official pages one settings version was transcribed from (RFC 0001 §4). Sources are
 	 * inlined, not a collection: they evidence the version they belong to, and the statutory drift
-	 * automation reads them monthly.
+	 * automation reads them monthly. One URL per row, as a matrix.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
-	import { Input } from '@norbital-ai/ui/input';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
+	import type { CollectionField } from '@norbital-ai/std/collection';
+	import { watch } from 'runed';
 	import type { RendererProps, Value } from './$types.js';
+
+	type UrlRow = { id: string; url: string };
 
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const rows = $derived<readonly string[]>(props.value?.urls ?? []);
+	const readonly = $derived(props.mode !== 'edit');
+	const urls = $derived<readonly string[]>(props.value?.urls ?? []);
 
-	function emit(next: readonly string[]): void {
-		if (props.mode === 'edit') props.onValueChange({ urls: [...next] } satisfies Value);
+	let rows = $state<UrlRow[]>([]);
+	watch(
+		() => urls,
+		(next) => {
+			rows = next.map((url, index) => ({ id: String(index), url }));
+		},
+		{ lazy: false }
+	);
+
+	const columns: MatrixColumn<UrlRow>[] = [
+		{
+			key: 'url',
+			label: t('renderer.sources.url'),
+			field: { name: 'url', kind: 'text', nullable: true } satisfies CollectionField,
+			placeholder: 'https://'
+		}
+	];
+
+	function commit(next: UrlRow[]): void {
+		rows = next;
+		if (props.mode !== 'edit') return;
+		props.onValueChange({ urls: next.map((row) => row.url) } satisfies Value);
 	}
 </script>
 
-{#if props.mode === 'display'}
-	<span>{t('renderer.sources.url_count', { count: rows.length })}</span>
-{:else}
-	<Stack gap="sm">
-		{#each rows as url, index (index)}
-			<div class="flex items-center gap-2">
-				<Input
-					class="flex-1"
-					value={url}
-					{disabled}
-					placeholder={'https://'}
-					oninput={(event) =>
-						emit(
-							rows.map((entry, position) =>
-								position === index ? event.currentTarget.value : entry
-							)
-						)}
-				/>
-				<Button
-					variant="ghost"
-					size="sm"
-					{disabled}
-					onclick={() => emit(rows.filter((_entry, position) => position !== index))}
-				>
-					{t('component.remove')}
-				</Button>
-			</div>
-		{/each}
-		{#if rows.length === 0}
-			<p class="text-meta">{t('renderer.sources.empty')}</p>
-		{/if}
-		<div>
-			<Button variant="outline" size="sm" {disabled} onclick={() => emit([...rows, ''])}>
-				{t('renderer.sources.add_url')}
-			</Button>
-		</div>
-	</Stack>
-{/if}
+<MatrixRenderer
+	class="w-full"
+	bind:rows
+	{columns}
+	{disabled}
+	{readonly}
+	allowAddRows={!disabled}
+	bounded={false}
+	emptyMessage={t('renderer.sources.empty')}
+	getRowId={(row) => row.id}
+	addRowLabel={t('renderer.sources.add_url')}
+	createRow={() => ({ id: String(rows.length), url: '' })}
+	onChange={commit}
+/>

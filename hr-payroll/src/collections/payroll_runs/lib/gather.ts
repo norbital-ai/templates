@@ -97,8 +97,8 @@ export type EmploymentBundle = {
 	readonly payRequests: readonly PreparedPayRequest[];
 	/** Source-month Work and calendar facts for due one-off allowances. */
 	readonly allowanceConfigurations?: ReadonlyMap<string, Configuration>;
-	/** The employment's child facts — what `children.under(age)` counts. */
-	readonly children: WorkspaceRow<'employments'>['children'];
+	/** The person's child facts — what `children.under(age)` counts. */
+	readonly children: WorkspaceRow<'employees'>['children'];
 	/**
 	 * The loan agreements this employment carries, each with the catalogue revision it was agreed
 	 * under. Payroll consumes their repayments, not these.
@@ -329,7 +329,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const {
 			allowanceConfigurations,
 			allowanceMonthsByEmployment,
-			factsByEmployment,
+			factsByEmployee,
 			loansByEmployment,
 			repaymentsByLoan,
 			workDaysByEmployment,
@@ -362,10 +362,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			if (!settlement || !cadence)
 				refuse(`Employment ${employment.employee_number} was gathered without a settlement.`);
 			const paid = cadence.window.salary;
-			const hire = dateKey(employment.hire_date);
-			if (hire == null) refuse(`Employment ${employment.employee_number} has no hire date.`);
+			const start = employment.effective_range?.start;
+			const hire = start == null ? null : dateKey(start);
+			if (hire == null) refuse(`Employment ${employment.employee_number} has no service start.`);
 			const dob = dateKey(employee.date_of_birth);
-			const statutoryFacts = factsByEmployment.get(employment.id) ?? [];
+			const statutoryFacts = factsByEmployee.get(employment.employee_id) ?? [];
 			const employmentLoans = loansByEmployment.get(employment.id) ?? [];
 			bundles.push({
 				employment,
@@ -385,7 +386,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 							)
 						}
 					: {}),
-				children: employment.children,
+				children: employee.children,
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
 				leave: leaveByEmployment.get(employment.id)!,

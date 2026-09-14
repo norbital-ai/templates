@@ -96,7 +96,6 @@ export default defineCommandHandler({
 							id: employmentId,
 							company_id: new_person.company_id,
 							employee_number: employeeNumber,
-							hire_date: hireDate,
 							effective_range: { start: hireDate, end: null }
 						}
 					]

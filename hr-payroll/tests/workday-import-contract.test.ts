@@ -27,26 +27,19 @@ function importWorld() {
 		...world.employments[0],
 		employee_id: EMPLOYEE_ID,
 		employee_number: 'PERSON',
-		hire_date: '2026-01-01',
-		effective_range: { start: '2026-01-01', end: null },
-		exit_date: '2026-01-15',
-		exit_reason: 'RESIGNATION'
+		effective_range: { start: '2026-01-01', end: '2026-01-15' }
 	};
 	world.employments = [
 		{
 			...original,
 			id: REHIRE,
-			hire_date: '2026-01-16',
-			effective_range: { start: '2026-01-16', end: null },
-			exit_date: null,
-			exit_reason: null
+			effective_range: { start: '2026-01-16', end: null }
 		},
 		{
 			...original,
 			id: OTHER_CONTRACT,
 			company_id: OTHER_COMPANY,
-			exit_date: null,
-			exit_reason: null
+			effective_range: { start: '2026-01-01', end: null }
 		},
 		original
 	];
@@ -98,7 +91,10 @@ for (const sheet of ['ROSTER', 'ATTENDANCE'] as const) {
 	});
 	test(`${sheet} refuses a date in the gap between contracts`, async () => {
 		const world = importWorld();
-		world.employments.find((row) => row.id === REHIRE)!.hire_date = '2026-01-17';
+		world.employments.find((row) => row.id === REHIRE)!.effective_range = {
+			start: '2026-01-17',
+			end: null
+		};
 		await assert.rejects(
 			runImport(world, sheet, ['2026-01-16']),
 			/No approved employment contract covers PERSON on 2026-01-16/

@@ -18,7 +18,12 @@ const base: LeaveEntitlement = {
 	]
 };
 const personOn = (hireDate: string) => (date: string) =>
-	personContext({ employee: null, employment: { hire_date: hireDate }, terms: null, asOf: date });
+	personContext({
+		employee: null,
+		employment: { service_start: hireDate },
+		terms: null,
+		asOf: date
+	});
 const calculate = (
 	rule: LeaveEntitlement,
 	asOf: string,
@@ -123,7 +128,7 @@ test('bands read top-down: the first predicate that holds is the grant, and a ti
 	const withGrade = (grade: string | null) => (date: string) =>
 		personContext({
 			employee: null,
-			employment: { hire_date: '2020-01-01' },
+			employment: { service_start: '2020-01-01' },
 			terms: { grade },
 			asOf: date
 		});
@@ -164,7 +169,7 @@ test('bands read top-down: the first predicate that holds is the grant, and a ti
 			personOn: (date) =>
 				personContext({
 					employee: null,
-					employment: { hire_date: '2025-06-01' },
+					employment: { service_start: '2025-06-01' },
 					terms: { grade: 'G3' },
 					asOf: date
 				})

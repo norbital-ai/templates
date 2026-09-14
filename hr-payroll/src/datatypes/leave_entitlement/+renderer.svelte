@@ -31,6 +31,7 @@
 		}
 	] satisfies readonly MatrixColumn<Band>[];
 	const disabled = $derived(props.mode !== 'edit' || props.disabled);
+	const readonly = $derived(props.mode !== 'edit');
 	const current = $derived<LeaveEntitlement>(
 		props.value ?? {
 			availability: 'UPFRONT',
@@ -54,87 +55,77 @@
 	const rows = $derived<Band[]>(
 		current.bands.map((band, index) => ({ id: `band-${index}`, ...band }))
 	);
-	const summary = $derived(
-		props.value == null
-			? '—'
-			: t('leave.entitlement_summary', {
-					availability: t(`leave.availability.${current.availability}`),
-					count: current.bands.length
-				})
-	);
 	function emit(next: LeaveEntitlement): void {
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 </script>
 
-{#if props.mode === 'display'}
-	<span class="block truncate" title={summary}>{summary}</span>
-{:else}
-	<Stack gap="sm">
-		<Grid gap="sm" minimum="compact">
+<Stack gap="sm" class="w-full">
+	<Grid gap="sm" minimum="compact">
+		<label class="text-sm font-medium"
+			><Stack gap="xs">
+				{t('leave.availability')}
+				<Combobox
+					options={availabilityOptions}
+					value={current.availability}
+					{disabled}
+					searchable={false}
+					onValueChange={(availability) => {
+						if (availability) emit({ ...current, availability });
+					}}
+				/>
+			</Stack></label
+		>
+		<label class="text-sm font-medium"
+			><Stack gap="xs">
+				{t('leave.year_start_month')}
+				<Input
+					type="number"
+					min="1"
+					max="12"
+					step="1"
+					value={current.year_start_month}
+					{disabled}
+					oninput={(event) =>
+						emit({ ...current, year_start_month: numberFrom(event.currentTarget.value, 1) })}
+				/>
+			</Stack></label
+		>
+		{#if current.availability !== 'UNLIMITED'}
 			<label class="text-sm font-medium"
 				><Stack gap="xs">
-					{t('leave.availability')}
+					{t('leave.proration')}
 					<Combobox
-						options={availabilityOptions}
-						value={current.availability}
+						options={prorationOptions}
+						value={current.proration}
 						{disabled}
 						searchable={false}
-						onValueChange={(availability) => {
-							if (availability) emit({ ...current, availability });
+						onValueChange={(proration) => {
+							if (proration) emit({ ...current, proration });
 						}}
 					/>
 				</Stack></label
 			>
-			<label class="text-sm font-medium"
-				><Stack gap="xs">
-					{t('leave.year_start_month')}
-					<Input
-						type="number"
-						min="1"
-						max="12"
-						step="1"
-						value={current.year_start_month}
-						{disabled}
-						oninput={(event) =>
-							emit({ ...current, year_start_month: numberFrom(event.currentTarget.value, 1) })}
-					/>
-				</Stack></label
-			>
-			{#if current.availability !== 'UNLIMITED'}
-				<label class="text-sm font-medium"
-					><Stack gap="xs">
-						{t('leave.proration')}
-						<Combobox
-							options={prorationOptions}
-							value={current.proration}
-							{disabled}
-							searchable={false}
-							onValueChange={(proration) => {
-								if (proration) emit({ ...current, proration });
-							}}
-						/>
-					</Stack></label
-				>
-			{/if}
-		</Grid>
-		{#if current.availability !== 'UNLIMITED'}
-			<p class="text-meta">{t('renderer.leave_entitlement.identity')}</p>
-			<MatrixRenderer
-				class="w-full"
-				{rows}
-				columns={BAND_COLUMNS}
-				{disabled}
-				emptyMessage={t('renderer.leave_entitlement.empty')}
-				addRowLabel={t('leave.add_band')}
-				createRow={(): Band => ({ id: crypto.randomUUID(), eligibility: '', days: 0 })}
-				bounded={false}
-				onChange={(next) =>
-					emit({
-						...current,
-						bands: next.map(({ eligibility, days }) => ({ eligibility, days: Number(days) || 0 }))
-					})}
-			/>
 		{/if}
-	</Stack>
-{/if}
+	</Grid>
+	{#if current.availability !== 'UNLIMITED'}
+		<p class="text-meta">{t('renderer.leave_entitlement.identity')}</p>
+		<MatrixRenderer
+			class="w-full"
+			{rows}
+			columns={BAND_COLUMNS}
+			{disabled}
+			{readonly}
+			allowAddRows={!disabled}
+			emptyMessage={t('renderer.leave_entitlement.empty')}
+			addRowLabel={t('leave.add_band')}
+			createRow={(): Band => ({ id: crypto.randomUUID(), eligibility: '', days: 0 })}
+			bounded={false}
+			onChange={(next) =>
+				emit({
+					...current,
+					bands: next.map(({ eligibility, days }) => ({ eligibility, days: Number(days) || 0 }))
+				})}
+		/>
+	{/if}
+</Stack>

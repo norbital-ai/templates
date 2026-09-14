@@ -9,10 +9,8 @@
 	 * are produced by one pass over one scheme against one wage, and splitting them made every reader
 	 * re-pair them and hope neither half was missing.
 	 *
-	 * The scheme is shown by the band it was read from rather than by name. Resolving
-	 * `statutory_contribution_id` would be one query per rendered cell, and this renderer is drawn
-	 * once per payslip in a table of them; the payslip's own screen names the schemes, from one
-	 * query, where the ids are already in hand.
+	 * The scheme is named by its code; the rule that governed and the lines that fed it are the
+	 * payslip's own derivation affordance, never a wall of text in a table cell.
 	 */
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -44,13 +42,6 @@
 						employer: formatNumeric(employer)
 					})
 	);
-
-	/** A scheme's named extras, as `name value` pairs, or nothing when it charges none. */
-	function specialAmounts(amounts: Readonly<Record<string, number>>): string {
-		return Object.entries(amounts)
-			.map(([name, value]) => `${name} ${formatNumeric(value)}`)
-			.join(' · ');
-	}
 </script>
 
 {#if props.mode === 'display' || charges.length === 0}
@@ -62,29 +53,23 @@
 			<table class="w-full text-sm tabular-nums">
 				<thead>
 					<tr class="text-meta text-left">
-						<th class="py-1 pr-3 font-normal">{t('renderer.payslip_statutory.band')}</th>
-						<th class="py-1 pr-3 text-right font-normal"
-							>{t('renderer.payslip_statutory.base_amount')}</th
-						>
+						<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
 						<th class="py-1 pr-3 text-right font-normal"
 							>{t('renderer.payslip_statutory.employee_amount')}</th
 						>
 						<th class="py-1 pr-3 text-right font-normal"
 							>{t('renderer.payslip_statutory.employer_amount')}</th
 						>
-						<th class="py-1 font-normal">{t('renderer.payslip_statutory.special_amounts')}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each charges as charge, index (`${charge.scheme_code}:${index}`)}
 						<tr class="border-t border-border">
-							<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
-							<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
+							<td class="py-1 pr-3">{charge.scheme_code}</td>
 							<td class="py-1 pr-3 text-right font-medium"
 								>{formatNumeric(charge.employee_amount)}</td
 							>
 							<td class="py-1 pr-3 text-right">{formatNumeric(charge.employer_amount)}</td>
-							<td class="py-1">{specialAmounts(charge.special_amounts) || '—'}</td>
 						</tr>
 					{/each}
 				</tbody>

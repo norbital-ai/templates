@@ -126,12 +126,11 @@ export const referenceGrants = (
 export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('jurisdiction_settings', actions),
-		grantsOn('statutory_contributions', actions),
-		grantsOn('scheme_reliefs', actions)
+		grantsOn('statutory_contributions', actions)
 	);
 
 const EMPLOYMENT_STATUTORY_FACT_FIELDS = [
-	'employment_id',
+	'employee_id',
 	'statutory_contribution_id',
 	'status',
 	'effective_range'
@@ -182,7 +181,7 @@ export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 /** Leave pickers need paid-period boundaries, without payroll inputs or results. */
 export const leaveCalendarGrants = (ownCompany = false): Grants =>
 	grantOn('payroll_runs', 'read', {
-		fields: ['company_id', 'period', 'lifecycle', 'attendance_from', 'attendance_to'],
+		fields: ['company_id', 'period', 'attendance_from', 'attendance_to'],
 		...(ownCompany
 			? {
 					where: { payroll_run_company: { some: { employment_company: { some: OWN_EMPLOYMENT } } } }
@@ -297,9 +296,7 @@ export const settingsCatalogueGrants = (
 	// this group's, so the two groups never grant one coordinate twice.
 	const writes = actions.filter((action) => action !== 'read');
 	return mergeGrants(
-		...(writes.length === 0
-			? []
-			: [grantsOn('statutory_contributions', writes), grantsOn('scheme_reliefs', writes)]),
+		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
 		grantsOn('leave_catalogue', actions),
 		grantsOn('claim_catalogue', actions),
 		grantsOn('allowance_catalogue', actions),

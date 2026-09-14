@@ -176,10 +176,7 @@ function employments() {
 		employee_id: `employee:${id}`,
 		employee_number: `PUBEM${id.padStart(4, '0')}`,
 		company_id: COMPANY_ID,
-		hire_date: '2020-01-01',
 		effective_range: { start: '2020-01-01', end: null },
-		exit_date: null,
-		exit_reason: null,
 		approval_id: null
 	}));
 }
@@ -206,7 +203,7 @@ function rosterApi(overrides = {}) {
 			date: row.date,
 			name: 'Fixture holiday',
 			kind: 'PUBLIC',
-			original_date: null,
+			replaces: null,
 			source: null,
 			published_at: '2025-12-01T00:00:00Z'
 		})),

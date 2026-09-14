@@ -49,7 +49,7 @@ test('unknown contract standing never falls back to nationality or a legacy pers
 	for (const terms of [null, {}, { residency_status: null }]) {
 		const subject = personContext({
 			employee,
-			employment: { hire_date: '2025-01-01' },
+			employment: { service_start: '2025-01-01' },
 			terms,
 			asOf: '2026-06-30'
 		});
@@ -75,7 +75,7 @@ test('Leave uses residency history from the terms effective on each eligibility 
 	assert.equal(rules.entitlementAt(annualWindow, '2026-06-30').available, 0);
 	assert.equal(rules.entitlementAt(annualWindow, '2026-07-01').available, 12);
 	assert.equal(
-		context.employments[0]!.hire_date,
+		context.employments[0]!.effective_range?.start,
 		'2025-01-01',
 		'an amendment does not start a new service period'
 	);
@@ -90,9 +90,15 @@ test('claim caps use the same effective contract standing as Leave and payroll',
 		db: {
 			employments: {
 				findFirst: () =>
-					Effect.succeed({ id: id(1), employee_id: id(2), hire_date: '2025-01-01', children: [] })
+					Effect.succeed({
+						id: id(1),
+						employee_id: id(2),
+						effective_range: { start: '2025-01-01', end: null }
+					})
 			},
-			employees: { findFirst: () => Effect.succeed({ gender: 'MALE', nationality: 'MY' }) },
+			employees: {
+				findFirst: () => Effect.succeed({ gender: 'MALE', nationality: 'MY', children: [] })
+			},
 			employment_terms: { findMany: () => Effect.succeed(terms) },
 			companies: { findFirst: () => Effect.succeed({ region: 'I' }) }
 		}
@@ -111,7 +117,7 @@ test('claim caps use the same effective contract standing as Leave and payroll',
 test('the grammar reads standing, family facts and the company region; a fact it does not carry is refused', () => {
 	const subject = personContext({
 		employee: { marital_status: 'MARRIED', solo_parent: true, race: 'MALAY', religion: 'ISLAM' },
-		employment: { hire_date: '2024-01-01' },
+		employment: { service_start: '2024-01-01' },
 		terms: { residency_status: 'PERMANENT_RESIDENT', residency_since: '2025-02-15' },
 		company: { region: 'I' },
 		asOf: '2026-06-30'
@@ -130,7 +136,7 @@ test('the grammar reads standing, family facts and the company region; a fact it
 	// Unrecorded facts read as empty, false and zero: nothing is ever claimed by default.
 	const blank = personContext({
 		employee: null,
-		employment: { hire_date: '' },
+		employment: { service_start: '' },
 		terms: null,
 		asOf: '2026-06-30'
 	});
@@ -150,7 +156,7 @@ test('Leave preparation selects residency on terms and never requests the remove
 	const rows: Record<string, readonly unknown[]> = {
 		employments: context.employments.map((row) => ({
 			...row,
-			effective_range: { start: row.hire_date, end: null }
+			effective_range: { start: row.effective_range?.start ?? '2025-01-01', end: null }
 		})),
 		employees: context.employees,
 		companies: context.companies,

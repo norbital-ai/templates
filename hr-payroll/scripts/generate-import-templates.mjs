@@ -42,18 +42,19 @@ const HOLIDAYS_TEMPLATE_PATH = path.join(
 	'Desktop',
 	'norbital-holidays-import-template.xlsx'
 );
-const HOLIDAY_HEADERS = ['jurisdiction_code', 'date', 'name', 'original_date'];
+const HOLIDAY_HEADERS = ['date', 'name', 'replaces'];
 const HOLIDAY_SAMPLE_ROWS = [
-	['MY', '2027-01-01', "New Year's Day", ''],
-	['MY', '2027-02-01', 'Federal Territory Day', ''],
-	['MY', '2027-05-03', 'Labour Day (in lieu)', '2027-05-01']
+	['2027-01-01', "New Year's Day", ''],
+	['2027-02-01', 'Federal Territory Day', ''],
+	['2027-05-03', 'Labour Day (in lieu)', '2027-05-01']
 ];
 const HOLIDAY_README = [
-	'One row per jurisdiction and observed day. Columns: jurisdiction_code, date, name, original_date.',
-	'jurisdiction_code is the settings jurisdiction (MY, SG, ID, …). date is the day observed, as YYYY-MM-DD.',
-	'original_date is optional: the statutory date when the observance moved, e.g. a Sunday holiday taken on Monday.',
-	'A day the jurisdiction already has is skipped, never duplicated or overwritten. Imported holidays arrive unpublished;',
-	'publish each one under Settings → Holidays. Only published holidays are used by rosters, leave and payroll.'
+	'One sheet per entity, each sheet named for the entity as on file. Columns: date, name, replaces.',
+	'date is the day observed, as YYYY-MM-DD.',
+	'replaces is optional: the statutory date when the observance moved, e.g. a Sunday holiday taken on Monday.',
+	'Add one sheet per entity and import the whole workbook once from the Entities page. One entity sheet on its own also imports from that entity’s Holidays tab, whatever the sheet is called.',
+	'A day the entity already has is skipped, never duplicated or overwritten. Imported holidays arrive unpublished;',
+	'publish each one on the entity’s Holidays tab. Only published holidays are used by rosters, leave and payroll.'
 ];
 const ROSTER_TEMPLATE_PATH = path.join(
 	os.homedir(),
@@ -294,18 +295,24 @@ addTableSheet(
 );
 const holidaysWorkbook = newWorkbook();
 addReadmeSheet(holidaysWorkbook, HOLIDAY_README);
-addTableSheet(holidaysWorkbook, 'Holidays', [18, 14, 40, 16], HOLIDAY_HEADERS, HOLIDAY_SAMPLE_ROWS);
+addTableSheet(
+	holidaysWorkbook,
+	SAMPLE_LEGAL_ENTITY,
+	[14, 40, 16],
+	HOLIDAY_HEADERS,
+	HOLIDAY_SAMPLE_ROWS
+);
 Effect.runPromise(
 	Effect.gen(function* () {
 		const holidaysShipped = yield* writeWorkbook(holidaysWorkbook, HOLIDAYS_TEMPLATE_PATH);
 		assert.deepEqual(
 			[...holidaysShipped.worksheets.map((sheet) => sheet.name)],
-			['Read me first', 'Holidays']
+			['Read me first', SAMPLE_LEGAL_ENTITY]
 		);
-		assert.deepEqual(headersOf(holidaysShipped, 'Holidays'), HOLIDAY_HEADERS);
-		assert.equal(cellOf(holidaysShipped, 'Holidays', 2, 'date'), '2027-01-01');
+		assert.deepEqual(headersOf(holidaysShipped, SAMPLE_LEGAL_ENTITY), HOLIDAY_HEADERS);
+		assert.equal(cellOf(holidaysShipped, SAMPLE_LEGAL_ENTITY, 2, 'date'), '2027-01-01');
 		console.log(`${HOLIDAYS_TEMPLATE_PATH}`);
-		console.log(`  sheets: Read me first, Holidays`);
+		console.log(`  sheets: Read me first, ${SAMPLE_LEGAL_ENTITY}`);
 		const rosterShipped = yield* writeWorkbook(rosterWorkbook, ROSTER_TEMPLATE_PATH);
 		assert.deepEqual(
 			[...rosterShipped.worksheets.map((sheet) => sheet.name)],

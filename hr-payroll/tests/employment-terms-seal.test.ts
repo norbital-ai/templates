@@ -31,7 +31,9 @@ const api = (
 	payslipThrough: string | null = null
 ) => ({
 	db: {
-		employments: { findFirst: () => Effect.succeed({ exit_date: null }) },
+		employments: {
+			findFirst: () => Effect.succeed({ effective_range: { start: '2025-01-01', end: null } })
+		},
 		work_days: {
 			findFirst: () => Effect.succeed(workThrough == null ? undefined : { work_date: workThrough }),
 			findPending: () => Effect.succeed(pendingWork == null ? [] : [{ work_date: pendingWork }])

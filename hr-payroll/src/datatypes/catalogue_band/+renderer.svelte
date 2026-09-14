@@ -1,191 +1,166 @@
 <script lang="ts">
 	/**
-	 * The bands of one catalogue row (RFC 0001 §4, §9).
+	 * The bands of one catalogue row (RFC 0001 §4, §9), as a matrix.
 	 *
 	 * A catalogue prices its entries through ordered bands over the entry context: the first band
 	 * whose `when` holds governs, its `amount` is the money the line settles, and its optional
-	 * `limit` is an entitlement ceiling. Each band also states the statutory schemes it opts into.
+	 * ceiling (`limit`) bounds the entitlement. Each band states the statutory schemes it opts into.
 	 * A catalogue with no bands settles the entry's own amount unchanged.
 	 *
-	 * Every expression is compiled live against the entry context as it is typed; the Fields panel
-	 * beside each one lists the members that context carries, straight from `EXPRESSION_CONTEXTS`.
-	 * The datatype's own write-time filter still owns the refusal.
+	 * One row per band, one column per fact. The ceiling's three columns are optional: filling any
+	 * of them creates the ceiling, clearing all three removes it. Every expression compiles live
+	 * against the entry context; the Fields popover lists that context's members.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
-	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
+	import type { CollectionField } from '@norbital-ai/std/collection';
+	import { watch } from 'runed';
 	import type { CatalogueBand } from './+definition.js';
 	import type { Entitlement } from '../entitlement/+definition.js';
-	import StatutoryOptIns from '../../lib/ui/statutory-opt-ins.svelte';
-	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
+	import StatutoryOptInsCell from '../../lib/ui/statutory-opt-ins-cell.svelte';
+	import ExpressionCell from '../../lib/ui/expression-cell.svelte';
 	import { numberOrExpression } from '../../lib/ui/renderer-input.js';
 	import type { RendererProps } from './$types.js';
+
+	type BandRow = {
+		id: string;
+		when: string;
+		amount: string;
+		limit_period: string;
+		limit_exceed: string;
+		limit_amount: string;
+		statutory_opt_ins: CatalogueBand['statutory_opt_ins'];
+	};
 
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const rows = $derived<CatalogueBand[]>(props.value ?? []);
+	const readonly = $derived(props.mode !== 'edit');
+	const bands = $derived<readonly CatalogueBand[]>(props.value ?? []);
 
-	const periodOptions = $derived(
-		(['CALENDAR_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT'] as const).map((period) => ({
-			value: period,
-			label: t(`renderer.catalogue_band.period.${period}`)
-		}))
+	const text = (value: unknown): string => (value == null ? '' : String(value));
+	const project = (rows: readonly CatalogueBand[]): BandRow[] =>
+		rows.map((band, index) => ({
+			id: String(index),
+			when: band.when,
+			amount: text(band.amount),
+			limit_period: band.limit?.period ?? '',
+			limit_exceed: band.limit?.on_exceed ?? '',
+			limit_amount: band.limit == null ? '' : text(band.limit.amount),
+			statutory_opt_ins: [...band.statutory_opt_ins]
+		}));
+	let rows = $state<BandRow[]>([]);
+	watch(
+		() => bands,
+		(next) => {
+			rows = project(next);
+		},
+		{ lazy: false }
 	);
-	const exceedOptions = $derived([
-		{ value: 'BLOCK' as const, label: t('renderer.catalogue_band.exceed_block') },
-		{ value: 'ALLOW' as const, label: t('renderer.catalogue_band.exceed_allow') }
-	]);
 
-	function defaultLimit(): Entitlement {
-		return { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 0 };
+	const fieldOf = (
+		name: string,
+		kind: string,
+		extra: Partial<CollectionField> = {}
+	): CollectionField => ({ name, kind, nullable: true, ...extra });
+	const entryExpr = (name: string, type: 'boolean' | 'number') =>
+		fieldOf(name, 'text', { options: { site: 'entry', type } });
+	const columns: MatrixColumn<BandRow>[] = [
+		{
+			key: 'when',
+			label: t('renderer.catalogue_band.when'),
+			field: entryExpr('when', 'boolean'),
+			renderer: ExpressionCell,
+			placeholder: 'entry.days > 0.0',
+			width: 320
+		},
+		{
+			key: 'amount',
+			label: t('renderer.catalogue_band.amount'),
+			field: entryExpr('amount', 'number'),
+			renderer: ExpressionCell,
+			placeholder: 'entry.amount',
+			width: 240
+		},
+		{
+			key: 'limit_period',
+			label: t('renderer.catalogue_band.limit_period'),
+			field: fieldOf('limit_period', 'text'),
+			placeholder: 'CALENDAR_YEAR',
+			width: 150
+		},
+		{
+			key: 'limit_exceed',
+			label: t('renderer.catalogue_band.limit_past_ceiling'),
+			field: fieldOf('limit_exceed', 'text'),
+			placeholder: 'BLOCK',
+			width: 120
+		},
+		{
+			key: 'limit_amount',
+			label: t('renderer.catalogue_band.limit_amount'),
+			field: entryExpr('limit_amount', 'number'),
+			renderer: ExpressionCell,
+			placeholder: '0.0',
+			width: 240
+		},
+		{
+			key: 'statutory_opt_ins',
+			label: t('component.statutory_opt_ins'),
+			field: fieldOf('statutory_opt_ins', 'json'),
+			renderer: StatutoryOptInsCell,
+			width: 130
+		}
+	];
+
+	function buildLimit(row: BandRow): Entitlement | null {
+		const set =
+			row.limit_period.trim() !== '' ||
+			row.limit_exceed.trim() !== '' ||
+			row.limit_amount.trim() !== '';
+		if (!set) return null;
+		return {
+			period: (row.limit_period.trim() || 'CALENDAR_YEAR') as Entitlement['period'],
+			on_exceed: (row.limit_exceed.trim() || 'BLOCK') as Entitlement['on_exceed'],
+			amount: row.limit_amount.trim() === '' ? 0 : numberOrExpression(row.limit_amount)
+		};
 	}
-	function emit(next: CatalogueBand[]): void {
-		if (props.mode === 'edit') props.onValueChange(next);
-	}
-	function edit(index: number, change: Partial<CatalogueBand>): void {
-		emit(rows.map((row, position) => (position === index ? { ...row, ...change } : row)));
-	}
-	function setLimit(index: number, limit: Entitlement | null): void {
-		edit(index, { limit });
+	function commit(next: BandRow[]): void {
+		rows = next;
+		if (props.mode !== 'edit') return;
+		props.onValueChange(
+			next.map((row): CatalogueBand => ({
+				when: row.when,
+				amount: numberOrExpression(row.amount),
+				limit: buildLimit(row),
+				statutory_opt_ins: [...row.statutory_opt_ins]
+			}))
+		);
 	}
 </script>
 
-{#if props.mode === 'display'}
-	<span>{t('renderer.catalogue_band.summary', { count: rows.length })}</span>
-{:else}
-	<Stack gap="lg">
-		<p class="text-meta">{t('renderer.catalogue_band.identity')}</p>
-		{#each rows as row, index (index)}
-			<Stack gap="sm" class="rounded-md border border-border p-3">
-				<Grid gap="md" minimum="panel">
-					<Stack gap="xs">
-						<span class="text-sm font-medium">{t('renderer.catalogue_band.when')}</span>
-						<Input
-							value={row.when}
-							{disabled}
-							placeholder={'entry.days > 0.0'}
-							oninput={(event) => edit(index, { when: event.currentTarget.value })}
-						/>
-						<ExpressionFields site="entry" expression={row.when} type="boolean" />
-					</Stack>
-					<Stack gap="xs">
-						<span class="text-sm font-medium">{t('renderer.catalogue_band.amount')}</span>
-						<Input
-							value={String(row.amount ?? '')}
-							{disabled}
-							placeholder={t('renderer.catalogue_band.amount_placeholder')}
-							oninput={(event) =>
-								edit(index, { amount: numberOrExpression(event.currentTarget.value) })}
-						/>
-						<ExpressionFields site="entry" expression={String(row.amount ?? '')} type="number" />
-					</Stack>
-				</Grid>
-				<Stack gap="sm" class="rounded-md bg-muted/30 p-2">
-					<Cluster justify="between" align="center" gap="sm">
-						<span class="text-sm font-medium">{t('renderer.catalogue_band.limit')}</span>
-						<Button
-							variant="ghost"
-							size="sm"
-							{disabled}
-							onclick={() => setLimit(index, row.limit == null ? defaultLimit() : null)}
-						>
-							{row.limit == null
-								? t('renderer.catalogue_band.add_limit')
-								: t('renderer.catalogue_band.remove_limit')}
-						</Button>
-					</Cluster>
-					{#if row.limit != null}
-						<Grid gap="md" minimum="panel">
-							<label class="text-sm font-medium"
-								><Stack gap="xs">
-									{t('renderer.catalogue_band.limit_period')}
-									<Combobox
-										options={periodOptions}
-										value={row.limit.period}
-										{disabled}
-										searchable={false}
-										onValueChange={(period) => {
-											if (period && row.limit != null) setLimit(index, { ...row.limit, period });
-										}}
-									/>
-								</Stack></label
-							>
-							<label class="text-sm font-medium"
-								><Stack gap="xs">
-									{t('renderer.catalogue_band.limit_past_ceiling')}
-									<Combobox
-										options={exceedOptions}
-										value={row.limit.on_exceed}
-										{disabled}
-										searchable={false}
-										onValueChange={(on_exceed) => {
-											if (on_exceed && row.limit != null)
-												setLimit(index, { ...row.limit, on_exceed });
-										}}
-									/>
-								</Stack></label
-							>
-							<Stack gap="xs">
-								<span class="text-sm font-medium">{t('renderer.catalogue_band.limit_amount')}</span>
-								<Input
-									value={String(row.limit.amount ?? '')}
-									{disabled}
-									placeholder={t('renderer.catalogue_band.amount_placeholder')}
-									oninput={(event) => {
-										if (row.limit != null)
-											setLimit(index, {
-												...row.limit,
-												amount: numberOrExpression(event.currentTarget.value)
-											});
-									}}
-								/>
-								<ExpressionFields
-									site="entry"
-									expression={String(row.limit.amount ?? '')}
-									type="number"
-								/>
-							</Stack>
-						</Grid>
-					{/if}
-				</Stack>
-
-				<Stack gap="xs">
-					<span class="text-sm font-medium">{t('component.statutory_opt_ins')}</span>
-					<StatutoryOptIns
-						value={row.statutory_opt_ins}
-						{disabled}
-						onValueChange={(statutory_opt_ins) => edit(index, { statutory_opt_ins })}
-					/>
-				</Stack>
-
-				<div>
-					<Button
-						variant="ghost"
-						size="sm"
-						{disabled}
-						onclick={() => emit(rows.filter((_row, position) => position !== index))}
-					>
-						{t('renderer.catalogue_band.remove_band')}
-					</Button>
-				</div>
-			</Stack>
-		{/each}
-		{#if rows.length === 0}
-			<p class="text-meta">{t('renderer.catalogue_band.empty')}</p>
-		{/if}
-		<div>
-			<Button
-				variant="outline"
-				size="sm"
-				{disabled}
-				onclick={() => emit([...rows, { when: '', amount: 0, limit: null, statutory_opt_ins: [] }])}
-			>
-				{t('renderer.catalogue_band.add_band')}
-			</Button>
-		</div>
-	</Stack>
-{/if}
+<div class="flex w-full flex-col gap-2">
+	<p class="text-meta">{t('renderer.catalogue_band.identity')}</p>
+	<MatrixRenderer
+		bind:rows
+		{columns}
+		allowAddRows={!disabled}
+		bounded={false}
+		getRowId={(row) => row.id}
+		addRowLabel={t('renderer.catalogue_band.add_band')}
+		createRow={() => ({
+			id: String(rows.length),
+			when: '',
+			amount: '',
+			limit_period: '',
+			limit_exceed: '',
+			limit_amount: '',
+			statutory_opt_ins: []
+		})}
+		onChange={commit}
+	/>
+	{#if rows.length === 0}
+		<p class="text-meta">{t('renderer.catalogue_band.empty')}</p>
+	{/if}
+</div>

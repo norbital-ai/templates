@@ -91,10 +91,7 @@ export function settle(options: {
 					? [{ index, amount: item.amount, component: item.catalogueComponent }]
 					: []
 			)
-			.toSorted(
-				(left, right) =>
-					decodeNumber(right.component.sequence) - decodeNumber(left.component.sequence)
-			);
+			.toReversed();
 		const reducedAdjustments = [...adjustments];
 		let outstanding = -net;
 		for (const entry of reducible) {

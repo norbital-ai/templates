@@ -69,10 +69,10 @@ export default {
 			}
 		}),
 		grantOn('employments', 'read', {
-			fields: ['id', 'employee_id', 'company_id', 'employee_number', 'hire_date', 'effective_range']
+			fields: ['id', 'employee_id', 'company_id', 'employee_number', 'effective_range']
 		}),
 		grantOn('employments', 'mutate.new', {
-			fields: ['employee_id', 'company_id', 'employee_number', 'hire_date', 'effective_range']
+			fields: ['employee_id', 'company_id', 'employee_number', 'effective_range']
 		}),
 		grantOn('companies', 'read', { fields: ['id', 'name'] }),
 		grantOn('employment_terms', 'read', {

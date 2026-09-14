@@ -111,11 +111,6 @@ test(
 			assert.equal(draft.sealed_at, null, 'a new version is a draft');
 			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
 			assert.deepEqual(draft.effective_range, { start: '2026-03-01T00:00:00.000Z', end: null });
-			assert.deepEqual(
-				draft.work_rules,
-				sourceSettings.work_rules,
-				'the version’s own Work rules survive cloning'
-			);
 			const after = await childRows(session, newId);
 			for (const table of CHILDREN) {
 				assert.equal(after[table]!.length, before[table]!.length, `${table}: counts equal`);
@@ -128,6 +123,51 @@ test(
 			const codes = (table: string, rows: Row[]) => rows.map((row) => row.code).toSorted();
 			for (const table of CHILDREN)
 				assert.deepEqual(codes(table, after[table]!), codes(table, before[table]!), table);
+
+			// Scheme rows keep their codes under new ids, so every opt-in — in the version's own Work
+			// rules and in each cloned catalogue band — points at the clone's scheme, never the
+			// predecessor's (RFC 0002 §6).
+			const sourceCodeById = new Map(
+				before.statutory_contributions!.map((row) => [String(row.id), String(row.code)])
+			);
+			const cloneSchemeIdByCode = new Map(
+				after.statutory_contributions!.map((row) => [String(row.code), String(row.id)])
+			);
+			const remapOptIns = (value: unknown): unknown => {
+				if (Array.isArray(value)) return value.map(remapOptIns);
+				if (value != null && typeof value === 'object')
+					return Object.fromEntries(
+						Object.entries(value).map(([key, inner]) => [
+							key,
+							key === 'contribution_id' && typeof inner === 'string'
+								? (cloneSchemeIdByCode.get(sourceCodeById.get(inner) ?? '') ?? inner)
+								: remapOptIns(inner)
+						])
+					);
+				return value;
+			};
+			assert.deepEqual(
+				draft.work_rules,
+				remapOptIns(sourceSettings.work_rules),
+				'the version’s own Work rules survive cloning with the clone’s scheme ids'
+			);
+			const cloneSchemeIds = new Set(after.statutory_contributions!.map((row) => row.id));
+			for (const table of CHILDREN) {
+				if (table === 'statutory_contributions') continue;
+				for (const row of after[table]!) {
+					const bands = Array.isArray(row.bands) ? row.bands : [];
+					for (const band of bands)
+						for (const optIn of (
+							band as {
+								readonly statutory_opt_ins?: ReadonlyArray<{ readonly contribution_id: string }>;
+							}
+						).statutory_opt_ins ?? [])
+							assert.ok(
+								cloneSchemeIds.has(optIn.contribution_id),
+								`${table}: an opt-in points at the clone’s scheme`
+							);
+				}
+			}
 			// The clone is a draft: its rows are editable while the sealed original's are not.
 			const [clonedAnnual] = after.leave_catalogue!.filter((row) => row.code === 'ANNUAL');
 			assert.ok(clonedAnnual);
@@ -308,9 +348,8 @@ test(
 			const patternValue = structuredClone(sourcePattern!.pattern) as {
 				phases: Array<{ day_cycle: Array<{ roster_code_id: string }> }>;
 			};
-			for (const phase of patternValue.phases)
-				for (const day of phase.day_cycle)
-					day.roster_code_id = shiftIds.get(day.roster_code_id) ?? day.roster_code_id;
+			for (const day of patternValue.days)
+				day.roster_code_id = shiftIds.get(day.roster_code_id) ?? day.roster_code_id;
 			const siblingPatternId = crypto.randomUUID();
 			await session.query(
 				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
@@ -331,7 +370,7 @@ test(
 				[employeeId]
 			);
 			await session.query(
-				`insert into employments (id, employee_id, company_id, employee_number, hire_date, effective_range) values ($1, $2, $3, 'PUB-SIB-0001', '2022-03-01', $4)`,
+				`insert into employments (id, employee_id, company_id, employee_number, effective_range) values ($1, $2, $3, 'PUB-SIB-0001', $4)`,
 				[employmentId, employeeId, companyId, { start: '2022-03-01', end: null }]
 			);
 			await session.query(

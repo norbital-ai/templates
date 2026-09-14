@@ -27,7 +27,7 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"lines": {
+			"engine_lines": {
 				"salary": {
 					"statutory_opt_ins": [
 						{
@@ -66,11 +66,15 @@
 				],
 				"bands": [
 					{
-						"label": "1.5",
+						"label": "OT-1.5X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
 						"take": "hours_beyond_normal",
 						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"funnel": {
+							"above": "limits.daily_total",
+							"line": "INCENTIVE"
+						},
 						"statutory_opt_ins": []
 					}
 				]

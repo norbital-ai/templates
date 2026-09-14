@@ -50,7 +50,6 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	const created = await createJanuary();
 	const payslips = created.payslip_payroll_run;
 	assert.equal(payslips.length, 1);
-	assert.equal(created.lifecycle, 'DRAFT');
 	assert.equal(created.period, '2026-01');
 	assert.equal(created.company_id, COMPANY_ID);
 

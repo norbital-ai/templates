@@ -230,7 +230,7 @@ export function googleHolidayRows(
 				company_id: companyId,
 				date,
 				name: event.name,
-				original_date: null,
+				replaces: null,
 				source: event.source
 			}))
 		)

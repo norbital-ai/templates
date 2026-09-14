@@ -2,7 +2,7 @@ import { refuse, type AutomationApi } from '@norbital-ai/bolt/authoring';
 import { getErrorMessage } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
-import { contributionBandSchema as rateBandSchema } from '../datatypes/contribution_bands/+definition.js';
+import { contributionRuleSchema } from '../datatypes/contribution_rules/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
 import { statutoryOptInValueSchema } from '../datatypes/work_rules/+definition.js';
 import { stableJson } from './jurisdiction_settings.js';
@@ -19,7 +19,7 @@ type UnreachableSource = Schema.Schema.Type<typeof unreachableSourceSchema>;
 const statutoryProposalChangeSchema = Schema.Struct({
 	collection: Schema.Literals(['statutory_contributions', 'leave_catalogue', 'pay_component']),
 	code: Schema.NonEmptyString,
-	field: Schema.Literals(['bands', 'entitlement', 'statutory_opt_ins']),
+	field: Schema.Literals(['rules', 'entitlement', 'statutory_opt_ins']),
 	previous: Schema.Unknown,
 	proposed: Schema.Unknown,
 	source_url: Schema.NonEmptyString,
@@ -47,7 +47,7 @@ export type StatutoryProposal = Schema.Schema.Type<typeof statutoryProposalValue
  *
  * Everything here is either pure or a bounded page read through the runtime's own reader. The
  * model is asked one question per lineage, with `read_official_page` as its only tool, and the
- * answer is decoded to `StatutoryFindingsSchema`: the official band table of each scheme, the
+ * answer is decoded to `StatutoryFindingsSchema`: the official rule table of each scheme, the
  * official entitlement of each leave, the official opt-ins of each component, each
  * with the page and quote it stands on. `diffStatutoryFindings` then decides what changed; the
  * model never does.
@@ -202,16 +202,20 @@ const evidence = {
 	quote: Schema.NonEmptyString
 } as const;
 
-export { rateBandSchema };
+export { contributionRuleSchema };
 
 /**
  * What the model returns per lineage: the official position of each statutory row it found
  * evidence for, in the row's own shape. A row with no evidence on the pages is omitted, never
- * guessed. A scheme names only the bands that differ from the sealed row, never the whole table.
+ * guessed. A scheme names only the rules that differ from the sealed row, never the whole table.
  */
 export const StatutoryFindingsSchema = Schema.Struct({
 	contributions: Schema.Array(
-		Schema.Struct({ code: Schema.NonEmptyString, bands: Schema.Array(rateBandSchema), ...evidence })
+		Schema.Struct({
+			code: Schema.NonEmptyString,
+			rules: Schema.Array(contributionRuleSchema),
+			...evidence
+		})
 	),
 	leave_catalogue: Schema.Array(
 		Schema.Struct({
@@ -239,7 +243,7 @@ export type SealedStatutoryFacts = Readonly<{
 			code: string;
 			name: string;
 			authority: string | null;
-			bands: ReadonlyArray<Schema.Schema.Type<typeof rateBandSchema>>;
+			rules: ReadonlyArray<Schema.Schema.Type<typeof contributionRuleSchema>>;
 		}>
 	>;
 	leave_catalogue: ReadonlyArray<
@@ -248,9 +252,9 @@ export type SealedStatutoryFacts = Readonly<{
 	pay_component: ReadonlyArray<Readonly<{ code: string; statutory_opt_ins: unknown }>>;
 }>;
 
-/** The condition a band governs under is its identity; the money it awards is the change. */
-export const bandKey = (band: Schema.Schema.Type<typeof rateBandSchema>): string =>
-	stableJson(band.when);
+/** The condition a rule governs under is its identity; the money it awards is the change. */
+export const ruleKey = (rule: Schema.Schema.Type<typeof contributionRuleSchema>): string =>
+	stableJson(rule.when);
 
 type StatutoryDiff = Readonly<{
 	changes: ReadonlyArray<StatutoryProposalChange>;
@@ -311,29 +315,29 @@ export function diffStatutoryFindings(
 			notes.push(`Scheme ${finding.code}: not a statutory scheme of this version`);
 			continue;
 		}
-		if (finding.bands.length === 0) continue;
-		// A finding names only the bands that differ from the sealed row. Each is matched to the
-		// sealed band with the same selector: a changed award replaces it, a selector the sealed
-		// table does not hold adds a band, and a band the pages restate unchanged is dropped rather
-		// than proposed. This is what keeps a four-thousand-band table out of the model's answer.
+		if (finding.rules.length === 0) continue;
+		// A finding names only the rules that differ from the sealed row. Each is matched to the
+		// sealed rule with the same selector: a changed award replaces it, a selector the sealed
+		// table does not hold adds a rule, and a rule the pages restate unchanged is dropped rather
+		// than proposed. This is what keeps a four-thousand-rule table out of the model's answer.
 		const page = verified(finding, 'Scheme');
 		if (page == null) continue;
-		for (const band of finding.bands) {
-			const key = bandKey(band);
-			const prior = scheme.bands.find((row) => bandKey(row) === key);
+		for (const rule of finding.rules) {
+			const key = ruleKey(rule);
+			const prior = scheme.rules.find((row) => ruleKey(row) === key);
 			if (
 				prior !== undefined &&
-				stableJson([prior.employee, prior.employer]) === stableJson([band.employee, band.employer])
+				stableJson([prior.employee, prior.employer]) === stableJson([rule.employee, rule.employer])
 			)
 				continue;
 			changes.push(
 				change(
 					'statutory_contributions',
-					'bands',
+					'rules',
 					finding,
 					page,
 					prior === undefined ? [] : [prior],
-					[band]
+					[rule]
 				)
 			);
 		}

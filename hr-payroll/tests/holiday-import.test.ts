@@ -132,7 +132,7 @@ test('a Google year proposes one row per live day, and a cancelled event propose
 	);
 	const rows = googleHolidayRows('TEST', events);
 	assert.deepEqual(
-		rows.map((row) => [row.date, row.name, row.original_date]),
+		rows.map((row) => [row.date, row.name, row.replaces]),
 		[
 			['2027-01-01', 'Festival', null],
 			['2027-01-01', 'Two days', null],

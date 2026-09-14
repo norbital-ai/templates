@@ -124,7 +124,7 @@ test('full and unmetered entitlement never inspect eligibility after the request
 			personOn: (date) =>
 				personContext({
 					employee: null,
-					employment: { hire_date: '2025-01-01' },
+					employment: { service_start: '2025-01-01' },
 					terms: null,
 					asOf: date
 				})

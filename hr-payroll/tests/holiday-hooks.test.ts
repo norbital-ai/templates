@@ -15,7 +15,7 @@ const holiday = {
 	company_id: 'TEST',
 	date: '2027-01-01',
 	name: 'Festival',
-	original_date: null,
+	replaces: null,
 	source: null,
 	published_at: '2026-12-01T00:00:00.000Z'
 };
@@ -45,8 +45,8 @@ test('a holiday needs an entity, a real day and a name', async () => {
 	);
 	await assert.rejects(() => mutate({ company_id: 'TEST', date: '2027-01-01', name: ' ' }), /name/);
 	await assert.rejects(
-		() => mutate({ company_id: 'TEST', date: '2027-01-01', name: 'x', original_date: 'no' }),
-		/original date/
+		() => mutate({ company_id: 'TEST', date: '2027-01-01', name: 'x', replaces: 'no' }),
+		/replaced date/
 	);
 	await assert.doesNotReject(() =>
 		mutate({ company_id: 'TEST', date: '2027-01-01', name: 'Festival' })
@@ -75,7 +75,7 @@ test('a pinned holiday holds the identity the pins point at, and nothing else', 
 		);
 	// Everything else about a pinned holiday is still editable: a pin points at a day and a
 	// jurisdiction, not at a name, a kind or a note about where the row came from.
-	for (const change of [{ name: 'Renamed' }, { original_date: '2026-12-31' }, { source: 'note' }])
+	for (const change of [{ name: 'Renamed' }, { replaces: '2026-12-31' }, { source: 'note' }])
 		await assert.doesNotReject(() => mutate(change, holiday, api(pins)), JSON.stringify(change));
 });
 

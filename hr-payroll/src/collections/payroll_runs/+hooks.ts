@@ -17,7 +17,7 @@ import { captureWriters, type CaptureApi } from './lib/captures.js';
 /**
  * What a person actually chooses when creating a run: a company and a period. Everything else on the
  * record is derived below, so the generated create schema — which requires every non-nullable column,
- * `lifecycle` and the whole resolved window among them — would demand figures the caller has no way
+ * the pay date and the whole resolved window among them — would demand figures the caller has no way
  * to know and no business asserting.
  *
  * The population is not a choice: the run covers every eligible employment in the period. Individual
@@ -25,7 +25,6 @@ import { captureWriters, type CaptureApi } from './lib/captures.js';
  */
 const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
-	lifecycle: Schema.optional(Schema.Literal('PAID')),
 	/**
 	 * A month for a monthly company, a half for a semi-monthly one. The grammar is checked against
 	 * the company in `prepare`, naming its frequency; this only says what a period can look like.
@@ -47,7 +46,8 @@ const DERIVED_COLUMNS = [
 	'calculation_version',
 	'pay_date',
 	'attendance_from',
-	'attendance_to'
+	'attendance_to',
+	'calculation_trace'
 ] as const;
 
 /** The key a prepared run is filed under, so a batch of runs cannot read each other's facts. */
@@ -87,6 +87,7 @@ const buildGraph = (prepared: PreparedRun) =>
 		return {
 			graph: {
 				...derivedColumns(prepared),
+				calculation_trace: built.calculation_trace,
 				payslip_payroll_run: built.payslip_payroll_run
 			},
 			captures: built.captures
@@ -127,7 +128,7 @@ export default {
 					Effect.gen(function* () {
 						const runs = yield* api.db.payroll_runs.findMany({
 							where: { company_id: { eq: one.company_id! } },
-							columns: { period: true, lifecycle: true },
+							columns: { period: true },
 							limit: 20_000
 						});
 						if (runs.length >= 20_000) refuse('Too many payrolls to verify settlement order.');
@@ -153,66 +154,20 @@ export default {
 						// so the create path is unreachable once this one is taken.
 						if (existing !== undefined) {
 							if (relationships?.length)
-								refuse('Marking payroll paid cannot change its payslips or captured inputs.');
-							// A paid run is a closed record: no column edit, no lifecycle move, no no-op PATCH.
-							// The one transition out of DRAFT is mark-paid, below; everything else refuses.
-							if (existing.lifecycle !== 'DRAFT')
 								refuse(
-									`Payroll run ${existing.period} is ${existing.lifecycle} and is immutable. ` +
-										'Correct it with a component entry in a later draft run.'
+									'A payroll run is engine output; its payslips cannot be re-stated through it.'
 								);
+							// A run is a frozen container: every column is derived, and payment lives on
+							// the payslips. Correct a month with an entry in a later run.
 							for (const column of DERIVED_COLUMNS)
 								if (column in input && stableJson(input[column]) !== stableJson(existing[column]))
 									refuse(
 										`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
 									);
-							const next = input.lifecycle ?? existing.lifecycle;
-							if (next !== 'PAID')
-								refuse(
-									'Payroll inputs are frozen. Delete the draft and create it again to change its inputs.'
-								);
-							const previous = yield* api.db.payroll_runs.findMany({
-								where: { company_id: { eq: existing.company_id }, lifecycle: { eq: 'DRAFT' } },
-								limit: 20_000
-							});
-							if (previous.length >= 20_000)
-								refuse('Too many outstanding payrolls to verify payment order.');
-							// Period text orders runs: within one company's grammar, `2026-02-1 < 2026-02-2 <
-							// 2026-03-1` and `2026-02 < 2026-03` are the chronological orders, so the comparison
-							// reads a semi-monthly company's halves exactly as it reads a monthly company's months.
-							const blocked = previous.find(
-								(run) => run.id !== existing.id && run.period < existing.period
+							refuse(
+								'Payroll runs are frozen once built. Payment is recorded on each payslip, ' +
+									'and a correction is a component entry in a later run.'
 							);
-							if (blocked != null)
-								refuse(
-									`Payroll ${blocked.period} must be paid before this payroll can be marked paid.`
-								);
-							const slips = yield* api.db.payslips.findMany({
-								where: { payroll_run_id: { eq: existing.id } },
-								columns: { id: true, paid_at: true, status: true },
-								limit: 20_000
-							});
-							if (slips.length >= 20_000) refuse('Too many payslips to pay in one run.');
-							if (slips.length === 0) refuse('A payroll with no payslips cannot be marked paid.');
-							// Payment is a fact of the slip, so the slips ride the run's own write. Every slip
-							// is stated, not only the unpaid ones: the nested list is the parent's complete
-							// desired state, and omitting a paid slip would remove it. A held slip is left
-							// exactly as it is: it is deliberately out of the bank file.
-							const held = slips.filter((slip) => slip.status === 'ON_HOLD');
-							return {
-								// The run's lifecycle is a reading of its slips: with any slip still held there
-								// is money not yet paid, so the run stays a draft.
-								lifecycle: held.length === 0 ? ('PAID' as const) : ('DRAFT' as const),
-								payslip_payroll_run: slips.map((slip) =>
-									slip.status === 'ON_HOLD'
-										? { id: slip.id, status: 'ON_HOLD' as const, paid_at: slip.paid_at }
-										: {
-												id: slip.id,
-												status: 'PAID' as const,
-												paid_at: slip.paid_at ?? existing.pay_date
-											}
-								)
-							} as never;
 						}
 						// `refuse` returns `never`, so these two narrow for the rest of the create path. The
 						// hook's own `input` schema requires both; this states it where the types can see it.
@@ -243,7 +198,6 @@ export default {
 							);
 						return {
 							...input,
-							lifecycle: 'DRAFT' as const,
 							...built.graph
 						};
 					})
@@ -291,8 +245,8 @@ export default {
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
 						// A paid slip is money that left the building, whatever its run's summary says. The
-						// run's own lifecycle is a reading of these, so this is the same rule stated where
-						// the fact lives — and it still refuses a half-paid run, which reads DRAFT.
+						// run is paid only when every slip it holds is, so the fact lives here; a
+						// half-paid run is therefore still deletable only for its unpaid slips.
 						const paid = yield* api.db.payslips.findFirst({
 							where: { payroll_run_id: { eq: existing.id }, status: { eq: 'PAID' } },
 							columns: { id: true }
@@ -301,13 +255,6 @@ export default {
 							refuse(
 								`Payroll run ${existing.period} has payslips that have been paid and cannot be ` +
 									'deleted. Correct it with a component entry in a later draft run.'
-							);
-						if (existing.lifecycle !== 'DRAFT')
-							refuse(
-								`Payroll run ${existing.period} is ${existing.lifecycle} and cannot be deleted. ` +
-									'A paid run is the record of money that has been paid, and deleting it would ' +
-									'release every work day, entry, repayment and leave record it settled. Correct ' +
-									'it with a component entry in a later draft run instead.'
 							);
 						const payslips = yield* api.db.payslips.findMany({
 							where: { payroll_run_id: { eq: existing.id } },

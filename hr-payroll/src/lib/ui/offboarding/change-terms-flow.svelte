@@ -78,22 +78,15 @@
 			if (coversDate(row.effective_range, today)) return row;
 		return null;
 	});
-	const companyQuery = $derived(
-		client.db.companies.findFirst({
-			where: { id: { eq: employment.company_id } },
-			columns: { settings_code: true }
-		})
-	);
-	const settingsCode = $derived(companyQuery?.current?.settings_code ?? null);
+	// The patterns belong to the employing entity, like its roster codes: the flow already knows
+	// which entity it is changing terms for.
 	const patternsQuery = $derived(
-		settingsCode == null
-			? null
-			: client.db.shift_patterns.findMany({
-					where: { settings_code: { eq: settingsCode }, approval_id: { isNull: true } },
-					columns: { id: true, code: true, name: true },
-					orderBy: { code: 'asc' },
-					limit: 500
-				})
+		client.db.shift_patterns.findMany({
+			where: { company_id: { eq: employment.company_id }, approval_id: { isNull: true } },
+			columns: { id: true, code: true, name: true },
+			orderBy: { code: 'asc' },
+			limit: 500
+		})
 	);
 
 	let draftFor = $state<string | null>(null);

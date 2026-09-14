@@ -18,6 +18,7 @@
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import HolidaySettings from '../../lib/ui/holiday-settings.svelte';
+	import SchedulingSettings from '../../lib/ui/scheduling-settings.svelte';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -25,21 +26,21 @@
 
 	/**
 	 * Whether the entity's lineage prices any scheme by risk class: only then is the field asked.
-	 * A scheme's key is what its band selectors say, so the lineage's schemes are read with their
-	 * bands and the question is answered here.
+	 * A scheme's key is what its rule selectors say, so the lineage's schemes are read with their
+	 * rules and the question is answered here.
 	 */
 	const schemesQuery = $derived(
 		record?.settings_code == null
 			? null
 			: client.db.statutory_contributions.findMany({
 					where: { contribution_settings: { some: onLineage(record.settings_code) } },
-					columns: { bands: true },
+					columns: { rules: true },
 					limit: 200
 				})
 	);
 	const riskKeyed = $derived(
 		(schemesQuery?.current ?? []).some((scheme) =>
-			scheme.bands.some((band) => band.when.includes('risk_class'))
+			scheme.rules.some((rule) => rule.when.includes('risk_class'))
 		)
 	);
 	/** The lineages the workspace holds, so the code is chosen rather than typed. */
@@ -76,18 +77,17 @@
 				<Grid gap="md" minimum="panel">
 					<Field name="name" label={t('component.legal_name')} />
 					<Field name="registration_number" label={t('component.registration_number')} />
-					<Stack gap="xs">
-						<Field
-							name="settings_code"
-							label={t('component.settings_lineage')}
-							placeholder={lineageCodes.join(', ')}
-						/>
-						<p class="text-meta">{t('component.settings_lineage_hint')}</p>
-					</Stack>
-					<Stack gap="xs">
-						<Field name="region" label={t('component.region')} />
-						<p class="text-meta">{t('component.region_hint')}</p>
-					</Stack>
+					<Field
+						name="settings_code"
+						label={t('component.settings_lineage')}
+						placeholder={lineageCodes.join(', ')}
+						description={t('component.settings_lineage_hint')}
+					/>
+					<Field
+						name="region"
+						label={t('component.region')}
+						description={t('component.region_hint')}
+					/>
 					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
 					<Field name="pay_frequency" label={t('component.pay_frequency')} />
 					<Field name="workbook_layout" label={t('component.workbook_layout')} />
@@ -115,8 +115,13 @@
 	<HolidaySettings company={record!} />
 {/snippet}
 
+{#snippet scheduling()}
+	<!-- The roster codes and patterns are the entity's: a new version of the same law keeps them,
+	     and two entities of one jurisdiction each keep their own. -->
+	<SchedulingSettings company={record!} />
+{/snippet}
+
 <RecordShell
-	title={record?.name ?? t('component.create_company')}
 	tabs={record == null
 		? undefined
 		: ([
@@ -131,6 +136,12 @@
 					label: t('app.settings.holidays'),
 					icon: 'lucide:calendar-x',
 					content: holidays
+				},
+				{
+					name: 'scheduling',
+					label: t('component.scheduling'),
+					icon: 'lucide:calendar-range',
+					content: scheduling
 				}
 			] satisfies TabConfig[])}
 >

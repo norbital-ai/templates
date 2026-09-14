@@ -68,7 +68,11 @@
 		type IntervalDraft,
 		type MonthDrafting
 	} from '../../../lib/ui/roster/roster-month.js';
-	import { patternRosterCodeId, termPattern } from '../../../lib/scheduling/work-pattern.js';
+	import {
+		patternAnchor,
+		patternRosterCodeId,
+		termPatternRow
+	} from '../../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../../lib/ui/roster/roster-month-board-filter.js';
 	import {
@@ -152,7 +156,6 @@
 			columns: {
 				id: true,
 				period: true,
-				lifecycle: true,
 				attendance_from: true,
 				attendance_to: true
 			},
@@ -277,10 +280,10 @@
 	const selectedSettingsCode = $derived(companyById(selectedCompanyId)?.settings_code ?? null);
 
 	const shiftsQuery = $derived(
-		selectedSettingsCode == null
+		selectedCompanyId == null
 			? null
 			: client.db.shift_definitions.findMany({
-					where: { ...approved, settings_code: { eq: selectedSettingsCode } },
+					where: { ...approved, company_id: { eq: selectedCompanyId } },
 					limit: MONTH_BOARD_QUERY_LIMITS.rosterCodes
 				})
 	);
@@ -681,7 +684,8 @@
 		const explicit = workDayByKey.get(personDayKey(employmentId, date))?.shift_definition_id;
 		if (explicit != null) return explicit;
 		const term = activeTermFor(employmentId, date);
-		return term == null ? null : patternRosterCodeId(termPattern(term), date);
+		const patternRow = term == null ? null : termPatternRow(term);
+		return patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
 	}
 
 	function validationDay(employmentId: string, date: string, codeId: string | null): ValidationDay {

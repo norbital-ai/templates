@@ -57,9 +57,10 @@
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 </script>
 
-<RecordShell title={record?.work_date ?? t('component.create_work_day')}>
+<RecordShell>
 	<CollectionForm
 		{client}
+		notice="header"
 		collection="work_days"
 		defaultValues={record ?? undefined}
 		{recordMetadata}

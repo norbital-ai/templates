@@ -12,7 +12,7 @@
 	 * is — the same arrangement `leave_entries` uses.
 	 */
 	import { client } from '../../lib/workspace-client.js';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
@@ -25,7 +25,7 @@
 	import FormSection from '../../lib/ui/form-section.svelte';
 
 	let { record, close }: RepresentationProps = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const createScope = hrCreateScope();
 	const scopedEmploymentId = $derived(createScope?.employmentId?.());
 	const scopedCompanyId = $derived(createScope?.companyId());
@@ -54,15 +54,17 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
+	/** A payroll capture freezes the row: the shell header carries the lock, the chrome the sentence. */
+	const locked = $derived(recordMetadata.length > 0);
 </script>
 
 <RecordShell
-	title={record
-		? `${formatCalendarInstant(record.incurred_on)} · ${formatNumeric(record.amount)}`
-		: t('component.create_claim')}
+	icon={locked ? 'lucide:lock-keyhole' : undefined}
+	badge={locked ? t('recordMetadata.readOnly') : undefined}
 >
 	<CollectionForm
 		{client}
+		notice="header"
 		collection="claim_requests"
 		defaultValues={formValues}
 		{recordMetadata}

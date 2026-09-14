@@ -19,6 +19,8 @@ import { todayKey } from './calendar.js';
  *   version in force today — the same predicate the payroll engine picks a version with.
  * - `employmentId` is set only by Employee Self-Service, where the record is the employee's own:
  *   employment is prefilled and the field is not offered at all.
+ * - `employeeId` is set by the employee profile, where a statutory fact names the person: the
+ *   person is prefilled and the field is not offered at all.
  * - `settingsId` is set by the Settings page, where every catalogue row belongs to the version on
  *   screen: the form prefills it, hides it, and keys its treatments matrix by that version's schemes.
  *
@@ -29,6 +31,8 @@ export interface HrCreateScope {
 	readonly settingsCode: () => string | undefined;
 	/** Self-service only: the request is this person's own. */
 	readonly employmentId?: () => string | undefined;
+	/** Employee profile only: the fact is this person's own. */
+	readonly employeeId?: () => string | undefined;
 	/** Settings only: the version whose catalogue the row is a line of. */
 	readonly settingsId?: () => string | undefined;
 }

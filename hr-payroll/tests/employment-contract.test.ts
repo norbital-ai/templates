@@ -13,20 +13,18 @@ const contract = (overrides: ContractCandidate = {}): ContractCandidate => ({
 	id: 'a',
 	employee_id: 'person',
 	company_id: 'entity-a',
-	hire_date: '2026-01-01',
 	effective_range: { start: '2026-01-01T00:00:00.000Z', end: null },
 	...overrides
 });
 
 test('one person cannot hold overlapping active contracts in one entity, including future contracts', () => {
-	for (const hire_date of ['2026-01-01', '2026-06-01', '2027-01-01'])
+	for (const start of ['2026-01-01', '2026-06-01', '2027-01-01'])
 		assert.throws(
 			() =>
 				assertContractDoesNotOverlap(
 					contract({
 						id: 'b',
-						hire_date,
-						effective_range: { start: `${hire_date}T00:00:00.000Z`, end: null }
+						effective_range: { start: `${start}T00:00:00.000Z`, end: null }
 					}),
 					[contract()]
 				),
@@ -44,13 +42,28 @@ test('contracts for other entities or other employees remain independent', () =>
 });
 
 test('departure is the last active day; a same-entity rehire starts on the following day', () => {
-	const previous = contract({ exit_date: '2026-05-31', exit_reason: 'RESIGNATION' });
+	const previous = contract({
+		effective_range: { start: '2026-01-01T00:00:00.000Z', end: '2026-05-31T00:00:00.000Z' }
+	});
 	assert.throws(
-		() => assertContractDoesNotOverlap(contract({ id: 'b', hire_date: '2026-05-31' }), [previous]),
+		() =>
+			assertContractDoesNotOverlap(
+				contract({
+					id: 'b',
+					effective_range: { start: '2026-05-31T00:00:00.000Z', end: null }
+				}),
+				[previous]
+			),
 		/already has an active/
 	);
 	assert.doesNotThrow(() =>
-		assertContractDoesNotOverlap(contract({ id: 'b', hire_date: '2026-06-01' }), [previous])
+		assertContractDoesNotOverlap(
+			contract({
+				id: 'b',
+				effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
+			}),
+			[previous]
+		)
 	);
 });
 
@@ -59,14 +72,19 @@ test('fixed service periods permit a later contract and refuse inverted dates', 
 		effective_range: { start: '2026-01-01T00:00:00.000Z', end: '2026-05-31T00:00:00.000Z' }
 	});
 	assert.doesNotThrow(() =>
-		assertContractDoesNotOverlap(contract({ id: 'b', hire_date: '2026-06-01' }), [previous])
+		assertContractDoesNotOverlap(
+			contract({
+				id: 'b',
+				effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
+			}),
+			[previous]
+		)
 	);
 	assert.throws(
 		() =>
 			assertContractDoesNotOverlap(
 				contract({
-					hire_date: '2026-06-01',
-					effective_range: { start: '2026-01-01T00:00:00.000Z', end: '2026-05-31T00:00:00.000Z' }
+					effective_range: { start: '2026-06-01T00:00:00.000Z', end: '2026-05-31T00:00:00.000Z' }
 				}),
 				[]
 			),
@@ -74,12 +92,12 @@ test('fixed service periods permit a later contract and refuse inverted dates', 
 	);
 });
 
-test('departure resolves the service window without editing the signed contract', () => {
-	const original = contract({ exit_date: '2026-05-31', exit_reason: 'MISCONDUCT' });
-	const resolved = resolveEmployment({ ...original, effective_range: original.effective_range });
-	assert.equal(resolved.exit_date, '2026-05-31');
-	assert.deepEqual(original.effective_range, { start: '2026-01-01T00:00:00.000Z', end: null });
-	assert.equal(resolved.exit_reason, 'MISCONDUCT');
+test('the resolved service window is the signed range', () => {
+	const resolved = resolveEmployment(contract());
+	assert.deepEqual(resolved.effective_range, {
+		start: '2026-01-01T00:00:00.000Z',
+		end: null
+	});
 });
 
 test('every event names its contract and an existing event cannot change contracts', () => {

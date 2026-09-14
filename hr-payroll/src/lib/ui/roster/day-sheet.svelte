@@ -121,14 +121,15 @@
 		/**
 		 * INTEGRATION POINT — the rest-break badge (§4 of the proposal).
 		 *
-		 * A sibling module owns `src/lib/scheduling/rest-break.ts` and the `rest_break_rules` member
-		 * of `statutory_regime`. When it lands, the app renders `restBreakAssessment(...)` into this
-		 * snippet: the shortfall, the citation, and whether an inter-interval gap already satisfied
-		 * the rule. Nothing here computes it, and nothing here should — the same numbers have to
-		 * reach the publish gate and the write hook, which is why it is a module and not a component.
+		 * A sibling module owns `src/lib/scheduling/rest-break.ts` and the `breaks` member of the
+		 * version's `work_rules`. A caller that renders `restBreakAssessment(...)` into this
+		 * snippet shows the shortfall, the citation, and whether an inter-interval gap already
+		 * satisfied the rule. Nothing here computes it, and nothing here should — the same numbers
+		 * have to reach the publish gate and the write hook, which is why it is a module and not a
+		 * component.
 		 *
-		 * Until then the slot renders nothing, which is the correct empty state: no rule is
-		 * configured, so there is no shortfall to report.
+		 * Until a caller renders it the slot shows nothing, which is the correct empty state: no
+		 * rule is configured, so there is no shortfall to report.
 		 */
 		restBreakNotice?: Snippet;
 		/**

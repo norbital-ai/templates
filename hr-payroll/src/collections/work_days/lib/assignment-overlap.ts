@@ -17,8 +17,9 @@ import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+
 import { dateKey } from '../../../lib/iso-day.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import {
+	patternAnchor,
 	patternRosterCodeId,
-	termPattern,
+	termPatternRow,
 	type ShiftPatternLike
 } from '../../../lib/scheduling/work-pattern.js';
 import { coversDate } from '../../payroll_runs/lib/effective.js';
@@ -134,7 +135,7 @@ export function readOverlapData(
 				}),
 				api.db.shift_patterns.findMany({
 					where: { company_id: { in: companyIds } },
-					columns: { id: true, code: true, pattern: true },
+					columns: { id: true, code: true, pattern: true, effective_range: true },
 					limit: QUERY_LIMIT
 				})
 			],
@@ -211,9 +212,10 @@ export function assertNoOverlap(data: OverlapData, changes: readonly AssignmentC
 			const term = (data.termsByEmployment.get(employmentId) ?? []).find((candidate) =>
 				coversDate(candidate.effective_range, date)
 			);
+			const patternRow = term == null ? null : termPatternRow(term, data.patternById);
 			const codeId =
 				explicit?.shift_definition_id ??
-				(term == null ? null : patternRosterCodeId(termPattern(term, data.patternById), date));
+				patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
 			const code = codeId == null ? null : data.codeById.get(codeId);
 			const kind = code == null ? null : rosterCodeKind(code.variant);
 			const window = kind === 'WORK' ? workWindow(code?.variant) : null;

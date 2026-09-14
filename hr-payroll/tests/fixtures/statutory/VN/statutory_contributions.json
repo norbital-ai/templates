@@ -7,31 +7,19 @@
 		"is_statutory": true,
 		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 100,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 46800000.0",
-				"employee": "base * 8.0 / 100.0",
-				"employer": "base * 17.5 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_cent((base) * 17.5 / 100.0)"
 			},
 			{
-				"when": "base > 46800000.01",
-				"employee": "3744000.0",
-				"employer": "8190000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"employee": "round_cent(3744000.0)",
+				"employer": "round_cent(8190000.0)"
 			}
 		]
 	},
@@ -43,31 +31,19 @@
 		"is_statutory": true,
 		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000).",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 200,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 46800000.0",
-				"employee": "base * 1.5 / 100.0",
-				"employer": "base * 3.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_cent((base) * 3.0 / 100.0)"
 			},
 			{
-				"when": "base > 46800000.01",
-				"employee": "702000.0",
-				"employer": "1404000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"employee": "round_cent(702000.0)",
+				"employer": "round_cent(1404000.0)"
 			}
 		]
 	},
@@ -79,26 +55,14 @@
 		"is_statutory": true,
 		"authority": "Law on Employment 38/2013/QH13 art.57 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 74/2024/NĐ-CP, Region I 4,960,000). The scheme covers Vietnamese employees; a foreign employee is outside it.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "employee.citizenship != \"FOREIGNER\"",
-		"sequence": 300,
-		"rules": {
-			"relief": "",
-			"base_transform": "(base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0",
-				"employee": "base * 1.0 / 100.0",
-				"employer": "base * 1.0 / 100.0"
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
 			}
 		]
 	},
@@ -110,31 +74,19 @@
 		"is_statutory": true,
 		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000).",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 350,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 46800000.0",
-				"employee": "base * 0.0 / 100.0",
-				"employer": "base * 2.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
+				"employer": "round_cent((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "base > 46800000.01",
-				"employee": "0.0",
-				"employer": "936000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"employee": "round_cent(0.0)",
+				"employer": "round_cent(936000.0)"
 			}
 		]
 	},
@@ -146,56 +98,14 @@
 		"is_statutory": true,
 		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions of 132,000,000 a year for the taxpayer and 52,800,000 a dependant under Resolution 954/2020/UBTVQH14.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 400,
-		"rules": {
-			"relief": "132000000.0 + 52800000.0 * person.employee.dependents_count",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": false,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 60000000.0",
-				"employee": "(0.0) + (base - 0.0) * 5.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 60000000.0 && base <= 120000000.0",
-				"employee": "(3000000.0) + (base - 60000000.0) * 10.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 120000000.0 && base <= 216000000.0",
-				"employee": "(9000000.0) + (base - 120000000.0) * 15.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 216000000.0 && base <= 384000000.0",
-				"employee": "(23400000.0) + (base - 216000000.0) * 20.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 384000000.0 && base <= 624000000.0",
-				"employee": "(57000000.0) + (base - 384000000.0) * 25.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 624000000.0 && base <= 960000000.0",
-				"employee": "(117000000.0) + (base - 624000000.0) * 30.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 960000000.0",
-				"employee": "(217800000.0) + (base - 960000000.0) * 35.0 / 100.0",
-				"employer": "0.0"
+				"when": "true",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employer": "round_cent(0.0)"
 			}
 		]
 	},
@@ -207,31 +117,19 @@
 		"is_statutory": true,
 		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 100,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 46800000.0",
-				"employee": "base * 8.0 / 100.0",
-				"employer": "base * 17.5 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_cent((base) * 17.5 / 100.0)"
 			},
 			{
-				"when": "base > 46800000.01",
-				"employee": "3744000.0",
-				"employer": "8190000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"employee": "round_cent(3744000.0)",
+				"employer": "round_cent(8190000.0)"
 			}
 		]
 	},
@@ -243,31 +141,19 @@
 		"is_statutory": true,
 		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000).",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 200,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 46800000.0",
-				"employee": "base * 1.5 / 100.0",
-				"employer": "base * 3.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_cent((base) * 3.0 / 100.0)"
 			},
 			{
-				"when": "base > 46800000.01",
-				"employee": "702000.0",
-				"employer": "1404000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"employee": "round_cent(702000.0)",
+				"employer": "round_cent(1404000.0)"
 			}
 		]
 	},
@@ -279,26 +165,14 @@
 		"is_statutory": true,
 		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33, in force 1 January 2026 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP). The scheme covers Vietnamese employees; a foreign employee is outside it.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "employee.citizenship != \"FOREIGNER\"",
-		"sequence": 300,
-		"rules": {
-			"relief": "",
-			"base_transform": "(base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0",
-				"employee": "base * 1.0 / 100.0",
-				"employer": "base * 1.0 / 100.0"
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
 			}
 		]
 	},
@@ -310,31 +184,19 @@
 		"is_statutory": true,
 		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000).",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 350,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 46800000.0",
-				"employee": "base * 0.0 / 100.0",
-				"employer": "base * 2.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
+				"employer": "round_cent((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "base > 46800000.01",
-				"employee": "0.0",
-				"employer": "936000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"employee": "round_cent(0.0)",
+				"employer": "round_cent(936000.0)"
 			}
 		]
 	},
@@ -346,56 +208,14 @@
 		"is_statutory": true,
 		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions raised to 186,000,000 a year for the taxpayer and 74,400,000 a dependant by Resolution 110/2025/UBTVQH15 of 17 October 2025, applied from the 2026 tax period.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 400,
-		"rules": {
-			"relief": "186000000.0 + 74400000.0 * person.employee.dependents_count",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": false,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 60000000.0",
-				"employee": "(0.0) + (base - 0.0) * 5.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 60000000.0 && base <= 120000000.0",
-				"employee": "(3000000.0) + (base - 60000000.0) * 10.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 120000000.0 && base <= 216000000.0",
-				"employee": "(9000000.0) + (base - 120000000.0) * 15.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 216000000.0 && base <= 384000000.0",
-				"employee": "(23400000.0) + (base - 216000000.0) * 20.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 384000000.0 && base <= 624000000.0",
-				"employee": "(57000000.0) + (base - 384000000.0) * 25.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 624000000.0 && base <= 960000000.0",
-				"employee": "(117000000.0) + (base - 624000000.0) * 30.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 960000000.0",
-				"employee": "(217800000.0) + (base - 960000000.0) * 35.0 / 100.0",
-				"employer": "0.0"
+				"when": "true",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employer": "round_cent(0.0)"
 			}
 		]
 	},
@@ -407,31 +227,19 @@
 		"is_statutory": true,
 		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 100,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 50600000.0",
-				"employee": "base * 8.0 / 100.0",
-				"employer": "base * 17.5 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_cent((base) * 17.5 / 100.0)"
 			},
 			{
-				"when": "base > 50600000.01",
-				"employee": "4048000.0",
-				"employer": "8855000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.01",
+				"employee": "round_cent(4048000.0)",
+				"employer": "round_cent(8855000.0)"
 			}
 		]
 	},
@@ -443,31 +251,19 @@
 		"is_statutory": true,
 		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (50,600,000).",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 200,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 50600000.0",
-				"employee": "base * 1.5 / 100.0",
-				"employer": "base * 3.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_cent((base) * 3.0 / 100.0)"
 			},
 			{
-				"when": "base > 50600000.01",
-				"employee": "759000.0",
-				"employer": "1518000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.01",
+				"employee": "round_cent(759000.0)",
+				"employer": "round_cent(1518000.0)"
 			}
 		]
 	},
@@ -479,26 +275,14 @@
 		"is_statutory": true,
 		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP, unchanged on 1 July 2026). The scheme covers Vietnamese employees; a foreign employee is outside it.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "employee.citizenship != \"FOREIGNER\"",
-		"sequence": 300,
-		"rules": {
-			"relief": "",
-			"base_transform": "(base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0",
-				"employee": "base * 1.0 / 100.0",
-				"employer": "base * 1.0 / 100.0"
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
 			}
 		]
 	},
@@ -510,31 +294,19 @@
 		"is_statutory": true,
 		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000).",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 350,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 50600000.0",
-				"employee": "base * 0.0 / 100.0",
-				"employer": "base * 2.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
+				"employer": "round_cent((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "base > 50600000.01",
-				"employee": "0.0",
-				"employer": "1012000.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.01",
+				"employee": "round_cent(0.0)",
+				"employer": "round_cent(1012000.0)"
 			}
 		]
 	},
@@ -546,46 +318,14 @@
 		"is_statutory": true,
 		"authority": "Law on Personal Income Tax 109/2025/QH15 arts.10 and 22, in force 1 July 2026 and applied to salary income from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions written into the statute.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 400,
-		"rules": {
-			"relief": "186000000.0 + 74400000.0 * person.employee.dependents_count",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": false,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0 && base <= 120000000.0",
-				"employee": "(0.0) + (base - 0.0) * 5.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 120000000.0 && base <= 360000000.0",
-				"employee": "(6000000.0) + (base - 120000000.0) * 10.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 360000000.0 && base <= 720000000.0",
-				"employee": "(30000000.0) + (base - 360000000.0) * 20.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 720000000.0 && base <= 1200000000.0",
-				"employee": "(102000000.0) + (base - 720000000.0) * 30.0 / 100.0",
-				"employer": "0.0"
-			},
-			{
-				"when": "base > 1200000000.0",
-				"employee": "(246000000.0) + (base - 1200000000.0) * 35.0 / 100.0",
-				"employer": "0.0"
+				"when": "true",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employer": "round_cent(0.0)"
 			}
 		]
 	}

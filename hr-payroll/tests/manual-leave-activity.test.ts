@@ -19,13 +19,11 @@ function facts(): LeaveContext {
 				id: id(1),
 				employee_id: id(2),
 				company_id: id(3),
-				hire_date: '2025-01-01',
-				exit_date: null,
-				children: []
+				effective_range: { start: '2025-01-01', end: null }
 			}
 		],
 		companies: [{ id: id(3), settings_code: 'TEST' }],
-		employees: [{ id: id(2), gender: null, date_of_birth: null, nationality: null }],
+		employees: [{ id: id(2), gender: null, date_of_birth: null, nationality: null, children: [] }],
 		terms: [
 			{
 				id: id(4),
@@ -86,11 +84,7 @@ function facts(): LeaveContext {
 				id: id(5),
 				code: 'EVERY-DAY',
 				effective_range: span,
-				pattern: {
-					type: 'PATTERNED',
-					anchor_date: '2025-01-01',
-					phases: [{ duration: { kind: 'CONTINUOUS' }, day_cycle: [{ roster_code_id: id(8) }] }]
-				}
+				pattern: { days: [{ roster_code_id: id(8) }] }
 			}
 		],
 		shifts: [
@@ -162,7 +156,7 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-01-31',
 		name: 'Test holiday',
-		original_date: null,
+		replaces: null,
 		published_at: '2025-01-01T00:00:00.000Z'
 	});
 	// A time-off entry settles whole in one period, so the collapsed range is two entries — one per
@@ -276,7 +270,7 @@ test('opposite half-days can be approved separately, but overlapping or duplicat
 
 test('ended employment retains manual encashment, agreed amounts and later settlement eligibility', () => {
 	const context = facts();
-	context.employments[0]!.exit_date = '2026-06-30';
+	context.employments[0]!.effective_range = { start: '2025-01-01', end: '2026-06-30' };
 	context.catalogues[0]!.entitlement = {
 		...context.catalogues[0]!.entitlement,
 		proration: 'CALENDAR_MONTHS'
@@ -400,7 +394,6 @@ test('approval refuses paid date insertion', () => {
 		id: id(20),
 		company_id: id(3),
 		period: '2026-01',
-		lifecycle: 'PAID',
 		attendance_from: '2026-01-01',
 		attendance_to: '2026-01-31'
 	});
@@ -473,7 +466,7 @@ test('leave preview is JSON-safe and keeps the unused half available beside a ho
 		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-01-27',
 		name: 'Fixture holiday',
-		original_date: null,
+		replaces: null,
 		published_at: '2025-01-01T00:00:00.000Z'
 	});
 	approve(context, {

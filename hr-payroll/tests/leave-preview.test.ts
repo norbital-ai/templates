@@ -95,7 +95,7 @@ test('observed holidays remain non-chargeable in a multi-day preview', () => {
 		company_id: '00000000-0000-4000-8000-000000000003',
 		date: '2026-04-16',
 		name: 'Observed holiday',
-		original_date: null,
+		replaces: null,
 		published_at: '2025-01-01T00:00:00.000Z'
 	});
 	const preview = evaluateLeavePreview(context, {

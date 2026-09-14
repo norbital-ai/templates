@@ -46,15 +46,9 @@ const pattern = {
 	id: 'sp-1',
 	code: 'A-2x2',
 	pattern: {
-		type: 'PATTERNED',
-		anchor_date: '2026-08-03',
-		phases: [
-			{
-				duration: { kind: 'CONTINUOUS' },
-				day_cycle: [DAY_ID, DAY_ID, REST_ID, REST_ID].map((roster_code_id) => ({ roster_code_id }))
-			}
-		]
-	}
+		days: [DAY_ID, DAY_ID, REST_ID, REST_ID].map((roster_code_id) => ({ roster_code_id }))
+	},
+	effective_range: { start: '2026-08-03', end: null }
 };
 
 const term = (employmentId, shiftPatternId, row) => ({

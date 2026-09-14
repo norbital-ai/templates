@@ -12,6 +12,7 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { markRunPaid } from './helpers/mark-paid.ts';
 
 const MONTHS = Array.from(
 	{ length: 12 },
@@ -66,43 +67,23 @@ test(
 				const [run] = (await session.query(`select row_version from payroll_runs where id = $1`, [
 					runId
 				])) as ReadonlyArray<{ readonly row_version: number }>;
-				const paid = await postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(
-						session.schemaFingerprint,
-						{
-							action: 'mutate',
-							collection: 'payroll_runs',
-							rows: [{ action: 'update', values: { id: runId, lifecycle: 'PAID' } }]
-						},
-						[
-							{
-								row: { collection: 'payroll_runs', recordId: runId },
-								rowVersion: Number(run.row_version)
-							}
-						]
-					),
-					headers
-				);
-				requireAccepted(paid.value, `mark ${period} paid`);
+				await markRunPaid(session, runId);
 			}
 
 			const runs = (await session.query(
-				`select id, period, lifecycle from payroll_runs order by period`
+				`select id, period from payroll_runs order by period`
 			)) as ReadonlyArray<{
 				readonly id: string;
 				readonly period: string;
-				readonly lifecycle: string;
 			}>;
 			assert.deepEqual(
 				runs.map((row) => row.period),
 				MONTHS
 			);
-			assert.ok(
-				runs.every((row) => row.lifecycle === 'PAID'),
-				JSON.stringify(runs)
-			);
+			const paidSlips = (await session.query(
+				`select count(*)::int as total, count(*) filter (where status = \'PAID\')::int as paid from payslips`
+			)) as ReadonlyArray<{ readonly total: number; readonly paid: number }>;
+			assert.equal(paidSlips[0]!.paid, paidSlips[0]!.total, 'every slip of every run is paid');
 
 			const slips = (await session.query(
 				`select payslips.id, payslips.employment_id, payslips.gross,

@@ -15,7 +15,7 @@ import {
 import type { Api } from './$types.js';
 import { dateKey } from '../lib/iso-day.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { patternRosterCodeId } from '../lib/scheduling/work-pattern.js';
+import { patternAnchor, patternRosterCodeId } from '../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../lib/scheduling/roster-code.js';
 
 export default defineCommandHandler({
@@ -33,20 +33,13 @@ export default defineCommandHandler({
 				columns: {
 					id: true,
 					employee_id: true,
-					hire_date: true,
-					effective_range: true,
-					exit_date: true,
-					exit_reason: true
+					effective_range: true
 				}
 			});
 			if (contract === undefined) refuse('Employment does not exist.');
 			const employment = resolveEmployment(contract);
 			const dayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
-			if (
-				!coversDate(employment.effective_range, dayKey) ||
-				dateKey(employment.hire_date) > dayKey ||
-				(employment.exit_date != null && dateKey(employment.exit_date) < dayKey)
-			)
+			if (!coversDate(employment.effective_range, dayKey))
 				refuse('This employment is not active today.');
 			const employee = yield* api.db.employees.findFirst({
 				where: { id: { eq: employment.employee_id } },
@@ -95,7 +88,7 @@ export default defineCommandHandler({
 					? undefined
 					: yield* api.db.shift_patterns.findFirst({
 							where: { id: { eq: term.shift_pattern_id } },
-							columns: { id: true, pattern: true }
+							columns: { id: true, pattern: true, effective_range: true }
 						});
 			// `patternRosterCodeId` throws on a pattern it cannot measure, and nothing stops such a row
 			// being stored: `shift_patterns` has no write hook. A projection that cannot be computed
@@ -105,7 +98,11 @@ export default defineCommandHandler({
 			let projectedCodeId: string | null = null;
 			if (patternRow !== undefined) {
 				try {
-					projectedCodeId = patternRosterCodeId(patternRow.pattern, dayKey);
+					projectedCodeId = patternRosterCodeId(
+						patternRow.pattern,
+						dayKey,
+						patternAnchor(patternRow)
+					);
 				} catch {
 					projectedCodeId = null;
 				}

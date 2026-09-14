@@ -14,6 +14,7 @@ import {
 	verifyStatutorySources
 } from '../src/lib/statutory_research.ts';
 import { applyProposedChanges, firstOfNextMonth } from '../src/automations/+statutory_drift.ts';
+import { settingsDraftWrite } from '../src/lib/settings_clone.ts';
 
 const page = {
 	url: 'https://statutory.example.org/rates',
@@ -24,9 +25,9 @@ const page = {
 	retrieved_at: '2026-09-07T00:00:00.000Z'
 };
 const OPT_IN_ID = '11111111-1111-4111-8111-111111111111';
-const band = (employee: string) => ({ when: 'base >= 0.0', employee, employer: '13.0' });
+const rule = (employee: string) => ({ when: 'base >= 0.0', employee, employer: '13.0' });
 const sealed = {
-	contributions: [{ code: 'EPF', name: 'Fund', authority: 'Act', bands: [band('11.0')] }],
+	contributions: [{ code: 'EPF', name: 'Fund', authority: 'Act', rules: [rule('11.0')] }],
 	leave_catalogue: [
 		{
 			code: 'ANNUAL',
@@ -44,11 +45,11 @@ const sealed = {
 };
 const quote = 'the employee contribution rate is 12% of wages';
 
-test('a changed band table standing on a quote from a retrieved page is one change', () => {
+test('a changed rule table standing on a quote from a retrieved page is one change', () => {
 	const diff = diffStatutoryFindings(
 		sealed,
 		{
-			contributions: [{ code: 'EPF', bands: [band('12.0')], source_url: page.url, quote }],
+			contributions: [{ code: 'EPF', rules: [rule('12.0')], source_url: page.url, quote }],
 			leave_catalogue: [],
 			pay_component: [],
 			notes: []
@@ -59,9 +60,9 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 	assert.deepEqual(diff.changes[0], {
 		collection: 'statutory_contributions',
 		code: 'EPF',
-		field: 'bands',
-		previous: [band('11.0')],
-		proposed: [band('12.0')],
+		field: 'rules',
+		previous: [rule('11.0')],
+		proposed: [rule('12.0')],
 		source_url: page.url,
 		quote,
 		retrieved_at: page.retrieved_at,
@@ -70,12 +71,12 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 	assert.deepEqual(diff.notes, []);
 });
 
-test('an unchanged table, in any key or band order, is no change', () => {
+test('an unchanged table, in any key or rule order, is no change', () => {
 	const reordered = { employer: '13.0', employee: '11.0', when: 'base >= 0.0' };
 	const diff = diffStatutoryFindings(
 		sealed,
 		{
-			contributions: [{ code: 'EPF', bands: [reordered], source_url: page.url, quote }],
+			contributions: [{ code: 'EPF', rules: [reordered], source_url: page.url, quote }],
 			leave_catalogue: [
 				{
 					code: 'ANNUAL',
@@ -105,17 +106,17 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 			contributions: [
 				{
 					code: 'EPF',
-					bands: [band('12.0')],
+					rules: [rule('12.0')],
 					source_url: page.url,
 					quote: 'invented sentence here'
 				},
 				{
 					code: 'EPF',
-					bands: [band('12.0')],
+					rules: [rule('12.0')],
 					source_url: 'https://statutory.example.org/elsewhere',
 					quote
 				},
-				{ code: 'SOCSO', bands: [band('1.0')], source_url: page.url, quote }
+				{ code: 'SOCSO', rules: [rule('1.0')], source_url: page.url, quote }
 			],
 			leave_catalogue: [],
 			pay_component: [],
@@ -130,13 +131,13 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 	assert.match(diff.notes[2], /not a statutory scheme/);
 });
 
-test('the proposed bands replace the cloned ones in the draft write', () => {
+test('the proposed rules replace the cloned ones in the draft write', () => {
 	const write = {
 		code: 'PUB',
 		name: 'draft',
 		contribution_settings: [
-			{ id: 's1', code: 'EPF', bands: [band('11.0')] },
-			{ id: 's2', code: 'OTHER', bands: [band('5.0')] }
+			{ id: 's1', code: 'EPF', rules: [rule('11.0')] },
+			{ id: 's2', code: 'OTHER', rules: [rule('5.0')] }
 		],
 		leave_catalogue_settings: [
 			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }
@@ -153,9 +154,9 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 			{
 				collection: 'statutory_contributions',
 				code: 'EPF',
-				field: 'bands',
-				previous: [band('11.0')],
-				proposed: [band('12.0')],
+				field: 'rules',
+				previous: [rule('11.0')],
+				proposed: [rule('12.0')],
 				source_url: page.url,
 				quote,
 				retrieved_at: page.retrieved_at,
@@ -176,31 +177,41 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 		notes: [],
 		unreachable: []
 	};
-	const revised = applyProposedChanges(write, proposal.changes, proposal);
+	const revised = applyProposedChanges(
+		write,
+		proposal.changes,
+		proposal,
+		new Map([[OPT_IN_ID, 'clone-id']])
+	);
 	assert.equal(
 		revised.change_summary,
 		'Statutory drift: 2 change(s) proposed from v1 on 2026-09-07T00:00:00.000Z.'
 	);
-	assert.deepEqual(revised.contribution_settings[0].bands, [band('12.0')]);
+	assert.deepEqual(revised.contribution_settings[0].rules, [rule('12.0')]);
 	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
 	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
 	assert.deepEqual(revised.payment_catalogue_settings[0].bands, [
-		{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: optionIn }
+		{
+			when: '',
+			amount: 'entry.amount',
+			limit: null,
+			statutory_opt_ins: [{ contribution_id: 'clone-id', effect: 'INCLUDE' }]
+		}
 	]);
 });
 
-test('a changed rate preserves and targets its eligibility ladder', () => {
+test('a changed rate preserves and targets its rule ladder', () => {
 	const first = { when: 'base <= 5000.0', employee: '11.0', employer: '13.0' };
 	const second = { when: 'base > 5000.0', employee: '5.0', employer: '13.0' };
 	const proposed = { ...first, employee: '12.0' };
 	const facts = {
 		...sealed,
-		contributions: [{ ...sealed.contributions[0], bands: [first, second] }]
+		contributions: [{ ...sealed.contributions[0], rules: [first, second] }]
 	};
 	const diff = diffStatutoryFindings(
 		facts,
 		{
-			contributions: [{ code: 'EPF', bands: [proposed], source_url: page.url, quote }],
+			contributions: [{ code: 'EPF', rules: [proposed], source_url: page.url, quote }],
 			leave_catalogue: [],
 			pay_component: [],
 			notes: []
@@ -209,11 +220,11 @@ test('a changed rate preserves and targets its eligibility ladder', () => {
 	);
 	assert.equal(diff.changes.length, 1);
 	const result = applyProposedChanges(
-		{ contribution_settings: [{ code: 'EPF', bands: [first, second] }] },
+		{ contribution_settings: [{ code: 'EPF', rules: [first, second] }] },
 		diff.changes,
 		{ changes: diff.changes }
 	);
-	assert.deepEqual(result.contribution_settings[0].bands, [proposed, second]);
+	assert.deepEqual(result.contribution_settings[0].rules, [proposed, second]);
 });
 
 test('a proposed version begins on the first of the month after today', () => {
@@ -318,4 +329,48 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 	assert.deepEqual(read.pages, []);
 	assert.equal(read.unreachable.length, 1);
 	assert.match(read.unreachable[0].reason, /browser challenge/);
+});
+
+test('a cloned version remaps every opt-in to the clone’s own scheme id', () => {
+	const source = {
+		id: 'source',
+		code: 'SG',
+		name: 'Singapore',
+		effective_range: { start: '2026-01-01T00:00:00.000Z', end: null },
+		work_rules: {
+			proration: 'NONE',
+			engine_lines: {
+				salary: { statutory_opt_ins: [{ contribution_id: OPT_IN_ID, effect: 'INCLUDE' }] },
+				absence: { statutory_opt_ins: [] },
+				night: { statutory_opt_ins: [] }
+			},
+			rates: { ordinary: [], bands: [] }
+		}
+	};
+	const { write, schemeIds } = settingsDraftWrite(
+		{
+			source,
+			schemes: [{ id: OPT_IN_ID, code: 'CPF', rules: [rule('11.0')] }],
+			catalogueLeaves: [
+				{
+					id: 'l1',
+					code: 'ANNUAL',
+					bands: [{ statutory_opt_ins: [{ contribution_id: OPT_IN_ID, effect: 'REDUCE' }] }]
+				}
+			],
+			loanCatalogue: [],
+			claimCatalogue: [],
+			allowanceCatalogue: [],
+			paymentCatalogue: []
+		},
+		{ starts_on: '2026-02-01' }
+	);
+	const cloneId = schemeIds.get(OPT_IN_ID);
+	assert.notEqual(cloneId, OPT_IN_ID);
+	assert.equal(write.contribution_settings[0].id, cloneId);
+	assert.equal(
+		write.leave_catalogue_settings[0].bands[0].statutory_opt_ins[0].contribution_id,
+		cloneId
+	);
+	assert.equal(write.work_rules.engine_lines.salary.statutory_opt_ins[0].contribution_id, cloneId);
 });

@@ -2,7 +2,7 @@
  * The pay items Work produces, built from `work_rules` (RFC 0001 §6).
  *
  * BASIC, ABSENCE and the NIGHT premium are engine-priced lines with their opt-ins on
- * `work_rules.lines`; the overtime classes and the incentive come from `rates.bands`, one component
+ * `work_rules.engine_lines`; the overtime classes and the incentive come from `rates.bands`, one component
  * per (line, label) so each class settles as its own payslip line and the funnel inherits the
  * band's award and statutory opt-ins.
  */
@@ -20,7 +20,6 @@ function item(options: {
 	readonly settingsId: string;
 	readonly code: string;
 	readonly output: string;
-	readonly sequence: number;
 	readonly absence?: boolean;
 	readonly definition: CatalogueComponent['definition'];
 	readonly optIns: readonly StatutoryOptIn[];
@@ -32,7 +31,6 @@ function item(options: {
 		code: options.code,
 		name: options.code,
 		output: options.output,
-		sequence: options.sequence,
 		eligibility: '',
 		family: 'WORK',
 		is_statutory: options.code !== WORK_LINE_CODES.salary,
@@ -57,35 +55,27 @@ export function workPayItems(
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.salary,
 			output: 'salary',
-			sequence: 100,
 			definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
-			optIns: work.lines.salary.statutory_opt_ins
+			optIns: work.engine_lines.salary.statutory_opt_ins
 		}),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.absence,
 			output: 'absence',
-			sequence: 1000,
 			absence: true,
 			definition: { source: 'ABSENCE', unit: 'MONEY' },
-			optIns: work.lines.absence.statutory_opt_ins
+			optIns: work.engine_lines.absence.statutory_opt_ins
 		}),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.night,
 			output: 'night',
-			sequence: 22,
 			definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' },
-			optIns: work.lines.night.statutory_opt_ins
+			optIns: work.engine_lines.night.statutory_opt_ins
 		})
 	];
 	const seen = new Set(items.map((row) => row.output));
-	const add = (
-		line: string,
-		label: string,
-		sequence: number,
-		optIns: readonly StatutoryOptIn[]
-	) => {
+	const add = (line: string, label: string, optIns: readonly StatutoryOptIn[]) => {
 		const output = `${line}:${label}`;
 		if (seen.has(output)) return;
 		seen.add(output);
@@ -94,7 +84,6 @@ export function workPayItems(
 				settingsId: work.settings_id,
 				code: line,
 				output,
-				sequence,
 				absence: line === WORK_LINE_CODES.absence,
 				definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' },
 				optIns
@@ -102,8 +91,8 @@ export function workPayItems(
 		);
 	};
 	work.rates.bands.forEach((band, index) => {
-		add(band.line, band.label, 20 + index, band.statutory_opt_ins);
-		if (band.funnel != null) add(band.funnel.line, band.label, 20 + index, band.statutory_opt_ins);
+		add(band.line, band.label, band.statutory_opt_ins);
+		if (band.funnel != null) add(band.funnel.line, band.label, band.statutory_opt_ins);
 	});
 	return items;
 }

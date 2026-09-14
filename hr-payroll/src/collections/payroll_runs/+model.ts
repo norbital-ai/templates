@@ -1,10 +1,9 @@
-import { custom, defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
 		period: text({ search: true }).notNull(),
-		lifecycle: enums(['DRAFT', 'PAID']).notNull(),
 		/** Hash of the selected configuration; holidays retains the published holidays the run read. */
 		configuration_hash: text().notNull(),
 		/** Annual calendars publish independently of settings; preserve their full selected revisions. */
@@ -20,12 +19,20 @@ export default defineModel(
 		calculation_version: text().notNull(),
 		pay_date: instant({ precision: 'day' }).notNull(),
 		attendance_from: instant({ precision: 'day' }).notNull(),
-		attendance_to: instant({ precision: 'day' }).notNull()
+		attendance_to: instant({ precision: 'day' }).notNull(),
+		/**
+		 * How each charge was derived: per payslip, every scheme's base lines, producer reads,
+		 * governing rule and shares. Engine-owned and frozen with the run; the Flow screen renders
+		 * it, nothing consumes it in a calculation.
+		 */
+		calculation_trace: custom('payroll_trace')
+			.notNull()
+			.default(sql`'[]'::jsonb`)
 	},
 	{
 		description:
-			'A frozen payroll calculation for a company and period: a month (YYYY-MM) at a monthly company, a half (YYYY-MM-1 for the 1st to the 15th, YYYY-MM-2 for the 16th to the month end) at a semi-monthly one. Exactly one payroll is permitted per company and period. Later approved adjustments settle in a subsequent period. Only drafts can be deleted. The run names the jurisdiction settings version that governed it and the calculation version that produced its outputs.',
-		recordLabel: ['period', 'lifecycle'],
+			'A frozen payroll calculation for a company and period: a month (YYYY-MM) at a monthly company, a half (YYYY-MM-1 for the 1st to the 15th, YYYY-MM-2 for the 16th to the month end) at a semi-monthly one. Exactly one payroll is permitted per company and period. Later approved adjustments settle in a subsequent period. Payment lives on the payslips; the run carries no state of its own and only an unpaid run can be deleted. The run names the jurisdiction settings version that governed it and the calculation version that produced its outputs.',
+		recordLabel: ['period'],
 		icon: 'lucide:play-circle',
 		indexes: [{ columns: ['company_id', 'period'], unique: true }, { columns: ['settings_id'] }]
 	}

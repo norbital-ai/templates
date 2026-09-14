@@ -14,24 +14,11 @@ export type OffboardingChoice = {
 	readonly rate: number | null;
 };
 
-/** The departure reasons the employments model offers; the hook records whichever is chosen. */
-export const EXIT_REASONS = [
-	'RESIGNATION',
-	'END_OF_CONTRACT',
-	'TERMINATION',
-	'RETRENCHMENT',
-	'MISCONDUCT',
-	'RETIREMENT',
-	'DEATH',
-	'OTHER'
-] as const;
-export type ExitReason = (typeof EXIT_REASONS)[number];
-
 export type OffboardingDeparture = {
 	readonly id: string;
-	readonly exit_date: string;
-	readonly exit_reason: string;
-	readonly exit_note: string | null;
+	/** The stint with its end closed on the last day; start is carried through verbatim. */
+	readonly effective_range: { readonly start: string; readonly end: string };
+	readonly comments: string | null;
 };
 
 /** Days the step may encash for one leave type: the reserved balance, else null. */
@@ -52,17 +39,22 @@ export function exitReference(employmentId: string, leaveCode: string): string {
  */
 export function buildOffboardingWrites(options: {
 	readonly employmentId: string;
-	/** Last day of work, `YYYY-MM-DD`; the contract's effective end follows it. */
+	/** Stored range start of the contract, carried through verbatim. */
+	readonly rangeStart: string;
+	/** Last day of work, `YYYY-MM-DD`; the encashment events settle on it. */
 	readonly lastDay: string;
-	readonly reason: string;
+	/** The contract's new range end in stored form (the last day as an instant). */
+	readonly rangeEnd: string;
 	readonly note: string | null;
 	readonly summaries: readonly OffboardingSummary[];
 	readonly choices: Readonly<Record<string, OffboardingChoice>>;
 	readonly currency: string;
 }): { readonly departure: OffboardingDeparture; readonly encashments: readonly LeaveSubmission[] } {
-	const { employmentId, lastDay, reason, note, summaries, choices, currency } = options;
+	const { employmentId, rangeStart, lastDay, rangeEnd, note, summaries, choices, currency } =
+		options;
 	if (lastDay.trim() === '') refuse('Off-boarding needs a last day of work.');
-	if (reason.trim() === '') refuse('Off-boarding needs a reason.');
+	if (rangeStart.trim() === '' || rangeEnd.trim() === '')
+		refuse('Off-boarding needs the contract range it closes.');
 	const encashments = summaries.flatMap((summary): readonly LeaveSubmission[] => {
 		if (!choices[summary.code]?.encash) return [];
 		const days = encashableBalance(summary);
@@ -94,7 +86,11 @@ export function buildOffboardingWrites(options: {
 		];
 	});
 	return {
-		departure: { id: employmentId, exit_date: lastDay, exit_reason: reason, exit_note: note },
+		departure: {
+			id: employmentId,
+			effective_range: { start: rangeStart, end: rangeEnd },
+			comments: note
+		},
 		encashments
 	};
 }

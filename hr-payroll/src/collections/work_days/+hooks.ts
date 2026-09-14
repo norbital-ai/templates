@@ -14,11 +14,19 @@ type StatutoryWeeklyRestRule = WorkRules['weekly_rest_rule'];
 import { selectBreakRule } from '../../lib/scheduling/rest-break.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import {
+	patternAnchor,
 	patternRosterCodeId,
-	termPattern,
+	termPatternRow,
 	type ShiftPatternLike
 } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
+import {
+	plannedDay,
+	projectedLimitBreaches,
+	projectionBounds,
+	type RosterCodeFacts,
+	type SchedulePlanDay
+} from '../../lib/scheduling/work-limits.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import {
 	assertNotSettled,
@@ -58,6 +66,9 @@ type SettingsVersionRow = {
 	/** Selected where the rest-day and break rules are judged; other readers never touch it. */
 	readonly work_rules?: {
 		readonly weekly_rest_rule: StatutoryWeeklyRestRule;
+		/** The hour ceilings the schedule gate refuses on (RFC 0001 §5). */
+		readonly limits?: WorkRules['limits'];
+		readonly authority?: string | null;
 		readonly breaks?: readonly {
 			readonly when: string;
 			readonly owed_minutes: number | string;
@@ -154,12 +165,12 @@ function assertMonthConformsToPattern(options: {
 	let date = bounds.start;
 	while (date <= bounds.end) {
 		const term = terms.find((candidate) => coversDate(candidate.effective_range, date));
-		const pattern = term == null ? null : termPattern(term, patternById);
-		if (pattern != null && pattern.type === 'PATTERNED') {
+		const patternRow = term == null ? null : termPatternRow(term, patternById);
+		if (patternRow != null && 'days' in patternRow.pattern) {
 			patterned = true;
 			let projectedId: string | null = null;
 			try {
-				projectedId = patternRosterCodeId(pattern, date);
+				projectedId = patternRosterCodeId(patternRow.pattern, date, patternAnchor(patternRow));
 			} catch {
 				projectedId = null;
 			}
@@ -256,11 +267,11 @@ export function assertRunHasRestDay(options: {
 	let date = window.start;
 	while (date <= window.end) {
 		const term = terms.find((candidate) => coversDate(candidate.effective_range, date));
-		const pattern = term == null ? null : termPattern(term, patternById);
+		const patternRow = term == null ? null : termPatternRow(term, patternById);
 		let projectedId: string | null = null;
-		if (pattern != null && pattern.type === 'PATTERNED') {
+		if (patternRow != null && 'days' in patternRow.pattern) {
 			try {
-				projectedId = patternRosterCodeId(pattern, date);
+				projectedId = patternRosterCodeId(patternRow.pattern, date, patternAnchor(patternRow));
 			} catch {
 				projectedId = null;
 			}
@@ -400,7 +411,7 @@ function assertBatchConformsToPattern(
 							}),
 							api.db.shift_patterns.findMany({
 								where: { company_id: { in: companyIds } },
-								columns: { id: true, code: true, pattern: true },
+								columns: { id: true, code: true, pattern: true, effective_range: true },
 								limit: QUERY_LIMIT
 							}),
 							settingsCodes.length === 0
@@ -433,13 +444,30 @@ function assertBatchConformsToPattern(
 		);
 		const codeKindById = new Map<string, 'WORK' | 'REST' | 'OFF'>();
 		const paidMinutesById = new Map<string, number>();
+		/** What a projected plan day resolves to: kind, paid minutes, granted break and clock span. */
+		const codeFactsById = new Map<string, RosterCodeFacts>();
 		for (const code of codes) {
 			try {
 				const kind = rosterCodeKind(code.variant);
 				codeKindById.set(code.id, kind);
 				if (kind === 'WORK') {
 					const window = workWindow(code.variant);
-					if (window != null) paidMinutesById.set(code.id, window.paid_minutes);
+					if (window != null) {
+						paidMinutesById.set(code.id, window.paid_minutes);
+						codeFactsById.set(code.id, {
+							kind: 'WORK',
+							paid_minutes: window.paid_minutes,
+							break_minutes: window.break_minutes,
+							spread_hours: window.elapsed_minutes / 60
+						});
+					}
+				} else {
+					codeFactsById.set(code.id, {
+						kind,
+						paid_minutes: 0,
+						break_minutes: 0,
+						spread_hours: 0
+					});
 				}
 			} catch {
 				continue;
@@ -493,6 +521,34 @@ function assertBatchConformsToPattern(
 		const settingsCodeByCompany = new Map(
 			companies.map((company) => [company.id, company.settings_code])
 		);
+		// The hour ceilings project over the widest period any limit in force names. The month read
+		// covers the rest-day run; a weekly, quarterly or yearly ceiling reaches past it, so the
+		// overlay is read once more over the projection window when that window is wider.
+		const allLimits = versions.flatMap((version) => version.work_rules?.limits ?? []);
+		const projectionWindow = projectionBounds(
+			[...new Set(changes.map((change) => change.work_date))],
+			allLimits
+		);
+		if (
+			projectionWindow != null &&
+			(projectionWindow.start < spanStart || projectionWindow.end > spanEnd)
+		) {
+			const projectionRows = yield* api.db.work_days.findMany({
+				where: {
+					employment_id: { in: employmentIds },
+					work_date: { gte: projectionWindow.start, lte: projectionWindow.end }
+				},
+				columns: { employment_id: true, work_date: true, shift_definition_id: true },
+				limit: QUERY_LIMIT
+			});
+			if (projectionRows.length === QUERY_LIMIT)
+				refuse("This schedule's projection is too large to validate safely in one write.");
+			for (const row of projectionRows) {
+				const storedDate = dateKey(row.work_date);
+				if (storedDate == null) continue;
+				storedByKey.set(`${row.employment_id}:${storedDate}`, row.shift_definition_id);
+			}
+		}
 		for (const employmentId of employmentIds) {
 			const own = changes.filter((change) => change.employment_id === employmentId);
 			const firstChange = own[0];
@@ -504,6 +560,54 @@ function assertBatchConformsToPattern(
 			// a jurisdiction snapshot.
 			const version = settingsInForce(versions, settingsCode, firstChange.work_date);
 			if (version == null) continue;
+			// The hour ceilings are a schedule gate too (RFC 0001 §5.1): a pattern or roster whose
+			// projection breaches any limit is refused here. Payroll still reports an attendance
+			// overrun and prices it; a plan the law forbids is never written.
+			const limits = version.work_rules?.limits ?? [];
+			if (limits.length > 0) {
+				const window = projectionBounds(
+					own.map((change) => change.work_date),
+					limits
+				);
+				if (window != null) {
+					const planByDate = new Map<string, SchedulePlanDay>();
+					for (let date = window.start; date <= window.end; date = addDays(date, 1)) {
+						const term = termsByEmployment
+							.get(employmentId)
+							?.find((candidate) => coversDate(candidate.effective_range, date));
+						const patternRow = term == null ? null : termPatternRow(term, patternById);
+						let projectedId: string | null = null;
+						if (patternRow != null && 'days' in patternRow.pattern) {
+							try {
+								projectedId = patternRosterCodeId(
+									patternRow.pattern,
+									date,
+									patternAnchor(patternRow)
+								);
+							} catch {
+								projectedId = null;
+							}
+						}
+						const explicitId = storedByKey.get(`${employmentId}:${date}`);
+						planByDate.set(
+							date,
+							plannedDay({
+								date,
+								rosterCodeId: explicitId ?? projectedId,
+								codeById: codeFactsById
+							})
+						);
+					}
+					const breach = projectedLimitBreaches({
+						subject: employmentById.get(employmentId)?.employee_number ?? employmentId,
+						changedDates: new Set(own.map((change) => change.work_date)),
+						planByDate,
+						limits,
+						authority: version.work_rules?.authority ?? null
+					})[0];
+					if (breach != null) refuse(breach.message);
+				}
+			}
 			const rule: StatutoryWeeklyRestRule | undefined = version.work_rules?.weekly_rest_rule;
 			if (rule == null) continue;
 			const plannedByDate = new Map<string, string | null>();

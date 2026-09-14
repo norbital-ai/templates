@@ -341,9 +341,9 @@ test(
 			);
 
 			const loadRun = () =>
-				session.query(`select id, lifecycle from payroll_runs where id = $1`, [
-					payrollRunId
-				]) as Promise<ReadonlyArray<{ readonly id: string; readonly lifecycle: string }>>;
+				session.query(`select id from payroll_runs where id = $1`, [payrollRunId]) as Promise<
+					ReadonlyArray<{ readonly id: string }>
+				>;
 			let inserted = await loadRun();
 			if (inserted.length === 0) {
 				const resumed = await postGuestCommand(

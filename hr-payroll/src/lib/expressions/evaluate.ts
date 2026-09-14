@@ -8,6 +8,7 @@
  */
 
 import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
+import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
 import { childUnder } from './child-under.js';
 
 function monthDays(month: string): number {
@@ -59,6 +60,43 @@ export function runtimeExpressionEngine(
 				const value = Number(base);
 				const rungs = Array.isArray(grades) ? grades.map(Number) : [];
 				return rungs.find((grade) => value <= grade) ?? rungs.at(-1) ?? value;
+			})
+			// Money rounding, the `rules.rounding` chain as callable functions. Every one delegates
+			// to `roundMoney`, so the epsilon that protects the engine's floats is shared.
+			.registerFunction('round_cent', 'round_cent(dyn): double', (value) =>
+				roundMoney(Number(value), 'NEAREST_CENT')
+			)
+			.registerFunction('round_5_cents', 'round_5_cents(dyn): double', (value) =>
+				roundMoney(Number(value), 'NEAREST_5_CENTS')
+			)
+			.registerFunction('truncate_cent', 'truncate_cent(dyn): double', (value) =>
+				roundMoney(Number(value), 'TRUNCATE_CENT')
+			)
+			.registerFunction('up_5_cents', 'up_5_cents(dyn): double', (value) =>
+				roundMoney(Number(value), 'UP_5_CENTS')
+			)
+			.registerFunction('round_unit', 'round_unit(dyn): double', (value) =>
+				roundMoney(Number(value), 'NEAREST_UNIT')
+			)
+			.registerFunction('floor_unit', 'floor_unit(dyn): double', (value) =>
+				roundMoney(Number(value), 'FLOOR_UNIT')
+			)
+			.registerFunction('up_to_unit', 'up_to_unit(dyn): double', (value) =>
+				roundMoney(Number(value), 'UP_TO_UNIT')
+			)
+			// A published progressive ladder inlined as data: `[from, amount, rate, …]` triples, in
+			// order. The last rung whose `from` is strictly below the value governs, exactly as its
+			// `base > from && base <= to` rule did; below the first rung the charge is zero.
+			.registerFunction('progressive', 'progressive(dyn, list<dyn>): double', (value, table) => {
+				const amount = Number(value);
+				const rungs = Array.isArray(table) ? table.map(Number) : [];
+				let charged = 0;
+				for (let index = 0; index + 2 < rungs.length; index += 3) {
+					const from = rungs[index]!;
+					if (from >= amount) break;
+					charged = rungs[index + 1]! + ((amount - from) * rungs[index + 2]!) / 100;
+				}
+				return charged;
 			})
 			// `children.under(n)`: the count of ages below `n`, the shape `PersonContext` carries.
 			.registerFunction('map.under', 'map.under(int): int', childUnder)
