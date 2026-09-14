@@ -173,14 +173,11 @@ type GatherRunOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
-	/** The employments this run withholds; they are dropped before anything is read about them. */
-	readonly withheld?: readonly string[];
 };
 
 export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun, never, never> {
 	return Effect.gen(function* () {
 		const { window } = options;
-		const withheld = new Set(options.withheld ?? []);
 		const period = window.period;
 		const salary = window.salary;
 		const db = options.api.db;
@@ -192,13 +189,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				where: { company_id: { eq: companyId }, ...approved },
 				limit: PAGE_LIMIT
 			})
-		)
-			.map(resolveEmployment)
-			// Withheld before anything else reads them. A run covers everyone eligible; a person the
-			// operator withheld is the stated exception, and skipping them here — rather than
-			// dropping their payslip later — is what stops one person's missing roster from refusing
-			// the whole company.
-			.filter((row) => !withheld.has(row.id));
+		).map(resolveEmployment);
 		options.api.reads.assertComplete(employmentRows, 'employments');
 
 		const begun = employmentRows.filter((row) => employmentDates(row).hire <= salary.end);
@@ -207,14 +198,18 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			configuration: options.configuration,
 			employmentIds: begun.map((row) => row.id),
 			period,
-			asOf: salary.end
+			asOf: salary.end,
+			periodWindow: { start: salary.start, end: salary.end }
 		});
 		const touching = begun.filter((row) =>
 			overlapsRange(row.effective_range, salary.start, salary.end)
 		);
+		// A materialised row is a slice of a standing allowance: its recurring source keeps the
+		// employment selected while it runs, so the derived row must not select an ended contract
+		// that the allowance no longer covers.
 		const hasOutstandingRequest = (employmentId: string) =>
 			(requestsByEmployment.get(employmentId) ?? []).some(
-				(request) => !request.recurring && !request.captured
+				(request) => !request.recurring && request.materialised == null && !request.captured
 			);
 		const candidates = begun.filter(
 			(row) =>
@@ -269,6 +264,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				(requestsByEmployment.get(row.id) ?? []).some(
 					(request) =>
 						!request.recurring &&
+						request.materialised == null &&
 						requestIsDue(
 							request,
 							period,
@@ -344,6 +340,8 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			employments,
 			requestsByEmployment,
 			cadenceByEmployment,
+			period,
+			periodWindow: { start: salary.start, end: salary.end },
 			window,
 			complianceSpan
 		});
@@ -461,7 +459,9 @@ function gatherPriorSettlement(
 ): Effect.Effect<PriorSettlement, never, never> {
 	return Effect.gen(function* () {
 		const db = options.api.db;
-		const startMonth = decodeNumber(options.configuration.jurisdiction.tax_year_start_month);
+		const startMonth = decodeNumber(
+			options.configuration.jurisdiction.payroll.tax_year_start_month
+		);
 		const firstPeriod = taxYearFirstPeriod(options.period, startMonth);
 		/**
 		 * Every earlier settled run, not only this tax year's.

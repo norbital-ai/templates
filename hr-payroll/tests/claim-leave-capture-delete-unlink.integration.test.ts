@@ -89,7 +89,7 @@ const fileTimeOff = (
 					values: {
 						id,
 						employment_id: EMPLOYMENT_ID,
-						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+						catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 						reference: `LEAVE-${id}`,
 						event: {
 							kind: 'TIME_OFF',
@@ -361,7 +361,7 @@ test(
 				{
 					id: claimId,
 					employment_id: EMPLOYMENT_ID,
-					claim_catalogue_id: TRANSPORT_COMPONENT_ID,
+					catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
 					incurred_on: '2026-03-05',
 					description: 'Client site taxi'
@@ -385,15 +385,11 @@ test(
 			);
 			requireAccepted(run, 'payroll run create');
 			assert.equal(run.pendingApproval, undefined, `manager runs land: ${JSON.stringify(run)}`);
-			const captureSql = (junction: string, column: string) =>
-				`select count(*)::int as n from ${junction} i
-				 join payslips p on p.id = i.payslip_id
-				 where p.payroll_run_id = $1 and i.${column} = $2`;
 			assert.equal(
 				await rowCount(
 					session,
 					`select count(*)::int as n from claim_requests c
-					 join payslips p on p.id = c.settled_payslip_id
+					 join payslips p on p.id = c.payslip_id
 					 where p.payroll_run_id = $1 and c.id = $2`,
 					[runId, claimId]
 				),
@@ -401,10 +397,13 @@ test(
 				'the claim must be settled by a payslip of the March run'
 			);
 			assert.equal(
-				await rowCount(session, captureSql('payslip_leave_inputs', 'leave_entry_id'), [
-					runId,
-					leaveId
-				]),
+				await rowCount(
+					session,
+					`select count(*)::int as n from leave_entries l
+					 join payslips p on p.id = l.payslip_id
+					 where p.payroll_run_id = $1 and l.id = $2`,
+					[runId, leaveId]
+				),
 				1,
 				'the approved leave must be captured as an input of the March run'
 			);
@@ -470,7 +469,7 @@ test(
 			assert.equal(
 				await rowCount(
 					session,
-					'select count(*)::int as n from claim_requests where id = $1 and settled_payslip_id is not null',
+					'select count(*)::int as n from claim_requests where id = $1 and payslip_id is not null',
 					[claimId]
 				),
 				0,
@@ -479,7 +478,7 @@ test(
 			assert.equal(
 				await rowCount(
 					session,
-					'select count(*)::int as n from payslip_leave_inputs where leave_entry_id = $1',
+					'select count(*)::int as n from leave_entries where id = $1 and payslip_id is not null',
 					[leaveId]
 				),
 				0,

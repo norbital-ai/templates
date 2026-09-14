@@ -1,0 +1,340 @@
+/**
+ * The expression contexts of RFC 0001 §7, as data.
+ *
+ * Every CEL a catalogue, band, scheme or schedule rule carries is compiled against exactly one
+ * of these contexts. The catalogue is the single source of truth: the engine's builders assemble
+ * an object of this shape, the compiler checks an expression's members and result type against
+ * the blank instance below, and the UI's Fields panel renders `fields` so an operator can see
+ * what is available before typing it.
+ *
+ * A member not listed here is refused at write time, not discovered at payroll. Open prefixes
+ * (`limits.*`, `produced.*`) are the deliberate exception: their remaining segments are data
+ * keys supplied by the version being evaluated.
+ */
+
+export type ExpressionSite = 'person' | 'entry' | 'work_day' | 'scheme' | 'schedule';
+export type ExpressionType = 'boolean' | 'number';
+
+type ContextField = {
+	readonly path: string;
+	readonly description: string;
+};
+
+export type ExpressionContext = {
+	readonly site: ExpressionSite;
+	readonly description: string;
+	readonly fields: readonly ContextField[];
+	/** Value members used bare (no dot), e.g. a scheme's `base`. */
+	readonly bare: readonly string[];
+	/** Path roots whose remaining segments are keys, not schema members. */
+	readonly open: readonly string[];
+	readonly blank: Record<string, unknown>;
+};
+
+const PERSON_FIELDS: readonly ContextField[] = [
+	{ path: 'employee.gender', description: 'Recorded gender' },
+	{ path: 'employee.age', description: 'Completed years on the rule date' },
+	{ path: 'employee.citizenship', description: 'Residency standing from the effective terms' },
+	{ path: 'employee.marital_status', description: 'Marital status' },
+	{ path: 'employee.spouse_status', description: 'NONE | WITHOUT_INCOME | WITH_INCOME' },
+	{ path: 'employee.dependents_count', description: 'Dependants recorded for statutory reliefs' },
+	{ path: 'employee.solo_parent', description: 'Solo-parent flag' },
+	{ path: 'employee.race', description: 'Recorded race' },
+	{ path: 'employee.religion', description: 'Recorded religion' },
+	{ path: 'employee.residency_months', description: 'Completed months since residency began' },
+	{ path: 'employment.type', description: 'Employment type from the effective terms' },
+	{ path: 'employment.classification', description: 'Work classification' },
+	{ path: 'employment.service_months', description: 'Completed months since hire' },
+	{ path: 'employment.hire_date', description: 'Hire date' },
+	{ path: 'terms.basic_salary', description: 'Contracted monthly base salary' },
+	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
+	{ path: 'terms.department', description: 'Department' },
+	{ path: 'terms.payroll_group', description: 'Payroll group' },
+	{ path: 'terms.grade', description: 'Grade' },
+	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
+	{ path: 'terms.working_days_per_week', description: 'Roster-measured working week, days' },
+	{ path: 'children.count', description: 'Recorded children on the rule date' },
+	{ path: 'children.under(n)', description: 'Children under n completed years' },
+	{ path: 'company.region', description: 'Employing entity region' }
+];
+
+const PERSON_BLANK = {
+	employee: {
+		gender: '',
+		age: 0,
+		citizenship: '',
+		marital_status: '',
+		spouse_status: '',
+		dependents_count: 0,
+		solo_parent: false,
+		race: '',
+		religion: '',
+		residency_months: 0
+	},
+	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
+	terms: {
+		basic_salary: 0,
+		workman: false,
+		department: '',
+		payroll_group: '',
+		grade: '',
+		ordinary_hours_per_week: 0,
+		working_days_per_week: 0
+	},
+	children: { count: 0, ages: [] },
+	company: { region: '' }
+};
+
+const personFields = (prefix: string): ContextField[] =>
+	PERSON_FIELDS.map((field) => ({
+		path: `${prefix}${field.path}`,
+		description: field.description
+	}));
+
+const personBlank = () => structuredClone(PERSON_BLANK);
+
+/** Representative evaluated limits for compile-time and previews; the builders supply the real ones. */
+const LIMITS_BLANK = {
+	daily_total: 11,
+	normal_day: 8,
+	spread_day: 10,
+	weekly_total: 45,
+	monthly_ot: 104,
+	quarter_ot: 138,
+	year_ot: 200
+};
+
+const PERSON_CONTEXT: ExpressionContext = {
+	site: 'person',
+	description: 'The person on the rule date: catalogue and scheme eligibility.',
+	fields: PERSON_FIELDS,
+	bare: [],
+	open: [],
+	blank: personBlank()
+};
+
+const ENTRY_CONTEXT: ExpressionContext = {
+	site: 'entry',
+	description: 'One catalogue entry as the run collects it: band amounts and the leave convertor.',
+	fields: [
+		...personFields('person.'),
+		{ path: 'entry.amount', description: 'The keyed amount; zero where the entry carries none' },
+		{ path: 'entry.days', description: 'Charged days' },
+		{ path: 'entry.hours', description: 'Recorded hours' },
+		{ path: 'entry.quantity', description: 'Recorded quantity' },
+		{ path: 'entry.event_date', description: 'The day the entry belongs to' },
+		{ path: 'entry.period', description: 'Pay period key the entry settles in' },
+		{ path: 'entry.recurring', description: 'Whether the entry recurs' },
+		{ path: 'entry.occurrence_index', description: 'Instalment number of a recurring entry' },
+		{ path: 'entry.window.start', description: 'Standing entry window start' },
+		{ path: 'entry.window.end', description: 'Standing entry window end' },
+		{ path: 'entry.captures.paid_to_date', description: 'Amount already settled' },
+		{ path: 'entry.captures.remaining', description: 'Amount still to settle' },
+		{ path: 'rates.ordinary_day', description: 'Ordinary day rate for the entry date' },
+		{ path: 'rates.ordinary_hour', description: 'Ordinary hour rate for the entry date' },
+		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
+		{ path: 'period.key', description: 'Pay period key' },
+		{ path: 'period.start', description: 'Pay period start' },
+		{ path: 'period.end', description: 'Pay period end' },
+		{ path: 'period.index', description: 'Which instalment of the month this period is' },
+		{ path: 'period.instalments', description: 'Instalments the month is paid in' },
+		{ path: 'leave.days(code)', description: 'Charged days of one leave code in the window' },
+		{ path: 'leave.balance(code)', description: 'Available days of one leave code' }
+	],
+	bare: [],
+	open: ['limits'],
+	blank: {
+		person: personBlank(),
+		entry: {
+			amount: 0,
+			days: 0,
+			hours: 0,
+			quantity: 0,
+			event_date: '',
+			period: '',
+			recurring: false,
+			occurrence_index: 1,
+			window: { start: '', end: '' },
+			captures: { paid_to_date: 0, remaining: 0 }
+		},
+		rates: { ordinary_day: 0, ordinary_hour: 0 },
+		limits: structuredClone(LIMITS_BLANK),
+		period: { key: '', start: '', end: '', index: 1, instalments: 1 },
+		leave: {}
+	}
+};
+
+const WORK_DAY_CONTEXT: ExpressionContext = {
+	site: 'work_day',
+	description: 'One priced person-day: work bands and owed breaks.',
+	fields: [
+		...personFields('person.'),
+		{ path: 'date', description: 'The day' },
+		{
+			path: 'day_type',
+			description: 'ORDINARY | REST_DAY | PUBLIC_HOLIDAY | SPECIAL_HOLIDAY | OFF_DAY'
+		},
+		{ path: 'worked_hours', description: 'Net worked hours' },
+		{ path: 'normal_hours', description: 'The scheduled normal hours' },
+		{ path: 'hours_beyond_normal', description: 'Worked hours past the normal day' },
+		{ path: 'hours_from_start_fraction', description: 'Worked share of a normal day, 0..1' },
+		{ path: 'total_work_hours', description: 'Net worked hours, the day in full' },
+		{ path: 'overtime_hours', description: 'Derived overtime hours' },
+		{ path: 'month_overtime_hours', description: 'Overtime hours already counted this month' },
+		{ path: 'consecutive_hours', description: 'Longest unbroken work run in the day' },
+		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
+		{ path: 'roster_code', description: 'The roster code that planned the day' },
+		{ path: 'paid_minutes', description: 'Paid minutes of the planned shift' },
+		{ path: 'break_minutes', description: 'Break the shift grants' },
+		{ path: 'start_time', description: 'Shift start, HH:MM' },
+		{ path: 'end_time', description: 'Shift end, HH:MM' },
+		{ path: 'ordinary_hour', description: 'Ordinary hour rate' },
+		{ path: 'ordinary_day', description: 'Ordinary day rate' },
+		{ path: 'day_wage', description: 'Ordinary day wage' },
+		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
+		{ path: 'holiday.kind', description: 'PUBLIC | SPECIAL | SUBSTITUTE, or empty' },
+		{ path: 'holiday.name', description: 'Published holiday name, or empty' }
+	],
+	bare: [
+		'date',
+		'day_type',
+		'worked_hours',
+		'normal_hours',
+		'hours_beyond_normal',
+		'hours_from_start_fraction',
+		'total_work_hours',
+		'overtime_hours',
+		'month_overtime_hours',
+		'consecutive_hours',
+		'continuous_attendance',
+		'roster_code',
+		'paid_minutes',
+		'break_minutes',
+		'start_time',
+		'end_time',
+		'ordinary_hour',
+		'ordinary_day',
+		'day_wage'
+	],
+	open: ['limits'],
+	blank: {
+		person: personBlank(),
+		date: '',
+		day_type: 'ORDINARY',
+		worked_hours: 13,
+		normal_hours: 9,
+		hours_beyond_normal: 4,
+		hours_from_start_fraction: 1,
+		total_work_hours: 13,
+		overtime_hours: 4,
+		month_overtime_hours: 20,
+		consecutive_hours: 4,
+		continuous_attendance: false,
+		roster_code: 'AM0830',
+		paid_minutes: 540,
+		break_minutes: 60,
+		start_time: '08:30',
+		end_time: '18:30',
+		ordinary_hour: 25.5,
+		ordinary_day: 204,
+		day_wage: 204,
+		limits: structuredClone(LIMITS_BLANK),
+		holiday: { kind: '', name: '' }
+	}
+};
+
+const SCHEME_CONTEXT: ExpressionContext = {
+	site: 'scheme',
+	description: 'One statutory scheme for one person and period: rules and rate bands.',
+	fields: [
+		...personFields('person.'),
+		{ path: 'base', description: 'The assembled chargeable base' },
+		{ path: 'share', description: 'The employee share computed so far' },
+		{ path: 'code', description: 'The scheme code' },
+		{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH' },
+		{ path: 'period.key', description: 'Pay period key' },
+		{ path: 'period.index', description: 'Which instalment of the month this period is' },
+		{ path: 'period.instalments', description: 'Instalments the month is paid in' },
+		{ path: 'year_to_date.base', description: 'Base already paid this tax year' },
+		{ path: 'year_to_date.employee', description: 'Employee amount already paid this tax year' },
+		{
+			path: 'projection.payslips_remaining',
+			description: 'Payslips left in the year, this one included'
+		},
+		{ path: 'projection.future_equivalents', description: 'Future payslips of this size' },
+		{ path: 'region', description: 'The employing entity region' },
+		{ path: 'minimum_wage(region)', description: 'The version minimum wage for a region' },
+		{ path: 'headcount', description: 'Active employments in the entity' },
+		{ path: 'age', description: 'Completed years on the period end' },
+		{ path: 'risk_class', description: 'The employment risk class, or empty' },
+		{ path: 'produced.<code>.employee', description: 'Employee share another scheme produced' }
+	],
+	bare: ['base', 'share', 'code', 'assessment_period', 'region', 'headcount', 'age', 'risk_class'],
+	open: ['produced'],
+	blank: {
+		person: personBlank(),
+		base: 0,
+		share: 0,
+		code: '',
+		assessment_period: 'PAY_PERIOD',
+		period: { key: '', index: 1, instalments: 1 },
+		year_to_date: { base: 0, employee: 0 },
+		projection: { payslips_remaining: 1, future_equivalents: 0 },
+		region: '',
+		headcount: 1,
+		age: 0,
+		risk_class: '',
+		produced: { EPF: { employee: 0 } }
+	}
+};
+
+const SCHEDULE_CONTEXT: ExpressionContext = {
+	site: 'schedule',
+	description: 'One planned day or projected schedule window: limit and break enforcement.',
+	fields: [
+		...personFields('person.'),
+		{ path: 'plan.date', description: 'The planned day' },
+		{ path: 'plan.roster_code', description: 'The roster code assigned' },
+		{ path: 'plan.kind', description: 'WORK | REST | OFF' },
+		{ path: 'plan.paid_minutes', description: 'Paid minutes the code grants' },
+		{ path: 'plan.break_minutes', description: 'Break the code grants' },
+		{ path: 'plan.spread_hours', description: 'Clock span, start to end' },
+		{ path: 'projected.day_hours', description: 'Paid hours on the day' },
+		{ path: 'projected.week_hours', description: 'Paid hours in the week through the day' },
+		{ path: 'projected.month_ot_hours', description: 'Projected overtime hours this month' },
+		{ path: 'projected.quarter_ot_hours', description: 'Projected overtime hours this quarter' },
+		{ path: 'projected.year_ot_hours', description: 'Projected overtime hours this year' },
+		{ path: 'projected.run_of_work_days', description: 'Consecutive WORK days through the day' },
+		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' }
+	],
+	bare: [],
+	open: ['limits'],
+	blank: {
+		person: personBlank(),
+		plan: {
+			date: '',
+			roster_code: '',
+			kind: 'WORK',
+			paid_minutes: 0,
+			break_minutes: 0,
+			spread_hours: 0
+		},
+		projected: {
+			day_hours: 0,
+			week_hours: 0,
+			month_ot_hours: 0,
+			quarter_ot_hours: 0,
+			year_ot_hours: 0,
+			run_of_work_days: 1
+		},
+		limits: structuredClone(LIMITS_BLANK)
+	}
+};
+
+export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionContext>> = {
+	person: PERSON_CONTEXT,
+	entry: ENTRY_CONTEXT,
+	work_day: WORK_DAY_CONTEXT,
+	scheme: SCHEME_CONTEXT,
+	schedule: SCHEDULE_CONTEXT
+};

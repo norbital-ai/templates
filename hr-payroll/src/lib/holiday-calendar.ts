@@ -7,7 +7,7 @@ import { dateKey } from './iso-day.js';
 /** What a consumer reads off a holiday row; the snapshot is the same columns, dates as day keys. */
 export type HolidayRow = Pick<
 	WorkspaceRow<'jurisdiction_holidays'>,
-	'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
+	'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'given_to' | 'published_at'
 >;
 
 /** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
@@ -19,6 +19,8 @@ export function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 		name: row.name,
 		kind: row.kind === 'SPECIAL' || row.kind === 'SUBSTITUTE' ? row.kind : 'PUBLIC',
 		original_date: row.original_date == null ? null : dateKey(row.original_date),
+		given_to:
+			row.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' ? 'ONLY_IF_OFF_ON_REPLACED_DATE' : 'EVERYONE',
 		published_at: row.published_at ?? ''
 	};
 }

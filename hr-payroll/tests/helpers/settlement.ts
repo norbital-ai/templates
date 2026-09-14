@@ -2,15 +2,22 @@
 /**
  * What a run settled, as the tests read it.
  *
- * A single-use source (work day, claim, payment) carries `settled_payslip_id` and `settled_period`;
- * the run's `before` hook stamps them in the same write that creates the payslips, and
- * `buildPayrollRun` hands the same lists back as `captures`. These helpers are the two ends of
- * that: read what a build captured, and put a world into the state a prior run would have left it in.
+ * A source row carries a nullable `payslip_id`; the run's `before` hook stamps it in the same
+ * write that creates the payslips, and `buildPayrollRun` hands the same lists back as `captures`.
+ * These helpers are the two ends of that: read what a build captured, and put a world into the
+ * state a prior run would have left it in.
  */
 
-export const NO_CAPTURES = { workDays: [], claims: [], payments: [] };
+export const NO_CAPTURES = {
+	workDays: [],
+	claims: [],
+	payments: [],
+	allowances: [],
+	leave: [],
+	loanRepayments: []
+};
 
-/** The single-use sources one payslip of a build settled. */
+/** The sources one payslip of a build settled. */
 export const capturesOf = (built, slip) =>
 	built.captures.find((capture) => capture.payslipId === slip?.id) ?? {
 		payslipId: slip?.id,
@@ -18,19 +25,15 @@ export const capturesOf = (built, slip) =>
 	};
 
 /** Mark one source row as settled by a payslip, the way a prior run's `after` hook would have. */
-export function settle(world, source, id, payslipId, period = '2026-01') {
+export function settle(world, source, id, payslipId) {
 	const row = world[source].find((candidate) => candidate.id === id);
 	if (row == null) throw new Error(`${source} ${id} is not in the world`);
-	row.settled_payslip_id = payslipId;
-	row.settled_period = period;
+	row.payslip_id = payslipId;
 }
 
 /** Clear every settlement pin on a source collection, the way deleting the draft run would. */
 export function release(world, source) {
-	for (const row of world[source]) {
-		row.settled_payslip_id = null;
-		row.settled_period = null;
-	}
+	for (const row of world[source]) row.payslip_id = null;
 }
 
 /** Add an adjustment to a prior payslip, creating the payslip row when the test has not. */
@@ -41,6 +44,9 @@ export function adjust(world, payslipId, adjustment, runId = 'prior-run') {
 			id: payslipId,
 			payroll_run_id: runId,
 			employment_id: world.employments[0].id,
+			status: 'DRAFT',
+			base: [],
+			proration: [],
 			statutory: [],
 			adjustments: [],
 			approval_id: null
@@ -61,4 +67,4 @@ export function adjust(world, payslipId, adjustment, runId = 'prior-run') {
 
 /** The ids of one source collection a payslip settled, read off the world. */
 export const settledBy = (world, source, payslipId) =>
-	world[source].filter((row) => row.settled_payslip_id === payslipId).map((row) => row.id);
+	world[source].filter((row) => row.payslip_id === payslipId).map((row) => row.id);

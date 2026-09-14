@@ -1,17 +1,17 @@
 /**
  * Step 7 — SETTLE.
  *
- * Four numbers, derived entirely from family pay-item policies and the statutory charges. Nothing
- * here reads a component code.
+ * Four numbers, derived entirely from the bucket each priced line settles in (§9) and the
+ * statutory charges. Nothing here reads a component code.
  *
  * ```
  * gross            = Σ EARNING − Σ ABSENCE
  * statutory (ee)   = Σ payslips.statutory[].employee_amount
  * other deductions = Σ DEDUCTION
- * payments         = Σ NON_WAGE_PAYMENT settled through payroll
+ * payments         = Σ NON_WAGE_PAYMENT
  *
  * net              = gross − statutory − other + payments
- * employer cost    = Σ employer_amount + Σ EMPLOYER_COST + Σ company-direct entries
+ * employer cost    = Σ employer_amount + Σ EMPLOYER_COST
  * ```
  *
  * The sums run over **both planes at once** — the contracted amounts inlined on the payslip and the
@@ -21,20 +21,24 @@
  *
  * `total_deductions` includes the employee's statutory contributions and excludes reimbursements.
  * A payroll-settled reimbursement repays the employee's own outlay, so it is added to net without
- * ever having been part of gross. A company-direct entry (for example, a panel-clinic invoice)
- * is instead an employer cost: the row remains on the payslip for provenance, but no cash passes
- * through the employee.
+ * ever having been part of gross. An `EMPLOYER` entry (for example, a panel-clinic invoice) costs
+ * the employer: the row remains on the payslip for provenance, but no cash passes through the
+ * employee.
  *
  * Loan repayments may be reduced to protect net pay. Their outstanding amount is derived from
  * paid captures, so partial recovery remains collectible in a later regular period. Single-use
  * entries and statutory charges must settle in full. If those alone make net negative, refuse
  * the payroll before any input is captured.
-
  */
 
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { ContributionCharge } from './contribute.js';
-import type { MeasuredAdjustment, MeasuredBase, PricedItem } from '../../../lib/payroll/family.js';
+import type {
+	MeasuredAdjustment,
+	MeasuredBase,
+	PricedItem,
+	SettlementBucket
+} from '../../../lib/payroll/family.js';
 import { cents } from './rounding.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -53,16 +57,6 @@ export type Settlement = {
 	}[];
 };
 
-/**
- * A company-direct entry costs the employer and never reaches the employee's net.
- *
- * `nature`, not `catalogueComponent.nature`: derived overtime has no component to read it from, and
- * it is an EARNING like any other.
- */
-function isCompanyDirect(item: PricedItem): boolean {
-	return item.catalogueComponent.settlement === 'COMPANY_DIRECT';
-}
-
 export function settle(options: {
 	readonly base: readonly MeasuredBase[];
 	readonly adjustments: readonly MeasuredAdjustment[];
@@ -71,26 +65,16 @@ export function settle(options: {
 	const statutoryEmployee = options.charges.reduce((total, charge) => total + charge.employee, 0);
 	const statutoryEmployer = options.charges.reduce((total, charge) => total + charge.employer, 0);
 
-	const sumOf = (items: readonly PricedItem[], nature: string): number =>
-		items.reduce((total, item) => total + (item.nature === nature ? item.amount : 0), 0);
+	const sumOf = (items: readonly PricedItem[], bucket: SettlementBucket): number =>
+		items.reduce((total, item) => total + (item.bucket === bucket ? item.amount : 0), 0);
 	const gross = cents(
 		sumOf(options.base, 'EARNING') +
 			sumOf(options.adjustments, 'EARNING') -
 			sumOf(options.base, 'ABSENCE') -
 			sumOf(options.adjustments, 'ABSENCE')
 	);
-	const paymentsOf = (items: readonly PricedItem[]): number =>
-		items.reduce(
-			(total, item) =>
-				total + (item.nature === 'NON_WAGE_PAYMENT' && !isCompanyDirect(item) ? item.amount : 0),
-			0
-		);
-	const employerOf = (items: readonly PricedItem[]): number =>
-		items.reduce(
-			(total, item) =>
-				total + (item.nature === 'EMPLOYER_COST' || isCompanyDirect(item) ? item.amount : 0),
-			0
-		);
+	const paymentsOf = (items: readonly PricedItem[]): number => sumOf(items, 'NON_WAGE_PAYMENT');
+	const employerOf = (items: readonly PricedItem[]): number => sumOf(items, 'EMPLOYER_COST');
 	const payments = paymentsOf(options.base) + paymentsOf(options.adjustments);
 	const employerAmounts = employerOf(options.base) + employerOf(options.adjustments);
 
@@ -103,7 +87,7 @@ export function settle(options: {
 	if (net < 0) {
 		const reducible = adjustments
 			.flatMap((item, index) =>
-				item.input.family === 'LOAN_REPAYMENT' && item.nature === 'DEDUCTION' && item.amount > 0
+				item.input.family === 'LOAN_REPAYMENT' && item.bucket === 'DEDUCTION' && item.amount > 0
 					? [{ index, amount: item.amount, component: item.catalogueComponent }]
 					: []
 			)

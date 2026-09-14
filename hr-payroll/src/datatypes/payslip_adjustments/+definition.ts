@@ -26,12 +26,19 @@ export const payslipAdjustmentSchema = Schema.Struct({
 	 *
 	 * It is not `label`. A derived overtime row labels itself with the statutory rule key that
 	 * priced it, which is provenance rather than vocabulary; its component code is the Work
-	 * catalogue's `OVERTIME` or `OVERTIME_EXCESS`, and both facts are needed — the key says which
-	 * band, the code says which column.
+	 * rules' `OVERTIME` class or funneled `INCENTIVE` line, and both facts are needed — the key
+	 * says which band, the code says which column.
 	 */
 	component_code: Schema.NonEmptyString,
 	label: Schema.String,
-	bucket: Schema.Literals(['EARNING', 'ABSENCE', 'DEDUCTION', 'NON_WAGE_PAYMENT', 'EMPLOYER_COST']),
+	bucket: Schema.Literals([
+		'EARNING',
+		'ABSENCE',
+		'DEDUCTION',
+		'NON_WAGE_PAYMENT',
+		'EMPLOYER_COST',
+		'INFORMATION'
+	]),
 	/** A magnitude, never a direction. Zero is meaningful: the input was consumed and priced at nothing. */
 	amount: Schema.Finite,
 	quantity: Schema.NullOr(Schema.Finite),

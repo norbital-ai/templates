@@ -39,12 +39,7 @@ const ReportLineSchema = Schema.Struct({
 	isCompanyDirect: Schema.Boolean,
 	/** A capped employee reimbursement, excluding unrelated non-wage payments such as tax refunds. */
 	isClaim: Schema.Boolean,
-	isLoanInstalment: Schema.Boolean,
-	/** Derived overtime lines carry the day type of the statutory band that priced them. */
-	overtimeDayType: Schema.NullOr(
-		Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])
-	),
-	isOvertimeExcess: Schema.Boolean
+	isLoanInstalment: Schema.Boolean
 });
 export type ReportLine = Schema.Schema.Type<typeof ReportLineSchema>;
 
@@ -161,27 +156,11 @@ const SECTION_LAYOUT: readonly {
 		outputIds: ['totalDeductions', 'employerCost']
 	},
 	{ name: 'Employer costs', unit: 'MONEY', natures: ['EMPLOYER_COST'] },
-	{ name: 'Information', unit: 'MONEY', natures: ['INFORMATION'] },
-	{
-		name: 'Attendance',
-		unit: 'HOURS',
-		outputIds: ['ot10Hours', 'ot15Hours', 'ot20Hours', 'ot30Hours', 'totalOTHours']
-	}
+	{ name: 'Information', unit: 'MONEY', natures: ['INFORMATION'] }
 ];
 
 /** Where output ids the vocabulary does not rank are collected, so a new id is never dropped. */
 const OTHER_SECTION_NAME = 'Other';
-
-function sumLines(payslip: ReportPayslip, predicate: (line: ReportLine) => boolean): number {
-	return payslip.lines.reduce((total, line) => total + (predicate(line) ? line.amount : 0), 0);
-}
-
-function sumHours(payslip: ReportPayslip, predicate: (line: ReportLine) => boolean): number {
-	return payslip.lines.reduce(
-		(total, line) => total + (predicate(line) ? (line.quantity ?? 0) : 0),
-		0
-	);
-}
 
 /**
  * The statutory columns, derived from the schemes the run actually charged.
@@ -229,81 +208,8 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 	return outputs;
 }
 
-/**
- * One payslip's money columns: the catalogue's own, plus the totals and the attendance hours.
- *
- * There is one vocabulary now. The fixed vendor projection this file used to also produce — a
- * hand-written list of output ids that summed the catalogue into `allowance`, `taxableBenefits`
- * and `adhocDeductions` — is gone, along with the argument for it: a column somebody has to add by
- * hand for every new pay component is a column that silently lumps the ones nobody remembered.
- *
- * The overtime-hours columns are named for the multiplier they historically carried; they are
- * derived from the day type of the rule each line pays, which is the stable fact — a jurisdiction
- * that changes its rest-day multiple does not change what a rest day is.
- *
- * `ot10Hours` is the exception, and it is derived from the award rather than the day: hours past
- * the statutory daily overtime ceiling are reclassified and valued at `ORDINARY_HOURLY` — the plain
- * hourly rate, no multiple — so they belong in a 1.0× bucket and not in the 1.5× one their day type
- * would otherwise put them in. Counting them by day type overstated the multiplied buckets by
- * exactly the excess hours, which is the tally the customer reconciles against.
- */
-function derivedTotals(payslip: ReportPayslip): Record<string, number> {
-	const overtimePay = sumLines(
-		payslip,
-		(line) => line.calculationSource === 'OVERTIME' && !line.isOvertimeExcess
-	);
-	const incentiveOTPay = sumLines(payslip, (line) => line.isOvertimeExcess);
-	const multipliedHours = (dayType: ReportLine['overtimeDayType']): number =>
-		sumHours(payslip, (line) => !line.isOvertimeExcess && line.overtimeDayType === dayType);
-	return {
-		proratedSalary: sumLines(payslip, (line) => line.calculationSource === 'SCHEDULE'),
-		overtimePay,
-		incentiveOTPay,
-		// Overtime corresponding to work past the total-work-hours boundary is reclassified to a
-		// benefit component, so it would
-		// otherwise be reported twice: once here and once as `incentiveOTPay`. The customer's
-		// workbook keeps its allowance column and its incentive-overtime column disjoint, and so
-		// does this one.
-		taxableBenefits: sumLines(
-			payslip,
-			(line) =>
-				line.nature === 'EARNING' &&
-				!['SCHEDULE', 'OVERTIME'].includes(line.calculationSource) &&
-				!line.isOvertimeExcess
-		),
-		// The rebuilt type list has no exempt-earning kind: a payment that is not wages is a
-		// REIMBURSEMENT and is reported under Reimbursements. The column is kept so the workbook
-		// vocabulary is unchanged, and it is always zero.
-		exemptBenefits: 0,
-		totalClaims: sumLines(
-			payslip,
-			(line) => line.nature === 'NON_WAGE_PAYMENT' && line.isClaim && !line.isCompanyDirect
-		),
-		ot10Hours: sumHours(payslip, (line) => line.isOvertimeExcess),
-		ot15Hours: multipliedHours('ORDINARY'),
-		ot20Hours: multipliedHours('REST_DAY'),
-		ot30Hours: multipliedHours('PUBLIC_HOLIDAY'),
-		totalOTHours: sumHours(payslip, (line) => line.overtimeDayType != null),
-		totalUnpaidLeaveDeduction: sumLines(payslip, (line) => line.nature === 'ABSENCE'),
-		loanRecovery: sumLines(payslip, (line) => line.isLoanInstalment),
-		adhocDeductions: sumLines(
-			payslip,
-			(line) => line.nature === 'DEDUCTION' && !line.isLoanInstalment
-		),
-		grossEarnings: payslip.gross,
-		totalDeductions: payslip.totalDeductions,
-		employerCost: payslip.employerCost,
-		netPay: payslip.net,
-		// The statutory block, and with it the per-scheme totals and the wages each scheme was
-		// charged on. Every one of these is already persisted on statutory payslip lines; nothing
-		// here is a new calculation, and nothing here is a jurisdiction's name.
-		...statutoryOutputs(payslip)
-	};
-}
-
 /** One payslip as the catalogue-driven matrix sees it. */
 function workbookRow(payslip: ReportPayslip): Record<string, number> {
-	const derived = derivedTotals(payslip);
 	const columns: Record<string, number> = {};
 	// One column per catalogue component the payslip actually settled, labelled by its code. Two
 	// lines under one code — two overtime bands, a claim raised twice — are one column and one sum,
@@ -312,11 +218,6 @@ function workbookRow(payslip: ReportPayslip): Record<string, number> {
 		columns[line.componentCode] = (columns[line.componentCode] ?? 0) + line.amount;
 	return {
 		...columns,
-		ot10Hours: derived.ot10Hours,
-		ot15Hours: derived.ot15Hours,
-		ot20Hours: derived.ot20Hours,
-		ot30Hours: derived.ot30Hours,
-		totalOTHours: derived.totalOTHours,
 		// The agreed totals, and nothing else lumped: gross, net, the two totals and the statutory
 		// block, which is already one column per scheme.
 		grossEarnings: payslip.gross,

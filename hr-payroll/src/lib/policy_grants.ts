@@ -126,7 +126,8 @@ export const referenceGrants = (
 export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('jurisdiction_settings', actions),
-		grantsOn('statutory_contributions', actions)
+		grantsOn('statutory_contributions', actions),
+		grantsOn('scheme_reliefs', actions)
 	);
 
 const EMPLOYMENT_STATUTORY_FACT_FIELDS = [
@@ -190,56 +191,15 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
 	});
 
 /**
- * The columns a captured input is *made of*, as opposed to what it paid.
- *
- * A capture names its source and the period that holds it, and nothing else on the row is a fact a
- * lower rank needs. The junction collections carry no amounts, but the source id alone is the
- * settlement claim — which is the whole of what the lock refusal reads.
- */
-const ALLOWANCE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'allowance_request_id'] as const;
-/** The leave-request capture's columns. */
-const LEAVE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'leave_entry_id'] as const;
-/** The loan-repayment capture's columns. */
-const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_id'] as const;
-
-/**
- * Read access to the captured inputs themselves, and to nothing else on the row.
- *
- * The apps read the four junctions as the person using them: My leave and My attendance mark a
- * day or an entry consumed by a payslip, and the Scheduling board marks captured days. Each
- * junction exposes only its own source column and the period, which is the whole of what a
- * surface shows. The hooks that refuse a settled record read the same junctions as the workspace
- * and need nothing from here.
- *
- * The two capture junctions left: My leave marks an entry consumed by a payslip and the allowance
- * pages mark a standing award taken; single-use sources carry their own settlement pin instead.
- */
-export const captureLedgerGrants = (): Grants =>
-	mergeGrants(
-		grantOn('payslip_allowance_request_inputs', 'read', { fields: ALLOWANCE_CAPTURE_FIELDS }),
-		grantOn('payslip_leave_inputs', 'read', { fields: LEAVE_CAPTURE_FIELDS }),
-		grantOn('payslip_loan_repayment_inputs', 'read', { fields: REPAYMENT_CAPTURE_FIELDS })
-	);
-
-/**
  * What deleting a payroll run takes down with it.
  *
  * A caller's cascade descends as the caller's (RFC 0003 §3.2): the `cascade(...)` edges from a run
- * to its payslips, from a payslip to its adjustments and to the four capture junctions are
- * authorized against the deleting person's own delete grant on each collection, exactly as a
- * nested row they submitted would be. So whoever may delete a run holds delete on what the run
- * owns, and nothing else on those collections: the rows themselves are only ever written by the
+ * to its payslips are authorized against the deleting person's own delete grant on the collection,
+ * exactly as a nested row they submitted would be. The run's hook releases the pins it wrote in the
+ * same transaction, so nothing else needs a grant here: the sources are only ever re-pinned by the
  * run's `before` hook, as the workspace.
  */
-export const payrollRunCascadeGrants = (): Grants =>
-	mergeGrants(
-		grantsOn('payslips', ['delete']),
-		grantsOn('payslip_allowance_request_inputs', ['delete']),
-		grantsOn('payslip_leave_inputs', ['delete']),
-		grantsOn('payslip_loan_repayment_inputs', ['delete'])
-	);
-
-const settlementLedgerGrants = (): Grants => captureLedgerGrants();
+export const payrollRunCascadeGrants = (): Grants => grantsOn('payslips', ['delete']);
 
 export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
@@ -252,7 +212,6 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('allowance_catalogue', actions),
 		grantsOn('payment_catalogue', actions),
 		grantsOn('loan_catalogue', actions),
-		grantsOn('work_catalogue', actions),
 		grantsOn('leave_catalogue', actions)
 	);
 
@@ -338,8 +297,9 @@ export const settingsCatalogueGrants = (
 	// this group's, so the two groups never grant one coordinate twice.
 	const writes = actions.filter((action) => action !== 'read');
 	return mergeGrants(
-		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
-		grantsOn('work_catalogue', actions),
+		...(writes.length === 0
+			? []
+			: [grantsOn('statutory_contributions', writes), grantsOn('scheme_reliefs', writes)]),
 		grantsOn('leave_catalogue', actions),
 		grantsOn('claim_catalogue', actions),
 		grantsOn('allowance_catalogue', actions),
@@ -379,9 +339,7 @@ const WORK_DAY_IDENTITY_FIELDS = ['employment_id', 'work_date'] as const;
 export const WORK_DAY_PLANNED_FIELDS = [
 	'shift_definition_id',
 	'assignment_code',
-	'planned_origin',
-	/** The holiday-work choice: pay the premium, or a day in lieu. Roster-owned like the plan. */
-	'compensation'
+	'planned_origin'
 ] as const;
 
 /** The clock. Writing any of these is what review exists for. */
@@ -495,7 +453,7 @@ const leaveApproval = {
 
 const LEAVE_ENTRY_FIELDS = [
 	'employment_id',
-	'leave_catalogue_id',
+	'catalogue_id',
 	'event',
 	'reference',
 	'certificate_file'
@@ -610,6 +568,5 @@ export const employeeSelfServiceGrants = (): Grants =>
 			// five families shared one table and the grant had no other way to name one of them.
 			authorize: ({ record }, api) => employmentBelongsToRequestor(record.employment_id, api),
 			approval: claimApproval
-		}),
-		settlementLedgerGrants()
+		})
 	);

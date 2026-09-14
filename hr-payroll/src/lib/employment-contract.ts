@@ -176,7 +176,10 @@ export function resolveEmployment<
 >(contract: T) {
 	const range = readRange(contract.effective_range);
 	const ends = [range?.end, contract.exit_date].filter((value): value is string => value != null);
-	const end = ends.toSorted((a, b) => dateKey(a).localeCompare(dateKey(b)))[0] ?? null;
+	// `.at(0)` and not `[0]`: an indexed read types as `string` while the list may be empty, which
+	// made a contract with neither a range end nor an exit date read as one that ends in a string.
+	const end: string | null =
+		ends.toSorted((a, b) => dateKey(a).localeCompare(dateKey(b))).at(0) ?? null;
 	return {
 		...contract,
 		exit_date: end,

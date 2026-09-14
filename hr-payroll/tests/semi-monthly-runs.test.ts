@@ -69,16 +69,19 @@ function settle(world, period, prepared, built) {
 			paid_at: prepared.window.payDate,
 			approval_id: null
 		});
-		world.payslip_allowance_request_inputs.push(
-			...slip.payslip_allowance_request_input_payslip.map((row) => ({
-				...row,
-				payslip_id: slip.id
-			}))
-		);
 		const captured = capturesOf(built, slip);
+		// Materialised per-period allowance rows are created by the run; file them pinned to the
+		// slip, then pin every captured source (a direct one-off pins itself).
+		for (const row of captured.materialised)
+			world.allowance_requests.push({ ...row.values, payslip_id: slip.id, approval_id: null });
+		for (const id of captured.allowances)
+			settleSource(world, 'allowance_requests', id, slip.id, period);
 		for (const id of captured.claims) settleSource(world, 'claim_requests', id, slip.id, period);
 		for (const id of captured.payments)
 			settleSource(world, 'payment_requests', id, slip.id, period);
+		for (const id of captured.leave) settleSource(world, 'leave_entries', id, slip.id, period);
+		for (const id of captured.loanRepayments)
+			settleSource(world, 'loan_repayments', id, slip.id, period);
 	}
 }
 
@@ -188,7 +191,7 @@ for (const [name, proration] of [
 ]) {
 	test(`the two halves add up to one month on a ${name} basis, not to two`, async () => {
 		const world = createSemiMonthlyPayrollWorld();
-		world.work_catalogue[0].proration = proration;
+		(world.jurisdiction_settings[0]!.work_rules as { proration: unknown }).proration = proration;
 		const first = await build(world, '2026-02-1');
 		settle(world, '2026-02-1', first.prepared, first.built);
 		const second = await build(world, '2026-02-2');
@@ -219,7 +222,7 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
 	const entry = (id, eventDate) => ({
 		id,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
-		payment_catalogue_id: transport.id,
+		catalogue_id: transport.id,
 		amount: 100,
 		effective_on: eventDate,
 		pay_period: null,
@@ -260,45 +263,66 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		code: 'PUB-TAX',
 		name: 'Public fixture withholding',
 		authority: 'Public fixture',
-		rounding: 'NEAREST_CENT',
-		relief_for: [],
-		sequence: 2,
-		special_rules: [],
-		approval_id: null
+		assessment_period: 'PAY_PERIOD',
+		eligibility: '',
+		approval_id: null,
+		rules: {
+			relief: '',
+			base_transform: '',
+			share_for_dependants: '',
+			rounding: ['NEAREST_CENT'],
+			no_withholding_below: 0,
+			use_period_table: false,
+			additional_remuneration_channel: false,
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			total_rounded_employee_floored: false
+		},
+		bands: [
+			{ when: 'base <= 20000.0', employee: '0.0', employer: '0.0' },
+			{
+				when: 'base > 20000.0 && base <= 35000.0',
+				employee: '0.0 + (base - 20000.0) * 1.0 / 100.0',
+				employer: '0.0'
+			},
+			{
+				when: 'base > 35000.0 && base <= 50000.0',
+				employee: '150.0 + (base - 35000.0) * 3.0 / 100.0',
+				employer: '0.0'
+			},
+			{
+				when: 'base > 50000.0',
+				employee: '600.0 + (base - 50000.0) * 8.0 / 100.0',
+				employer: '0.0'
+			}
+		]
 	});
-	const band = (from, to, rate, constant) => ({
-		selector: { by: 'WAGE', from, to },
-		award: { kind: 'PROGRESSIVE', rate, constant }
+	world.statutory_contributions.at(-1)!.relievedIds = [];
+	const workSchemeIds = ['PUB-EPF', 'PUB-TAX'].flatMap((code) => {
+		const row = world.statutory_contributions.find((candidate) => candidate.code === code);
+		return row == null ? [] : [row.id as string];
 	});
-	world.statutory_contributions.at(-1)!.bands = [
-		band(0, 20_000, 0, 0),
-		band(20_000, 35_000, 1, 0),
-		band(35_000, 50_000, 3, 150),
-		band(50_000, null, 8, 600)
-	];
-	for (const catalogue of [
-		world.claim_catalogue,
-		world.allowance_catalogue,
-		world.payment_catalogue,
-		world.loan_catalogue
-	])
-		for (const component of catalogue)
-			component.contribution_treatments = {
-				'PUB-EPF': { kind: 'INCLUDE' },
-				'PUB-TAX': { kind: 'INCLUDE' }
-			};
-	for (const work of world.work_catalogue)
-		work.treatments = Object.fromEntries(
-			['PUB-EPF', 'PUB-TAX'].map((code) => [
-				code,
-				{
-					salary: { kind: 'INCLUDE' },
-					overtime: { kind: 'INCLUDE' },
-					overtime_excess: { kind: 'INCLUDE' },
-					absence: { kind: 'REDUCE' }
-				}
-			])
-		);
+	for (const version of world.jurisdiction_settings) {
+		const rules = version.work_rules as {
+			lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+			rates: { bands: { statutory_opt_ins: unknown[] }[] };
+		};
+		const include = workSchemeIds.map((id) => ({ contribution_id: id, effect: 'INCLUDE' }));
+		const reduce = workSchemeIds.map((id) => ({ contribution_id: id, effect: 'REDUCE' }));
+		rules.lines.salary.statutory_opt_ins = include;
+		rules.lines.night.statutory_opt_ins = include;
+		rules.lines.absence.statutory_opt_ins = reduce;
+		for (const band of rules.rates.bands) band.statutory_opt_ins = include;
+		for (const catalogue of [
+			world.claim_catalogue,
+			world.allowance_catalogue,
+			world.payment_catalogue,
+			world.loan_catalogue
+		])
+			for (const component of catalogue)
+				for (const band of component.bands) band.statutory_opt_ins = include;
+	}
 
 	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB-TAX');
 
@@ -336,7 +360,7 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 	world.allowance_requests.push({
 		id: ONE_OFF_ID,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
-		allowance_catalogue_id: transport.id,
+		catalogue_id: transport.id,
 		amount: 100,
 		pay_period: null,
 		recurrence: { kind: 'ONE_OFF', on: '2026-02-28' },

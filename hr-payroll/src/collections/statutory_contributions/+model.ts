@@ -19,26 +19,28 @@ export default defineModel(
 		is_statutory: boolean().notNull().default(true),
 		/** The section of law transcribed; the hook requires it when `is_statutory`. */
 		authority: text(),
-		rounding: enums(['NONE', 'NEAREST_CENT', 'UP_TO_UNIT', 'TABLE']).notNull(),
 		/**
 		 * The span the scheme is assessed over. `MONTH` states that its bands are a monthly schedule —
 		 * so a semi-monthly company charges the whole month's contribution once, on the month's wage,
 		 * rather than half of it twice. At a monthly company the two are the same.
 		 */
-		assessed: enums(['PAY_PERIOD', 'MONTH']).notNull().default('PAY_PERIOD'),
-		relief_for: uuid().array().notNull(),
+		assessment_period: enums(['PAY_PERIOD', 'MONTH']).notNull().default('PAY_PERIOD'),
 		/** Who the scheme covers at all, as a predicate; empty is everyone. The run skips the rest. */
 		eligibility: text().notNull().default(''),
 		sequence: integer().notNull(),
-		special_rules: text().array().notNull(),
-		/** The ladder: non-overlapping selector → award rungs, sealed with the version. */
+		/**
+		 * The scheme's arithmetic: relief, base transform and dependant share as CEL over the scheme
+		 * context, with rounding, withholding threshold, period-table and relief-cap decisions typed.
+		 */
+		rules: custom('statutory_rules').notNull(),
+		/** The ladder: the money expressions, in order, first matching `when` governs. Sealed with the version. */
 		bands: custom('contribution_bands')
 			.notNull()
 			.default(sql`'[]'::jsonb`)
 	},
 	{
 		description:
-			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with its rate bands (each band selector and award say what keys it and who pays), how it rounds and which named special rules it implements. Sealed with its version. Source families declare the contribution treatment of their monetary outputs.',
+			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with the expressions that say what it charges and the bands that select them. Sealed with its version. Scheme-to-scheme relief is `scheme_reliefs`; source families declare the statutory opt-ins of their monetary outputs.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

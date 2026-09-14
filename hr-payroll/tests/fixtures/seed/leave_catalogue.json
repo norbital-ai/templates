@@ -7,26 +7,27 @@
 		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
-		"paid": true,
-		"treatments": {
-			"PUB-EPF": {
-				"absence": {
-					"kind": "UNSET"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PUB-EPF-NC": {
-				"absence": {
-					"kind": "UNSET"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
+		"sequence": 10,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+						"effect": "INCLUDE"
+					}
+				]
 			}
-		},
+		],
+		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -47,26 +48,27 @@
 		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
-		"paid": true,
-		"treatments": {
-			"PUB-EPF": {
-				"absence": {
-					"kind": "UNSET"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PUB-EPF-NC": {
-				"absence": {
-					"kind": "UNSET"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
+		"sequence": 11,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+						"effect": "INCLUDE"
+					}
+				]
 			}
-		},
+		],
+		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -87,26 +89,28 @@
 		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"requires_certificate_after_days": 0,
-		"paid": true,
-		"treatments": {
-			"PUB-EPF": {
-				"absence": {
-					"kind": "UNSET"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PUB-EPF-NC": {
-				"absence": {
-					"kind": "UNSET"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
+		"sequence": 12,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+						"effect": "INCLUDE"
+					}
+				]
 			}
-		},
+		],
+		"paid": true,
+		"evidence_after_days": 0,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,

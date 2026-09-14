@@ -13,7 +13,7 @@ import { dateKey } from './iso-day.js';
  * version action; `automations/+statutory_drift.ts` proposes a draft carrying the statutory rows
  * an official page contradicts. The clone is three steps so the automation can revise the draft
  * before it is written: read the tree, shape the write, write it. Schemes keep their codes under
- * new ids and a scheme's `relief_for` is rewritten to the clone ids so reliefs stay inside the new
+ * new ids and its `scheme_reliefs` edges are rewritten to the clone ids so reliefs stay inside the new
  * version; bands follow their scheme. Everything lands in one write, nested under the root. The
  * draft is the controller's to edit; sealing it is the HR Manager's act.
  */
@@ -47,7 +47,7 @@ type SettingsCloneApi = Readonly<{
 		Db,
 		| 'jurisdiction_settings'
 		| 'statutory_contributions'
-		| 'work_catalogue'
+		| 'scheme_reliefs'
 		| 'leave_catalogue'
 		| 'loan_catalogue'
 		| 'claim_catalogue'
@@ -62,7 +62,8 @@ type Row<N extends keyof Db> = Effect.Success<ReturnType<Db[N]['findMany']>>[num
 export type SettingsVersionTree = Readonly<{
 	source: Row<'jurisdiction_settings'>;
 	schemes: ReadonlyArray<Row<'statutory_contributions'>>;
-	workCatalogue: ReadonlyArray<Row<'work_catalogue'>>;
+	/** Scheme-to-scheme reliefs under those schemes, both ends inside this version. */
+	schemeReliefs: ReadonlyArray<Row<'scheme_reliefs'>>;
 	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
 	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
 	claimCatalogue: ReadonlyArray<Row<'claim_catalogue'>>;
@@ -86,7 +87,6 @@ export const readSettingsVersionTree = (
 		const under = { settings_id: { eq: source.id }, approval_id: { isNull: true } } as const;
 		const [
 			schemes,
-			workCatalogue,
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
@@ -95,7 +95,6 @@ export const readSettingsVersionTree = (
 		] = yield* Effect.all(
 			[
 				api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
-				api.db.work_catalogue.findMany({ where: under, limit: LIMIT }),
 				api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
 				api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
 				api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
@@ -104,9 +103,15 @@ export const readSettingsVersionTree = (
 			],
 			{ concurrency: 'unbounded' }
 		);
+		const schemeReliefs =
+			schemes.length === 0
+				? []
+				: yield* api.db.scheme_reliefs.findMany({
+						where: { relieving_id: { in: schemes.map((scheme) => scheme.id) } },
+						limit: LIMIT
+					});
 		for (const rows of [
 			schemes,
-			workCatalogue,
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
@@ -117,7 +122,7 @@ export const readSettingsVersionTree = (
 		return {
 			source,
 			schemes,
-			workCatalogue,
+			schemeReliefs,
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
@@ -143,7 +148,7 @@ export function settingsDraftWrite(
 	const {
 		source,
 		schemes,
-		workCatalogue,
+		schemeReliefs,
 		catalogueLeaves,
 		loanCatalogue,
 		claimCatalogue,
@@ -156,8 +161,6 @@ export function settingsDraftWrite(
 		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
 	const schemeIds = new Map(schemes.map((scheme) => [scheme.id, crypto.randomUUID()]));
 	const cloneIdOf = (schemeId: string): string => schemeIds.get(schemeId) ?? crypto.randomUUID();
-	const remapRelief = (ids: readonly string[]) =>
-		ids.map((relief) => schemeIds.get(relief) ?? relief);
 	const {
 		id: _sourceId,
 		approval_id: _approval,
@@ -165,9 +168,6 @@ export function settingsDraftWrite(
 		updated_at: _updated,
 		row_version: _version,
 		sys_period: _period,
-		// A proposal sheet belongs to the draft it was written on, never to a clone of it; the column
-		// is left unset (a custom column refuses an explicit null) and the automation sets its own.
-		research_notes: _notes,
 		// The predecessor's change note describes the predecessor; the drafter writes this one.
 		change_summary: _summary,
 		...root
@@ -186,11 +186,13 @@ export function settingsDraftWrite(
 			contribution_settings: schemes.map((scheme) => ({
 				...cloneRow(scheme),
 				id: cloneIdOf(scheme.id),
-				relief_for: remapRelief(scheme.relief_for)
-			})),
-			work_catalogue_settings: workCatalogue.map((row) => ({
-				...cloneRow(row),
-				id: crypto.randomUUID()
+				relief_relieving: schemeReliefs
+					.filter((relief) => relief.relieving_id === scheme.id)
+					.map((relief) => ({
+						id: crypto.randomUUID(),
+						relieving_id: cloneIdOf(scheme.id),
+						relieved_id: cloneIdOf(relief.relieved_id)
+					}))
 			})),
 			leave_catalogue_settings: catalogueLeaves.map((row) => ({
 				...cloneRow(row),

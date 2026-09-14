@@ -42,9 +42,7 @@
 	 * not a lock on this collection, and a paid window governs days that have no record, never a
 	 * record that exists.
 	 */
-	const settledBy = $derived(
-		record?.settled_period == null ? null : { period: record.settled_period }
-	);
+	const settledBy = $derived(record?.payslip_id == null ? null : { period: '' });
 	const lock = $derived(
 		record
 			? sourceLock({
@@ -70,8 +68,7 @@
 	>
 		{#snippet children({ Field })}
 			<Field name="planned_origin" hidden />
-			<Field name="settled_payslip_id" hidden />
-			<Field name="settled_period" hidden />
+			<Field name="payslip_id" hidden />
 			<Field name="holiday_id" hidden />
 			<Stack gap="lg">
 				<Grid gap="sm" minimum="compact">

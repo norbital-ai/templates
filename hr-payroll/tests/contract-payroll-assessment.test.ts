@@ -46,28 +46,42 @@ function rehireWorld() {
 		authority: 'Public regression fixture',
 		is_statutory: true,
 		rounding: 'NEAREST_CENT',
-		relief_for: [],
 		sequence: 1,
-		special_rules: [],
-		bands: [
-			{
-				selector: { by: 'WAGE', from: 0, to: null },
-				award: { kind: 'FIXED', employee: 30.01, employer: 60.01 }
-			}
-		],
+		assessment_period: 'PAY_PERIOD',
+		eligibility: '',
+		rules: {
+			relief: '',
+			base_transform: '',
+			share_for_dependants: '',
+			rounding: ['NEAREST_CENT'],
+			no_withholding_below: 0,
+			use_period_table: true,
+			additional_remuneration_channel: false,
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			total_rounded_employee_floored: false
+		},
+		bands: [{ when: 'base >= 0.0', employee: '30.01', employer: '60.01' }],
 		approval_id: null
 	});
+	const pubFixedId =
+		(world.statutory_contributions.find((row) => row.code === 'PUB-FIXED')?.id as
+			string | undefined) ?? '';
 	for (const catalogue of [world.allowance_catalogue, world.payment_catalogue])
-		for (const row of catalogue) row.contribution_treatments = { 'PUB-FIXED': { kind: 'EXCLUDE' } };
-	for (const work of world.work_catalogue)
-		work.treatments = {
-			'PUB-FIXED': {
-				salary: { kind: 'INCLUDE' },
-				overtime: { kind: 'INCLUDE' },
-				overtime_excess: { kind: 'INCLUDE' },
-				absence: { kind: 'REDUCE' }
-			}
+		for (const component of catalogue)
+			for (const band of component.bands)
+				band.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
+	for (const version of world.jurisdiction_settings) {
+		const rules = version.work_rules as {
+			lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+			rates: { bands: { statutory_opt_ins: unknown[] }[] };
 		};
+		rules.lines.salary.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
+		rules.lines.absence.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'REDUCE' }];
+		for (const band of rules.rates.bands)
+			band.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
+	}
 	return world;
 }
 

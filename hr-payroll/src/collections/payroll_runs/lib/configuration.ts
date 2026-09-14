@@ -9,7 +9,6 @@ import { Effect } from 'effect';
 import { sha256Json } from '@norbital-ai/std/reckon';
 
 import type { WorkspaceRow } from '../$types.js';
-import type { EntitlementCap } from '../../../datatypes/entitlement_cap/+definition.js';
 import { prepareFamilyCatalogues } from '../../../lib/payroll/families.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { daysBetween, monthBounds, monthKey, type IsoDate } from './dates.js';
@@ -17,59 +16,51 @@ import { resolveHolidayInputs, type PreparedHolidayInput } from '../../../lib/ho
 import { effectiveOn, live } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
-import type { ContributionTreatment } from '../../../datatypes/contribution_treatment/+definition.js';
 
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
 
 type Company = WorkspaceRow<'companies'>;
 /** The jurisdiction settings version the run is priced under; `configuration.jurisdiction` is this row. */
 export type Jurisdiction = WorkspaceRow<'jurisdiction_settings'>;
-export type Work = WorkspaceRow<'work_catalogue'> & Pick<Jurisdiction, 'jurisdiction_code'>;
+export type Work = Jurisdiction['work_rules'] & {
+	/** The version that owns these rules. */
+	readonly settings_id: string;
+	/** The payroll jurisdiction, for the coverage classifications. */
+	readonly jurisdiction_code: string;
+};
 
 /**
  * How a component produces its amount. Engine-internal: the four money catalogues store flat
  * columns and are lifted into the `ENTRY` arm when loaded; Work synthesizes the rest.
  *
- * - `ENTRY`            — a person or an import supplies the number, under the entitlement matrix.
- * - `FORMULA`          — a CEL expression over the payslip context.
+ * - `ENTRY`            — a catalogue band prices the entry through the entry context.
  * - `SCHEDULE`         — the contracted amount from `employment_terms` (basic salary).
  * - `DERIVED_OVERTIME` — priced by the jurisdiction's regime from work days, never entered.
  * - `ABSENCE`          — unexplained absence, priced from the day wage.
  */
 export type ComponentDefinition =
-	| { readonly source: 'ENTRY'; readonly cap: EntitlementCap | null }
-	| {
-			readonly source: 'FORMULA';
-			readonly unit: 'MONEY' | 'DAYS' | 'HOURS' | 'RATE';
-			readonly expr: string;
-	  }
+	| { readonly source: 'ENTRY' }
 	| { readonly source: 'SCHEDULE'; readonly unit: 'MONEY'; readonly reducible: boolean }
 	| { readonly source: 'DERIVED_OVERTIME'; readonly unit: 'MONEY' }
 	| { readonly source: 'ABSENCE'; readonly unit: 'MONEY' };
 
 export type CatalogueComponent = FamilyPayItem & { readonly definition: ComponentDefinition };
-type StatutoryRegime = Work['regime'];
-export type OvertimeRule = StatutoryRegime['overtime_rules'][number];
-type OvertimeLimit = StatutoryRegime['overtime_limits'][number];
-export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
-/**
- * `NonNullable` because the member is an optional key on the snapshot: a jurisdiction seeded before
- * it was restored carries no such property at all, which is the statement "this snapshot declares
- * no rest break rule" and not a missing value.
- */
-type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
-type NightPremium = NonNullable<StatutoryRegime['night_premium']>;
+export type WorkLimit = Work['limits'][number];
+export type WorkBreak = Work['breaks'][number];
+export type OvertimeCoverageRule = Work['coverage'];
+export type NightPremium = NonNullable<Work['night_premium']>;
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type ShiftPattern = WorkspaceRow<'shift_patterns'>;
 type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
-export type ContributionRate = WorkspaceRow<'statutory_contributions'>['bands'][number];
-type Treatment = ContributionTreatment;
+export type ContributionBand = WorkspaceRow<'statutory_contributions'>['bands'][number];
 type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
 
 /** One statutory scheme with the bands that were effective when the run was picked. */
 export type ContributionConfig = {
 	readonly row: StatutoryContribution;
-	readonly rates: readonly ContributionRate[];
+	readonly rates: readonly ContributionBand[];
+	/** The schemes whose chargeable income this scheme's employee share reduces. */
+	readonly relievedIds: readonly string[];
 };
 
 export type Configuration = {
@@ -78,27 +69,13 @@ export type Configuration = {
 	readonly work: Work;
 	/** In `sequence` order — a relief is produced before the scheme that consumes it. */
 	readonly contributions: readonly ContributionConfig[];
-	/**
-	 * `${pay_item_id}:${contribution_id}` → the family pay item's cell for that scheme,
-	 * read from its `contribution_treatments` by the scheme's code. Absent where the map
-	 * names no such code: a decision nobody has made, which ACCUMULATE refuses by name.
-	 */
-	readonly treatments: ReadonlyMap<string, Treatment>;
 	/** In `sequence` order — the order MEASURE walks. */
 	readonly catalogueComponents: readonly CatalogueComponent[];
-	readonly holidayRestPrecedence: StatutoryRegime['holiday_rest_precedence'];
-	readonly overtimeRules: readonly OvertimeRule[];
-	readonly overtimeLimits: readonly OvertimeLimit[];
-	/**
-	 * The jurisdiction's statutory rest breaks, empty where it declares none.
-	 *
-	 * Picked here rather than read again downstream for the same reason every other member is: a
-	 * snapshot end-dated halfway through a build cannot change an answer under the run. It needs no
-	 * separate hash entry — `configurationSnapshot` already hashes `work.regime` whole, so a
-	 * changed break rule moves the audit token the way a changed overtime band does, and a
-	 * jurisdiction that declares no rules contributes nothing and hashes exactly as it did before.
-	 */
-	readonly restBreakRules: readonly RestBreakRule[];
+	readonly holidayRestPrecedence: Work['holiday_rest_precedence'];
+	/** The named hour ceilings; schedules must respect them, payroll reports overruns. */
+	readonly limits: readonly WorkLimit[];
+	/** The break obligations, as CEL over the work-day context. */
+	readonly breaks: readonly WorkBreak[];
 	/** The regime's night window and premiums, or null where it states none. Hashed with the regime. */
 	readonly nightPremium: NightPremium | null;
 	/**
@@ -128,17 +105,6 @@ type PickConfigurationOptions = {
 	/** The run's own window — period, salary range and attendance range, one fact. */
 	readonly window: PayrollWindow;
 };
-
-function treatmentKey(componentCatalogueId: string, contributionId: string): string {
-	return `${componentCatalogueId}:${contributionId}`;
-}
-
-/**
- * Bands ascending by ceiling; the open-ended band sorts last, then by age floor.
- *
- * A band whose selector is missing sorts first so that `selectBand` reaches it and reports the
- * seeding fault by name, rather than the order silently hiding it at the end of the ladder.
- */
 
 /**
  * Load the configuration governing one company for one period.
@@ -197,11 +163,16 @@ export function pickConfiguration(
 		const familyConfiguration = yield* prepareFamilyCatalogues({
 			api: options.api,
 			jurisdiction,
-			settingsCode: company.settings_code,
+			companyId: company.id,
 			windowStart,
 			windowEnd
 		});
-		const { catalogueComponents, contributions } = familyConfiguration;
+		const { contributions } = familyConfiguration;
+		// The catalogue rows carry `destination` and `direction` as text at the database boundary,
+		// where the models constrain them to the §9 vocabulary. The engine restates the spine once,
+		// here, so every consumer prices a catalogue component rather than a raw row.
+		const catalogueComponents =
+			familyConfiguration.catalogueComponents as readonly CatalogueComponent[];
 		const holidayRows = yield* db.jurisdiction_holidays.findMany({
 			where: {
 				company_id: { eq: company.id },
@@ -212,12 +183,19 @@ export function pickConfiguration(
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(holidayRows, 'published holidays');
-		const treatments = new Map<string, Treatment>();
-		for (const component of catalogueComponents)
-			for (const contribution of contributions) {
-				const cell = component.contribution_treatments?.[contribution.row.code];
-				if (cell != null) treatments.set(treatmentKey(component.id, contribution.row.id), cell);
-			}
+		// The company's roster codes and named patterns: what every scheduled day is priced from.
+		// Loaded across the whole attendance window because a shift may be revised inside it (the
+		// same reading `resolveWindow` gives holidays).
+		const shiftRows = yield* db.shift_definitions.findMany({
+			where: { company_id: { eq: company.id }, ...approved },
+			limit: PAGE_LIMIT
+		});
+		options.api.reads.assertComplete(shiftRows, 'shift definitions');
+		const patternRows = yield* db.shift_patterns.findMany({
+			where: { company_id: { eq: company.id }, ...approved },
+			limit: PAGE_LIMIT
+		});
+		options.api.reads.assertComplete(patternRows, 'shift patterns');
 		const resolvedCalendar = resolveHolidayInputs(
 			live(holidayRows),
 			company.id,
@@ -228,7 +206,9 @@ export function pickConfiguration(
 			company,
 			jurisdiction,
 			...familyConfiguration,
-			treatments,
+			catalogueComponents,
+			shiftById: new Map(live(shiftRows).map((row) => [row.id, row])),
+			patternById: new Map(live(patternRows).map((row) => [row.id, row])),
 			holidays: resolvedCalendar.holidays,
 			holidaySnapshots: resolvedCalendar.snapshots,
 			holidayInputs: resolvedCalendar.inputs
@@ -255,47 +235,44 @@ export function configurationSnapshot(
 		period,
 		company: configuration.company.id,
 		jurisdiction: configuration.jurisdiction.id,
-		work_catalogue: configuration.work,
+		work_rules: configuration.work,
 		proration: configuration.work.proration,
-		ordinary_rate: configuration.work.ordinary_rate,
-		tax_year_start_month: configuration.jurisdiction.tax_year_start_month,
+		ordinary_rate: configuration.work.rates.ordinary,
+		tax_year_start_month: configuration.jurisdiction.payroll.tax_year_start_month,
 		// The whole calendar: a company that moves its cutoff or starts paying twice a month
 		// produces different payslips for the same month, so the hash has to move with it.
 		pay_calendar: [configuration.company.pay_cutoff_day, configuration.company.pay_frequency],
 		// The region and the wage it names bound a scheme's base, so they move the hash like a band.
 		region: configuration.company.region ?? null,
-		minimum_wages: configuration.jurisdiction.minimum_wages ?? null,
+		wages: configuration.jurisdiction.wages,
 		contributions: configuration.contributions.map((entry) => ({
 			code: entry.row.code,
 			sequence: entry.row.sequence,
-			rounding: entry.row.rounding,
-			special_rules: [...entry.row.special_rules].toSorted(),
-			relief_for: [...entry.row.relief_for].toSorted(),
+			assessment_period: entry.row.assessment_period,
+			rules: entry.row.rules,
+			relieved_ids: [...entry.relievedIds].toSorted(),
 			eligibility: entry.row.eligibility ?? '',
-			rates: entry.rates.map((rate) => [rate.selector, rate.award, rate.eligibility ?? ''])
+			rates: entry.rates.map((band) => [band.when, band.employee, band.employer])
 		})),
-		// One entry per decided cell. The OVERTIME and OVERTIME_EXCESS rows are in here like every
-		// other component, so what EPF does with overtime moves the hash the way a band does.
-		treatments: [...configuration.treatments]
-			.map(([key, treatment]) => [key, treatment])
-			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
+		// The catalogue's bands are configuration: an amount, a limit or an opt-in moving is a
+		// different charge even when the same code pays it.
 		component_catalogue: configuration.catalogueComponents
 			.map((row) => [
 				row.code,
-				row.nature,
+				row.destination,
+				row.direction,
 				row.sequence,
 				row.definition,
-				row.settlement ?? null,
 				row.eligibility,
-				row.contribution_treatments
+				row.bands
 			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// The effective range and the complete nested value are retained together. A PAID run can
 		// therefore replay the exact coverage, awards, ceilings and authorities it used; it cannot
 		// accidentally combine independently effective rows from different revisions.
-		statutory_regime: {
+		work_rules_version: {
 			effective_range: configuration.jurisdiction.effective_range,
-			value: configuration.work.regime
+			value: configuration.work
 		},
 		// The holidays read stay in the run's immutable snapshot. Only classified dates affect
 		// arithmetic identity; a holiday published later for another period changes nothing here.
@@ -305,7 +282,7 @@ export function configurationSnapshot(
 			observation: configuration.holidays.get(date) ?? null
 		})),
 		leave_catalogue: configuration.catalogueLeaves
-			.map((row) => [row.code, row.entitlement, row.paid, row.treatments])
+			.map((row) => [row.code, row.entitlement, row.paid, row.bands])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// Codes are configuration because their polymorphic variant decides whether a scheduled day
 		// is work, protected rest or another off day, and a WORK code owns its clock window.

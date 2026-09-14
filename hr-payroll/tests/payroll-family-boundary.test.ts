@@ -23,12 +23,19 @@ function mixedFamilies() {
 		id: 'claim-type',
 		code: 'EXPENSE',
 		sequence: 200,
-		cap: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', bands: [{ eligibility: '', amount: 500 }] }
+		bands: [
+			{
+				when: '',
+				amount: 'entry.amount',
+				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 500 },
+				statutory_opt_ins: []
+			}
+		]
 	});
 	world.claim_requests.push({
 		id: 'claim',
 		employment_id: EMPLOYMENT_ID,
-		claim_catalogue_id: 'claim-type',
+		catalogue_id: 'claim-type',
 		amount: 300,
 		incurred_on: '2026-01-15',
 		approval_id: null
@@ -37,7 +44,9 @@ function mixedFamilies() {
 		...world.payment_catalogue[0],
 		id: 'loan-type',
 		code: 'LOAN',
-		sequence: 400
+		sequence: 400,
+		destination: 'NET',
+		direction: 'SUBTRACT'
 	});
 	world.loans.push({
 		id: 'loan',
@@ -87,7 +96,7 @@ test('payroll orchestration does not read family-owned source tables or interpre
 		);
 		assert.doesNotMatch(
 			source,
-			/\bdb\.(?:claim_requests|allowance_requests|payment_requests|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|payment_catalogue|loan_catalogue|work_catalogue|leave_catalogue|statutory_contributions)\b/,
+			/\bdb\.(?:claim_requests|allowance_requests|payment_requests|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|payment_catalogue|loan_catalogue|leave_catalogue|statutory_contributions)\b/,
 			name
 		);
 		assert.doesNotMatch(source, /definition\??\.source/, name);

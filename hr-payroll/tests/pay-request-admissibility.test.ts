@@ -18,7 +18,8 @@
  * it does not write at all.
  *
  * What is left is what still lives on the catalogue and no column on a request can reach: evidence,
- * the entitlement ceiling, and the amount being a magnitude.
+ * the entitlement ceiling, and the amount being a magnitude. The read path is the real guard, so
+ * the tests drive it over the memory payroll world rather than a hand-written double.
  */
 
 import test from 'node:test';
@@ -28,34 +29,55 @@ import { assertPayRequestAdmissible } from '../src/lib/pay_request_hooks.ts';
 import claimHooks from '../src/collections/claim_requests/+hooks.ts';
 import allowanceHooks from '../src/collections/allowance_requests/+hooks.ts';
 import paymentHooks from '../src/collections/payment_requests/+hooks.ts';
+import {
+	COMPANY_ID,
+	EMPLOYMENT_ID,
+	createPublicPayrollWorld
+} from './fixtures/public-payroll-world.ts';
+import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
-const ENTRY = { evidence: 'NONE', settlement: 'PAYROLL', cap: null, eligibility: '' };
+const CLAIM_ID = '00000000-0000-4000-8000-0000000000c1';
 
-const apiWith = (component) => ({
-	db: {
-		claim_catalogue: { findFirst: () => Effect.succeed(component) },
-		allowance_catalogue: { findFirst: () => Effect.succeed(component) },
-		payment_catalogue: { findFirst: () => Effect.succeed(component) },
-		claim_requests: { findMany: () => Effect.succeed([]) },
-		allowance_requests: { findMany: () => Effect.succeed([]) },
-		payment_requests: { findMany: () => Effect.succeed([]) }
-	}
-});
+/** One catalogue row per family, all sharing the spine with the evidence/eligibility under test. */
+function requestWorld(component = {}) {
+	const world = createPublicPayrollWorld();
+	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: CLAIM_ID, code: 'MEDICAL' });
+	for (const row of [
+		world.claim_catalogue[0],
+		world.payment_catalogue[0],
+		world.allowance_catalogue[0]
+	])
+		Object.assign(row, component);
+	return world;
+}
+
+const ENTRY = {
+	code: 'X',
+	evidence: 'NONE',
+	bands: [],
+	eligibility: '',
+	destination: 'PAY',
+	direction: 'ADD'
+};
 
 const guardOf = (hooks) => hooks.mutate.perRecord.before.handler;
 
-const attempt = (hooks, component, input) =>
-	Effect.runSync(guardOf(hooks)({ input, existing: undefined, api: apiWith(component) }));
+const attempt = (hooks, component, input) => {
+	const world = requestWorld({ bands: [], ...component });
+	return Effect.runSync(
+		guardOf(hooks)({ input, existing: undefined, api: memoryPayrollApi(world) })
+	);
+};
 
 const CLAIM = {
-	employment_id: 'e1',
-	claim_catalogue_id: 'c1',
+	employment_id: EMPLOYMENT_ID,
+	catalogue_id: CLAIM_ID,
 	amount: 48,
 	incurred_on: '2026-04-02'
 };
 
 test('a component that demands evidence gets it, whichever family the request is in', () => {
-	const demanding = { code: 'MEDICAL', ...ENTRY, evidence: 'REQUIRED' };
+	const demanding = { code: 'MEDICAL', evidence: 'REQUIRED' };
 	assert.throws(
 		() => attempt(claimHooks, demanding, CLAIM),
 		/MEDICAL requires evidence for its claims/
@@ -65,8 +87,8 @@ test('a component that demands evidence gets it, whichever family the request is
 	assert.throws(
 		() =>
 			attempt(paymentHooks, demanding, {
-				employment_id: 'e1',
-				payment_catalogue_id: 'c1',
+				employment_id: EMPLOYMENT_ID,
+				catalogue_id: '77777777-7777-4777-8777-777777777778',
 				amount: 100,
 				effective_on: '2026-04-02',
 				reason: 'Approved'
@@ -84,8 +106,8 @@ test('a component that demands evidence gets it, whichever family the request is
 	});
 	// The column now exists on all three families, so an allowance line demands it the same way.
 	const allowance = {
-		employment_id: 'e1',
-		allowance_catalogue_id: 'c1',
+		employment_id: EMPLOYMENT_ID,
+		catalogue_id: '77777777-7777-4777-8777-777777777777',
 		amount: 100,
 		recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
 	};
@@ -105,76 +127,51 @@ test('a component that demands evidence gets it, whichever family the request is
 });
 
 test('a type whose eligibility rule does not hold for the person is refused, whichever family', () => {
-	const drivers = { code: 'FUEL', ...ENTRY, eligibility: 'terms.department == "LOGISTICS"' };
-	const personApi = (department) => ({
-		...apiWith(drivers),
-		db: {
-			...apiWith(drivers).db,
-			employments: {
-				findFirst: () =>
-					Effect.succeed({
-						id: 'e1',
-						employee_id: 'p1',
-						company_id: 'co1',
-						employee_number: 'EMP-1',
-						hire_date: '2020-01-01',
-						effective_range: { start: '2020-01-01T00:00:00.000Z', end: '9999-12-31T00:00:00.000Z' },
-						exit_date: null,
-						exit_reason: null,
-						children: []
-					})
-			},
-			employees: { findFirst: () => Effect.succeed({ gender: 'F', date_of_birth: '1990-01-01' }) },
-			employment_terms: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							effective_range: {
-								start: '2020-01-01T00:00:00.000Z',
-								end: '9999-12-31T00:00:00.000Z'
-							},
-							department
-						}
-					])
-			},
-			companies: { findFirst: () => Effect.succeed({ region: '' }) }
-		}
-	});
-	const claim = { ...CLAIM, claim_catalogue_id: 'c1' };
+	const drivers = {
+		code: 'FUEL',
+		evidence: 'NONE',
+		eligibility: 'terms.department == "LOGISTICS"'
+	};
+	const claim = { ...CLAIM, catalogue_id: CLAIM_ID };
 	assert.throws(
-		() =>
-			Effect.runSync(
-				guardOf(claimHooks)({ input: claim, existing: undefined, api: personApi('FINANCE') })
-			),
-		/FUEL is not offered to EMP-1/
+		() => attempt(claimHooks, drivers, claim),
+		/FUEL is not offered to PF0001/,
+		'the fixture contract has no department'
 	);
+	const world = requestWorld(drivers);
+	world.employment_terms[0].department = 'LOGISTICS';
 	assert.equal(
 		Effect.runSync(
-			guardOf(claimHooks)({ input: claim, existing: undefined, api: personApi('LOGISTICS') })
+			guardOf(claimHooks)({
+				input: claim,
+				existing: undefined,
+				api: memoryPayrollApi(world)
+			})
 		).employment_id,
-		'e1'
+		EMPLOYMENT_ID
 	);
 	// An empty rule is everyone, and asks nothing of the person.
 	assert.equal(
 		attempt(
 			paymentHooks,
-			{ code: 'BONUS', ...ENTRY },
+			{ code: 'BONUS', evidence: 'NONE', eligibility: '' },
 			{
-				employment_id: 'e1',
-				payment_catalogue_id: 'c1',
+				employment_id: EMPLOYMENT_ID,
+				catalogue_id: '77777777-7777-4777-8777-777777777778',
 				amount: 100,
 				effective_on: '2026-04-02',
 				reason: 'Approved'
 			}
 		).employment_id,
-		'e1'
+		EMPLOYMENT_ID
 	);
 });
 
 test('an amount is a positive magnitude, whichever family states it', () => {
 	for (const amount of [0, -1, Number.NaN, 'not a number']) {
 		assert.throws(
-			() => attempt(claimHooks, { code: 'X', ...ENTRY }, { ...CLAIM, amount }),
+			() =>
+				attempt(claimHooks, { code: 'X', evidence: 'NONE', eligibility: '' }, { ...CLAIM, amount }),
 			/A claim amount is a positive magnitude/,
 			String(amount)
 		);
@@ -190,27 +187,25 @@ test('a component that is not in the catalogue at all refuses nothing here', () 
 			{
 				family: 'CLAIM',
 				noun: 'claim',
-				eventDate: (c) => c.incurred_on,
-				capture: () => Effect.succeed(undefined),
-				siblings: () => Effect.succeed([])
+				eventDate: (c) => c.incurred_on
 			},
-			{ api: apiWith(undefined), input: CLAIM, existing: undefined }
+			{ api: memoryPayrollApi(requestWorld()), input: CLAIM, existing: undefined }
 		)
 	);
 });
 
 test('Payment requires a reason and seals its contract', () => {
 	const payment = {
-		employment_id: 'e1',
-		payment_catalogue_id: 'c1',
+		employment_id: EMPLOYMENT_ID,
+		catalogue_id: '77777777-7777-4777-8777-777777777778',
 		amount: 100,
 		effective_on: '2026-04-02',
 		reason: 'Approved separation payment'
 	};
-	const component = { code: 'SEPARATION', ...ENTRY };
+	const component = { code: 'SEPARATION', evidence: 'NONE', eligibility: '' };
 	assert.throws(
 		() => attempt(paymentHooks, component, { ...payment, reason: ' ' }),
 		/requires a reason/
 	);
-	assert.equal(attempt(paymentHooks, component, payment).employment_id, 'e1');
+	assert.equal(attempt(paymentHooks, component, payment).employment_id, EMPLOYMENT_ID);
 });

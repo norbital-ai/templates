@@ -24,15 +24,24 @@ const catalogue: PreparedLeavePayroll['catalogues'][number] = {
 	is_statutory: false,
 	eligibility: '',
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
-	requires_certificate_after_days: null,
+	evidence_after_days: null,
 	paid: false,
-	treatments: { TEST: { absence: { kind: 'REDUCE' }, encashment: { kind: 'INCLUDE' } } }
+	destination: 'PAY',
+	direction: 'SUBTRACT',
+	bands: [
+		{
+			when: '',
+			amount: 'entry.amount',
+			limit: null,
+			statutory_opt_ins: [{ contribution_id: id(9), effect: 'REDUCE' }]
+		}
+	]
 };
 function charge(date: string, days: 0.5 | 1 = 1): LeaveCharge {
 	return {
 		date,
 		days,
-		leave_catalogue_id: id(1),
+		catalogue_id: id(1),
 		employment_term_id: id(3),
 		holiday_id: null,
 		shift_definition_id: id(5),
@@ -43,7 +52,7 @@ function entry(n: number, event: LeaveEvent, charges: LeaveCharge[] = []): Leave
 	return {
 		id: id(n),
 		employment_id: id(6),
-		leave_catalogue_id: id(1),
+		catalogue_id: id(1),
 		leave_code: 'UNPAID',
 		reference: `manual-${n}`,
 		event,
@@ -102,14 +111,19 @@ const calculate = (facts: PreparedLeavePayroll, window = january, rate = 100) =>
 	});
 
 test('cross-year unpaid leave settles exact dated halves once, with each period’s rate', () => {
-	const row = timeOff(10, [charge('2026-12-31'), charge('2027-01-01', 0.5)]);
-	const first = calculate(prepared([row]), december);
+	// The split is the caller’s now: a time-off entry settles whole in one window, so the standing
+	// December charge and the January half are two entries, each priced by its own period’s rate.
+	const decemberRow = timeOff(10, [charge('2026-12-31')]);
+	const januaryRow = timeOff(11, [charge('2027-01-01', 0.5)]);
+	const first = calculate(prepared([decemberRow]), december);
 	assert.equal(first.captures[0]!.gross_amount.value, -100);
 	assert.deepEqual(
 		first.captures[0]!.charges.map((row) => row.date),
 		['2026-12-31']
 	);
-	const next = prepared([row], { captures: first.captures.map((row) => ({ ...row, paid: true })) });
+	const next = prepared([decemberRow, januaryRow], {
+		captures: first.captures.map((row) => ({ ...row, paid: true }))
+	});
 	const second = calculate(next, january, 120);
 	assert.equal(second.captures[0]!.gross_amount.value, -60);
 	assert.equal(second.adjustments[0]!.quantity, 0.5);
@@ -177,17 +191,14 @@ test('a paid reversal preserves the original amounts and contribution direction'
 	});
 	const output = calculate(facts, january, 999);
 	assert.deepEqual(
-		output.adjustments.map((row) => [row.nature, row.amount, row.quantity]),
+		output.adjustments.map((row) => [row.bucket, row.amount, row.quantity]),
 		[
 			['ABSENCE', -61.73, -0.5],
 			['ABSENCE', -123.46, -1]
 		]
 	);
 	assert.equal(output.captures[0]!.gross_amount.value, 185.19);
-	assert.equal(
-		output.adjustments[0]!.catalogueComponent.contribution_treatments.TEST!.kind,
-		'REDUCE'
-	);
+	assert.equal(output.adjustments[0]!.catalogueComponent.optIns[0]!.effect, 'REDUCE');
 	assert.equal(output.captures[0]!.charges.length, 0);
 });
 

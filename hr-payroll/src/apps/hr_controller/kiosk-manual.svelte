@@ -6,7 +6,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
-	import { inForceOnDay } from '../../lib/effective_range.js';
+	import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import { dateKey } from '../../lib/iso-day.js';
 
@@ -66,7 +66,7 @@
 			.filter(
 				(row) =>
 					row.company_id === companyId &&
-					inForceOnDay(row.effective_range, todayKey()) &&
+					coversDate(row.effective_range, todayKey()) &&
 					dateKey(row.hire_date) <= todayKey() &&
 					(row.exit_date == null || dateKey(row.exit_date) >= todayKey())
 			)

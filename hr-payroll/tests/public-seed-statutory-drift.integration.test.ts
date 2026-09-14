@@ -33,13 +33,28 @@ const PUB2_URL = 'https://statutory.example.org/pub2/rates';
 
 /** The public fixture's PUB-EPF band, as seeded: employee 11%, employer 13%. */
 const sealedBand = {
-	selector: { by: 'WAGE', from: 0, to: null },
-	award: { kind: 'PERCENT', employee: 11, employer: 13 }
+	when: 'base > 0.0',
+	employee: 'base * 11.0 / 100.0',
+	employer: 'base * 13.0 / 100.0'
 };
-const proposedBand = { ...sealedBand, award: { ...sealedBand.award, employee: 12 } };
+const proposedBand = { ...sealedBand, employee: 'base * 12.0 / 100.0' };
 const pub2Band = {
-	selector: { by: 'WAGE', from: 0, to: null },
-	award: { kind: 'PERCENT', employee: 5, employer: 5 }
+	when: 'base > 0.0',
+	employee: 'base * 5.0 / 100.0',
+	employer: 'base * 5.0 / 100.0'
+};
+const PUB2_RULES = {
+	relief: '',
+	base_transform: '',
+	share_for_dependants: '',
+	rounding: ['NEAREST_CENT'],
+	no_withholding_below: 0,
+	use_period_table: true,
+	additional_remuneration_channel: false,
+	employee_share_annual_cap: null,
+	shared_cap_group: null,
+	project_relief_annually: false,
+	total_rounded_employee_floored: false
 };
 
 const pubQuote =
@@ -178,18 +193,20 @@ test(
 			// PUB names its official page and a second source that does not resolve; PUB2 is a second
 			// lineage in force whose page restates its band.
 			await session.query(
-				`update jurisdiction_settings set research_urls = array[$1, $2]::text[] where id = $3`,
+				`update jurisdiction_settings set sources = jsonb_build_object('urls', jsonb_build_array($1::text, $2::text)) where id = $3`,
 				[PUB_URL, PUB_DOWN_URL, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, currency, tax_year_start_month, timezone, research_urls, effective_range)
-				 values ($1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, 'Asia/Kuala_Lumpur', array[$2]::text[], $3)`,
-				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }]
+				`insert into jurisdiction_settings (id, code, jurisdiction_code, name, sealed_at, payroll, wages, sources, work_rules, effective_range)
+				 select $1, 'PUB2', 'TEST-JUR', 'Second fixture lineage', '2020-01-01T00:00:00.000Z',
+				        payroll, wages, jsonb_build_object('urls', jsonb_build_array($2::text)), work_rules, $3::jsonb
+				   from jurisdiction_settings where id = $4`,
+				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, rounding, relief_for, sequence, special_rules, bands)
-				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'NEAREST_CENT', '{}', 1, '{}', $3)`,
-				[PUB2_SCHEME_ID, PUB2_ID, [pub2Band]]
+				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, assessment_period, eligibility, sequence, rules, bands)
+				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'PAY_PERIOD', '', 1, $3, $4)`,
+				[PUB2_SCHEME_ID, PUB2_ID, PUB2_RULES, [pub2Band]]
 			);
 			const sealedBefore = await session.query(
 				`select s.id, s.row_version, c.bands from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
@@ -214,7 +231,7 @@ test(
 				);
 			const drafts = () =>
 				session.query(
-					`select id, code, name, sealed_at, cloned_from_id, effective_range, research_notes from jurisdiction_settings where sealed_at is null order by created_at`
+					`select id, code, name, sealed_at, cloned_from_id, effective_range, change_summary from jurisdiction_settings where sealed_at is null order by created_at`
 				) as Promise<Row[]>;
 
 			// Run 1: PUB differs, PUB2 does not.
@@ -264,10 +281,11 @@ test(
 			assert.equal(draft.code, 'PUB');
 			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
 			assert.equal(draft.id, lineages[0]!.draft_id);
-			const notes = asRecord(draft.research_notes, 'research_notes');
-			assert.equal(notes.proposed_by, 'statutory_drift');
-			assert.equal(notes.source_version_id, JURISDICTION_ID);
-			const changes = notes.changes as ReadonlyArray<Record<string, unknown>>;
+			// RFC 0001 dropped the settings research-notes column; the run result carries the
+			// structured evidence and the draft carries the summary of what it was proposed from.
+			assert.match(String(draft.change_summary), /Statutory drift: 1 change\(s\) proposed from/);
+			assert.match(String(draft.change_summary), new RegExp(JURISDICTION_ID));
+			const changes = lineages[0]!.change_details as ReadonlyArray<Record<string, unknown>>;
 			assert.equal(changes.length, 1);
 			assert.deepEqual(
 				{
@@ -291,15 +309,6 @@ test(
 			);
 			assert.match(String(changes[0]!.sha256), /^[a-f0-9]{64}$/);
 			assert.match(String(changes[0]!.retrieved_at), /^\d{4}-\d{2}-\d{2}T/);
-			// The sheet HR reviews names the source the proposal does not stand on.
-			const sheetUnreachable = notes.unreachable as ReadonlyArray<Record<string, unknown>>;
-			assert.equal(sheetUnreachable.length, 1);
-			assert.equal(sheetUnreachable[0]!.url, PUB_DOWN_URL);
-			assert.equal(
-				sheetUnreachable[0]!.reason,
-				'getaddrinfo ENOTFOUND down.statutory.example.org.'
-			);
-			assert.equal(sheetUnreachable[0]!.retrieved_at, pubUnreachable[0]!.retrieved_at);
 
 			// The draft carries the changed band under the cloned scheme, and the unchanged one as sealed.
 			const draftBands = (await session.query(
@@ -309,19 +318,19 @@ test(
 			assert.deepEqual(
 				draftBands.map((row) => [
 					row.code,
-					(row.bands as ReadonlyArray<{ award: Record<string, unknown> }>)[0]!.award.employee
+					(row.bands as ReadonlyArray<{ employee: string }>)[0]!.employee
 				]),
 				[
-					['PUB-EPF', 12],
-					['PUB-EPF-NC', 5]
+					['PUB-EPF', 'base * 12.0 / 100.0'],
+					['PUB-EPF-NC', 'base * 5.0 / 100.0']
 				]
 			);
 			const draftChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from work_catalogue where settings_id = $1)::int as work_catalogue, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
 				[draft.id]
 			)) as Row[];
 			const sourceChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from work_catalogue where settings_id = $1)::int as work_catalogue, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
 				[JURISDICTION_ID]
 			)) as Row[];
 			assert.deepEqual(draftChildren, sourceChildren, 'every child row was cloned');
@@ -336,8 +345,8 @@ test(
 				[STATUTORY_PUB_EPF_ID]
 			)) as Row[];
 			assert.deepEqual(
-				(sealedEpf?.bands as ReadonlyArray<{ award: unknown }>)[0]?.award,
-				sealedBand.award
+				(sealedEpf?.bands as ReadonlyArray<{ employee: string }>)[0]?.employee,
+				sealedBand.employee
 			);
 
 			// Run 2: the open proposal holds PUB; PUB2 is researched again and still unchanged.

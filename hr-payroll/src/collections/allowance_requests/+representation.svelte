@@ -34,22 +34,8 @@
 		record ?? (scopedEmploymentId ? { employment_id: scopedEmploymentId } : undefined)
 	);
 
-	/**
-	 * The capture, read for the lock and for nothing else. `findFirst` is enough even though a
-	 * recurring allowance is consumed by every period its window covers: any one capture answers
-	 * the only question asked here — has payroll taken this, and in which period did it start.
-	 */
-	const captureQuery = $derived(
-		record
-			? client.db.payslip_allowance_request_inputs.findFirst({
-					where: { allowance_request_id: { eq: record.id } },
-					columns: { period: true }
-				})
-			: null
-	);
-	const settledBy = $derived(
-		captureQuery?.current ? { period: captureQuery.current.period } : null
-	);
+	/** The capture is the row's own nullable `payslip_id`; there is no second read. */
+	const settledBy = $derived(record?.payslip_id == null ? null : { period: '' });
 	const lock = $derived(
 		record
 			? sourceLock({
@@ -99,7 +85,7 @@
 						>
 							{#snippet children(where)}
 								<Field
-									name="allowance_catalogue_id"
+									name="catalogue_id"
 									label={t('component.type')}
 									relationOptions={{
 										label: (component) => String(component.code ?? '') || '—',

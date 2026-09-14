@@ -56,20 +56,41 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		code: 'PUB-EPF',
 		name: 'Public fixture retirement fund',
 		authority: 'Public fixture',
-		rounding: 'NEAREST_CENT',
-		relief_for: [],
 		sequence: 1,
-		special_rules: [],
+		assessment_period: 'PAY_PERIOD',
+		eligibility: '',
+		rules: {
+			relief: '',
+			base_transform: '',
+			share_for_dependants: '',
+			rounding: ['NEAREST_CENT'],
+			no_withholding_below: 0,
+			use_period_table: true,
+			additional_remuneration_channel: false,
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			total_rounded_employee_floored: false
+		},
 		bands: [
 			{
-				selector: { by: 'WAGE', from: 0, to: null },
-				award: { kind: 'PERCENT', employee: 11, employer: 13 }
+				when: 'base >= 0.0',
+				employee: 'base * 11.0 / 100.0',
+				employer: 'base * 13.0 / 100.0'
 			}
 		],
+		relievedIds: [],
 		approval_id: null
 	});
-	// Every catalogue at once, and the scheme's own answer for the four the engine produces —
-	// which is where a bucket's treatment lives now that the buckets have no rows.
+	// The work lines opt into PUB-EPF on the settings root (RFC 0001 §6): salary and the OT bands
+	// include, absence reduces. The scheme id is the one the fixture's `statutory_contributions`
+	// row carries under that code.
+	const schemeId = (code: string): string | null =>
+		(world.statutory_contributions.find((row) => row.code === code)?.id as string | undefined) ??
+		null;
+	const pubEpf = schemeId('PUB-EPF');
+	// A catalogue carries its opt-ins on its bands now, not in a per-scheme treatment map: every
+	// money catalogue row the engine produces opts its lines into PUB-EPF unchanged.
 	for (const catalogue of [
 		world.claim_catalogue,
 		world.allowance_catalogue,
@@ -77,16 +98,21 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		world.loan_catalogue
 	])
 		for (const component of catalogue)
-			component.contribution_treatments = { 'PUB-EPF': { kind: 'INCLUDE' } };
-	for (const work of world.work_catalogue)
-		work.treatments = {
-			'PUB-EPF': {
-				salary: { kind: 'INCLUDE' },
-				overtime: { kind: 'INCLUDE' },
-				overtime_excess: { kind: 'INCLUDE' },
-				absence: { kind: 'REDUCE' }
+			for (const band of component.bands as { statutory_opt_ins: unknown[] }[]) {
+				if (pubEpf == null) break;
+				band.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'INCLUDE' }];
 			}
-		};
+	if (pubEpf != null)
+		for (const version of world.jurisdiction_settings) {
+			const rules = version.work_rules as {
+				lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+				rates: { bands: { statutory_opt_ins: unknown[] }[] };
+			};
+			rules.lines.salary.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'INCLUDE' }];
+			rules.lines.absence.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'REDUCE' }];
+			for (const band of rules.rates.bands)
+				band.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'INCLUDE' }];
+		}
 
 	world.employees.push({
 		id: SEMI_MONTHLY_EMPLOYEE_ID,

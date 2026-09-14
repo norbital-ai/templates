@@ -19,13 +19,17 @@ export function leaveContext(): LeaveContext {
 				children: []
 			}
 		],
-		companies: [{ id: id(3), settings_code: 'TEST' }],
+		companies: [{ id: id(3), settings_code: 'TEST', region: null }],
 		employees: [
 			{
 				id: id(2),
 				gender: 'FEMALE',
 				date_of_birth: '1992-01-04',
-				nationality: 'MY'
+				nationality: 'MY',
+				marital_status: 'SINGLE',
+				solo_parent: false,
+				race: null,
+				religion: null
 			}
 		],
 		terms: [
@@ -40,19 +44,20 @@ export function leaveContext(): LeaveContext {
 				base_salary: { value: 3000, currency: 'MYR' },
 				statutory_work_category: 'NON_MANUAL',
 				department: null,
-				payroll_group: null
+				payroll_group: null,
+				grade: null,
+				residency_since: null
 			}
 		],
 		entries: [],
 		workDays: [],
 		runs: [],
-		captures: [],
 		payslips: [],
 		versions: [
 			{
 				id: id(6),
 				code: 'TEST',
-				currency: 'MYR',
+				payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
 				jurisdiction_code: 'TEST-JUR',
 				sealed_at: span.start,
 				voided_at: null,
@@ -67,10 +72,13 @@ export function leaveContext(): LeaveContext {
 				code: 'ANNUAL',
 				name: 'Annual leave',
 				is_statutory: false,
+				sequence: 1,
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [],
 				paid: true,
-				treatments: {},
+				evidence_after_days: null,
 				eligibility: '',
-				requires_certificate_after_days: null,
 				entitlement: {
 					availability: 'UPFRONT',
 					proration: 'NONE',
@@ -95,7 +103,7 @@ export function leaveContext(): LeaveContext {
 		shifts: [
 			{
 				id: id(8),
-				settings_code: 'TEST',
+				company_id: id(3),
 				effective_range: span,
 				variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 }
 			}
@@ -114,7 +122,7 @@ export const submission = (
 	reference = 'TEST'
 ): LeaveSubmission => ({
 	employment_id: id(1),
-	leave_catalogue_id: id(7),
+	catalogue_id: id(7),
 	reference,
 	event
 });

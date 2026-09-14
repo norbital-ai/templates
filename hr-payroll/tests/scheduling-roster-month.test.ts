@@ -52,7 +52,7 @@ test('the roster draws dated leave charges, combining separate halves without fi
 	const leave = (catalogue, charges) => ({
 		employment_id: 'employment-1',
 		kind: 'TIME_OFF',
-		leave_catalogue_id: catalogue,
+		catalogue_id: catalogue,
 		from_date: '2026-08-03',
 		to_date: '2026-08-06',
 		half_day_start: false,
@@ -60,7 +60,7 @@ test('the roster draws dated leave charges, combining separate halves without fi
 		charges: charges.map(([date, days]) => ({
 			date,
 			days,
-			leave_catalogue_id: catalogue,
+			catalogue_id: catalogue,
 			employment_term_id: 'term',
 			holiday_id: null,
 			shift_definition_id: 'shift',

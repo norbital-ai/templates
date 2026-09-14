@@ -57,8 +57,6 @@ const line = (overrides) => ({
 	isCompanyDirect: false,
 	isClaim: false,
 	isLoanInstalment: false,
-	overtimeDayType: null,
-	isOvertimeExcess: false,
 	...overrides
 });
 
@@ -92,7 +90,7 @@ const VERIFIED = {
 			sequence: 1000,
 			componentName: 'Unpaid leave',
 			nature: 'ABSENCE',
-			calculationSource: 'FORMULA',
+			calculationSource: 'DERIVED',
 			amount: 55.66,
 			quantity: 0.5
 		}),
@@ -102,8 +100,7 @@ const VERIFIED = {
 			componentName: 'OVERTIME',
 			calculationSource: 'OVERTIME',
 			amount: 365.44,
-			quantity: 22,
-			overtimeDayType: 'ORDINARY'
+			quantity: 22
 		}),
 		line({
 			componentCode: 'MEDICAL_CLAIM',
@@ -159,18 +156,15 @@ const JOINER = {
 			componentName: 'OVERTIME',
 			calculationSource: 'OVERTIME',
 			amount: 132.73,
-			quantity: 8,
-			overtimeDayType: 'REST_DAY'
+			quantity: 8
 		}),
 		line({
-			componentCode: 'OVERTIME_EXCESS',
+			componentCode: 'INCENTIVE',
 			sequence: 21,
-			componentName: 'OVERTIME_EXCESS',
-			calculationSource: 'OVERTIME_EXCESS',
+			componentName: 'INCENTIVE',
+			calculationSource: 'INCENTIVE',
 			amount: 33.18,
-			quantity: 1,
-			overtimeDayType: 'REST_DAY',
-			isOvertimeExcess: true
+			quantity: 1
 		}),
 		line({
 			componentCode: 'STAFF_LOAN',
@@ -220,8 +214,7 @@ const SINGAPORE = {
 			componentName: 'OVERTIME',
 			calculationSource: 'OVERTIME',
 			amount: 300,
-			quantity: 10,
-			overtimeDayType: 'ORDINARY'
+			quantity: 10
 		})
 	],
 	contributions: new Map([
@@ -440,8 +433,7 @@ Effect.runPromise(
 					'Payments',
 					'Net',
 					'Statutory',
-					'Totals & bases',
-					'Attendance'
+					'Totals & bases'
 				],
 				'the listing’s section order is the reader’s order'
 			);
@@ -483,10 +475,6 @@ Effect.runPromise(
 			assert.equal(at(6, 'totalEis'), 15);
 			assert.equal(at(6, 'epfGross'), 3395.34);
 			assert.equal(at(6, 'socsoGross'), 3760.78);
-			// Ordinary overtime is a 1.5× bucket; nothing lands in the rest-day or holiday ones.
-			assert.equal(at(6, 'ot15Hours'), 22);
-			assert.equal(at(6, 'ot10Hours'), 0);
-			assert.equal(at(6, 'ot20Hours'), 0);
 
 			// ── row 7: the joiner, whose money reaches different columns from the same shapes ─────────────
 			assert.equal(at(7, 'eid'), 'PUBEM0400');
@@ -497,17 +485,10 @@ Effect.runPromise(
 				132.73,
 				'a rest day pays a day’s wages, not eight hourly units'
 			);
-			assert.equal(
-				at(7, 'OVERTIME_EXCESS'),
-				33.18,
-				'reclassified overtime leaves the overtime column'
-			);
+			assert.equal(at(7, 'INCENTIVE'), 33.18, 'reclassified overtime leaves the overtime column');
 			assert.equal(at(7, 'STAFF_LOAN'), 100);
 			assert.equal(at(7, 'grossEarnings'), 1005.91);
 			assert.equal(at(7, 'netPay'), 822.86);
-			assert.equal(at(7, 'ot20Hours'), 8, 'rest-day hours are the 2.0× bucket');
-			assert.equal(at(7, 'ot15Hours'), 0);
-			assert.equal(at(7, 'ot10Hours'), 1, 'excess hours are valued plain, so they read 1.0×');
 
 			// ── row 8: TOTAL, and it really is the total ──────────────────────────────────────────────────
 			const totalRow = 8;
@@ -520,7 +501,6 @@ Effect.runPromise(
 			assert.equal(totalOf('netPay'), 4276.89);
 			assert.equal(totalOf('epfEmployee'), 450);
 			assert.equal(totalOf('epfEmployer'), 532);
-			assert.equal(totalOf('ot20Hours'), 8);
 			// Every money and hours column is totalled; the two text columns are deliberately not.
 			for (const [index, outputId] of VENDOR_COLUMNS.entries()) {
 				const value = listing.getRow(totalRow).getCell(index + 1).value;
@@ -571,12 +551,7 @@ Effect.runPromise(
 				'sdl',
 				'totalCpf',
 				'totalDeductions',
-				'employerCost',
-				'ot10Hours',
-				'ot15Hours',
-				'ot20Hours',
-				'ot30Hours',
-				'totalOTHours'
+				'employerCost'
 			]);
 			// The band sits below the headers here, and column A stays blank so a row walker can tell a band
 			// from a payslip by the absence of an employee number.
@@ -599,12 +574,7 @@ Effect.runPromise(
 				13.25,
 				1961,
 				1060,
-				914.25,
-				0,
-				10,
-				0,
-				0,
-				10
+				914.25
 			]);
 
 			// ── and an empty period still writes a real archive, as it always did ─────────────────────────

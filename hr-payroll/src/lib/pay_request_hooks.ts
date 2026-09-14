@@ -4,27 +4,30 @@ import type { WorkspaceSchema } from '$bolt/types';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { capSubject } from './component_entry_cap_subject.js';
 import {
-	capOccurrenceDate,
-	entryCapRefusal,
-	noEntitlementRefusal,
-	resolveEntryCap
+	entryLimitRefusal,
+	resolveEntryLimit,
+	type LimitSibling
 } from '../collections/payroll_runs/lib/entry-cap.js';
 import { isSettlementWrite, refuseIfCaptured, settledClaim } from './scheduling/lock.js';
-import { isEligible } from '../collections/payroll_runs/lib/eligibility.js';
-import { captureAmounts, type PayRequestFamily, type PayRequestCapture } from './payroll/money.js';
+import { isEligible, compileEligibility } from '../collections/payroll_runs/lib/eligibility.js';
+import { monthKey } from '../collections/payroll_runs/lib/dates.js';
+import {
+	captureAmounts,
+	entryContext,
+	type PayRequestFamily,
+	type PayRequestCapture
+} from './payroll/money.js';
+import {
+	runtimeExpressionEngine,
+	evaluateBoolean,
+	evaluateNumber
+} from './expressions/evaluate.js';
 
 export type PayRequestGuard = {
 	readonly family: PayRequestFamily;
 	readonly eventDate: (candidate: Readonly<Record<string, unknown>>) => string | null;
 	readonly sign?: number;
 	readonly noun: string;
-};
-
-type CapSource = Readonly<Record<string, unknown>> & {
-	readonly id: string;
-	readonly employment_id: string;
-	readonly event_date: string | null;
-	readonly captured_amount: number | null;
 };
 
 const SIBLING_LIMIT = 10_000;
@@ -34,37 +37,7 @@ function assertCapHistoryComplete(rows: readonly unknown[]): void {
 		refuse('The contract cap history exceeds the supported read limit.');
 }
 
-/** The claim a settled request carries: on its own row for the single-use families, on the allowance's capture rows. */
-const captureOf = (
-	family: PayRequestFamily,
-	api: AuthoringApi<WorkspaceSchema, unknown>,
-	id: string
-): Effect.Effect<{ readonly period: string } | undefined, never, never> => {
-	switch (family) {
-		case 'CLAIM':
-			return Effect.map(
-				api.db.claim_requests.findFirst({
-					where: { id: { eq: id } },
-					columns: { settled_period: true }
-				}),
-				(row) => (row == null ? undefined : settledClaim(row))
-			);
-		case 'PAYMENT':
-			return Effect.map(
-				api.db.payment_requests.findFirst({
-					where: { id: { eq: id } },
-					columns: { settled_period: true }
-				}),
-				(row) => (row == null ? undefined : settledClaim(row))
-			);
-		case 'ALLOWANCE':
-			return api.db.payslip_allowance_request_inputs.findFirst({
-				where: { allowance_request_id: { eq: id } },
-				columns: { period: true }
-			});
-	}
-};
-
+/** The row of one money family, with the columns this guard reads. */
 const catalogueRowOf = (
 	family: PayRequestFamily,
 	api: AuthoringApi<WorkspaceSchema, unknown>,
@@ -75,7 +48,9 @@ const catalogueRowOf = (
 		settings_id: true,
 		code: true,
 		evidence: true,
-		cap: true,
+		bands: true,
+		destination: true,
+		direction: true,
 		eligibility: true
 	} as const;
 	const where = { id: { eq: id } } as const;
@@ -86,6 +61,24 @@ const catalogueRowOf = (
 			return api.db.allowance_catalogue.findFirst({ where, columns });
 		case 'PAYMENT':
 			return api.db.payment_catalogue.findFirst({ where, columns });
+	}
+};
+
+/** The entry row itself, for the delete/pin guard. */
+const entryRowOf = (
+	family: PayRequestFamily,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
+	id: string
+) => {
+	const columns = { id: true, payslip_id: true } as const;
+	const where = { id: { eq: id } } as const;
+	switch (family) {
+		case 'CLAIM':
+			return api.db.claim_requests.findFirst({ where, columns });
+		case 'ALLOWANCE':
+			return api.db.allowance_requests.findFirst({ where, columns });
+		case 'PAYMENT':
+			return api.db.payment_requests.findFirst({ where, columns });
 	}
 };
 
@@ -103,35 +96,36 @@ const siblingsOf = (
 		id: true,
 		employment_id: true,
 		amount: true,
-		as_adjustment_entry: true
+		as_adjustment_entry: true,
+		payslip_id: true
 	} as const;
 	switch (family) {
 		case 'CLAIM':
 			return api.db.claim_requests.findMany({
-				where: { ...where, claim_catalogue_id: { in: [...componentIds] } },
-				columns: { ...shared, claim_catalogue_id: true, incurred_on: true },
+				where: { ...where, catalogue_id: { in: [...componentIds] } },
+				columns: { ...shared, catalogue_id: true, incurred_on: true },
 				limit: SIBLING_LIMIT
 			});
 		case 'ALLOWANCE':
 			return api.db.allowance_requests.findMany({
-				where: { ...where, allowance_catalogue_id: { in: [...componentIds] } },
-				columns: { ...shared, allowance_catalogue_id: true, recurrence: true },
+				where: { ...where, catalogue_id: { in: [...componentIds] } },
+				columns: { ...shared, catalogue_id: true, recurrence: true, derived_from_id: true },
 				limit: SIBLING_LIMIT
 			});
 		case 'PAYMENT':
 			return api.db.payment_requests.findMany({
-				where: { ...where, payment_catalogue_id: { in: [...componentIds] } },
-				columns: { ...shared, payment_catalogue_id: true, effective_on: true },
+				where: { ...where, catalogue_id: { in: [...componentIds] } },
+				columns: { ...shared, catalogue_id: true, effective_on: true },
 				limit: SIBLING_LIMIT
 			});
 	}
 };
 
-/** Only revisions of this family/code in the same settings lineage share a contract's cap. */
+/** Only revisions of this family/code in the same settings lineage share a contract's ceiling. */
 function catalogueRevisionsOf(
 	family: PayRequestFamily,
 	api: AuthoringApi<WorkspaceSchema, unknown>,
-	component: NonNullable<Effect.Success<ReturnType<typeof catalogueRowOf>>>
+	component: { readonly settings_id: string; readonly code: string }
 ) {
 	return Effect.gen(function* () {
 		const settings = yield* api.db.jurisdiction_settings.findFirst({
@@ -150,7 +144,7 @@ function catalogueRevisionsOf(
 			code: { eq: component.code },
 			approval_id: { isNull: true }
 		} as const;
-		const columns = { id: true, eligibility: true } as const;
+		const columns = { id: true, eligibility: true, bands: true } as const;
 		switch (family) {
 			case 'CLAIM':
 				return yield* api.db.claim_catalogue.findMany({ where, columns, limit: SIBLING_LIMIT });
@@ -171,52 +165,55 @@ function capturedUsageOf(
 	return Effect.gen(function* () {
 		const captures = new Map<string, PayRequestCapture[]>();
 		if (ids.length === 0) return captures;
-		type Link = { readonly payslipId: string; readonly period: string; readonly sourceId: string };
-		const settledLinks = (
-			rows: readonly {
-				readonly id: string;
-				readonly settled_payslip_id: string | null;
-				readonly settled_period: string | null;
-			}[]
-		): Link[] =>
-			rows.flatMap((row) =>
-				row.settled_payslip_id == null
-					? []
-					: [
-							{
-								payslipId: row.settled_payslip_id,
-								period: row.settled_period ?? '',
-								sourceId: row.id
-							}
-						]
-			);
-		const settled = { id: true, settled_payslip_id: true, settled_period: true } as const;
-		const links: Link[] =
-			family === 'ALLOWANCE'
-				? (yield* api.db.payslip_allowance_request_inputs.findMany({
-						where: { allowance_request_id: { in: [...ids] } },
-						columns: { period: true, payslip_id: true, allowance_request_id: true },
+		type Link = {
+			readonly payslipId: string;
+			readonly period: string;
+			readonly sourceId: string;
+		};
+		const links: Link[] = [];
+		if (family === 'ALLOWANCE') {
+			// A standing allowance materialises one row per period; its payslip adjustment names the
+			// standing source, so the capture is attributed there.
+			const derived = yield* api.db.allowance_requests.findMany({
+				where: { derived_from_id: { in: [...ids] }, payslip_id: { isNull: false } },
+				columns: { id: true, payslip_id: true, derived_from_id: true, recurrence: true },
+				limit: SIBLING_LIMIT
+			});
+			for (const row of derived)
+				links.push({
+					payslipId: String(row.payslip_id),
+					sourceId: String(row.derived_from_id),
+					period: monthKey(String((row.recurrence as { readonly from?: string }).from ?? ''))
+				});
+		}
+		const pinned =
+			family === 'CLAIM'
+				? yield* api.db.claim_requests.findMany({
+						where: { id: { in: [...ids] }, payslip_id: { isNull: false } },
+						columns: { id: true, payslip_id: true },
 						limit: SIBLING_LIMIT
-					})).map((row) => ({
-						payslipId: row.payslip_id,
-						period: row.period,
-						sourceId: row.allowance_request_id
-					}))
-				: family === 'CLAIM'
-					? settledLinks(
-							yield* api.db.claim_requests.findMany({
-								where: { id: { in: [...ids] } },
-								columns: settled,
-								limit: SIBLING_LIMIT
-							})
-						)
-					: settledLinks(
-							yield* api.db.payment_requests.findMany({
-								where: { id: { in: [...ids] } },
-								columns: settled,
-								limit: SIBLING_LIMIT
-							})
-						);
+					})
+				: family === 'PAYMENT'
+					? yield* api.db.payment_requests.findMany({
+							where: { id: { in: [...ids] }, payslip_id: { isNull: false } },
+							columns: { id: true, payslip_id: true },
+							limit: SIBLING_LIMIT
+						})
+					: yield* api.db.allowance_requests.findMany({
+							where: {
+								id: { in: [...ids] },
+								payslip_id: { isNull: false },
+								derived_from_id: { isNull: true }
+							},
+							columns: { id: true, payslip_id: true },
+							limit: SIBLING_LIMIT
+						});
+		for (const row of pinned)
+			links.push({
+				payslipId: String(row.payslip_id),
+				sourceId: String(row.id),
+				period: ''
+			});
 		assertCapHistoryComplete(links);
 		if (links.length === 0) return captures;
 		const payslips = yield* api.db.payslips.findMany({
@@ -232,6 +229,28 @@ function capturedUsageOf(
 	});
 }
 
+/** The band that governs a candidate entry, or `null` when the table does not cover it. */
+function bandFor(
+	bands: readonly {
+		readonly when: string;
+		readonly amount: number | string;
+		readonly limit: unknown;
+	}[],
+	context: Record<string, unknown>
+) {
+	if (bands.length === 0) return null;
+	const engine = runtimeExpressionEngine();
+	for (const band of bands) {
+		if (band.when.trim() === '') return band;
+		try {
+			if (evaluateBoolean(engine, band.when, context)) return band;
+		} catch {
+			return band;
+		}
+	}
+	return null;
+}
+
 export function assertPayRequestAdmissible(
 	guard: PayRequestGuard,
 	options: {
@@ -244,8 +263,6 @@ export function assertPayRequestAdmissible(
 		const { api } = options;
 		// The engine's capture or release of this row: the one write a settled row takes.
 		if (options.existing !== undefined && isSettlementWrite(options.input)) return;
-		// The patch merged over the stored row, so a partial update is judged as the row it would
-		// produce — the same candidate a form validates before it submits.
 		const candidate =
 			options.existing === undefined
 				? { ...options.input }
@@ -253,100 +270,126 @@ export function assertPayRequestAdmissible(
 
 		const amount = decodeNumber(candidate.amount);
 		if (!Number.isFinite(amount) || amount <= 0)
-			refuse(`A ${guard.noun} amount is a positive magnitude; direction comes from the component.`);
+			refuse(`A ${guard.noun} amount is a positive magnitude; direction comes from the catalogue.`);
 
 		if (guard.family === 'PAYMENT' && String(candidate.reason ?? '').trim() === '')
 			refuse('A payment requires a reason or supporting transaction reference.');
 
-		const componentId = String(candidate[`${guard.family.toLowerCase()}_catalogue_id`] ?? '');
+		const componentId = String(candidate.catalogue_id ?? '');
 		const component = yield* catalogueRowOf(guard.family, api, componentId);
 		if (component != null) {
+			const eligibilityFault = compileEligibility(component.eligibility);
+			if (eligibilityFault != null) refuse(eligibilityFault);
 			if (component.evidence === 'REQUIRED' && candidate.evidence_file == null)
 				refuse(
 					`Component ${component.code} requires evidence for its ${guard.noun}s. Attach a receipt.`
 				);
 
-			// A recurring declaration is an award per period; payroll bounds each occurrence by the cap.
-			const recurring =
-				guard.family === 'ALLOWANCE' &&
-				(candidate.recurrence as { kind?: unknown } | null)?.kind === 'RECURRING';
-			const gated = (component.eligibility ?? '').trim() !== '';
-			if (gated || (component.cap != null && !recurring)) {
-				const eventDate = guard.eventDate(candidate);
-				const employmentId = String(candidate.employment_id ?? '');
-				if (eventDate != null && employmentId !== '') {
-					const person = yield* capSubject(api, employmentId, eventDate);
-					// The form offers only the types whose rule holds for the person today; this is the
-					// same rule on the event date, for a write that did not come through the form.
-					if (person != null && gated && !isEligible(component.eligibility, person.subject))
+			const eventDate = guard.eventDate(candidate);
+			const employmentId = String(candidate.employment_id ?? '');
+			if (eventDate != null && employmentId !== '') {
+				const person = yield* capSubject(api, employmentId, eventDate);
+				if (person != null && (component.eligibility ?? '').trim() !== '') {
+					if (!isEligible(component.eligibility, person.subject))
 						refuse(
 							`${component.code} is not offered to ${person.label}: its eligibility rule does not hold for them.`
 						);
-					if (person != null && component.cap != null && !recurring) {
-						const revisions = yield* catalogueRevisionsOf(guard.family, api, component);
-						assertCapHistoryComplete(revisions);
-						const catalogueById = new Map(revisions.map((row) => [row.id, row]));
-						const siblings = yield* siblingsOf(guard.family, api, employmentId, [
-							...catalogueById.keys()
-						]);
-						assertCapHistoryComplete(siblings);
-						const captured = yield* capturedUsageOf(
-							guard.family,
-							api,
-							siblings.map((row) => String(row.id))
-						);
-						const signOf = (row: Readonly<Record<string, unknown>>) =>
-							(guard.sign ?? 1) * (row.as_adjustment_entry === true ? -1 : 1);
-						const identity = { family: guard.family, code: component.code };
-						const resolved = resolveEntryCap({
-							cap: component.cap,
-							component: identity,
+				}
+				if (person != null) {
+					const revisions = yield* catalogueRevisionsOf(guard.family, api, {
+						settings_id: String(component.settings_id),
+						code: String(component.code)
+					});
+					assertCapHistoryComplete(revisions);
+					const catalogueById = new Map(revisions.map((row) => [row.id, row]));
+					// The candidate itself is excluded by id unless the id is empty (a create).
+					const siblings = yield* siblingsOf(guard.family, api, employmentId, [
+						...catalogueById.keys()
+					]);
+					assertCapHistoryComplete(siblings);
+					const captured = yield* capturedUsageOf(
+						guard.family,
+						api,
+						siblings.map((row) => String(row.id))
+					);
+					const signOf = (row: Readonly<Record<string, unknown>>) =>
+						(guard.sign ?? 1) * (row.as_adjustment_entry === true ? -1 : 1);
+					const context = entryContext({
+						entry: {
+							id: String(candidate.id ?? '\uffff'),
+							family: guard.family,
+							employment_id: employmentId,
+							catalogue_id: componentId,
+							amount,
+							approval_id: null,
+							pay_period: null,
+							event_date: eventDate,
+							sign: signOf(candidate),
+							window: null,
+							prorates: false,
+							depletes: true,
+							recurring: false,
+							on_day: null,
+							captured: false
+						},
+						subject: person.subject,
+						period: eventDate.slice(0, 7),
+						periodStart: `${eventDate.slice(0, 7)}-01`,
+						periodEnd: `${eventDate.slice(0, 7)}-01`,
+						instalments: 1,
+						ordinaryDay: 0,
+						ordinaryHour: 0,
+						limits: {},
+						captures: { paidToDate: 0, remaining: amount }
+					});
+					const band = bandFor(component.bands, context);
+					// A recurring declaration is an award per period; payroll bounds each occurrence
+					// by the ceiling, so the declaration itself is not refused by the annual cap.
+					const recurring =
+						guard.family === 'ALLOWANCE' &&
+						(candidate.recurrence as { readonly kind?: unknown } | null)?.kind === 'RECURRING';
+					if (band != null && band.limit != null && !recurring) {
+						const limit = band.limit as {
+							readonly period: 'CALENDAR_YEAR' | 'MONTH' | 'LIFETIME' | 'PER_EVENT';
+							readonly on_exceed: 'BLOCK' | 'ALLOW';
+							readonly amount: number | string;
+						};
+						const limitAmount =
+							typeof limit.amount === 'number'
+								? limit.amount
+								: evaluateNumber(runtimeExpressionEngine(), limit.amount, context);
+						const rows: LimitSibling[] = siblings.flatMap((row) => {
+							const prior = captured.get(String(row.id)) ?? [];
+							const common = {
+								id: String(row.id),
+								employment_id: employmentId,
+								event_date: guard.eventDate(row)
+							};
+							return prior.length > 0
+								? prior.map((capture) => ({
+										...common,
+										amount: signOf(row) * capture.amount
+									}))
+								: [{ ...common, amount: signOf(row) * decodeNumber(row.amount) }];
+						});
+						const resolved = resolveEntryLimit({
+							limit,
+							limitAmount,
+							entryId: String(candidate.id ?? '\uffff'),
 							employmentId,
-							entry: { id: String(candidate.id ?? '\uffff'), employment_id: employmentId },
 							eventDate,
-							siblings: siblings.flatMap<CapSource>((row) => {
-								const recurring =
-									guard.family === 'ALLOWANCE' &&
-									(row.recurrence as { kind?: unknown } | null)?.kind === 'RECURRING';
-								const prior = captured.get(String(row.id)) ?? [];
-								const common = {
-									...row,
-									id: String(row.id),
-									employment_id: String(row.employment_id)
-								};
-								return prior.length || recurring
-									? prior.map((capture) => ({
-											...common,
-											id: recurring ? `${row.id}:${capture.id}` : String(row.id),
-											event_date: recurring
-												? capOccurrenceDate(capture.period)
-												: guard.eventDate(row),
-											captured_amount: capture.amount
-										}))
-									: [{ ...common, event_date: guard.eventDate(row), captured_amount: null }];
-							}),
-							eventDateOf: (row) => row.event_date,
-							componentOf: () => identity,
-							usedAmountOf: (row) => {
-								if (row.captured_amount != null) return signOf(row) * row.captured_amount;
-								const source = catalogueById.get(
-									String(row[`${guard.family.toLowerCase()}_catalogue_id`])
-								);
-								if (source == null) refuse('A capped request has no source catalogue row.');
-								if (!isEligible(source.eligibility, person.at(row.event_date!))) return 0;
-								return signOf(row) * decodeNumber(row.amount);
-							},
-							subject: person.subject
+							siblings: rows
 						});
-						if (resolved == null)
-							refuse(noEntitlementRefusal(String(component.code), person.label));
-						const refusal = entryCapRefusal({
-							cap: component.cap,
-							resolved,
-							componentCode: String(component.code),
-							subject: person.label,
-							proposed: signOf(candidate) * amount
-						});
+						const refusal =
+							resolved == null
+								? null
+								: entryLimitRefusal({
+										limit,
+										resolved,
+										componentCode: String(component.code),
+										subject: person.label,
+										proposed: signOf(candidate) * amount
+									});
 						if (refusal !== null) refuse(refusal);
 					}
 				}
@@ -356,7 +399,7 @@ export function assertPayRequestAdmissible(
 		// Only an edit can disturb a capture: a create has no prior run that consumed it.
 		if (options.existing !== undefined)
 			yield* refuseIfCaptured({
-				capture: captureOf(guard.family, api, String(options.existing.id)),
+				capture: Effect.succeed(settledClaim(options.existing)),
 				approvalId: null,
 				action: `Changing this ${guard.noun}`
 			});
@@ -368,8 +411,11 @@ export const assertPayRequestDeletable = (
 	api: AuthoringApi<WorkspaceSchema, unknown>,
 	id: string
 ): Effect.Effect<void, never, never> =>
-	refuseIfCaptured({
-		capture: captureOf(guard.family, api, id),
-		approvalId: null,
-		action: `Deleting this ${guard.noun}`
+	Effect.gen(function* () {
+		const row = yield* entryRowOf(guard.family, api, id);
+		yield* refuseIfCaptured({
+			capture: Effect.succeed(row == null ? undefined : settledClaim(row)),
+			approvalId: null,
+			action: `Deleting this ${guard.noun}`
+		});
 	});

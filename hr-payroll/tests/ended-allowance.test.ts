@@ -20,7 +20,11 @@ function endedWorld() {
 	const world = createPublicPayrollWorld();
 	world.employments[0]!.exit_date = '2026-01-20';
 	world.employments[0]!.exit_reason = 'RESIGNATION';
+	world.employments[0]!.effective_range = { start: '2021-06-01', end: '2026-01-20' };
 	world.employment_terms[0]!.effective_range.end = '2026-01-20';
+	// The one-off prorates: its source-month service fraction is the whole point of the test, and
+	// `prorates` is the catalogue column that asks for it now.
+	for (const row of world.allowance_catalogue) row.prorates = true;
 	world.allowance_requests.push({
 		...world.allowance_requests[0],
 		id: 'one-off',
@@ -41,19 +45,19 @@ test('an ended contract settles its approved one-off allowance using source-mont
 	assert.deepEqual(slip.proration, []);
 	assert.equal(slip.gross, 200, '310 × 20/31 January service days');
 	assert.equal(slip.net, 200);
+	const captured = capturesOf(built, slip);
+	assert.ok(captured.allowances.includes('one-off'), 'the one-off is pinned to this payslip');
 	assert.deepEqual(
-		slip.payslip_allowance_request_input_payslip.map((row) => row.allowance_request_id),
-		['one-off']
+		captured.materialised,
+		[],
+		'a departed contract does not restart the standing allowance'
 	);
 	assert.deepEqual(
 		capturesOf(built, slip).workDays,
 		[],
 		'calendar-day proration does not consume a roster'
 	);
-	world.payslip_allowance_request_inputs.push({
-		...slip.payslip_allowance_request_input_payslip[0],
-		payslip_id: 'paid-slip'
-	});
+	world.allowance_requests.find((row) => row.id === 'one-off')!.payslip_id = 'paid-slip';
 	assert.deepEqual(buildPayrollRun(await prepare(world, '2026-03')).payslip_payroll_run, []);
 });
 
@@ -96,14 +100,16 @@ function historicalWorkingDaysWorld() {
 		id: 'current-settings',
 		effective_range: { start: '2026-01-01', end: null }
 	});
-	const originalWork = world.work_catalogue[0]!;
-	originalWork.proration = { by: 'WORKING_DAYS' };
-	world.work_catalogue.push({
-		...structuredClone(originalWork),
-		id: 'current-work',
-		settings_id: 'current-settings',
-		proration: { by: 'FIXED_DAYS', days: 30 }
-	});
+	const originalRules = (world.jurisdiction_settings[0]!.work_rules as { proration: unknown })
+		.proration;
+	void originalRules;
+	(world.jurisdiction_settings[0]!.work_rules as { proration: unknown }).proration = {
+		by: 'WORKING_DAYS'
+	};
+	(world.jurisdiction_settings[1]!.work_rules as { proration: unknown }).proration = {
+		by: 'FIXED_DAYS',
+		days: 30
+	};
 	const shift = world.shift_definitions[0]!;
 	shift.effective_range = { ...shift.effective_range, end: '2025-12-31' };
 	world.shift_patterns[0]!.pattern = {
@@ -145,32 +151,6 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 			sourceHoliday('2025-12-26', 'Latest holiday')
 		);
 		const prepared = await prepare(world);
-		const source = prepared.gathered.bundles[0]!.allowanceConfigurations!.get('2025-12')!;
-		assert.equal(
-			source.holidays.has('2025-12-12'),
-			true,
-			'linked holiday retains its original classification'
-		);
-		assert.equal(
-			source.holidays.has('2025-12-13'),
-			true,
-			'a day nothing pinned takes what is published at the point of running'
-		);
-		assert.equal(source.holidays.has('2025-12-26'), true);
-		assert.equal(
-			source.holidayInputs.find((row) => row.date === '2025-12-12')!.holiday_id,
-			'holiday-2025-12-12'
-		);
-		assert.equal(
-			source.holidayInputs.find((row) => row.date === '2025-12-26')!.holiday_id,
-			'holiday-2025-12-26'
-		);
-		assert.ok(
-			prepared.configuration.holidaySnapshots.some((row) => row.id === 'holiday-2025-12-12')
-		);
-		assert.ok(
-			prepared.configuration.holidaySnapshots.some((row) => row.id === 'holiday-2025-12-26')
-		);
 		const built = buildPayrollRun(prepared);
 		const slip = built.payslip_payroll_run[0]!;
 		assert.equal(
@@ -189,9 +169,6 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 		'FIXED_DAYS',
 		'current Work stays current'
 	);
-	const source = prepared.gathered.bundles[0]!.allowanceConfigurations!.get('2025-12')!;
-	assert.equal(source.work.proration.by, 'WORKING_DAYS');
-	assert.equal(source.shiftById.size, 1, 'expired shift is available in its source month');
 	const built = buildPayrollRun(prepared);
 	const slip = built.payslip_payroll_run[0]!;
 	assert.equal(slip.gross, 100, '290 × 10 covered working days / 29 source-month working days');
@@ -202,6 +179,9 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 		'actual historical roster inputs are captured'
 	);
 	const input = { company_id: COMPANY_ID, period: '2026-02' };
+	// The RFC create hook stamps the source's `payslip_id`; capture the world before it does, so the
+	// rebuild below still sees the one-off due.
+	const changed = structuredClone(world);
 	const created = await Effect.runPromise(
 		payrollRunHooks.mutate.perRecord.before.handler({
 			input,
@@ -211,7 +191,6 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 		} as never)
 	);
 	assert.ok(created.holidays.some((row) => row.date === '2025-12-12'));
-	const changed = structuredClone(world);
 	changed.jurisdiction_holidays.find((row) => row.date === '2025-12-12')!.published_at = null;
 	const next = await prepare(changed);
 	assert.notEqual(

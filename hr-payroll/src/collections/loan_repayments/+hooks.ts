@@ -4,7 +4,6 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import { dateKey } from '../../lib/iso-day.js';
 import { boundToContract } from '../../lib/employment-contract.js';
 import { loanScheduleRefusals } from '../../lib/loan-schedule.js';
-import { refuseIfCaptured } from '../../lib/scheduling/lock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 const QUERY_LIMIT = 10_000;
@@ -83,7 +82,7 @@ export default {
 			before: {
 				description:
 					'Keep repayments on their agreement’s employment contract, validate the proposed schedule, and preserve captured repayment amounts.',
-				handler: ({ input, existing, prepared, parent, api }) =>
+				handler: ({ input, existing, prepared, parent }) =>
 					Effect.gen(function* () {
 						const candidate = { ...existing, ...input };
 						if (!(decodeNumber(candidate.amount_due) > 0))
@@ -102,15 +101,11 @@ export default {
 								decodeNumber(candidate.amount_due) !== decodeNumber(existing.amount_due) ||
 								sequence !== decodeNumber(existing.sequence) ||
 								!sameInstant(candidate.due_date, existing.due_date));
-						if (repaymentChanged)
-							yield* refuseIfCaptured({
-								capture: api.db.payslip_loan_repayment_inputs.findFirst({
-									where: { loan_repayment_id: { eq: existing.id } },
-									columns: { period: true }
-								}),
-								approvalId: null,
-								action: 'Changing this repayment'
-							});
+						if (repaymentChanged && existing.payslip_id != null)
+							refuse(
+								'This repayment was settled by a payroll and cannot be changed. Delete the ' +
+									'draft payroll holding it before changing its schedule.'
+							);
 
 						// Only the runtime can supply an enclosing agreement. It includes the parent's proposed
 						// own fields, so creating or amending an agreement never reads an old or missing parent.
@@ -178,16 +173,13 @@ export default {
 			before: {
 				description:
 					'Delete repayments only through a valid complete schedule replacement or unused agreement deletion; preserve captured repayments.',
-				handler: ({ existing, parent, api }) =>
+				handler: ({ existing, parent }) =>
 					Effect.gen(function* () {
-						yield* refuseIfCaptured({
-							capture: api.db.payslip_loan_repayment_inputs.findFirst({
-								where: { loan_repayment_id: { eq: existing.id } },
-								columns: { period: true }
-							}),
-							approvalId: null,
-							action: 'Deleting this repayment'
-						});
+						if (existing.payslip_id != null)
+							refuse(
+								'This repayment was settled by a payroll and cannot be deleted. Delete the ' +
+									'draft payroll holding it before changing its schedule.'
+							);
 						if (
 							parent?.collection !== 'loans' ||
 							parent.column !== 'loan_id' ||

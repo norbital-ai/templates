@@ -14,7 +14,6 @@ import {
 } from '../lib/kiosk/punch.js';
 import type { Api } from './$types.js';
 import { dateKey } from '../lib/iso-day.js';
-import { inForceOnDay } from '../lib/effective_range.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { patternRosterCodeId } from '../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../lib/scheduling/roster-code.js';
@@ -44,7 +43,7 @@ export default defineCommandHandler({
 			const employment = resolveEmployment(contract);
 			const dayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
 			if (
-				!inForceOnDay(employment.effective_range, dayKey) ||
+				!coversDate(employment.effective_range, dayKey) ||
 				dateKey(employment.hire_date) > dayKey ||
 				(employment.exit_date != null && dateKey(employment.exit_date) < dayKey)
 			)

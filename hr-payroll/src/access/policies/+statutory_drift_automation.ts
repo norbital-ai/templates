@@ -13,7 +13,7 @@ export default {
 	grants: {
 		jurisdiction_settings: { read: {}, mutate: { new: {} } },
 		statutory_contributions: { read: {}, mutate: { new: {} } },
-		work_catalogue: { read: {}, mutate: { new: {} } },
+		scheme_reliefs: { read: {}, mutate: { new: {} } },
 		leave_catalogue: { read: {}, mutate: { new: {} } },
 		loan_catalogue: { read: {}, mutate: { new: {} } },
 		claim_catalogue: { read: {}, mutate: { new: {} } },

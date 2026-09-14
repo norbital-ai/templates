@@ -89,7 +89,7 @@
 					renderer={FormattedValueRenderer}
 					rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
 				/>
-				<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} card="title" />
+				<Column name="catalogue_id" label={t('component.catalogue_leave')} card="title" />
 				<Column name="event" label={t('leave.activity')} />
 				<Column name="days" label={t('component.days')} />
 				<Column name="reference" label={t('component.reference')} />

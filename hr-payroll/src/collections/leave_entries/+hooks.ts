@@ -47,22 +47,34 @@ export default {
 					'Validates a manual Leave activity and freezes its dated charges and credit allocations; each charge carries the calendar it was measured against.',
 				handler: ({ input, existing, recordId, prepared }) => {
 					if (existing != null) {
-						if (
-							Object.entries(input).some(
-								([key, value]) =>
-									key !== 'id' &&
-									key !== 'row_version' &&
-									stableJson(value) !== stableJson(Reflect.get(existing, key))
+						// The payroll engine's settlement stamp or release is the one write a frozen
+						// row accepts; every other field stays as the approval left it.
+						const settlementWrite = Object.keys(input).every((key) =>
+							['id', 'row_version', 'payslip_id'].includes(key)
+						);
+						if (!settlementWrite) {
+							if (existing.payslip_id != null)
+								refuse(
+									'This leave entry was settled by a payroll and is frozen. Delete the draft ' +
+										'payroll holding it before changing it.'
+								);
+							if (
+								Object.entries(input).some(
+									([key, value]) =>
+										key !== 'id' &&
+										key !== 'row_version' &&
+										stableJson(value) !== stableJson(Reflect.get(existing, key))
+								)
 							)
-						)
-							refuse(
-								'Approved leave entries are immutable. Submit a linked reversal and replacement.'
-							);
+								refuse(
+									'Approved leave entries are immutable. Submit a linked reversal and replacement.'
+								);
+						}
 						return boundToContract(input, existing);
 					}
 					if (
 						input.employment_id == null ||
-						input.leave_catalogue_id == null ||
+						input.catalogue_id == null ||
 						input.event == null ||
 						!input.reference?.trim()
 					)
@@ -93,7 +105,7 @@ export default {
 						if (row.id != null && entries.some((entry) => entry.id === row.id)) continue;
 						if (
 							row.employment_id == null ||
-							row.leave_catalogue_id == null ||
+							row.catalogue_id == null ||
 							row.event == null ||
 							!row.reference?.trim()
 						)
@@ -104,7 +116,7 @@ export default {
 							prepared.context,
 							{
 								employment_id: row.employment_id,
-								leave_catalogue_id: row.leave_catalogue_id,
+								catalogue_id: row.catalogue_id,
 								reference: row.reference,
 								event: row.event
 							},

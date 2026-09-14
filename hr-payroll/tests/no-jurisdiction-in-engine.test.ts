@@ -12,9 +12,9 @@
  *    forty hours. That is employee-level law, which is a reason for the Work to state one rate row
  *    per week shape — `ordinary_rate` is already a predicate list — not a reason for the engine to
  *    know about the Philippines.
- *  - `=== 'TW'` credited a day in lieu by the hour rather than by the day (勞基法 §32-1). That is a
- *    property of the regime, and it now sits beside the switch that says whether lieu is permitted
- *    at all.
+ *  - `=== 'TW'` credited a day in lieu by the hour rather than by the day (勞基法 §32-1). Off-in-lieu
+ *    is fully manual now (RFC 0001): leave entered as an ordinary entry, no compensation column, so
+ *    there is no branch left to keep and no `lieu_unit` grammar to carry.
  *
  * `countryOf` itself stays: naming the jurisdiction inside a refusal is how an operator finds out
  * whose rule stopped them, and a value flowing into a rule is not a branch.
@@ -85,8 +85,16 @@ test('no engine condition tests a jurisdiction code', () => {
 test('the grammar carries what those two branches needed', () => {
 	// The replacements, asserted by name: if either is removed the branch has to come back, and
 	// this test is where that is noticed.
-	const eligibility = readFileSync(`${root}/collections/payroll_runs/lib/eligibility.ts`, 'utf8');
-	assert.match(eligibility, /'ordinary_hours_per_week'/, 'a rate row can read the working week');
-	const regime = readFileSync(`${root}/datatypes/statutory_regime/+definition.ts`, 'utf8');
-	assert.match(regime, /lieu_unit:/, 'a regime states whether lieu is credited by day or by hour');
+	const eligibility = readFileSync(`${root}/lib/expressions/contexts.ts`, 'utf8');
+	assert.match(
+		eligibility,
+		/terms\.ordinary_hours_per_week/,
+		'a rate row can read the working week'
+	);
+	const rules = readFileSync(`${root}/lib/payroll/work-rules-values.ts`, 'utf8');
+	assert.doesNotMatch(
+		rules,
+		/lieu/,
+		'OIL is fully manual: the grammar carries no lieu member at all'
+	);
 });

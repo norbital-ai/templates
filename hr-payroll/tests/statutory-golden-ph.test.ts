@@ -114,10 +114,10 @@ test('Philippines — the salary-based schemes are monthly schedules, not per-pe
 	const schemes = read('statutory_contributions.json');
 	for (const code of ['SSS', 'SSS_EC', 'PHIC', 'HDMF']) {
 		assert.equal(
-			schemes.find((row) => row.code === code)?.assessed,
+			schemes.find((row) => row.code === code)?.assessment_period,
 			'MONTH',
 			`${code} must be assessed over the month`
 		);
 	}
-	assert.notEqual(schemes.find((row) => row.code === 'WTAX')?.assessed, 'MONTH');
+	assert.notEqual(schemes.find((row) => row.code === 'WTAX')?.assessment_period, 'MONTH');
 });

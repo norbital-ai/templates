@@ -18,7 +18,6 @@
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
-	import TimezonePicker from './TimezonePicker.svelte';
 
 	let { record, close, embedded = false }: RepresentationProps & { embedded?: boolean } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -59,7 +58,6 @@
 				<Field name="voided_at" hidden />
 				<Field name="void_reason" hidden />
 				<Field name="cloned_from_id" hidden />
-				<Field name="research_notes" hidden />
 				<Stack gap="lg">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
@@ -70,9 +68,9 @@
 							<Field name="code" label={t('component.settings_lineage')} />
 							<Field name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} />
 							<Field name="name" />
-							<Field name="currency" />
-							<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
-							<Field name="timezone" label={t('component.timezone')} renderer={TimezonePicker} />
+							<Column span="all">
+								<Field name="payroll" label={t('component.payroll_rules')} />
+							</Column>
 							<Column span="all">
 								<Field
 									name="effective_range"
@@ -82,12 +80,20 @@
 							</Column>
 							<Column span="all">
 								<Field
-									name="minimum_wages"
-									label={t('component.minimum_wages')}
-									description={t('component.minimum_wages_hint')}
+									name="wages"
+									label={t('component.minimum_wage_by_region')}
+									description={t('component.minimum_wage_by_region_hint')}
 								/>
 							</Column>
 						</Grid>
+					</Stack>
+
+					<Stack as="section" gap="sm">
+						<Stack gap="xs">
+							<h3 class="text-sm font-semibold">{t('component.work_rules')}</h3>
+							<p class="text-meta">{t('component.work_rules_hint')}</p>
+						</Stack>
+						<Field name="work_rules" label={t('component.work_rules')} />
 					</Stack>
 
 					<Stack as="section" gap="sm">
@@ -112,10 +118,10 @@
 
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">{t('component.research_urls')}</h3>
+							<h3 class="text-sm font-semibold">{t('component.sources')}</h3>
 							<p class="text-meta">{t('component.settings_section_sources_hint')}</p>
 						</Stack>
-						<Field name="research_urls" label={t('component.research_urls')} />
+						<Field name="sources" label={t('component.sources')} />
 					</Stack>
 				</Stack>
 			{/snippet}
@@ -141,7 +147,7 @@
 				<TableColumn name="name" card="subtitle" />
 				<TableColumn name="is_statutory" label={t('component.is_statutory')} card="badge" />
 				<TableColumn name="authority" />
-				<TableColumn name="rounding" />
+				<TableColumn name="assessment_period" />
 				<TableColumn name="sequence" label={t('component.applied_at')} />
 			{/snippet}
 		</CollectionTable>

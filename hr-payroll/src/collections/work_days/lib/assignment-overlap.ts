@@ -118,23 +118,22 @@ export function readOverlapData(
 		if (terms.length === QUERY_LIMIT || existingEntries.length === QUERY_LIMIT) {
 			refuse('This schedule is too large to validate safely in one write.');
 		}
-		const settingsCodes = [
+		const companyIds = [
 			...new Set(
-				employments.flatMap((employment) => {
-					const code = employment.employment_company?.settings_code;
-					return code == null || code === '' ? [] : [code];
-				})
+				employments.flatMap((employment) =>
+					employment.company_id == null ? [] : [employment.company_id]
+				)
 			)
 		];
 		const [codes, patterns] = yield* Effect.all(
 			[
 				api.db.shift_definitions.findMany({
-					where: { settings_code: { in: settingsCodes } },
+					where: { company_id: { in: companyIds } },
 					columns: { id: true, code: true, variant: true },
 					limit: QUERY_LIMIT
 				}),
 				api.db.shift_patterns.findMany({
-					where: { settings_code: { in: settingsCodes } },
+					where: { company_id: { in: companyIds } },
 					columns: { id: true, code: true, pattern: true },
 					limit: QUERY_LIMIT
 				})

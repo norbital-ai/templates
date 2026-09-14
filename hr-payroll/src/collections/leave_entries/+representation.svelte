@@ -65,7 +65,7 @@
 						>
 							{#snippet children(where)}
 								<Field
-									name="leave_catalogue_id"
+									name="catalogue_id"
 									label={t('component.type')}
 									relationOptions={{
 										label: (row) => [row.code, row.name].filter(Boolean).join(' · '),

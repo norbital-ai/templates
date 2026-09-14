@@ -53,7 +53,7 @@ export function createLeave(
 		readonly reference: string;
 		readonly event: LeaveEvent;
 		readonly employment_id?: string;
-		readonly leave_catalogue_id?: string;
+		readonly catalogue_id?: string;
 	},
 	headers = bearerHeaders(session.credential)
 ) {
@@ -68,7 +68,7 @@ export function createLeave(
 					action: 'create',
 					values: {
 						employment_id: EMPLOYMENT_ID,
-						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+						catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 						...options
 					}
 				}
@@ -114,10 +114,10 @@ export async function approveLeave(session: Session, mutation: unknown) {
 	assert.equal(resumed.status, 200, JSON.stringify(resumed.value));
 	assert.deepEqual(resumed.value, { resumed: true, requestId });
 	assert.equal(pending.collection, 'leave_entries');
-	const stored = await session.query('select id, approval_id from leave_entries where id = $1', [
+	const stored = (await session.query('select id, approval_id from leave_entries where id = $1', [
 		pending.id
-	]);
+	])) as { readonly id: string; readonly approval_id: string | null }[];
 	assert.equal(stored.length, 1, 'approval commits the submitted Leave entry exactly once');
-	assert.equal(stored[0].approval_id, null);
+	assert.equal(stored[0]!.approval_id, null);
 	return requestId;
 }

@@ -28,13 +28,13 @@ export default defineModel(
 		/**
 		 * The occupational risk group the entity is rated in, where its regime prices a contribution
 		 * by risk rather than by wage or age. Indonesia's JKK is published as a risk ladder
-		 * (`RISK_CLASS` selector), so `selectBand` filters the JKK bands on this column; a null risk
+		 * (a band whose `when` reads `risk_class`), so `selectBand` filters the JKK bands on this column; a null risk
 		 * class in such a jurisdiction matches no band and the run stops naming JKK. Entities whose
 		 * jurisdiction has no risk-keyed scheme leave it empty, and the form does not show it.
 		 */
 		risk_class: text(),
 		/**
-		 * The region the entity sits in, as `jurisdiction_settings.minimum_wages` names it. A scheme's
+		 * The region the entity sits in, as `jurisdiction_settings.wages.by_region` names it. A scheme's
 		 * `FLOOR:MINIMUM_WAGE` / `CAP:MINIMUM_WAGE_X:<n>` rule reads that wage; predicates read
 		 * `company.region`. Empty where the jurisdiction states no regional wage.
 		 */
