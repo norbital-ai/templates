@@ -6,1150 +6,397 @@
 		"name": "Central Provident Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2026: above 55 to 60 total 34% (employer 16, employee 18); above 60 to 65 total 25% (employer 12.5, employee 12.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. NOT APPLIED: the SGD 102,000 Additional Wage ceiling, which needs a year-to-date wage axis the model does not have (SG_CPF_ADDITIONAL_WAGE_CEILING_UNMODELLED); a bonus is charged as an Ordinary Wage under the OW ceiling.",
-		"rounding": "NONE",
-		"relief_for": [],
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 100,
-		"special_rules": ["TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED"],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": [],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": true
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 60,
-					"constant": 0,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 20,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1600,
-					"employer": 1360
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 16
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 54,
-					"constant": 0,
-					"employer": 16
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 18,
-					"employer": 16
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1440,
-					"employer": 1280
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 12.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 37.5,
-					"constant": 0,
-					"employer": 12.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 12.5,
-					"employer": 12.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1000,
-					"employer": 1000
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 22.5,
-					"constant": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 7.5,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 600,
-					"employer": 720
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 600
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 320
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 320
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 45,
-					"constant": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 15,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1200,
-					"employer": 720
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 37.5,
-					"constant": 0,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 12.5,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1000,
-					"employer": 480
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 22.5,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 7.5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 600,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 60.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 20.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "1600.0",
+				"employer": "1360.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 16.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 54.0 / 100.0",
+				"employer": "base * 16.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 18.0 / 100.0",
+				"employer": "base * 16.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "1440.0",
+				"employer": "1280.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 12.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 37.5 / 100.0",
+				"employer": "base * 12.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 12.5 / 100.0",
+				"employer": "base * 12.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "1000.0",
+				"employer": "1000.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 22.5 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 7.5 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "600.0",
+				"employer": "720.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "600.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "400.0",
+				"employer": "320.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "400.0",
+				"employer": "320.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 45.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 15.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "1200.0",
+				"employer": "720.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 37.5 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 12.5 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "1000.0",
+				"employer": "480.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 22.5 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 7.5 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "600.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
 			}
 		]
 	},
@@ -1160,71 +407,47 @@
 		"name": "Chinese Development Assistance Council Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"CHINESE\" && employee.citizenship != \"FOREIGNER\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 110,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 2000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0.5,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 2000.0",
+				"employee": "0.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2000.01,
-					"to": 3500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1,
-					"employer": 0
-				}
+				"when": "base > 2000.01 && base <= 3500.0",
+				"employee": "1.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 3500.01,
-					"to": 5000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1.5,
-					"employer": 0
-				}
+				"when": "base > 3500.01 && base <= 5000.0",
+				"employee": "1.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 5000.01,
-					"to": 7500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 2,
-					"employer": 0
-				}
+				"when": "base > 5000.01 && base <= 7500.0",
+				"employee": "2.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7500.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 7500.01",
+				"employee": "3.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -1235,95 +458,57 @@
 		"name": "Eurasian Community Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"EURASIAN\" && employee.citizenship != \"FOREIGNER\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 120,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 2,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "2.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 1500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 4,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 1500.0",
+				"employee": "4.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1500.01,
-					"to": 2500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 6,
-					"employer": 0
-				}
+				"when": "base > 1500.01 && base <= 2500.0",
+				"employee": "6.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2500.01,
-					"to": 4000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 9,
-					"employer": 0
-				}
+				"when": "base > 2500.01 && base <= 4000.0",
+				"employee": "9.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4000.01,
-					"to": 7000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 12,
-					"employer": 0
-				}
+				"when": "base > 4000.01 && base <= 7000.0",
+				"employee": "12.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7000.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 16,
-					"employer": 0
-				}
+				"when": "base > 7000.01 && base <= 10000.0",
+				"employee": "16.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 20,
-					"employer": 0
-				}
+				"when": "base > 10000.01",
+				"employee": "20.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -1334,107 +519,62 @@
 		"name": "Mosque Building and Mendaki Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.religion == \"ISLAM\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 130,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "3.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 2000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 4.5,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 2000.0",
+				"employee": "4.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2000.01,
-					"to": 3000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 6.5,
-					"employer": 0
-				}
+				"when": "base > 2000.01 && base <= 3000.0",
+				"employee": "6.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 3000.01,
-					"to": 4000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 15,
-					"employer": 0
-				}
+				"when": "base > 3000.01 && base <= 4000.0",
+				"employee": "15.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4000.01,
-					"to": 6000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 19.5,
-					"employer": 0
-				}
+				"when": "base > 4000.01 && base <= 6000.0",
+				"employee": "19.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 6000.01,
-					"to": 8000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 22,
-					"employer": 0
-				}
+				"when": "base > 6000.01 && base <= 8000.0",
+				"employee": "22.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 8000.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 24,
-					"employer": 0
-				}
+				"when": "base > 8000.01 && base <= 10000.0",
+				"employee": "24.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 26,
-					"employer": 0
-				}
+				"when": "base > 10000.01",
+				"employee": "26.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -1445,107 +585,62 @@
 		"name": "Singapore Indian Development Association Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"INDIAN\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 140,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "1.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 1500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 1500.0",
+				"employee": "3.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1500.01,
-					"to": 2500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 5,
-					"employer": 0
-				}
+				"when": "base > 1500.01 && base <= 2500.0",
+				"employee": "5.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2500.01,
-					"to": 4500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 7,
-					"employer": 0
-				}
+				"when": "base > 2500.01 && base <= 4500.0",
+				"employee": "7.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4500.01,
-					"to": 7500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 9,
-					"employer": 0
-				}
+				"when": "base > 4500.01 && base <= 7500.0",
+				"employee": "9.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7500.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 12,
-					"employer": 0
-				}
+				"when": "base > 7500.01 && base <= 10000.0",
+				"employee": "12.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": 15000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 18,
-					"employer": 0
-				}
+				"when": "base > 10000.01 && base <= 15000.0",
+				"employee": "18.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 15000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 30,
-					"employer": 0
-				}
+				"when": "base > 15000.01",
+				"employee": "30.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -1556,46 +651,37 @@
 		"name": "Skills Development Levy",
 		"is_statutory": true,
 		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01.",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 200,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 800
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 2
-				}
+				"when": "base > 0.01 && base <= 800.0",
+				"employee": "0.0",
+				"employer": "2.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 800,
-					"to": 4500
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 0.25
-				}
+				"when": "base > 800.0 && base <= 4500.0",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 0.25 / 100.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4500,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 11.25
-				}
+				"when": "base > 4500.0",
+				"employee": "0.0",
+				"employer": "11.25"
 			}
 		]
 	},
@@ -1606,1150 +692,397 @@
 		"name": "Central Provident Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2026: above 55 to 60 total 34% (employer 16, employee 18); above 60 to 65 total 25% (employer 12.5, employee 12.5). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. NOT APPLIED: the SGD 102,000 Additional Wage ceiling, which needs a year-to-date wage axis the model does not have (SG_CPF_ADDITIONAL_WAGE_CEILING_UNMODELLED); a bonus is charged as an Ordinary Wage under the OW ceiling.",
-		"rounding": "NONE",
-		"relief_for": [],
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 100,
-		"special_rules": ["TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED"],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": [],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": true
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 60,
-					"constant": 0,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 20,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1600,
-					"employer": 1360
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 16
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 54,
-					"constant": 0,
-					"employer": 16
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 18,
-					"employer": 16
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1440,
-					"employer": 1280
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 12.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 37.5,
-					"constant": 0,
-					"employer": 12.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 12.5,
-					"employer": 12.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1000,
-					"employer": 1000
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 22.5,
-					"constant": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 7.5,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 600,
-					"employer": 720
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 600
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 320
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 320
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 45,
-					"constant": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 15,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1200,
-					"employer": 720
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 37.5,
-					"constant": 0,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 12.5,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1000,
-					"employer": 480
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 22.5,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 7.5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 600,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 60.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 20.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "1600.0",
+				"employer": "1360.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 16.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 54.0 / 100.0",
+				"employer": "base * 16.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 18.0 / 100.0",
+				"employer": "base * 16.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "1440.0",
+				"employer": "1280.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 12.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 37.5 / 100.0",
+				"employer": "base * 12.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 12.5 / 100.0",
+				"employer": "base * 12.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "1000.0",
+				"employer": "1000.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 22.5 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 7.5 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "600.0",
+				"employer": "720.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "600.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "400.0",
+				"employer": "320.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "400.0",
+				"employer": "320.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 45.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 15.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "1200.0",
+				"employer": "720.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 37.5 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 12.5 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "1000.0",
+				"employer": "480.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 22.5 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 7.5 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "600.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
 			}
 		]
 	},
@@ -2760,71 +1093,47 @@
 		"name": "Chinese Development Assistance Council Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"CHINESE\" && employee.citizenship != \"FOREIGNER\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 110,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 2000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0.5,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 2000.0",
+				"employee": "0.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2000.01,
-					"to": 3500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1,
-					"employer": 0
-				}
+				"when": "base > 2000.01 && base <= 3500.0",
+				"employee": "1.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 3500.01,
-					"to": 5000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1.5,
-					"employer": 0
-				}
+				"when": "base > 3500.01 && base <= 5000.0",
+				"employee": "1.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 5000.01,
-					"to": 7500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 2,
-					"employer": 0
-				}
+				"when": "base > 5000.01 && base <= 7500.0",
+				"employee": "2.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7500.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 7500.01",
+				"employee": "3.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -2835,95 +1144,57 @@
 		"name": "Eurasian Community Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"EURASIAN\" && employee.citizenship != \"FOREIGNER\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 120,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 2,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "2.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 1500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 4,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 1500.0",
+				"employee": "4.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1500.01,
-					"to": 2500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 6,
-					"employer": 0
-				}
+				"when": "base > 1500.01 && base <= 2500.0",
+				"employee": "6.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2500.01,
-					"to": 4000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 9,
-					"employer": 0
-				}
+				"when": "base > 2500.01 && base <= 4000.0",
+				"employee": "9.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4000.01,
-					"to": 7000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 12,
-					"employer": 0
-				}
+				"when": "base > 4000.01 && base <= 7000.0",
+				"employee": "12.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7000.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 16,
-					"employer": 0
-				}
+				"when": "base > 7000.01 && base <= 10000.0",
+				"employee": "16.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 20,
-					"employer": 0
-				}
+				"when": "base > 10000.01",
+				"employee": "20.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -2934,107 +1205,62 @@
 		"name": "Mosque Building and Mendaki Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.religion == \"ISLAM\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 130,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "3.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 2000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 4.5,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 2000.0",
+				"employee": "4.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2000.01,
-					"to": 3000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 6.5,
-					"employer": 0
-				}
+				"when": "base > 2000.01 && base <= 3000.0",
+				"employee": "6.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 3000.01,
-					"to": 4000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 15,
-					"employer": 0
-				}
+				"when": "base > 3000.01 && base <= 4000.0",
+				"employee": "15.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4000.01,
-					"to": 6000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 19.5,
-					"employer": 0
-				}
+				"when": "base > 4000.01 && base <= 6000.0",
+				"employee": "19.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 6000.01,
-					"to": 8000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 22,
-					"employer": 0
-				}
+				"when": "base > 6000.01 && base <= 8000.0",
+				"employee": "22.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 8000.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 24,
-					"employer": 0
-				}
+				"when": "base > 8000.01 && base <= 10000.0",
+				"employee": "24.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 26,
-					"employer": 0
-				}
+				"when": "base > 10000.01",
+				"employee": "26.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -3045,107 +1271,62 @@
 		"name": "Singapore Indian Development Association Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"INDIAN\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 140,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "1.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 1500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 1500.0",
+				"employee": "3.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1500.01,
-					"to": 2500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 5,
-					"employer": 0
-				}
+				"when": "base > 1500.01 && base <= 2500.0",
+				"employee": "5.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2500.01,
-					"to": 4500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 7,
-					"employer": 0
-				}
+				"when": "base > 2500.01 && base <= 4500.0",
+				"employee": "7.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4500.01,
-					"to": 7500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 9,
-					"employer": 0
-				}
+				"when": "base > 4500.01 && base <= 7500.0",
+				"employee": "9.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7500.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 12,
-					"employer": 0
-				}
+				"when": "base > 7500.01 && base <= 10000.0",
+				"employee": "12.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": 15000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 18,
-					"employer": 0
-				}
+				"when": "base > 10000.01 && base <= 15000.0",
+				"employee": "18.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 15000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 30,
-					"employer": 0
-				}
+				"when": "base > 15000.01",
+				"employee": "30.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -3156,46 +1337,37 @@
 		"name": "Skills Development Levy",
 		"is_statutory": true,
 		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01.",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 200,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 800
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 2
-				}
+				"when": "base > 0.01 && base <= 800.0",
+				"employee": "0.0",
+				"employer": "2.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 800,
-					"to": 4500
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 0.25
-				}
+				"when": "base > 800.0 && base <= 4500.0",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 0.25 / 100.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4500,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 11.25
-				}
+				"when": "base > 4500.0",
+				"employee": "0.0",
+				"employer": "11.25"
 			}
 		]
 	},
@@ -3206,1150 +1378,397 @@
 		"name": "Central Provident Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.7 and the First Schedule, as varied by the CPF (Contribution Rate) Notification. Ordinary Wage ceiling SGD 8,000 from 1 January 2026 (Budget 2023). Senior-worker rates from 1 January 2027: above 55 to 60 total 35.5% (employer 16.5, employee 19); above 60 to 65 total 26% (employer 13, employee 13). Table 1 carries the citizen and third-year Permanent Resident ladder, Table 2 the SPR first-year graduated ladder and Table 3 the SPR second-year graduated ladder; each is a band family under its own predicate. Inside the graduated SGD 500-750 band the employee pays the coefficient on the excess over 500 and the employer a percentage of the whole wage. The published split rounds the total contribution half-up to the dollar, floors the employee share and assigns the remainder to the employer. NOT APPLIED: the SGD 102,000 Additional Wage ceiling, which needs a year-to-date wage axis the model does not have (SG_CPF_ADDITIONAL_WAGE_CEILING_UNMODELLED); a bonus is charged as an Ordinary Wage under the OW ceiling.",
-		"rounding": "NONE",
-		"relief_for": [],
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 100,
-		"special_rules": ["TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED"],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": [],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": true
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 60,
-					"constant": 0,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 20,
-					"employer": 17
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1600,
-					"employer": 1360
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 16.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 57,
-					"constant": 0,
-					"employer": 16.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 19,
-					"employer": 16.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1520,
-					"employer": 1320
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 13
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 39,
-					"constant": 0,
-					"employer": 13
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 13,
-					"employer": 13
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1040,
-					"employer": 1040
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 22.5,
-					"constant": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 7.5,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 600,
-					"employer": 720
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 7.5
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 600
-				},
-				"eligibility": "employee.citizenship != \"PERMANENT_RESIDENT\" || employee.residency_months >= 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 320
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 4
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 320
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months < 12"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 45,
-					"constant": 0,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 15,
-					"employer": 9
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 0,
-					"age_to": 55
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1200,
-					"employer": 720
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 37.5,
-					"constant": 0,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 12.5,
-					"employer": 6
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 55,
-					"age_to": 60
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1000,
-					"employer": 480
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 22.5,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 7.5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 60,
-					"age_to": 65
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 600,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 65,
-					"age_to": 70
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 0,
-					"to": 50,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 0
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 50.01,
-					"to": 500,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 500,
-					"to": 750,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PROGRESSIVE",
-					"rate": 15,
-					"constant": 0,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 750.01,
-					"to": 8000,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 3.5
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
-			},
-			{
-				"selector": {
-					"by": "WAGE_AND_AGE",
-					"from": 8000.01,
-					"to": null,
-					"age_from": 70,
-					"age_to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 400,
-					"employer": 280
-				},
-				"eligibility": "employee.citizenship == \"PERMANENT_RESIDENT\" && employee.residency_months >= 12 && employee.residency_months < 24"
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 60.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 20.0 / 100.0",
+				"employer": "base * 17.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "1600.0",
+				"employer": "1360.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 16.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 57.0 / 100.0",
+				"employer": "base * 16.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 19.0 / 100.0",
+				"employer": "base * 16.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "1520.0",
+				"employer": "1320.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 13.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 39.0 / 100.0",
+				"employer": "base * 13.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 13.0 / 100.0",
+				"employer": "base * 13.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "1040.0",
+				"employer": "1040.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 22.5 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 7.5 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "600.0",
+				"employer": "720.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 7.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship != \"PERMANENT_RESIDENT\" || person.employee.residency_months >= 24) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "600.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "400.0",
+				"employer": "320.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 4.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "400.0",
+				"employer": "320.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months < 12) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "(0.0) + (base - 500.0) * 45.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 0.0 && age < 55.0))",
+				"employee": "base * 15.0 / 100.0",
+				"employer": "base * 9.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 0.0 && age < 55.0))",
+				"employee": "1200.0",
+				"employer": "720.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "(0.0) + (base - 500.0) * 37.5 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 55.0 && age < 60.0))",
+				"employee": "base * 12.5 / 100.0",
+				"employer": "base * 6.0 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 55.0 && age < 60.0))",
+				"employee": "1000.0",
+				"employer": "480.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "(0.0) + (base - 500.0) * 22.5 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 60.0 && age < 65.0))",
+				"employee": "base * 7.5 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 60.0 && age < 65.0))",
+				"employee": "600.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 65.0 && age < 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 65.0 && age < 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 0.0 && base <= 50.0) && (age >= 70.0))",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 50.01 && base <= 500.0) && (age >= 70.0))",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 500.0 && base <= 750.0) && (age >= 70.0))",
+				"employee": "(0.0) + (base - 500.0) * 15.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 750.01 && base <= 8000.0) && (age >= 70.0))",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 3.5 / 100.0"
+			},
+			{
+				"when": "(person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.employee.residency_months >= 12 && person.employee.residency_months < 24) && ((base > 8000.01) && (age >= 70.0))",
+				"employee": "400.0",
+				"employer": "280.0"
 			}
 		]
 	},
@@ -4360,71 +1779,47 @@
 		"name": "Chinese Development Assistance Council Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Chinese Development Assistance Council Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Chinese Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"CHINESE\" && employee.citizenship != \"FOREIGNER\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 110,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 2000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0.5,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 2000.0",
+				"employee": "0.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2000.01,
-					"to": 3500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1,
-					"employer": 0
-				}
+				"when": "base > 2000.01 && base <= 3500.0",
+				"employee": "1.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 3500.01,
-					"to": 5000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1.5,
-					"employer": 0
-				}
+				"when": "base > 3500.01 && base <= 5000.0",
+				"employee": "1.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 5000.01,
-					"to": 7500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 2,
-					"employer": 0
-				}
+				"when": "base > 5000.01 && base <= 7500.0",
+				"employee": "2.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7500.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 7500.01",
+				"employee": "3.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -4435,95 +1830,57 @@
 		"name": "Eurasian Community Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Eurasian Community Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Eurasian Singapore Citizens and Permanent Residents. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"EURASIAN\" && employee.citizenship != \"FOREIGNER\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 120,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 2,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "2.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 1500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 4,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 1500.0",
+				"employee": "4.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1500.01,
-					"to": 2500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 6,
-					"employer": 0
-				}
+				"when": "base > 1500.01 && base <= 2500.0",
+				"employee": "6.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2500.01,
-					"to": 4000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 9,
-					"employer": 0
-				}
+				"when": "base > 2500.01 && base <= 4000.0",
+				"employee": "9.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4000.01,
-					"to": 7000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 12,
-					"employer": 0
-				}
+				"when": "base > 4000.01 && base <= 7000.0",
+				"employee": "12.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7000.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 16,
-					"employer": 0
-				}
+				"when": "base > 7000.01 && base <= 10000.0",
+				"employee": "16.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 20,
-					"employer": 0
-				}
+				"when": "base > 10000.01",
+				"employee": "20.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -4534,107 +1891,62 @@
 		"name": "Mosque Building and Mendaki Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Mosque Building and Mendaki Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by Muslim employees, including foreigners. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.religion == \"ISLAM\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 130,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "3.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 2000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 4.5,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 2000.0",
+				"employee": "4.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2000.01,
-					"to": 3000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 6.5,
-					"employer": 0
-				}
+				"when": "base > 2000.01 && base <= 3000.0",
+				"employee": "6.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 3000.01,
-					"to": 4000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 15,
-					"employer": 0
-				}
+				"when": "base > 3000.01 && base <= 4000.0",
+				"employee": "15.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4000.01,
-					"to": 6000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 19.5,
-					"employer": 0
-				}
+				"when": "base > 4000.01 && base <= 6000.0",
+				"employee": "19.5",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 6000.01,
-					"to": 8000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 22,
-					"employer": 0
-				}
+				"when": "base > 6000.01 && base <= 8000.0",
+				"employee": "22.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 8000.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 24,
-					"employer": 0
-				}
+				"when": "base > 8000.01 && base <= 10000.0",
+				"employee": "24.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 26,
-					"employer": 0
-				}
+				"when": "base > 10000.01",
+				"employee": "26.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -4645,107 +1957,62 @@
 		"name": "Singapore Indian Development Association Fund",
 		"is_statutory": true,
 		"authority": "Central Provident Fund Act 1953 s.13B and the Singapore Indian Development Association Fund contribution schedule published by the CPF Board — a monthly employee-borne contribution by wage band, deducted and remitted with CPF, payable by employees of Indian descent. Contribution is voluntary in the sense that an employee may opt out by written application to the fund; the schedule below is the default the employer must deduct.",
+		"assessment_period": "PAY_PERIOD",
 		"eligibility": "employee.race == \"INDIAN\"",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
 		"sequence": 140,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 1000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 1,
-					"employer": 0
-				}
+				"when": "base > 0.01 && base <= 1000.0",
+				"employee": "1.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1000.01,
-					"to": 1500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 3,
-					"employer": 0
-				}
+				"when": "base > 1000.01 && base <= 1500.0",
+				"employee": "3.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 1500.01,
-					"to": 2500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 5,
-					"employer": 0
-				}
+				"when": "base > 1500.01 && base <= 2500.0",
+				"employee": "5.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 2500.01,
-					"to": 4500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 7,
-					"employer": 0
-				}
+				"when": "base > 2500.01 && base <= 4500.0",
+				"employee": "7.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4500.01,
-					"to": 7500
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 9,
-					"employer": 0
-				}
+				"when": "base > 4500.01 && base <= 7500.0",
+				"employee": "9.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 7500.01,
-					"to": 10000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 12,
-					"employer": 0
-				}
+				"when": "base > 7500.01 && base <= 10000.0",
+				"employee": "12.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 10000.01,
-					"to": 15000
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 18,
-					"employer": 0
-				}
+				"when": "base > 10000.01 && base <= 15000.0",
+				"employee": "18.0",
+				"employer": "0.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 15000.01,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 30,
-					"employer": 0
-				}
+				"when": "base > 15000.01",
+				"employee": "30.0",
+				"employer": "0.0"
 			}
 		]
 	},
@@ -4756,46 +2023,37 @@
 		"name": "Skills Development Levy",
 		"is_statutory": true,
 		"authority": "Skills Development Levy Act 1979 s.3 with the Skills Development Levy Order — 0.25% of the first SGD 4,500 of monthly remuneration, a minimum of SGD 2 for an employee earning less than SGD 800 a month and a maximum of SGD 11.25 for one earning more than SGD 4,500. The three bands below carry the minimum, the rate and the maximum; the levy is employer-borne. A month in which no remuneration is payable attracts no levy, which is why the first band opens at SGD 0.01.",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 200,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0.01,
-					"to": 800
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 2
-				}
+				"when": "base > 0.01 && base <= 800.0",
+				"employee": "0.0",
+				"employer": "2.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 800,
-					"to": 4500
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 0,
-					"employer": 0.25
-				}
+				"when": "base > 800.0 && base <= 4500.0",
+				"employee": "base * 0.0 / 100.0",
+				"employer": "base * 0.25 / 100.0"
 			},
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 4500,
-					"to": null
-				},
-				"award": {
-					"kind": "FIXED",
-					"employee": 0,
-					"employer": 11.25
-				}
+				"when": "base > 4500.0",
+				"employee": "0.0",
+				"employer": "11.25"
 			}
 		]
 	}

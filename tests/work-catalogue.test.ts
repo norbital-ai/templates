@@ -11,11 +11,22 @@ import {
 } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
+type WorkRules = {
+	lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+	rates: {
+		ordinary: { when: string; unit: 'DAY' | 'HOUR'; divisor: number | 'WORKING_DAYS' }[];
+		bands: { line: string; label: string; statutory_opt_ins: unknown[] }[];
+	};
+};
+
+const rulesOf = (world: ReturnType<typeof createPublicPayrollWorld>): WorkRules =>
+	world.jurisdiction_settings[0]!.work_rules as WorkRules;
+
 test('the ordinary rate is the first row whose predicate holds; WORKING_DAYS is the month’s working days', () => {
 	const rows = [
-		{ eligibility: 'terms.basic_salary < 20000', per: 'DAY', divisor: 'WORKING_DAYS' },
-		{ eligibility: 'terms.grade == "M1"', per: 'HOUR', divisor: 173 },
-		{ eligibility: '', per: 'DAY', divisor: 26 }
+		{ when: 'terms.basic_salary < 20000', unit: 'DAY', divisor: 'WORKING_DAYS' },
+		{ when: 'terms.grade == "M1"', unit: 'HOUR', divisor: 173 },
+		{ when: '', unit: 'DAY', divisor: 26 }
 	] as const;
 	const person = (terms: Record<string, unknown>) =>
 		personContext({
@@ -48,8 +59,10 @@ test('the ordinary rate is the first row whose predicate holds; WORKING_DAYS is 
 		ordinary_hours_per_week: 48,
 		working_days_per_week: 6
 	} as const;
-	const work = { jurisdiction_code: 'MY', ordinary_rate: rows } as never;
-	assert.equal(ordinaryHourlyRate(terms, work, { per: 'DAY', divisor: 22 }), 19.61);
+	assert.equal(
+		ordinaryHourlyRate(terms, { rates: { ordinary: rows } } as never, { per: 'DAY', divisor: 22 }),
+		19.61
+	);
 	assert.throws(
 		() =>
 			resolveOrdinaryRate({
@@ -75,7 +88,7 @@ test('the ordinary rate is the first row whose predicate holds; WORKING_DAYS is 
 	);
 });
 
-test('Work uses stored rules and constant output codes, and refuses a missing catalogue', async () => {
+test('Work uses the version’s own rules, and its pay items settle under them', async () => {
 	const world = createPublicPayrollWorld();
 	const prepared = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
@@ -83,40 +96,41 @@ test('Work uses stored rules and constant output codes, and refuses a missing ca
 	const payslips = buildPayrollRun(prepared).payslip_payroll_run;
 	assert.equal(payslips.length, 1);
 	assert.equal(payslips[0].base.find((row) => row.component_code === 'BASIC')?.amount, 3451);
-	assert.equal(prepared.configuration.work.id, world.work_catalogue[0].id);
-	assert.ok(
-		prepared.configuration.catalogueComponents.every((row) => !row.id.startsWith('engine:'))
+	const workItems = prepared.configuration.catalogueComponents.filter(
+		(row) => row.family === 'WORK'
 	);
-	world.work_catalogue.length = 0;
-	await assert.rejects(
-		Effect.runPromise(
-			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
-		),
-		/exactly one Work catalogue/
-	);
+	assert.ok(workItems.some((row) => row.output === 'salary'));
+	assert.ok(workItems.some((row) => row.output === 'absence'));
+	assert.ok(workItems.every((row) => !row.id.startsWith('engine:')));
 });
 
-test('Contribution consumes Work metadata without decoding overtime labels', async () => {
+test('Contribution consumes Work metadata: opt-ins include, silence excludes', async () => {
 	const world = createPublicPayrollWorld();
 	world.statutory_contributions.push({
 		id: 'scheme',
-		settings_id: world.jurisdiction_settings[0].id,
+		settings_id: world.jurisdiction_settings[0]!.id,
 		code: 'FUND',
 		sequence: 1,
-		special_rules: [],
-		relief_for: [],
-		rounding: 'NONE',
-		bands: []
+		assessment_period: 'PAY_PERIOD',
+		eligibility: '',
+		rules: {
+			relief: '',
+			base_transform: '',
+			share_for_dependants: '',
+			rounding: ['NEAREST_CENT'],
+			no_withholding_below: 0,
+			use_period_table: true,
+			additional_remuneration_channel: false,
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			total_rounded_employee_floored: false
+		},
+		bands: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
 	});
-	world.work_catalogue[0].treatments = {
-		FUND: {
-			salary: { kind: 'INCLUDE' },
-			overtime: { kind: 'INCLUDE' },
-			overtime_excess: { kind: 'EXCLUDE' },
-			absence: { kind: 'REDUCE' },
-			night: { kind: 'EXCLUDE' }
-		}
-	};
+	const rules = rulesOf(world);
+	rules.lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
+	rules.lines.absence.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'REDUCE' }];
 	const { configuration } = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 	);
@@ -124,80 +138,52 @@ test('Contribution consumes Work metadata without decoding overtime labels', asy
 		.filter((row) => row.family === 'WORK')
 		.map((row) => ({
 			catalogueComponent: row,
-			nature: row.nature,
+			bucket: 'EARNING',
+			optIns:
+				row.output === 'salary'
+					? rules.lines.salary.statutory_opt_ins
+					: row.output === 'absence'
+						? rules.lines.absence.statutory_opt_ins
+						: [],
 			label: 'A label with no classification information',
 			amount: row.output === 'salary' ? 1000 : row.output === 'absence' ? 50 : 100
 		}));
-	assert.equal(accumulateBases({ configuration, items, employeeNumber: 'TEST' })[0]?.base, 1050);
-	const overtime = configuration.catalogueComponents.find((row) => row.output === 'overtime')!;
-	const treatments = new Map(configuration.treatments);
-	treatments.delete(`${overtime.id}:scheme`);
-	assert.equal(
-		accumulateBases({
-			configuration: { ...configuration, treatments },
-			items,
-			employeeNumber: 'TEST'
-		})[0]?.base,
-		1050
-	);
-	assert.throws(
-		() =>
-			accumulateBases({
-				configuration: { ...configuration, treatments },
-				items: items.map((item) =>
-					item.catalogueComponent.id === overtime.id
-						? {
-								...item,
-								catalogueComponent: { ...item.catalogueComponent, contribution_treatments: {} }
-							}
-						: item
-				),
-				employeeNumber: 'TEST'
-			}),
-		/No FUND treatment exists for OVERTIME/
-	);
+	// Salary includes, absence reduces; a line the rules do not name is excluded.
+	assert.equal(accumulateBases({ configuration, items, employeeNumber: 'TEST' })[0]?.base, 950);
 });
 
-/**
- * The absence column may stay undecided in a jurisdiction that never deducts an unexplained
- * absence (the matrix always has the column; three seeded lineages state nothing in it). It is
- * judged the moment a run prices one: then an undecided cell is the same refusal any other
- * component's would be, reported through VALIDATE and not thrown out of the grid.
- */
-test('an undecided absence column refuses only a run that priced an absence', async () => {
+test('an absence no rule opts into is excluded, not refused', async () => {
 	const world = createPublicPayrollWorld();
 	world.statutory_contributions.push({
 		id: 'scheme',
-		settings_id: world.jurisdiction_settings[0].id,
+		settings_id: world.jurisdiction_settings[0]!.id,
 		code: 'FUND',
 		sequence: 1,
-		special_rules: [],
-		relief_for: [],
-		rounding: 'NONE',
-		bands: [
-			{
-				selector: { by: 'WAGE', from: 0, to: null },
-				award: { kind: 'PERCENT', employee: 11, employer: 13 }
-			}
-		]
+		assessment_period: 'PAY_PERIOD',
+		eligibility: '',
+		rules: {
+			relief: '',
+			base_transform: '',
+			share_for_dependants: '',
+			rounding: ['NEAREST_CENT'],
+			no_withholding_below: 0,
+			use_period_table: true,
+			additional_remuneration_channel: false,
+			employee_share_annual_cap: null,
+			shared_cap_group: null,
+			project_relief_annually: false,
+			total_rounded_employee_floored: false
+		},
+		bands: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
 	});
-	world.work_catalogue[0].treatments = {
-		FUND: {
-			salary: { kind: 'INCLUDE' },
-			overtime: { kind: 'INCLUDE' },
-			overtime_excess: { kind: 'INCLUDE' },
-			absence: { kind: 'UNSET' }
-		}
+	const rules = rulesOf(world);
+	rules.lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
+	// Every rostered day punched over its shift: nothing is absent, so the line is never priced.
+	const variant = world.shift_definitions[0]!.variant as {
+		start_time: string;
+		end_time: string;
+		break_minutes: number;
 	};
-	for (const catalogue of [
-		world.claim_catalogue,
-		world.allowance_catalogue,
-		world.payment_catalogue,
-		world.loan_catalogue
-	])
-		for (const row of catalogue) row.contribution_treatments = { FUND: { kind: 'INCLUDE' } };
-	// Every rostered day punched over its shift: nothing is absent, so the column is never read.
-	const variant = world.shift_definitions[0].variant;
 	for (const row of world.work_days) {
 		row.worked_intervals = [
 			{
@@ -215,8 +201,9 @@ test('an undecided absence column refuses only a run that priced an absence', as
 		);
 	assert.equal((await build()).payslip_payroll_run.length, 1);
 
-	const day = world.work_days.find((row) => row.work_date === '2026-01-05');
+	const day = world.work_days.find((row) => row.work_date === '2026-01-05')!;
 	day.worked_intervals = [];
 	day.break_minutes = 0;
-	await assert.rejects(build, /TREATMENT_UNSET: ABSENCE × FUND is undecided/);
+	// The absence prices under a scheme the rules never named, which is an exemption, not a refusal.
+	assert.equal((await build()).payslip_payroll_run.length, 1);
 });

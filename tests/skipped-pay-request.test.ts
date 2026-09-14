@@ -48,9 +48,15 @@ test('an allowance whose eligibility the person fails is captured, pays nothing 
 		'nothing was paid'
 	);
 	assert.equal(
-		slip.payslip_allowance_request_input_payslip.length,
+		built.captures[0].materialised.length,
 		1,
 		'and the request was captured all the same, which is why it has to be reported'
+	);
+	assert.equal(built.captures[0].allowances.length, 0, 'the source itself is not pinned');
+	assert.equal(
+		built.captures[0].materialised[0].sourceId,
+		world.allowance_requests[0].id,
+		'the captured row is the period’s materialisation of the standing allowance'
 	);
 	const reported = built.warnings.filter((line) => line.includes('paid nothing'));
 	assert.equal(reported.length, 1);

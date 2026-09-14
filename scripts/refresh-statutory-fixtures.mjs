@@ -11,7 +11,7 @@
  * Usage: node scripts/refresh-statutory-fixtures.mjs [path-to-seed-bank]
  */
 
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,9 +31,10 @@ const LINEAGES = ['MY', 'MY-nihon', 'PH', 'SG', 'VN', 'TW', 'ID'];
 const FILES = [
 	'jurisdiction_settings.json',
 	'statutory_contributions.json',
-	'work_catalogue.json',
 	'leave_catalogue.json'
 ];
+/** Relief edges exist only for the lineages whose schemes relieve another. */
+const OPTIONAL_FILES = ['scheme_reliefs.json'];
 
 for (const code of LINEAGES) {
 	const source = resolve(bank, code);
@@ -50,6 +51,11 @@ for (const code of LINEAGES) {
 			process.exit(1);
 		}
 		cpSync(from, resolve(target, file));
+	}
+	for (const file of OPTIONAL_FILES) {
+		const from = resolve(source, file);
+		cpSync(from, resolve(target, file), { force: true });
+		if (!existsSync(from)) rmSync(resolve(target, file), { force: true });
 	}
 	console.log(`${code}: ${FILES.length} files`);
 }

@@ -7,66 +7,7 @@
 		"is_statutory": false,
 		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -77,7 +18,57 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "524e3f9b-916b-4f4d-8f4c-f6511ea082e1",
@@ -87,72 +78,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "3a4b1a1a-02bd-4d0d-a85b-0138b27778c5",
@@ -162,66 +144,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
 		"eligibility": "employment.service_months >= 12",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -232,7 +155,57 @@
 					"days": 12
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "9867a7b6-93a0-4196-977a-8e9d9c027a3f",
@@ -242,72 +215,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "51c12cd1-8757-4365-ae5a-81897b0ef135",
@@ -317,72 +281,64 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
 		"eligibility": "",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d6193d8d-bda9-4ef4-a377-c16f2b315869",
@@ -392,66 +348,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -462,7 +359,57 @@
 					"days": 91
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "a5f11d3e-c8be-472c-8741-79031030d3c7",
@@ -472,66 +419,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
 		"eligibility": "employee.gender == \"MALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -542,7 +430,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d44882c7-d490-407e-87c2-e35260fd8a5e",
@@ -552,66 +490,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -622,7 +501,57 @@
 					"days": 3
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "33e73ae2-0b5b-4bd8-a19d-21fe4ffefebb",
@@ -632,66 +561,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -702,7 +572,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "e0673075-aac4-47f1-92a7-b6bf5adfdc23",
@@ -712,66 +632,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -782,7 +643,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "e7be2087-db51-4e35-93cf-745a6f5f9f01",
@@ -792,66 +703,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -862,7 +714,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "7a389dd3-96c3-42d0-82d2-1d1c2b535184",
@@ -872,66 +774,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -942,7 +785,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d7c7bbad-2242-4f9d-91a4-07378722a726",
@@ -952,66 +845,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1022,7 +856,57 @@
 					"days": 1
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "5231bdca-5607-4fdc-8683-07e1f6c35877",
@@ -1032,66 +916,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -1102,7 +927,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "51de7566-4853-4df3-98a5-e59d99bfd72f",
@@ -1112,66 +987,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1182,7 +998,58 @@
 					"days": 45
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "95fae748-e6f8-4a8c-bcb3-87d89a5f3c37",
@@ -1192,66 +1059,7 @@
 		"is_statutory": false,
 		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1262,7 +1070,57 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "4230c74f-0b04-4e1d-8878-d631bc7fb20b",
@@ -1272,72 +1130,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "76cd59d9-0194-46c7-bf87-6072b1a62f2b",
@@ -1347,66 +1196,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
 		"eligibility": "employment.service_months >= 12",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1417,7 +1207,57 @@
 					"days": 12
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "1cdab603-e370-4300-99ae-f0c4a9b49e38",
@@ -1427,72 +1267,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d4bd84c8-694a-4ba0-a5cd-0a932f72f838",
@@ -1502,72 +1333,64 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
 		"eligibility": "",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b50c4185-e684-4b02-952a-da6c97ba2290",
@@ -1577,66 +1400,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1647,7 +1411,57 @@
 					"days": 91
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "e296f940-368f-4228-a84a-97c2a4417e0f",
@@ -1657,66 +1471,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
 		"eligibility": "employee.gender == \"MALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1727,7 +1482,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "c4b3195d-21a9-4c3a-8016-71a31594378e",
@@ -1737,66 +1542,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1807,7 +1553,57 @@
 					"days": 3
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "f58854a8-a85f-4a5b-93f1-aa326993a1a7",
@@ -1817,66 +1613,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1887,7 +1624,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "0570ada3-6da2-4c70-8abd-d6d87c4f4858",
@@ -1897,66 +1684,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1967,7 +1695,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "9c2f86db-71cf-4d84-a512-acceb19b8680",
@@ -1977,66 +1755,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2047,7 +1766,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d2463866-cdb0-42f8-83d1-0d8681358a79",
@@ -2057,66 +1826,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2127,7 +1837,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "452f491d-85c5-4f03-9d19-62366c3e9e7c",
@@ -2137,66 +1897,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2207,7 +1908,57 @@
 					"days": 1
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "6028b976-a06f-4e94-8cbd-0e0416918fc1",
@@ -2217,66 +1968,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -2287,7 +1979,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "17ce3fe9-7aa5-46c2-bc79-35b5b2301869",
@@ -2297,66 +2039,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2367,7 +2050,58 @@
 					"days": 45
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "4c767bd3-4325-4a8c-b2ab-a0129de691b1",
@@ -2377,66 +2111,7 @@
 		"is_statutory": false,
 		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2447,7 +2122,57 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "eabafd61-8b3a-4b95-8ed0-a0474018bc4e",
@@ -2457,72 +2182,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b469a1c1-4096-4095-9335-2aef5a0e5dab",
@@ -2532,66 +2248,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
 		"eligibility": "employment.service_months >= 12",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2602,7 +2259,57 @@
 					"days": 12
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "47c8c102-b081-4352-aa55-75cff3392522",
@@ -2612,72 +2319,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "1c5fe7f9-a04d-423d-8441-dbef4d54c7c9",
@@ -2687,72 +2385,64 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
 		"eligibility": "",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "256a5d70-efc3-44de-b1a7-a330413c7580",
@@ -2762,66 +2452,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2832,7 +2463,57 @@
 					"days": 91
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "6c5b6a07-0ec4-4051-ba5d-31c6c90545f0",
@@ -2842,66 +2523,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
 		"eligibility": "employee.gender == \"MALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2912,7 +2534,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "59adf75b-9e2d-4dd2-b172-f60c1b0bac87",
@@ -2922,66 +2594,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2992,7 +2605,57 @@
 					"days": 3
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "8f024bca-35c4-4d16-b800-99d5e7d426c8",
@@ -3002,66 +2665,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -3072,7 +2676,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "5020f0a0-b39d-4863-99cb-89cf53ef0213",
@@ -3082,66 +2736,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -3152,7 +2747,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "0861b5c9-e3ce-4a39-8795-6225e8fab410",
@@ -3162,66 +2807,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -3232,7 +2818,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "4c7b1f63-9faa-49df-bc1f-fde6b646a2fb",
@@ -3242,66 +2878,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -3312,7 +2889,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "9167b882-dd84-463f-927d-b55a06b54a78",
@@ -3322,66 +2949,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -3392,7 +2960,57 @@
 					"days": 1
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "19c0607c-dac6-47ac-a766-44637fdd24c0",
@@ -3402,66 +3020,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -3472,7 +3031,57 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "a2ee7055-1c65-4920-9f4a-fb343b0da1e2",
@@ -3482,66 +3091,7 @@
 		"is_statutory": true,
 		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -3552,7 +3102,58 @@
 					"days": 45
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "fd8bbd89-6dcc-4a98-b075-bf04ec71a3ab",
@@ -3562,72 +3163,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "6a8b164e-06fe-48ac-9048-25f07c4b1b01",
@@ -3637,72 +3229,63 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "f9b277e1-ccd3-4f08-80a3-5a2a388b3bde",
@@ -3712,71 +3295,62 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"JHT": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKM": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"KESEHATAN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"JKP": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PPH21": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	}
 ]

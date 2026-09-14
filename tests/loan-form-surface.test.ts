@@ -43,7 +43,8 @@ test('the generate action is offered from the form and never rewrites a captured
 	assert.match(representation, /data-generate-schedule/);
 	assert.match(representation, /canGenerateLoanSchedule/);
 	assert.match(representation, /generateLoanSchedule\(/);
-	// The locked set is read from the payslip junction, not assumed.
-	assert.match(representation, /payslip_loan_repayment_inputs\.findMany/);
+	// The locked set is read from the repayment's own pin, not assumed.
+	assert.match(representation, /loan_repayments\.findMany/);
+	assert.match(representation, /payslip_id: \{ isNotNull: true \}/);
 	assert.match(representation, /lockedIds/);
 });

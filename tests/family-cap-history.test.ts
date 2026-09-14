@@ -13,11 +13,19 @@ import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-a
 import { adjust, capturesOf, settle } from './helpers/settlement.ts';
 
 type Family = 'claim' | 'payment' | 'allowance';
-const periodCap = (amount = 1000, eligibility = '') => ({
-	period: 'CALENDAR_YEAR',
-	on_exceed: 'BLOCK',
-	bands: [{ eligibility, amount }]
-});
+/**
+ * The catalogue's bands, priced as themselves with a CALENDAR_YEAR block limit. A tier the old
+ * `cap.bands` stated as a person `eligibility` is the band's own `when` now, over the entry
+ * context's `person` — the same predicate vocabulary, nested one level.
+ */
+const capBands = (amount = 1000, eligibility = '') => [
+	{
+		when: eligibility === '' ? '' : `person.${eligibility}`,
+		amount: 'entry.amount',
+		limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount },
+		statutory_opt_ins: []
+	}
+];
 
 function capWorld(family: Family) {
 	const world = createPublicPayrollWorld();
@@ -35,16 +43,14 @@ function capWorld(family: Family) {
 		effective_range: { start: '2026-02-01', end: null }
 	});
 	oldSettings.effective_range = { start: '2020-01-01', end: '2026-02-01' };
-	world.work_catalogue.push({
-		...structuredClone(world.work_catalogue[0]),
-		id: 'new-work',
-		settings_id: 'new-settings'
-	});
 	const source = {
 		...structuredClone(world.payment_catalogue[0]),
 		id: 'old-catalogue',
 		code: 'BENEFIT',
-		cap: periodCap()
+		// A late one-off allowance prorates over its source month, and a recurring one is a
+		// standing award; both facts live on the allowance catalogue row now.
+		...(family === 'allowance' ? { prorates: true, recurring: true, on_day: null } : {}),
+		bands: capBands()
 	};
 	world[`${family}_catalogue`] = [
 		source,
@@ -53,7 +59,7 @@ function capWorld(family: Family) {
 	const request = (id: string, catalogueId: string, amount: number, month: string) => ({
 		id,
 		employment_id: EMPLOYMENT_ID,
-		[`${family}_catalogue_id`]: catalogueId,
+		catalogue_id: catalogueId,
 		amount,
 		incurred_on: `${month}-05`,
 		effective_on: `${month}-05`,
@@ -124,14 +130,15 @@ for (const family of ['claim', 'payment', 'allowance'] as const) {
 test('two bands that differ by grade: the tier is read off the terms in force on the event date', async () => {
 	const { world, candidate } = capWorld('claim');
 	for (const catalogue of world.claim_catalogue)
-		catalogue.cap = {
-			period: 'CALENDAR_YEAR',
-			on_exceed: 'BLOCK',
-			bands: [
-				{ eligibility: 'terms.grade == "G3"', amount: 2000 },
-				{ eligibility: '', amount: 1000 }
-			]
-		};
+		catalogue.bands = [
+			{
+				when: 'person.terms.grade == "G3"',
+				amount: 'entry.amount',
+				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 2000 },
+				statutory_opt_ins: []
+			},
+			...capBands()
+		];
 	await assert.rejects(
 		admit('claim', world, { ...candidate, amount: 201 }),
 		/1001\.00 requested against 1000\.00/
@@ -144,11 +151,13 @@ test('two bands that differ by grade: the tier is read off the terms in force on
 	);
 });
 
-test('a person no band covers is refused at the request and paid nothing by the run', async () => {
+test('a person no band covers is captured and paid nothing, and the run says so', async () => {
+	// The band table is the entitlement: a non-empty table that covers nobody leaves the entry
+	// priced at nothing, and the run reports it as a skipped request with the entry still captured.
 	const { world, candidate } = capWorld('claim');
 	for (const catalogue of world.claim_catalogue)
-		catalogue.cap = periodCap(2000, 'terms.grade == "G3"');
-	await assert.rejects(admit('claim', world, candidate), /BENEFIT has no entitlement band/);
+		catalogue.bands = capBands(2000, 'terms.grade == "G3"');
+	await admit('claim', world, candidate);
 	world.claim_requests.push(candidate);
 	const result = await build(world);
 	const slip = result.payslip_payroll_run[0];
@@ -157,6 +166,10 @@ test('a person no band covers is refused at the request and paid nothing by the 
 		false
 	);
 	assert.equal(capturesOf(result, slip).claims.length, 2, 'read and captured, priced at nothing');
+	assert.ok(
+		result.warnings.some((line) => line.includes('no band of the catalogue covers this entry')),
+		result.warnings.join('\n')
+	);
 });
 
 test('prior source eligibility uses its own event date and contract terms', async () => {
@@ -185,7 +198,7 @@ test('signed corrections restore their source amount and remain admissible above
 	});
 	await admit('claim', world, { ...candidate, amount: 400 }); // 800 - 200 + 400.
 	await assert.rejects(admit('claim', world, { ...candidate, amount: 401 }), /1001\.00 requested/);
-	world.claim_catalogue[1].cap = periodCap(200);
+	world.claim_catalogue[1].bands = capBands(200);
 	await admit('claim', world, { ...candidate, amount: 20, as_adjustment_entry: true });
 });
 
@@ -263,8 +276,7 @@ test('the same code in another family or settings lineage does not consume this 
 	world.claim_requests.push(request('unrelated', 'unrelated-catalogue', 9000, '2026-01'));
 	world.payment_catalogue[0].code = 'BENEFIT';
 	world.payment_requests.push({
-		...request('other-family', 'unused', 9000, '2026-01'),
-		payment_catalogue_id: world.payment_catalogue[0].id
+		...request('other-family', world.payment_catalogue[0].id, 9000, '2026-01')
 	});
 	await admit('claim', world, candidate);
 });
@@ -273,7 +285,7 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 	const { world, prior } = capWorld('allowance');
 	prior.amount = 600;
 	prior.recurrence = { kind: 'RECURRING', from: '2026-01-01', to: '2027-12-31' } as never;
-	world.allowance_catalogue[0].cap = periodCap();
+	world.allowance_catalogue[0].bands = capBands();
 	const template = world.work_days[0];
 	world.work_days = [];
 	for (
@@ -295,17 +307,15 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 		['2026-03', 0],
 		['2027-01', 600]
 	] as const) {
-		const slip = (await build(world, period)).payslip_payroll_run[0];
+		const built = await build(world, period);
+		const slip = built.payslip_payroll_run[0];
 		assert.equal(
 			slip.adjustments.find((row) => row.label === 'BENEFIT')?.amount ?? 0,
 			expected,
 			period
 		);
-		assert.equal(
-			slip.payslip_allowance_request_input_payslip.length,
-			1,
-			'zero awards remain captured'
-		);
+		const materialised = capturesOf(built, slip).materialised;
+		assert.equal(materialised.length, 1, 'zero awards remain captured');
 		const payslipId = `slip-${period}`;
 		world.payroll_runs.push({
 			id: `run-${period}`,
@@ -319,15 +329,18 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 			payroll_run_id: `run-${period}`,
 			paid_at: `${period}-28`
 		});
-		world.payslip_allowance_request_inputs.push(
-			...slip.payslip_allowance_request_input_payslip.map((row) => ({
-				...row,
+		// The materialised row is the per-period occurrence the run created and pinned, exactly as
+		// the run's own write leaves it.
+		world.allowance_requests.push(
+			...materialised.map((row) => ({
+				...row.values,
 				payslip_id: payslipId
 			}))
 		);
-		const repeated = (await build(world, period)).payslip_payroll_run[0];
+		const repeatedBuilt = await build(world, period);
+		const repeated = repeatedBuilt.payslip_payroll_run[0];
 		assert.equal(
-			repeated.payslip_allowance_request_input_payslip.length,
+			capturesOf(repeatedBuilt, repeated).materialised.length,
 			0,
 			'same-period occurrence is already consumed'
 		);
@@ -373,10 +386,8 @@ test('post-departure Payment uses final terms from its own contract for eligibil
 		employment_type: 'TEMPORARY',
 		effective_range: { start: '2026-02-01', end: null }
 	});
-	for (const catalogue of world.payment_catalogue) {
+	for (const catalogue of world.payment_catalogue)
 		catalogue.eligibility = "employment.type == 'PERMANENT'";
-		catalogue.cap.bands[0].eligibility = "employment.type == 'PERMANENT'";
-	}
 	await admit('payment', world, candidate);
 	await assert.rejects(
 		admit('payment', world, { ...candidate, amount: 201 }),
@@ -399,7 +410,7 @@ test('payroll cap usage values a due one-off Allowance using its actual source-m
 	world.employments[0].hire_date = '2026-01-15';
 	world.employments[0].effective_range = { start: '2026-01-15', end: null };
 	world.employment_terms[0].effective_range = { start: '2026-01-15', end: null };
-	world.allowance_catalogue[0].cap = periodCap();
+	world.allowance_catalogue[0].bands = capBands();
 	prior.amount = 310;
 	candidate.amount = 830;
 	// The write guard conservatively reserves the stated source magnitude before payroll prices it.

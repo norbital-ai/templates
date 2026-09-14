@@ -12,7 +12,7 @@ export type PayrollWorld = {
 	readonly companies: PayrollRow[];
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
-	readonly work_catalogue: PayrollRow[];
+	readonly scheme_reliefs: PayrollRow[];
 	readonly loan_catalogue: PayrollRow[];
 	readonly claim_catalogue: PayrollRow[];
 	readonly allowance_catalogue: PayrollRow[];
@@ -34,9 +34,6 @@ export type PayrollWorld = {
 	readonly work_days: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
-	readonly payslip_allowance_request_inputs: PayrollRow[];
-	readonly payslip_leave_inputs: PayrollRow[];
-	readonly payslip_loan_repayment_inputs: PayrollRow[];
 };
 
 const OPERATORS = ['eq', 'in', 'isNull', 'isNotNull', 'lt', 'lte', 'gt', 'gte'] as const;
@@ -145,14 +142,17 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			Effect.succeed(select(rows(name), query)),
 		findFirst: (query: { where?: unknown; limit?: number }) =>
 			Effect.succeed(select(rows(name), query)[0] ?? null),
-		/** An id updates in place; no id appends. What the run's `after` hook writes onto sources. */
+		/** An id updates in place; no id appends and the runtime assigns the stored id. */
 		mutate: (values: readonly PayrollRow[]) =>
 			Effect.sync(() => {
 				for (const value of values) {
 					const stored =
 						value.id == null ? undefined : world[name].find((row) => row.id === value.id);
 					if (stored) Object.assign(stored, value);
-					else world[name].push({ ...value });
+					else
+						world[name].push(
+							value.id == null ? { ...value, id: crypto.randomUUID() } : { ...value }
+						);
 				}
 			})
 	});
@@ -161,7 +161,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			companies: collection('companies'),
 			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
-			work_catalogue: collection('work_catalogue'),
+			scheme_reliefs: collection('scheme_reliefs'),
 			loan_catalogue: collection('loan_catalogue'),
 			claim_catalogue: collection('claim_catalogue'),
 			allowance_catalogue: collection('allowance_catalogue'),
@@ -182,10 +182,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			loan_repayments: collection('loan_repayments'),
 			work_days: collection('work_days'),
 			payroll_runs: collection('payroll_runs'),
-			payslips: collection('payslips'),
-			payslip_allowance_request_inputs: collection('payslip_allowance_request_inputs'),
-			payslip_leave_inputs: collection('payslip_leave_inputs'),
-			payslip_loan_repayment_inputs: collection('payslip_loan_repayment_inputs')
+			payslips: collection('payslips')
 		}
 	};
 }

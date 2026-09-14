@@ -129,7 +129,7 @@ it(
 			);
 			const captured = (await session.query(
 				`select count(*)::int as n from work_days w
-				 join payslips p on p.id = w.settled_payslip_id
+				 join payslips p on p.id = w.payslip_id
 				 where p.payroll_run_id = $1 and w.id = $2`,
 				[runId, workDayId]
 			)) as ReadonlyArray<{ n: number }>;

@@ -25,22 +25,21 @@
 	import { PAYROLL_RUN_LIST_COLUMNS } from './list-columns.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { Effect, Result } from 'effect';
-	import type { CollectionFilter } from '@norbital-ai/std/collection';
-	import { collectionCatalog } from '$bolt/collections.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { CollectionForm, submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import {
 		CollectionTable,
-		collectionTableRowMatchesFilters,
-		collectionTableRowMatchesSearch
+		type CollectionTableRowActionContext
 	} from '@norbital-ai/ui/collection-table';
-	import { CollectionToolbarQueryControls } from '@norbital-ai/ui/collection-toolbar';
+	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import { getErrorMessage } from '@norbital-ai/std';
+	import { toast } from 'svelte-sonner';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
@@ -54,7 +53,8 @@
 		payrollRunPayslipsQuery,
 		payslipAmount,
 		payslipEmployeeCode,
-		type PayrollRunPayslipRow
+		type PayrollRunPayslipRow,
+		type PayslipStatus
 	} from './payslip-table.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -83,7 +83,7 @@
 	const settingsQuery = $derived(
 		client.db.jurisdiction_settings.findMany({
 			where: { approval_id: { isNull: true } },
-			columns: { code: true, currency: true },
+			columns: { code: true, payroll: true },
 			limit: 500
 		})
 	);
@@ -125,134 +125,12 @@
 				}
 	);
 
-	/**
-	 * The people this run would pay, so the operator can name the exceptions.
-	 *
-	 * The run's population is not assembled here — it is everyone eligible in the period, decided by
-	 * the engine — and this list exists only so a person can be *taken out* of it with a reason.
-	 * Offering it as a picker to build a run from would put back exactly the failure the withhold
-	 * exists to remove: somebody left off a list is indistinguishable from somebody forgotten.
-	 */
-	const employmentsQuery = $derived(
-		companyId == null
-			? null
-			: client.db.employments.findMany({
-					where: { company_id: { eq: companyId }, approval_id: { isNull: true } },
-					columns: {
-						id: true,
-						employee_id: true,
-						employee_number: true,
-						hire_date: true,
-						bank: true,
-						effective_range: true,
-						exit_date: true,
-						exit_reason: true,
-						exit_note: true,
-						children: true
-					},
-					orderBy: { employee_number: 'asc' },
-					limit: 10_000
-				})
-	);
-	/** The person behind each employment number, so the matrix reads as a name, not a code. */
-	const employeeIds = $derived([
-		...new Set((employmentsQuery?.current ?? []).map((employment) => employment.employee_id))
-	]);
-	const employeesQuery = $derived(
-		employeeIds.length === 0
-			? null
-			: client.db.employees.findMany({
-					where: { id: { in: employeeIds } },
-					columns: { id: true, name: true },
-					limit: 10_000
-				})
-	);
-	const employeeNameById = $derived(
-		new Map((employeesQuery?.current ?? []).map((row) => [row.id, row.name]))
-	);
-	type PayrollPerson = {
-		readonly id: string;
-		readonly employee_id: string;
-		readonly employee_number: string;
-		readonly employee_name: string;
-		readonly exit_date: string | null;
-		readonly employment_employee: { readonly name: string };
-	};
-	const people = $derived<readonly PayrollPerson[]>(
-		(employmentsQuery?.current ?? []).map((employment) => {
-			const employeeName = employeeNameById.get(employment.employee_id) ?? '';
-			return {
-				...employment,
-				employee_name: employeeName,
-				employment_employee: { name: employeeName }
-			};
-		})
-	);
-	/** The toolbar's search and filters, evaluated against the in-memory list. */
-	let personSearch = $state('');
-	let personFilters = $state<readonly CollectionFilter[]>([]);
-	const visiblePeople = $derived(
-		people.filter(
-			(person) =>
-				collectionTableRowMatchesSearch(person, personSearch) &&
-				collectionTableRowMatchesFilters(person, personFilters)
-		)
-	);
-	/**
-	 * Who the selected period has already paid.
-	 *
-	 * A period is one run per entity, so the people on that run's payslips are already settled and
-	 * cannot be withheld into another run of the same period. They are shown rather than hidden:
-	 * "Aisyah is not in this list" and "Aisyah has already been run for January" are different
-	 * facts, and only one of them is worth investigating.
-	 */
-	const periodRunQuery = $derived(
-		companyId == null || period == null
-			? null
-			: client.db.payroll_runs.findMany({
-					where: { company_id: { eq: companyId }, period: { eq: period } },
-					columns: { id: true },
-					limit: 2
-				})
-	);
-	const periodRun = $derived(periodRunQuery?.current?.[0] ?? null);
-	const alreadyRunQuery = $derived(
-		periodRun == null
-			? null
-			: client.db.payslips.findMany({
-					where: { payroll_run_id: { eq: periodRun.id } },
-					columns: { employment_id: true },
-					limit: 10_000
-				})
-	);
-	const alreadyRun = $derived(
-		new Set((alreadyRunQuery?.current ?? []).map((row) => row.employment_id))
-	);
-	const eligibleEmployments = $derived(
-		visiblePeople.filter((person) => !alreadyRun.has(person.id))
-	);
-	/** `employment_id -> reason`; an entry exists only while the person is withheld. */
-	let withheld = $state<Record<string, string>>({});
-	const withholdings = $derived(
-		Object.entries(withheld).map(([employment_id, reason]) => ({ employment_id, reason }))
-	);
-	const allHeld = $derived(
-		eligibleEmployments.length > 0 &&
-			eligibleEmployments.every((employment) => employment.id in withheld)
-	);
-	const someHeld = $derived(eligibleEmployments.some((employment) => employment.id in withheld));
-	// A person can only be withheld from the entity the form is on, and who has already run depends
-	// on the period, so changing either clears the exception list.
-	$effect(() => {
-		void companyId;
-		void period;
-		withheld = {};
-	});
-
 	const companies = $derived(companiesQuery.current ?? []);
 	// Every version of a lineage states the same currency; the first one read names it.
 	const currencyByLineage = $derived(
-		new Map((settingsQuery.current ?? []).map((version) => [version.code, version.currency]))
+		new Map(
+			(settingsQuery.current ?? []).map((version) => [version.code, version.payroll.currency])
+		)
 	);
 	const companyOptions = $derived(
 		companies.flatMap((company) => {
@@ -343,7 +221,68 @@
 	// refusal notice on every run, including the ones that built perfectly.
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
 	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
+	/** A held slip is reviewed but deliberately kept out of every bank file until it is released. */
+	const heldCountQuery = $derived(
+		record == null
+			? null
+			: client.db.payslips.count({
+					where: { payroll_run_id: { eq: record.id }, status: { eq: 'ON_HOLD' } }
+				})
+	);
+	const heldCount = $derived(heldCountQuery?.current ?? 0);
 </script>
+
+{#snippet slipAction({ row }: CollectionTableRowActionContext<PayrollRunPayslipRow>)}
+	{#if row.status === 'DRAFT' || row.status === 'ON_HOLD'}
+		<Button
+			variant="outline"
+			size="sm"
+			onclick={() => {
+				// Hold keeps a reviewed slip out of every bank file; release returns it to draft.
+				const status: PayslipStatus = row.status === 'DRAFT' ? 'ON_HOLD' : 'DRAFT';
+				Effect.runFork(
+					submitCollectionMutation(() => client.db.payslips.mutate([{ id: row.id, status }])).pipe(
+						Effect.catch((cause) =>
+							Effect.sync(() =>
+								toast.error(t('component.payslip_action_failed'), {
+									description: getErrorMessage(cause)
+								})
+							)
+						)
+					)
+				);
+			}}
+		>
+			{row.status === 'DRAFT' ? t('component.hold') : t('component.release')}
+		</Button>
+	{/if}
+	{#if row.status !== 'PAID'}
+		<Button
+			variant="outline"
+			size="sm"
+			onclick={() => {
+				// Paid is terminal; the day money left is the run's own pay date.
+				const status: PayslipStatus = 'PAID';
+				const paid_at = record?.pay_date ?? undefined;
+				Effect.runFork(
+					submitCollectionMutation(() =>
+						client.db.payslips.mutate([{ id: row.id, status, paid_at }])
+					).pipe(
+						Effect.catch((cause) =>
+							Effect.sync(() =>
+								toast.error(t('component.payslip_action_failed'), {
+									description: getErrorMessage(cause)
+								})
+							)
+						)
+					)
+				);
+			}}
+		>
+			{t('payroll.mark_paid')}
+		</Button>
+	{/if}
+{/snippet}
 
 <RecordShell
 	title={record?.period ?? t('component.create_payroll_run')}
@@ -401,7 +340,6 @@
 							<Field name="company_id" hidden />
 							<Field name="period" hidden />
 							<Field name="lifecycle" hidden />
-							<Field name="withheld" hidden />
 							<p
 								class="text-sm"
 								{@attach () => {
@@ -421,6 +359,11 @@
 			{/if}
 
 			<Stack as="section" gap="sm" aria-label={t('component.payslips')}>
+				{#if heldCount > 0}
+					<p class="text-sm text-muted-foreground" data-held-excluded>
+						{t('component.held_excluded_from_bank', { count: heldCount })}
+					</p>
+				{/if}
 				<CollectionTable
 					{client}
 					collection="payslips"
@@ -428,6 +371,7 @@
 					description={t('component.payslips_description')}
 					features={{ create: false }}
 					query={payslipsTableQuery}
+					rowActions={[slipAction]}
 					bounded={false}
 				>
 					{#snippet columns({ Column })}
@@ -441,6 +385,7 @@
 							}}
 						/>
 						<Column name="currency" card="badge" />
+						<Column name="status" card="badge" />
 						<Column
 							name="gross"
 							renderer={FormattedValueRenderer}
@@ -491,9 +436,6 @@
 					<Field name="company_id" hidden />
 					<Field name="period" hidden />
 					<Field name="lifecycle" hidden />
-					<!-- Declared unconditionally: the form must state every mutable field exactly once,
-				     and the withhold section below only renders once an entity has been chosen. -->
-					<Field name="withheld" hidden />
 					<Stack gap="lg">
 						<Grid gap="md" minimum="compact">
 							{#if scopedCompanyId != null}
@@ -585,79 +527,6 @@
 									</dd>
 								</Stack>
 							</Grid>
-						{/if}
-						{#if companyId != null && (employmentsQuery?.current ?? []).length > 0}
-							<Stack gap="sm">
-								<Stack gap="xs">
-									<Cluster align="center" gap="sm" justify="between">
-										<span class="text-meta">{t('component.withhold_section')}</span>
-										<label class="flex items-center gap-2 text-sm">
-											<input
-												type="checkbox"
-												checked={allHeld}
-												indeterminate={someHeld && !allHeld}
-												onchange={(event) => {
-													withheld = event.currentTarget.checked
-														? Object.fromEntries(
-																eligibleEmployments.map((employment) => [employment.id, ''])
-															)
-														: {};
-													form.setValues({ withheld: withholdings });
-												}}
-											/>
-											{t('component.withhold_select_all')}
-										</label>
-									</Cluster>
-									<span class="text-sm text-muted-foreground">
-										{t('component.withhold_hint')}
-									</span>
-								</Stack>
-								<Cluster align="center" gap="sm">
-									<CollectionToolbarQueryControls
-										definition={collectionCatalog.employments}
-										collections={collectionCatalog}
-										onSearchChange={(search) => (personSearch = search)}
-										onFilterChange={(filters) => (personFilters = filters)}
-									/>
-								</Cluster>
-								<Stack gap="xs" class="max-h-64 overflow-y-auto">
-									{#each visiblePeople as person (person.id)}
-										{@const held = person.id in withheld}
-										{@const done = alreadyRun.has(person.id)}
-										<Stack gap="xs" class="shrink-0 {done ? 'opacity-60' : ''}">
-											<label class="flex min-w-0 items-center gap-2 text-sm">
-												<input
-													type="checkbox"
-													checked={held}
-													disabled={done}
-													onchange={(event) => {
-														const { [person.id]: _dropped, ...rest } = withheld;
-														withheld = event.currentTarget.checked
-															? { ...rest, [person.id]: '' }
-															: rest;
-														form.setValues({ withheld: withholdings });
-													}}
-												/>
-												<span class="tabular-nums">{person.employee_number}</span>
-												<span class="truncate text-muted-foreground">{person.employee_name}</span>
-											</label>
-											{#if done}
-												<span class="text-meta">{t('component.withhold_already_run')}</span>
-											{:else if held}
-												<input
-													class="min-w-0 rounded-md border border-input bg-background px-2 py-1 text-sm"
-													placeholder={t('component.withhold_reason')}
-													value={withheld[person.id]}
-													oninput={(event) => {
-														withheld = { ...withheld, [person.id]: event.currentTarget.value };
-														form.setValues({ withheld: withholdings });
-													}}
-												/>
-											{/if}
-										</Stack>
-									{/each}
-								</Stack>
-							</Stack>
 						{/if}
 						<p class="text-sm text-muted-foreground">
 							{t('component.create_run_hint')}

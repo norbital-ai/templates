@@ -30,7 +30,6 @@ const codeKindById = new Map([
 const rule = (over = {}) => ({
 	max_consecutive_work_days: 6,
 	discharged_by: 'REST_OR_OFF',
-	on_exceed: 'BLOCK',
 	...over
 });
 
@@ -118,10 +117,6 @@ test('a run across a month boundary is one run', () => {
 		assert.match(String(error?.message ?? error), /2026-02-26 to 2026-03-06/);
 		return true;
 	});
-});
-
-test('WARN refuses nothing at write time', () => {
-	judge('WWWWWWWWWWWWW', '2026-03-02', { rule: { on_exceed: 'WARN' } })();
 });
 
 test('exactly the limit is lawful; one more is not', () => {

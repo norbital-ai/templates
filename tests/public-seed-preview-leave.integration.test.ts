@@ -60,7 +60,7 @@ test(
 		try {
 			const browsing = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
-				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+				catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				calendar_month: '2026-04'
 			});
 			const availability = asAvailability(browsing.availability);
@@ -75,7 +75,7 @@ test(
 
 			const applyable = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
-				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+				catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				calendar_month: '2026-04',
 				exclude_entry_id: ANNUAL_LEAVE_ENTRY_ID,
 				range: {
@@ -89,7 +89,7 @@ test(
 
 			const sundayOnly = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
-				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+				catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				calendar_month: '2026-04',
 				range: {
 					start: { date: '2026-04-12', half: 'FIRST' },
@@ -122,7 +122,7 @@ test(
 				{
 					input: {
 						employment_id: EMPLOYMENT_ID,
-						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+						catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 						calendar_month: '2026-09',
 						range: {
 							start: { date: '2026-09-04', half: 'FIRST' },
@@ -147,7 +147,7 @@ test(
 			);
 			const input = {
 				employment_id: unbookedEmploymentId,
-				leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+				catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 				range: {
 					start: { date: '2026-04-15', half: 'FIRST' },
 					end: { date: '2026-04-15', half: 'SECOND' }
@@ -173,7 +173,7 @@ test(
 								values: {
 									id: crypto.randomUUID(),
 									employment_id: unbookedEmploymentId,
-									leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+									catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 									reference: 'PREVIEW-CERTIFICATE-TEST',
 									event: {
 										kind: 'TIME_OFF',
@@ -191,16 +191,14 @@ test(
 				'update employees set gender = $1 where id = (select employee_id from employments where id = $2)',
 				['FEMALE', unbookedEmploymentId]
 			);
-			await session.query(
-				'update leave_catalogue set requires_certificate_after_days = 0 where id = $1',
-				[ANNUAL_LEAVE_CATALOGUE_ID]
-			);
+			await session.query('update leave_catalogue set evidence_after_days = 0 where id = $1', [
+				ANNUAL_LEAVE_CATALOGUE_ID
+			]);
 			assert.equal((await invokePreviewLeave(session, input)).certificate_required, true);
 			assert.match(JSON.stringify((await create()).value), /certificate/i);
-			await session.query(
-				'update leave_catalogue set requires_certificate_after_days = 1 where id = $1',
-				[ANNUAL_LEAVE_CATALOGUE_ID]
-			);
+			await session.query('update leave_catalogue set evidence_after_days = 1 where id = $1', [
+				ANNUAL_LEAVE_CATALOGUE_ID
+			]);
 			const held = await create();
 			assert.ok(
 				asRecord(held.value, 'eligible leave at threshold').pendingApproval,

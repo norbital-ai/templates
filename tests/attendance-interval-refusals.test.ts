@@ -45,15 +45,6 @@ const api = {
 					}
 				])
 		},
-		work_catalogue: {
-			findMany: () =>
-				Effect.succeed([
-					{
-						settings_id: 'settings-1',
-						regime: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
-					}
-				])
-		},
 		jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 		payroll_runs: { findMany: () => Effect.succeed([]) },
 		leave_entries: { findMany: () => Effect.succeed([]) }

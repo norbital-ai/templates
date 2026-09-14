@@ -70,7 +70,6 @@
 				where: { settings_id },
 				limit: 2_000
 			}),
-			work_catalogue: client.db.work_catalogue.findMany({ where: { settings_id }, limit: 2_000 }),
 			leave_catalogue: client.db.leave_catalogue.findMany({ where: { settings_id }, limit: 2_000 }),
 			claim_catalogue: client.db.claim_catalogue.findMany({ where: { settings_id }, limit: 2_000 }),
 			allowance_catalogue: client.db.allowance_catalogue.findMany({
@@ -116,8 +115,6 @@
 		switch (collection) {
 			case 'statutory_contributions':
 				return t('app.settings.contribution_catalogue');
-			case 'work_catalogue':
-				return t('app.settings.work_catalogue');
 			case 'leave_catalogue':
 				return t('app.settings.leave_catalogue');
 			case 'claim_catalogue':

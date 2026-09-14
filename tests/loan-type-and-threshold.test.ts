@@ -38,6 +38,8 @@ function leaverOwing(loanType) {
 		...world.payment_catalogue[0],
 		id: 'loan-type',
 		code: 'LOAN',
+		destination: 'NET',
+		direction: 'SUBTRACT',
 		loan_type: loanType,
 		minimum_repayment: null
 	});
@@ -90,7 +92,7 @@ test('a government loan is left owing rather than swept into the final payslip',
 		100,
 		'the final payment is paid out rather than withheld against the loan'
 	);
-	assert.deepEqual(slip.payslip_loan_repayment_input_payslip, [], 'nothing is captured either');
+	assert.deepEqual(built.captures[0].loanRepayments, [], 'nothing is captured either');
 });
 
 /** One shortfall, as `settle` records it, against a catalogue row that does or does not state a floor. */

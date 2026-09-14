@@ -58,16 +58,19 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 	assert.equal(payslip.currency, 'MYR');
 
-	assert.deepEqual(
-		(payslip.payslip_allowance_request_input_payslip ?? []).map((row) => row.allowance_request_id),
-		[STANDING_ENTRY_ID]
+	const pinned = world.allowance_requests.filter((row) => row.payslip_id === payslip.id);
+	assert.equal(pinned.length, 1, 'the standing allowance materialises one period row');
+	assert.equal(
+		pinned[0].derived_from_id,
+		STANDING_ENTRY_ID,
+		'the period row says which standing allowance it repeats'
 	);
 	// And nothing from the families this month has no rows in.
 	for (const source of ['claim_requests', 'payment_requests'])
 		assert.deepEqual(settledBy(world, source, payslip.id), [], source);
 	assert.equal(settledBy(world, 'work_days', payslip.id).length, 42);
-	assert.equal(payslip.payslip_loan_repayment_input_payslip.length, 0);
-	assert.equal(payslip.payslip_leave_input_payslip.length, 0);
+	assert.equal(settledBy(world, 'loan_repayments', payslip.id).length, 0);
+	assert.equal(settledBy(world, 'leave_entries', payslip.id).length, 0);
 	assert.equal(payslip.statutory.length, 0);
 
 	// Observed on this public world (no schemes, one standing allowance).

@@ -15,11 +15,23 @@ const NOBODY = personContext({
 
 type Contract = Parameters<typeof assessContributions>[0][number];
 
-function scheme(
-	code: string,
-	award: ContributionConfig['rates'][number]['award'],
-	specialRules: string[] = []
-): ContributionConfig {
+type Band = ContributionConfig['rates'][number];
+
+const RULES = {
+	relief: '',
+	base_transform: '',
+	share_for_dependants: '',
+	rounding: ['NEAREST_CENT'] as const,
+	no_withholding_below: 0,
+	use_period_table: true,
+	additional_remuneration_channel: false,
+	employee_share_annual_cap: null,
+	shared_cap_group: null,
+	project_relief_annually: false,
+	total_rounded_employee_floored: false
+};
+
+function scheme(code: string, band: Band, rules: Partial<typeof RULES> = {}): ContributionConfig {
 	return {
 		row: {
 			id: code,
@@ -28,23 +40,16 @@ function scheme(
 			settings_id: 'settings',
 			is_statutory: true,
 			authority: 'Invented regression fixture',
-			rounding: 'NEAREST_CENT',
-			relief_for: [],
+			assessment_period: 'PAY_PERIOD',
+			eligibility: '',
 			sequence: 1,
-			special_rules: specialRules,
-			approval_id: null
+			approval_id: null,
+			rules: { ...RULES, rounding: [...RULES.rounding], ...rules },
+			bands: [band]
 		},
-		rates: [
-			{
-				id: `${code}-rate`,
-				statutory_contribution_id: code,
-				selector: { by: 'WAGE', from: 0, to: null },
-				award,
-				summary: code,
-				approval_id: null
-			}
-		]
-	} as ContributionConfig;
+		rates: [band],
+		relievedIds: []
+	} as unknown as ContributionConfig;
 }
 
 function contract(
@@ -64,8 +69,6 @@ function contract(
 			headcount: 1,
 			riskClass: null,
 			projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
-			spouseIsDependent: false,
-			dependents: 0,
 			person: NOBODY,
 			minimumWage: null,
 			...calculation
@@ -73,7 +76,11 @@ function contract(
 	};
 }
 
-const fixed = scheme('PUB-FIXED', { kind: 'FIXED', employee: 100.01, employer: 200.03 });
+const fixed = scheme('PUB-FIXED', {
+	when: 'base >= 0.0',
+	employee: '100.01',
+	employer: '200.03'
+});
 
 test('two contracts receive one fixed assessment, with deterministic cent allocations and their own bases', () => {
 	const contracts = [contract('a', 1000, [fixed]), contract('b', 1000, [fixed])];
@@ -88,36 +95,35 @@ test('two contracts receive one fixed assessment, with deterministic cent alloca
 });
 
 test('a periodic progressive threshold applies to combined contract remuneration', () => {
-	const tax = scheme('PUB-PERIOD', { kind: 'PROGRESSIVE', rate: 10, constant: 0 }, [
-		'PERIODIC_PROGRESSIVE'
-	]);
-	const rate = tax.rates[0]!;
-	const ladder: ContributionConfig = {
-		...tax,
-		rates: [
-			{
-				...rate,
-				selector: { by: 'WAGE', from: 0, to: 1000 },
-				award: { kind: 'PROGRESSIVE', rate: 0, constant: 0 }
-			},
-			{ ...rate, id: 'upper', selector: { by: 'WAGE', from: 1000, to: null } }
-		]
-	};
+	const ladder = scheme('PUB-PERIOD', {
+		when: 'base > 1000.0',
+		employee: '0.0 + (base - 1000.0) * 10.0 / 100.0',
+		employer: '0.0'
+	});
+	ladder.rates = [{ when: 'base <= 1000.0', employee: '0.0', employer: '0.0' }, ladder.rates[0]!];
+	(ladder.row as { bands: readonly Band[] }).bands = ladder.rates;
 	const result = assessContributions([contract('a', 750, [ladder]), contract('b', 750, [ladder])]);
 	assert.equal(result.get('a')![0]!.employee + result.get('b')![0]!.employee, 50);
-	assert.equal(result.get('a')![0]!.bandReference, '1000 – ∞');
+	assert.equal(result.get('a')![0]!.bandReference, 'base > 1000.0');
 });
 
 test('personal relief, a shared relief cap and prior YTD are applied once for the person', () => {
-	const tax = scheme('PUB-TAX', { kind: 'PROGRESSIVE', rate: 10, constant: 0 }, [
-		'PERSONAL_RELIEF:1200'
-	]);
+	const tax = scheme(
+		'PUB-TAX',
+		{ when: 'base > 0.0', employee: 'base * 10.0 / 100.0', employer: '0.0' },
+		{ use_period_table: false, relief: '1200.0' }
+	);
 	const relieving = (code: string, employee: number): ContributionConfig => {
-		const fund = scheme(code, { kind: 'PERCENT', employee, employer: 0 }, [
-			'RELIEF_CAP:100',
-			'RELIEF_POOL:shared'
-		]);
-		return { ...fund, row: { ...fund.row, relief_for: [tax.row.id] } };
+		const fund = scheme(
+			code,
+			{
+				when: 'base >= 0.0',
+				employee: `base * ${employee}.0 / 100.0`,
+				employer: '0.0'
+			},
+			{ employee_share_annual_cap: 100, shared_cap_group: 'shared' }
+		);
+		return { ...fund, relievedIds: [tax.row.id] };
 	};
 	const schemes = [relieving('PUB-FUND-A', 10), relieving('PUB-FUND-B', 5), tax];
 	const prior = new Map([['PUB-TAX', { base: 2000, employee: 100, employer: 0 }]]);
@@ -133,9 +139,11 @@ test('personal relief, a shared relief cap and prior YTD are applied once for th
 });
 
 test('ordinary and additional remuneration retain contract provenance while sharing one assessment', () => {
-	const tax = scheme('PUB-TAX', { kind: 'PROGRESSIVE', rate: 10, constant: 0 }, [
-		'ADDITIONAL_REMUNERATION'
-	]);
+	const tax = scheme(
+		'PUB-TAX',
+		{ when: 'base > 0.0', employee: 'base * 10.0 / 100.0', employer: '0.0' },
+		{ use_period_table: false, additional_remuneration_channel: true }
+	);
 	const ordinary = contract('a', 1000, [tax]);
 	const additional = contract('b', 0, [tax], {
 		bases: [{ contribution: tax, base: 0, special: { ADDITIONAL_REMUNERATION: 1000 } }]
@@ -148,7 +156,7 @@ test('ordinary and additional remuneration retain contract provenance while shar
 });
 
 test('rounding leftovers never create a negative allocation on a small final contract', () => {
-	const tiny = scheme('PUB-TINY', { kind: 'FIXED', employee: 0.02, employer: 0.01 });
+	const tiny = scheme('PUB-TINY', { when: 'base >= 0.0', employee: '0.02', employer: '0.01' });
 	const result = assessContributions(['c', 'b', 'a'].map((id) => contract(id, 1, [tiny])));
 	assert.deepEqual(
 		[...result.values()].map((charges) => charges[0]!.employee),

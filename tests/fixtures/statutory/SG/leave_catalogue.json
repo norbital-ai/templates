@@ -7,58 +7,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.43(1)",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -97,7 +46,73 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000001",
@@ -107,58 +122,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -181,7 +145,74 @@
 					"days": 5
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000002",
@@ -191,58 +222,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -265,7 +245,74 @@
 					"days": 15
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000003",
@@ -275,58 +322,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -341,7 +337,73 @@
 					"days": 84
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000004",
@@ -351,58 +413,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -413,7 +424,73 @@
 					"days": 28
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000005",
@@ -423,58 +500,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -489,7 +515,73 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "23608f60-9728-59c2-aaf1-e24935cfd8f9",
@@ -499,58 +591,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -561,7 +602,73 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "f3596de2-37b0-5863-b1a8-01bfad68d840",
@@ -571,58 +678,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -633,7 +689,73 @@
 					"days": 12
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "c85c5d86-f46f-5f07-856d-93a45b95485a",
@@ -643,58 +765,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -705,7 +776,73 @@
 					"days": 84
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000006",
@@ -715,58 +852,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 6 weeks (42 calendar days) for children born, or with a Formal Intent to Adopt, from 1 April 2025 to 31 March 2026, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (3 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, for which a settings-version boundary is the wrong axis.",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -777,7 +863,73 @@
 					"days": 42
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-00000000c002",
@@ -787,64 +939,80 @@
 		"is_statutory": true,
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "a81594a4-c1d0-5687-b856-251606580acb",
@@ -854,58 +1022,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.43(1)",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -944,7 +1061,73 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "03d19534-7b2c-55ea-aeeb-65b88f4b6730",
@@ -954,58 +1137,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1028,7 +1160,74 @@
 					"days": 5
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "3cd03ef6-a0b5-5273-bf5e-3e810e64b1b3",
@@ -1038,58 +1237,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1112,7 +1260,74 @@
 					"days": 15
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "f6099a36-5453-5e07-bfbd-af4f54e4bac0",
@@ -1122,58 +1337,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1188,7 +1352,73 @@
 					"days": 84
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "59a5566c-78ad-5b30-9b8b-5831c8581a86",
@@ -1198,58 +1428,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1260,7 +1439,73 @@
 					"days": 28
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b9687ba0-26d9-5885-a553-ca5bf2109e97",
@@ -1270,58 +1515,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1336,7 +1530,73 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "05b56ffa-a6ee-583d-8e0d-8a86b742b654",
@@ -1346,58 +1606,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1408,7 +1617,73 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "4f6530ae-100a-5279-8713-1d50fd0eabcc",
@@ -1418,58 +1693,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1480,7 +1704,73 @@
 					"days": 12
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "19bb0ed0-3638-54e6-a0b4-425c2923f63d",
@@ -1490,58 +1780,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1552,7 +1791,73 @@
 					"days": 84
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "edfd424d-160d-546f-9196-729a8f302299",
@@ -1562,58 +1867,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1624,7 +1878,73 @@
 					"days": 70
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "10000000-0000-5000-8000-00000000c001",
@@ -1634,64 +1954,80 @@
 		"is_statutory": true,
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "30539746-7100-5290-9aec-b1d7b13ac6f2",
@@ -1701,58 +2037,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.43(1)",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -1791,7 +2076,73 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b8e829b8-67a9-5d54-875e-27d743e135c2",
@@ -1801,58 +2152,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1875,7 +2175,74 @@
 					"days": 5
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "738b33a7-6198-5ca3-b095-8e2d1544031e",
@@ -1885,58 +2252,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1959,7 +2275,74 @@
 					"days": 15
 				}
 			]
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ffefa2fe-8d48-550e-89d7-af98ef3e9e9e",
@@ -1969,58 +2352,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2035,7 +2367,73 @@
 					"days": 84
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "afe9f68f-dd1b-5649-abf5-e08dc4ac078b",
@@ -2045,58 +2443,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2107,7 +2454,73 @@
 					"days": 28
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "c2302c70-2290-5f94-8cb1-cbd994171010",
@@ -2117,58 +2530,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2183,7 +2545,73 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "c9fb22f3-4217-5335-a7a8-4989b914b4d6",
@@ -2193,58 +2621,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2255,7 +2632,73 @@
 					"days": 2
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "583b7fbe-37a5-5add-aa76-4de3c606d4b0",
@@ -2265,58 +2708,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2327,7 +2719,73 @@
 					"days": 12
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d1db595c-7af9-5e97-9f23-214d3520d666",
@@ -2337,58 +2795,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2399,7 +2806,73 @@
 					"days": 84
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b4bfdcbd-108d-5413-bd8d-95d5007750ce",
@@ -2409,58 +2882,7 @@
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
 		"eligibility": "employment.service_months >= 3",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2471,7 +2893,73 @@
 					"days": 70
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "c61e12a0-1b49-5b0a-aab1-cdc4815da996",
@@ -2481,64 +2969,80 @@
 		"is_statutory": true,
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"requires_certificate_after_days": 0,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "2818c45e-2a0e-42c8-bb41-c137226065a3",
@@ -2548,64 +3052,79 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "f0838770-9076-40b6-9426-c592ea87953a",
@@ -2615,64 +3134,79 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "6690f990-eace-4639-a28e-b729cb1cf598",
@@ -2682,63 +3216,78 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"CPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"CDAC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"ECF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"MBMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SINDA": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SDL": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	}
 ]

@@ -10,18 +10,19 @@ export type LeaveActivity = Pick<
 	WorkspaceRow<'leave_entries'>,
 	| 'id'
 	| 'employment_id'
-	| 'leave_catalogue_id'
+	| 'catalogue_id'
 	| 'leave_code'
 	| 'reference'
 	| 'event'
 	| 'charges'
 	| 'allocations'
 	| 'approval_id'
+	| 'payslip_id'
 >;
 
 const proposalSchema = Schema.Struct({
 	employment_id: Schema.String,
-	leave_catalogue_id: Schema.String,
+	catalogue_id: Schema.String,
 	leave_code: Schema.String,
 	reference: Schema.String,
 	event: leaveEventValueSchema,
@@ -50,7 +51,12 @@ export function withPendingLeaveEntries(
 				refuse(
 					'A pending leave entry has no valid approval evidence. Review or withdraw it before submitting more leave.'
 				);
-			rows.set(row.id, { ...decoded.success, id: row.id, approval_id: row.approval_id });
+			rows.set(row.id, {
+				...decoded.success,
+				id: row.id,
+				approval_id: row.approval_id,
+				payslip_id: null
+			});
 		}
 		return [...rows.values()];
 	});

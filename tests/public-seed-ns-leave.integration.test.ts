@@ -19,7 +19,7 @@ test(
 			assert.ok(catalogue);
 			const input = {
 				employment_id: LIABLE_EMPLOYMENT,
-				leave_catalogue_id: String(catalogue.id),
+				catalogue_id: String(catalogue.id),
 				calendar_month: '2026-06',
 				range: {
 					start: { date: '2026-06-08', half: 'FIRST' as const },
@@ -35,7 +35,7 @@ test(
 				id: crypto.randomUUID(),
 				reference: 'CALL-UP-ORDER',
 				employment_id: LIABLE_EMPLOYMENT,
-				leave_catalogue_id: input.leave_catalogue_id,
+				catalogue_id: input.catalogue_id,
 				event: {
 					kind: 'TIME_OFF',
 					range: input.range,

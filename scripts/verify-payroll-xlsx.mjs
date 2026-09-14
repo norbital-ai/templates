@@ -163,10 +163,10 @@ const JOINER = {
 			overtimeDayType: 'REST_DAY'
 		}),
 		line({
-			componentCode: 'OVERTIME_EXCESS',
+			componentCode: 'INCENTIVE',
 			sequence: 21,
-			componentName: 'OVERTIME_EXCESS',
-			calculationSource: 'OVERTIME_EXCESS',
+			componentName: 'INCENTIVE',
+			calculationSource: 'INCENTIVE',
 			amount: 33.18,
 			quantity: 1,
 			overtimeDayType: 'REST_DAY',
@@ -497,11 +497,7 @@ Effect.runPromise(
 				132.73,
 				'a rest day pays a day’s wages, not eight hourly units'
 			);
-			assert.equal(
-				at(7, 'OVERTIME_EXCESS'),
-				33.18,
-				'reclassified overtime leaves the overtime column'
-			);
+			assert.equal(at(7, 'INCENTIVE'), 33.18, 'reclassified overtime leaves the overtime column');
 			assert.equal(at(7, 'STAFF_LOAN'), 100);
 			assert.equal(at(7, 'grossEarnings'), 1005.91);
 			assert.equal(at(7, 'netPay'), 822.86);

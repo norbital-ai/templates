@@ -40,7 +40,7 @@
 	 * editable until the capture exists: approval is workflow, consumption is settlement.
 	 */
 	const settledBy = $derived(
-		record?.settled_period == null ? null : { period: record.settled_period }
+		record?.payslip_id == null ? null : { period: record.pay_period ?? '' }
 	);
 	const lock = $derived(
 		record
@@ -72,8 +72,7 @@
 		{#snippet children({ Field, form })}
 			{@const employmentId =
 				scopedEmploymentId ?? (String(form.values().employment_id ?? '') || undefined)}
-			<Field name="settled_payslip_id" hidden />
-			<Field name="settled_period" hidden />
+			<Field name="payslip_id" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first
@@ -97,7 +96,7 @@
 						>
 							{#snippet children(where)}
 								<Field
-									name="claim_catalogue_id"
+									name="catalogue_id"
 									label={t('component.type')}
 									relationOptions={{
 										label: (component) => String(component.code ?? '') || '—',

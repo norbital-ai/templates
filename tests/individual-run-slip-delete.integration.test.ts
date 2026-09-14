@@ -87,13 +87,14 @@ test(
 );
 
 /**
- * The operator sequence: run for one person, decide to add more, and run for everyone.
+ * The operator sequence: build the run, discard the draft, and rebuild the same period.
  *
- * A period holds one run, so "add more" is a draft delete and a rebuild — the same period is free
- * again the moment the draft is gone, and the withheld person's inputs were never consumed.
+ * RFC 0001 removed the `withheld` create input — a run covers everyone eligible, and holding one
+ * person's pay is a payslip state (`ON_HOLD`), not a population choice. What this still proves is
+ * that a deleted draft frees the period and nothing it consumed stays locked.
  */
 test(
-	'a run for one person, deleted and rebuilt for everyone',
+	'a draft run is deleted and the same period rebuilt for everyone',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-partial-then-full');
@@ -113,16 +114,9 @@ test(
 				'select id from employments where company_id = $1 and approval_id is null order by employee_number',
 				[COMPANY_ID]
 			)) as ReadonlyArray<{ readonly id: string }>;
-			assert.ok(
-				employments.length >= 2,
-				'a partial run needs at least two people to choose between'
-			);
-			const kept = employments[0]!.id;
-			const withheld = employments
-				.slice(1)
-				.map((row) => ({ employment_id: row.id, reason: 'QA: partial run' }));
+			assert.ok(employments.length >= 2, 'the public seed carries a population');
 
-			const partialId = crypto.randomUUID();
+			const firstId = crypto.randomUUID();
 			requireAccepted(
 				(
 					await command({
@@ -131,36 +125,35 @@ test(
 						rows: [
 							{
 								action: 'create',
-								values: { id: partialId, company_id: COMPANY_ID, period: FEBRUARY_2026, withheld }
+								values: { id: firstId, company_id: COMPANY_ID, period: FEBRUARY_2026 }
 							}
 						]
 					})
 				).value,
-				'create the per-person run'
+				'create the first run'
 			);
-			const partialSlips = (await session.query(
+			const firstSlips = (await session.query(
 				'select employment_id from payslips where payroll_run_id = $1',
-				[partialId]
+				[firstId]
 			)) as ReadonlyArray<{ readonly employment_id: string }>;
-			assert.equal(partialSlips.length, 1, 'the per-person run paid exactly one person');
-			assert.equal(partialSlips[0]!.employment_id, kept);
+			assert.equal(firstSlips.length, employments.length, 'the run pays everyone eligible');
 
 			const [draft] = (await session.query('select row_version from payroll_runs where id = $1', [
-				partialId
+				firstId
 			])) as ReadonlyArray<{ readonly row_version: number }>;
 			requireAccepted(
 				(
-					await command({ action: 'delete', collection: 'payroll_runs', ids: [partialId] }, [
+					await command({ action: 'delete', collection: 'payroll_runs', ids: [firstId] }, [
 						{
-							row: { collection: 'payroll_runs', recordId: partialId },
+							row: { collection: 'payroll_runs', recordId: firstId },
 							rowVersion: draft!.row_version
 						}
 					])
 				).value,
-				'delete the per-person draft'
+				'delete the draft'
 			);
 			assert.deepEqual(
-				await session.query('select id from payroll_runs where id = $1', [partialId]),
+				await session.query('select id from payroll_runs where id = $1', [firstId]),
 				[]
 			);
 
@@ -178,7 +171,7 @@ test(
 						]
 					})
 				).value,
-				'rebuild the same period for everyone'
+				'rebuild the same period'
 			);
 			const fullSlips = (await session.query(
 				'select employment_id from payslips where payroll_run_id = $1',

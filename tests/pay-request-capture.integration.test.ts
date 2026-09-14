@@ -6,7 +6,7 @@ import { Effect } from 'effect';
 import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { settle, settledBy } from './helpers/settlement.ts';
+import { settledBy } from './helpers/settlement.ts';
 import {
 	PAYMENT_ENTRY_ID,
 	COMPANY_ID,
@@ -53,12 +53,14 @@ async function createPayrollRun(world, period) {
 	);
 }
 
-function entryCaptures(created) {
-	const payslips = created.payslip_payroll_run ?? [];
-	return payslips.flatMap((payslip) => payslip.payslip_allowance_request_input_payslip ?? []);
+/** The per-period rows a run materialised from a standing source, read back off the world. */
+function materialisedOf(world, payslipId) {
+	return world.allowance_requests.filter(
+		(row) => row.derived_from_id != null && row.payslip_id === payslipId
+	);
 }
 
-function persistStandingCapture(world, options) {
+function persistPayslip(world, options) {
 	world.payroll_runs.push({
 		id: options.runId,
 		company_id: COMPANY_ID,
@@ -67,70 +69,65 @@ function persistStandingCapture(world, options) {
 		approval_id: null
 	});
 	world.payslips.push({
+		...options.payslip,
 		id: options.payslipId,
 		payroll_run_id: options.runId,
-		employment_id: EMPLOYMENT_ID,
-		statutory: [],
+		paid_at: `${options.period}-28`,
 		approval_id: null
 	});
-	for (const capture of options.captures) {
-		world.payslip_allowance_request_inputs.push({
-			id: capture.id,
-			payslip_id: options.payslipId,
-			allowance_request_id: capture.allowance_request_id,
-			period: capture.period
-		});
-	}
 }
 
 test('a standing allowance is captured on two periods and two payslips', async () => {
 	const world = createPublicPayrollWorld();
 	const january = await createPayrollRun(world, '2026-01');
-	const januaryCaptures = entryCaptures(january);
-	assert.deepEqual(januaryCaptures.map((row) => row.allowance_request_id).toSorted(), [
-		STANDING_ENTRY_ID
-	]);
-	persistStandingCapture(world, {
+	const januarySlip = january.payslip_payroll_run[0];
+	const januaryRows = materialisedOf(world, januarySlip.id);
+	assert.deepEqual(
+		januaryRows.map((row) => row.derived_from_id),
+		[STANDING_ENTRY_ID]
+	);
+	persistPayslip(world, {
 		runId: JAN_RUN,
-		payslipId: JAN_PAYSLIP,
+		payslipId: januarySlip.id,
+		payslip: januarySlip,
 		period: '2026-01',
-		lifecycle: 'PAID',
-		captures: januaryCaptures
+		lifecycle: 'PAID'
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
-	const februaryCaptures = entryCaptures(february);
-	assert.deepEqual(februaryCaptures.map((row) => row.allowance_request_id).toSorted(), [
-		STANDING_ENTRY_ID
-	]);
-	assert.equal(januaryCaptures[0].period, '2026-01');
-	assert.equal(februaryCaptures[0].period, '2026-02');
-	assert.notEqual(january.payslip_payroll_run[0].employment_id, undefined);
-	assert.equal(february.payslip_payroll_run[0].employment_id, EMPLOYMENT_ID);
+	const februarySlip = february.payslip_payroll_run[0];
+	const februaryRows = materialisedOf(world, februarySlip.id);
+	assert.deepEqual(
+		februaryRows.map((row) => row.derived_from_id),
+		[STANDING_ENTRY_ID]
+	);
+	assert.equal(String(januaryRows[0].recurrence.from).slice(0, 7), '2026-01');
+	assert.equal(String(februaryRows[0].recurrence.from).slice(0, 7), '2026-02');
+	assert.notEqual(januarySlip.employment_id, undefined);
+	assert.equal(februarySlip.employment_id, EMPLOYMENT_ID);
 });
 
 test('a captured single-use request is excluded from the next regular payroll', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	const january = await createPayrollRun(world, '2026-01');
-	const januaryPayslipId = january.payslip_payroll_run[0].id;
+	const januarySlip = january.payslip_payroll_run[0];
 	assert.deepEqual(
-		settledBy(world, 'payment_requests', januaryPayslipId),
+		settledBy(world, 'payment_requests', januarySlip.id),
 		[PAYMENT_ENTRY_ID],
 		'January captures the payment once'
 	);
-	persistStandingCapture(world, {
+	persistPayslip(world, {
 		runId: JAN_RUN,
-		payslipId: JAN_PAYSLIP,
+		payslipId: januarySlip.id,
+		payslip: januarySlip,
 		period: '2026-01',
-		lifecycle: 'PAID',
-		captures: entryCaptures(january)
+		lifecycle: 'PAID'
 	});
-	// The persisted January payslip is the one the payment stays settled by.
-	settle(world, 'payment_requests', PAYMENT_ENTRY_ID, JAN_PAYSLIP, '2026-01');
 
 	const february = await createPayrollRun(world, '2026-02');
-	assert.equal(settledBy(world, 'payment_requests', february.payslip_payroll_run[0].id).length, 0);
-	assert.equal(february.payslip_payroll_run[0].payslip_allowance_request_input_payslip.length, 1);
+	const februarySlip = february.payslip_payroll_run[0];
+	assert.equal(settledBy(world, 'payment_requests', februarySlip.id).length, 0);
+	assert.equal(materialisedOf(world, februarySlip.id).length, 1);
 });
 
 test(
@@ -173,28 +170,21 @@ test(
 			}
 
 			const captures = (await session.query(
-				`select period, payslip_id from payslip_allowance_request_inputs
-				 where allowance_request_id = $1
-				 order by period`,
+				`select recurrence->>'from' as from_date, payslip_id from allowance_requests
+				 where derived_from_id = $1
+				 order by recurrence->>'from'`,
 				[PUBLIC_STANDING_ENTRY_ID]
-			)) as ReadonlyArray<{ readonly period: string; readonly payslip_id: string }>;
-			const periods = [...new Set(captures.map((row) => row.period))].toSorted();
+			)) as ReadonlyArray<{ readonly from_date: string; readonly payslip_id: string }>;
+			const periods = [...new Set(captures.map((row) => row.from_date.slice(0, 7)))].toSorted();
 			assert.deepEqual(
 				periods,
 				[JANUARY_2026, FEBRUARY_2026],
 				`standing entry must land on both public periods, got ${JSON.stringify(captures)}`
 			);
-
-			const january = captures.find((row) => row.period === JANUARY_2026);
-			assert.ok(january, 'January capture must exist');
-			await assert.rejects(() =>
-				session.query(
-					`insert into payslip_allowance_request_inputs
-					 (id, payslip_id, allowance_request_id, period)
-					 values ($1, $2, $3, $4)`,
-					[crypto.randomUUID(), january.payslip_id, PUBLIC_STANDING_ENTRY_ID, JANUARY_2026]
-				)
-			);
+			for (const period of [JANUARY_2026, FEBRUARY_2026]) {
+				const rows = captures.filter((row) => row.from_date.slice(0, 7) === period);
+				assert.equal(rows.length, 1, `one materialised row for ${period}`);
+			}
 		} finally {
 			await session.stop();
 		}

@@ -21,6 +21,8 @@ import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std
 import { decodeNumber } from '@norbital-ai/std/json';
 import { completedMonths, completedYears } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
+import { compileExpression } from '../../../lib/expressions/compile.js';
+import { childUnder } from '../../../lib/expressions/child-under.js';
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
 export type PersonContext = {
@@ -31,6 +33,8 @@ export type PersonContext = {
 		readonly marital_status: string;
 		/** `NONE` | `WITHOUT_INCOME` | `WITH_INCOME` — whether a spouse has income of their own. */
 		readonly spouse_status: string;
+		/** Recorded dependants, the count statutory relief and household schemes charge for. */
+		readonly dependents_count: number;
 		readonly solo_parent: boolean;
 		readonly race: string;
 		readonly religion: string;
@@ -70,60 +74,6 @@ export type PersonContext = {
 	};
 };
 
-/** The member names each root may be asked for, checked at write time. */
-const CONTEXT_MEMBERS: Readonly<Record<string, ReadonlySet<string>>> = {
-	employee: new Set([
-		'gender',
-		'age',
-		'citizenship',
-		'marital_status',
-		'spouse_status',
-		'solo_parent',
-		'race',
-		'religion',
-		'residency_months'
-	]),
-	employment: new Set(['type', 'classification', 'service_months', 'hire_date']),
-	terms: new Set([
-		'basic_salary',
-		'workman',
-		'department',
-		'payroll_group',
-		'grade',
-		'ordinary_hours_per_week',
-		'working_days_per_week'
-	]),
-	children: new Set(['count', 'under']),
-	company: new Set(['region'])
-};
-
-/** A person with nothing recorded: what a new expression is compiled against. */
-const BLANK_PERSON: PersonContext = {
-	employee: {
-		gender: '',
-		age: 0,
-		citizenship: '',
-		marital_status: '',
-		spouse_status: '',
-		solo_parent: false,
-		race: '',
-		religion: '',
-		residency_months: 0
-	},
-	employment: { type: '', classification: '', service_months: 0, hire_date: '' },
-	terms: {
-		basic_salary: 0,
-		workman: false,
-		department: '',
-		payroll_group: '',
-		grade: '',
-		ordinary_hours_per_week: 0,
-		working_days_per_week: 0
-	},
-	children: { count: 0, ages: [] },
-	company: { region: '' }
-};
-
 type PersonInput = {
 	readonly employee: {
 		readonly gender?: string | null;
@@ -131,6 +81,7 @@ type PersonInput = {
 		readonly nationality?: string | null;
 		readonly marital_status?: string | null;
 		readonly spouse_status?: string | null;
+		readonly dependents_count?: unknown;
 		readonly solo_parent?: boolean | null;
 		readonly race?: string | null;
 		readonly religion?: string | null;
@@ -183,6 +134,7 @@ export function personContext(input: PersonInput): PersonContext {
 			// A tax category that turns on whether a spouse has income of their own — Malaysia's MTD
 			// Category 2 against Category 3 — cannot be told from marital status alone.
 			spouse_status: input.employee?.spouse_status ?? '',
+			dependents_count: decodeNumber(input.employee?.dependents_count ?? 0),
 			solo_parent: input.employee?.solo_parent === true,
 			race: input.employee?.race ?? '',
 			religion: input.employee?.religion ?? '',
@@ -209,29 +161,8 @@ export function personContext(input: PersonInput): PersonContext {
 	};
 }
 
-/**
- * `children.under(n)` — how many children are under `n` completed years.
- *
- * The count is returned as a **BigInt** because the signature declares CEL's `int`, and CEL
- * dispatches `==` on the runtime value: an `int`-typed call handing back a JavaScript number
- * compares against no integer literal at all, so `children.under(7) == 0` was false even for a
- * childless person while `< 1` and `>= 1` behaved, and `children.under(7) + 1` threw. Singapore's
- * seeded extended-childcare rule is written `children.under(13) >= 1 && children.under(7) == 0`,
- * and granted nobody on any version. `compileEligibility` cannot catch it: `false` is a boolean.
- */
-const engine = createReckonEngine().registerFunction(
-	'under',
-	'map.under(int): int',
-	(children, age) => {
-		const ages = (children as { ages?: unknown }).ages;
-		const limit = Number(age);
-		// BigInt, not number: cel-js wraps a custom function's numeric return as a double, and
-		// a double never `==` an integer literal — so `children.under(7) == 0` was false even for
-		// a childless person while `< 1` held. A bigint return evaluates as an integer.
-		if (!Array.isArray(ages)) return 0n;
-		return BigInt(ages.filter((value) => Number(value) < limit).length);
-	}
-);
+/** `children.under(n)`: see `lib/expressions/child-under.ts` for why the count is a BigInt. */
+const engine = createReckonEngine().registerFunction('under', 'map.under(int): int', childUnder);
 
 function evaluate(expression: string, context: PersonContext): unknown {
 	const definition: ComputationDefinition = {
@@ -258,29 +189,9 @@ export function isEligible(expression: string | null | undefined, context: Perso
 
 /**
  * The sentence that refuses a malformed expression, or `null` when it compiles. Parsed by
- * Reckon, checked against the context's members, and evaluated against a blank person: the
- * result must be a boolean.
+ * Reckon, checked against the person context's members, and evaluated against a blank person:
+ * the result must be a boolean. The context itself is `lib/expressions`.
  */
 export function compileEligibility(expression: string | null | undefined): string | null {
-	const expr = (expression ?? '').trim();
-	if (expr === '') return null;
-	for (const match of expr.matchAll(
-		/\b(employee|employment|terms|children|company)\.([A-Za-z_][A-Za-z0-9_]*)/g
-	)) {
-		const [, root, member] = match;
-		if (root != null && member != null && !CONTEXT_MEMBERS[root]?.has(member))
-			return (
-				`Eligibility names ${root}.${member}, which the person context does not carry. ` +
-				`Use employee.gender, employee.age, employee.citizenship, employee.marital_status, employee.spouse_status, employee.solo_parent, employee.race, employee.religion, employee.residency_months, employment.type, employment.classification, employment.service_months, employment.hire_date, terms.basic_salary, terms.workman, terms.department, terms.payroll_group, terms.grade, terms.ordinary_hours_per_week, terms.working_days_per_week, children.count, children.under(age) or company.region.`
-			);
-	}
-	try {
-		const value = evaluate(expr, BLANK_PERSON);
-		if (typeof value !== 'boolean')
-			return `Eligibility must be a true-or-false expression; this one produces ${JSON.stringify(value)}.`;
-		return null;
-	} catch (error) {
-		const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
-		return `Eligibility does not compile: ${message}`;
-	}
+	return compileExpression({ expression, site: 'person', type: 'boolean' });
 }

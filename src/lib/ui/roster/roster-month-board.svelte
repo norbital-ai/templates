@@ -67,6 +67,7 @@
 		describeClockLayer,
 		describeDay,
 		describePlanLayer,
+		holidayTitle,
 		lockRung,
 		lockRungFreezes,
 		lockRungSourceLock,
@@ -78,6 +79,7 @@
 		shiftTimeCue,
 		type CellLayers,
 		type DayFacts,
+		type HolidayLike,
 		type LockRung
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
@@ -113,9 +115,10 @@
 		/**
 		 * The company calendar, keyed by date. Public holidays are drawn as a column of the board
 		 * rather than as a mark on each person's day, because that is where they come from: the
-		 * calendar, not the roster.
+		 * calendar, not the roster. A scoped SUBSTITUTE rides whole so the header can name who it
+		 * is for (the per-person mark is applied in `buildRosterMonth`).
 		 */
-		holidayNames: ReadonlyMap<string, string>;
+		holidayNames: ReadonlyMap<string, HolidayLike>;
 		/** One lock per date, derived from the company's payroll runs. */
 		locks?: ReadonlyMap<string, import('../../scheduling/lock.js').DayLock>;
 		/**
@@ -565,7 +568,7 @@
 					{@const holiday = holidayNames.get(date)}
 					{@const settled = !loading && locks.get(date)?.kind === 'SETTLED'}
 					<div
-						title={holiday == null ? undefined : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday}`}
+						title={holiday == null ? undefined : holidayTitle(holiday, t)}
 						class={cn(
 							'flex h-10 w-15 min-w-15 max-w-15 flex-col items-center justify-center bg-card text-center font-medium',
 							isWeekend(date) && 'bg-muted',

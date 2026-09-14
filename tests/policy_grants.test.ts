@@ -243,25 +243,13 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	assert.equal(may(hrController, 'payroll_runs', 'mutate.existing'), false);
 	assert.equal(may(hrController, 'payroll_runs', 'delete'), false);
 
-	// The run's `before` hook returns the payslips, adjustments and capture junctions, and what a
-	// hook returns is the workspace's own work: no grant of this policy names them, and a
-	// controller submitting a payslip directly is refused on that claim.
-	for (const collection of [
-		'payslips',
-		'payslip_allowance_request_inputs',
-		'payslip_leave_inputs',
-		'payslip_loan_repayment_inputs'
-	]) {
+	// The run's `before` hook returns the payslips and the capture pins, and what a hook returns is
+	// the workspace's own work: no grant of this policy names them, and a controller submitting a
+	// payslip directly is refused on that claim.
+	for (const collection of ['payslips']) {
 		assert.equal(may(hrController, collection, 'mutate.new'), false, `hr_controller ${collection}`);
 		assert.equal(may(hrController, collection, 'delete'), false, `hr_controller ${collection}`);
 	}
-	// The Scheduling app reads the capture junctions as this subject to mark consumed days.
-	for (const collection of [
-		'payslip_allowance_request_inputs',
-		'payslip_leave_inputs',
-		'payslip_loan_repayment_inputs'
-	])
-		assert.equal(may(hrController, collection, 'read'), true, `hr_controller ${collection}`);
 });
 
 test('hr_manager and senior management mutate new and existing payroll runs without a gate', () => {
@@ -276,13 +264,8 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 		// and the omitted ones go with it. That graph is the workspace's own work, so the policy
 		// holds no write on the result: `payroll_runs.mutate.existing` is the whole of "run again".
 		// Deleting a run is different: its cascade descends as the deleting person (RFC 0003 §3.2),
-		// so the six collections a run owns carry delete, and only delete.
-		for (const collection of [
-			'payslips',
-			'payslip_allowance_request_inputs',
-			'payslip_leave_inputs',
-			'payslip_loan_repayment_inputs'
-		]) {
+		// so the payslips a run owns carry delete, and only delete.
+		for (const collection of ['payslips']) {
 			assert.equal(may(policy, collection, 'mutate.new'), false, `${nameOf(policy)} ${collection}`);
 			assert.equal(
 				may(policy, collection, 'mutate.existing'),
@@ -295,13 +278,6 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 		// A completed run stays readable: the creator and HR Manager both see it after it lands.
 		assert.equal(may(policy, 'payroll_runs', 'read'), true, nameOf(policy));
 		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
-		for (const collection of [
-			'payslip_allowance_request_inputs',
-			'payslip_leave_inputs',
-			'payslip_loan_repayment_inputs'
-		]) {
-			assert.equal(may(policy, collection, 'read'), true, `${nameOf(policy)} ${collection}`);
-		}
 	}
 });
 
@@ -393,7 +369,7 @@ test('manual Leave categories require HR authority, while time off retains its r
 		if (!grant) continue;
 		assert.deepEqual(grant.fields, [
 			'employment_id',
-			'leave_catalogue_id',
+			'catalogue_id',
 			'event',
 			'reference',
 			'certificate_file'

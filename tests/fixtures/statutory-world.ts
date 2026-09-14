@@ -169,7 +169,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const terms = people.map((person, index) => ({
 		id: `b0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		employment_id: employmentIds[index]!,
-		base_salary: { value: person.wage, currency: versions[0]!.currency },
+		base_salary: { value: person.wage, currency: versions[0]!.payroll.currency },
 		pay_frequency: 'MONTHLY',
 		work_classification: 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
@@ -225,7 +225,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		],
 		jurisdiction_settings: versions,
 		statutory_contributions: schemes,
-		work_catalogue: law(code, 'work_catalogue'),
+		scheme_reliefs: readdirSync(resolve(here, 'statutory', code)).includes('scheme_reliefs.json')
+			? law(code, 'scheme_reliefs')
+			: [],
 		loan_catalogue: [],
 		claim_catalogue: [],
 		allowance_catalogue: [],
@@ -233,7 +235,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		shift_definitions: [
 			{
 				id: SHIFT_ID,
-				settings_code: options.settingsCode ?? code,
+				company_id: COMPANY_ID,
 				code: 'DAY',
 				name: 'Day',
 				variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
@@ -242,7 +244,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			},
 			{
 				id: REST_ID,
-				settings_code: options.settingsCode ?? code,
+				company_id: COMPANY_ID,
 				code: 'REST',
 				name: 'Rest day',
 				variant: { kind: 'REST' },
@@ -253,7 +255,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		shift_patterns: [
 			{
 				id: PATTERN_ID,
-				settings_code: options.settingsCode ?? code,
+				company_id: COMPANY_ID,
 				code: 'MON-FRI',
 				name: 'Five days, two rest days',
 				// PATTERNED, and therefore projected rather than rostered: with no `work_days` row the
@@ -297,10 +299,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		loan_repayments: [],
 		work_days: [],
 		payroll_runs: [],
-		payslips: [],
-		payslip_allowance_request_inputs: [],
-		payslip_leave_inputs: [],
-		payslip_loan_repayment_inputs: []
+		payslips: []
 	};
 }
 

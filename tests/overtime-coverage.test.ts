@@ -188,25 +188,26 @@ test('an unclassified person falls through to the wage test', () => {
 
 // ── the comparand: s.2 wages, classified from the component model ────────────────────────────
 
-const component = (kind, source) => ({
-	nature: kind,
+const component = (destination, direction, source) => ({
+	destination,
+	direction,
 	definition: source == null ? null : { source }
 });
 
 test('the comparand classification is the statute read against what a component can say', () => {
 	// s.2: basic wages AND all other cash payments for work done; para 3 lessens that by overtime
-	// payment. The component model names the first two: the schedule source is the contracted basic
-	// wage and an earning is any other cash payment. Para 3's overtime exclusion needs no category,
-	// because overtime is not a component at all — it is derived from the clocks and the ladder,
-	// so it is never in the set being classified and cannot enter the comparand to begin with.
-	assert.equal(classifyWageComparand(component('EARNING', 'SCHEDULE')), 'BASIC_WAGES');
-	assert.equal(classifyWageComparand(component('EARNING', 'ENTRY')), 'CASH_FOR_WORK');
-	assert.equal(classifyWageComparand(component('EARNING', 'FORMULA')), 'CASH_FOR_WORK');
-	assert.equal(classifyWageComparand(component('NON_WAGE_PAYMENT', 'ENTRY')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('DEDUCTION', 'ENTRY')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('ABSENCE', 'FORMULA')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('INFORMATION', 'FORMULA')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('EMPLOYER_COST', 'ENTRY')), 'NOT_WAGES');
+	// payment. The catalogue spine names the first two: the schedule source is the contracted basic
+	// wage and a PAY/ADD line is any other cash payment. Para 3's overtime exclusion needs no
+	// category, because overtime is not a component at all — it is derived from the clocks and the
+	// ladder, so it is never in the set being classified and cannot enter the comparand to begin with.
+	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'SCHEDULE')), 'BASIC_WAGES');
+	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'CASH_FOR_WORK');
+	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'FORMULA')), 'CASH_FOR_WORK');
+	assert.equal(classifyWageComparand(component('NET', 'ADD', 'ENTRY')), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('NET', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('PAY', 'SUBTRACT', 'FORMULA')), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('DISPLAY', null, 'FORMULA')), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('EMPLOYER', null, 'ENTRY')), 'NOT_WAGES');
 });
 
 test('the comparand is basic plus cash-for-work — the basic+allowance case', () => {

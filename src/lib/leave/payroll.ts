@@ -6,22 +6,25 @@ import { Effect } from 'effect';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
 import type { LeavePayItem } from '../../datatypes/leave_pay_items/+definition.js';
 import type { LeaveWindow } from '../../datatypes/leave_event/+definition.js';
-import type { FamilyPayItem } from '../payroll/family.js';
+import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
+import type {
+	SettlementBucket,
+	SettlementDestination,
+	SettlementDirection,
+	FamilyPayItem
+} from '../payroll/family.js';
 import type { LeaveActivity } from './pending.js';
 import { activeTimeOff } from './activity.js';
 import { readLeaveContext, leaveRules, type LeaveReadApi, type LeaveContext } from './context.js';
 import { leaveBalanceAt } from './balance.js';
 import { leaveWindowOf } from './entitlement.js';
-import { settingsInForce, treatmentsInForce } from '../jurisdiction_settings.js';
+import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import {
-	LEAVE_ABSENCE_SEQUENCE,
-	LEAVE_ENCASHMENT_SEQUENCE,
-	absenceTreatments,
-	encashmentCode,
-	encashmentTreatments
-} from './pay-items.js';
+import { runtimeExpressionEngine, evaluateBoolean } from '../expressions/evaluate.js';
+import { LEAVE_ABSENCE_SEQUENCE, LEAVE_ENCASHMENT_SEQUENCE, encashmentCode } from './pay-items.js';
+
+type LeaveCatalogue = LeaveContext['catalogues'][number];
 
 type LeaveCapture = {
 	readonly leave_entry_id: string;
@@ -32,11 +35,118 @@ type LeaveCapture = {
 export type SettledLeaveCapture = LeaveCapture & { readonly pay_items: readonly LeavePayItem[] };
 export type PreparedLeavePayroll = {
 	readonly entries: readonly LeaveActivity[];
-	readonly catalogues: readonly LeaveContext['catalogues'][number][];
+	readonly catalogues: readonly LeaveCatalogue[];
 	readonly captures: readonly (SettledLeaveCapture & { readonly paid: boolean })[];
 	readonly balances: Readonly<Record<string, number>>;
 	readonly deductionEligibility: Readonly<Record<string, boolean>>;
 };
+
+/**
+ * The entry context a leave band is selected over.
+ *
+ * `lib/payroll/money.ts` builds the same shape for a pay request, but its `entry` is a `PayRequest`
+ * whose days, hours and quantity are always zero, and leave has neither a request nor a person
+ * context at settlement. The members below are the ones a leave band can read; a band that names a
+ * member leave does not carry simply evaluates false.
+ */
+function leaveEntryContext(
+	entry: LeaveActivity,
+	charge: LeaveCharge | null
+): Record<string, unknown> {
+	const event = entry.event;
+	const encashment = event.kind === 'ENCASHMENT';
+	const date = charge?.date ?? (encashment ? event.effective_on : '');
+	const days = charge?.days ?? (encashment ? event.days : 0);
+	const amount = encashment ? event.gross_amount.value : 0;
+	return {
+		person: {},
+		entry: {
+			amount,
+			days,
+			hours: 0,
+			quantity: days,
+			event_date: date,
+			period: date.slice(0, 7),
+			recurring: false,
+			occurrence_index: 1,
+			window: { start: '', end: '' },
+			captures: { paid_to_date: 0, remaining: amount }
+		},
+		rates: { ordinary_day: 0, ordinary_hour: 0 },
+		limits: {},
+		period: { key: date.slice(0, 7), start: '', end: '', index: 1, instalments: 1 },
+		leave: {}
+	};
+}
+
+/** The first band whose `when` holds over the entry context; silence in the table is no opt-in. */
+function leaveBandOptIns(
+	catalogue: LeaveCatalogue,
+	entry: LeaveActivity,
+	charge: LeaveCharge | null
+): readonly StatutoryOptIn[] {
+	if (catalogue.bands.length === 0) return [];
+	const engine = runtimeExpressionEngine();
+	const context = leaveEntryContext(entry, charge);
+	for (const band of catalogue.bands) {
+		if (band.when.trim() === '') return band.statutory_opt_ins;
+		try {
+			if (evaluateBoolean(engine, band.when, context)) return band.statutory_opt_ins;
+		} catch (error) {
+			throw new Error(
+				`A ${catalogue.code} leave band condition did not evaluate: ` +
+					`${error instanceof Error ? error.message : String(error)}`
+			);
+		}
+	}
+	return [];
+}
+
+/** The catalogue revision a settled line names, resolved by the code the payslip froze. */
+function settledCatalogueOf(
+	entry: LeaveActivity,
+	componentCode: string,
+	catalogues: readonly LeaveCatalogue[]
+): LeaveCatalogue {
+	const matches = (row: LeaveCatalogue | undefined) =>
+		row != null && (row.code === componentCode || encashmentCode(row.code) === componentCode);
+	const own = catalogues.find((row) => row.id === entry.catalogue_id);
+	if (matches(own)) return own!;
+	const charged = entry.charges
+		.map((charge) => catalogues.find((row) => row.id === charge.catalogue_id))
+		.find(matches);
+	if (charged != null) return charged;
+	const byCode = catalogues.find(matches);
+	if (byCode != null) return byCode;
+	refuse(`Settled Leave line ${componentCode} has no catalogue revision in this lineage.`);
+}
+
+/** The frozen pay lines of one settled entry, read back off the payslip it is pinned to. */
+function settledPayItems(
+	entry: LeaveActivity,
+	payslip: LeaveContext['payslips'][number],
+	catalogues: readonly LeaveCatalogue[]
+): readonly LeavePayItem[] {
+	return payslip.adjustments.flatMap((line): LeavePayItem[] => {
+		if (line.family !== 'LEAVE' || line.source_id !== entry.id) return [];
+		const catalogue = settledCatalogueOf(entry, line.component_code, catalogues);
+		return [
+			{
+				catalogue_id: catalogue.id,
+				settings_id: catalogue.settings_id,
+				code: line.component_code,
+				is_statutory: catalogue.is_statutory,
+				sequence: catalogue.sequence,
+				bucket: line.bucket === 'ABSENCE' ? 'ABSENCE' : 'EARNING',
+				statutory_opt_ins: [...leaveBandOptIns(catalogue, entry, null)],
+				date: null,
+				amount: line.amount,
+				quantity: line.quantity,
+				rate: line.rate
+			}
+		];
+	});
+}
 
 /** Family-owned preparation. Payroll receives approved activity and frozen settlement evidence. */
 export function prepareLeavePayroll(options: {
@@ -46,17 +156,7 @@ export function prepareLeavePayroll(options: {
 }): Effect.Effect<ReadonlyMap<string, PreparedLeavePayroll>> {
 	return Effect.gen(function* () {
 		const context = yield* readLeaveContext(options.api, options.employmentIds, undefined, true);
-		const runById = new Map(context.runs.map((row) => [row.id, row]));
 		const payslipById = new Map(context.payslips.map((row) => [row.id, row]));
-		const captures = context.captures.flatMap((capture) => {
-			const payslip = payslipById.get(capture.payslip_id);
-			const run = payslip == null ? undefined : runById.get(payslip.payroll_run_id);
-			if (!run || payslip == null) refuse('A Leave capture has no owning payroll run.');
-			// This person's own payslip, not their run's summary. A capture on a slip that has been
-			// paid is paid; a colleague still waiting on a correction no longer makes it unpaid, and
-			// the run reading DRAFT because of that colleague no longer makes it so either.
-			return [{ ...capture, paid: payslip.paid_at != null }];
-		});
 		const result = new Map<string, PreparedLeavePayroll>();
 		for (const employment of context.employments) {
 			const company = context.companies.find((row) => row.id === employment.company_id);
@@ -69,23 +169,29 @@ export function prepareLeavePayroll(options: {
 			const entries = context.entries.filter(
 				(row) => row.employment_id === employment.id && row.approval_id == null
 			);
-			const entryIds = new Set(entries.map((row) => row.id));
 			const current = settingsInForce(context.versions, company.settings_code, options.asOf);
 			if (!current) refuse(`No sealed leave catalogue covers ${options.asOf}.`);
-			// Approved leave keeps the catalogue revision it was taken under; a scheme sealed after
-			// that revision has no cell there and is decided by the row of the same code in the
-			// version in force. See `treatmentsInForce`.
-			const currentByCode = new Map(
-				context.catalogues
-					.filter((row) => row.settings_id === current.id)
-					.map((row) => [row.code, row])
-			);
-			const catalogues = context.catalogues
-				.filter((row) => versionIds.has(row.settings_id))
-				.map((row) => ({
-					...row,
-					treatments: treatmentsInForce(row.treatments, currentByCode.get(row.code)?.treatments)
-				}));
+			const catalogues = context.catalogues.filter((row) => versionIds.has(row.settings_id));
+			// A settled entry's pin is the capture; its payslip's adjustments are the frozen outputs.
+			const captures = entries.flatMap((entry) => {
+				if (entry.payslip_id == null) return [];
+				const payslip = payslipById.get(entry.payslip_id);
+				if (payslip == null) refuse('A settled Leave entry has no owning payslip.');
+				const pay_items = settledPayItems(entry, payslip, catalogues);
+				return [
+					{
+						leave_entry_id: entry.id,
+						charges: entry.charges,
+						pay_items,
+						gross_amount: leaveCaptureAmount(pay_items, payslip.currency),
+						// This person's own payslip, not their run's summary. A capture on a slip that
+						// has been paid is paid; a colleague still waiting on a correction no longer
+						// makes it unpaid, and the run reading DRAFT because of that colleague no
+						// longer makes it so either.
+						paid: payslip.paid_at != null
+					}
+				];
+			});
 			const balances: Record<string, number> = {};
 			for (const catalogue of catalogues.filter((row) => row.settings_id === current.id)) {
 				const rules = leaveRules(context, employment.id, catalogue.id);
@@ -100,7 +206,7 @@ export function prepareLeavePayroll(options: {
 			const deductionEligibility: Record<string, boolean> = {};
 			for (const entry of activeTimeOff(entries))
 				for (const charge of entry.charges) {
-					const catalogue = catalogues.find((row) => row.id === charge.leave_catalogue_id);
+					const catalogue = catalogues.find((row) => row.id === charge.catalogue_id);
 					if (!catalogue) refuse('Approved leave refers to a missing catalogue revision.');
 					if (catalogue.paid) continue;
 					const term = context.terms.find(
@@ -124,7 +230,7 @@ export function prepareLeavePayroll(options: {
 			result.set(employment.id, {
 				entries,
 				catalogues,
-				captures: captures.filter((row) => entryIds.has(row.leave_entry_id)),
+				captures,
 				balances,
 				deductionEligibility
 			});
@@ -138,33 +244,38 @@ export function leavePayrollInputs(options: {
 	readonly entries: readonly LeaveActivity[];
 	readonly salaryWindow: { readonly start: string; readonly end: string };
 	readonly dueThrough: string;
-	/** Every standing capture reserves its exact dates or monetary obligation. */
-	readonly captures: readonly LeaveCapture[];
+	/** Every settled entry reserves its whole self; the pin on the entry is that reservation. */
+	readonly captures: readonly { readonly leave_entry_id: string }[];
+	/** Money-only callers (hasLeavePayment) do not judge whether a time-off entry straddles. */
+	readonly monetaryOnly?: boolean;
 }) {
 	const approved = options.entries.filter((row) => row.approval_id == null);
 	const reversed = new Set(
 		approved.flatMap((row) => (row.event.kind === 'REVERSAL' ? [row.event.entry_id] : []))
 	);
-	const timeOff = activeTimeOff(approved).flatMap((entry) => {
-		const captured = new Set(
-			options.captures
-				.filter((row) => row.leave_entry_id === entry.id)
-				.flatMap((row) => row.charges.map((charge) => charge.date))
-		);
-		const charges = entry.charges.filter(
-			(row) =>
-				row.date >= options.salaryWindow.start &&
-				row.date <= options.salaryWindow.end &&
-				!captured.has(row.date)
-		);
-		if (new Set(charges.map((row) => row.date)).size !== charges.length)
-			refuse('Approved leave has duplicate charges for one date.');
-		return charges.length === 0 ? [] : [{ entry, charges }];
-	});
+	const settled = new Set(options.captures.map((row) => row.leave_entry_id));
+	const timeOff = options.monetaryOnly
+		? []
+		: activeTimeOff(approved).flatMap((entry) => {
+				if (settled.has(entry.id)) return [];
+				const charges = entry.charges.filter(
+					(row) => row.date >= options.salaryWindow.start && row.date <= options.salaryWindow.end
+				);
+				if (charges.length === 0) return [];
+				if (charges.length !== entry.charges.length)
+					refuse(
+						`Approved ${entry.leave_code} leave straddles the payroll window ` +
+							`${options.salaryWindow.start}–${options.salaryWindow.end}. A time-off entry ` +
+							'settles whole in the period that contains all of its days; split the leave ' +
+							'into one entry per period.'
+					);
+				if (new Set(charges.map((row) => row.date)).size !== charges.length)
+					refuse('Approved leave has duplicate charges for one date.');
+				return [{ entry, charges }];
+			});
 	const monetary = approved.flatMap((entry) => {
 		const event = entry.event;
-		if (options.captures.some((row) => row.leave_entry_id === entry.id) || reversed.has(entry.id))
-			return [];
+		if (settled.has(entry.id) || reversed.has(entry.id)) return [];
 		if (event.kind !== 'ENCASHMENT' && event.kind !== 'REVERSAL') return [];
 		if (event.gross_amount == null) return [];
 		if (event.due_on == null) refuse('A monetary Leave entry is missing its approved due date.');
@@ -181,7 +292,8 @@ export function hasLeavePayment(prepared: PreparedLeavePayroll, dueThrough: stri
 			entries: prepared.entries,
 			captures: prepared.captures,
 			salaryWindow: { start: dueThrough, end: dueThrough },
-			dueThrough
+			dueThrough,
+			monetaryOnly: true
 		}).monetary.length > 0
 	);
 }
@@ -213,7 +325,7 @@ export function leaveCoverage(prepared: PreparedLeavePayroll, window: LeaveWindo
 function leaveCaptureAmount(items: readonly LeavePayItem[], currency: string): MoneyValue {
 	const minor = items.reduce(
 		(sum, item) =>
-			sum + toMinorUnits(item.nature === 'ABSENCE' ? -item.amount : item.amount, currency),
+			sum + toMinorUnits(item.bucket === 'ABSENCE' ? -item.amount : item.amount, currency),
 		0n
 	);
 	return { currency, value: fromMinorUnits(minor, currency) };
@@ -252,7 +364,7 @@ export function calculateLeavePayroll(options: {
 	for (const { entry, charges } of selected.timeOff) {
 		const items: LeavePayItem[] = [];
 		for (const charge of charges) {
-			const catalogue = prepared.catalogues.find((row) => row.id === charge.leave_catalogue_id);
+			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved Leave has no captured catalogue revision.');
 			if (catalogue.paid) continue;
 			const eligible = prepared.deductionEligibility[`${entry.id}/${charge.date}`];
@@ -265,12 +377,12 @@ export function calculateLeavePayroll(options: {
 			if (amount === 0) continue;
 			items.push({
 				sequence: LEAVE_ABSENCE_SEQUENCE,
-				contribution_treatments: absenceTreatments(catalogue.treatments),
+				statutory_opt_ins: [...leaveBandOptIns(catalogue, entry, charge)],
 				catalogue_id: catalogue.id,
 				settings_id: catalogue.settings_id,
 				code: catalogue.code,
 				is_statutory: catalogue.is_statutory,
-				nature: 'ABSENCE',
+				bucket: 'ABSENCE',
 				date: charge.date,
 				amount,
 				quantity: charge.days,
@@ -284,7 +396,7 @@ export function calculateLeavePayroll(options: {
 			refuse('The agreed Leave currency differs from this payroll.');
 		const event = entry.event;
 		if (event.kind === 'ENCASHMENT') {
-			const catalogue = prepared.catalogues.find((row) => row.id === entry.leave_catalogue_id);
+			const catalogue = prepared.catalogues.find((row) => row.id === entry.catalogue_id);
 			if (!catalogue) refuse('The agreed encashment catalogue revision is missing.');
 			add(
 				entry.id,
@@ -293,11 +405,11 @@ export function calculateLeavePayroll(options: {
 					{
 						code: encashmentCode(catalogue.code),
 						sequence: LEAVE_ENCASHMENT_SEQUENCE,
-						contribution_treatments: encashmentTreatments(catalogue.treatments),
+						statutory_opt_ins: [...leaveBandOptIns(catalogue, entry, null)],
 						catalogue_id: catalogue.id,
 						settings_id: catalogue.settings_id,
 						is_statutory: catalogue.is_statutory,
-						nature: 'EARNING',
+						bucket: 'EARNING',
 						date: null,
 						amount: amount.value,
 						quantity: event.days,
@@ -328,16 +440,32 @@ export function calculateLeavePayroll(options: {
 	}
 	const adjustments = captures.flatMap((capture) =>
 		capture.pay_items.map((item) => {
+			const catalogue = prepared.catalogues.find((row) => row.id === item.catalogue_id);
+			if (!catalogue)
+				refuse('A settled Leave line names a catalogue revision that is not available.');
+			// The frozen pay item states its own bucket: an unpaid day is the ABSENCE arm, an
+			// encashment the EARNING arm, whatever the one catalogue row's destination says.
+			const bucket: SettlementBucket = item.bucket;
 			const catalogueComponent: FamilyPayItem = {
-				...item,
-				id: `${item.catalogue_id}:${item.nature}:${item.code}`,
-				family: 'LEAVE',
-				eligibility: '',
-				settlement: 'PAYROLL'
+				id: `${item.catalogue_id}:${item.code}`,
+				catalogue_id: item.catalogue_id,
+				settings_id: item.settings_id,
+				code: item.code,
+				is_statutory: item.is_statutory,
+				// The enum columns arrive as text at the database boundary; the model constrains them
+				// to the §9 vocabulary.
+				destination: catalogue.destination as SettlementDestination,
+				direction: catalogue.direction as SettlementDirection | null,
+				bands: catalogue.bands,
+				optIns: item.statutory_opt_ins,
+				sequence: item.sequence,
+				eligibility: catalogue.eligibility,
+				family: 'LEAVE'
 			};
 			return {
 				catalogueComponent,
-				nature: item.nature,
+				bucket,
+				optIns: item.statutory_opt_ins,
 				label: item.code,
 				amount: item.amount,
 				input: { family: 'LEAVE' as const, id: capture.leave_entry_id },

@@ -60,7 +60,7 @@ test('the company form includes identity, payroll settings, payment account and 
 	);
 	assert.match(
 		form,
-		/band\.selector\?\.by === 'RISK_CLASS'/,
+		/band\.when\.includes\('risk_class'\)/,
 		"keyed by the lineage schemes' bands, not by a country name"
 	);
 	assert.match(
@@ -76,26 +76,18 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'change_summary',
 		'cloned_from_id',
 		'code',
-		'currency',
 		'effective_range',
 		'jurisdiction_code',
-		'minimum_wages',
 		'name',
-		'research_notes',
-		'research_urls',
+		'payroll',
 		'sealed_at',
-		'tax_year_start_month',
-		'timezone',
+		'sources',
 		'void_reason',
-		'voided_at'
-	]);
-	for (const hidden of [
-		'sealed_at',
 		'voided_at',
-		'void_reason',
-		'cloned_from_id',
-		'research_notes'
-	])
+		'wages',
+		'work_rules'
+	]);
+	for (const hidden of ['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id'])
 		assert.match(form, new RegExp(`<Field name="${hidden}" hidden />`), `${hidden} is hidden`);
 	assert.match(form, /disabled=\{sealed\}/, 'a sealed version renders read-only');
 	for (const gone of [
@@ -128,7 +120,10 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	const workTab = snippet(settings, 'catalogueWork');
 	assert.match(workTab, /<Tabs\b/);
 	assert.deepEqual(registrations(workTab), []);
-	for (const tab of ['workRules', 'rosterCodes', 'shiftPatterns'])
+	// The rules are edited with the version root they belong to, so the rules surface queries
+	// nothing of its own; the codes and patterns are their own tables.
+	assert.deepEqual(registrations(snippet(settings, 'workRules')), [], 'workRules');
+	for (const tab of ['rosterCodes', 'shiftPatterns'])
 		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
 	for (const [tab, collection] of [
 		['catalogueClaims', 'claim_catalogue'],
@@ -183,7 +178,6 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 	const changes = source('../src/apps/hr_controller/SnapshotChanges.svelte');
 	assert.deepEqual(registrations(changes), [
 		'db.statutory_contributions.findMany',
-		'db.work_catalogue.findMany',
 		'db.leave_catalogue.findMany',
 		'db.claim_catalogue.findMany',
 		'db.allowance_catalogue.findMany',

@@ -196,21 +196,56 @@ const WORK_DAYS = [
 
 const BASIC = {
 	code: 'BASIC',
-	sequence: 1,
-	contribution_treatments: {}
+	sequence: 1
 };
-const WORK = { id: 'work:test', settings_id: RUN.settings_id, treatments: {} };
+const WORK = {
+	id: 'work:test',
+	settings_id: RUN.settings_id,
+	jurisdiction_code: 'TEST-JUR',
+	proration: { by: 'CALENDAR_DAYS' },
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
+	},
+	rates: {
+		ordinary: [],
+		bands: [
+			{
+				label: '2.0',
+				line: 'OVERTIME',
+				when: 'day_type == "REST_DAY"',
+				take: 'hours_beyond_normal',
+				price: 'hours_beyond_normal * ordinary_hour * 2.0',
+				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
+				statutory_opt_ins: []
+			}
+		]
+	},
+	limits: [
+		{
+			key: 'daily_total',
+			period: 'DAY',
+			measure: 'TOTAL_WORK_HOURS',
+			max_hours: 12,
+			unit: 'CLOCK_HOURS'
+		}
+	],
+	breaks: [],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	coverage: null,
+	holiday_rest_precedence: 'REST_DAY'
+};
 const FINAL_PAYMENT = {
 	id: 'payment:final',
 	settings_id: RUN.settings_id,
 	code: 'FINAL_PAYMENT',
-	nature: 'EARNING',
 	sequence: 50,
 	eligibility: '',
-	contribution_treatments: {},
 	evidence: 'NONE',
-	settlement: 'PAYROLL',
-	cap: null
+	destination: 'PAY',
+	direction: 'ADD',
+	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }]
 };
 
 const PAYSLIPS = [
@@ -218,6 +253,8 @@ const PAYSLIPS = [
 		id: 'payslip:pattern',
 		payroll_run_id: RUN.id,
 		employment_id: 'employment:pattern',
+		status: 'PAID',
+		paid_at: '2026-03-28T00:00:00.000Z',
 		currency: 'MYR',
 		gross: 3760.78,
 		total_deductions: 400.25,
@@ -227,30 +264,29 @@ const PAYSLIPS = [
 		statutory: [],
 		/**
 		 * Two derived adjustments: the statutory rest-day day-wage award and the hours the daily
-		 * ceiling reclassified out of it. They settle under the Work catalogue's two overtime
-		 * components and are labelled with the statutory band that priced them — the code says
-		 * which column, the label and the rule key say which band. Contracted basic pay is inlined
-		 * in `base`.
+		 * ceiling funneled into INCENTIVE at the band's own award. They settle under the Work
+		 * catalogue's components and carry the new band key `line:label` — the code says which
+		 * column, the key says which band. Contracted basic pay is inlined in `base`.
 		 */
 		adjustments: [
 			{
 				family: 'WORK_DAY',
 				source_id: 'capture:ot-rest-day',
 				component_code: 'OVERTIME',
-				label: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
+				label: '2.0',
 				bucket: 'EARNING',
-				statutory_rule_key: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
+				statutory_rule_key: 'OVERTIME:2.0',
 				amount: 132.73,
 				quantity: 8,
 				rate: null
 			},
 			{
 				family: 'WORK_DAY',
-				source_id: 'capture:ot-excess',
-				component_code: 'OVERTIME_EXCESS',
-				label: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
+				source_id: 'capture:ot-incentive',
+				component_code: 'INCENTIVE',
+				label: '2.0',
 				bucket: 'EARNING',
-				statutory_rule_key: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
+				statutory_rule_key: 'INCENTIVE:2.0',
 				amount: 33.18,
 				quantity: 1,
 				rate: null
@@ -261,6 +297,8 @@ const PAYSLIPS = [
 		id: 'payslip:leaver',
 		payroll_run_id: RUN.id,
 		employment_id: 'employment:leaver',
+		status: 'PAID',
+		paid_at: '2026-03-28T00:00:00.000Z',
 		currency: 'MYR',
 		gross: 740,
 		total_deductions: 0,
@@ -316,9 +354,6 @@ Effect.runPromise(
 			const { loadRunExports } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/export-data.ts')
 			);
-			const { overtimeBandCode } = yield* Effect.tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/payroll_runs/lib/overtime.ts')
-			);
 			const { workbookRows } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/report.ts')
 			);
@@ -327,7 +362,7 @@ Effect.runPromise(
 				payslips: PAYSLIPS,
 				companies: [{ id: 'company:1', workbook_layout: 'VENDOR' }],
 				employments: EMPLOYMENTS,
-				work_catalogue: [WORK],
+				jurisdiction_settings: [{ id: WORK.settings_id, work_rules: WORK }],
 				leave_catalogue: [],
 				claim_catalogue: [],
 				allowance_catalogue: [],
@@ -357,33 +392,26 @@ Effect.runPromise(
 			// ── a derived overtime line reports under its catalogue component, not its band ────────────
 			assert.deepEqual(
 				patterned.lines.map((line) => line.componentCode),
-				['BASIC', 'OVERTIME', 'OVERTIME_EXCESS'],
+				['BASIC', 'OVERTIME', 'INCENTIVE'],
 				'both overtime arms report under the Work catalogue component they settled on'
 			);
-			// The band that priced the line is still the row's own fact, and it is still what
-			// classifies the line: the day type and the excess flag below are read off the rule key
-			// `measure.ts` wrote, not off the component code.
-			assert.equal(
-				PAYSLIPS[0].adjustments[0].statutory_rule_key,
-				overtimeBandCode({
-					excess: false,
-					dayType: 'REST_DAY',
-					measure: 'FROM_START_OF_DAY',
-					bandFrom: 0.5
-				})
-			);
-			assert.equal(patterned.lines[1].overtimeDayType, 'REST_DAY');
+			// The band key is now `<line>:<label>` (`OVERTIME:2.0`); the day type the old rule key
+			// spelled is no longer recorded, so the loaded line carries none and is not flagged as
+			// the reclassified arm — the component code (`INCENTIVE`) is what says so.
+			assert.equal(typeof PAYSLIPS[0].adjustments[0].statutory_rule_key, 'string');
+			assert.equal(patterned.lines[1].overtimeDayType, null);
 			assert.equal(patterned.lines[1].isOvertimeExcess, false);
-			assert.equal(patterned.lines[2].isOvertimeExcess, true);
-			assert.equal(patterned.lines[2].calculationSource, 'OVERTIME_EXCESS');
+			assert.equal(patterned.lines[2].isOvertimeExcess, false);
+			assert.equal(patterned.lines[2].calculationSource, 'DERIVED_OVERTIME');
 
 			// The workbook's columns are the catalogue's: each overtime arm reports under the Work
-			// component it settled on, and the hours still split by the day type the band priced.
+			// component it settled on. The day-type hour buckets are no longer populated by a loaded
+			// export — the stored adjustment does not carry a day type any more.
 			const [row] = workbookRows([patterned]);
 			assert.equal(row.OVERTIME, 132.73, 'statutory overtime settles on the OVERTIME component');
-			assert.equal(row.OVERTIME_EXCESS, 33.18, 'reclassified overtime on OVERTIME_EXCESS');
-			assert.equal(row.ot20Hours, 8, 'rest-day hours are the 2.0× bucket');
-			assert.equal(row.ot10Hours, 1, 'excess hours are valued plain, so they read 1.0×');
+			assert.equal(row.INCENTIVE, 33.18, 'funneled overtime settles on the INCENTIVE component');
+			assert.equal(row.ot20Hours, 0, 'no stored day type, so the 2.0× bucket is empty');
+			assert.equal(row.ot10Hours, 0, 'no stored day type, so the 1.0× bucket is empty');
 
 			// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
 			const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;

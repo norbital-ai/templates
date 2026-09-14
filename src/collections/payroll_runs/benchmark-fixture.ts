@@ -7,7 +7,7 @@
  * payroll engine itself so the benchmark does not maintain a second version of those rules.
  */
 
-import type { Configuration, ShiftPattern } from './lib/configuration.js';
+import type { Configuration, ShiftDefinition, ShiftPattern } from './lib/configuration.js';
 import type { PreparedRun } from './lib/engine.js';
 import type { EmploymentBundle } from './lib/gather.js';
 import { resolveWindow } from './lib/period.js';
@@ -17,7 +17,7 @@ const PERIOD = '2026-04';
 
 export const PAYROLL_CPU_BENCHMARK_FIXTURE = Object.freeze({
 	// Bump this identity whenever any fixture value or population rule changes.
-	id: 'hr-payroll:my-monthly-basic-epf-pcb:2026-04:290:v2',
+	id: 'hr-payroll:my-monthly-basic-epf-pcb:2026-04:290:v3',
 	employeeCount: EMPLOYEE_COUNT,
 	period: PERIOD,
 	profile:
@@ -44,25 +44,30 @@ const JURISDICTION = {
 	voided_at: null,
 	void_reason: null,
 	cloned_from_id: null,
-	currency: 'MYR',
-	tax_year_start_month: 1,
+	payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+	wages: { by_region: {} },
+	sources: { urls: [] },
 	effective_range: { start: '2020-01-01', end: null }
 } as const;
 
 const WORK = {
-	id: '00000000-0000-4000-8000-000000000006',
 	settings_id: JURISDICTION.id,
 	jurisdiction_code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
-	regime: {
-		overtime_coverage: null,
-		overtime_rules: [],
-		overtime_limits: [],
-		rest_break_rules: []
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
 	},
-	treatments: {},
-	authority: null
+	rates: {
+		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
+		bands: []
+	},
+	limits: [],
+	breaks: [],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	coverage: null,
+	holiday_rest_precedence: 'REST_DAY'
 } as const;
 
 const EPF_ID = '00000000-0000-4000-8000-000000000003';
@@ -75,12 +80,15 @@ const BASIC = {
 	id: BASIC_ID,
 	settings_id: JURISDICTION.id,
 	code: 'BASIC',
+	name: 'BASIC',
 	is_statutory: false,
-	contribution_treatments: {
-		EPF: { kind: 'INCLUDE' as const },
-		PCB: { kind: 'INCLUDE' as const }
-	},
-	nature: 'EARNING',
+	destination: 'PAY',
+	direction: 'ADD',
+	bands: [],
+	optIns: [
+		{ contribution_id: EPF_ID, effect: 'INCLUDE' as const },
+		{ contribution_id: PCB_ID, effect: 'INCLUDE' as const }
+	],
 	sequence: 10,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
@@ -95,30 +103,48 @@ const CONTRIBUTIONS = [
 			code: 'EPF',
 			name: 'Benchmark retirement fund',
 			authority: 'Synthetic benchmark schedule',
-			rounding: 'UP_TO_UNIT',
-			relief_for: [PCB_ID],
+			assessment_period: 'PAY_PERIOD',
+			eligibility: '',
 			sequence: 10,
-			special_rules: [
-				'BRACKET_STEP:5000:20',
-				'BRACKET_STEP:20000:100',
-				'RELIEF_CAP:4000',
-				'RELIEF_PROJECTED'
+			rules: {
+				relief: '',
+				base_transform: 'bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0)',
+				share_for_dependants: '',
+				rounding: ['UP_TO_UNIT'],
+				no_withholding_below: 0,
+				use_period_table: true,
+				additional_remuneration_channel: false,
+				employee_share_annual_cap: 4000,
+				shared_cap_group: null,
+				project_relief_annually: true,
+				total_rounded_employee_floored: false
+			},
+			bands: [
+				{
+					when: 'base <= 5000.0 && age < 60',
+					employee: 'base * 11.0 / 100.0',
+					employer: 'base * 13.0 / 100.0'
+				},
+				{
+					when: 'base > 5000.0 && age < 60',
+					employee: 'base * 11.0 / 100.0',
+					employer: 'base * 12.0 / 100.0'
+				}
 			]
 		},
 		rates: [
 			{
-				id: '00000000-0000-4000-8000-000000000011',
-				statutory_contribution_id: EPF_ID,
-				selector: { by: 'WAGE_AND_AGE', from: 0, to: 5000, age_from: 0, age_to: 60 },
-				award: { kind: 'PERCENT', employee: 11, employer: 13 }
+				when: 'base <= 5000.0 && age < 60',
+				employee: 'base * 11.0 / 100.0',
+				employer: 'base * 13.0 / 100.0'
 			},
 			{
-				id: '00000000-0000-4000-8000-000000000012',
-				statutory_contribution_id: EPF_ID,
-				selector: { by: 'WAGE_AND_AGE', from: 5000, to: null, age_from: 0, age_to: 60 },
-				award: { kind: 'PERCENT', employee: 11, employer: 12 }
+				when: 'base > 5000.0 && age < 60',
+				employee: 'base * 11.0 / 100.0',
+				employer: 'base * 12.0 / 100.0'
 			}
-		]
+		],
+		relievedIds: [PCB_ID]
 	},
 	{
 		row: {
@@ -128,56 +154,81 @@ const CONTRIBUTIONS = [
 			code: 'PCB',
 			name: 'Benchmark progressive withholding',
 			authority: 'Synthetic benchmark schedule',
-			rounding: 'NEAREST_CENT',
-			relief_for: [],
+			assessment_period: 'PAY_PERIOD',
+			eligibility: '',
 			sequence: 20,
-			special_rules: [
-				'PERSONAL_RELIEF:9000',
-				'SPOUSE_RELIEF:4000',
-				'CHILD_RELIEF:2000',
-				'MIN_WITHHOLD:10',
-				'ROUND:TRUNCATE_CENT',
-				'ROUND:UP_5_CENTS'
+			rules: {
+				relief:
+					'9000.0 + (person.employee.spouse_status == "WITHOUT_INCOME" ? 4000.0 : 0.0) + 2000.0 * person.employee.dependents_count',
+				base_transform: '',
+				share_for_dependants: '',
+				rounding: ['TRUNCATE_CENT', 'UP_5_CENTS'],
+				no_withholding_below: 10,
+				use_period_table: false,
+				additional_remuneration_channel: false,
+				employee_share_annual_cap: null,
+				shared_cap_group: null,
+				project_relief_annually: false,
+				total_rounded_employee_floored: false
+			},
+			bands: [
+				{ when: 'base <= 5000.0', employee: '0.0', employer: '0.0' },
+				{
+					when: 'base > 5000.0 && base <= 20000.0',
+					employee: '0.0 + (base - 5000.0) * 1.0 / 100.0',
+					employer: '0.0'
+				},
+				{
+					when: 'base > 20000.0 && base <= 35000.0',
+					employee: '150.0 + (base - 20000.0) * 3.0 / 100.0',
+					employer: '0.0'
+				},
+				{
+					when: 'base > 35000.0 && base <= 50000.0',
+					employee: '600.0 + (base - 35000.0) * 6.0 / 100.0',
+					employer: '0.0'
+				},
+				{
+					when: 'base > 50000.0 && base <= 70000.0',
+					employee: '1500.0 + (base - 50000.0) * 11.0 / 100.0',
+					employer: '0.0'
+				},
+				{
+					when: 'base > 70000.0',
+					employee: '3700.0 + (base - 70000.0) * 19.0 / 100.0',
+					employer: '0.0'
+				}
 			]
 		},
 		rates: [
+			{ when: 'base <= 5000.0', employee: '0.0', employer: '0.0' },
 			{
-				id: '00000000-0000-4000-8000-000000000021',
-				statutory_contribution_id: PCB_ID,
-				selector: { by: 'WAGE', from: 0, to: 5000 },
-				award: { kind: 'PROGRESSIVE', rate: 0, constant: 0 }
+				when: 'base > 5000.0 && base <= 20000.0',
+				employee: '0.0 + (base - 5000.0) * 1.0 / 100.0',
+				employer: '0.0'
 			},
 			{
-				id: '00000000-0000-4000-8000-000000000022',
-				statutory_contribution_id: PCB_ID,
-				selector: { by: 'WAGE', from: 5000, to: 20000 },
-				award: { kind: 'PROGRESSIVE', rate: 1, constant: 0 }
+				when: 'base > 20000.0 && base <= 35000.0',
+				employee: '150.0 + (base - 20000.0) * 3.0 / 100.0',
+				employer: '0.0'
 			},
 			{
-				id: '00000000-0000-4000-8000-000000000023',
-				statutory_contribution_id: PCB_ID,
-				selector: { by: 'WAGE', from: 20000, to: 35000 },
-				award: { kind: 'PROGRESSIVE', rate: 3, constant: 150 }
+				when: 'base > 35000.0 && base <= 50000.0',
+				employee: '600.0 + (base - 35000.0) * 6.0 / 100.0',
+				employer: '0.0'
 			},
 			{
-				id: '00000000-0000-4000-8000-000000000024',
-				statutory_contribution_id: PCB_ID,
-				selector: { by: 'WAGE', from: 35000, to: 50000 },
-				award: { kind: 'PROGRESSIVE', rate: 6, constant: 600 }
+				when: 'base > 50000.0 && base <= 70000.0',
+				employee: '1500.0 + (base - 50000.0) * 11.0 / 100.0',
+				employer: '0.0'
 			},
 			{
-				id: '00000000-0000-4000-8000-000000000025',
-				statutory_contribution_id: PCB_ID,
-				selector: { by: 'WAGE', from: 50000, to: 70000 },
-				award: { kind: 'PROGRESSIVE', rate: 11, constant: 1500 }
-			},
-			{
-				id: '00000000-0000-4000-8000-000000000026',
-				statutory_contribution_id: PCB_ID,
-				selector: { by: 'WAGE', from: 70000, to: null },
-				award: { kind: 'PROGRESSIVE', rate: 19, constant: 3700 }
+				when: 'base > 70000.0',
+				employee: '3700.0 + (base - 70000.0) * 19.0 / 100.0',
+				employer: '0.0'
 			}
-		]
+		],
+		relievedIds: []
 	}
 ] as const;
 
@@ -192,23 +243,50 @@ const CONTRIBUTIONS = [
  * repository-health:allow R3b -- PICK output assembled from engine-read columns; the stored row types add storage-owned columns a CPU benchmark must not invent.
  */
 /**
- * The one named pattern every benchmark employment points at: a rostered guarantee, so the fixture
- * needs no roster codes and no person-day rows for the engine to derive a weekly workload from.
+ * The one named pattern every benchmark employment points at: a PATTERNED five-day week, so the
+ * fixture needs no person-day rows — the pattern projects every day and silence is presence.
  * repository-health:allow R3b -- PICK output assembled from engine-read columns, like `CONFIGURATION`.
  */
+const DAY_SHIFT = {
+	id: '00000000-0000-4000-8000-000000000041',
+	company_id: COMPANY.id,
+	code: 'DAY',
+	name: 'Day',
+	variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+	effective_range: { start: '2020-01-01', end: null }
+} as unknown as ShiftDefinition;
+
+const REST_SHIFT = {
+	id: '00000000-0000-4000-8000-000000000042',
+	company_id: COMPANY.id,
+	code: 'REST',
+	name: 'Rest day',
+	variant: { kind: 'REST' },
+	effective_range: { start: '2020-01-01', end: null }
+} as unknown as ShiftDefinition;
+
 const SHIFT_PATTERN = {
 	id: '00000000-0000-4000-8000-000000000040',
 	company_id: COMPANY.id,
-	code: 'ROSTER-5D-40H-WK',
-	name: 'Rostered, 5 days and 40 hours guaranteed per week',
+	code: 'MON-FRI',
+	name: 'Five days, two rest days',
 	pattern: {
-		type: 'ROSTERED',
-		expectation: {
-			kind: 'GUARANTEED_SCHEDULE',
-			period: 'WEEK',
-			required_work_days: 5,
-			required_paid_minutes: 2400
-		}
+		type: 'PATTERNED',
+		anchor_date: '2020-01-06',
+		phases: [
+			{
+				duration: { kind: 'CONTINUOUS' },
+				day_cycle: [
+					{ roster_code_id: DAY_SHIFT.id },
+					{ roster_code_id: DAY_SHIFT.id },
+					{ roster_code_id: DAY_SHIFT.id },
+					{ roster_code_id: DAY_SHIFT.id },
+					{ roster_code_id: DAY_SHIFT.id },
+					{ roster_code_id: REST_SHIFT.id },
+					{ roster_code_id: REST_SHIFT.id }
+				]
+			}
+		]
 	},
 	effective_range: { start: '2020-01-01', end: null }
 } as unknown as ShiftPattern;
@@ -218,22 +296,18 @@ const CONFIGURATION = {
 	jurisdiction: JURISDICTION,
 	work: WORK,
 	holidayRestPrecedence: 'REST_DAY',
-	holidayCalendars: [],
+	holidaySnapshots: [],
 	holidayInputs: [],
 	contributions: CONTRIBUTIONS,
-	treatments: new Map(
-		CONTRIBUTIONS.map((entry) => [
-			`${BASIC.id}:${entry.row.id}`,
-			BASIC.contribution_treatments[entry.row.code as 'EPF' | 'PCB']
-		])
-	),
 	catalogueComponents: [BASIC],
-	overtimeRules: [],
-	overtimeLimits: [],
-	restBreakRules: [],
+	limits: WORK.limits,
+	breaks: WORK.breaks,
 	nightPremium: null,
 	overtimeCoverageRule: null,
-	shiftById: new Map(),
+	shiftById: new Map([
+		[DAY_SHIFT.id, DAY_SHIFT],
+		[REST_SHIFT.id, REST_SHIFT]
+	]),
 	patternById: new Map([[SHIFT_PATTERN.id, SHIFT_PATTERN]]),
 	holidays: new Map(),
 	catalogueLeaves: [],
@@ -250,6 +324,22 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 	const serial = index + 1;
 	const employmentId = fixtureUuid(10, serial);
 	const employeeId = fixtureUuid(11, serial);
+	const terms = [
+		{
+			id: fixtureUuid(12, serial),
+			employment_id: employmentId,
+			base_salary: { value: 3400 + (index % 12) * 350, currency: 'MYR' },
+			pay_frequency: 'MONTHLY',
+			shift_pattern_id: SHIFT_PATTERN.id,
+			job_title: `Benchmark role ${index % 8}`,
+			statutory_work_category: 'NON_MANUAL',
+			work_classification: 'EA_COVERED',
+			employment_type: 'PERMANENT',
+			department: `D${index % 10}`,
+			payroll_group: null,
+			effective_range: { start: '2020-01-01', end: null }
+		}
+	];
 	// Same boundary as `CONFIGURATION`: GATHER output built from the columns the engine reads, while
 	// `Employment`, `Employee` and `EmploymentTerms` are stored-row types carrying storage-owned and
 	// unread nullable columns besides.
@@ -273,28 +363,14 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 			spouse_status: index % 3 !== 0 ? 'NONE' : index % 6 === 0 ? 'WITHOUT_INCOME' : 'WITH_INCOME',
 			dependents_count: index % 4
 		},
-		terms: [
-			{
-				id: fixtureUuid(12, serial),
-				employment_id: employmentId,
-				base_salary: { value: 3400 + (index % 12) * 350, currency: 'MYR' },
-				pay_frequency: 'MONTHLY',
-				shift_pattern_id: SHIFT_PATTERN.id,
-				job_title: `Benchmark role ${index % 8}`,
-				statutory_work_category: 'NON_MANUAL',
-				work_classification: 'EA_COVERED',
-				employment_type: 'PERMANENT',
-				department: `D${index % 10}`,
-				payroll_group: null,
-				effective_range: { start: '2020-01-01', end: null }
-			}
-		],
+		terms,
+		termsHistory: terms,
 		statutoryFacts: [],
 		payRequests: [],
 		children: [],
 		loans: [],
 		loanRepayments: [],
-		ledger: [],
+		leave: { entries: [], catalogues: [], captures: [], balances: {}, deductionEligibility: {} },
 		workDays: [],
 		serviceMonths: 75,
 		age: 29 + (index % 30),
@@ -304,8 +380,7 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 		wageDays: window.salary,
 		attendance: window.attendance,
 		arrearsFor: null,
-		deferral: null,
-		extendedLeaveSettlesInOwnMonth: false
+		deferral: null
 	} as unknown as EmploymentBundle;
 }
 

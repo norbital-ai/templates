@@ -56,14 +56,14 @@ test(
 			// sentence in a hook over a jsonb path.
 			const undatedClaim = await write(session, 'claim_requests', {
 				employment_id: EMPLOYMENT_ID,
-				claim_catalogue_id: claimComponent,
+				catalogue_id: claimComponent,
 				amount: 48
 			});
 			assert.equal(accepted(undatedClaim), false, JSON.stringify(undatedClaim.value));
 
 			const datedClaim = await write(session, 'claim_requests', {
 				employment_id: EMPLOYMENT_ID,
-				claim_catalogue_id: claimComponent,
+				catalogue_id: claimComponent,
 				amount: 48,
 				incurred_on: '2026-04-02'
 			});
@@ -75,7 +75,7 @@ test(
 			for (const missing of ['employment_id', 'effective_on', 'reason']) {
 				const payment: Record<string, unknown> = {
 					employment_id: EMPLOYMENT_ID,
-					payment_catalogue_id: paymentComponent,
+					catalogue_id: paymentComponent,
 					amount: 100,
 					effective_on: '2026-04-02',
 					reason: 'Reviewed departure payment'
@@ -86,7 +86,7 @@ test(
 			}
 			const payment = await write(session, 'payment_requests', {
 				employment_id: EMPLOYMENT_ID,
-				payment_catalogue_id: paymentComponent,
+				catalogue_id: paymentComponent,
 				amount: 100,
 				effective_on: '2026-04-02',
 				reason: 'Reviewed departure payment'
@@ -97,14 +97,14 @@ test(
 			// nullable column three other arms had to be refused for setting.
 			const windowless = await write(session, 'allowance_requests', {
 				employment_id: EMPLOYMENT_ID,
-				allowance_catalogue_id: allowanceComponent,
+				catalogue_id: allowanceComponent,
 				amount: 100
 			});
 			assert.equal(accepted(windowless), false, JSON.stringify(windowless.value));
 
 			const windowed = await write(session, 'allowance_requests', {
 				employment_id: EMPLOYMENT_ID,
-				allowance_catalogue_id: allowanceComponent,
+				catalogue_id: allowanceComponent,
 				amount: 100,
 				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
 			});
@@ -114,7 +114,7 @@ test(
 			// the column does not exist on it.
 			const datedAllowance = await write(session, 'allowance_requests', {
 				employment_id: EMPLOYMENT_ID,
-				allowance_catalogue_id: allowanceComponent,
+				catalogue_id: allowanceComponent,
 				amount: 100,
 				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' },
 				incurred_on: '2026-04-02'

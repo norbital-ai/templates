@@ -1,4 +1,12 @@
-import { defineModel, instant, integer, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	boolean,
+	defineModel,
+	instant,
+	integer,
+	numeric,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /**
  * One amount due under an agreement, scoped to the same employment contract.
@@ -14,13 +22,24 @@ export default defineModel(
 		/** A positive magnitude. Part-recovery is the engine's business, never a smaller row. */
 		amount_due: numeric().notNull(),
 		/** One-based position in the loan's plan. */
-		sequence: integer().notNull()
+		sequence: integer().notNull(),
+		/** A direction correction against the same loan line; sign -1. */
+		as_adjustment_entry: boolean().notNull().default(false),
+		/**
+		 * The payslip that settled this row. Set by the payroll engine when a run recovers it,
+		 * cleared when the draft run is deleted; while set, the row is frozen.
+		 */
+		payslip_id: uuid()
 	},
 	{
 		description:
-			'One amount due under a loan agreement, in the order it is recovered. Payroll consumes repayments, never the loan master.',
+			'One amount due under a loan agreement, in the order it is recovered. Payroll consumes repayments, never the loan master, and links the one that settled it through `payslip_id`.',
 		recordLabel: ['sequence', 'amount_due'],
 		icon: 'lucide:calendar-clock',
-		indexes: [{ columns: ['loan_id', 'sequence'], unique: true }, { columns: ['employment_id'] }]
+		indexes: [
+			{ columns: ['loan_id', 'sequence'], unique: true },
+			{ columns: ['employment_id'] },
+			{ columns: ['payslip_id'] }
+		]
 	}
 );

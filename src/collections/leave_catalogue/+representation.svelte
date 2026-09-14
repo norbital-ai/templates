@@ -4,6 +4,10 @@
 	 * eligibility is one CEL expression over the person, which the write hook compiles. Sealed with
 	 * its version.
 	 *
+	 * The shared catalogue spine lives here too: destination and direction say how an entry settles
+	 * (an unpaid day is PAY/SUBTRACT, an encashment PAY/ADD), the bands price it over the entry
+	 * context and the convertor turns charged days and a rate into an encashment amount.
+	 *
 	 * Segments are tabs, not stacked sections, so one panel is on screen at a time and its fields
 	 * spread across the sheet. The dialog chrome names the record; the form adds no heading.
 	 *
@@ -15,8 +19,9 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -24,6 +29,9 @@
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
+	/** EMPLOYER and DISPLAY settle no direction: the model keeps it null there. */
+	const takesDirection = (destination: unknown): boolean =>
+		destination === 'PAY' || destination === 'NET';
 </script>
 
 <CollectionForm
@@ -33,7 +41,7 @@
 	submitLabel={record ? t('component.save_catalogue_leave') : t('component.create_catalogue_leave')}
 	onAfterSubmit={record ? undefined : close}
 >
-	{#snippet children({ Field })}
+	{#snippet children({ Field, form })}
 		{#snippet identity()}
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.leave_section_identity_hint')}</p>
@@ -58,6 +66,7 @@
 					<Field name="name" label={t('component.name')} />
 					<Field name="is_statutory" label={t('component.is_statutory')} />
 					<Field name="authority" label={t('component.authority')} />
+					<Field name="sequence" label={t('component.order')} />
 				</Grid>
 			</Stack>
 		{/snippet}
@@ -70,6 +79,11 @@
 					label={t('component.who_receives')}
 					placeholder={t('component.eligibility_placeholder')}
 				/>
+				<ExpressionFields
+					site="person"
+					expression={String(form.values().eligibility ?? '')}
+					type="boolean"
+				/>
 			</Stack>
 		{/snippet}
 
@@ -80,23 +94,47 @@
 			</Stack>
 		{/snippet}
 
+		{#snippet pricing()}
+			<Stack gap="sm">
+				<p class="text-meta">{t('component.leave_section_pricing_hint')}</p>
+				<Grid gap="md" minimum="card">
+					<Field name="evidence" label={t('component.evidence')} />
+					<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
+				</Grid>
+			</Stack>
+		{/snippet}
+
 		{#snippet pay()}
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.leave_section_pay_hint')}</p>
 				<Grid gap="md" minimum="card">
 					<Field name="paid" label={t('component.paid')} />
 					<Field
-						name="requires_certificate_after_days"
+						name="evidence_after_days"
 						label={t('component.certificate_required_after_days')}
 					/>
+					<Field name="destination" label={t('component.destination')} />
+					{#if takesDirection(form.values().destination)}
+						<Field name="direction" label={t('component.direction')} />
+					{:else}
+						<Field name="direction" hidden />
+						<span
+							class="hidden"
+							{@attach () => {
+								if (form.values().direction != null)
+									form.setValues({ ...form.values(), direction: null });
+							}}
+						></span>
+					{/if}
+					<Column span="all">
+						<Field name="convertor" label={t('component.convertor')} />
+						<ExpressionFields
+							site="entry"
+							expression={String(form.values().convertor ?? '')}
+							type="number"
+						/>
+					</Column>
 				</Grid>
-			</Stack>
-		{/snippet}
-
-		{#snippet contributions()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.leave_section_contributions_hint')}</p>
-				<Field name="treatments" label={t('component.contribution_treatments')} />
 			</Stack>
 		{/snippet}
 
@@ -126,16 +164,16 @@
 					content: entitlement
 				},
 				{
+					name: 'pricing',
+					label: t('component.leave_section_pricing'),
+					icon: 'lucide:shield',
+					content: pricing
+				},
+				{
 					name: 'pay',
 					label: t('component.leave_section_pay'),
 					icon: 'lucide:circle-dollar-sign',
 					content: pay
-				},
-				{
-					name: 'contributions',
-					label: t('component.section_contributions'),
-					icon: 'lucide:landmark',
-					content: contributions
 				}
 			] satisfies TabConfig[]}
 		/>

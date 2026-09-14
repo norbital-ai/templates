@@ -7,7 +7,7 @@ const range = {
 	start: { date: '2026-04-15', half: 'FIRST' as const },
 	end: { date: '2026-04-15', half: 'SECOND' as const }
 };
-const input = { employment_id: id(1), leave_catalogue_id: id(7), calendar_month: '2026-04', range };
+const input = { employment_id: id(1), catalogue_id: id(7), calendar_month: '2026-04', range };
 
 test('preview uses computed entitlement without requiring a persisted annual account', () => {
 	const context = leaveContext();
@@ -59,7 +59,7 @@ test('unlimited leave keeps schedule and overlap validation without a balance ce
 
 test('eligibility and certificate thresholds use server-measured scheduled days', () => {
 	const context = leaveContext();
-	context.catalogues[0]!.requires_certificate_after_days = 0;
+	context.catalogues[0]!.evidence_after_days = 0;
 	context.catalogues[0]!.eligibility =
 		'employee.gender == "FEMALE" && employment.type == "PERMANENT"';
 	assert.equal(evaluateLeavePreview(context, input).certificate_required, true);

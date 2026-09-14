@@ -32,12 +32,14 @@ import {
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 /** The Philippine Work as the bank seeds it, not a fixture invented here. */
-const PH_WORK = JSON.parse(
-	readFileSync(
-		fileURLToPath(new URL('fixtures/statutory/PH/work_catalogue.json', import.meta.url)),
-		'utf8'
-	)
-)[0];
+const PH_WORK = (
+	JSON.parse(
+		readFileSync(
+			fileURLToPath(new URL('fixtures/statutory/PH/jurisdiction_settings.json', import.meta.url)),
+			'utf8'
+		)
+	)[0] as { work_rules: { rates: { ordinary: unknown } } }
+).work_rules;
 
 /**
  * A complete person, not a convenient one. `verify-fixture-shapes.mjs` reads every field the engine
@@ -84,7 +86,7 @@ const terms = (hoursPerWeek: number, daysPerWeek: number, salary = 15_650): Rate
 
 const dayWageOf = (hoursPerWeek: number, daysPerWeek: number, payrollGroup = 'BI-MONTHLY') => {
 	const rate = resolveOrdinaryRate({
-		rows: PH_WORK.ordinary_rate,
+		rows: PH_WORK.rates.ordinary,
 		person: person(hoursPerWeek, daysPerWeek, payrollGroup),
 		workingDays: () => 26,
 		employeeNumber: 'OPSPH000'
@@ -117,6 +119,6 @@ test('a monthly-paid employee keeps 365/12, whatever their roster', () => {
 test('the Work states every week shape it rosters, so no person falls through', () => {
 	// `resolveOrdinaryRate` refuses by name rather than pricing an hour at nothing, and the last
 	// row is normally everyone. This is the check that the Philippine seed keeps that last row.
-	assert.equal(PH_WORK.ordinary_rate.at(-1).eligibility, '');
+	assert.equal((PH_WORK.rates.ordinary.at(-1) as { when: string }).when, '');
 	assert.doesNotThrow(() => dayWageOf(0, 0, ''));
 });

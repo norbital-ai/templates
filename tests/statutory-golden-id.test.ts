@@ -8,13 +8,13 @@
  *
  * Every figure below is derived by hand from those instruments and is what the engine computes.
  *
- * No Indonesian run used to build at all. The sealed `PPH21` row named JHT and JP in `relief_for`
- * meaning "relieved BY them", while the engine reads `relief_for` as "a relief inside [the named]
+ * No Indonesian run used to build at all. The sealed `PPH21` row named JHT and JP in its relief edges
+ * meaning "relieved BY them", while the engine reads a relief edge as "a relief inside [the named]
  * scheme's computation" — the reading every other lineage follows (EPF→PCB, SI/HI/UI→PIT,
  * SSS/PHIC/HDMF→WTAX) — so validation refused with `RELIEF_ORDER`: PPH21 (sequence 600) ran after
  * the schemes it claimed to relieve (100, 200). The linkage is gone from all three sealed versions:
  * PMK 168/2023 Ps.15 applies the monthly effective rate to `jumlah penghasilan bruto` undeducted,
- * so there is no relief to state. Not one figure moved, because `relief_for` is inert on a
+ * so there is no relief to state. Not one figure moved, because a relief edge is inert on a
  * `PERCENT` award and every TER band is one — the withholding was always on gross, and only
  * validation disagreed. The goldens that assess short of validation stay as they are, because a
  * version's schemes are the same either way.
@@ -54,14 +54,14 @@ function idWorld(period: string) {
 }
 
 test('Indonesia — a validated run builds, and prices the same as the unvalidated one', () => {
-	// This used to assert the opposite. `PPH21.relief_for` named this version's JHT and JP, and the
-	// engine reads `relief_for` as "a relief inside the named scheme's computation" — so PPH21 at
+	// This used to assert the opposite. PPH21's relief edges named this version's JHT and JP, and the
+	// engine reads a relief edge as "a relief inside the named scheme's computation" — so PPH21 at
 	// sequence 600 claimed to be a relief inside schemes that run at 100 and 200, and
 	// `validateConfiguration` refused every Indonesian run before anything was measured.
 	//
 	// The linkage was wrong on its own terms too: PMK 168/2023 Ps.15 applies the monthly effective
 	// rate to `jumlah penghasilan bruto`, undeducted. Clearing it is why the run builds — and no
-	// figure moved, because `relief_for` is inert on a `PERCENT` award, which is what every TER
+	// figure moved, because a relief edge is inert on a `PERCENT` award, which is what every TER
 	// band is. The withholding was always on gross; only validation disagreed.
 	const validated = assessStatutory(idWorld('2026-01'));
 	assert.deepEqual(validated, assessStatutoryUnvalidated(idWorld('2026-01')));

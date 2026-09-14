@@ -7,13 +7,98 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": null,
-		"currency": "MYR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Kuala_Lumpur",
 		"effective_range": {
 			"start": "2020-01-01T00:00:00.000Z",
 			"end": null
 		},
-		"jurisdiction_code": "TEST-JUR"
+		"jurisdiction_code": "TEST-JUR",
+		"payroll": {
+			"currency": "MYR",
+			"timezone": "Asia/Kuala_Lumpur",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {}
+		},
+		"sources": {
+			"urls": []
+		},
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "DAY",
+						"divisor": 26
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": []
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_total",
+					"period": "DAY",
+					"measure": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"unit": "CLOCK_HOURS"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 12,
+				"discharged_by": "REST_OR_OFF"
+			},
+			"coverage": null,
+			"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)",
+			"holiday_rest_precedence": "REST_DAY"
+		}
 	}
 ]

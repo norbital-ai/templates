@@ -11,7 +11,7 @@ import { leaveWindowOf } from './entitlement.js';
 const half = Schema.Literals(['FIRST', 'SECOND']);
 export const previewLeaveInputSchema = Schema.Struct({
 	employment_id: Schema.String.check(Schema.isUUID()),
-	leave_catalogue_id: Schema.String.check(Schema.isUUID()),
+	catalogue_id: Schema.String.check(Schema.isUUID()),
 	calendar_month: Schema.optionalKey(
 		Schema.String.check(Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/))
 	),
@@ -37,7 +37,7 @@ export type LeaveDayPreview = {
 		| 'AFTER_EXIT'
 		| 'MISSING_ROSTER_CODE';
 	readonly reason_mark?: string;
-	readonly settled_period?: string;
+	readonly settled?: boolean;
 	readonly shift_label?: string;
 	readonly first_half_label?: string;
 	readonly second_half_label?: string;
@@ -70,7 +70,7 @@ export function evaluateLeavePreview(
 ): LeavePreview {
 	const window = previewWindowOf(input);
 	if (!window) refuse('Choose a calendar month or a leave range.');
-	const rules = leaveRules(context, input.employment_id, input.leave_catalogue_id);
+	const rules = leaveRules(context, input.employment_id, input.catalogue_id);
 	const entries = context.entries.filter((row) => row.id !== input.exclude_entry_id);
 	const sameLeave = entries.filter(
 		(row) => row.employment_id === input.employment_id && row.leave_code === rules.selected.code
@@ -88,7 +88,7 @@ export function evaluateLeavePreview(
 				eligible: false,
 				reason_code: day.reason,
 				reason_mark: day.reason === 'HOLIDAY' ? 'H' : day.reason === 'REST_OR_OFF' ? 'R' : '—',
-				...('period' in day ? { settled_period: day.period } : {})
+				...('period' in day ? { settled: true } : {})
 			};
 		} else {
 			const first = !day.occupied.has('FIRST'),
@@ -135,7 +135,7 @@ export function evaluateLeavePreview(
 				context,
 				{
 					employment_id: input.employment_id,
-					leave_catalogue_id: input.leave_catalogue_id,
+					catalogue_id: input.catalogue_id,
 					reference,
 					event: { kind: 'TIME_OFF', range: input.range, chargeable_days: null, reason: null }
 				},

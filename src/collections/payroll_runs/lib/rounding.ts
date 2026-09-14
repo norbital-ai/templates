@@ -11,9 +11,8 @@ import { Schema } from 'effect';
  */
 
 /**
- * Every rounding token the engine executes. `statutory_contributions.rounding` carries `NONE`,
- * `NEAREST_CENT`, `UP_TO_UNIT` and `TABLE`; a `ROUND:<method>` chain in the same row's
- * `special_rules` can name any token here and overrides that column. `NEAREST_UNIT` and
+ * Every rounding token the engine executes. `statutory_contributions.rules.rounding` names the
+ * chain a scheme applies, in order. `NEAREST_UNIT` and
  * `FLOOR_UNIT` are reached only by paired-share statutory contracts such as Singapore CPF, where
  * `roundContributionShares` applies them directly. Nothing else selects a method: every other
  * money rounding in the engine is `cents`, because a jurisdiction-wide money mode was never wired

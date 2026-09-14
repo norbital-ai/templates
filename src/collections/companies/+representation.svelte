@@ -39,7 +39,7 @@
 	);
 	const riskKeyed = $derived(
 		(schemesQuery?.current ?? []).some((scheme) =>
-			scheme.bands.some((band) => band.selector?.by === 'RISK_CLASS')
+			scheme.bands.some((band) => band.when.includes('risk_class'))
 		)
 	);
 	/** The lineages the workspace holds, so the code is chosen rather than typed. */

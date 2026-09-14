@@ -7,23 +7,285 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": null,
-		"currency": "MYR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Kuala_Lumpur",
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "2026-06-01T00:00:00.000Z"
 		},
-		"research_urls": [
-			"https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
-			"https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
-			"https://www.perkeso.gov.my/en/rate-of-contribution.html",
-			"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
-			"https://hrdcorp.gov.my/registered-employers",
-			"https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20(Akta%20265).pdf",
-			"https://publicholidays.com.my/johor/2026-dates/"
-		],
-		"jurisdiction_code": "MY"
+		"jurisdiction_code": "MY",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "a87ef99a-ee7c-5d67-bd76-589c83bd6704",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "7af142b1-6f25-5434-ae25-f20bd85453a6",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "e3aa5d59-8969-5825-bf77-b17274be79e2",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "0763eb3e-2545-56a3-8f00-22ff005ab39a",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "a87ef99a-ee7c-5d67-bd76-589c83bd6704",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "7af142b1-6f25-5434-ae25-f20bd85453a6",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "e3aa5d59-8969-5825-bf77-b17274be79e2",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "0763eb3e-2545-56a3-8f00-22ff005ab39a",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "DAY",
+						"divisor": 26
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "0.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction < 0.5",
+						"take": "normal_hours / 2.0",
+						"price": "day_wage * 0.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "1.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction >= 0.5",
+						"take": "normal_hours / 2.0",
+						"price": "day_wage * 1.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "day_wage * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e7d996bc-d7ba-58ae-8e6e-7288c79459d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7f4e5dd7-e093-5140-b2af-46e7b2ea50bd",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "4c29e550-7ae1-577c-9753-02060289bdec",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_total",
+					"period": "DAY",
+					"measure": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"unit": "CLOCK_HOURS"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 5.0",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST"
+			},
+			"coverage": {
+				"wage_ceiling": {
+					"value": 4000,
+					"currency": "MYR"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "STATUTORY_WAGES",
+				"category_basis": "STATUTORY_WORK_CATEGORY",
+				"exempt_categories": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"COMMERCIAL_VEHICLE_OPERATOR"
+				],
+				"excluded_categories": ["VESSEL_WORK"]
+			},
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. NOT APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day, a spread-over of not more than ten hours, not more than forty-five hours in one week — the regime shape has no normal-hours field, and every BEYOND_NORMAL band below therefore leans on the engine's own definition; (b) the s.60(3)(a) daily-, hourly- and piece-rated rest-day limbs, which pay one day's and two days' wages for the same two fractions the monthly limbs pay half and one; (c) the First Schedule para 2(5) domestic employee, to whom ss.60, 60A, 60B, 60C, 60D, 60E, 60F, 60FA, 60I, 61 and 64 and Parts IX and XIIA do not apply at all — the seeded population carries none, so no DOMESTIC_EMPLOYEE category is declared and every leave row and overtime rule here would over-grant one; (d) the proviso to s.59(1), which disapplies the weekly rest day during maternity leave, sick leave under s.60F and temporary disablement."
+		},
+		"payroll": {
+			"currency": "MYR",
+			"timezone": "Asia/Kuala_Lumpur",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {}
+		},
+		"sources": {
+			"urls": [
+				"https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+				"https://hrdcorp.gov.my/registered-employers",
+				"https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20(Akta%20265).pdf",
+				"https://publicholidays.com.my/johor/2026-dates/"
+			]
+		}
 	},
 	{
 		"id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
@@ -33,19 +295,313 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": "b0624b1e-3562-5b4f-8b69-0c5fb6803f49",
-		"currency": "MYR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Kuala_Lumpur",
 		"effective_range": {
 			"start": "2026-06-01T00:00:00.000Z",
 			"end": "2026-07-09T00:00:00.000Z"
 		},
-		"research_urls": [
-			"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
-			"https://www.perkeso.gov.my/en/rate-of-contribution.html",
-			"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html"
-		],
-		"jurisdiction_code": "MY"
+		"jurisdiction_code": "MY",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "d6a6fff3-72e2-5bc2-9a9f-5d2566c247cc",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "24c96dd5-61ee-5e99-9a1b-e0ad53b369a2",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "f747a92a-2c02-58f0-9b26-da78ab58f353",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "3c01b30d-1082-5457-ad08-0d51be2cb6d3",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "d6a6fff3-72e2-5bc2-9a9f-5d2566c247cc",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "24c96dd5-61ee-5e99-9a1b-e0ad53b369a2",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "f747a92a-2c02-58f0-9b26-da78ab58f353",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "3c01b30d-1082-5457-ad08-0d51be2cb6d3",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "DAY",
+						"divisor": 26
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "0.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction < 0.5",
+						"take": "normal_hours / 2.0",
+						"price": "day_wage * 0.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "1.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction >= 0.5",
+						"take": "normal_hours / 2.0",
+						"price": "day_wage * 1.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "day_wage * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "0519b3b5-8f97-55d6-9bfb-9921312c307b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "eaba4076-e057-5fc7-a64a-dd31d57a5a3d",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "76bef7c0-148e-50bc-962a-c96e21387167",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "ed309bb1-993d-5a10-ab75-f453b349fd98",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_total",
+					"period": "DAY",
+					"measure": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"unit": "CLOCK_HOURS"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 5.0",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST"
+			},
+			"coverage": {
+				"wage_ceiling": {
+					"value": 4000,
+					"currency": "MYR"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "STATUTORY_WAGES",
+				"category_basis": "STATUTORY_WORK_CATEGORY",
+				"exempt_categories": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"COMMERCIAL_VEHICLE_OPERATOR"
+				],
+				"excluded_categories": ["VESSEL_WORK"]
+			},
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. NOT APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day, a spread-over of not more than ten hours, not more than forty-five hours in one week — the regime shape has no normal-hours field, and every BEYOND_NORMAL band below therefore leans on the engine's own definition; (b) the s.60(3)(a) daily-, hourly- and piece-rated rest-day limbs, which pay one day's and two days' wages for the same two fractions the monthly limbs pay half and one; (c) the First Schedule para 2(5) domestic employee, to whom ss.60, 60A, 60B, 60C, 60D, 60E, 60F, 60FA, 60I, 61 and 64 and Parts IX and XIIA do not apply at all — the seeded population carries none, so no DOMESTIC_EMPLOYEE category is declared and every leave row and overtime rule here would over-grant one; (d) the proviso to s.59(1), which disapplies the weekly rest day during maternity leave, sick leave under s.60F and temporary disablement."
+		},
+		"payroll": {
+			"currency": "MYR",
+			"timezone": "Asia/Kuala_Lumpur",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {}
+		},
+		"sources": {
+			"urls": [
+				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf",
+				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html"
+			]
+		}
 	},
 	{
 		"id": "b6d75df0-74b0-5e56-84c0-8be5ff398c0d",
@@ -55,26 +611,320 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": "bc8b0f5f-d047-51ee-89cc-de32ff9a25ea",
-		"currency": "MYR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Kuala_Lumpur",
 		"effective_range": {
 			"start": "2026-07-09T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"
 		},
-		"research_urls": [
-			"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
-			"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3521924/PUB%20196%20(2026).pdf",
-			"https://www.perkeso.gov.my/en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html",
-			"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130726-PANDUAN_PENGGUNA_NOTIS_PELEPASAN_LIABILITI_SKIM_LINDUNG_24_JAM.pdf",
-			"https://www.perkeso.gov.my/en/rate-of-contribution.html",
-			"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html",
-			"https://www.hasil.gov.my/majikan/jadual-pcb-dan-spesifikasi-data/",
-			"https://www.malaysia.gov.my/en/topics/epf-contribution-as-employees-rights",
-			"https://jtksm.mohr.gov.my/ms/soalan-lazim/akta-kerja-1955-pindaan-2022",
-			"https://jtksm.mohr.gov.my/en/services/registration-place-employment/acts-guidelines",
-			"https://www.johor.gov.my/rakyat/cuti-umum-2"
-		],
-		"jurisdiction_code": "MY"
+		"jurisdiction_code": "MY",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "46d5e250-62f5-56c6-a907-2a8f353603a3",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "8d699fc4-2765-54bd-aa0c-48965c9e3ade",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "9259da85-3240-5f91-84dc-6322521f43dc",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "4ec85e29-e129-59b9-a267-3845d1007fa2",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "46d5e250-62f5-56c6-a907-2a8f353603a3",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "8d699fc4-2765-54bd-aa0c-48965c9e3ade",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "9259da85-3240-5f91-84dc-6322521f43dc",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "4ec85e29-e129-59b9-a267-3845d1007fa2",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "DAY",
+						"divisor": 26
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "0.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction < 0.5",
+						"take": "normal_hours / 2.0",
+						"price": "day_wage * 0.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "1.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction >= 0.5",
+						"take": "normal_hours / 2.0",
+						"price": "day_wage * 1.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "day_wage * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "ce3998ac-e7b4-5118-9f87-314d9a8f75da",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "7c36fecb-c5c8-5c45-b9cb-2fd171914990",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "c280692b-cfbd-5f59-b868-c67fb5c9591b",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "5e734c8b-1104-5440-b985-1359d6e63fa7",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_total",
+					"period": "DAY",
+					"measure": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"unit": "CLOCK_HOURS"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 104,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 5.0",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST"
+			},
+			"coverage": {
+				"wage_ceiling": {
+					"value": 4000,
+					"currency": "MYR"
+				},
+				"ceiling_is_inclusive": true,
+				"wage_basis": "STATUTORY_WAGES",
+				"category_basis": "STATUTORY_WORK_CATEGORY",
+				"exempt_categories": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"COMMERCIAL_VEHICLE_OPERATOR"
+				],
+				"excluded_categories": ["VESSEL_WORK"]
+			},
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. NOT APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day, a spread-over of not more than ten hours, not more than forty-five hours in one week — the regime shape has no normal-hours field, and every BEYOND_NORMAL band below therefore leans on the engine's own definition; (b) the s.60(3)(a) daily-, hourly- and piece-rated rest-day limbs, which pay one day's and two days' wages for the same two fractions the monthly limbs pay half and one; (c) the First Schedule para 2(5) domestic employee, to whom ss.60, 60A, 60B, 60C, 60D, 60E, 60F, 60FA, 60I, 61 and 64 and Parts IX and XIIA do not apply at all — the seeded population carries none, so no DOMESTIC_EMPLOYEE category is declared and every leave row and overtime rule here would over-grant one; (d) the proviso to s.59(1), which disapplies the weekly rest day during maternity leave, sick leave under s.60F and temporary disablement."
+		},
+		"payroll": {
+			"currency": "MYR",
+			"timezone": "Asia/Kuala_Lumpur",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {}
+		},
+		"sources": {
+			"urls": [
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3521924/PUB%20196%20(2026).pdf",
+				"https://www.perkeso.gov.my/en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html",
+				"https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130726-PANDUAN_PENGGUNA_NOTIS_PELEPASAN_LIABILITI_SKIM_LINDUNG_24_JAM.pdf",
+				"https://www.perkeso.gov.my/en/rate-of-contribution.html",
+				"https://www.perkeso.gov.my/en/our-services/protection/foreign-worker.html",
+				"https://www.hasil.gov.my/majikan/jadual-pcb-dan-spesifikasi-data/",
+				"https://www.malaysia.gov.my/en/topics/epf-contribution-as-employees-rights",
+				"https://jtksm.mohr.gov.my/ms/soalan-lazim/akta-kerja-1955-pindaan-2022",
+				"https://jtksm.mohr.gov.my/en/services/registration-place-employment/acts-guidelines",
+				"https://www.johor.gov.my/rakyat/cuti-umum-2"
+			]
+		}
 	}
 ]

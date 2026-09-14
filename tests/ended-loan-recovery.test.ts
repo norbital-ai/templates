@@ -21,7 +21,9 @@ test('an ended contract recovers its due loan from later manual payments without
 	world.loan_catalogue.push({
 		...world.payment_catalogue[0],
 		id: 'loan-type',
-		code: 'LOAN'
+		code: 'LOAN',
+		destination: 'NET',
+		direction: 'SUBTRACT'
 	});
 	world.loans.push({
 		id: 'loan',
@@ -73,8 +75,8 @@ test('an ended contract recovers its due loan from later manual payments without
 		});
 		for (const id of capturesOf(built, slip).payments)
 			settle(world, 'payment_requests', id, payslipId, period);
-		for (const capture of slip.payslip_loan_repayment_input_payslip)
-			world.payslip_loan_repayment_inputs.push({ ...capture, payslip_id: payslipId });
+		for (const id of capturesOf(built, slip).loanRepayments)
+			settle(world, 'loan_repayments', id, payslipId, period);
 	};
 
 	let built = buildPayrollRun(await prepare('2026-02'));
@@ -89,11 +91,8 @@ test('an ended contract recovers its due loan from later manual payments without
 	const firstRecovery = first.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
 	assert.ok(firstRecovery);
 	assert.equal(firstRecovery.amount, 100);
-	assert.equal(first.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id, 'repayment');
-	assert.equal(
-		firstRecovery.source_id,
-		first.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id
-	);
+	assert.deepEqual(capturesOf(built, first).loanRepayments, ['repayment']);
+	assert.equal(firstRecovery.source_id, 'repayment');
 	persist(first, '2026-02');
 
 	// A copy of the settled payment must not inherit its pin.
@@ -103,8 +102,7 @@ test('an ended contract recovers its due loan from later manual payments without
 		amount: 75,
 		effective_on: '2026-03-05',
 		pay_period: '2026-03',
-		settled_payslip_id: null,
-		settled_period: null
+		payslip_id: null
 	});
 	const preparedMarch = await prepare('2026-03');
 	assert.equal(preparedMarch.gathered.consumedRepayments.get('repayment'), 100);
@@ -115,10 +113,20 @@ test('an ended contract recovers its due loan from later manual payments without
 	assert.equal(second.employment_id, EMPLOYMENT_ID);
 	assert.deepEqual(second.base, []);
 	assert.equal(second.gross, 75);
+	console.log(
+		'DEBUG march',
+		JSON.stringify(second.adjustments.map((a) => [a.family, a.label, a.amount])),
+		'consumed',
+		preparedMarch.gathered.consumedRepayments.get('repayment'),
+		'loans',
+		preparedMarch.gathered.bundles[0]?.loans.length,
+		'repayments',
+		preparedMarch.gathered.bundles[0]?.loanRepayments.map((r) => [r.id, r.due_date, r.amount_due])
+	);
 	assert.equal(second.net, 25);
 	assert.equal(second.total_deductions, 50);
 	assert.equal(second.adjustments.find((row) => row.family === 'LOAN_REPAYMENT')?.amount, 50);
-	assert.equal(second.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id, 'repayment');
+	assert.deepEqual(capturesOf(built, second).loanRepayments, ['repayment']);
 	assert.equal(
 		world.loan_repayments[0]!.amount_due,
 		150,

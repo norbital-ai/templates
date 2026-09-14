@@ -100,7 +100,6 @@ const seedRow = (collection: string): Row => {
 };
 const LOAN_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee01';
 const CATALOGUES = [
-	'work_catalogue',
 	'leave_catalogue',
 	'claim_catalogue',
 	'allowance_catalogue',
@@ -111,11 +110,12 @@ const catalogueRows = new Map<string, Row>(
 	CATALOGUES.map((collection) => [
 		collection,
 		collection === 'loan_catalogue'
-			? (({ settings_id, contribution_treatments, sequence, eligibility }) => ({
+			? (({ settings_id, bands, sequence, eligibility }) => ({
 					id: LOAN_ID,
 					settings_id,
 					code: 'FIXTURE_LOAN',
-					contribution_treatments,
+					loan_type: 'STAFF',
+					bands,
 					sequence,
 					eligibility
 				}))(seedRow('claim_catalogue'))
@@ -123,6 +123,9 @@ const catalogueRows = new Map<string, Row>(
 	])
 );
 const HOLIDAY = seedRow('jurisdiction_holidays');
+const SEEDED_WORK_RULES = seedRow('jurisdiction_settings').work_rules as Readonly<
+	Record<string, unknown>
+>;
 
 /** Valid source shapes from the synthetic seed, with new codes so only the seal prevents creation. */
 const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row }> = [
@@ -134,10 +137,22 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 			name: 'A scheme nobody may add',
 			is_statutory: true,
 			authority: 'Public fixture',
-			rounding: 'NEAREST_CENT',
-			relief_for: [],
 			sequence: 9,
-			special_rules: []
+			assessment_period: 'PAY_PERIOD',
+			eligibility: '',
+			rules: {
+				relief: '',
+				base_transform: '',
+				share_for_dependants: '',
+				rounding: ['NEAREST_CENT'],
+				no_withholding_below: 0,
+				use_period_table: true,
+				additional_remuneration_channel: false,
+				employee_share_annual_cap: null,
+				shared_cap_group: null,
+				project_relief_annually: false,
+				total_rounded_employee_floored: false
+			}
 		}
 	},
 	...CATALOGUES.map((collection) => {
@@ -145,15 +160,11 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 		// Work has no code: one row per version, and a second one under the seal is refused as well.
 		return {
 			collection,
-			values:
-				collection === 'work_catalogue'
-					? values
-					: { ...values, code: `NEW_${collection.toUpperCase()}` }
+			values: { ...values, code: `NEW_${collection.toUpperCase()}` }
 		};
 	})
 ];
 
-const WORK_ID = String(catalogueRows.get('work_catalogue')!.id);
 /** Every family is edited and deleted under its version seal; published calendars own their seal. */
 const STORED: ReadonlyArray<{
 	readonly collection: string;
@@ -168,8 +179,9 @@ const STORED: ReadonlyArray<{
 		change: {
 			bands: [
 				{
-					selector: { by: 'WAGE', from: 0, to: null },
-					award: { kind: 'PERCENT', employee: 12, employer: 13 }
+					when: 'base >= 0.0',
+					employee: 'base * 12.0 / 100.0',
+					employer: 'base * 13.0 / 100.0'
 				}
 			]
 		}
@@ -178,25 +190,6 @@ const STORED: ReadonlyArray<{
 		collection: 'leave_catalogue',
 		id: ANNUAL_LEAVE_CATALOGUE_ID,
 		change: { name: 'Annual leave (edited)' }
-	},
-	{ collection: 'work_catalogue', id: WORK_ID, change: { proration: { by: 'WORKING_DAYS' } } },
-	{
-		collection: 'work_catalogue',
-		id: WORK_ID,
-		change: { ordinary_rate: [{ eligibility: '', per: 'HOUR', divisor: 173 }] }
-	},
-	{
-		collection: 'work_catalogue',
-		id: WORK_ID,
-		change: {
-			regime: {
-				overtime_coverage: null,
-				overtime_rules: [],
-				overtime_limits: [],
-				rest_break_rules: [],
-				holiday_rest_precedence: 'REST_DAY'
-			}
-		}
 	},
 	...(
 		['claim_catalogue', 'allowance_catalogue', 'payment_catalogue', 'loan_catalogue'] as const
@@ -218,9 +211,10 @@ const ROOT_CHANGES: ReadonlyArray<Row> = [
 	{ code: 'PUB2' },
 	{ jurisdiction_code: 'TEST-OTHER' },
 	{ name: 'Public fixture profile (edited)' },
-	{ currency: 'SGD' },
-	{ tax_year_start_month: 7 },
-	{ research_urls: ['https://example.test/law'] },
+	{ work_rules: { ...structuredClone(SEEDED_WORK_RULES), authority: 'Edited under seal' } },
+	{ wages: { by_region: { 'EDIT-REGION': 1234 } } },
+	{ sources: { urls: ['https://example.test/law'] } },
+	{ payroll: { currency: 'SGD', timezone: 'Asia/Singapore', tax_year_start_month: 7 } },
 	{ effective_range: { start: '2019-01-01T00:00:00.000Z', end: null } },
 	{ cloned_from_id: '22222222-2222-4222-8222-222222222299' },
 	{ sealed_at: null }
@@ -243,12 +237,13 @@ test(
 			// Loan has no agreement fixture; install a valid catalogue sibling beneath the existing seal.
 			const loan = catalogueRows.get('loan_catalogue')!;
 			await session.query(
-				`insert into loan_catalogue (id, settings_id, code, contribution_treatments, sequence, eligibility) values ($1,$2,$3,$4,$5,$6)`,
+				`insert into loan_catalogue (id, settings_id, code, loan_type, bands, sequence, eligibility) values ($1,$2,$3,$4,$5,$6,$7)`,
 				[
 					loan.id,
 					loan.settings_id,
 					loan.code,
-					loan.contribution_treatments,
+					loan.loan_type,
+					loan.bands,
 					loan.sequence,
 					loan.eligibility
 				]

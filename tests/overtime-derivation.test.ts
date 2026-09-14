@@ -15,10 +15,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
-	ordinaryWorkedHours,
-	priceDay
+	ordinaryWorkedHours
 } from '../src/collections/payroll_runs/lib/overtime.ts';
 import { floorHalfHour } from '../src/collections/payroll_runs/lib/rounding.ts';
 
@@ -145,113 +143,6 @@ test('an open clock is refused rather than priced as if it had stopped', () => {
 	);
 });
 
-// ── the hours, once derived, are priced by the seeded statutory ladder ──────────────────────────
-
-const rule = (overrides) => ({
-	id: `rule-${overrides.day_type}-${overrides.band.measure}`,
-	...overrides
-});
-
-const ORDINARY_OT = rule({
-	day_type: 'ORDINARY',
-	band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-	award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
-});
-
-const REST_DAY_WAGE = rule({
-	day_type: 'REST_DAY',
-	band: { measure: 'FROM_START_OF_DAY', from_fraction: 0.5, to_fraction: null },
-	award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 1 }
-});
-
-const REST_DAY_BEYOND = rule({
-	day_type: 'REST_DAY',
-	band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-	award: { kind: 'HOURLY_MULTIPLE', multiple: 2 }
-});
-
-test('a full rest day pays one day s wages, and only the hours beyond the normal day run the ladder', () => {
-	const day = {
-		date: '2026-03-08',
-		workDayId: 'work-day',
-		dayType: 'REST_DAY',
-		hours: 10,
-		normalHours: 8,
-		totalWorkHours: 10
-	};
-	const { segments } = priceDay({
-		day,
-		rules: [ORDINARY_OT, REST_DAY_WAGE, REST_DAY_BEYOND],
-		retainedHours: 10
-	});
-	const dayWage = segments.find((segment) => segment.award === 'DAY_WAGE_MULTIPLE');
-	const hourly = segments.find((segment) => segment.award === 'HOURLY_MULTIPLE');
-	assert.equal(dayWage.hours, 8, 'the normal day is valued once, as a day s wages');
-	assert.equal(dayWage.multiple, 1);
-	assert.equal(hourly.hours, 2, 'only the two hours beyond the normal day are paid hourly');
-	assert.equal(hourly.multiple, 2);
-});
-
-test('a rest-day rule with no component behind it would still be priced — which is why the run refuses', () => {
-	// Pricing does not know about components: it produces the segment either way, and `measure`
-	// silently finds nobody to pay it. Validation is the only thing standing between that segment
-	// and an unpaid day, so this pins that the segment really is produced.
-	const { segments } = priceDay({
-		day: {
-			date: '2026-03-08',
-			workDayId: 'work-day',
-			dayType: 'REST_DAY',
-			hours: 6,
-			normalHours: 8,
-			totalWorkHours: 6
-		},
-		rules: [REST_DAY_WAGE, REST_DAY_BEYOND],
-		retainedHours: 6
-	});
-	assert.equal(segments.length, 1);
-	assert.equal(segments[0].measure, 'FROM_START_OF_DAY');
-});
-
-test('hours past the daily work limit are reclassified, never dropped', () => {
-	const [classified] = classifyOvertimeByCalendarMonth({
-		days: [
-			{
-				date: '2026-03-10',
-				workDayId: 'work-day',
-				dayType: 'ORDINARY',
-				hours: 4.5,
-				normalHours: 8,
-				totalWorkHours: 13
-			}
-		],
-		dailyWorkLimit: 12,
-		monthlyOrdinaryOvertimeLimit: 104
-	});
-	assert.equal(classified.retainedHours + classified.excessHours, 4.5);
-	assert.equal(classified.excessHours, 1);
-});
-
-test('hours past the daily overtime-hours ceiling are reclassified, never dropped', () => {
-	const [classified] = classifyOvertimeByCalendarMonth({
-		days: [
-			{
-				date: '2026-03-10',
-				workDayId: 'work-day',
-				dayType: 'ORDINARY',
-				hours: 6,
-				normalHours: 8,
-				totalWorkHours: 14
-			}
-		],
-		dailyWorkLimit: null,
-		dailyOvertimeHoursLimit: 4,
-		monthlyOrdinaryOvertimeLimit: 40
-	});
-	assert.equal(classified.retainedHours, 4);
-	assert.equal(classified.excessHours, 2);
-	assert.equal(classified.retainedHours + classified.excessHours, 6);
-});
-
 // ── the statutory rest break, where it reaches pay and where it must not ────────────────────────
 //
 // `regime.rest_break_rules` is a consecutive-hours rule. Overtime is not its trigger — it is only
@@ -259,11 +150,9 @@ test('hours past the daily overtime-hours ceiling are reclassified, never droppe
 // clocked run and that what reaches money is decided solely by `counts_as_worked_time`.
 
 const breakRule = (overrides) => ({
-	after_consecutive_hours: 5,
-	minimum_minutes: 30,
+	when: 'consecutive_hours > 5.0',
+	owed_minutes: 30,
 	counts_as_worked_time: null,
-	applies_when: 'ALWAYS',
-	on_exceed: 'WARN',
 	...overrides
 });
 
@@ -298,7 +187,7 @@ test('a silent statute is assessed, cited and priced at nothing', () => {
 test('a break the statute says is not working time deducts the shortfall', () => {
 	// Indonesia. ps.79(2)(a) says the rest is not counted as working hours, so a break that was owed
 	// and not taken is time the employee was not working.
-	const rules = [breakRule({ after_consecutive_hours: 4, counts_as_worked_time: false })];
+	const rules = [breakRule({ when: 'consecutive_hours > 4.0', counts_as_worked_time: false })];
 	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreakDeductedHours, 0.5);
@@ -337,82 +226,13 @@ test('a partly taken break deducts only the part that was not taken', () => {
 test('a day whose whole overrun is owed as unpaid break earns nothing at all', () => {
 	// 08:30–18:00 is thirty minutes of overrun on a nine-and-a-half hour consecutive run. The day
 	// must produce no entry rather than a zero one, exactly as a day that floors away does.
-	const rules = [breakRule({ after_consecutive_hours: 4, counts_as_worked_time: false })];
+	const rules = [breakRule({ when: 'consecutive_hours > 4.0', counts_as_worked_time: false })];
 	const day = deriveDailyOvertime(
 		entry({ worked_intervals: [interval('08:30', '18:00')], break_minutes: 0 }),
 		scheduled(),
 		rules
 	);
 	assert.equal(day, null);
-});
-
-/**
- * An off day is priced as an ordinary day, and counts against the ordinary monthly cap.
- *
- * `ruleDayType` maps `OFF_DAY` to `ORDINARY`, and every ordinary-day control — the daily overtime
- * ceiling and the calendar-month cap — therefore governs it, while a rest day and a public holiday
- * are excluded from both by the 1980 Regulations. Nothing tested any of that: `OFF_DAY` appears
- * once in the whole suite, in a schedule test, and never in an overtime derivation, pricing or
- * classification case. A day type that fell through to the rest-day ladder would pay a day's wages
- * for an ordinary overtime day.
- */
-test('an off day is priced on the ordinary ladder, not the rest-day one', () => {
-	const day = {
-		date: '2026-03-07',
-		workDayId: 'work-day',
-		dayType: 'OFF_DAY',
-		hours: 4,
-		normalHours: 8,
-		totalWorkHours: 4
-	};
-	const { segments } = priceDay({
-		day,
-		rules: [ORDINARY_OT, REST_DAY_WAGE, REST_DAY_BEYOND],
-		retainedHours: 4
-	});
-	assert.equal(segments.length, 1, 'no day-wage segment: an off day earns no day s wages');
-	assert.equal(segments[0].dayType, 'ORDINARY');
-	assert.equal(segments[0].measure, 'BEYOND_NORMAL');
-	assert.equal(segments[0].hours, 4);
-	assert.equal(segments[0].multiple, 1.5);
-});
-
-test('an off day advances the ordinary monthly cap; a rest day and a public holiday do not', () => {
-	const day = (date, dayType, hours) => ({
-		date,
-		workDayId: `work-day-${date}`,
-		dayType,
-		hours,
-		normalHours: 8,
-		totalWorkHours: 8 + hours
-	});
-	const classified = classifyOvertimeByCalendarMonth({
-		days: [
-			day('2026-03-01', 'REST_DAY', 6),
-			day('2026-03-02', 'PUBLIC_HOLIDAY', 6),
-			// The counter starts here, at zero, because neither day above touched it.
-			day('2026-03-03', 'OFF_DAY', 6),
-			day('2026-03-04', 'ORDINARY', 6)
-		],
-		dailyWorkLimit: null,
-		monthlyOrdinaryOvertimeLimit: 8
-	});
-	const retained = Object.fromEntries(
-		classified.map((entry) => [entry.day.date, entry.retainedHours])
-	);
-	assert.equal(retained['2026-03-01'], 6, 'a rest day is outside the monthly cap entirely');
-	assert.equal(retained['2026-03-02'], 6, 'so is a public holiday');
-	assert.equal(retained['2026-03-03'], 6, 'the off day is the first six hours of the cap');
-	assert.equal(
-		retained['2026-03-04'],
-		2,
-		'the ordinary day takes what the off day left of the eight-hour cap'
-	);
-	assert.equal(
-		classified.find((entry) => entry.day.date === '2026-03-04').excessHours,
-		4,
-		'and the rest is reclassified rather than lost'
-	);
 });
 
 /**

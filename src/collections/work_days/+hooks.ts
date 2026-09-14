@@ -5,14 +5,13 @@ import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/auth
 import { dateKey } from '../../lib/iso-day.js';
 import { addDays, monthBounds } from '../../lib/period.js';
 import { countryOf, settingsInForce } from '../../lib/jurisdiction_settings.js';
-import { LIEU_LEAVE_CODE } from '../../lib/leave/context.js';
 import { leaveWindowOf } from '../../lib/leave/entitlement.js';
 import { floorHalfHour } from '../payroll_runs/lib/rounding.js';
 import { prepareHolidayInputs, type PreparedHolidayInput } from '../../lib/holiday-inputs.js';
-import {
-	statutoryRegimeSchema,
-	type StatutoryWeeklyRestRule
-} from '../../datatypes/statutory_regime/+definition.js';
+import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
+
+type StatutoryWeeklyRestRule = WorkRules['weekly_rest_rule'];
+import { selectBreakRule } from '../../lib/scheduling/rest-break.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import {
 	patternRosterCodeId,
@@ -56,6 +55,15 @@ type SettingsVersionRow = {
 	readonly voided_at: string | null;
 	readonly approval_id: string | null;
 	readonly effective_range: unknown;
+	/** Selected where the rest-day and break rules are judged; other readers never touch it. */
+	readonly work_rules?: {
+		readonly weekly_rest_rule: StatutoryWeeklyRestRule;
+		readonly breaks?: readonly {
+			readonly when: string;
+			readonly owed_minutes: number | string;
+			readonly counts_as_worked_time: boolean | null;
+		}[];
+	} | null;
 };
 
 /**
@@ -225,7 +233,8 @@ export function assertRunHasRestDay(options: {
 		patternById,
 		codeKindById
 	} = options;
-	if (rule.on_exceed !== 'BLOCK') return;
+	// The rule is always enforced: the weekly rest ceiling has no preference arm after RFC 0001, so
+	// a stated breach refuses the write.
 	let runStart: string | null = null;
 	let runEnd: string | null = null;
 	let length = 0;
@@ -385,12 +394,12 @@ function assertBatchConformsToPattern(
 				: yield* Effect.all(
 						[
 							api.db.shift_definitions.findMany({
-								where: { settings_code: { in: settingsCodes } },
+								where: { company_id: { in: companyIds } },
 								columns: { id: true, variant: true },
 								limit: QUERY_LIMIT
 							}),
 							api.db.shift_patterns.findMany({
-								where: { settings_code: { in: settingsCodes } },
+								where: { company_id: { in: companyIds } },
 								columns: { id: true, code: true, pattern: true },
 								limit: QUERY_LIMIT
 							}),
@@ -405,7 +414,8 @@ function assertBatchConformsToPattern(
 											sealed_at: true,
 											voided_at: true,
 											approval_id: true,
-											effective_range: true
+											effective_range: true,
+											work_rules: true
 										},
 										limit: QUERY_LIMIT
 									})
@@ -479,18 +489,6 @@ function assertBatchConformsToPattern(
 		// The rest-day run is keyed by employment alone, not by employment-month: a run straddles the
 		// first of the month, and grouping it by month is exactly the seam a thirteen-day roster would
 		// slip through.
-		const workCatalogues =
-			settingsVersions.length === 0
-				? []
-				: yield* api.db.work_catalogue.findMany({
-						where: {
-							settings_id: { in: settingsVersions.map((row) => row.id) },
-							approval_id: { isNull: true }
-						},
-						limit: QUERY_LIMIT
-					});
-		if (workCatalogues.length >= QUERY_LIMIT) refuse('Work catalogue read is truncated.');
-		const workBySettings = new Map(workCatalogues.map((row) => [row.settings_id, row]));
 		const versions = settingsVersions as readonly SettingsVersionRow[];
 		const settingsCodeByCompany = new Map(
 			companies.map((company) => [company.id, company.settings_code])
@@ -506,12 +504,7 @@ function assertBatchConformsToPattern(
 			// a jurisdiction snapshot.
 			const version = settingsInForce(versions, settingsCode, firstChange.work_date);
 			if (version == null) continue;
-			// The same strict view the settings write hook decoded this snapshot through, so a regime
-			// that would not be accepted today governs nothing rather than governing partly.
-			const work = workBySettings.get(version.id);
-			const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(work?.regime);
-			if (Result.isFailure(decoded)) continue;
-			const rule: StatutoryWeeklyRestRule | undefined = decoded.success.weekly_rest_rule;
+			const rule: StatutoryWeeklyRestRule | undefined = version.work_rules?.weekly_rest_rule;
 			if (rule == null) continue;
 			const plannedByDate = new Map<string, string | null>();
 			for (const [storedKey, shiftId] of storedByKey) {
@@ -522,7 +515,7 @@ function assertBatchConformsToPattern(
 			assertRunHasRestDay({
 				employeeNumber: employmentById.get(employmentId)?.employee_number ?? employmentId,
 				rule,
-				authority: work?.authority ?? null,
+				authority: null,
 				window: { start: spanStart, end: spanEnd },
 				plannedByDate,
 				changedDates: new Set(own.map((change) => change.work_date)),
@@ -530,6 +523,31 @@ function assertBatchConformsToPattern(
 				patternById,
 				codeKindById
 			});
+			// The break obligation is a schedule gate (RFC 0001 §5): a plan whose shift grants less
+			// break than the rules owe is refused here, never priced around at payroll.
+			const breaks = version.work_rules?.breaks ?? [];
+			if (breaks.length > 0)
+				for (const change of own) {
+					if (change.shift_definition_id == null) continue;
+					const code = codes.find((row) => row.id === change.shift_definition_id);
+					const window = code == null ? null : workWindow(code.variant);
+					if (code == null || window == null) continue;
+					const owed = selectBreakRule(breaks, {
+						consecutiveHours: window.paid_minutes / 60,
+						overtimeHours: 0,
+						continuousAttendance: false
+					});
+					const granted = decodeNumber(
+						(code.variant as { break_minutes?: unknown }).break_minutes ?? 0
+					);
+					if (owed?.minimum_minutes != null && owed.minimum_minutes > granted)
+						refuse(
+							`Roster change for ${employmentById.get(employmentId)?.employee_number ?? employmentId} ` +
+								`on ${change.work_date} is refused: the shift grants ${granted} minutes of break, ` +
+								`but the rules require ${owed.minimum_minutes} for a ` +
+								`${(window.paid_minutes / 60).toFixed(2)}-hour day.`
+						);
+				}
 		}
 	});
 }
@@ -726,365 +744,10 @@ type Prepared = {
 	readonly windowsByCompany: ReadonlyMap<string, readonly PayrollWindow[]>;
 	readonly leaveByEmployment: ReadonlyMap<string, readonly LeaveRequestLike[]>;
 	readonly overlap: OverlapData;
-	/** The jurisdiction versions behind every touched day, for the regime and the lieu catalogue. */
+	/** The jurisdiction versions behind every touched day, for the rest rule. */
 	readonly versions: readonly SettingsVersionRow[];
 	readonly settingsCodeByCompany: ReadonlyMap<string, string | null>;
-	/** Whether the version's regime permits lieu, by settings id. Absent decodes as PAY. */
-	readonly lieuPermittedBySettings: ReadonlyMap<string, boolean>;
-	/** The unit a lieu credit is measured in, by settings id. Absent decodes as DAY. */
-	readonly lieuUnitBySettings: ReadonlyMap<string, 'DAY' | 'HOUR'>;
-	/** The lieu leave type, by the settings id whose catalogue carries it. */
-	readonly lieuCatalogueBySettings: ReadonlyMap<string, { id: string; yearStartMonth: number }>;
-	/** Approved and held lieu activity of every touched employment; empty unless the batch touches lieu. */
-	readonly lieuEntries: readonly LieuEntry[];
 };
-
-/** The lieu activity one credit decision reads: approved entries only ever move the balance. */
-type LieuEntry = {
-	readonly id: string;
-	readonly employment_id: string;
-	readonly reference: string;
-	readonly event: {
-		readonly kind: string;
-		readonly days?: number | null;
-		readonly chargeable_days?: number | null;
-		readonly entry_id?: string;
-		readonly effective_on?: string | null;
-		readonly window?: { readonly start: string; readonly end: string };
-	};
-	readonly charges: readonly { readonly date: string; readonly days: number }[];
-	readonly allocations: readonly {
-		readonly window: { readonly start: string; readonly end: string };
-	}[];
-	readonly approval_id: string | null;
-};
-
-/** The leave reference a work day's lieu credit carries: one namespace, the day's id. */
-export function lieuReference(workDayId: string): string {
-	return `lieu:${workDayId}`;
-}
-
-/** The columns every lieu-credit read needs; the two readers must not drift. */
-const LIEU_ENTRY_COLUMNS = {
-	id: true,
-	employment_id: true,
-	reference: true,
-	event: true,
-	charges: true,
-	allocations: true,
-	approval_id: true
-} as const;
-
-/**
- * The worked hours a TW lieu credit carries: clocked hours net of the recorded break, floored to
- * the half hour like every other derived duration. An open clock is unmeasurable and earns nothing
- * until it is closed.
- */
-export function lieuWorkedHours(
-	intervals: readonly WorkedInterval[] | null | undefined,
-	breakMinutes: number | null | undefined
-): number {
-	if (intervals == null) return 0;
-	let closedMs = 0;
-	for (const interval of intervals) {
-		if (interval.end == null) return 0;
-		closedMs += Date.parse(interval.end) - Date.parse(interval.start);
-	}
-	const hours = closedMs / 3_600_000 - decodeNumber(breakMinutes ?? 0) / 60;
-	if (!Number.isFinite(hours)) return 0;
-	return Math.max(0, floorHalfHour(hours));
-}
-
-/**
- * Whether a work day earns a lieu credit, and how large.
- *
- * A credit exists only for a person who worked the day and chose lieu: a holiday or rest-day
- * premium forgone. An unworked day with the choice held earns nothing yet — the punch may still
- * arrive — and an ordinary day with it is refused, because there is no premium to convert and the
- * credit would be minted from nothing.
- */
-export function assertLieuChoice(options: {
-	readonly compensation: string;
-	readonly regimePermitsLieu: boolean;
-	readonly premiumDay: boolean;
-	readonly workDate: string;
-	readonly jurisdictionCode: string;
-}): void {
-	if (options.compensation !== 'LIEU') return;
-	if (!options.regimePermitsLieu)
-		refuse(
-			`${options.jurisdictionCode} pays holiday and rest-day work on ${options.workDate}: its ` +
-				`regime states no lieu. The day can only be compensated as pay.`
-		);
-	if (!options.premiumDay)
-		refuse(
-			`${options.workDate} is an ordinary day with no premium on it: lieu converts a holiday ` +
-				`or rest-day premium, and there is none here to convert.`
-		);
-}
-
-/** The regime and lieu catalogue governing one work day: the version in force on its date. */
-function lieuContext(
-	prepared: Prepared,
-	employmentId: string,
-	workDate: string
-): {
-	readonly permitsLieu: boolean;
-	readonly catalogue: { readonly id: string; readonly yearStartMonth: number } | null;
-	readonly hoursBased: boolean;
-	readonly jurisdictionCode: string;
-} {
-	const companyId = prepared.companyByEmployment.get(employmentId) ?? null;
-	const code = companyId == null ? null : (prepared.settingsCodeByCompany.get(companyId) ?? null);
-	const version = code == null ? null : settingsInForce(prepared.versions, code, workDate);
-	if (version == null)
-		return { permitsLieu: false, catalogue: null, hoursBased: false, jurisdictionCode: '' };
-	return {
-		permitsLieu: prepared.lieuPermittedBySettings.get(version.id) ?? false,
-		catalogue: prepared.lieuCatalogueBySettings.get(version.id) ?? null,
-		// 勞基法 §32-1 credits 補休 by the hour, so a jurisdiction that does says so on its regime.
-		// Absent is DAY: a day worked earns a day back.
-		hoursBased: (prepared.lieuUnitBySettings.get(version.id) ?? 'DAY') === 'HOUR',
-		jurisdictionCode: version.jurisdiction_code
-	};
-}
-
-/**
- * The effective roster kind of one day: the explicit assignment when the row carries one, else
- * the pattern projection — the same precedence the schedule resolves. Unknown when neither names
- * a code, which is never a rest day.
- */
-function effectiveRosterKind(
-	prepared: Prepared,
-	employmentId: string,
-	workDate: string,
-	shiftDefinitionId: string | null
-): 'WORK' | 'REST' | 'OFF' | null {
-	if (shiftDefinitionId != null) {
-		const code = prepared.overlap.codeById.get(shiftDefinitionId);
-		return code == null ? null : rosterCodeKind(code.variant);
-	}
-	const term = (prepared.overlap.termsByEmployment.get(employmentId) ?? []).find((candidate) =>
-		coversDate(candidate.effective_range, workDate)
-	);
-	if (term == null) return null;
-	let projectedId: string | null = null;
-	try {
-		projectedId = patternRosterCodeId(termPattern(term, prepared.overlap.patternById), workDate);
-	} catch {
-		return null;
-	}
-	if (projectedId == null) return null;
-	const code = prepared.overlap.codeById.get(projectedId);
-	return code == null ? null : rosterCodeKind(code.variant);
-}
-
-/**
- * Reverse lieu credits, refusing when the days are already taken.
- *
- * Each credit restores its own allocation window, so the check is per window: days credited there
- * less time off taken there must still fund every credit reversed. A spent credit refuses the
- * work-day change that would remove its earning, like a captured row does.
- */
-function reverseLieuCredits(options: {
-	readonly api: AuthoringApi<WorkspaceSchema, unknown>;
-	readonly entries: readonly LieuEntry[];
-	readonly employmentId: string;
-	readonly workDate: string;
-	readonly credits: readonly LieuEntry[];
-	readonly catalogueId: string | null;
-}): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const { api, entries, employmentId, workDate, credits, catalogueId } = options;
-		if (credits.length === 0) return;
-		if (catalogueId == null)
-			refuse(
-				`The lieu credit for ${workDate} cannot be reversed without the ${LIEU_LEAVE_CODE} ` +
-					`leave type. Add it to the leave catalogue first.`
-			);
-		const byWindow = new Map<
-			string,
-			{ window: LieuEntry['allocations'][number]['window']; credits: LieuEntry[] }
-		>();
-		for (const credit of credits) {
-			const window = credit.allocations[0]?.window;
-			if (window == null) refuse(`The lieu credit for ${workDate} carries no allocation window.`);
-			const key = `${window.start}/${window.end}`;
-			const bucket = byWindow.get(key) ?? { window, credits: [] };
-			bucket.credits.push(credit);
-			byWindow.set(key, bucket);
-		}
-		for (const { window, credits: group } of byWindow.values()) {
-			const windowKey = (value: LieuEntry['allocations'][number]['window']): string =>
-				`${value.start}/${value.end}`;
-			const credited = entries
-				.filter(
-					(row) =>
-						row.employment_id === employmentId &&
-						row.approval_id == null &&
-						row.event.kind === 'ADJUSTMENT' &&
-						typeof row.event.days === 'number' &&
-						row.event.days > 0 &&
-						row.allocations.some((allocation) => windowKey(allocation.window) === windowKey(window))
-				)
-				.reduce(
-					(total, row) => total + (typeof row.event.days === 'number' ? row.event.days : 0),
-					0
-				);
-			const debited = entries
-				.filter(
-					(row) =>
-						row.employment_id === employmentId &&
-						row.approval_id == null &&
-						row.event.kind === 'TIME_OFF'
-				)
-				.reduce((total, row) => {
-					if (
-						!row.charges.some((charge) => charge.date >= window.start && charge.date <= window.end)
-					)
-						return total;
-					const days =
-						typeof row.event.chargeable_days === 'number'
-							? row.event.chargeable_days
-							: row.charges.reduce((sum, charge) => sum + charge.days, 0);
-					return total + days;
-				}, 0);
-			let standing = credited - debited;
-			const ordered = [...group].toSorted((left, right) => left.id.localeCompare(right.id));
-			for (const credit of ordered) {
-				const days = typeof credit.event.days === 'number' ? credit.event.days : 0;
-				if (standing < days)
-					refuse(
-						`The day in lieu for ${workDate} is already taken: reversing it would overdraw ` +
-							`${window.start}–${window.end}. Cancel that time off first.`
-					);
-				standing -= days;
-			}
-			for (const credit of ordered) {
-				const originalOn =
-					typeof credit.event.effective_on === 'string' ? credit.event.effective_on : workDate;
-				yield* api.db.leave_entries.mutate([
-					{
-						id: crypto.randomUUID(),
-						employment_id: employmentId,
-						leave_catalogue_id: catalogueId,
-						reference: `lieu-reversal:${credit.id}`,
-						event: {
-							kind: 'REVERSAL',
-							entry_id: credit.id,
-							effective_on: workDate < originalOn ? originalOn : workDate,
-							due_on: null,
-							days: null,
-							gross_amount: null,
-							reason: `Day in lieu for ${workDate} no longer earned`
-						}
-					}
-				]);
-			}
-		}
-	});
-}
-
-/**
- * Bring the day's lieu credit to what this write earns.
- *
- * The hook is the root of the write, so the entries it posts commit approved beside the day —
- * lieu uses the leave mechanism, not a second one. Earning posts an ADJUSTMENT on
- * PUBLIC_HOLIDAY_IN_LIEU with the day's reference; a write that removes the earning posts a
- * REVERSAL of it, refused when the credit is spent.
- */
-function syncLieuCredit(options: {
-	readonly api: AuthoringApi<WorkspaceSchema, unknown>;
-	readonly prepared: Prepared;
-	readonly employmentId: string;
-	readonly workDate: string;
-	readonly workDayId: string;
-	readonly compensation: string;
-	readonly premiumDay: boolean;
-	readonly worked: boolean;
-	readonly workedHours: number;
-}): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const { api, prepared, employmentId, workDate, workDayId } = options;
-		const context = lieuContext(prepared, employmentId, workDate);
-		assertLieuChoice({
-			compensation: options.compensation,
-			regimePermitsLieu: context.permitsLieu,
-			premiumDay: options.premiumDay,
-			workDate,
-			jurisdictionCode: context.jurisdictionCode
-		});
-		const days = context.hoursBased ? options.workedHours : 1;
-		const earns =
-			options.compensation === 'LIEU' &&
-			context.permitsLieu &&
-			options.premiumDay &&
-			options.worked &&
-			days > 0;
-		const reference = lieuReference(workDayId);
-		const own = prepared.lieuEntries.filter(
-			(row) =>
-				row.employment_id === employmentId &&
-				(row.reference === reference || row.reference.startsWith(`${reference}:`))
-		);
-		const reversedIds = new Set(
-			own.flatMap((row) =>
-				row.approval_id == null && row.event.kind === 'REVERSAL' && row.event.entry_id != null
-					? [row.event.entry_id]
-					: []
-			)
-		);
-		const credits = own.filter(
-			(row) =>
-				row.approval_id == null && row.event.kind === 'ADJUSTMENT' && !reversedIds.has(row.id)
-		);
-		const creditDays = (row: LieuEntry): number =>
-			typeof row.event.days === 'number' ? row.event.days : 0;
-		if (!earns) {
-			if (credits.length > 0)
-				yield* reverseLieuCredits({
-					api,
-					entries: prepared.lieuEntries,
-					employmentId,
-					workDate,
-					credits,
-					catalogueId: context.catalogue?.id ?? null
-				});
-			return;
-		}
-		if (credits.reduce((total, row) => total + creditDays(row), 0) === days) return;
-		if (context.catalogue == null)
-			refuse(
-				`A day in lieu needs the ${LIEU_LEAVE_CODE} leave type, and this employment's ` +
-					`settings carry none. Add it to the leave catalogue first.`
-			);
-		if (credits.length > 0)
-			yield* reverseLieuCredits({
-				api,
-				entries: prepared.lieuEntries,
-				employmentId,
-				workDate,
-				credits,
-				catalogueId: context.catalogue.id
-			});
-		const priorCount = own.filter((row) => row.event.kind === 'ADJUSTMENT').length;
-		yield* api.db.leave_entries.mutate([
-			{
-				id: crypto.randomUUID(),
-				employment_id: employmentId,
-				leave_catalogue_id: context.catalogue.id,
-				reference: priorCount === 0 ? reference : `${reference}:${priorCount + 1}`,
-				event: {
-					kind: 'ADJUSTMENT',
-					window: leaveWindowOf(workDate, context.catalogue.yearStartMonth),
-					days,
-					effective_on: workDate,
-					reason: `Day in lieu for ${workDate}`
-				}
-			}
-		]);
-	});
-}
 
 type WorkDayCoordinate = Readonly<{
 	employment_id: string;
@@ -1104,8 +767,7 @@ export default {
 								id: true,
 								employment_id: true,
 								work_date: true,
-								shift_definition_id: true,
-								compensation: true
+								shift_definition_id: true
 							},
 							limit: QUERY_LIMIT
 						})
@@ -1233,69 +895,6 @@ export default {
 					: [];
 				if (companies.length >= QUERY_LIMIT || versions.length >= QUERY_LIMIT)
 					refuse('Workday calendar resolution exceeded its complete-read limit.');
-				// Lieu reads ride the same gate: punches and roster writes that never name lieu pay
-				// for no catalogue, no regime and no leave activity.
-				const needsLieu =
-					inputs.some(
-						(input) => (input as { compensation?: unknown }).compensation !== undefined
-					) ||
-					existingRows.some((row) => (row as { compensation?: unknown }).compensation === 'LIEU');
-				const versionIds = versions.map((row) => row.id);
-				const [workCatalogues, lieuCatalogues, lieuEntries] =
-					needsLieu && versionIds.length > 0 && employmentIds.length > 0
-						? yield* Effect.all(
-								[
-									api.db.work_catalogue.findMany({
-										where: { settings_id: { in: versionIds }, approval_id: { isNull: true } },
-										columns: { settings_id: true, regime: true },
-										limit: QUERY_LIMIT
-									}),
-									api.db.leave_catalogue.findMany({
-										where: {
-											settings_id: { in: versionIds },
-											code: { eq: LIEU_LEAVE_CODE },
-											approval_id: { isNull: true }
-										},
-										columns: { id: true, settings_id: true, code: true, entitlement: true },
-										limit: QUERY_LIMIT
-									}),
-									api.db.leave_entries.findMany({
-										where: {
-											employment_id: { in: employmentIds },
-											leave_code: { eq: LIEU_LEAVE_CODE }
-										},
-										columns: LIEU_ENTRY_COLUMNS,
-										limit: QUERY_LIMIT
-									})
-								],
-								{ concurrency: 'unbounded' }
-							)
-						: ([[], [], []] as const);
-				if (
-					workCatalogues.length >= QUERY_LIMIT ||
-					lieuCatalogues.length >= QUERY_LIMIT ||
-					lieuEntries.length >= QUERY_LIMIT
-				)
-					refuse('Workday lieu resolution exceeded its complete-read limit.');
-				const lieuPermittedBySettings = new Map<string, boolean>();
-				const lieuUnitBySettings = new Map<string, 'DAY' | 'HOUR'>();
-				for (const row of workCatalogues) {
-					const decoded = Schema.decodeUnknownResult(statutoryRegimeSchema)(row.regime);
-					lieuPermittedBySettings.set(
-						row.settings_id,
-						Result.isSuccess(decoded) && decoded.success.holiday_work_compensation === 'PAY_OR_LIEU'
-					);
-					lieuUnitBySettings.set(
-						row.settings_id,
-						(Result.isSuccess(decoded) ? decoded.success.lieu_unit : undefined) ?? 'DAY'
-					);
-				}
-				const lieuCatalogueBySettings = new Map(
-					lieuCatalogues.map((row) => [
-						row.settings_id,
-						{ id: row.id, yearStartMonth: row.entitlement.year_start_month }
-					])
-				);
 				const companyByEmployment = new Map(
 					employments.map((employment) => [employment.id, employment.company_id])
 				);
@@ -1351,17 +950,13 @@ export default {
 					versions: versions as readonly SettingsVersionRow[],
 					settingsCodeByCompany: new Map(
 						companies.map((company) => [company.id, company.settings_code])
-					),
-					lieuPermittedBySettings,
-					lieuUnitBySettings,
-					lieuCatalogueBySettings,
-					lieuEntries: lieuEntries as readonly LieuEntry[]
+					)
 				};
 			}),
 		perRecord: {
 			before: {
 				description:
-					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose scheduled attendance that run already settled, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects, pins the published holiday or re-classifies when it was retracted, and posts, reverses or refuses the day-in-lieu credit the compensation choice earns.',
+					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose scheduled attendance that run already settled, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects, and pins the published holiday or re-classifies when it was retracted.',
 				handler: ({ input, existing, prepared, api, recordId }) =>
 					Effect.gen(function* () {
 						// The engine's capture or release of this row: the one write a settled row takes.
@@ -1447,7 +1042,6 @@ export default {
 						if (!holiday) refuse('The workday has no prepared holiday input.');
 						// The pin is evidence, not a stamp: it stands while the same date still
 						// publishes the same holiday. A re-saved day whose holiday was retracted
-						// re-classifies here — and the lieu sync below reverses what it minted.
 						//
 						// An explicit null is the holiday hook releasing this day as it retracts the
 						// row: the retraction is not written yet, so the calendar still reads as
@@ -1464,39 +1058,6 @@ export default {
 									: holiday.holiday_id;
 						// Moving employments is refused before any nested write below posts.
 						boundToContract(input, existing);
-						const compensation = input.compensation ?? existing?.compensation ?? 'PAY';
-						if (
-							(compensation === 'LIEU' || existing?.compensation === 'LIEU') &&
-							(recordId !== undefined || existing?.id !== undefined)
-						) {
-							const intervals =
-								input.worked_intervals !== undefined
-									? input.worked_intervals
-									: existing?.worked_intervals;
-							yield* syncLieuCredit({
-								api,
-								prepared,
-								employmentId,
-								workDate: dayKey,
-								workDayId: recordId ?? existing!.id,
-								compensation,
-								premiumDay:
-									pinned != null ||
-									effectiveRosterKind(
-										prepared,
-										employmentId,
-										dayKey,
-										input.shift_definition_id !== undefined
-											? input.shift_definition_id
-											: (existing?.shift_definition_id ?? null)
-									) === 'REST',
-								worked: intervals != null && intervals.length > 0,
-								workedHours: lieuWorkedHours(
-									intervals,
-									input.break_minutes !== undefined ? input.break_minutes : existing?.break_minutes
-								)
-							});
-						}
 						return { ...boundToContract(input, existing), holiday_id: pinned };
 					})
 			}
@@ -1506,7 +1067,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses deleting a work day a payroll run has already taken into account, and reverses an unspent lieu credit the day minted — a spent one refuses the delete. A day no run has consumed may be deleted whatever its date, because nothing has been paid on it.',
+					'Refuses deleting a work day a payroll run has already taken into account. A day no run has consumed may be deleted whatever its date, because nothing has been paid on it.',
 				/**
 				 * No window and no leave check, for the same reason in both cases: a delete removes a
 				 * record, and the only thing harmed by removing one is a run that priced it. Deleting a
@@ -1518,92 +1079,6 @@ export default {
 							capture: Effect.succeed(settledClaim(existing)),
 							approvalId: existing.approval_id,
 							action: 'Deleting this work day'
-						});
-						if (existing.compensation !== 'LIEU') return;
-						const reference = lieuReference(existing.id);
-						const entries = (yield* api.db.leave_entries.findMany({
-							where: {
-								employment_id: { eq: existing.employment_id },
-								leave_code: { eq: LIEU_LEAVE_CODE }
-							},
-							columns: LIEU_ENTRY_COLUMNS,
-							limit: QUERY_LIMIT
-						})) as readonly LieuEntry[];
-						const own = entries.filter(
-							(row) => row.reference === reference || row.reference.startsWith(`${reference}:`)
-						);
-						const reversedIds = new Set(
-							own.flatMap((row) =>
-								row.approval_id == null &&
-								row.event.kind === 'REVERSAL' &&
-								row.event.entry_id != null
-									? [row.event.entry_id]
-									: []
-							)
-						);
-						const credits = own.filter(
-							(row) =>
-								row.approval_id == null &&
-								row.event.kind === 'ADJUSTMENT' &&
-								!reversedIds.has(row.id)
-						);
-						if (credits.length === 0) return;
-						const employment = yield* api.db.employments.findFirst({
-							where: { id: { eq: existing.employment_id } },
-							columns: { company_id: true }
-						});
-						const company =
-							employment == null
-								? null
-								: yield* api.db.companies.findFirst({
-										where: { id: { eq: employment.company_id } },
-										columns: { settings_code: true }
-									});
-						const dayKey = dateKey(existing.work_date);
-						const versions =
-							company?.settings_code == null
-								? []
-								: yield* api.db.jurisdiction_settings.findMany({
-										where: { code: { eq: company.settings_code } },
-										columns: {
-											id: true,
-											code: true,
-											name: true,
-											jurisdiction_code: true,
-											effective_range: true,
-											sealed_at: true,
-											voided_at: true,
-											approval_id: true
-										},
-										limit: QUERY_LIMIT
-									});
-						const version =
-							company?.settings_code == null
-								? null
-								: settingsInForce(
-										versions as readonly SettingsVersionRow[],
-										company.settings_code,
-										dayKey
-									);
-						const catalogues =
-							version == null
-								? []
-								: yield* api.db.leave_catalogue.findMany({
-										where: {
-											settings_id: { eq: version.id },
-											code: { eq: LIEU_LEAVE_CODE },
-											approval_id: { isNull: true }
-										},
-										columns: { id: true },
-										limit: 2
-									});
-						yield* reverseLieuCredits({
-							api,
-							entries,
-							employmentId: existing.employment_id,
-							workDate: dayKey,
-							credits,
-							catalogueId: catalogues[0]?.id ?? null
 						});
 					})
 			}

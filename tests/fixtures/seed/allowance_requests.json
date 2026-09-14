@@ -8,9 +8,9 @@
 			"from": "2026-01-01",
 			"to": "2026-03-31"
 		},
-		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"evidence_file": null
+		"evidence_file": null,
+		"catalogue_id": "77777777-7777-4777-8777-777777777777"
 	},
 	{
 		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
@@ -21,9 +21,9 @@
 			"from": "2026-01-20",
 			"to": "2026-03-31"
 		},
-		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"evidence_file": null
+		"evidence_file": null,
+		"catalogue_id": "77777777-7777-4777-8777-777777777777"
 	},
 	{
 		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
@@ -34,8 +34,8 @@
 			"from": "2026-01-01",
 			"to": "2026-03-31"
 		},
-		"allowance_catalogue_id": "77777777-7777-4777-8777-777777777777",
 		"as_adjustment_entry": false,
-		"evidence_file": null
+		"evidence_file": null,
+		"catalogue_id": "77777777-7777-4777-8777-777777777777"
 	}
 ]
