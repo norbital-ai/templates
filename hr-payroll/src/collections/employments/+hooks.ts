@@ -5,6 +5,7 @@ import { readRange } from '../payroll_runs/lib/effective.js';
 import {
 	assertContractDoesNotOverlap,
 	assertContractUnreferenced,
+	nextContractNumber,
 	type ContractCandidate
 } from '../../lib/employment-contract.js';
 import type { Hooks } from './$types.js';
@@ -91,7 +92,16 @@ export default {
 							[...prepared.stored, ...prepared.pending].filter((row) => row.id !== recordId)
 						);
 						if (existing == null)
-							return { ...input, ...(parentColumn == null ? {} : { [parentColumn]: parent!.id }) };
+							return {
+								...input,
+								...(parentColumn == null ? {} : { [parentColumn]: parent!.id }),
+								// The stint's rolling number is the hook's, not the operator's: one past the
+								// person's highest contract at this entity, pending rehires included.
+								contract_number: nextContractNumber(
+									candidate,
+									[...prepared.stored, ...prepared.pending].filter((row) => row.id !== recordId)
+								)
+							};
 						const differs = ([key, value]: [string, unknown]) =>
 							key !== 'id' &&
 							key !== 'row_version' &&

@@ -16,8 +16,18 @@ export type ShiftPatternLike = {
 };
 
 /**
+ * The pattern columns a terms read must carry (`with: { term_shift_pattern: PATTERN_WITH }`).
+ * `effective_range` is the cycle's anchor: without it `patternAnchor` is null and a day-cycle
+ * pattern projects nothing — the board and the employee's calendar once showed every day
+ * unassigned for exactly that omission.
+ */
+export const PATTERN_WITH = {
+	columns: { id: true, code: true, name: true, pattern: true, effective_range: true }
+} as const;
+
+/**
  * Employment terms as every pattern reader sees them: the pointer, and the row when it rode the
- * read (`with: { term_shift_pattern }`). A reader that loaded the company's patterns separately
+ * read (`with: { term_shift_pattern: PATTERN_WITH }`). A reader that loaded the company's patterns separately
  * hands them in as `patternById` instead; the row wins when both are present.
  */
 type TermPatternLike = {

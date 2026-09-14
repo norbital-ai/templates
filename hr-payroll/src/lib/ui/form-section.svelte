@@ -15,8 +15,16 @@
 		title,
 		hint,
 		first = false,
+		trailing,
 		children
-	}: { title: string; hint?: string; first?: boolean; children: Snippet } = $props();
+	}: {
+		title: string;
+		hint?: string;
+		first?: boolean;
+		/** A mark that belongs on the title row — a state badge, never a control. */
+		trailing?: Snippet;
+		children: Snippet;
+	} = $props();
 </script>
 
 <Stack as="section" gap="sm" class={first ? undefined : 'border-t pt-6'}>
@@ -44,6 +52,9 @@
 					<p class="px-2.5 py-2 text-left text-xs text-muted-foreground">{hint}</p>
 				{/snippet}
 			</Tooltip>
+		{/if}
+		{#if trailing}
+			{@render trailing()}
 		{/if}
 	</Inline>
 	{@render children()}

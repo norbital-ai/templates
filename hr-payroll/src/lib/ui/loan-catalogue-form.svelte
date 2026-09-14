@@ -17,6 +17,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import ExpressionFields from './expression-fields.svelte';
@@ -36,108 +37,113 @@
 		destination === 'PAY' || destination === 'NET';
 </script>
 
-<CollectionForm
-	{client}
-	collection="loan_catalogue"
-	defaultValues={formValues}
-	readonly={sealed}
-	submitLabel={record
-		? t('component.save_catalogue_component')
-		: t('component.create_catalogue_component')}
-	onAfterSubmit={record ? undefined : close}
+<RecordShell
+	icon={sealed ? 'lucide:lock-keyhole' : undefined}
+	badge={sealed ? t('component.settings_sealed_badge') : undefined}
 >
-	{#snippet children({ Field, form })}
-		{#snippet payLine()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.catalogue_section_pay_line_loan_hint')}</p>
-				<Grid gap="md" minimum="card">
-					{#if settingsId != null || record != null}
-						<Field name="settings_id" hidden />
-					{:else}
+	<CollectionForm
+		{client}
+		collection="loan_catalogue"
+		defaultValues={formValues}
+		readonly={sealed}
+		submitLabel={record
+			? t('component.save_catalogue_component')
+			: t('component.create_catalogue_component')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field, form })}
+			{#snippet payLine()}
+				<Stack gap="sm">
+					<p class="text-meta">{t('component.catalogue_section_pay_line_loan_hint')}</p>
+					<Grid gap="md" minimum="card">
+						{#if settingsId != null || record != null}
+							<Field name="settings_id" hidden />
+						{:else}
+							<Field
+								name="settings_id"
+								label={t('component.settings_version')}
+								relationOptions={{
+									label: (version) =>
+										[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+											.filter((part) => part != null && part !== '')
+											.join(' · ') || '—',
+									orderBy: { code: 'asc' },
+									limit: 500
+								}}
+							/>
+						{/if}
+						<Field name="code" label={t('component.code')} />
+						<Field name="name" label={t('component.name')} />
+						<Field name="destination" label={t('component.destination')} />
+						{#if takesDirection(form.values().destination)}
+							<Field name="direction" label={t('component.direction')} />
+						{:else}
+							<Field name="direction" hidden />
+							<span
+								class="hidden"
+								{@attach () => {
+									if (form.values().direction != null)
+										form.setValues({ ...form.values(), direction: null });
+								}}
+							></span>
+						{/if}
+						<!-- Only a debt has these: whose it is, and the least a month may recover. -->
+						<Field name="loan_type" label={t('component.loan_type')} />
 						<Field
-							name="settings_id"
-							label={t('component.settings_version')}
-							relationOptions={{
-								label: (version) =>
-									[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { code: 'asc' },
-								limit: 500
-							}}
+							name="minimum_repayment"
+							label={t('component.minimum_repayment')}
+							placeholder={t('component.minimum_repayment_hint')}
 						/>
-					{/if}
-					<Field name="code" label={t('component.code')} />
-					<Field name="name" label={t('component.name')} />
-					<Field name="destination" label={t('component.destination')} />
-					{#if takesDirection(form.values().destination)}
-						<Field name="direction" label={t('component.direction')} />
-					{:else}
-						<Field name="direction" hidden />
-						<span
-							class="hidden"
-							{@attach () => {
-								if (form.values().direction != null)
-									form.setValues({ ...form.values(), direction: null });
-							}}
-						></span>
-					{/if}
-					<!-- Only a debt has these: whose it is, and the least a month may recover. -->
-					<Field name="loan_type" label={t('component.loan_type')} />
-					<Field
-						name="minimum_repayment"
-						label={t('component.minimum_repayment')}
-						placeholder={t('component.minimum_repayment_hint')}
-					/>
-					<Field name="evidence" label={t('component.evidence')} />
-					<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
-				</Grid>
-			</Stack>
-		{/snippet}
+						<Field name="evidence" label={t('component.evidence')} />
+						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
+					</Grid>
+				</Stack>
+			{/snippet}
 
-		{#snippet whoMembers()}
-			<ExpressionFields
-				site="person"
-				expression={String(form.values().eligibility ?? '')}
-				type="boolean"
-				mode="members"
+			{#snippet whoMembers()}
+				<ExpressionFields
+					site="person"
+					expression={String(form.values().eligibility ?? '')}
+					type="boolean"
+					mode="members"
+				/>
+			{/snippet}
+
+			{#snippet who()}
+				<Grid gap="md" minimum="card">
+					<Field
+						name="eligibility"
+						label={t('component.who_receives')}
+						description={t('component.eligibility_hint')}
+						descriptionExtra={whoMembers}
+						renderer={ExpressionField}
+						rendererProps={{ site: 'person', type: 'boolean' }}
+						placeholder={t('component.eligibility_placeholder')}
+					/>
+				</Grid>
+			{/snippet}
+
+			<Tabs
+				animate={false}
+				listClass="w-full"
+				contentPadding={false}
+				lazyLoad={false}
+				keepAlive
+				config={[
+					{
+						name: 'pay_line',
+						label: t('component.catalogue_section_pay_line'),
+						icon: 'lucide:tag',
+						content: payLine
+					},
+					{
+						name: 'who',
+						label: t('component.catalogue_section_who'),
+						icon: 'lucide:users',
+						content: who
+					}
+				] satisfies TabConfig[]}
 			/>
 		{/snippet}
-
-		{#snippet who()}
-			<Grid gap="md" minimum="card">
-				<Field
-					name="eligibility"
-					label={t('component.who_receives')}
-					description={t('component.eligibility_hint')}
-					descriptionExtra={whoMembers}
-					renderer={ExpressionField}
-					rendererProps={{ site: 'person', type: 'boolean' }}
-					placeholder={t('component.eligibility_placeholder')}
-				/>
-			</Grid>
-		{/snippet}
-
-		<Tabs
-			animate={false}
-			listClass="w-full"
-			contentPadding={false}
-			lazyLoad={false}
-			keepAlive
-			config={[
-				{
-					name: 'pay_line',
-					label: t('component.catalogue_section_pay_line'),
-					icon: 'lucide:tag',
-					content: payLine
-				},
-				{
-					name: 'who',
-					label: t('component.catalogue_section_who'),
-					icon: 'lucide:users',
-					content: who
-				}
-			] satisfies TabConfig[]}
-		/>
-	{/snippet}
-</CollectionForm>
+	</CollectionForm>
+</RecordShell>

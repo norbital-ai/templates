@@ -143,6 +143,8 @@
 <div class="flex w-full flex-col gap-2">
 	<p class="text-meta">{t('renderer.catalogue_band.identity')}</p>
 	<MatrixRenderer
+		{disabled}
+		{readonly}
 		bind:rows
 		{columns}
 		allowAddRows={!disabled}

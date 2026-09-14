@@ -19,6 +19,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
@@ -37,145 +38,152 @@
 		destination === 'PAY' || destination === 'NET';
 </script>
 
-<CollectionForm
-	{client}
-	collection="leave_catalogue"
-	defaultValues={formValues}
-	readonly={sealed}
-	submitLabel={record ? t('component.save_catalogue_leave') : t('component.create_catalogue_leave')}
-	onAfterSubmit={record ? undefined : close}
+<RecordShell
+	icon={sealed ? 'lucide:lock-keyhole' : undefined}
+	badge={sealed ? t('component.settings_sealed_badge') : undefined}
 >
-	{#snippet children({ Field, form })}
-		{#snippet identity()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.leave_section_identity_hint')}</p>
-				<Grid gap="md" minimum="card">
-					{#if settingsId != null || record != null}
-						<Field name="settings_id" hidden />
-					{:else}
+	<CollectionForm
+		{client}
+		collection="leave_catalogue"
+		defaultValues={formValues}
+		readonly={sealed}
+		submitLabel={record
+			? t('component.save_catalogue_leave')
+			: t('component.create_catalogue_leave')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field, form })}
+			{#snippet identity()}
+				<Stack gap="sm">
+					<p class="text-meta">{t('component.leave_section_identity_hint')}</p>
+					<Grid gap="md" minimum="card">
+						{#if settingsId != null || record != null}
+							<Field name="settings_id" hidden />
+						{:else}
+							<Field
+								name="settings_id"
+								label={t('component.settings_version')}
+								relationOptions={{
+									label: (version) =>
+										[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+											.filter((part) => part != null && part !== '')
+											.join(' · ') || '—',
+									orderBy: { code: 'asc' },
+									limit: 500
+								}}
+							/>
+						{/if}
+						<Field name="code" label={t('component.code')} />
+						<Field name="name" label={t('component.name')} />
+						<Field name="is_statutory" label={t('component.is_statutory')} />
+						<Field name="authority" label={t('component.authority')} />
+					</Grid>
+				</Stack>
+			{/snippet}
+
+			{#snippet whoMembers()}
+				<ExpressionFields
+					site="person"
+					expression={String(form.values().eligibility ?? '')}
+					type="boolean"
+					mode="members"
+				/>
+			{/snippet}
+
+			{#snippet who()}
+				<Field
+					name="eligibility"
+					label={t('component.who_receives')}
+					description={t('component.eligibility_hint')}
+					descriptionExtra={whoMembers}
+					renderer={ExpressionField}
+					rendererProps={{ site: 'person', type: 'boolean' }}
+					placeholder={t('component.eligibility_placeholder')}
+				/>
+			{/snippet}
+
+			{#snippet entitlement()}
+				<Stack gap="sm">
+					<p class="text-meta">{t('component.leave_section_entitlement_hint')}</p>
+					<Field name="entitlement" label={t('component.entitlement_matrix')} />
+				</Stack>
+			{/snippet}
+
+			{#snippet pricing()}
+				<Stack gap="sm">
+					<p class="text-meta">{t('component.leave_section_pricing_hint')}</p>
+					<Grid gap="md" minimum="card">
+						<Field name="evidence" label={t('component.evidence')} />
+						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
+					</Grid>
+				</Stack>
+			{/snippet}
+
+			{#snippet pay()}
+				<Stack gap="sm">
+					<p class="text-meta">{t('component.leave_section_pay_hint')}</p>
+					<Grid gap="md" minimum="card">
+						<Field name="paid" label={t('component.paid')} />
 						<Field
-							name="settings_id"
-							label={t('component.settings_version')}
-							relationOptions={{
-								label: (version) =>
-									[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { code: 'asc' },
-								limit: 500
-							}}
+							name="evidence_after_days"
+							label={t('component.certificate_required_after_days')}
 						/>
-					{/if}
-					<Field name="code" label={t('component.code')} />
-					<Field name="name" label={t('component.name')} />
-					<Field name="is_statutory" label={t('component.is_statutory')} />
-					<Field name="authority" label={t('component.authority')} />
-				</Grid>
-			</Stack>
-		{/snippet}
+						<Field name="destination" label={t('component.destination')} />
+						{#if takesDirection(form.values().destination)}
+							<Field name="direction" label={t('component.direction')} />
+						{:else}
+							<Field name="direction" hidden />
+							<span
+								class="hidden"
+								{@attach () => {
+									if (form.values().direction != null)
+										form.setValues({ ...form.values(), direction: null });
+								}}
+							></span>
+						{/if}
+					</Grid>
+				</Stack>
+			{/snippet}
 
-		{#snippet whoMembers()}
-			<ExpressionFields
-				site="person"
-				expression={String(form.values().eligibility ?? '')}
-				type="boolean"
-				mode="members"
+			<Tabs
+				animate={false}
+				listClass="w-full"
+				contentPadding={false}
+				lazyLoad={false}
+				keepAlive
+				config={[
+					{
+						name: 'identity',
+						label: t('component.leave_section_identity'),
+						icon: 'lucide:tag',
+						content: identity
+					},
+					{
+						name: 'who',
+						label: t('component.who_may_take_it'),
+						icon: 'lucide:users',
+						content: who
+					},
+					{
+						name: 'entitlement',
+						label: t('component.leave_section_entitlement'),
+						icon: 'lucide:calendar-days',
+						content: entitlement
+					},
+					{
+						name: 'pricing',
+						label: t('component.leave_section_pricing'),
+						icon: 'lucide:shield',
+						content: pricing
+					},
+					{
+						name: 'pay',
+						label: t('component.leave_section_pay'),
+						icon: 'lucide:circle-dollar-sign',
+						content: pay
+					}
+				] satisfies TabConfig[]}
 			/>
 		{/snippet}
-
-		{#snippet who()}
-			<Field
-				name="eligibility"
-				label={t('component.who_receives')}
-				description={t('component.eligibility_hint')}
-				descriptionExtra={whoMembers}
-				renderer={ExpressionField}
-				rendererProps={{ site: 'person', type: 'boolean' }}
-				placeholder={t('component.eligibility_placeholder')}
-			/>
-		{/snippet}
-
-		{#snippet entitlement()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.leave_section_entitlement_hint')}</p>
-				<Field name="entitlement" label={t('component.entitlement_matrix')} />
-			</Stack>
-		{/snippet}
-
-		{#snippet pricing()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.leave_section_pricing_hint')}</p>
-				<Grid gap="md" minimum="card">
-					<Field name="evidence" label={t('component.evidence')} />
-					<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
-				</Grid>
-			</Stack>
-		{/snippet}
-
-		{#snippet pay()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.leave_section_pay_hint')}</p>
-				<Grid gap="md" minimum="card">
-					<Field name="paid" label={t('component.paid')} />
-					<Field
-						name="evidence_after_days"
-						label={t('component.certificate_required_after_days')}
-					/>
-					<Field name="destination" label={t('component.destination')} />
-					{#if takesDirection(form.values().destination)}
-						<Field name="direction" label={t('component.direction')} />
-					{:else}
-						<Field name="direction" hidden />
-						<span
-							class="hidden"
-							{@attach () => {
-								if (form.values().direction != null)
-									form.setValues({ ...form.values(), direction: null });
-							}}
-						></span>
-					{/if}
-				</Grid>
-			</Stack>
-		{/snippet}
-
-		<Tabs
-			animate={false}
-			listClass="w-full"
-			contentPadding={false}
-			lazyLoad={false}
-			keepAlive
-			config={[
-				{
-					name: 'identity',
-					label: t('component.leave_section_identity'),
-					icon: 'lucide:tag',
-					content: identity
-				},
-				{
-					name: 'who',
-					label: t('component.who_may_take_it'),
-					icon: 'lucide:users',
-					content: who
-				},
-				{
-					name: 'entitlement',
-					label: t('component.leave_section_entitlement'),
-					icon: 'lucide:calendar-days',
-					content: entitlement
-				},
-				{
-					name: 'pricing',
-					label: t('component.leave_section_pricing'),
-					icon: 'lucide:shield',
-					content: pricing
-				},
-				{
-					name: 'pay',
-					label: t('component.leave_section_pay'),
-					icon: 'lucide:circle-dollar-sign',
-					content: pay
-				}
-			] satisfies TabConfig[]}
-		/>
-	{/snippet}
-</CollectionForm>
+	</CollectionForm>
+</RecordShell>

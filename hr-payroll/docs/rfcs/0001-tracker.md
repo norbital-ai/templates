@@ -30,7 +30,18 @@ and a body of stale vocabulary the legacy sweep never searched for. Resolved in 
   `tests/work-catalogue.test.ts` → `ordinary-rate.test.ts`, `overtime-treatments.test.ts` →
   `overtime-pay-items.test.ts`.
 
-Gates and probes for this pass are recorded in the Milestone 1 block below once observed.
+Milestone 1 close (same day): the board projected nothing because every pattern read dropped the
+row's `effective_range` (the cycle anchor) — one `PATTERN_WITH` shape now serves the board, the
+employee calendar and the profile. The board and the day sheet read clocks in the entity's payroll
+timezone rather than the Kuala Lumpur default; a sealed version's matrices (work rules, bands,
+rules) are read-only; a new scheme registers no `eq: ''` query; the record shell carries the lock
+mark on sealed contracts, settled days, ledger entries and sealed catalogue rows; the Settings
+sealed mark sits on the "This version" title row; the month-board tallies are gone; contracts carry
+a rolling `contract_number`; the export workbook puts the section band above the headers, rounds
+to cents and names the person; a bulk holiday sheet matches an entity name truncated to Excel's 31
+characters. Probes on the bank serve: roster and attendance imports (KDIT July 2026), single- and
+cross-entity holiday imports, a Nihon June 2026 run (87 slips), workbook, bank file and payslip
+PDF exports. Gates: 859/859 unit, 20/20 e2e, doctor 0/0.
 
 ## Status 2026-09-14 (RFC 0002 close-out)
 

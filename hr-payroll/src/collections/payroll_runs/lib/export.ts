@@ -17,7 +17,7 @@ import {
 
 const IDENTITY_COLUMNS = [
 	{ header: 'Employee number', key: 'employee_number', width: 20 },
-	{ header: 'Employment ID', key: 'employment_id', width: 38 },
+	{ header: 'Name', key: 'employee_name', width: 32 },
 	{ header: 'Currency', key: 'currency', width: 12 }
 ] as const;
 
@@ -35,8 +35,17 @@ const SECTION_COLOURS: Record<string, string> = {
 	Other: 'FFF5F5F5'
 };
 
-const HEADER_ROW = 1;
-const SECTION_BAND_ROW = 2;
+const SECTION_BAND_ROW = 1;
+const HEADER_ROW = 2;
+
+/** Money on a payslip is cents; a float that drifted a billionth past one is not a payroll figure. */
+const cents = (row: Record<string, string | number | null>) =>
+	Object.fromEntries(
+		Object.entries(row).map(([key, value]) => [
+			key,
+			typeof value === 'number' ? Math.round(value * 100) / 100 : value
+		])
+	);
 const NUMERIC_FORMAT = '#,##0.00';
 const THIN_BORDER = { style: 'thin', color: { argb: 'FFB8B5A8' } } as const;
 const INFOTECH_NAVY = 'FF17365D';
@@ -192,7 +201,7 @@ function vendorSalaryListingSheet(
 		cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
 	}
 	clean.getRow(5).height = 34;
-	for (const row of rows) clean.addRow(row);
+	for (const row of rows) clean.addRow(cents(row));
 	const firstDataRow = 6;
 	const lastDataRow = firstDataRow + rows.length - 1;
 	if (rows.length > 0) {
@@ -265,14 +274,12 @@ function styleSectionBand(
  * The workbook for one export: one matrix worksheet per period, plus the vendor listing where it applies.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
- * WHY THE SECTION BAND SITS **BELOW** THE HEADER ROW.
+ * THE MASTHEAD READS THE WAY A PAYROLL CLERK READS IT.
  *
- * A merged band naming each section is what turns 30-odd `camelCase` headers back into a payroll
- * workbook, and in the customer's own file that band is the top row. Here it cannot be: the column
- * headers are the machine-readable contract — the acceptance test and the parity manifests both
- * read row 1 and look up output ids in it — so row 1 belongs to the headers, and the band takes
- * row 2. Both rows are frozen together, so the band travels with the headers and reads as one
- * two-line masthead.
+ * Row 1 is the section band — Identity, Earnings, Gross, Statutory … — merged over the columns it
+ * groups; row 2 is the column headers, one per catalogue code or derived output. Both rows are
+ * frozen together as one two-line masthead, and the machine-readable contract (the acceptance
+ * test, the parity manifests) reads its output ids from `HEADER_ROW`.
  *
  * The band leaves column A empty on purpose. Every reader of this file that walks rows — the
  * acceptance test included — identifies a payslip row by its employee number, and a blank there is
@@ -322,7 +329,7 @@ function addPeriodSheet(
 		{
 			// The identity block and the two masthead rows stay put when the reader scrolls into the
 			// statutory columns: a number no one can put a name to is worthless.
-			views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: SECTION_BAND_ROW }]
+			views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: vendor ? 1 : HEADER_ROW }]
 		}
 	);
 	if (vendor) worksheet.state = 'veryHidden';
@@ -375,26 +382,36 @@ function addPeriodSheet(
 		column = to + 1;
 	}
 
-	styleSectionBand(worksheet, bands);
-
 	for (const [index, payslip] of sheet.payslips.entries())
 		worksheet.addRow(
-			vendor
-				? rows[index]
-				: {
-						employee_number: payslip.employeeNumber,
-						employment_id: payslip.employmentId,
-						currency: payslip.currency,
-						...rows[index]
-					}
+			cents(
+				vendor
+					? rows[index]!
+					: {
+							employee_number: payslip.employeeNumber,
+							employee_name: payslip.employeeName,
+							currency: payslip.currency,
+							...rows[index]
+						}
+			)
 		);
+	// `columns` wrote the headers on row 1. The matrix's band goes above them, so everything moves
+	// down one; the vendor layout's machine-readable half has no band and keeps its ids on row 1.
+	const headerRow = vendor ? 1 : HEADER_ROW;
+	if (!vendor) {
+		worksheet.insertRow(SECTION_BAND_ROW, []);
+		styleSectionBand(worksheet, bands);
+	}
 
-	const header = worksheet.getRow(HEADER_ROW);
+	const header = worksheet.getRow(headerRow);
 	header.font = { bold: true, color: { argb: 'FFF7F7F4' } };
 	header.fill = fill('FF26251E');
 	header.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
 	header.height = 22;
-	worksheet.autoFilter = { from: 'A1', to: { row: 1, column: worksheet.columnCount } };
+	worksheet.autoFilter = {
+		from: { row: headerRow, column: 1 },
+		to: { row: headerRow, column: worksheet.columnCount }
+	};
 }
 
 /** The customer's own workbook on a period: visible vendor listing plus the hidden matrix behind it. */

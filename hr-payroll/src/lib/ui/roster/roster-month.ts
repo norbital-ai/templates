@@ -473,7 +473,9 @@ const buildRosterMonthOptionsSchema = Schema.Struct({
 	 * different answers on the same calendar day, and a single map keyed by date could only give one.
 	 */
 	locks: Schema.ReadonlyMap(Schema.String, dayLockSchema),
-	today: Schema.String
+	today: Schema.String,
+	/** The entity's business timezone (the version in force's `payroll.timezone`); clocks are read in it. */
+	timeZone: Schema.optionalKey(Schema.String)
 });
 type BuildRosterMonthOptions = Schema.Schema.Type<typeof buildRosterMonthOptionsSchema>;
 
@@ -687,8 +689,9 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 	const first = days[0]!;
 	const last = days[days.length - 1]!;
 	const indexes = buildDayIndexes(options, first, last);
+	const timeZone = options.timeZone ?? PAYROLL_TIME_ZONE;
 	const dayStartMs = new Map(
-		days.map((date) => [date, Date.parse(startOfDayInstant(date, PAYROLL_TIME_ZONE))])
+		days.map((date) => [date, Date.parse(startOfDayInstant(date, timeZone))])
 	);
 
 	const facts = new Map<string, DayFacts>();
@@ -959,11 +962,10 @@ export const LOCK_RAIL_PRESENTATION: Record<
  * morning is 1560 minutes, which is the same way a roster code's own window models an `end_time`
  * that is not after its `start_time`, so the plan band and the actual band count in one unit.
  *
- * The one assumption: no daylight-saving transition falls inside the work date. That holds for
- * `PAYROLL_TIME_ZONE` (Asia/Kuala_Lumpur observes none) and for every jurisdiction the seed bank
- * carries. A zone that did observe one would put an hour-long error into a single day per year,
- * and the honest fix then is a per-company zone on the company record rather than a second
- * conversion here — the template already refuses to guess a zone on import for the same reason.
+ * The zone is the entity's: the version in force's `payroll.timezone`, handed to the board and the
+ * day sheet, so a Jakarta punch reads as Jakarta wall time on a Jakarta entity. The one assumption
+ * is that no daylight-saving transition falls inside the work date, which holds for every
+ * jurisdiction the seed bank carries.
  * ──────────────────────────────────────────────────────────────────────────────────────────────── */
 
 /** Minutes in a calendar day, which is also the offset a punch on the following morning carries. */
@@ -1568,75 +1570,4 @@ function summarizeRosterMonth(facts: ReadonlyMap<string, DayFacts>): Map<DayStat
 		counts.set(day.status, (counts.get(day.status) ?? 0) + 1);
 	}
 	return counts;
-}
-
-/**
- * How far the month has got: not drafted, being drafted, or published.
- *
- * This is the difference between an empty month and a broken one, and the board has to draw it
- * because the two look identical in the tally. A month nobody has opened yet has every person-day
- * unrostered — three hundred people times thirty-one days is nine thousand of them — and reporting
- * that as an exception in alarm red says a catastrophe has happened where in fact nothing has
- * happened at all. An unrostered day only becomes a fault once the month has been published, which
- * is the point at which the roster claims to be complete.
- */
-const monthDraftingSchema = Schema.Literals(['NOT_DRAFTED', 'DRAFT', 'PUBLISHED']);
-export type MonthDrafting = Schema.Schema.Type<typeof monthDraftingSchema>;
-
-/** The progress table one month reports, keyed on the same statuses the board draws. */
-const monthProgressSchema = Schema.Struct({
-	drafting: monthDraftingSchema,
-	/** People times days: the size of the month, and the denominator of everything below. */
-	personDays: Schema.Number,
-	/** Days a roster row overrides. A base day counts here only once somebody writes a row for it. */
-	rostered: Schema.Number,
-	unrostered: Schema.Number,
-	/**
-	 * Employments with neither a pattern projecting their days nor a roster row in the month: the
-	 * people whose shifts genuinely still have to be assigned. A patterned employment is never one
-	 * of them, however many of its days nobody has touched.
-	 */
-	peopleNeedingAssignment: Schema.Number,
-	/**
-	 * The things somebody has to act on now. Attendance faults always count; an unrostered day
-	 * counts only in a published month, where it is a hole rather than unfinished work.
-	 */
-	exceptions: Schema.Array(Schema.Struct({ status: dayStatusSchema, count: Schema.Number }))
-});
-type MonthProgress = Schema.Schema.Type<typeof monthProgressSchema>;
-
-/** Statuses that mean a person-day needs somebody, once the month is far enough along to say so. */
-const ATTENDANCE_EXCEPTIONS: readonly DayStatus[] = ['ABSENT', 'OPEN'];
-
-export function monthProgress(
-	facts: ReadonlyMap<string, DayFacts>,
-	drafting: MonthDrafting
-): MonthProgress {
-	const counts = summarizeRosterMonth(facts);
-	const personDays = facts.size - (counts.get('BEFORE_START') ?? 0) - (counts.get('EXITED') ?? 0);
-	const unrostered = counts.get('UNROSTERED') ?? 0;
-	let rostered = 0;
-	const active = new Set<string>();
-	const scheduled = new Set<string>();
-	for (const day of facts.values()) {
-		if (day.employmentState !== 'ACTIVE') continue;
-		active.add(day.employmentId);
-		if (day.overrideCode != null) rostered += 1;
-		if (day.overrideCode != null || day.baseCode != null) scheduled.add(day.employmentId);
-	}
-	const needing = new Set([...active].filter((employmentId) => !scheduled.has(employmentId)));
-	const statuses: DayStatus[] =
-		drafting === 'PUBLISHED'
-			? [...ATTENDANCE_EXCEPTIONS, 'UNROSTERED']
-			: [...ATTENDANCE_EXCEPTIONS];
-	return {
-		drafting,
-		personDays,
-		rostered,
-		unrostered,
-		peopleNeedingAssignment: needing.size,
-		exceptions: statuses
-			.map((status) => ({ status, count: counts.get(status) ?? 0 }))
-			.filter((entry) => entry.count > 0)
-	};
 }

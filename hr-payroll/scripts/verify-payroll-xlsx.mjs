@@ -538,9 +538,9 @@ Effect.runPromise(
 			);
 			// The catalogue's own codes and its own order — not a fixed vocabulary of derived sums that
 			// swallowed every code it did not recognise.
-			assert.deepEqual(rowValues(generic, 1), [
+			assert.deepEqual(rowValues(generic, 2), [
 				'Employee number',
-				'Employment ID',
+				'Name',
 				'Currency',
 				'BASIC',
 				'OVERTIME',
@@ -553,17 +553,17 @@ Effect.runPromise(
 				'totalDeductions',
 				'employerCost'
 			]);
-			// The band sits below the headers here, and column A stays blank so a row walker can tell a band
+			// The band sits above the headers, and column A stays blank so a row walker can tell a band
 			// from a payslip by the absence of an employee number.
-			assert.equal(generic.getRow(2).getCell(1).value, null);
-			assert.equal(generic.getRow(2).getCell(2).value, 'Identity');
-			assert.equal(mergeMaster(generic, 2, 3), 'B2');
-			assert.equal(generic.getRow(2).getCell(4).value, 'Earnings');
-			assert.equal(generic.getRow(2).getCell(6).value, 'Gross');
-			assert.equal(generic.getRow(2).getCell(8).value, 'Statutory');
+			assert.equal(generic.getRow(1).getCell(1).value, null);
+			assert.equal(generic.getRow(1).getCell(2).value, 'Identity');
+			assert.equal(mergeMaster(generic, 1, 3), 'B1');
+			assert.equal(generic.getRow(1).getCell(4).value, 'Earnings');
+			assert.equal(generic.getRow(1).getCell(6).value, 'Gross');
+			assert.equal(generic.getRow(1).getCell(8).value, 'Statutory');
 			assert.deepEqual(rowValues(generic, 3), [
 				'PUBSG0001',
-				'emp-sg-1',
+				'Public Non-Citizen Employee',
 				'SGD',
 				5000,
 				300,

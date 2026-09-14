@@ -90,6 +90,8 @@
 <div class="flex w-full flex-col gap-2">
 	<p class="text-sm text-muted-foreground">{t('component.scheme_rules_description')}</p>
 	<MatrixRenderer
+		{disabled}
+		{readonly}
 		bind:rows={projected}
 		{columns}
 		allowAddRows={!disabled}

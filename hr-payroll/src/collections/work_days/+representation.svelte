@@ -10,7 +10,7 @@
 	 * intervals, the effective schedule and the statutory day type; a form cannot assert it.
 	 */
 	import { client } from '../../lib/workspace-client.js';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
@@ -22,7 +22,7 @@
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const createScope = hrCreateScope();
 	const scopedCompanyId = $derived(createScope?.companyId());
 
@@ -55,7 +55,10 @@
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 </script>
 
-<RecordShell>
+<RecordShell
+	icon={settledBy != null ? 'lucide:lock-keyhole' : undefined}
+	badge={settledBy != null ? t('recordMetadata.readOnly') : undefined}
+>
 	<CollectionForm
 		{client}
 		notice="header"

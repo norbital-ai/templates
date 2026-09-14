@@ -24,7 +24,6 @@
 	import { onLineage } from '../../../lib/ui/settings-scope.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
-	import { Badge } from '@norbital-ai/ui/badge';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
@@ -35,6 +34,7 @@
 		rosterImportPayload
 	} from '../../../collections/work_days/lib/import-workbook.js';
 	import {
+		PAYROLL_TIME_ZONE,
 		monthKey,
 		monthWorkDateInstantBounds,
 		shiftDayKey,
@@ -50,7 +50,6 @@
 	} from '../../../lib/ui/roster/roster-month-board.svelte';
 	import DaySheet from '../../../lib/ui/roster/day-sheet.svelte';
 	import {
-		STATUS_PRESENTATION,
 		buildRosterMonth,
 		employmentMonthEmptyReason,
 		employmentOverlapsMonth,
@@ -61,14 +60,13 @@
 		intervalDrafts,
 		lockRungSourceLock,
 		monthDays,
-		monthProgress,
 		personDayKey,
 		termCovers,
 		type DayFacts,
-		type IntervalDraft,
-		type MonthDrafting
+		type IntervalDraft
 	} from '../../../lib/ui/roster/roster-month.js';
 	import {
+		PATTERN_WITH,
 		patternAnchor,
 		patternRosterCodeId,
 		termPatternRow
@@ -262,7 +260,7 @@
 			columns: { id: true, employment_id: true, shift_pattern_id: true, effective_range: true },
 			// The base rides the terms read (HR20: one live query per source, no `shift_patterns`
 			// query of its own): every term arrives with the named pattern it points at.
-			with: { term_shift_pattern: { columns: { id: true, code: true, pattern: true } } },
+			with: { term_shift_pattern: PATTERN_WITH },
 			limit: MONTH_BOARD_QUERY_LIMITS.employmentTerms
 		});
 	});
@@ -524,9 +522,23 @@
 	const jurisdictionHolidays = $derived(calendarResolution.holidays);
 	const holidayNames = $derived(holidaysByDate(jurisdictionHolidays));
 
+	/** The entity's clock: the version in force's payroll timezone, else the payroll default. */
+	const boardTimeZone = $derived.by(() => {
+		if (selectedSettingsCode == null) return PAYROLL_TIME_ZONE;
+		const versions = calendarSettingsQuery?.current ?? [];
+		try {
+			return (
+				settingsInForce(versions, selectedSettingsCode, monthStart)?.payroll.timezone ??
+				PAYROLL_TIME_ZONE
+			);
+		} catch {
+			return PAYROLL_TIME_ZONE;
+		}
+	});
 	const facts = $derived(
 		buildRosterMonth({
 			month,
+			timeZone: boardTimeZone,
 			employments: monthEmployments,
 			employmentTerms,
 			workDays,
@@ -602,41 +614,8 @@
 			);
 		})
 	);
-	/**
-	 * How far the month has got. There is no draft state and no publication: a roster row is an
-	 * override of the work pattern, the board projects patterned days straight from the pattern,
-	 * and an unrostered day counts as work still to assign. Consumed and paid days stay read-only
-	 * through the payroll lock, which is the real freeze.
-	 *
-	 * TODO(RFC hr-payroll-leave-and-attendance): acceptance row H1 names "Open {month} for
-	 * planning" and the draft/published ceremony retired here; it needs the owner's amendment.
-	 */
-	const drafting = $derived<MonthDrafting>('PUBLISHED');
-	const progress = $derived(monthProgress(facts, drafting));
 	const boardHelp = $derived(t('app.scheduling.help_published'));
 
-	function exceptionCopy(status: (typeof progress.exceptions)[number]['status'], count: string) {
-		switch (status) {
-			case 'ABSENT':
-				return t('app.scheduling.exception_absent', { count });
-			case 'OPEN':
-				return t('app.scheduling.exception_open', { count });
-			case 'UNROSTERED':
-				return t('app.scheduling.exception_unrostered', { count });
-			case 'BEFORE_START':
-			case 'EXITED':
-			case 'PLANNED':
-			case 'ATTENDED':
-			case 'ON_LEAVE':
-			case 'REST':
-			case 'OFF':
-				return `${count} ${t(STATUS_PRESENTATION[status].labelKey)}`;
-			default: {
-				const unhandled: never = status;
-				throw new Error(`Unhandled exception status: ${String(unhandled)}`);
-			}
-		}
-	}
 	function importRoster() {
 		// No draft roster to land in: an assignment belongs to the company and the day, and the
 		// file states both on its Settings sheet. The pipeline refuses a file that does not.
@@ -987,30 +966,6 @@
 
 {#snippet monthStatus()}
 	<Cluster gap="sm">
-		<Badge variant="outline">
-			{t('app.scheduling.days_assigned', {
-				rostered: progress.rostered.toLocaleString(),
-				total: progress.personDays.toLocaleString()
-			})}
-		</Badge>
-		{#if progress.peopleNeedingAssignment > 0}
-			<Badge variant="outline">
-				{t('app.scheduling.people_need_shifts', {
-					count: progress.peopleNeedingAssignment.toLocaleString()
-				})}
-			</Badge>
-		{/if}
-		{#if !loading}
-			<!--
-				The counters explain the marks already drawn in the board. The eye control is deliberately
-				narrower: it filters only unresolved clock-outs from these loaded facts, without a query.
-			-->
-			{#each progress.exceptions as exception (exception.status)}
-				<Badge variant="outline">
-					{exceptionCopy(exception.status, exception.count.toLocaleString())}
-				</Badge>
-			{/each}
-		{/if}
 		<Button
 			size="sm"
 			variant={unresolvedClockOutsOnly ? 'default' : 'outline'}
@@ -1188,6 +1143,7 @@
 <DaySheet
 	bind:open={daySheet.open}
 	mode="controller"
+	timeZone={boardTimeZone}
 	person={daySheetPerson}
 	date={daySheet.date}
 	day={daySheetDay}

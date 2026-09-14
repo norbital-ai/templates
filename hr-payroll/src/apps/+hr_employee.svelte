@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { resolveEmployment } from '../lib/employment-contract.js';
+	import { settingsInForce } from '../lib/jurisdiction_settings.js';
+	import { PATTERN_WITH } from '../lib/scheduling/work-pattern.js';
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../lib/ui/holiday-calendar.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../lib/workspace-client.js';
@@ -425,7 +427,7 @@
 			: client.db.employment_terms.findMany({
 					where: { ...approved, employment_id: { eq: employmentId } },
 					// The base rides the terms read: the named pattern, through the row, no second query.
-					with: { term_shift_pattern: { columns: { id: true, code: true, pattern: true } } },
+					with: { term_shift_pattern: PATTERN_WITH },
 					limit: 100
 				})
 	);
@@ -519,9 +521,25 @@
 		};
 	});
 
+	/** The employing entity's clock: the version in force's payroll timezone, else the default. */
+	const scheduleTimeZone = $derived.by(() => {
+		if (activeSettingsCode == null) return PAYROLL_TIME_ZONE;
+		try {
+			return (
+				settingsInForce(
+					scheduleCalendarSettingsQuery?.current ?? [],
+					activeSettingsCode,
+					scheduleMonthStart
+				)?.payroll.timezone ?? PAYROLL_TIME_ZONE
+			);
+		} catch {
+			return PAYROLL_TIME_ZONE;
+		}
+	});
 	const scheduleFacts = $derived(
 		buildRosterMonth({
 			month: scheduleMonth,
+			timeZone: scheduleTimeZone,
 			employments: activeEmployment == null ? [] : [activeEmployment],
 			employmentTerms: scheduleTermsQuery?.current ?? [],
 			workDays: scheduleFactWorkDays,
@@ -569,11 +587,9 @@
 				first:
 					first == null
 						? null
-						: dayMinutesToClock(minutesFromDayStart(first, date, PAYROLL_TIME_ZONE)),
+						: dayMinutesToClock(minutesFromDayStart(first, date, scheduleTimeZone)),
 				last:
-					last == null
-						? null
-						: dayMinutesToClock(minutesFromDayStart(last, date, PAYROLL_TIME_ZONE))
+					last == null ? null : dayMinutesToClock(minutesFromDayStart(last, date, scheduleTimeZone))
 			});
 		}
 		return windows;
@@ -757,8 +773,8 @@
 		const crossesMidnight = end <= start;
 		const intervals: readonly IntervalDraft[] = [
 			{
-				start: instantFromDayStart(date, start, PAYROLL_TIME_ZONE),
-				end: instantFromDayStart(date, crossesMidnight ? end + DAY_MINUTES : end, PAYROLL_TIME_ZONE)
+				start: instantFromDayStart(date, start, scheduleTimeZone),
+				end: instantFromDayStart(date, crossesMidnight ? end + DAY_MINUTES : end, scheduleTimeZone)
 			}
 		];
 		const requestedBreak = scheduleDay(date)?.shiftBreakMinutes ?? 0;
@@ -1347,6 +1363,7 @@
 <DaySheet
 	bind:open={daySheetOpen}
 	mode="employee"
+	timeZone={scheduleTimeZone}
 	person={daySheetPerson}
 	date={daySheetDate}
 	day={daySheetDay}
