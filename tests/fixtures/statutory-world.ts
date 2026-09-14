@@ -10,7 +10,8 @@
  * allowances, no loans, one salary line.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
+import { readLawFile } from './law-file.ts';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
@@ -38,7 +39,7 @@ export const LINEAGES = readdirSync(resolve(here, 'statutory'), { withFileTypes:
 export type Lineage = 'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID';
 
 function law(code: Lineage, file: string): any[] {
-	return JSON.parse(readFileSync(resolve(here, 'statutory', code, `${file}.json`), 'utf8'));
+	return readLawFile(resolve(here, 'statutory', code, file));
 }
 
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
