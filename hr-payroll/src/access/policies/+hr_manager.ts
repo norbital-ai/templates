@@ -28,7 +28,7 @@ import type { Policy } from './$types.js';
  *     controller's step routes to.
  *   - `payroll_runs.mutate.existing` — run. A same-state DRAFT mutation is this workspace's
  *     recalculate.
- *   - nothing on payslips, adjustments or the capture junctions' writes. A recalculation states
+ *   - nothing on payslips, adjustments or the `payslip_id` pins. A recalculation states
  *     the run's complete set of payslips from the `before` hook and the omitted ones go with it;
  *     that graph is the workspace's own work, so no grant of this policy names it.
  *   - `payroll_runs: delete` — the release path for the settlement lock. Deleting a run cascades to
@@ -101,7 +101,6 @@ export default {
 		hrLeaveEntryGrant(false),
 
 		payrollGrants('read'),
-		// The Scheduling app reads the capture junctions as this subject to mark consumed days.
 		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
 		payrollRunCascadeGrants(),
 		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])

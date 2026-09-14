@@ -4,10 +4,10 @@
 	 * lineage (MY, SG, …) in force today, shared by every entity bound to it. It reads the lineage
 	 * scope the header provides (the jurisdiction picker at the top right,
 	 * `jurisdiction-scope.svelte.ts`), opens one live query for the lineage's versions, and shows
-	 * the version in force (the newest otherwise) under six tabs: General (the version's own facts),
+	 * the version in force (the newest otherwise) under five tabs: General (the version's own facts),
 	 * Work rules (day pricing, limits and breaks), Statutory contributions, Catalog (the five
-	 * monetary catalogues), Scheduling (the entity's roster codes and shift patterns) and Compare
-	 * snapshots. Sealing, voiding and cloning versions are not surfaced here.
+	 * monetary catalogues) and Compare snapshots. Roster codes and shift patterns are the entity's
+	 * and live on its record. Sealing, voiding and cloning versions are not surfaced here.
 	 *
 	 * Statutory contributions is a tab of its own, not a catalogue: a scheme owns a rate ladder
 	 * rather than a family of entries, and the schemes are read as a set with their own reliefs.
@@ -80,14 +80,13 @@
 	);
 	/**
 	 * A sealed version is law that has frozen: its forms render read-only and no table under it
-	 * offers a create. The entity-scoped Scheduling vocabulary is not the version's and stays
-	 * editable.
+	 * offers a create.
 	 */
 	const sealed = $derived(selectedVersion?.sealed_at != null);
 
 	/**
 	 * The scope every catalogue form opened from here is drawn against: the version on screen. The
-	 * form prefills and hides `settings_id` and keys its treatments matrix by that version's schemes;
+	 * form prefills and hides `settings_id` and keys its statutory opt-ins by that version's schemes;
 	 * the getters read the derived state lazily, so the context is set once at init.
 	 */
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {

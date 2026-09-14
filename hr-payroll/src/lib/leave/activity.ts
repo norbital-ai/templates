@@ -305,7 +305,7 @@ export function planLeaveActivity(
 				const payslip = context.payslips.find((row) => row.id === original.payslip_id);
 				if (payslip == null || payslip.paid_at == null)
 					refuse('Delete or settle the draft payroll holding this leave before reversing it.');
-				// The settled lines are the frozen evidence: no junction stores them any more, so the
+				// The settled lines are the frozen evidence, so the
 				// reversal's gross is read back off the payslip the entry is pinned to.
 				for (const line of payslip.adjustments) {
 					if (line.family !== 'LEAVE' || line.source_id !== original.id) continue;

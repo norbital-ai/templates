@@ -348,8 +348,7 @@ function measure(overrides = {}, configurationOverrides = {}, extras = {}) {
 		salary: extras.salary ?? MARCH,
 		periodsRemaining: extras.periodsRemaining ?? 10,
 		headcount: 1,
-		consumedEntries: extras.consumedEntries ?? new Map(),
-		consumedRepayments: extras.consumedRepayments ?? new Map()
+		consumedEntries: extras.consumedEntries ?? new Map()
 	});
 }
 

@@ -63,9 +63,6 @@ export default {
 	capabilities: { apps: ['hr_employee'] },
 
 	grants: mergeGrants(
-		// The capture-junction reads the lock refusals quote — the one part of the self-service
-		// surface a rank this high still needs and does not get from `payrollGrants`. Stated rather
-		// than inherited; see the composition test.
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		// The settings lineage: everything the controller may do, plus sealing and voiding under

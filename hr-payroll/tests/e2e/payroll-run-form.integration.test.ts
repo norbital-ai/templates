@@ -166,7 +166,8 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 		await waitFor(
 			page,
 			`(() => { const region = document.querySelector('[aria-label="Collection table rows"]') ?? document.body; return region.innerText; })()`,
-			(text) => /2026-02/.test(text) && /Draft/i.test(text),
+			// A run has no status: the table rolls its slips up (D14).
+			(text) => /2026-02/.test(text) && /\d+\/\d+ paid/.test(text),
 			'run-in-table',
 			30_000
 		);

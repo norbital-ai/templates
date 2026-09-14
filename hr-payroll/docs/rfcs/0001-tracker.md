@@ -5,6 +5,33 @@ items only with the evidence named beside them.
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 
+## Status 2026-09-15 — Milestone 1 deviation close-out
+
+An over-engineering audit against the merged tree found three deviations from the locked decisions
+and a body of stale vocabulary the legacy sweep never searched for. Resolved in this pass:
+
+- **D3, loans** — a repayment row is recovered **whole** by exactly one payslip. The partial
+  recovery machinery is gone: `consumedRepayments`, `prepareLoanConsumption`, `repaymentOutstanding`,
+  `assertWithinRepayment`, `settlesSource` and `src/lib/settlement_refusals.ts`. `measureLoanRecoveries`
+  takes the earliest unlinked repayment per agreement due by the period; `settle` drops whole
+  recoveries (last emitted first) when net would go negative and the engine leaves those rows
+  unpinned, so the next run recovers them. `LOAN_REPAYMENT_SHORT` / `_BELOW_MINIMUM` keep their
+  meaning over the dropped amount. The loans page counts a repayment as recovered once the slip it
+  links is paid.
+- **D3, leave** — the RFC is amended to the landed behaviour: a time-off entry settles whole in one
+  period and a straddling range is refused at payroll and entered per period. No engine split.
+- **D14** — `payroll_runs.lifecycle` is gone entirely; the Payroll page rolls its slips up. The RFC
+  and `docs/architecture.md` no longer describe a run status.
+- **Vocabulary sweep** — 91 unreferenced i18n keys (the whole `renderer.statutory_rules.*` block,
+  `special_amounts`, scheme band/order/exception sections, `app.payroll.lifecycle`, …) deleted from
+  both catalogues; "contribution treatments" wording rewritten in the three live descriptions;
+  every comment describing capture junctions, treatment matrices or `treatmentsInForce` rewritten
+  to the pin (`payslip_id`); `work_rules.lines.night` → `engine_lines` in architecture.md;
+  `tests/work-catalogue.test.ts` → `ordinary-rate.test.ts`, `overtime-treatments.test.ts` →
+  `overtime-pay-items.test.ts`.
+
+Gates and probes for this pass are recorded in the Milestone 1 block below once observed.
+
 ## Status 2026-09-14 (RFC 0002 close-out)
 
 RFC 0001's catalogue spine, work rules, destinations/directions, entries and `payslip_id` stand.

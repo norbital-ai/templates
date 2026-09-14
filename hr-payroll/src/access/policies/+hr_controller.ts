@@ -29,7 +29,7 @@ import type { Policy } from './$types.js';
  *     has not been agreed to.
  *   - no `payroll_runs.mutate.existing`, no `payroll_runs.delete` — a controller does not re-run a
  *     payroll and does not erase one.
- *   - nothing on payslips, adjustments or the capture junctions' writes. The engine returns them
+ *   - nothing on payslips, adjustments or the `payslip_id` pins. The engine returns them
  *     from the run's `before` hook, and what a hook returns is the workspace's own work: a
  *     controller's own grant is the run.
  *
@@ -122,7 +122,6 @@ export default {
 		hrLeaveEntryGrant(true),
 
 		payrollGrants('read'),
-		// The Scheduling app reads the capture junctions as this subject to mark consumed days.
 		grantOn('payroll_runs', 'mutate.new', { approval: payrollRunApprovalFromController })
 	),
 	/**

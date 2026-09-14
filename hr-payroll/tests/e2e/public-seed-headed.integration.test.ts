@@ -588,77 +588,38 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		// The compacted settings page identifies the version in force by its snapshot id, so the
 		// wait follows: PUB's only version is PUB_1, sealed and open-ended.
 		await waitForBody(page, /PUB_1/, 'a2-version');
-		// The page shows the version in force directly: the sealed PUB version's form.
+		// The page shows the version in force directly: the sealed PUB version's form, rendered
+		// read-only. A sealed version is frozen law, so the form carries no operable control and no
+		// Save at all — the refusal the command half proves is reached here by the form's own state,
+		// which is what keeps a person from ever seeing a save fail. The sealed mark says why.
 		const opened = await pollEvaluate(
 			page,
 			`(() => {
-					const field = document.querySelector('[data-collection-field="payroll"] input[type="number"]');
-					return field instanceof HTMLInputElement ? 'opened' : 'missing-form';
+					const scope = document.querySelector('[data-collection-field="payroll"]');
+					const form = scope?.closest('form') ?? null;
+					if (scope == null || form === null) return 'missing-form';
+					const operable = form.querySelectorAll(
+						'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), [contenteditable="true"]'
+					).length;
+					const save = [...document.querySelectorAll('button')].some((button) =>
+						/Save settings/.test(button.textContent ?? '')
+					);
+					const note = document.querySelector('[data-settings-sealed-note]');
+					return JSON.stringify({ operable, save, sealed: note !== null });
 				})()`,
-			(value) => value === 'opened',
+			(value) => value !== 'missing-form',
 			'a2-pub-version'
 		);
-		assert.equal(
+		assert.notEqual(
 			opened,
-			'opened',
+			'missing-form',
 			`A2 PUB version missing — stream=${await syncStreamStatusOf(page)}`
 		);
-		const submitDeadline = Date.now() + 10_000;
-		let sheet = '';
-		while (Date.now() < submitDeadline) {
-			sheet = String(
-				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-collection-field="payroll"]')?.closest('form') ?? null;
-						const field = document.querySelector('[data-collection-field="payroll"] input[type="number"]');
-						if (form === null || !(field instanceof HTMLInputElement)) return 'missing-sheet';
-						// A sealed version renders read-only: the field is disabled and there is nothing to
-						// submit. The refusal the command half proves is reached here by the form's own
-						// state, which is what keeps a person from ever seeing a save fail.
-						if (field.disabled) return 'submitted';
-						field.focus();
-						field.value = '7';
-						field.dispatchEvent(new Event('input', { bubbles: true }));
-						field.dispatchEvent(new Event('change', { bubbles: true }));
-						const save = [...document.querySelectorAll('button')].find((button) =>
-							/Save settings/.test(button.textContent ?? '')
-						);
-						if (save === undefined) return 'missing-save';
-						save.click();
-						return 'submitted';
-					})()`)
-			);
-			if (sheet === 'submitted') break;
-			await new Promise((resolve) => setTimeout(resolve, 200));
-		}
-		assert.equal(sheet, 'submitted', `A2 sheet: ${sheet}`);
-
-		const afterDeadline = Date.now() + 15_000;
-		let after = '';
-		while (Date.now() < afterDeadline) {
-			after = String(
-				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-collection-field="payroll"]')?.closest('form') ?? null;
-						const field = document.querySelector('[data-collection-field="payroll"] input[type="number"]');
-						const note = document.querySelector('[data-settings-sealed-note]');
-						const body = document.body ? document.body.innerText : '';
-						return JSON.stringify({
-							open: form !== null,
-							value: field instanceof HTMLInputElement ? field.value : null,
-							refused:
-								(field instanceof HTMLInputElement && field.disabled && note !== null) ||
-								/cannot change|sealed, so|refused/i.test(body)
-						});
-					})()`)
-			);
-			const parsed = JSON.parse(after) as {
-				readonly open: boolean;
-				readonly value: string | null;
-				readonly refused: boolean;
-			};
-			if (parsed.open && parsed.refused) return;
-			await new Promise((resolve) => setTimeout(resolve, 250));
-		}
-		throw new Error(`A2 form did not stay open after refuse: ${after}`);
+		assert.deepEqual(
+			JSON.parse(opened),
+			{ operable: 0, save: false, sealed: true },
+			`A2 sealed version must render read-only with its sealed mark: ${opened}`
+		);
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();
@@ -980,16 +941,22 @@ it('HR self-host leave entry over first and second half of one day charges one d
 			'a3-create'
 		);
 		assert.equal(openedCreate, 'opened');
-		await waitForBody(page, /Create leave entry/, 'a3-sheet');
+		await waitForBody(page, /New Leave Entry form/, 'a3-sheet');
+		// The sheet's title lands before its fields mount; wait for the reference input itself.
 		assert.equal(
-			await page.evaluate(`(() => {
+			await pollEvaluate(
+				page,
+				`(() => {
 					const input = document.querySelector('[data-collection-field="reference"] input');
 					if (!(input instanceof HTMLInputElement)) return 'missing-reference';
 					input.value = 'A3-HALF-DAY';
 					input.dispatchEvent(new Event('input', { bubbles: true }));
 					input.dispatchEvent(new Event('change', { bubbles: true }));
 					return 'set';
-				})()`),
+				})()`,
+				(value) => value === 'set',
+				'a3-reference'
+			),
 			'set'
 		);
 		const pickExact = (text: string, field: string) => `(() => {

@@ -184,7 +184,7 @@ those items carry.
 
 Standing links prevent the same dated slice or single monetary obligation being consumed twice.
 A time-off entry settles whole in the one period that contains all of its days; a range that would
-straddle periods is split into one entry per period. The entry's own `payslip_id` is the link, and
+straddle periods is refused at payroll and entered as one entry per period. The entry's own `payslip_id` is the link, and
 its frozen pay items retain the exact catalogue/settings identifiers, quantity, rate and signed
 gross amount.
 

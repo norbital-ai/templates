@@ -343,7 +343,7 @@ export function readLeaveContext(
 			'holidays'
 		);
 		const entries = yield* withPendingLeaveEntries(api, ids, stored);
-		// A settled entry names its payslip directly; there is no capture junction any more. The
+		// A settled entry names its payslip directly. The
 		// payslip's stored adjustments are the frozen evidence a reversal negates.
 		const settlingIds = [
 			...new Set(stored.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id])))

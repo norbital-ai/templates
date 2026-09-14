@@ -32,23 +32,37 @@
 	const versionId = $derived(record == null ? '' : String(record.settings_id));
 
 	const approved = { approval_id: { isNull: true } } as const;
+	// A new scheme has no version yet: an `eq: ''` on a uuid column is a query the live planner
+	// refuses, and one refused query takes the whole sync stream down with it.
 	const catalogueQuery = () => ({
 		where: { settings_id: { eq: versionId }, ...approved },
 		columns: { id: true, code: true, bands: true },
 		limit: 500
 	});
-	const leave = $derived(client.db.leave_catalogue.findMany(catalogueQuery())?.current ?? []);
-	const loan = $derived(client.db.loan_catalogue.findMany(catalogueQuery())?.current ?? []);
-	const claim = $derived(client.db.claim_catalogue.findMany(catalogueQuery())?.current ?? []);
-	const allowance = $derived(
-		client.db.allowance_catalogue.findMany(catalogueQuery())?.current ?? []
+	const leave = $derived(
+		versionId === '' ? [] : (client.db.leave_catalogue.findMany(catalogueQuery())?.current ?? [])
 	);
-	const payment = $derived(client.db.payment_catalogue.findMany(catalogueQuery())?.current ?? []);
+	const loan = $derived(
+		versionId === '' ? [] : (client.db.loan_catalogue.findMany(catalogueQuery())?.current ?? [])
+	);
+	const claim = $derived(
+		versionId === '' ? [] : (client.db.claim_catalogue.findMany(catalogueQuery())?.current ?? [])
+	);
+	const allowance = $derived(
+		versionId === ''
+			? []
+			: (client.db.allowance_catalogue.findMany(catalogueQuery())?.current ?? [])
+	);
+	const payment = $derived(
+		versionId === '' ? [] : (client.db.payment_catalogue.findMany(catalogueQuery())?.current ?? [])
+	);
 	const version = $derived(
-		client.db.jurisdiction_settings.findFirst({
-			where: { id: { eq: versionId } },
-			columns: { id: true, code: true, work_rules: true, sealed_at: true }
-		})?.current ?? null
+		versionId === ''
+			? null
+			: (client.db.jurisdiction_settings.findFirst({
+					where: { id: { eq: versionId } },
+					columns: { id: true, code: true, work_rules: true, sealed_at: true }
+				})?.current ?? null)
 	);
 	const sealed = $derived(version?.sealed_at != null);
 

@@ -7,8 +7,8 @@
 	 * no table. ADJUSTMENTS is the one output relation: a row exists there only when exactly one
 	 * captured input caused it.
 	 *
-	 * INPUTS are the four junction relations — work days, component entries, leave requests, loan
-	 * repayments — each a real FK into the business source. They are read beside the adjustments so
+	 * INPUTS are the source rows pinned to this slip — work days, component entries, leave entries,
+	 * loan repayments — each through its own `payslip_id`. They are read beside the adjustments so
 	 * the payslip answers "what was read" as directly as it answers "what was calculated".
 	 */
 	import { client } from '../../lib/workspace-client.js';

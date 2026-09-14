@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
  * Cross-period capture after RFC 0001: a time-off entry settles whole in one period, and a loan
- * repayment's remainder is re-derived from what earlier paid payslips actually took. This file
+ * repayment is recovered whole by exactly one payslip — the next due row on the next run. This file
  * drives gather + the create hook in memory, then proves the migrated public-seed guest persists
  * both across two payroll periods.
  */
@@ -37,6 +37,7 @@ const FEB_LEAVE_REQUEST_ID = 'aaaa2222-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
 const LOAN_COMPONENT_ID = 'bbbb1111-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
 const LOAN_ID = 'bbbb2222-bbbb-4bbb-8bbb-bbbbbbbbbbb2';
 const REPAYMENT_ID = 'bbbb3333-bbbb-4bbb-8bbb-bbbbbbbbbbb3';
+const FEB_REPAYMENT_ID = 'bbbb3333-bbbb-4bbb-8bbb-bbbbbbbbbbb4';
 const JAN_RUN = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1';
 const FEB_RUN = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2';
 
@@ -161,20 +162,30 @@ function withRecoverableLoan(world) {
 		id: LOAN_ID,
 		employment_id: EMPLOYMENT_ID,
 		loan_catalogue_id: LOAN_COMPONENT_ID,
-		principal: 5000,
+		principal: 2000,
 		effective_range: { start: '2026-01-01', end: null },
 		reference: 'ADV-1',
 		reason: 'salary advance',
 		approval_id: null
 	});
-	world.loan_repayments.push({
-		id: REPAYMENT_ID,
-		loan_id: LOAN_ID,
-		employment_id: EMPLOYMENT_ID,
-		due_date: '2026-01-15',
-		amount_due: 5000,
-		sequence: 1
-	});
+	world.loan_repayments.push(
+		{
+			id: REPAYMENT_ID,
+			loan_id: LOAN_ID,
+			employment_id: EMPLOYMENT_ID,
+			due_date: '2026-01-15',
+			amount_due: 1000,
+			sequence: 1
+		},
+		{
+			id: FEB_REPAYMENT_ID,
+			loan_id: LOAN_ID,
+			employment_id: EMPLOYMENT_ID,
+			due_date: '2026-02-15',
+			amount_due: 1000,
+			sequence: 2
+		}
+	);
 	return world;
 }
 
@@ -208,33 +219,30 @@ test('a Leave entry in each period is captured by that period’s January and Fe
 	);
 });
 
-test('a part-recovered loan repayment is recaptured on the next period for the remainder', async () => {
+test('each due loan repayment is recovered whole by the payslip of its own period', async () => {
 	const world = withRecoverableLoan(createPublicPayrollWorld());
 	const january = await createPayrollRun(world, '2026-01');
 	const januarySlip = firstPayslip(january);
 	const januaryRecovery = januarySlip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
-	assert.ok(januaryRecovery, 'January must recover part of the repayment');
-	assert.ok(
-		januaryRecovery.amount < 5000,
-		'net-pay protection must leave a remainder for February'
-	);
+	assert.equal(januaryRecovery?.amount, 1000, 'January recovers the first instalment whole');
+	assert.equal(januaryRecovery?.source_id, REPAYMENT_ID);
 	persistPayslip(world, {
 		created: january,
 		runId: JAN_RUN,
 		period: '2026-01',
 		paid: true
 	});
+	assert.deepEqual(settledBy(world, 'loan_repayments', januarySlip.id), [REPAYMENT_ID]);
 
 	const february = await createPayrollRun(world, '2026-02');
 	const februarySlip = firstPayslip(february);
 	const februaryRecovery = februarySlip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
-	assert.ok(februaryRecovery, 'February must recover the outstanding remainder');
-	assert.ok(februaryRecovery.amount > 0);
-	assert.ok(januaryRecovery.amount + februaryRecovery.amount <= 5000.01);
+	assert.equal(februaryRecovery?.amount, 1000, 'February recovers the second instalment whole');
+	assert.equal(februaryRecovery?.source_id, FEB_REPAYMENT_ID);
 });
 
 test(
-	'public seed guest persists per-period leave and a part-recovered loan on January and February payslips',
+	'public seed guest persists per-period leave and one whole loan repayment per payslip on January and February',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-cross-period-capture');
@@ -276,6 +284,7 @@ test(
 			);
 			const loanId = crypto.randomUUID();
 			const repaymentId = crypto.randomUUID();
+			const februaryRepaymentId = crypto.randomUUID();
 			await session.query(
 				`insert into loans
 				 (id, employment_id, loan_catalogue_id, principal, effective_range, reference)
@@ -284,7 +293,7 @@ test(
 					loanId,
 					EMPLOYMENT_ID,
 					loanCatalogueId,
-					5000,
+					2000,
 					JSON.stringify({ start: '2026-01-01', end: null }),
 					'ADV-PUBLIC'
 				]
@@ -293,7 +302,13 @@ test(
 				`insert into loan_repayments
 				 (id, loan_id, employment_id, due_date, amount_due, sequence)
 				 values ($1, $2, $3, $4::timestamptz, $5, $6)`,
-				[repaymentId, loanId, EMPLOYMENT_ID, '2026-01-15T00:00:00Z', 5000, 1]
+				[repaymentId, loanId, EMPLOYMENT_ID, '2026-01-15T00:00:00Z', 1000, 1]
+			);
+			await session.query(
+				`insert into loan_repayments
+				 (id, loan_id, employment_id, due_date, amount_due, sequence)
+				 values ($1, $2, $3, $4::timestamptz, $5, $6)`,
+				[februaryRepaymentId, loanId, EMPLOYMENT_ID, '2026-02-15T00:00:00Z', 1000, 2]
 			);
 
 			for (const period of [JANUARY_2026, FEBRUARY_2026]) {
@@ -393,22 +408,31 @@ test(
 				[EMPLOYMENT_ID, JANUARY_2026, FEBRUARY_2026]
 			)) as ReadonlyArray<{ readonly period: string; readonly recovered: string }>;
 			assert.equal(recovery.length, 2, JSON.stringify(recovery));
-			const januaryRecovery = Number(recovery[0]!.recovered);
-			const februaryRecovery = Number(recovery[1]!.recovered);
-			assert.ok(januaryRecovery > 0, `January recovers part: ${JSON.stringify(recovery)}`);
-			assert.ok(
-				februaryRecovery > 0,
-				`February recovers the remainder: ${JSON.stringify(recovery)}`
+			assert.deepEqual(
+				recovery.map((row) => [row.period, Number(row.recovered)]),
+				[
+					[JANUARY_2026, 1000],
+					[FEBRUARY_2026, 1000]
+				],
+				'each period recovers exactly its own instalment, whole'
 			);
-			assert.ok(
-				januaryRecovery + februaryRecovery <= 5000.01,
-				`recovery never outruns the agreement: ${JSON.stringify(recovery)}`
+			const pinned = (await session.query(
+				`select l.id, r.period
+				 from loan_repayments l
+				 join payslips p on p.id = l.payslip_id
+				 join payroll_runs r on r.id = p.payroll_run_id
+				 where l.id in ($1, $2)
+				 order by r.period`,
+				[repaymentId, februaryRepaymentId]
+			)) as ReadonlyArray<{ readonly id: string; readonly period: string }>;
+			assert.deepEqual(
+				pinned.map((row) => [row.id, row.period]),
+				[
+					[repaymentId, JANUARY_2026],
+					[februaryRepaymentId, FEBRUARY_2026]
+				],
+				'each repayment is linked to the one payslip that recovered it'
 			);
-			const [pinned] = (await session.query(
-				`select payslip_id from loan_repayments where id = $1`,
-				[repaymentId]
-			)) as ReadonlyArray<{ readonly payslip_id: string }>;
-			assert.ok(pinned.payslip_id, 'the repayment is pinned to a payslip');
 		} finally {
 			await session.stop();
 		}

@@ -18,9 +18,9 @@ import {
  * and a part-recovered repayment could not be named.
  *
  * The loan owns its repayment rows, so deleting an unused loan cascades its schedule away with it.
- * Once a repayment is captured by a payroll run, the input junction's `restrict` edge blocks that
- * cascade and protects the recovery history; the loan itself stays editable as an agreement, but
- * its settled repayments do not.
+ * Once a repayment is linked to a payslip, the repayment delete hook refuses and protects the
+ * recovery history; the loan itself stays editable as an agreement, but its settled repayments do
+ * not.
  */
 export default defineModel(
 	{

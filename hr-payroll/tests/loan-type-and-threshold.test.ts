@@ -8,9 +8,8 @@
  * `minimum_repayment` says how little a month may take before the shortfall stops being the
  * engine's arithmetic and becomes the operator's decision.
  *
- * `settle` has always trimmed a recovery the net-pay guard could not take and recorded what it
- * could not take in `shortfalls`. Nothing read that array, which is why a person could be
- * under-recovered month after month with every payslip looking ordinary.
+ * `settle` drops a whole recovery the net-pay guard cannot take and records it in `shortfalls`;
+ * this is what reads that array, so a person under-recovered month after month is named.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -46,7 +45,7 @@ function leaverOwing(loanType) {
 		id: 'loan',
 		employment_id: EMPLOYMENT_ID,
 		loan_catalogue_id: 'loan-type',
-		principal: 150,
+		principal: 100,
 		effective_range: { start: '2026-01-01', end: '2026-06-30' },
 		approval_id: null
 	});
@@ -55,7 +54,7 @@ function leaverOwing(loanType) {
 		loan_id: 'loan',
 		employment_id: EMPLOYMENT_ID,
 		due_date: '2026-01-15',
-		amount_due: 150,
+		amount_due: 100,
 		sequence: 1,
 		approval_id: null
 	});
@@ -126,7 +125,7 @@ test('a month below the agreed minimum blocks the run and names what could not b
 	assert.match(issues[0].message, /withhold this person/);
 });
 
-test('a trimmed recovery with no stated floor warns and stays outstanding', () => {
+test('a dropped recovery with no stated floor warns and stays outstanding', () => {
 	const issues = shortfallOf(null, 40, 110);
 	assert.equal(issues[0].code, 'LOAN_REPAYMENT_SHORT');
 	assert.equal(issues[0].severity, 'WARNING');

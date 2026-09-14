@@ -23,7 +23,6 @@ import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_run
 import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import { overRecoversRepayment, repaymentOverRecoveredMessage } from '../settlement_refusals.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { Settlement } from '../../collections/payroll_runs/lib/settle.js';
 import {
@@ -47,7 +46,6 @@ type MeasureRecoveryOptions = {
 	readonly cutoffDay: number;
 	readonly cadence: PayCadence;
 	readonly subject: PersonContext;
-	readonly consumedRepayments: ReadonlyMap<string, number>;
 };
 
 /**
@@ -108,7 +106,6 @@ const loanComponentMissingIssue = (employeeNumber: string, loan: PreparedLoan): 
 export function validateLoanRecoveries(options: {
 	readonly configuration: Configuration;
 	readonly bundles: readonly EmploymentBundle[];
-	readonly consumedRepayments: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const currentByCode = loanComponentsByCode(options.configuration);
 	const issues: RunIssue[] = [];
@@ -117,10 +114,7 @@ export function validateLoanRecoveries(options: {
 		if (bundle.deferral != null) continue;
 		const owed = new Set(
 			bundle.loanRepayments
-				.filter(
-					(repayment) =>
-						repaymentOutstanding(repayment, options.consumedRepayments.get(repayment.id) ?? 0) > 0
-				)
+				.filter((repayment) => repayment.payslip_id == null)
 				.map((repayment) => repayment.loan_id)
 		);
 		for (const loan of bundle.loans)
@@ -166,31 +160,19 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) continue;
 		const due = dateKey(repayment.due_date) || String(repayment.due_date).slice(0, 10);
 		/**
-		 * Due by now, not due exactly now — and one instalment to a payslip.
+		 * Due by now, not due exactly now — and one instalment to a payslip, whole.
 		 *
-		 * A repayment an earlier run could not take in full is still owed, and this is where its
-		 * remainder is recovered — re-derived against what was actually recovered, rather than
-		 * copied into next month's schedule. But a person's arrears are not swept in one month:
-		 * each payslip links to at most one repayment entry per agreement, the earliest still
-		 * outstanding, so a monthly plan stays monthly when runs resume after a gap.
+		 * A repayment row is recovered in full by exactly one payslip (its `payslip_id`); one an
+		 * earlier run could not take (net-pay guard) or that a deleted draft released is still
+		 * unlinked and is recovered here. A person's arrears are not swept in one month: each
+		 * payslip links at most one repayment per agreement, the earliest still unlinked, so a
+		 * monthly plan stays monthly when runs resume after a gap.
 		 */
 		if (defaultPayPeriod(due, options.cutoffDay, options.cadence) > options.period) continue;
-		const consumed = options.consumedRepayments.get(repayment.id) ?? 0;
-		const outstanding = repaymentOutstanding(repayment, consumed);
-		if (outstanding <= 0) continue;
+		if (repayment.payslip_id != null) continue;
 		if (takenLoanIds.has(repayment.loan_id)) continue;
 		takenLoanIds.add(repayment.loan_id);
-		// A repayment another unpaid slip already holds is not this run's to recover. Paid history
-		// with a remainder is: the pin stays until the source is made whole.
-		if (repayment.payslip_id != null && consumed <= 0) continue;
-		const amount = cents(outstanding);
-		assertWithinRepayment({
-			repayment,
-			dueDate: due,
-			consumed,
-			proposed: amount,
-			period: options.period
-		});
+		const amount = cents(decodeNumber(repayment.amount_due));
 		recoveries.push({
 			input: { family: 'LOAN_REPAYMENT', id: repayment.id },
 			catalogueComponent: component,
@@ -200,10 +182,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 			amount,
 			quantity: null,
 			rate: null,
-			statutoryRuleKey: null,
-			// Only a recovery that makes the repayment whole is its single payslip link; a partial
-			// one settles this period's slice and leaves the row unlinked for the next.
-			settlesSource: amount >= outstanding
+			statutoryRuleKey: null
 		});
 	}
 	return recoveries;
@@ -218,11 +197,10 @@ function isFinalPayslip(bundle: EmploymentBundle): boolean {
 /**
  * A month that recovered less than the agreement's floor is the operator's decision, not a rounding.
  *
- * `settle` already trims a recovery the net-pay guard cannot take and records what it could not
- * take in `shortfalls`; nothing read them, so a person under-recovered for six months in a row and
- * every payslip looked ordinary. A catalogue row that states `minimum_repayment` blocks the run
- * when a month falls under it — the operator either resolves the deduction or withholds the person
- * — and one that states no floor warns, because a trimmed recovery is still a fact worth reading.
+ * `settle` drops a whole recovery the net-pay guard cannot take and records it in `shortfalls`. A
+ * catalogue row that states `minimum_repayment` blocks the run when a month falls under it — the
+ * operator either resolves the deduction or withholds the person — and one that states no floor
+ * warns, because a dropped recovery is still a fact worth reading.
  */
 export function loanShortfallIssues(options: {
 	readonly employeeNumber: string;
@@ -275,38 +253,6 @@ export function loanShortfallIssues(options: {
 }
 
 /**
- * The cross-run ceilings, raised where the amount is derived.
- *
- * A repayment may legitimately be touched by several payslips — net-pay protection can part-recover
- * it — so the junction carries no global unique index, and the ceiling that keeps the sum of what
- * every paid run recovered inside the amount due is arithmetic. This is that arithmetic, and
- * `REPAYMENT_OVER_RECOVERED` is its name. The entry ceiling beside it is the defence-in-depth
- * statement of single use: a one-off entry belongs to at most one standing/paid payslip, which the
- * gather step refuses outright, so this check guards the shape rather than the practice.
- */
-type RepaymentCeiling = Readonly<{
-	readonly repayment: LoanRepayment;
-	/** The due date as a calendar day, for the refusal's sentence. */
-	readonly dueDate: string;
-	readonly consumed: number;
-	readonly proposed: number;
-	readonly period: string;
-}>;
-
-function assertWithinRepayment(options: RepaymentCeiling): void {
-	const consumption = {
-		loan_repayment_id: options.repayment.id,
-		due_date: options.dueDate,
-		amount_due: decodeNumber(options.repayment.amount_due),
-		consumed: options.consumed,
-		proposed: options.proposed,
-		period: options.period
-	};
-	if (overRecoversRepayment(consumption))
-		throw new Error(repaymentOverRecoveredMessage(consumption));
-}
-
-/**
  * Loan owns its agreements and recovery schedule; no obligation rows are copied into payroll.
  *
  * The agreed catalogue row is read here, beside the loans that pin it, rather than by widening the
@@ -344,10 +290,11 @@ export function prepareLoanPayroll(options: {
 				rawLoans.length === 0
 					? Effect.succeed([])
 					: options.api.db.loan_repayments.findMany({
-							// Pinned repayments are read too: a part-recovered instalment keeps its pin
-							// and the remainder is re-derived from the paid history next period. Whether
-							// the pin is another unpaid slip's is judged where consumption is known.
-							where: { loan_id: { in: rawLoans.map((row) => row.id) } },
+							// A linked repayment belongs to the slip that recovered it, paid or draft.
+							where: {
+								loan_id: { in: rawLoans.map((row) => row.id) },
+								payslip_id: { isNull: true }
+							},
 							limit: PAGE_LIMIT
 						})
 			],
@@ -378,19 +325,6 @@ export function prepareLoanPayroll(options: {
 			repaymentsByLoan: Map.groupBy(live(repayments), (row) => row.loan_id)
 		};
 	});
-}
-
-/**
- * What is still owed on a repayment, after what earlier PAID runs actually took.
- *
- * There is no carried-forward shortfall anywhere in this engine: a deduction the negative-net guard
- * could not take stays outstanding on the repayment, and the next run re-derives the remainder from
- * this same subtraction.
- */
-export function repaymentOutstanding(repayment: LoanRepayment, consumed: number): number {
-	const due = decodeNumber(repayment.amount_due);
-	const taken = Math.min(Math.max(consumed, 0), due);
-	return Math.max(0, due - taken);
 }
 
 export function prepareLoanCatalogue(options: {
@@ -425,41 +359,3 @@ const loanComponent = (
 	),
 	definition: { source: 'ENTRY' as const }
 });
-export function prepareLoanConsumption(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly payslipIds: readonly string[];
-}) {
-	return Effect.gen(function* () {
-		const db = options.api.db;
-		const priorPayslipIds = [...options.payslipIds];
-		const consumedRepayments = new Map<string, number>();
-		const [repayments, payslips] = yield* Effect.all(
-			[
-				db.loan_repayments.findMany({
-					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payslips.findMany({
-					where: { id: { in: priorPayslipIds } },
-					columns: { id: true, adjustments: true },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		options.api.reads.assertComplete(repayments, 'prior loan-repayment captures');
-		options.api.reads.assertComplete(payslips, 'prior loan-recovery adjustments');
-		// A paid capture with no output consumed zero, rather than leaving historical usage unknown.
-		for (const row of repayments) consumedRepayments.set(row.id, 0);
-		for (const payslip of payslips)
-			for (const row of payslip.adjustments) {
-				if (row.family !== 'LOAN_REPAYMENT') continue;
-				consumedRepayments.set(
-					row.source_id,
-					(consumedRepayments.get(row.source_id) ?? 0) + decodeNumber(row.amount ?? 0)
-				);
-			}
-		return consumedRepayments;
-	});
-}

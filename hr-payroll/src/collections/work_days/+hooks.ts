@@ -111,9 +111,8 @@ type SettingsVersionRow = {
  * putting to a record — see `assertRecordNotClaimed`.
  *
  * Read through the requesting person's own subject, like every other hook read. That is why every
- * policy in `src/access/policies` carries a settlement-junction read grant — without one this would fail
- * as an access denial naming a collection the person has never heard of, instead of the sentence
- * that tells them what to do.
+ * policy in `src/access/policies` may read the `payslip_id` of the rows it edits — without that
+ * this would fail as an access denial instead of the sentence that tells them what to do.
  */
 /**
  * A roster row is an override of the work pattern, and the month must still add up to it.

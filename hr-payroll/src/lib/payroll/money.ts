@@ -925,7 +925,7 @@ function windowSlice(
  * A single-period request is priced as itself. A standing allowance whose window reaches past this
  * period materialises **one per-period row** (RFC 0001 decision 3): the row is created with the
  * run, linked to the payslip it priced, and deleted with that payslip, so the source is due again
- * next period without any capture junction.
+ * next period.
  */
 function buildRequests(options: {
 	readonly claimRows: readonly ClaimRequest[];
