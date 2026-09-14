@@ -40,6 +40,7 @@ export const startPublicSeedHost = async (
 		readonly host?: string;
 		readonly ai?: WithSelfHostInput['ai'];
 		readonly connector?: WithSelfHostInput['connector'];
+		readonly hostTools?: WithSelfHostInput['hostTools'];
 		readonly files?: boolean;
 	}
 ) => {
@@ -57,6 +58,7 @@ export const startPublicSeedHost = async (
 		...(options?.host !== undefined ? { host: options.host } : {}),
 		...(options?.ai !== undefined ? { ai: options.ai } : {}),
 		...(options?.connector !== undefined ? { connector: options.connector } : {}),
+		...(options?.hostTools !== undefined ? { hostTools: options.hostTools } : {}),
 		...(options?.files === true ? { files: true } : {}),
 		seed: {
 			stages,

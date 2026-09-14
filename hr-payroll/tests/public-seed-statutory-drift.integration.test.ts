@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { failure, makeWireError, success } from '@norbital-ai/bolt-protocol';
-import { makeAiBinding } from '@norbital-ai/bolt-server';
+import { makeAiBinding, makeHostToolBinding } from '@norbital-ai/bolt-server';
 import { Schema } from 'effect';
 import { Prompt } from 'effect/unstable/ai';
 import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
@@ -72,10 +72,10 @@ const testAiCatalog = {
 const encodeMessage = Schema.encodeSync(Prompt.Message);
 
 /**
- * The research double answers by turn kind. The first tool turn per lineage opens the entry page
- * through `read_official_page` (the loop's only tool), the next tool turn stops calling tools,
- * and the closing structured turn returns the recorded findings, so the test walks the real tool
- * loop. PUB's findings raise the employee rate; PUB2's restate the sealed band.
+ * The research double answers by turn kind. The first tool turn per lineage navigates to the entry
+ * page through `browser_navigate`, the next reads it with `browser_read_page`, and the closing
+ * structured turn returns the recorded findings, so the test walks the real host-tool loop. PUB's
+ * findings raise the employee rate; PUB2's restate the sealed band.
  */
 const driftAi = (failPub2: () => boolean) => {
 	const toolTurns = new Map<string, number>();
@@ -115,38 +115,50 @@ const driftAi = (failPub2: () => boolean) => {
 			if (request.output._tag === 'Message') {
 				const turn = (toolTurns.get(code) ?? 0) + 1;
 				toolTurns.set(code, turn);
+				const offered = (name: string) =>
+					request.output.tools?.some((tool) => tool.name === name) === true;
 				assert.ok(
-					request.output.tools?.some((tool) => tool.name === 'read_official_page'),
-					'the research turn offers read_official_page'
+					offered('browser_navigate') && offered('browser_read_page'),
+					'the research turn offers the host browser'
 				);
 				assert.ok(
-					request.output.tools?.some((tool) => tool.name === 'return_result'),
+					offered('return_result'),
 					'the research turn offers the structured submission'
 				);
+				const content =
+					turn === 1
+						? [
+								Prompt.toolCallPart({
+									id: `nav-${code}-${turn}`,
+									name: 'browser_navigate',
+									params: { url },
+									providerExecuted: false
+								})
+							]
+						: turn === 2
+							? [
+									Prompt.toolCallPart({
+										id: `read-${code}-${turn}`,
+										name: 'browser_read_page',
+										params: {},
+										providerExecuted: false
+									})
+								]
+							: [
+									Prompt.toolCallPart({
+										id: `result-${code}-${turn}`,
+										name: 'return_result',
+										params: findings as unknown as Record<string, unknown>,
+										providerExecuted: false
+									})
+								];
 				return {
 					_tag: 'Generated',
 					result: {
 						_tag: 'Message',
 						message: encodeMessage(
 							Prompt.assistantMessage({
-								content:
-									turn % 2 === 1
-										? [
-												Prompt.toolCallPart({
-													id: `read-${code}-${turn}`,
-													name: 'read_official_page',
-													params: { url },
-													providerExecuted: false
-												})
-											]
-										: [
-												Prompt.toolCallPart({
-													id: `result-${code}-${turn}`,
-													name: 'return_result',
-													params: findings as unknown as Record<string, unknown>,
-													providerExecuted: false
-												})
-											]
+								content
 							})
 						)
 					},
@@ -154,6 +166,60 @@ const driftAi = (failPub2: () => boolean) => {
 				};
 			}
 			throw new Error('api.infer asks with a Message output; there is no object-shaped answer.');
+		}
+	});
+};
+
+/**
+ * The host browser double: advertises the two tools the drift automation names, opens a URL on
+ * `browser_navigate`, and answers `browser_read_page` with the quoted page. A source the test has
+ * declared unresolvable fails the navigation the way the host browser would.
+ */
+const browserHostTools = (retrievedUrls: string[], unresolvable: ReadonlySet<string>) => {
+	let open = '';
+	return makeHostToolBinding({
+		call: async (_metadata, request) => {
+			if (request.tool === 'capability_catalog')
+				return {
+					output: {
+						tools: [
+							{
+								name: 'browser_navigate',
+								description: 'Open a URL in the host browser.',
+								inputSchema: {
+									type: 'object',
+									properties: { url: { type: 'string' } },
+									required: ['url'],
+									additionalProperties: false
+								},
+								readOnly: false
+							},
+							{
+								name: 'browser_read_page',
+								description: 'Read the page the host browser has open.',
+								inputSchema: {
+									type: 'object',
+									properties: {},
+									additionalProperties: false
+								},
+								readOnly: true
+							}
+						]
+					}
+				};
+			if (request.tool === 'browser_navigate') {
+				const url = String(asRecord(request.input, 'browser navigate').url);
+				if (unresolvable.has(url))
+					throw new Error(`getaddrinfo ENOTFOUND ${new URL(url).hostname}`);
+				open = url;
+				retrievedUrls.push(url);
+				return { output: { url } };
+			}
+			if (request.tool === 'browser_read_page') {
+				const quote = open === PUB_URL ? pubQuote : pub2Quote;
+				return { output: { url: open, text: `<html><body><p>${quote}</p></body></html>` } };
+			}
+			throw new Error(`Unknown host tool "${request.tool}".`);
 		}
 	});
 };
@@ -167,6 +233,7 @@ test(
 		const unresolvable = new Set([PUB_DOWN_URL]);
 		const session = await startPublicSeedHost('hr-payroll-statutory-drift', {
 			ai: driftAi(() => failPub2),
+			hostTools: browserHostTools(retrievedUrls, unresolvable),
 			connector: {
 				call: async (_metadata, request) => {
 					const url = String(asRecord(request.input, 'web request').url);

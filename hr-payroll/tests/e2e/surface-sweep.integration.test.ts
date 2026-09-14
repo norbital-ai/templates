@@ -52,8 +52,7 @@ import {
 const LABEL = 'hr-payroll-sweep';
 
 /**
- * Every visible structured field has a dedicated renderer. The one document without a renderer,
- * jurisdiction_settings.research_notes, is explicitly hidden by its representation.
+ * Every visible structured field has a dedicated renderer.
  * A JSON editor on a create form therefore indicates a missing renderer, including on new fields.
  */
 const STRUCTURED_FIELDS = new Set<string>();

@@ -510,7 +510,6 @@ export const runStatutoryDrift = (api: AutomationApi, onlyCode?: string) =>
 		};
 	});
 
-
 export default defineAutomation(
 	{ schedule: '0 3 1 * *' },
 	{
