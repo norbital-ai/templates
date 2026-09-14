@@ -48,13 +48,16 @@ export default {
 					limit: LIMIT
 				});
 				if (companies.length >= LIMIT) refuse('Too many entities to resolve this file against.');
+				// A sheet is named for its entity, and a spreadsheet sheet name stops at 31 characters,
+				// so an entity name longer than that matches by its first 31 as well.
 				const byName = new Map<string, string[]>();
 				for (const company of companies)
-					for (const key of [company.name, company.registration_number])
-						if (key != null && key.trim() !== '') {
-							const wanted = key.trim().toLowerCase();
-							byName.set(wanted, [...(byName.get(wanted) ?? []), company.id]);
-						}
+					for (const key of new Set(
+						[company.name, company.name?.slice(0, 31), company.registration_number]
+							.filter((key): key is string => key != null && key.trim() !== '')
+							.map((key) => key.trim().toLowerCase())
+					))
+						byName.set(key, [...(byName.get(key) ?? []), company.id]);
 				// Every unmatched name at once. Refusing on the first one makes an operator fix a
 				// forty-entity file one typo per upload.
 				const unmatched = [

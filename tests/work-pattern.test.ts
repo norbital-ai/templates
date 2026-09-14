@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+	PATTERN_WITH,
 	patternAnchor,
 	patternRosterCodeId,
 	patternRosterCodeIds,
@@ -138,4 +139,15 @@ test('the roster codes a pattern names are listed once each; an expectation name
 		}),
 		[]
 	);
+});
+
+test('a terms read carries the pattern row with its effective range, the cycle anchor', () => {
+	// The board and the employee calendar once loaded the pattern without its range: no anchor,
+	// so every day-cycle pattern projected nothing and the whole month read as unassigned.
+	assert.equal(PATTERN_WITH.columns.effective_range, true);
+	assert.equal(
+		patternAnchor({ effective_range: { start: '2019-09-12T00:00:00.000Z', end: null } }),
+		'2019-09-12'
+	);
+	assert.equal(patternAnchor({}), null);
 });

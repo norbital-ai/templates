@@ -8,7 +8,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
 	import type { RepresentationProps } from './$types.js';
@@ -19,7 +19,7 @@
 	import FormSection from '../../lib/ui/form-section.svelte';
 
 	let { record, close }: RepresentationProps = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const scope = hrCreateScope();
 	const scopedEmploymentId = $derived(scope?.employmentId?.());
 	const defaultValues = $derived(
@@ -30,7 +30,11 @@
 	);
 </script>
 
-<RecordShell>
+<!-- The ledger is append-only: an entry on record is read-only, and the shell says so. -->
+<RecordShell
+	icon={record != null ? 'lucide:lock-keyhole' : undefined}
+	badge={record != null ? t('recordMetadata.readOnly') : undefined}
+>
 	<CollectionForm
 		{client}
 		collection="leave_entries"

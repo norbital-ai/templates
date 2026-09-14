@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
@@ -15,7 +15,7 @@
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	/**
 	 * The legal entity a contract belongs to is the one the page is scoped to. Offering the picker
 	 * lets an operator file a contract into an entity the page is not showing — the table it lands
@@ -84,6 +84,8 @@
 {/snippet}
 
 <RecordShell
+	icon={sealed ? 'lucide:lock-keyhole' : undefined}
+	badge={sealed ? t('recordMetadata.readOnly') : undefined}
 	subtitle={sealed ? t('component.employment_sealed') : undefined}
 	actions={record != null && !departed ? contractActions : undefined}
 >
@@ -164,6 +166,11 @@
 						/>
 					{/if}
 					<Field name="employee_number" label={t('component.employee_number')} disabled={sealed} />
+					{#if record == null}
+						<Field name="contract_number" hidden />
+					{:else}
+						<Field name="contract_number" label={t('component.contract_number')} disabled />
+					{/if}
 					<Column span="all"
 						><Field name="bank" label={t('component.pay_destination')} disabled={sealed} /></Column
 					>

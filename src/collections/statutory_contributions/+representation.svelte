@@ -205,4 +205,8 @@
 {/snippet}
 
 <!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
-<RecordShell {tabs} />
+<RecordShell
+	{tabs}
+	icon={sealed ? 'lucide:lock-keyhole' : undefined}
+	badge={sealed ? t('component.settings_sealed_badge') : undefined}
+/>

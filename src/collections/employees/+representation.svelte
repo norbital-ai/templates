@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolveEmployment } from '../../lib/employment-contract.js';
+	import { PATTERN_WITH } from '../../lib/scheduling/work-pattern.js';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	/**
 	 * One person's whole file: who they are, the engagements they hold, the terms of each engagement
@@ -69,6 +70,7 @@
 						id: true,
 						company_id: true,
 						employee_number: true,
+						contract_number: true,
 						effective_range: true
 					},
 					orderBy: { employee_number: 'asc' },
@@ -120,7 +122,7 @@
 					},
 					// The named pattern rides the terms read; no second query per employment.
 					with: {
-						term_shift_pattern: { columns: { id: true, code: true, name: true, pattern: true } }
+						term_shift_pattern: PATTERN_WITH
 					},
 					limit: 500
 				})
@@ -154,6 +156,7 @@
 	type TimelineContract = {
 		readonly id: string;
 		readonly employeeNumber: string;
+		readonly contractNumber: number;
 		readonly active: boolean;
 		readonly events: readonly TimelineEvent[];
 	};
@@ -238,6 +241,7 @@
 			const contract: TimelineContract = {
 				id: employment.id,
 				employeeNumber: number,
+				contractNumber: Number(employment.contract_number ?? 1),
 				active: endKey == null,
 				events: events.toSorted((left, right) => right.dateKey.localeCompare(left.dateKey))
 			};
@@ -249,8 +253,10 @@
 			.map(([companyId, contracts]) => ({
 				companyId,
 				companyName: timelineCompanyNames.get(companyId) ?? companyId,
-				contracts: contracts.toSorted((left, right) =>
-					left.employeeNumber.localeCompare(right.employeeNumber)
+				contracts: contracts.toSorted(
+					(left, right) =>
+						left.employeeNumber.localeCompare(right.employeeNumber) ||
+						left.contractNumber - right.contractNumber
 				)
 			}))
 			.toSorted((left, right) => left.companyName.localeCompare(right.companyName));
@@ -380,7 +386,7 @@
 												class="text-sm font-medium text-primary underline-offset-4 hover:underline"
 												onclick={() => openContract(contract.id)}
 											>
-												{contract.employeeNumber}
+												{contract.employeeNumber} · #{contract.contractNumber}
 											</button>
 											<span class="text-meta">
 												{#if contract.active}

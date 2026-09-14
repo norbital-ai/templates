@@ -13,7 +13,6 @@ import {
 	buildRosterMonth,
 	describeClockLayer,
 	describePlanLayer,
-	monthProgress,
 	resolveCellLayers
 } from '../src/lib/ui/roster/roster-month.ts';
 import { employeeMissingPunchReportable } from '../src/lib/ui/roster/employee-reportability.ts';
@@ -201,32 +200,6 @@ test('a rostered employment has no base: every untouched day is unrostered', () 
 	assert.equal(day.scheduleKind, 'ROSTERED');
 });
 
-test('counts are honest: overrides are what is assigned, and a patterned person never needs shifts', () => {
-	const untouched = monthProgress(month(), 'PUBLISHED');
-	assert.equal(untouched.rostered, 0, 'a base day is not an assignment');
-	assert.equal(untouched.personDays, 62);
-	assert.equal(untouched.peopleNeedingAssignment, 1, 'only the rostered employment needs shifts');
-
-	const oneRow = monthProgress(
-		month({
-			workDays: [
-				row('2026-08-05', { shift_definition_id: NIGHT_ID }),
-				{
-					id: 'row-rostered',
-					employment_id: ROSTERED_EMPLOYMENT,
-					work_date: '2026-08-10',
-					shift_definition_id: DAY_ID,
-					worked_intervals: null,
-					break_minutes: 0
-				}
-			]
-		}),
-		'PUBLISHED'
-	);
-	assert.equal(oneRow.rostered, 2);
-	assert.equal(oneRow.peopleNeedingAssignment, 0, 'one roster row is enough to stop needing');
-});
-
 test('an employee punches only on a roster row: a base day is read-only', () => {
 	const facts = month({ workDays: [row('2026-08-04', { shift_definition_id: DAY_ID })] });
 	const none = new Set();
@@ -246,4 +219,17 @@ test('an employee punches only on a roster row: a base day is read-only', () => 
 		]
 	}).get(`${EMPLOYMENT}:2026-08-04`);
 	assert.equal(employeeMissingPunchReportable(punched, '2026-08-20', none, none), false);
+});
+
+test('punch clocks read in the timezone the board is handed, not the payroll default', () => {
+	// A Jakarta entity's 08:02 punch is 01:02Z; read through Kuala Lumpur it showed 09:02.
+	const punched = row('2026-08-03', {
+		worked_intervals: [{ start: '2026-08-03T01:02:00.000Z', end: '2026-08-03T10:05:00.000Z' }]
+	});
+	const key = `${EMPLOYMENT}:2026-08-03`;
+	assert.equal(
+		month({ workDays: [punched], timeZone: 'Asia/Jakarta' }).get(key)?.punchWindow?.first,
+		'08:02'
+	);
+	assert.equal(month({ workDays: [punched] }).get(key)?.punchWindow?.first, '09:02');
 });

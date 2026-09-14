@@ -56,6 +56,42 @@
 	});
 </script>
 
+{#snippet sealedMark()}
+	{#if record && (sealed || voided)}
+		<!-- One compact state mark; the sentence lives behind it. -->
+		<Tooltip
+			side="bottom"
+			align="start"
+			sideOffset={6}
+			contentClass="max-w-96 border bg-popover text-popover-foreground"
+			arrowClasses="text-popover"
+		>
+			{#snippet trigger({ props })}
+				<button
+					{...props}
+					type="button"
+					data-settings-sealed-note
+					class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<Icon
+						icon={voided ? 'lucide:circle-slash' : 'lucide:lock-keyhole'}
+						class="size-3 shrink-0"
+						aria-hidden="true"
+					/>
+					{voided ? t('component.settings_voided_badge') : t('component.settings_sealed_badge')}
+				</button>
+			{/snippet}
+			{#snippet content()}
+				<p class="px-2.5 py-2 text-left text-xs text-muted-foreground">
+					{voided
+						? t('component.settings_voided_note', { reason: record.void_reason ?? '' })
+						: t('component.settings_sealed_note')}
+				</p>
+			{/snippet}
+		</Tooltip>
+	{/if}
+{/snippet}
+
 {#snippet snapshot()}
 	<CollectionForm
 		{client}
@@ -76,42 +112,8 @@
 						first
 						title={t('component.settings_section_identity')}
 						hint={t('component.settings_section_identity_hint')}
+						trailing={sealedMark}
 					>
-						{#if record && (sealed || voided)}
-							<!-- One compact state mark; the sentence lives behind it. -->
-							<Tooltip
-								side="bottom"
-								align="start"
-								sideOffset={6}
-								contentClass="max-w-96 border bg-popover text-popover-foreground"
-								arrowClasses="text-popover"
-							>
-								{#snippet trigger({ props })}
-									<button
-										{...props}
-										type="button"
-										data-settings-sealed-note
-										class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground outline-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
-									>
-										<Icon
-											icon={voided ? 'lucide:circle-slash' : 'lucide:lock-keyhole'}
-											class="size-3 shrink-0"
-											aria-hidden="true"
-										/>
-										{voided
-											? t('component.settings_voided_badge')
-											: t('component.settings_sealed_badge')}
-									</button>
-								{/snippet}
-								{#snippet content()}
-									<p class="px-2.5 py-2 text-left text-xs text-muted-foreground">
-										{voided
-											? t('component.settings_voided_note', { reason: record.void_reason ?? '' })
-											: t('component.settings_sealed_note')}
-									</p>
-								{/snippet}
-							</Tooltip>
-						{/if}
 						<Grid gap="sm" minimum="panel">
 							<Field name="code" label={t('component.settings_lineage')} />
 							<Field name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} />

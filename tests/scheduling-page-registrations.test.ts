@@ -12,10 +12,8 @@ test('the Work board reads schedule patterns through terms and jurisdiction cale
 		!reads.includes('db.shift_patterns.findMany'),
 		'patterns ride the effective terms query'
 	);
-	assert.match(
-		script,
-		/with: \{ term_shift_pattern: \{ columns: \{ id: true, code: true, pattern: true \} \} \}/
-	);
+	// The one read shape every pattern reader shares, so the cycle anchor always rides along.
+	assert.match(script, /with: \{ term_shift_pattern: PATTERN_WITH \}/);
 	assert.equal(reads.filter((name) => name === 'db.jurisdiction_settings.findMany').length, 1);
 	assert.equal(reads.filter((name) => name === 'db.jurisdiction_holidays.findMany').length, 1);
 	assert.ok(!reads.includes('db.company_holidays.findMany'));

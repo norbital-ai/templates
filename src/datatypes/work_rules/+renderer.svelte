@@ -481,6 +481,8 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary')}</span>
 			<p class="text-meta">{t('renderer.work_rules.ordinary_hint')}</p>
 			<MatrixRenderer
+				{disabled}
+				{readonly}
 				bind:rows={ordinaryRows}
 				columns={ordinaryColumns}
 				allowAddRows={!disabled}
@@ -502,6 +504,8 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.bands')}</span>
 			<p class="text-meta">{t('renderer.work_rules.bands_hint')}</p>
 			<MatrixRenderer
+				{disabled}
+				{readonly}
 				bind:rows={bandRows}
 				columns={bandColumns}
 				allowAddRows={!disabled}
@@ -528,6 +532,8 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.limits')}</span>
 			<p class="text-meta">{t('renderer.work_rules.limits_hint')}</p>
 			<MatrixRenderer
+				{disabled}
+				{readonly}
 				bind:rows={limitRows}
 				columns={limitColumns}
 				allowAddRows={!disabled}
@@ -552,6 +558,8 @@
 			<span class="text-sm font-semibold">{t('renderer.work_rules.breaks')}</span>
 			<p class="text-meta">{t('renderer.work_rules.breaks_hint')}</p>
 			<MatrixRenderer
+				{disabled}
+				{readonly}
 				bind:rows={breakRows}
 				columns={breakColumns}
 				allowAddRows={!disabled}

@@ -183,8 +183,28 @@ export function resolveEmployment<T extends { readonly effective_range: unknown 
 export type ResolvedEmployment = ReturnType<typeof resolveEmployment<WorkspaceRow<'employments'>>>;
 
 export type ContractCandidate = Partial<
-	Pick<WorkspaceRow<'employments'>, 'id' | 'employee_id' | 'company_id' | 'effective_range'>
+	Pick<
+		WorkspaceRow<'employments'>,
+		'id' | 'employee_id' | 'company_id' | 'effective_range' | 'contract_number'
+	>
 >;
+
+/** The next rolling contract number for a person at an entity: one past the highest on record. */
+export function nextContractNumber(
+	candidate: Pick<ContractCandidate, 'employee_id' | 'company_id'>,
+	others: readonly ContractCandidate[]
+): number {
+	let highest = 0;
+	for (const other of others)
+		if (
+			other.employee_id === candidate.employee_id &&
+			other.company_id === candidate.company_id &&
+			typeof other.contract_number === 'number' &&
+			other.contract_number > highest
+		)
+			highest = other.contract_number;
+	return highest + 1;
+}
 
 /** Inclusive service windows are exclusive only within the same person/entity pair. */
 export function assertContractDoesNotOverlap(

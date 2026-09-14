@@ -1,10 +1,15 @@
-import { custom, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, integer, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		employee_id: uuid().notNull(),
 		company_id: uuid().notNull(),
 		employee_number: text({ search: true }).notNull(),
+		/**
+		 * The stint's own rolling number for this person at this entity: 1 for the first contract,
+		 * 2 for the rehire. Assigned by the create hook, never typed, and frozen with the contract.
+		 */
+		contract_number: integer().notNull().default(1),
 		bank: custom('bank_account'),
 		/**
 		 * The stint itself: start is the first day of service, end the last day of work.
@@ -17,7 +22,7 @@ export default defineModel(
 	{
 		description:
 			'One employment contract: one person, one legal entity and one uninterrupted stint. The first linked input permanently seals it; departure closes its range once. Rehires create new contracts.',
-		recordLabel: 'employee_number',
+		recordLabel: ['employee_number', 'contract_number'],
 		icon: 'lucide:briefcase',
 		// One person holds at most one contract per entity on any date; the stint, not a hire
 		// date, is the identity. Sequential rehires with one employee number are distinct rows.

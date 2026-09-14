@@ -4,6 +4,7 @@ import { Effect } from 'effect';
 import hooks from '../src/collections/employments/+hooks.ts';
 import {
 	assertContractDoesNotOverlap,
+	nextContractNumber,
 	resolveEmployment,
 	boundToContract,
 	type ContractCandidate
@@ -145,4 +146,16 @@ test('nested contracts bind their employee before checking existing and sibling 
 	assert.throws(() => run([input], [contract()]), /already has an active/);
 	assert.throws(() => run([input, { ...input, id: 'second' }]), /already has an active/);
 	assert.throws(() => run([{ ...input, employee_id: 'different-person' }]), /enclosing/);
+});
+
+test('a rehire takes the next rolling contract number for the same person and entity', () => {
+	const prior = [
+		{ employee_id: 'p', company_id: 'c', contract_number: 1 },
+		{ employee_id: 'p', company_id: 'c', contract_number: 2 },
+		{ employee_id: 'p', company_id: 'other', contract_number: 7 },
+		{ employee_id: 'q', company_id: 'c', contract_number: 9 }
+	];
+	assert.equal(nextContractNumber({ employee_id: 'p', company_id: 'c' }, prior), 3);
+	assert.equal(nextContractNumber({ employee_id: 'p', company_id: 'new' }, prior), 1);
+	assert.equal(nextContractNumber({ employee_id: 'r', company_id: 'c' }, []), 1);
 });
