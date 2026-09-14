@@ -315,8 +315,8 @@ limits    { ...evaluated... }
 person    PersonContext
 ```
 
-Helpers registered per site: `calendar_days`, `working_days`, `minimum_wage`, `limit`,
-`bracket`, `ladder`. cel-js is strict about int and double, so arithmetic writes double
+Helpers registered per site: `minimum_wage`, `bracket`, `ladder`, `progressive` and the money
+roundings. cel-js is strict about int and double, so arithmetic writes double
 literals (`0.0`) and `double(...)` where a value may be integral; there is no binary `min`/`max`
 (its overloads collide), so clamps are ternaries. Member lists are data
 (`EXPRESSION_CONTEXTS`) rendered by the UI Fields panel.

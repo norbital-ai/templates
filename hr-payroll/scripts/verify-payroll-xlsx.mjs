@@ -548,8 +548,10 @@ Effect.runPromise(
 				'netPay',
 				'cpfEmployee',
 				'cpfEmployer',
-				'sdl',
+				'sdlEmployer',
 				'totalCpf',
+				'cpfGross',
+				'sdlGross',
 				'totalDeductions',
 				'employerCost'
 			]);
@@ -573,6 +575,8 @@ Effect.runPromise(
 				901,
 				13.25,
 				1961,
+				5300,
+				5300,
 				1060,
 				914.25
 			]);

@@ -21,10 +21,12 @@ import { leaveWindowOf } from './entitlement.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import { runtimeExpressionEngine, evaluateBoolean } from '../expressions/evaluate.js';
-import { encashmentCode } from './pay-items.js';
+import { expressionEngine, evaluateBoolean } from '../expressions/evaluate.js';
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import { aliasedOptIns, loadOptInAliases } from '../payroll/contribution.js';
+
+/** The encashment of a leave code settles under its own line, `<code>_ENCASHMENT`. */
+export const encashmentCode = (leaveCode: string): string => `${leaveCode}_ENCASHMENT`;
 
 type LeaveCatalogue = LeaveContext['catalogues'][number];
 
@@ -88,7 +90,7 @@ function leaveBandOptIns(
 	charge: LeaveCharge | null
 ): readonly StatutoryOptIn[] {
 	if (catalogue.bands.length === 0) return [];
-	const engine = runtimeExpressionEngine();
+	const engine = expressionEngine;
 	const context = leaveEntryContext(entry, charge);
 	for (const band of catalogue.bands) {
 		if (band.when.trim() === '') return band.statutory_opt_ins;

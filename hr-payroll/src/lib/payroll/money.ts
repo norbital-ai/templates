@@ -12,11 +12,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { compileEligibility } from '../../collections/payroll_runs/lib/eligibility.js';
-import {
-	runtimeExpressionEngine,
-	evaluateBoolean,
-	evaluateNumber
-} from '../expressions/evaluate.js';
+import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 import {
 	personContext,
 	type PersonContext
@@ -328,7 +324,7 @@ function selectBand(
 	context: Record<string, unknown>
 ): CatalogueBand | null {
 	if (bands.length === 0) return null;
-	const engine = runtimeExpressionEngine();
+	const engine = expressionEngine;
 	for (const band of bands) {
 		if (band.when.trim() === '') return band;
 		try {
@@ -345,7 +341,7 @@ function selectBand(
 /** The band's amount: a figure, or the expression evaluated over the entry context. */
 function bandAmount(band: CatalogueBand, context: Record<string, unknown>): number {
 	if (typeof band.amount === 'number') return band.amount;
-	return evaluateNumber(runtimeExpressionEngine(), band.amount, context);
+	return evaluateNumber(expressionEngine, band.amount, context);
 }
 
 /**
@@ -470,7 +466,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			const limitAmount =
 				typeof band.limit.amount === 'number'
 					? band.limit.amount
-					: evaluateNumber(runtimeExpressionEngine(), band.limit.amount, context);
+					: evaluateNumber(expressionEngine, band.limit.amount, context);
 			// The ceiling spans catalogue revisions of one code: a request agreed under an earlier
 			// revision still consumes it. Compare by code, not id, for the same reason the hook's
 			// `catalogueRevisionsOf` reads the whole lineage.

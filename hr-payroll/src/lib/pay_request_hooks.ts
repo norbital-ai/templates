@@ -17,11 +17,7 @@ import {
 	type PayRequestFamily,
 	type PayRequestCapture
 } from './payroll/money.js';
-import {
-	runtimeExpressionEngine,
-	evaluateBoolean,
-	evaluateNumber
-} from './expressions/evaluate.js';
+import { expressionEngine, evaluateBoolean, evaluateNumber } from './expressions/evaluate.js';
 
 export type PayRequestGuard = {
 	readonly family: PayRequestFamily;
@@ -239,7 +235,7 @@ function bandFor(
 	context: Record<string, unknown>
 ) {
 	if (bands.length === 0) return null;
-	const engine = runtimeExpressionEngine();
+	const engine = expressionEngine;
 	for (const band of bands) {
 		if (band.when.trim() === '') return band;
 		try {
@@ -357,7 +353,7 @@ export function assertPayRequestAdmissible(
 						const limitAmount =
 							typeof limit.amount === 'number'
 								? limit.amount
-								: evaluateNumber(runtimeExpressionEngine(), limit.amount, context);
+								: evaluateNumber(expressionEngine, limit.amount, context);
 						const rows: LimitSibling[] = siblings.flatMap((row) => {
 							const prior = captured.get(String(row.id)) ?? [];
 							const common = {

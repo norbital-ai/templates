@@ -12,7 +12,7 @@
  * keys supplied by the version being evaluated.
  */
 
-export type ExpressionSite = 'person' | 'entry' | 'work_day' | 'scheme' | 'schedule';
+export type ExpressionSite = 'person' | 'entry' | 'work_day' | 'scheme';
 export type ExpressionType = 'boolean' | 'number';
 
 type ContextField = {
@@ -304,53 +304,9 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	}
 };
 
-const SCHEDULE_CONTEXT: ExpressionContext = {
-	site: 'schedule',
-	description: 'One planned day or projected schedule window: limit and break enforcement.',
-	fields: [
-		...personFields('person.'),
-		{ path: 'plan.date', description: 'The planned day' },
-		{ path: 'plan.roster_code', description: 'The roster code assigned' },
-		{ path: 'plan.kind', description: 'WORK | REST | OFF' },
-		{ path: 'plan.paid_minutes', description: 'Paid minutes the code grants' },
-		{ path: 'plan.break_minutes', description: 'Break the code grants' },
-		{ path: 'plan.spread_hours', description: 'Clock span, start to end' },
-		{ path: 'projected.day_hours', description: 'Paid hours on the day' },
-		{ path: 'projected.week_hours', description: 'Paid hours in the week through the day' },
-		{ path: 'projected.month_ot_hours', description: 'Projected overtime hours this month' },
-		{ path: 'projected.quarter_ot_hours', description: 'Projected overtime hours this quarter' },
-		{ path: 'projected.year_ot_hours', description: 'Projected overtime hours this year' },
-		{ path: 'projected.run_of_work_days', description: 'Consecutive WORK days through the day' },
-		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' }
-	],
-	bare: [],
-	open: ['limits'],
-	blank: {
-		person: personBlank(),
-		plan: {
-			date: '',
-			roster_code: '',
-			kind: 'WORK',
-			paid_minutes: 0,
-			break_minutes: 0,
-			spread_hours: 0
-		},
-		projected: {
-			day_hours: 0,
-			week_hours: 0,
-			month_ot_hours: 0,
-			quarter_ot_hours: 0,
-			year_ot_hours: 0,
-			run_of_work_days: 1
-		},
-		limits: structuredClone(LIMITS_BLANK)
-	}
-};
-
 export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionContext>> = {
 	person: PERSON_CONTEXT,
 	entry: ENTRY_CONTEXT,
 	work_day: WORK_DAY_CONTEXT,
-	scheme: SCHEME_CONTEXT,
-	schedule: SCHEDULE_CONTEXT
+	scheme: SCHEME_CONTEXT
 };

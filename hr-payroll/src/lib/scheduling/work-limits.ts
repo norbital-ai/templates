@@ -20,7 +20,6 @@
  */
 
 import type { WorkLimit } from '../../datatypes/work_rules/+definition.js';
-import { EXPRESSION_CONTEXTS } from '../expressions/contexts.js';
 
 const DAY_MS = 86_400_000;
 
@@ -42,16 +41,6 @@ export type RosterCodeFacts = {
 	readonly paid_minutes: number;
 	readonly break_minutes: number;
 	readonly spread_hours: number;
-};
-
-/** The `projected` object of the schedule context (RFC 0001 §7.5). */
-type ScheduleProjected = {
-	readonly day_hours: number;
-	readonly week_hours: number;
-	readonly month_ot_hours: number;
-	readonly quarter_ot_hours: number;
-	readonly year_ot_hours: number;
-	readonly run_of_work_days: number;
 };
 
 type LimitBreach = {
@@ -120,69 +109,6 @@ function quarterBounds(date: string): { readonly start: string; readonly end: st
 }
 
 /**
- * Every limit's value in net worked hours, exactly as work rules evaluate them: a CLOCK_HOURS day
- * limit subtracts the break the shift grants, every other limit states its figure directly.
- */
-export function evaluatedLimits(
-	limits: readonly WorkLimit[],
-	breakMinutes: number
-): Record<string, number> {
-	const evaluated: Record<string, number> = {};
-	for (const limit of limits) {
-		evaluated[limit.key] =
-			limit.period === 'DAY' && limit.unit === 'CLOCK_HOURS'
-				? Math.max(0, limit.max_hours - breakMinutes / 60)
-				: limit.max_hours;
-	}
-	return evaluated;
-}
-
-/** The one context object the `schedule` expression site documents, built where the gate decides. */
-function scheduleContext(options: {
-	readonly plan: SchedulePlanDay;
-	readonly projected: ScheduleProjected;
-	readonly limits: Readonly<Record<string, number>>;
-}): Record<string, unknown> {
-	return {
-		person: EXPRESSION_CONTEXTS.schedule.blank.person,
-		plan: {
-			date: options.plan.date,
-			roster_code: '',
-			kind: options.plan.kind ?? '',
-			paid_minutes: options.plan.paid_minutes,
-			break_minutes: options.plan.break_minutes,
-			spread_hours: options.plan.spread_hours
-		},
-		projected: options.projected,
-		limits: options.limits
-	};
-}
-
-/** One date's resolution to a code's facts; a day no plan covers projects nothing. */
-export function plannedDay(options: {
-	readonly date: string;
-	readonly rosterCodeId: string | null;
-	readonly codeById: ReadonlyMap<string, RosterCodeFacts>;
-}): SchedulePlanDay {
-	const facts = options.rosterCodeId == null ? null : options.codeById.get(options.rosterCodeId);
-	if (facts == null || facts.kind !== 'WORK')
-		return {
-			date: options.date,
-			kind: facts?.kind ?? null,
-			paid_minutes: 0,
-			break_minutes: 0,
-			spread_hours: 0
-		};
-	return {
-		date: options.date,
-		kind: 'WORK',
-		paid_minutes: facts.paid_minutes,
-		break_minutes: facts.break_minutes,
-		spread_hours: facts.spread_hours
-	};
-}
-
-/**
  * The window the limits need projected around a set of changed dates: the containing period of the
  * widest limit the version declares, aligned to that period's own boundaries. A caller reads the
  * plan for exactly this window and no more.
@@ -207,18 +133,46 @@ export function projectionBounds(
 	return { start: first, end: last };
 }
 
-function workRun(planByDate: ReadonlyMap<string, SchedulePlanDay>, date: string): number {
-	let start = date;
-	for (let cursor = addDays(date, -1); ; cursor = addDays(cursor, -1)) {
-		if (planByDate.get(cursor)?.kind !== 'WORK') break;
-		start = cursor;
+/**
+ * Every limit's value in net worked hours, exactly as work rules evaluate them: a CLOCK_HOURS day
+ * limit subtracts the break the shift grants, every other limit states its figure directly.
+ */
+export function evaluatedLimits(
+	limits: readonly WorkLimit[],
+	breakMinutes: number
+): Record<string, number> {
+	const evaluated: Record<string, number> = {};
+	for (const limit of limits) {
+		evaluated[limit.key] =
+			limit.period === 'DAY' && limit.unit === 'CLOCK_HOURS'
+				? Math.max(0, limit.max_hours - breakMinutes / 60)
+				: limit.max_hours;
 	}
-	let days = 0;
-	for (let cursor = start; ; cursor = addDays(cursor, 1)) {
-		if (planByDate.get(cursor)?.kind !== 'WORK') break;
-		days += 1;
-	}
-	return days;
+	return evaluated;
+}
+
+/** One date's resolution to a code's facts; a day no plan covers projects nothing. */
+export function plannedDay(options: {
+	readonly date: string;
+	readonly rosterCodeId: string | null;
+	readonly codeById: ReadonlyMap<string, RosterCodeFacts>;
+}): SchedulePlanDay {
+	const facts = options.rosterCodeId == null ? null : options.codeById.get(options.rosterCodeId);
+	if (facts == null || facts.kind !== 'WORK')
+		return {
+			date: options.date,
+			kind: facts?.kind ?? null,
+			paid_minutes: 0,
+			break_minutes: 0,
+			spread_hours: 0
+		};
+	return {
+		date: options.date,
+		kind: 'WORK',
+		paid_minutes: facts.paid_minutes,
+		break_minutes: facts.break_minutes,
+		spread_hours: facts.spread_hours
+	};
 }
 
 /**
@@ -274,22 +228,7 @@ export function projectedLimitBreaches(options: {
 	for (const date of [...options.changedDates].toSorted()) {
 		const plan = options.planByDate.get(date);
 		if (plan == null) continue;
-		const projected: ScheduleProjected = {
-			day_hours: hours(plan),
-			week_hours: totals.get(`WEEK:${weekStart(date)}`)?.worked ?? 0,
-			month_ot_hours: totals.get(`MONTH:${date.slice(0, 7)}`)?.overtime ?? 0,
-			quarter_ot_hours: totals.get(`QUARTER:${quarterKey(date)}`)?.overtime ?? 0,
-			year_ot_hours: totals.get(`YEAR:${date.slice(0, 4)}`)?.overtime ?? 0,
-			run_of_work_days: workRun(options.planByDate, date)
-		};
-		// The documented §7.5 context is the shape the gate reads, so a later CEL rule and this
-		// comparison cannot drift apart.
-		const context = scheduleContext({
-			plan,
-			projected,
-			limits: evaluatedLimits(limits, plan.break_minutes)
-		});
-		const evaluated = context.limits as Readonly<Record<string, number>>;
+		const evaluated = evaluatedLimits(limits, plan.break_minutes);
 		const read = (limit: WorkLimit): number => {
 			if (limit.period === 'DAY') {
 				if (limit.measure === 'SPREAD_HOURS') return plan.spread_hours;

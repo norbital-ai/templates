@@ -16,15 +16,13 @@
  *
  * A statutory column is produced by the contribution that charged it, not by a list of the schemes
  * one country happens to run. This module walks whatever statutory payslip lines a run actually
- * produced and asks `vocabulary.ts` what the workbook calls each one; a Philippine run therefore
- * exports `sssEmployee` and `withholdingTax` for the same reason a Malaysian one exports
- * `epfEmployee` and `pcb` — because that is what was charged. Adding a jurisdiction is an addition
- * to `vocabulary.ts` and no change at all here.
+ * produced and names each column from the scheme's own code — `sssEmployee`, `wtaxEmployee`,
+ * `epfEmployer`, `totalEpf`, `pcbGross` — so a scheme a tenant authors tomorrow exports the same
+ * way the seeded ones do, and no jurisdiction is ever added anywhere.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
 import { Schema } from 'effect';
-import { statutoryNaming, statutoryOutputIds, type StatutoryRole } from './vocabulary.js';
 
 const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
@@ -157,21 +155,60 @@ const SECTION_LAYOUT: readonly {
 	{ name: 'Information', unit: 'MONEY', buckets: ['INFORMATION'] }
 ];
 
-/** Where output ids the vocabulary does not rank are collected, so a new id is never dropped. */
+/** Where output ids no section ranks are collected, so a new id is never dropped. */
 const OTHER_SECTION_NAME = 'Other';
+
+/** The ids the layout names outright; `totalDeductions` is one, not a scheme's total. */
+const FIXED_IDS: ReadonlySet<string> = new Set(
+	SECTION_LAYOUT.flatMap((section) => section.outputIds ?? [])
+);
+
+/** The four column roles a scheme can produce, each with the suffix that names it. */
+type StatutoryRole = 'employee' | 'employer' | 'total' | 'base';
+
+/** `EPF_NON_CITIZEN` → `epfNonCitizen`: the scheme code as a camelCase column stem. */
+const stem = (code: string): string =>
+	code
+		.toLowerCase()
+		.split(/[^a-z0-9]+/)
+		.filter(Boolean)
+		.map((word, index) => (index === 0 ? word : `${word[0]!.toUpperCase()}${word.slice(1)}`))
+		.join('');
+
+/** What the workbook calls one role of one scheme: `epfEmployee`, `epfEmployer`, `totalEpf`, `epfGross`. */
+export function statutoryColumn(code: string, role: StatutoryRole): string {
+	const name = stem(code);
+	switch (role) {
+		case 'employee':
+			return `${name}Employee`;
+		case 'employer':
+			return `${name}Employer`;
+		case 'total':
+			return `total${name[0]!.toUpperCase()}${name.slice(1)}`;
+		case 'base':
+			return `${name}Gross`;
+	}
+}
+
+const ROLE_OF: readonly (readonly [StatutoryRole, RegExp])[] = [
+	['employee', /Employee$/],
+	['employer', /Employer$/],
+	['total', /^total[A-Z]/],
+	['base', /Gross$/]
+];
+
+/** Whether an output id is a statutory column of the given role; catalogue codes are UPPER_SNAKE and never match. */
+const hasRole = (outputId: string, role: StatutoryRole): boolean =>
+	ROLE_OF.some(([candidate, pattern]) => candidate === role && pattern.test(outputId));
 
 /**
  * The statutory columns, derived from the schemes the run actually charged.
  *
- * Nothing here knows a country. Every statutory payslip line carries the scheme that produced
- * it, and the scheme's code is what the workbook vocabulary is keyed by — so a run charges SSS and
- * the sheet grows an `sssEmployee` column, for the same reason and by the same code path that a
- * Malaysian run grows an `epfEmployee` one.
- *
- * A charge that has nowhere to go is an error, not a rounding-down to zero: if a scheme took money
- * from someone and this vocabulary cannot name the column, the workbook must not be written. The
- * alternative is a sheet in which "we did not charge you" and "we charged you and lost the number"
- * are the same empty cell.
+ * Nothing here knows a country. Every statutory payslip line carries the scheme that produced it,
+ * and the column is named from that code — so a run charges SSS and the sheet grows an
+ * `sssEmployee` column, by the same code path a Malaysian run grows an `epfEmployee` one. A share
+ * the scheme never charges (SDL has no employee side) produces no column; the total column appears
+ * only where both sides are charged.
  */
 function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 	const outputs: Record<string, number> = {};
@@ -179,28 +216,15 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 		outputs[outputId] = (outputs[outputId] ?? 0) + amount;
 	};
 	for (const [code, charged] of payslip.contributions) {
-		const naming = statutoryNaming(code);
-		for (const side of ['employee', 'employer'] as const)
-			if (naming[side] == null && charged[side] !== 0)
-				throw new Error(
-					`Statutory contribution ${JSON.stringify(code)} charged the ${side} ` +
-						`${charged[side]} but has no ${side} column. Name it in STATUTORY_VOCABULARY ` +
-						`(lib/vocabulary.ts).`
-				);
-		if (naming.employee != null) add(naming.employee, charged.employee);
-		if (naming.employer != null) add(naming.employer, charged.employer);
-		if (naming.total != null) add(naming.total, charged.employee + charged.employer);
-		if (naming.base != null) {
-			/**
-			 * A base column shared by mutually exclusive schemes selects, it does not sum.
-			 *
-			 * EPF and EPF_NON_CITIZEN name the same `epfGross` column and an employment is in
-			 * exactly one of them, but the contribution engine persists the assessed base for
-			 * both, so summing doubles every member's EPF base. Picking the larger base is the
-			 * charged scheme's base: the non-enrolled scheme's is zero or its own alternative.
-			 */
-			const previous = outputs[naming.base];
-			outputs[naming.base] = previous == null ? charged.base : Math.max(previous, charged.base);
+		if (charged.employee !== 0) add(statutoryColumn(code, 'employee'), charged.employee);
+		if (charged.employer !== 0) add(statutoryColumn(code, 'employer'), charged.employer);
+		if (charged.employee !== 0 && charged.employer !== 0)
+			add(statutoryColumn(code, 'total'), charged.employee + charged.employer);
+		if (charged.base !== 0) {
+			// A base column shared by a scheme's variants selects rather than sums: an employment is in
+			// exactly one of them, and the non-enrolled variant's assessed base is zero or its own.
+			const base = statutoryColumn(code, 'base');
+			outputs[base] = Math.max(outputs[base] ?? 0, charged.base);
 		}
 	}
 	return outputs;
@@ -277,7 +301,9 @@ export function outputGroups(
 		const outputIds =
 			section.buckets == null
 				? [
-						...statutoryOutputIds(section.statutoryRoles ?? []),
+						...(section.statutoryRoles ?? []).flatMap((role) =>
+							[...present].filter((id) => !FIXED_IDS.has(id) && hasRole(id, role)).toSorted()
+						),
 						...(section.outputIds ?? [])
 					].filter((id) => present.has(id))
 				: section.buckets

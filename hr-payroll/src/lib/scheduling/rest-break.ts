@@ -1,10 +1,6 @@
 import { Schema } from 'effect';
 import { decodeNumber } from '@norbital-ai/std/json';
-import {
-	evaluateBoolean,
-	evaluateNumber,
-	runtimeExpressionEngine
-} from '../expressions/evaluate.js';
+import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 
 /** The CEL break rule one settings version carries (RFC 0001 §5). */
 const workBreakLikeSchema = Schema.Struct({
@@ -20,8 +16,6 @@ type SelectedBreakRule = {
 	readonly minimum_minutes: number | null;
 	readonly counts_as_worked_time: boolean | null;
 };
-
-const breakEngine = runtimeExpressionEngine();
 
 /**
  * Whether a working day satisfied the rest break its jurisdiction owes, derived from the punches.
@@ -168,7 +162,7 @@ export function selectBreakRule(
 	}
 ): SelectedBreakRule | null {
 	for (const rule of breaks ?? []) {
-		const matches = evaluateBoolean(breakEngine, rule.when, {
+		const matches = evaluateBoolean(expressionEngine, rule.when, {
 			consecutive_hours: facts.consecutiveHours,
 			overtime_hours: facts.overtimeHours,
 			continuous_attendance: facts.continuousAttendance
@@ -177,7 +171,7 @@ export function selectBreakRule(
 		const owed =
 			typeof rule.owed_minutes === 'number'
 				? rule.owed_minutes
-				: evaluateNumber(breakEngine, rule.owed_minutes, {
+				: evaluateNumber(expressionEngine, rule.owed_minutes, {
 						consecutive_hours: facts.consecutiveHours,
 						overtime_hours: facts.overtimeHours,
 						continuous_attendance: facts.continuousAttendance

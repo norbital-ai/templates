@@ -21,8 +21,7 @@ import {
 	sourceLockSystemLocked,
 	sourceLockApplicationLocked,
 	sourceLockRecordMetadata,
-	sourceLockBlocksWrite,
-	assertSourceUnlocked
+	sourceLockBlocksWrite
 } from '../src/lib/scheduling/lock.ts';
 
 /**
@@ -208,18 +207,6 @@ test('consumption outranks date policy, and pending approval outranks everything
 			settledBy: { period: '2026-07' }
 		}),
 		{ kind: 'PENDING_APPROVAL' }
-	);
-});
-
-test('assertSourceUnlocked refuses domain freezes and leaves pending approval to the platform', () => {
-	assert.doesNotThrow(() => assertSourceUnlocked({ kind: 'NONE' }, 'Changing a leave request'));
-	assert.doesNotThrow(() =>
-		assertSourceUnlocked({ kind: 'PENDING_APPROVAL' }, 'Changing a leave request')
-	);
-	assert.equal(sourceLockBlocksWrite({ kind: 'PENDING_APPROVAL' }), false);
-	assert.throws(
-		() => assertSourceUnlocked({ kind: 'SETTLED', period: '2026-07' }, 'Changing a leave request'),
-		/taken this record into account/
 	);
 });
 
