@@ -1,4 +1,4 @@
-import { refuse, type AutomationApi, type InferenceTool } from '@norbital-ai/bolt/authoring';
+import { refuse, type AutomationApi } from '@norbital-ai/bolt/authoring';
 import { getErrorMessage } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
@@ -37,33 +37,6 @@ const statutoryPageText = (html: string): string =>
 		.replace(/\s+/g, ' ')
 		.trim();
 
-/** Words that mark a sentence as statutory payroll material rather than navigation or news. */
-const STATUTORY_CUES =
-	/\b(contribution|contributions|rate|rates|ceiling|cap|wage|wages|salary|leave|entitle|entitlement|employer|employee|percent|per cent|effective|w\.e\.f|from 1|monthly|annual|deduct|levy|premium|insured|threshold|minimum|maximum|statutory|act|regulation|amend|allowance|overtime|holiday|maternity|paternity|parental|childcare|sick|caruman|kadar|gaji|upah|iuran|cuti|berkuat)\b|保險|投保|薪資|工資|費率|退休|休假|生效|lương|bảo hiểm|hiệu lực|\d+(?:\.\d+)?\s?%|(?:S\$|RM|NT\$|Rp|₱|₫|\$)\s?\d/i;
-
-/**
- * The part of a retrieved page worth a model's attention, inside a fixed budget. Official pages
- * are mostly navigation and news; sentences carrying statutory cues are kept in page order until
- * the budget is spent, and a page with no cued sentence keeps its head so the model still sees
- * what it is. Quote verification runs against the full page text, never this view.
- */
-const focusStatutoryText = (text: string, budget: number): string => {
-	if (text.length <= budget) return text;
-	const sentences = text
-		.split(/(?<=[.!?。])\s+|\s{2,}/)
-		.flatMap((sentence) => sentence.match(/\S[\s\S]{0,599}(?=\s|$)|\S+/gu) ?? []);
-	const kept: string[] = [];
-	let used = 0;
-	for (const sentence of sentences) {
-		if (sentence.length === 0 || !STATUTORY_CUES.test(sentence)) continue;
-		if (used + sentence.length + 1 > budget) break;
-		kept.push(sentence);
-		used += sentence.length + 1;
-	}
-	if (kept.length === 0) return `${text.slice(0, budget)}...`;
-	return `${kept.join(' ')} [focused: ${kept.length} statutory sentences of a ${text.length}-character page]`;
-};
-
 export type ResearchPage = Readonly<{
 	url: string;
 	requested_url: string;
@@ -87,37 +60,6 @@ export const officialUrlFor = (researchUrls: readonly string[]) => {
 		if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
 		return origins.has(url.origin) ? url : null;
 	};
-};
-
-/**
- * What the research prompt carries per page: focused text and only the links a page may open
- * (allowed origins, first `maxLinks`). The full page stays on the receipt for quote verification.
- */
-export const researchPromptPages = (
-	pages: readonly ResearchPage[],
-	officialUrl: (url: string) => unknown,
-	limits: Readonly<{ perPageChars: number; totalChars: number; maxLinks: number }> = {
-		perPageChars: 12_000,
-		totalChars: 36_000,
-		maxLinks: 40
-	}
-): ReadonlyArray<Readonly<{ url: string; text: string; links: readonly string[] }>> => {
-	const share = Math.max(2_000, Math.floor(limits.totalChars / Math.max(1, pages.length)));
-	const budget = Math.min(limits.perPageChars, share);
-	const documentPath = /\.(?:pdf|csv|json|xml|txt)$|\/(?:files|download|dataset)(?:\/|$)/i;
-	return pages.map((page) => ({
-		url: page.url,
-		text: focusStatutoryText(page.text, budget),
-		links: page.links
-			.filter((link) => officialUrl(link) != null)
-			// Older government sites use div menus; their downloads must not lose to those links.
-			.sort(
-				(left, right) =>
-					Number(documentPath.test(new URL(right).pathname)) -
-					Number(documentPath.test(new URL(left).pathname))
-			)
-			.slice(0, limits.maxLinks)
-	}));
 };
 
 type PageReader = Pick<AutomationApi, 'readUrl'>;
@@ -191,63 +133,37 @@ export const describeSourcesRead = (
 		.join('; ')}`;
 };
 
-/** How many pages one research turn may open beyond its entry pages, and how much of each it sees. */
-const RESEARCH_TOOL_LIMITS = { perPageChars: 12_000, maxLinks: 40, maxPages: 12 } as const;
-
 /**
- * The tool the research model navigates with: open one page on an allowed origin by exact URL
- * and get back its statutory sentences and links. Every page it opens lands in `pages`, so quote
- * verification runs against exactly what the model saw; every URL that refuses lands in
- * `unreachable`, so a failed source is recorded by name instead of being silently retried. A
- * disallowed origin, a redirect off it or an empty page is a refusal the model reads as a failed
- * tool result and routes around.
+ * Read the pages a lineage's research stands on, for quote verification.
+ *
+ * Research itself browses with the host browser; the automation then reads the version's own
+ * research URLs and every page the model cited through `api.readUrl`, so a quote is checked
+ * against the page as this host reads it. A URL that cannot be read is recorded with its reason
+ * and its findings become notes rather than changes, never a silent proposal.
  */
-export const statutoryResearchTool = (
+export const verifyStatutorySources = (
 	api: PageReader,
-	officialUrl: (url: string) => URL | null,
-	pages: ResearchPage[],
-	unreachable: UnreachableSource[] = []
-): InferenceTool<{ readonly url: string }> => {
-	const maxPages = RESEARCH_TOOL_LIMITS.maxPages;
-	return {
-		name: 'read_official_page',
-		description:
-			'Open one official statutory page by its exact HTTPS URL and return its statutory sentences and the links it carries. Only the origins the settings version names as research URLs are fetched; follow a link from an entry page when the contribution table, leave entitlement or effective-date notice you need is on another page.',
-		input: Schema.Struct({ url: Schema.NonEmptyString }),
-		run: ({ url }) =>
-			Effect.gen(function* () {
-				const known = pages.find((page) => page.url === url || page.requested_url === url);
-				if (known === undefined && pages.length >= maxPages)
-					refuse(
-						`This research turn already opened ${RESEARCH_TOOL_LIMITS.maxPages} pages; answer from the pages you have.`
-					);
-				const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
-				const exit = yield* Effect.exit(
-					known === undefined
-						? fetchStatutoryPage(api, url, officialUrl, retrievedAt)
-						: Effect.succeed(known)
-				);
-				if (Exit.isFailure(exit)) {
-					const already = unreachable.some((source) => source.url === url);
-					if (!already)
-						unreachable.push({
-							url,
-							reason: unreachableReason(exit.cause),
-							retrieved_at: retrievedAt
-						});
-					refuse(`Could not read ${url}: ${unreachableReason(exit.cause)}`);
-				}
-				const page = exit.value;
-				if (known === undefined) pages.push(page);
-				const [view] = researchPromptPages([page], officialUrl, {
-					perPageChars: RESEARCH_TOOL_LIMITS.perPageChars,
-					totalChars: RESEARCH_TOOL_LIMITS.perPageChars,
-					maxLinks: RESEARCH_TOOL_LIMITS.maxLinks
+	urls: readonly string[],
+	officialUrl: (url: string) => URL | null
+): Effect.Effect<Readonly<{ pages: ResearchPage[]; unreachable: UnreachableSource[] }>> =>
+	Effect.gen(function* () {
+		const pages: ResearchPage[] = [];
+		const unreachable: UnreachableSource[] = [];
+		for (const url of new Set(urls)) {
+			const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
+			const exit = yield* Effect.exit(fetchStatutoryPage(api, url, officialUrl, retrievedAt));
+			if (Exit.isFailure(exit)) {
+				unreachable.push({
+					url,
+					reason: unreachableReason(exit.cause),
+					retrieved_at: retrievedAt
 				});
-				return { url: page.url, text: view?.text ?? page.text, links: [...(view?.links ?? [])] };
-			})
-	};
-};
+				continue;
+			}
+			pages.push(exit.value);
+		}
+		return { pages, unreachable };
+	});
 
 const evidence = {
 	/** The exact URL of a page that was given or opened. */
