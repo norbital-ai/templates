@@ -145,10 +145,11 @@ test('controller mutations can carry the hook-owned search label through field a
 	}
 });
 
-test('WhatsApp can mutate only an existing assignment and has no other authority', () => {
+test('WhatsApp can read every assignment, mutate only an existing one, and has no other authority', () => {
 	assert.equal(whatsappEnvoy.delegation, 'disabled');
 	assert.deepEqual(whatsappPolicy.capabilities?.apps, []);
-	assert.equal(whatsappPolicy.capabilities?.envoyHistory, 'this_envoy');
+	assert.deepEqual(grant(whatsapp, 'job_assignments', 'read')?.where, undefined);
+	assert.deepEqual(grant(whatsapp, 'job_assignments', 'read')?.fields, undefined);
 	assert.deepEqual(grant(whatsapp, 'job_assignments', 'mutate.existing')?.fields, [
 		'status',
 		'completed_at',
@@ -157,7 +158,7 @@ test('WhatsApp can mutate only an existing assignment and has no other authority
 		'amount_charged'
 	]);
 	assert.deepEqual(Object.keys(whatsapp.grants), ['job_assignments']);
-	assert.deepEqual(Object.keys(whatsapp.grants.job_assignments ?? {}), ['mutate']);
+	assert.deepEqual(Object.keys(whatsapp.grants.job_assignments ?? {}), ['read', 'mutate']);
 	assert.deepEqual(Object.keys(whatsapp.grants.job_assignments?.mutate ?? {}), ['existing']);
 	assert.equal(grant(whatsapp, 'job_assignments', 'mutate.new'), undefined);
 });
@@ -165,7 +166,7 @@ test('WhatsApp can mutate only an existing assignment and has no other authority
 test('contractor-facing WhatsApp envoy instructions do not disclose private review vocabulary', () => {
 	const hiddenVocabulary = /suspici|integrity|site_identity|\bflags?\b/i;
 	assert.doesNotMatch(whatsappEnvoy.task, hiddenVocabulary);
-	assert.match(whatsappEnvoy.task, /cannot read, search, list or discover/i);
+	assert.match(whatsappEnvoy.task, /read job\s+assignments/i);
 	assert.match(whatsappEnvoy.task, /cannot mutate new records or delete anything/i);
 	assert.match(whatsappEnvoy.task, /only call mutate/i);
 });
