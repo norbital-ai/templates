@@ -2,7 +2,7 @@
 /**
  * The statutory drift automation's pure parts: the diff decides what changed and stands every
  * change on a quote that is on a retrieved page; the draft write carries the proposed rows in
- * place of the cloned ones; the research tool opens only the origins the version names.
+ * place of the cloned ones; verification reads only the origins the version names.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -11,8 +11,7 @@ import {
 	describeSourcesRead,
 	diffStatutoryFindings,
 	officialUrlFor,
-	researchPromptPages,
-	statutoryResearchTool
+	verifyStatutorySources
 } from '../src/lib/statutory_research.ts';
 import { applyProposedChanges, firstOfNextMonth } from '../src/automations/+statutory_drift.ts';
 
@@ -46,79 +45,6 @@ const sealed = {
 	pay_component: [{ code: 'OVERTIME', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }]
 };
 const quote = 'the employee contribution rate is 12% of wages';
-
-test('research retains statutory facts after navigation in long unpunctuated pages', () => {
-	for (const fact of [
-		'The monthly contribution rate is 12% of wages',
-		'全民健康保險投保金額自115年1月1日起調整為29500元',
-		'Kadar caruman bulanan berkuat kuasa Januari 2027',
-		'Mức lương tối thiểu có hiệu lực từ tháng 1 năm 2027'
-	]) {
-		const text = `${'Home About Contact '.repeat(250)} ${fact} ${'Other information '.repeat(250)}`;
-		const [focused] = researchPromptPages([{ ...page, text }], officialUrlFor([page.url]), {
-			perPageChars: 3_000,
-			totalChars: 3_000,
-			maxLinks: 40
-		});
-		assert.ok(focused.text.includes(fact), fact);
-	}
-});
-
-test('navigation cannot consume the research text and link budgets', async () => {
-	const nav = Array.from(
-		{ length: 50 },
-		(_, index) => `<a href="${page.url}/menu-${index}">Employee contribution information</a>`
-	).join('');
-	const table = `${page.url}/table.pdf`;
-	const read = await openViaTool(
-		{
-			readUrl: (url) =>
-				Effect.succeed({
-					url,
-					body: `<nav>${nav}</nav><main><p>${page.text}</p><a href="${table}">Current table</a></main>`
-				})
-		},
-		[page.url]
-	);
-	const [focused] = researchPromptPages(read.pages, officialUrlFor([page.url]));
-	assert.ok(focused.text.includes(page.text));
-	assert.ok(!focused.text.includes('Employee contribution information'));
-	assert.deepEqual(focused.links, [table]);
-});
-
-test('document and dataset links survive menus without semantic navigation markup', () => {
-	const documents = [
-		`${page.url}/Files/25664`,
-		`${page.url}/api/Dataset?rId=current`,
-		`${page.url}/rates.csv?year=2027`
-	];
-	const [focused] = researchPromptPages(
-		[
-			{
-				...page,
-				links: [
-					...Array.from({ length: 50 }, (_, index) => `${page.url}/menu-${index}`),
-					...documents
-				]
-			}
-		],
-		officialUrlFor([page.url]),
-		{ perPageChars: 3_000, totalChars: 3_000, maxLinks: 3 }
-	);
-	assert.deepEqual(focused.links, documents);
-});
-
-test('the research tool bounds itself to twelve opened pages, and re-opening one is free', async () => {
-	const tool = statutoryResearchTool(
-		{ readUrl: (url) => Effect.succeed({ url, body: page.text }) },
-		officialUrlFor([page.url]),
-		[]
-	);
-	for (let index = 0; index < 12; index += 1)
-		await Effect.runPromise(tool.run({ url: `${page.url}/table-${index}` }));
-	await assert.rejects(Effect.runPromise(tool.run({ url: `${page.url}/over-limit` })));
-	await Effect.runPromise(tool.run({ url: `${page.url}/table-0` }));
-});
 
 test('a changed band table standing on a quote from a retrieved page is one change', () => {
 	const diff = diffStatutoryFindings(
@@ -308,35 +234,34 @@ test('a proposed version begins on the first of the month after today', () => {
 	assert.equal(firstOfNextMonth('2026-12-31'), '2027-01-01');
 });
 
-test('the research tool opens only the origins the version names, and records what it opened', async () => {
+test('verification reads only the origins the version names, and records what it read', async () => {
 	const officialUrl = officialUrlFor(['https://statutory.example.org/rates']);
 	assert.ok(officialUrl('https://statutory.example.org/other'));
 	assert.equal(officialUrl('https://elsewhere.example.org/rates'), null);
 	assert.equal(officialUrl('http://statutory.example.org/rates'), null);
 	const reads: string[] = [];
-	const api = {
-		readUrl: (url: string) =>
-			Effect.sync(() => {
-				reads.push(url);
-				return {
-					url,
-					contentType: 'text/html',
-					body: `<html><body><p>${page.text}</p><a href="/en/rates">Rates</a><a href="https://elsewhere.example.org/x">Elsewhere</a></body></html>`
-				};
-			})
-	};
-	const pages = [];
-	const tool = statutoryResearchTool(api, officialUrl, pages);
-	assert.equal(tool.name, 'read_official_page');
-	const first = await Effect.runPromise(tool.run({ url: page.url }));
-	assert.equal(pages.length, 1);
-	assert.match(first.text, /employee contribution rate is 12%/);
-	assert.deepEqual(first.links, ['https://statutory.example.org/en/rates']);
-	await Effect.runPromise(tool.run({ url: page.url }));
-	assert.deepEqual(reads, [page.url], 'a page already opened is served from the receipt');
-	const refused = await Effect.runPromiseExit(tool.run({ url: 'https://elsewhere.example.org/x' }));
-	assert.equal(refused._tag, 'Failure');
-	assert.equal(pages.length, 1);
+	const read = await openViaTool(
+		{
+			readUrl: (url: string) =>
+				Effect.sync(() => {
+					reads.push(url);
+					return {
+						url,
+						contentType: 'text/html',
+						body: `<html><body><p>${page.text}</p></body></html>`
+					};
+				})
+		},
+		[page.url, 'https://elsewhere.example.org/x'],
+		[page.url]
+	);
+	assert.deepEqual(
+		read.pages.map((row) => row.url),
+		[page.url]
+	);
+	assert.deepEqual(reads, [page.url], 'a page off the named origins is never fetched');
+	assert.equal(read.unreachable.length, 1);
+	assert.match(read.unreachable[0].reason, /only HTTPS pages on the origins the version names/);
 });
 
 const DOWN_URL = 'https://down.statutory.example.org/rates';
@@ -353,17 +278,16 @@ const partialReader = (failing: readonly string[]) => ({
 				})
 });
 
-/** Open a list of URLs the way the research agent does: through the tool, recording both outcomes. */
+/** Read a list of URLs the way the automation's verification does, recording both outcomes. */
 const openViaTool = async (
 	reader: unknown,
 	urls: readonly string[],
 	allowed: readonly string[] = urls
 ) => {
-	const pages: Array<Record<string, unknown>> = [];
-	const unreachable: Array<{ url: string; reason: string; retrieved_at: string }> = [];
-	const tool = statutoryResearchTool(reader, officialUrlFor(allowed), pages, unreachable);
-	for (const url of urls) await Effect.runPromise(Effect.exit(tool.run({ url })));
-	return { pages, unreachable };
+	const read = await Effect.runPromise(
+		verifyStatutorySources(reader, urls, officialUrlFor(allowed))
+	);
+	return { pages: [...read.pages], unreachable: [...read.unreachable] };
 };
 
 test('a source that fails to resolve is recorded with url, reason and time while the others are read', async () => {
@@ -407,12 +331,4 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 	assert.deepEqual(read.pages, []);
 	assert.equal(read.unreachable.length, 1);
 	assert.match(read.unreachable[0].reason, /browser challenge/);
-});
-
-test('a refusal of this module is a recorded reason too: an origin the version does not name', async () => {
-	const read = await openViaTool(partialReader([]), [page.url, DOWN_URL], [page.url]);
-	assert.equal(read.pages.length, 1);
-	assert.equal(read.unreachable.length, 1);
-	assert.equal(read.unreachable[0].url, DOWN_URL);
-	assert.match(read.unreachable[0].reason, /only HTTPS pages on the origins the version names/);
 });
