@@ -54,7 +54,8 @@ const WageComparandCategorySchema = Schema.Literals(['BASIC_WAGES', 'CASH_FOR_WO
 type WageComparandCategory = Schema.Schema.Type<typeof WageComparandCategorySchema>;
 
 const WageComparandComponentSchema = Schema.Struct({
-	nature: Schema.NullOr(Schema.String),
+	destination: Schema.NullOr(Schema.String),
+	direction: Schema.NullOr(Schema.String),
 	definition: Schema.NullOr(Schema.Struct({ source: Schema.String }))
 });
 type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
@@ -63,7 +64,7 @@ type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSc
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
 	const source = component.definition?.source;
 	if (source === 'SCHEDULE') return 'BASIC_WAGES';
-	if (component.nature === 'EARNING') return 'CASH_FOR_WORK';
+	if (component.destination === 'PAY' && component.direction !== 'SUBTRACT') return 'CASH_FOR_WORK';
 	return 'NOT_WAGES';
 }
 
@@ -76,10 +77,6 @@ export function classifyWageComparand(component: WageComparandComponent): WageCo
  * month from the day they join, and prorating the comparand would cover them for one month and
  * uncover them the next.
  *
- * `FORMULA` earnings are not counted: their amounts exist only once the component walk has run,
- * which happens after this test has decided who the walk prices overtime for. The under-inclusion
- * keeps an employee inside the ladder rather than outside it, which is the direction the statute
- * reads when doubtful. No seeded company carries a formula earning that a coverage ceiling tests.
  */
 type DeriveStatutoryWagesOptions = {
 	readonly baseSalary: MoneyValue;

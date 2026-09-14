@@ -12,10 +12,8 @@ import { Effect } from 'effect';
  * A run with no payslips is `DRAFT`. "Nothing to pay" is not "paid", and the create path refuses
  * to mark an empty run paid for the same reason.
  */
-const runLifecycleFromSlips = (
-	slips: readonly { readonly paid_at: unknown }[]
-): 'DRAFT' | 'PAID' =>
-	slips.length > 0 && slips.every((slip) => slip.paid_at != null) ? 'PAID' : 'DRAFT';
+const runLifecycleFromSlips = (slips: readonly { readonly status: unknown }[]): 'DRAFT' | 'PAID' =>
+	slips.length > 0 && slips.every((slip) => slip.status === 'PAID') ? 'PAID' : 'DRAFT';
 
 /**
  * Promote one run to `PAID` once every slip it holds carries a payment.
@@ -30,9 +28,9 @@ export const promoteRunIfFullyPaid = (
 			readonly payslips: {
 				readonly findMany: (query: {
 					readonly where: { readonly payroll_run_id: { readonly eq: string } };
-					readonly columns: { readonly paid_at: true };
+					readonly columns: { readonly status: true };
 					readonly limit: number;
-				}) => Effect.Effect<readonly { readonly paid_at: unknown }[]>;
+				}) => Effect.Effect<readonly { readonly status: unknown }[]>;
 			};
 			readonly payroll_runs: {
 				readonly findFirst: (query: {
@@ -50,7 +48,7 @@ export const promoteRunIfFullyPaid = (
 	Effect.gen(function* () {
 		const slips = yield* api.db.payslips.findMany({
 			where: { payroll_run_id: { eq: runId } },
-			columns: { paid_at: true },
+			columns: { status: true },
 			limit: 20_000
 		});
 		if (runLifecycleFromSlips(slips) !== 'PAID') return;

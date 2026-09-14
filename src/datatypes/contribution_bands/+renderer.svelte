@@ -4,10 +4,9 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
-	import SelectorRenderer from '../rate_selector/+renderer.svelte';
-	import AwardRenderer from '../rate_award/+renderer.svelte';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { contributionBandSchema } from './+definition.js';
+	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
 	import type { RendererProps, Value } from './$types.js';
 
 	let props: RendererProps = $props();
@@ -23,18 +22,12 @@
 	function edit(index: number, change: Partial<Value[number]>): void {
 		emit(rows.map((row, position) => (position === index ? { ...row, ...change } : row)));
 	}
-	/** Empty is everyone, and is stored as no key at all. */
-	function editEligibility(index: number, eligibility: string): void {
-		emit(
-			rows.map((row, position) => {
-				if (position !== index) return row;
-				const { eligibility: _previous, ...rest } = row;
-				return eligibility.trim() === '' ? rest : { ...rest, eligibility };
-			})
-		);
+	function remove(index: number): void {
+		emit(rows.filter((_row, position) => position !== index));
 	}
-	const selectorField = { name: 'selector', type: 'custom' };
-	const awardField = { name: 'award', type: 'custom' };
+	function add(): void {
+		emit([...rows, { when: 'base > 0.0', employee: '0.0', employer: '0.0' }]);
+	}
 </script>
 
 {#if props.mode === 'display'}
@@ -45,61 +38,44 @@
 		{#each rows as row, index (index)}
 			<Stack gap="sm" class="border-b border-border pb-3">
 				<Grid gap="md" minimum="panel">
-					<SelectorRenderer
-						mode="edit"
-						field={selectorField}
-						value={row.selector}
-						{disabled}
-						onValueChange={(selector) => {
-							if (selector != null) edit(index, { selector });
-						}}
-					/>
-					<AwardRenderer
-						mode="edit"
-						field={awardField}
-						value={row.award}
-						{disabled}
-						onValueChange={(award) => {
-							if (award != null) edit(index, { award });
-						}}
-					/>
-				</Grid>
-				<label class="text-sm font-medium">
 					<Stack gap="xs">
-						{t('component.band_eligibility')}
+						<span class="text-sm font-medium">{t('component.band_eligibility')}</span>
 						<Input
-							value={row.eligibility ?? ''}
+							value={row.when}
 							{disabled}
-							placeholder={'employee.citizenship == "FOREIGNER"'}
-							oninput={(event) => editEligibility(index, event.currentTarget.value)}
+							placeholder={'base > 0.0 && base <= 5000.0'}
+							oninput={(event) => edit(index, { when: event.currentTarget.value })}
 						/>
+						<ExpressionFields site="scheme" expression={row.when} type="boolean" />
 					</Stack>
-				</label>
-				<Cluster
-					><Button
-						variant="ghost"
-						size="sm"
-						{disabled}
-						onclick={() => emit(rows.filter((_, position) => position !== index))}
-						>{t('component.remove_rate_band')}</Button
-					></Cluster
-				>
+					<Stack gap="xs">
+						<span class="text-sm font-medium">{t('component.band_employee')}</span>
+						<Input
+							value={row.employee}
+							{disabled}
+							placeholder={'base * 11.0 / 100.0'}
+							oninput={(event) => edit(index, { employee: event.currentTarget.value })}
+						/>
+						<ExpressionFields site="scheme" expression={row.employee} type="number" />
+					</Stack>
+					<Stack gap="xs">
+						<span class="text-sm font-medium">{t('component.band_employer')}</span>
+						<Input
+							value={row.employer}
+							{disabled}
+							placeholder={'base * 13.0 / 100.0'}
+							oninput={(event) => edit(index, { employer: event.currentTarget.value })}
+						/>
+						<ExpressionFields site="scheme" expression={row.employer} type="number" />
+					</Stack>
+				</Grid>
+				<Button variant="ghost" size="sm" {disabled} onclick={() => remove(index)}>
+					{t('component.remove_rate_band')}
+				</Button>
 			</Stack>
 		{/each}
-		<Cluster
-			><Button
-				variant="outline"
-				size="sm"
-				{disabled}
-				onclick={() =>
-					emit([
-						...rows,
-						{
-							selector: { by: 'WAGE', from: 0, to: null },
-							award: { kind: 'PERCENT', employee: 0, employer: 0 }
-						}
-					])}>{t('component.add_rate_band')}</Button
-			></Cluster
-		>
+		<Button variant="outline" size="sm" {disabled} onclick={add}>
+			{t('component.add_rate_band')}
+		</Button>
 	</Stack>
 {/if}

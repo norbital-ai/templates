@@ -40,15 +40,32 @@ import {
 
 // ── 1. what a payslip captures ──────────────────────────────────────────────────────────────────
 
+const WORK = {
+	proration: { by: 'CALENDAR_DAYS' },
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
+	},
+	rates: { ordinary: [{ when: '', unit: 'DAY', divisor: 26 }], bands: [] },
+	limits: [],
+	breaks: [],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	holiday_rest_precedence: 'REST_DAY'
+};
+
 const JURISDICTION = {
 	id: 'jur-my',
 	code: 'MY',
-	currency: 'MYR',
-	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
-	tax_year_start_month: 1,
-	timezone: 'Asia/Kuala_Lumpur',
-	effective_range: { start: '2020-01-01', end: null }
+	jurisdiction_code: 'MY',
+	name: 'Malaysia',
+	payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+	wages: { by_region: {} },
+	sources: { urls: [] },
+	work_rules: WORK,
+	effective_range: { start: '2020-01-01', end: null },
+	sealed_at: '2020-01-01T00:00:00.000Z',
+	voided_at: null
 };
 
 const COMPANY = {
@@ -65,9 +82,9 @@ const BASIC = {
 	output: 'salary',
 	settings_id: 'jur-my',
 	code: 'BASIC',
-	nature: 'EARNING',
+	destination: 'PAY',
+	direction: 'ADD',
 	is_statutory: false,
-	contribution_treatments: {},
 	sequence: 10,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
@@ -147,18 +164,19 @@ function measure(overrides = {}) {
 		configuration: {
 			company: COMPANY,
 			jurisdiction: JURISDICTION,
-			work: { ...JURISDICTION, jurisdiction_code: 'MY' },
-			holidayRestPrecedence: 'REST_DAY',
-			leaveProfiles: [JURISDICTION],
+			work: { ...WORK, settings_id: JURISDICTION.id, jurisdiction_code: 'MY' },
+			holidayRestPrecedence: WORK.holiday_rest_precedence,
 			contributions: [],
-			treatments: new Map(),
 			catalogueComponents: [BASIC],
-			overtimeRules: [],
-			overtimeLimits: [],
+			limits: WORK.limits,
+			breaks: WORK.breaks,
+			nightPremium: null,
 			overtimeCoverageRule: null,
 			shiftById: new Map(),
 			patternById: new Map([['pattern-1', { id: 'pattern-1', code: 'PATTERN', pattern: PATTERN }]]),
 			holidays: new Map(),
+			holidaySnapshots: [],
+			holidayInputs: [],
 			catalogueLeaves: [],
 			hash: 'test'
 		},
@@ -278,7 +296,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 					base: [
 						{
 							catalogueComponent: { id: 'pc-salary' },
-							nature: 'EARNING',
+							bucket: 'EARNING',
 							label: 'BASIC',
 							amount: 1200,
 							entry: { component_code: 'BASIC', amount: 1200 }
@@ -288,7 +306,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 						{
 							input: { family: 'LOAN_REPAYMENT', id: 'rp-1' },
 							catalogueComponent: { id: 'pc-loan', code: 'LOAN' },
-							nature: 'DEDUCTION',
+							bucket: 'DEDUCTION',
 							label: 'LOAN',
 							amount: 80,
 							quantity: null,
@@ -300,7 +318,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 							// Derived overtime settles under the Work catalogue's own overtime output; the
 							// band that priced it is the label and the rule key beside it.
 							catalogueComponent: { id: 'pc-work:overtime', code: 'OVERTIME' },
-							nature: 'EARNING',
+							bucket: 'EARNING',
 							label: 'OT_ORDINARY_BEYOND_NORMAL_0',
 							amount: 74.66,
 							quantity: 3,
@@ -310,7 +328,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 						{
 							input: { family: 'LEAVE', id: 'lr-1' },
 							catalogueComponent: { id: 'pc-npl', code: 'NPL' },
-							nature: 'ABSENCE',
+							bucket: 'ABSENCE',
 							label: 'NPL',
 							amount: 25.8,
 							quantity: 1,
@@ -336,7 +354,8 @@ test('a run captures every record it consumed, and adjustments name the captures
 							gross_amount: { value: -25.8, currency: 'MYR' }
 						}
 					],
-					loanRepayments: ['rp-1']
+					loanRepayments: ['rp-1'],
+					materialised: []
 				}
 			}
 		]
@@ -355,14 +374,8 @@ test('a run captures every record it consumed, and adjustments name the captures
 	// multi-capture families as junction rows with the period holding them.
 	const captured = built.captures.find((row) => row.payslipId === payslip.id);
 	assert.deepEqual(captured.workDays, ['wd-1', 'wd-zero']);
-	assert.deepEqual(
-		payslip.payslip_leave_input_payslip.map((row) => [row.leave_entry_id, row.period !== '']),
-		[['lr-1', true]]
-	);
-	assert.deepEqual(
-		payslip.payslip_loan_repayment_input_payslip.map((row) => [row.loan_repayment_id]),
-		[['rp-1']]
-	);
+	assert.deepEqual(captured.leave, ['lr-1']);
+	assert.deepEqual(captured.loanRepayments, ['rp-1']);
 
 	const rows = payslip.adjustments;
 	for (const row of rows) assert.equal(Object.hasOwn(row, 'payslip_id'), false);
@@ -379,9 +392,9 @@ test('a run captures every record it consumed, and adjustments name the captures
 		...captured.workDays,
 		...captured.claims,
 		...captured.payments,
-		...payslip.payslip_allowance_request_input_payslip.map((row) => row.allowance_request_id),
-		...payslip.payslip_leave_input_payslip.map((row) => row.leave_entry_id),
-		...payslip.payslip_loan_repayment_input_payslip.map((row) => row.loan_repayment_id)
+		...captured.allowances,
+		...captured.leave,
+		...captured.loanRepayments
 	]);
 	for (const row of rows) assert.ok(capturedIds.has(row.source_id), row.source_id);
 	assert.equal(capturedIds.size, 4);
@@ -526,14 +539,14 @@ test('a DRAFT payroll run may be deleted, which is the only release the lock has
 test('deleting a payroll run releases its captures — the declarations that cascade', () => {
 	/**
 	 * What this asserts is the *declaration*, and the title says so because the distinction is real:
-	 * the multi-hop cascade — run → payslips → junctions and adjustments — is performed by Postgres,
-	 * and what this workspace controls is that each hop is declared. A single `cascade(` wrapper is
-	 * the whole of that declaration: the compiler turns it into `ON DELETE CASCADE` in the migration
-	 * lineage.
+	 * the cascade — run → payslips — is performed by Postgres, and what this workspace controls is
+	 * that the hop is declared. A single `cascade(` wrapper is the whole of that declaration: the
+	 * compiler turns it into `ON DELETE CASCADE` in the migration lineage.
 	 *
-	 * The alternative — a hook looping over `api.db.<collection>.delete(identifiers)` — would have
-	 * been wrong in a way no happy-path test catches, because that call takes `identifiers[0]` and
-	 * drops the rest: the release would free one claim out of several hundred and report success.
+	 * The pins are the other half. Every entry family carries a nullable `payslip_id` column, and
+	 * deleting a draft run clears it: the pin is a plain column, never a relationship edge. An edge
+	 * from `payslips` into an entry would delete the consumed source instead of releasing it, which
+	 * is the opposite of the lock. The guard below fails if such an edge ever appears.
 	 *
 	 * The marker is read the only way it can be read from outside the authoring package.
 	 */
@@ -550,38 +563,24 @@ test('deleting a payroll run releases its captures — the declarations that cas
 	const markersOf = (edge) =>
 		Object.getOwnPropertySymbols(edge).map((symbol) => Reflect.get(edge, symbol));
 
-	for (const [edge, name] of [
-		[graph.payslip_allowance_request_inputs.payslip_allowance_request_input_payslip, 'allowance'],
-		[graph.payslip_leave_inputs.payslip_leave_input_payslip, 'leave'],
-		[graph.payslip_loan_repayment_inputs.payslip_loan_repayment_input_payslip, 'loan repayment']
-	])
-		assert.ok(
-			markersOf(edge).includes('cascade'),
-			`${name} captures must cascade from payslips, or deleting a run leaves the source locked`
-		);
-	// The first hop, asserted beside it so the chain is visibly one chain.
-	assert.ok(markersOf(graph.payslips.payslip_payroll_run).includes('cascade'));
+	assert.ok(
+		markersOf(graph.payslips.payslip_payroll_run).includes('cascade'),
+		'a payslip must cascade from its run, or deleting a run leaves orphan payslips'
+	);
 
-	/**
-	 * And the edges that must NOT cascade, asserted for the same reason.
-	 *
-	 * The junction's source edge is `restrict`: a captured work day, pay request, loan repayment or
-	 * leave request cannot be deleted out from under the run that read it. That restrict is the
-	 * settlement lock's second half, and it has to hold on every request family — one of them
-	 * cascading would erase a consumed record when its payslip went.
-	 */
-	for (const [edge, name] of [
-		[
-			graph.payslip_allowance_request_inputs.payslip_allowance_request_input_allowance_request,
-			'allowance requests'
-		],
-		[graph.payslip_leave_inputs.leave_input_leave_entry, 'leave requests'],
-		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments']
-	]) {
-		assert.equal(
-			markersOf(edge).includes('cascade'),
-			false,
-			`${name} must not cascade into the junction's source, or deleting it would erase a consumed record`
-		);
-	}
+	for (const family of [
+		'claim_requests',
+		'allowance_requests',
+		'payment_requests',
+		'leave_entries',
+		'loan_repayments'
+	] as const)
+		for (const [name, edge] of Object.entries(graph[family] ?? {}))
+			assert.equal(
+				typeof edge === 'object' && edge !== null && 'to' in (edge as object)
+					? String(Reflect.get(edge as object, 'to'))
+					: name,
+				name,
+				`${family}.${name} must stay a plain pin, not a relationship edge`
+			);
 });

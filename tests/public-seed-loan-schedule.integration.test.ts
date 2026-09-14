@@ -107,8 +107,8 @@ test(
 			assert.ok(settings, 'the public seed carries a component catalogue');
 			await session.query(
 				`insert into loan_catalogue
-				 (id, settings_id, code, contribution_treatments, sequence, eligibility)
-				 values ($1, $2, 'LOAN_RECOVERY', '{}'::jsonb, 90, '')`,
+				 (id, settings_id, code, loan_type, sequence, eligibility)
+				 values ($1, $2, 'LOAN_RECOVERY', 'STAFF', 90, '')`,
 				[COMPONENT_ID, settings.settings_id]
 			);
 			await session.query(
@@ -486,10 +486,10 @@ test(
 				values ($1, $2, $3, '2026-04-30', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, 0, 0, 0, 0, 'MYR')`,
 				[payslipId, runId, EMPLOYMENT_ID]
 			);
-			await session.query(
-				`insert into payslip_loan_repayment_inputs (id, payslip_id, loan_repayment_id, period) values ($1, $2, $3, '2026-04')`,
-				[crypto.randomUUID(), payslipId, captured.id]
-			);
+			await session.query(`update loan_repayments set payslip_id = $1 where id = $2`, [
+				payslipId,
+				captured.id
+			]);
 			const [capturePreimage] = await session.query(
 				`select to_jsonb(r) as record, current_setting('TimeZone') as time_zone
 				 from loan_repayments r where id = $1`,
@@ -533,7 +533,7 @@ test(
 					]
 				),
 				'captured repayment instant change',
-				/payroll 2026-04 has already taken/
+				/settled by a payroll and cannot be changed/
 			);
 			refusedWith(
 				await write(
@@ -547,17 +547,17 @@ test(
 					]
 				),
 				'captured repayment edit',
-				/payroll 2026-04 has already taken/
+				/settled by a payroll and cannot be changed/
 			);
 			refusedWith(
 				await remove('loan_repayments', [captured.id]),
 				'captured repayment deletion',
-				/payroll 2026-04 has already taken/
+				/settled by a payroll and cannot be deleted/
 			);
 			refusedWith(
 				await remove('loans', [LOAN_ID]),
 				'captured agreement deletion',
-				/payroll 2026-04 has already taken/
+				/settled by a payroll and cannot be deleted|payroll 2026-04 has already taken/
 			);
 			assert.deepEqual(
 				(await schedule(session)).map((row) => row.amount_due),

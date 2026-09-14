@@ -213,7 +213,7 @@ test('manual carry validates its source debit and destination availability witho
 test('calendar padding and a policy’s later start do not prevent previewing its covered month', () => {
 	const context = leaveContext();
 	context.versions[0]!.effective_range = { start: '2026-12-15', end: null };
-	const input = { employment_id: id(1), leave_catalogue_id: id(7), calendar_month: '2026-12' };
+	const input = { employment_id: id(1), catalogue_id: id(7), calendar_month: '2026-12' };
 	const preview = evaluateLeavePreview(context, input);
 	assert.equal(preview.remaining_days, 12);
 	assert.equal(preview.availability['2026-11-30']?.eligible, false);

@@ -6,15 +6,29 @@ import { calculateFamilies } from '../src/lib/payroll/families.ts';
 
 const APRIL = { start: '2026-04-01', end: '2026-04-30' };
 const ATTENDANCE = { start: '2026-03-21', end: '2026-04-20' };
+const WORK = {
+	proration: { by: 'CALENDAR_DAYS' },
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
+	},
+	rates: { ordinary: [{ when: '', unit: 'DAY', divisor: 26 }], bands: [] },
+	limits: [],
+	breaks: [],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	holiday_rest_precedence: 'REST_DAY'
+};
 const BASIC = {
 	id: 'work-salary',
 	settings_id: 'settings',
 	family: 'WORK',
 	output: 'salary',
 	code: 'BASIC',
-	nature: 'EARNING',
+	destination: 'PAY',
+	direction: 'ADD',
 	is_statutory: false,
-	contribution_treatments: {},
+	optIns: [],
 	sequence: 10,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
@@ -26,10 +40,13 @@ const NPL = {
 	name: 'Unpaid leave',
 	is_statutory: false,
 	eligibility: '',
-	requires_certificate_after_days: null,
+	evidence: 'NONE',
+	evidence_after_days: null,
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
 	paid: false,
-	treatments: {}
+	destination: 'PAY',
+	direction: 'SUBTRACT',
+	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }]
 };
 const TERM = {
 	id: 'terms-1',
@@ -48,7 +65,7 @@ function leaveEntry(id, dates) {
 	const charges = dates.map((date) => ({
 		date,
 		days: 1,
-		leave_catalogue_id: NPL.id,
+		catalogue_id: NPL.id,
 		employment_term_id: TERM.id,
 		holiday_id: null,
 		shift_definition_id: null,
@@ -57,7 +74,7 @@ function leaveEntry(id, dates) {
 	return {
 		id,
 		employment_id: TERM.employment_id,
-		leave_catalogue_id: NPL.id,
+		catalogue_id: NPL.id,
 		leave_code: NPL.code,
 		reference: id,
 		event: {
@@ -125,18 +142,24 @@ function measure(entries) {
 				pay_cutoff_day: 21,
 				risk_class: null
 			},
-			jurisdiction: { id: 'settings', code: 'TEST', currency: 'MYR', tax_year_start_month: 1 },
-			work: {
-				jurisdiction_code: 'TEST',
-				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }]
+			jurisdiction: {
+				id: 'settings',
+				code: 'TEST',
+				payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+				wages: { by_region: {} },
+				effective_range: { start: '2020-01-01', end: null }
 			},
-			holidayRestPrecedence: 'REST_DAY',
+			work: {
+				...WORK,
+				settings_id: 'settings',
+				jurisdiction_code: 'TEST'
+			},
+			holidayRestPrecedence: WORK.holiday_rest_precedence,
 			contributions: [],
-			treatments: new Map(),
 			catalogueComponents: [BASIC],
-			overtimeRules: [],
-			overtimeLimits: [],
+			limits: WORK.limits,
+			breaks: WORK.breaks,
+			nightPremium: null,
 			overtimeCoverageRule: null,
 			shiftById: new Map(),
 			patternById: new Map([
@@ -158,6 +181,8 @@ function measure(entries) {
 				]
 			]),
 			holidays: new Map(),
+			holidaySnapshots: [],
+			holidayInputs: [],
 			catalogueLeaves: [NPL],
 			hash: 'test'
 		},
@@ -212,15 +237,20 @@ test('three approved entries retain three dated deductions and their exact total
 	);
 });
 
-test('an entry spanning the cutoff captures only its approved dates inside this payroll window', () => {
+test('period-split leave captures each period’s own approved dates with its own denominator', () => {
+	// A time-off entry settles whole in one window now, so the split is two entries — and each
+	// still prices its own date against its own salary month’s denominator.
 	const measured = measure([
-		leaveEntry('leave-spanning', ['2026-03-20', '2026-03-21', '2026-04-05', '2026-04-21'])
+		leaveEntry('leave-march', ['2026-03-21']),
+		leaveEntry('leave-april', ['2026-04-05'])
 	]);
-	assert.equal(measured.captured.leave.length, 1);
-	assert.equal(measured.captured.leave[0].leave_entry_id, 'leave-spanning');
+	assert.equal(measured.captured.leave.length, 2);
 	assert.deepEqual(
-		measured.captured.leave[0].charges.map((row) => row.date),
-		['2026-03-21', '2026-04-05']
+		measured.captured.leave.map((row) => [row.leave_entry_id, row.charges.map((c) => c.date)]),
+		[
+			['leave-march', ['2026-03-21']],
+			['leave-april', ['2026-04-05']]
+		]
 	);
 	assert.deepEqual(
 		measured.adjustments.map((row) => row.amount),

@@ -2,10 +2,16 @@ import { formatNumeric } from '../../lib/ui/display-formatters.js';
 
 type PayslipAmountColumn = 'gross' | 'total_deductions' | 'net' | 'employer_cost';
 
+export type PayslipStatus = 'DRAFT' | 'ON_HOLD' | 'PAID';
+
 export interface PayrollRunPayslipRow {
 	readonly id: string;
+	readonly payroll_run_id: string;
 	readonly employment_id: string;
 	readonly currency: string;
+	/** The raw column is a string; the per-slip actions compare it to the three known states. */
+	readonly status: string;
+	readonly paid_at: string | null;
 	readonly gross: unknown;
 	readonly total_deductions: unknown;
 	readonly net: unknown;
@@ -17,15 +23,19 @@ export interface PayrollRunPayslipRow {
  * The complete projection the payroll-run collection table renders.
  *
  * Keeping it explicit prevents a relation-only projection from leaving the four stored totals out
- * of the row and painting placeholders for money that is present on the payslip.
+ * of the row and painting placeholders for money that is present on the payslip. `status` and
+ * `paid_at` ride along because the per-slip actions read them to decide which transition to offer.
  */
 export function payrollRunPayslipsQuery(payrollRunId: string) {
 	return {
 		where: { payroll_run_id: { eq: payrollRunId } },
 		columns: {
 			id: true,
+			payroll_run_id: true,
 			employment_id: true,
 			currency: true,
+			status: true,
+			paid_at: true,
 			gross: true,
 			total_deductions: true,
 			net: true,

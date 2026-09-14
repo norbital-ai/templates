@@ -24,7 +24,7 @@ test(
 			const created = await createLeave(session, {
 				id,
 				reference: 'HOSPITAL-ADMISSION',
-				leave_catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
+				catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
 				event: {
 					kind: 'TIME_OFF',
 					range: {

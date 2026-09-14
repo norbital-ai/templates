@@ -2,7 +2,7 @@ import { resolveEmployment } from '../lib/employment-contract.js';
 import { defineQueryHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Clock, Effect, Schema } from 'effect';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../lib/ui/calendar.js';
-import { inForceOnDay } from '../lib/effective_range.js';
+import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../lib/iso-day.js';
 import type { Api } from './$types.js';
 import {
@@ -75,7 +75,7 @@ export default defineQueryHandler({
 				.filter(
 					(employment) =>
 						employment.company_id === company_id &&
-						inForceOnDay(employment.effective_range, today) &&
+						coversDate(employment.effective_range, today) &&
 						dateKey(employment.hire_date) <= today &&
 						(employment.exit_date == null || dateKey(employment.exit_date) >= today)
 				);

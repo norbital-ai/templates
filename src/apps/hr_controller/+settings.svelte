@@ -36,6 +36,7 @@
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 	import { newestFirst } from '../../lib/jurisdiction_settings.js';
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
+	import WorkRulesRenderer from '../../datatypes/work_rules/+renderer.svelte';
 	import JurisdictionScopeCombobox from './JurisdictionScopeCombobox.svelte';
 	import SnapshotChanges from './SnapshotChanges.svelte';
 	import {
@@ -117,7 +118,7 @@
 				<Column name="name" label={t('component.name')} card="subtitle" />
 				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
 				<Column name="sequence" label={t('component.order')} />
-				<Column name="rounding" label={t('component.rounding')} />
+				<Column name="assessment_period" label={t('component.assessment_period')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -129,17 +130,16 @@
 	description: string
 )}
 	<!--
-		Four catalogues, one table. They are the same kind of thing — a pay line definition — and the
-		family is the table rather than a column on it; a loan is the one with no nature, because a
-		recovery is always a deduction. Four copies of this markup would be four places for the
-		sequence column to go missing from one. `leave_catalogue` is not one of them: its row is a
-		leave first and a pay line second, so it has its own snippet below.
+		Four catalogues, one table. They share one spine — a code, its destination and direction,
+		its place in the reduction order and who it covers — and the family is the table rather than
+		a column on it. Four copies of this markup would be four places for the sequence column to go
+		missing from one. `leave_catalogue` is not one of them: its row is a leave first and a pay
+		line second, so it has its own snippet below.
 	-->
 	{#if selectedVersion}
-		<!-- A loan row is the money row minus four columns; the loan branch shows only the shared ones. -->
 		<CollectionTable
 			{client}
-			collection={collection as Exclude<typeof collection, 'loan_catalogue'>}
+			{collection}
 			view={`hr_controller:settings:${collection}`}
 			{title}
 			{description}
@@ -150,12 +150,10 @@
 		>
 			{#snippet columns({ Column })}
 				<Column name="code" label={t('component.code')} card="title" />
-				{#if collection !== 'loan_catalogue'}
-					<Column name="nature" label={t('component.economic_type')} card="subtitle" />
-				{/if}
+				<Column name="destination" label={t('component.economic_type')} card="subtitle" />
+				<Column name="direction" label={t('component.settlement')} />
 				<Column name="sequence" label={t('component.order')} />
 				<Column name="eligibility" label={t('component.who_receives')} />
-				<Column name="contribution_treatments" label={t('component.contribution_treatments')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -163,19 +161,16 @@
 
 {#snippet workRules()}
 	{#if selectedVersion}
-		<CollectionTable
-			{client}
-			collection="work_catalogue"
-			view="hr_controller:settings:work_catalogue"
-			description={t('app.settings.work_catalogue_description')}
-			query={{ where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } } }}
-		>
-			{#snippet columns({ Column })}
-				<Column name="proration" label={t('component.proration_basis')} card="title" />
-				<Column name="ordinary_rate" label={t('component.ordinary_rate')} />
-				<Column name="regime" label={t('component.work_section_overtime')} />
-			{/snippet}
-		</CollectionTable>
+		<!-- The rules live on the version root (RFC 0001 §4) and are edited with it under General;
+		     this tab reads the same value for the shift vocabulary beside it. -->
+		<div class="flex flex-col gap-2">
+			<p class="text-meta">{t('app.settings.work_rules_edit_hint')}</p>
+			<WorkRulesRenderer
+				mode="display"
+				field={{ name: 'work_rules', type: 'work_rules' }}
+				value={selectedVersion.work_rules}
+			/>
+		</div>
 	{/if}
 {/snippet}
 
@@ -189,13 +184,14 @@
 			view={`hr_controller:settings:shift_definitions:${selectedVersion.code}`}
 			description={t('app.scheduling.shift_intro')}
 			query={{
-				where: { settings_code: { eq: selectedVersion.code }, approval_id: { isNull: true } },
+				where: { approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
 			}}
 		>
 			{#snippet columns({ Column })}
 				<Column name="code" card="title" />
 				<Column name="name" card="subtitle" />
+				<Column name="company_id" label={t('component.company')} />
 				<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
 				<Column name="effective_range" label={t('component.effective')} />
 			{/snippet}
@@ -211,13 +207,14 @@
 			view={`hr_controller:settings:shift_patterns:${selectedVersion.code}`}
 			description={t('app.scheduling.pattern_intro')}
 			query={{
-				where: { settings_code: { eq: selectedVersion.code }, approval_id: { isNull: true } },
+				where: { approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
 			}}
 		>
 			{#snippet columns({ Column })}
 				<Column name="code" card="title" />
 				<Column name="name" card="subtitle" />
+				<Column name="company_id" label={t('component.company')} />
 				<Column name="pattern" label={t('component.work_pattern')} />
 				<Column name="effective_range" label={t('component.effective')} />
 			{/snippet}
@@ -328,8 +325,8 @@
 				content: contributions
 			},
 			{
-				name: 'work_catalogue',
-				label: t('app.settings.work_catalogue'),
+				name: 'work_rules',
+				label: t('app.settings.work_rules'),
 				icon: 'lucide:receipt',
 				content: catalogueWork
 			},

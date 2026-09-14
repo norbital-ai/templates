@@ -7,11 +7,32 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
-import {
-	JURISDICTION_OPERATOR_HIDDEN_FIELDS,
-	JURISDICTION_OPERATOR_VISIBLE_FIELDS,
-	jurisdictionOperatorFieldNames
-} from '../src/collections/jurisdiction_settings/operator-form.ts';
+
+/**
+ * The operator-visible settings vocabulary after RFC 0001. The form module is gone; its field
+ * lists live here and are checked against the live manifest, which is what the form renders from.
+ */
+const JURISDICTION_OPERATOR_HIDDEN_FIELDS = [
+	'sealed_at',
+	'voided_at',
+	'void_reason',
+	'cloned_from_id'
+] as const;
+const JURISDICTION_OPERATOR_VISIBLE_FIELDS = [
+	'code',
+	'jurisdiction_code',
+	'name',
+	'payroll',
+	'wages',
+	'sources',
+	'work_rules',
+	'effective_range',
+	'change_summary'
+] as const;
+const jurisdictionOperatorFieldNames = (): readonly string[] => [
+	...JURISDICTION_OPERATOR_VISIBLE_FIELDS,
+	...JURISDICTION_OPERATOR_HIDDEN_FIELDS
+];
 
 const fieldName = (value: unknown): string | undefined => {
 	if (typeof value === 'string' && value.length > 0) return value;
@@ -76,7 +97,7 @@ test(
 			const catalog = mutationFieldNames(settings.fields);
 			assert.deepEqual(
 				[...JURISDICTION_OPERATOR_HIDDEN_FIELDS],
-				['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id', 'research_notes']
+				['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id']
 			);
 			assert.deepEqual(
 				[...JURISDICTION_OPERATOR_VISIBLE_FIELDS],
@@ -84,12 +105,11 @@ test(
 					'code',
 					'jurisdiction_code',
 					'name',
-					'currency',
-					'tax_year_start_month',
-					'timezone',
+					'payroll',
+					'wages',
+					'sources',
+					'work_rules',
 					'effective_range',
-					'minimum_wages',
-					'research_urls',
 					'change_summary'
 				]
 			);

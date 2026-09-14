@@ -78,7 +78,7 @@ export function buildOffboardingWrites(options: {
 		return [
 			{
 				employment_id: employmentId,
-				leave_catalogue_id: summary.catalogue_id,
+				catalogue_id: summary.catalogue_id,
 				reference: exitReference(employmentId, summary.code),
 				event: {
 					kind: 'ENCASHMENT',

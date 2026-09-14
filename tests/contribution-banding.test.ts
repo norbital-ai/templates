@@ -1,17 +1,16 @@
 /**
  * Which band a statutory contribution is read on, and what that band then charges.
  *
- * Nothing tested this. `scripts/verify-payroll-arithmetic.mjs` imports `selectBand`, `bandFloor`,
- * `contribute` and `scaleProgressive` and never calls any of them, and the public seed carries two
- * schemes with one open-ended `{ by: 'WAGE', from: 0, to: null }` band apiece — so no seeded
- * scenario has ever had a second tier to choose between. Every decision below is one the source
- * calls out as expensive to get wrong, and each was unguarded:
+ * The engine's bands are expressions now (RFC 0001 §8): the first band whose `when` holds governs,
+ * and the band's `employee`/`employer` expressions produce the money. Every decision below is one
+ * the source calls out as expensive to get wrong:
  *
  *   E3   a wage band is chosen by its **ceiling**, because the published schedules read "wages
- *        exceeding X but not exceeding Y". Keying on the floor moves every SOCSO and EIS figure by
- *        one band, on every payslip in the company.
- *   E24  a wage above every ceiling is an **error**. A ceiling is an open-ended terminal band, not
- *        the absence of one; quietly reusing the last finite band is a wrong-answer generator.
+ *        exceeding X but not exceeding Y". A seeded rung is inclusive at its top (`base <= 4800.0`)
+ *        and exclusive at its floor (`base > 3000.0`), so a wage exactly on a boundary belongs to
+ *        the band that ends there.
+ *   E24  a wage no band matches is an **error**. A terminal rung is an open-ended condition
+ *        (`base > 4800.0`); reusing the last finite rung is a wrong-answer generator.
  *   E1   a progressive band's `constant` is the **accumulated** charge on every band below it, not
  *        a flat addend. Read as an addend, a chargeable income of 44,111.40 yields 3,246.68 where
  *        the answer is 1,146.68 — a 175.00 monthly error that grows without bound.
@@ -19,19 +18,14 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	bandCeiling,
-	bandFloor,
-	bandReference,
-	selectBand,
-	type BandContext
-} from '../src/collections/payroll_runs/lib/bands.ts';
+import { selectBand } from '../src/collections/payroll_runs/lib/bands.ts';
 import { contribute, scaleProgressive } from '../src/collections/payroll_runs/lib/contribute.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
-import type {
-	ContributionConfig,
-	ContributionRate
-} from '../src/collections/payroll_runs/lib/configuration.ts';
+import { runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
+import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
+import type { StatutoryRules } from '../src/datatypes/statutory_rules/+definition.ts';
+
+const engine = runtimeExpressionEngine({ minimumWage: (region) => (region === 'I' ? 2500 : 0) });
 
 /** A person with nothing recorded, and one with a standing a predicate can read. */
 const NOBODY = personContext({
@@ -47,44 +41,66 @@ const FOREIGNER = personContext({
 	company: { region: 'I' },
 	asOf: '2026-03-31'
 });
-
-const rate = (
-	selector: ContributionRate['selector'],
-	award: ContributionRate['award']
-): ContributionRate => ({ selector, award }) as ContributionRate;
-
-const wage = (from: number, to: number | null): ContributionRate['selector'] =>
-	({ by: 'WAGE', from, to }) as ContributionRate['selector'];
-
-const percent = (employee: number, employer: number): ContributionRate['award'] =>
-	({ kind: 'PERCENT', employee, employer }) as ContributionRate['award'];
-
-const context = (base: number, over: Partial<BandContext> = {}): BandContext => ({
-	base,
-	age: null,
-	headcount: 10,
-	riskClass: null,
-	person: NOBODY,
-	...over
+const FAMILY = personContext({
+	employee: { dependents_count: 4, spouse_status: 'NONE' },
+	employment: { hire_date: '2024-01-01' },
+	terms: null,
+	asOf: '2026-03-31'
+});
+const SINGLE = personContext({
+	employee: { dependents_count: 0, spouse_status: 'NONE' },
+	employment: { hire_date: '2024-01-01' },
+	terms: null,
+	asOf: '2026-03-31'
 });
 
-/** One scheme as `contribute` reads it: a code, its bands, no special rules. */
+type Band = ContributionConfig['rates'][number];
+const band = (when: string, employee: string, employer: string): Band => ({
+	when,
+	employee,
+	employer
+});
+const percent = (when: string, employee: number, employer: number): Band =>
+	band(when, `base * ${employee}.0 / 100.0`, `base * ${employer}.0 / 100.0`);
+
+/** Two closed bands and an open terminal one, in the declaration order the engine reads. */
+const LADDER = [
+	percent('base <= 3000.0', 1, 2),
+	percent('base > 3000.0 && base <= 4800.0', 3, 4),
+	percent('base > 4800.0', 5, 6)
+];
+
+const DEFAULT_RULES: StatutoryRules = {
+	relief: '',
+	base_transform: '',
+	share_for_dependants: '',
+	rounding: ['NEAREST_CENT'],
+	no_withholding_below: 0,
+	use_period_table: true,
+	additional_remuneration_channel: false,
+	employee_share_annual_cap: null,
+	shared_cap_group: null,
+	project_relief_annually: false,
+	total_rounded_employee_floored: false
+};
+
+/** One scheme as `contribute` reads it: a code, its bands, and the rules that wrap them. */
 const schemeOf = (
 	code: string,
-	rates: readonly ContributionRate[],
-	row: Record<string, unknown> = {}
+	rates: readonly Band[],
+	rules: Partial<StatutoryRules> = {}
 ): ContributionConfig =>
 	({
 		row: {
 			id: `id-${code}`,
 			code,
-			rounding: 'NEAREST_CENT',
-			relief_for: [],
-			special_rules: [],
+			assessment_period: 'PAY_PERIOD',
 			eligibility: '',
-			...row
+			rules: { ...DEFAULT_RULES, ...rules },
+			bands: rates
 		},
-		rates
+		rates,
+		relievedIds: []
 	}) as unknown as ContributionConfig;
 
 const charge = (
@@ -100,106 +116,112 @@ const charge = (
 		headcount: 10,
 		riskClass: null,
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
-		spouseIsDependent: false,
-		dependents: 0,
 		person: NOBODY,
 		minimumWage: null,
 		...over
 	});
 
-/** Two closed bands and an open terminal one, in the ascending-ceiling order the engine promises. */
-const LADDER = [
-	rate(wage(0, 3000), percent(1, 2)),
-	rate(wage(3000, 4800), percent(3, 4)),
-	rate(wage(4800, null), percent(5, 6))
-];
-
 test('a wage exactly on a boundary belongs to the band that ends there, not the one that starts', () => {
-	// E3. 4800.00 reads as "exceeding 3000 but not exceeding 4800", which is the middle band.
-	assert.equal(bandReference(selectBand(LADDER, context(4800), 'PUB').selector), '3000 – 4800');
-	// A cent more crosses into the next one, which is the whole of what the boundary means.
-	assert.equal(bandReference(selectBand(LADDER, context(4800.01), 'PUB').selector), '4800 – ∞');
-	assert.equal(bandReference(selectBand(LADDER, context(3000), 'PUB').selector), '0 – 3000');
-	assert.equal(bandReference(selectBand(LADDER, context(3000.01), 'PUB').selector), '3000 – 4800');
-});
-
-test('the band chosen is the one whose award is charged, so a boundary is money', () => {
-	assert.deepEqual(selectBand(LADDER, context(4800), 'PUB').award, {
-		kind: 'PERCENT',
-		employee: 3,
-		employer: 4
-	});
-	assert.deepEqual(selectBand(LADDER, context(4800.01), 'PUB').award, {
-		kind: 'PERCENT',
-		employee: 5,
-		employer: 6
-	});
-});
-
-test('a wage above every ceiling is refused by name, never folded into the last band', () => {
-	// E24. Closed ladder: the schedule states no terminal band, so a wage past it has no answer.
-	const closed = [rate(wage(0, 3000), percent(1, 2)), rate(wage(3000, 4800), percent(3, 4))];
-	assert.throws(
-		() => selectBand(closed, context(5000), 'PUB'),
-		/PUB has no band covering a base of 5000: the highest band ends at 4800/
+	// E3. 4,800.00 reads as "exceeding 3,000 but not exceeding 4,800", which is the middle band.
+	assert.equal(
+		selectBand(LADDER, { base: 4800 }, engine, 'PUB').when,
+		'base > 3000.0 && base <= 4800.0'
 	);
-	assert.throws(() => selectBand(closed, context(5000), 'PUB'), /open-ended terminal band/);
+	// A cent more crosses into the next one, which is the whole of what the boundary means.
+	assert.equal(selectBand(LADDER, { base: 4800.01 }, engine, 'PUB').when, 'base > 4800.0');
+	assert.equal(selectBand(LADDER, { base: 3000 }, engine, 'PUB').when, 'base <= 3000.0');
+	assert.equal(
+		selectBand(LADDER, { base: 3000.01 }, engine, 'PUB').when,
+		'base > 3000.0 && base <= 4800.0'
+	);
 });
 
-test('a combination no band admits is refused rather than charged on the nearest one', () => {
+test('the band chosen is the one whose money is charged, so a boundary is money', () => {
+	assert.deepEqual(selectBand(LADDER, { base: 4800 }, engine, 'PUB'), {
+		when: 'base > 3000.0 && base <= 4800.0',
+		employee: 'base * 3.0 / 100.0',
+		employer: 'base * 4.0 / 100.0'
+	});
+	assert.equal(charge([schemeOf('PUB', LADDER)], 4800)[0]!.employee, 144);
+	assert.equal(
+		charge([schemeOf('PUB', LADDER)], 4800.01)[0]!.employee,
+		240,
+		'5% of 4,800.01, to the cent'
+	);
+});
+
+test('a wage no band matches is refused by name, never folded into the last band', () => {
+	// E24. A closed ladder states no terminal rung, so a wage past it has no answer.
+	const closed = [
+		percent('base <= 3000.0', 1, 2),
+		percent('base > 3000.0 && base <= 4800.0', 3, 4)
+	];
+	assert.throws(
+		() => selectBand(closed, { base: 5000 }, engine, 'PUB'),
+		/PUB has no band whose condition holds for a base of 5000/
+	);
+	assert.throws(() => selectBand([], { base: 5000 }, engine, 'PUB'), /no band whose condition/);
+});
+
+test('an age condition filters before the wage, and the year named by `age_to` opens the next band', () => {
 	const aged = [
-		rate(
-			{ by: 'WAGE_AND_AGE', from: 0, to: null, age_from: 0, age_to: 60 } as never,
-			percent(11, 13)
+		band('base >= 0.0 && age >= 0.0 && age < 60.0', 'base * 11.0 / 100.0', 'base * 13.0 / 100.0'),
+		band('base >= 0.0 && age >= 60.0', 'base * 6.5 / 100.0', 'base * 8.0 / 100.0')
+	];
+	assert.equal(
+		selectBand(aged, { base: 3000, age: 45 }, engine, 'PUB').employee,
+		'base * 11.0 / 100.0'
+	);
+	assert.equal(
+		selectBand(aged, { base: 3000, age: 0 }, engine, 'PUB').employee,
+		'base * 11.0 / 100.0'
+	);
+	assert.equal(
+		selectBand(aged, { base: 3000, age: 59 }, engine, 'PUB').employee,
+		'base * 11.0 / 100.0'
+	);
+	assert.equal(
+		selectBand(aged, { base: 3000, age: 60 }, engine, 'PUB').employee,
+		'base * 6.5 / 100.0'
+	);
+	// The window is half-open — `[age_from, age_to)` — so a one-band ladder refuses the year above it.
+	const only = [aged[0]!];
+	assert.throws(
+		() => selectBand(only, { base: 3000, age: 61 }, engine, 'PUB'),
+		/no band whose condition/
+	);
+});
+
+test('a condition over the person is read exactly as written', () => {
+	// A scale published twice, once per marital category, is two conditions over one wage.
+	const scale = [
+		band('person.employee.marital_status != "MARRIED"', 'base * 7.0 / 100.0', '0.0'),
+		band('person.employee.marital_status == "MARRIED"', 'base * 4.0 / 100.0', '0.0')
+	];
+	const nobody = { base: 3000, person: NOBODY, age: 40, headcount: 1, risk_class: '' };
+	const married = { ...nobody, person: FOREIGNER };
+	assert.equal(selectBand(scale, nobody, engine, 'PUB').employee, 'base * 7.0 / 100.0');
+	assert.equal(selectBand(scale, married, engine, 'PUB').employee, 'base * 4.0 / 100.0');
+	// A residency ladder: the first year reads one rate, the second another.
+	const cpf = [
+		band('person.employee.residency_months < 12.0', 'base * 5.0 / 100.0', '0.0'),
+		band(
+			'person.employee.residency_months >= 12.0 && person.employee.residency_months < 24.0',
+			'base * 15.0 / 100.0',
+			'0.0'
 		)
 	];
-	assert.equal(selectBand(aged, context(3000, { age: 45 }), 'PUB').award.employee, 11);
-	assert.throws(
-		() => selectBand(aged, context(3000, { age: 61 }), 'PUB'),
-		/PUB has no band for a base of 3000 at age 61/
-	);
-	// Age is a filter applied before the wage ceiling, so an unknown age matches no age band at all.
-	assert.throws(() => selectBand(aged, context(3000), 'PUB'), /no band for a base of 3000/);
-	// The boundary itself, which the two probes above straddle without touching. An age window is
-	// half-open — `[age_from, age_to)` — so the year named by `age_to` belongs to the NEXT band. A
-	// seeded ladder is written against this rule: Singapore's CPF bands were authored a year high
-	// and every probe in the suite sat mid-band, so eleven months of every senior employee's
-	// contributions were charged on the ladder below theirs and nothing failed.
-	assert.equal(selectBand(aged, context(3000, { age: 0 }), 'PUB').award.employee, 11);
-	assert.equal(selectBand(aged, context(3000, { age: 59 }), 'PUB').award.employee, 11);
-	assert.throws(
-		() => selectBand(aged, context(3000, { age: 60 }), 'PUB'),
-		/PUB has no band for a base of 3000 at age 60/,
-		'the year named by age_to opens the next band, it does not close this one'
-	);
-});
-
-test('a band whose predicate does not hold is skipped before the wage ceiling is read', () => {
-	// A scale published twice, once per marital category, is two predicate ladders over one wage.
-	const scale = [
-		{ ...rate(wage(0, null), percent(7, 0)), eligibility: 'employee.marital_status != "MARRIED"' },
-		{ ...rate(wage(0, null), percent(4, 0)), eligibility: 'employee.marital_status == "MARRIED"' }
-	] as ContributionRate[];
-	assert.equal(selectBand(scale, context(3000), 'PUB').award.employee, 7);
-	assert.equal(selectBand(scale, context(3000, { person: FOREIGNER }), 'PUB').award.employee, 4);
-	// A residency-year ladder: the first year reads one rate, the second another, everyone else none.
-	const cpf = [
-		{ ...rate(wage(0, null), percent(5, 4)), eligibility: 'employee.residency_months < 12' },
-		{
-			...rate(wage(0, null), percent(15, 9)),
-			eligibility: 'employee.residency_months >= 12 && employee.residency_months < 24'
-		},
-		{ ...rate(wage(0, null), percent(20, 17)), eligibility: 'employee.residency_months >= 24' }
-	] as ContributionRate[];
-	assert.equal(selectBand(cpf, context(3000, { person: FOREIGNER }), 'PUB').award.employee, 15);
-	// Unrecorded standing is zero months: the first-year ladder, never a later one.
-	assert.equal(selectBand(cpf, context(3000), 'PUB').award.employee, 5);
-	assert.throws(() => selectBand(cpf.slice(1), context(3000), 'PUB'), /no band for a base of 3000/);
+	assert.equal(selectBand(cpf, married, engine, 'PUB').employee, 'base * 15.0 / 100.0');
+	assert.throws(() => selectBand(cpf.slice(1), nobody, engine, 'PUB'), /no band whose condition/);
 });
 
 test('a scheme the person is outside is skipped whole: no charge, no zero row', () => {
-	const fund = schemeOf('FUND', LADDER, { eligibility: 'employee.citizenship != "FOREIGNER"' });
-	const levy = schemeOf('LEVY', [rate(wage(0, null), percent(0, 2))]);
+	const fund = schemeOf('FUND', LADDER, {
+		// The scheme's own eligibility stays a person predicate, unprefixed.
+		...DEFAULT_RULES
+	});
+	fund.row.eligibility = 'employee.citizenship != "FOREIGNER"';
+	const levy = schemeOf('LEVY', [percent('base >= 0.0', 0, 2)]);
 	const local = charge([fund, levy], 3000);
 	assert.deepEqual(
 		local.map((row) => [row.contribution.row.code, row.employee, row.employer]),
@@ -215,36 +237,37 @@ test('a scheme the person is outside is skipped whole: no charge, no zero row', 
 	);
 });
 
-test('a PROGRESSIVE band with an employer percentage charges it on the whole wage', () => {
-	// The employee climbs the ladder; the employer pays a flat share of the full base.
+test('a period-table progressive rung charges the cumulative constant and its employer on the whole wage', () => {
 	const graduated = schemeOf(
 		'CPF',
 		[
-			rate(wage(0, 500), { kind: 'PROGRESSIVE', rate: 0, constant: 0, employer: 17 } as never),
-			rate(wage(500, 750), { kind: 'PROGRESSIVE', rate: 60, constant: 0, employer: 17 } as never),
-			rate(wage(750, null), { kind: 'PROGRESSIVE', rate: 20, constant: 150, employer: 17 } as never)
+			band('base <= 500.0', '0.0', 'base * 17.0 / 100.0'),
+			band(
+				'base > 500.0 && base <= 750.0',
+				'0.0 + (base - 500.0) * 60.0 / 100.0',
+				'base * 17.0 / 100.0'
+			),
+			band('base > 750.0', '150.0 + (base - 750.0) * 20.0 / 100.0', 'base * 17.0 / 100.0')
 		],
-		{ special_rules: ['PERIODIC_PROGRESSIVE'] }
+		{ use_period_table: true }
 	);
 	const [row] = charge([graduated], 1000);
 	assert.equal(row!.employee, 150 + 250 * 0.2);
 	assert.equal(row!.employer, 170, '17% of the whole 1,000, not of the slice above 750');
-	// Without the member the employer leg stays what it always was: nothing.
-	const employeeOnly = schemeOf(
-		'TAX',
-		[rate(wage(0, null), { kind: 'PROGRESSIVE', rate: 10, constant: 0 } as never)],
-		{ special_rules: ['PERIODIC_PROGRESSIVE'] }
-	);
+	// Without an employer leg the scheme charges the employee only.
+	const employeeOnly = schemeOf('TAX', [band('base >= 0.0', 'base * 10.0 / 100.0', '0.0')]);
 	assert.equal(charge([employeeOnly], 1000)[0]!.employer, 0);
 });
 
-test("FLOOR:MINIMUM_WAGE and CAP:MINIMUM_WAGE_X bound the base by the region's wage", () => {
-	const floored = schemeOf('BPJS', LADDER, { special_rules: ['FLOOR:MINIMUM_WAGE'] });
-	const capped = schemeOf('UI', LADDER, { special_rules: ['CAP:MINIMUM_WAGE_X:20'] });
-	// Base 1,000 floored to a 2,500 wage: 1% of 2,500; the band is still chosen on the real base.
+test('minimum-wage floors and caps bound the base, and an unstated wage stops the run', () => {
+	const floored = schemeOf('BPJS', LADDER, {
+		base_transform: '(base < minimum_wage(region) ? minimum_wage(region) : base)'
+	});
+	const capped = schemeOf('UI', LADDER, {
+		base_transform: '(base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)'
+	});
 	assert.equal(charge([floored], 1000, { minimumWage: 2500 })[0]!.employee, 25);
 	assert.equal(charge([floored], 4000, { minimumWage: 2500 })[0]!.employee, 120);
-	// Base 100,000 capped at 20 × 2,500 = 50,000, on the terminal band's 5%.
 	assert.equal(charge([capped], 100_000, { minimumWage: 2500 })[0]!.employee, 2500);
 	assert.throws(
 		() => charge([floored], 1000, { minimumWage: null }),
@@ -252,82 +275,83 @@ test("FLOOR:MINIMUM_WAGE and CAP:MINIMUM_WAGE_X bound the base by the region's w
 	);
 });
 
-test('a band with no selector or no award stops the run rather than paying nothing', () => {
-	assert.throws(
-		() => selectBand([rate(null, percent(1, 2))], context(100), 'PUB'),
-		/PUB rate band has no selector/
-	);
-	assert.throws(
-		() => selectBand([rate(wage(0, null), null)], context(100), 'PUB'),
-		/PUB rate band has no award/
-	);
+test('a household scheme bills the share per insured head, rounded per head', () => {
+	const household =
+		'1.0 + (person.employee.spouse_status != "NONE" ? 1.0 : 0.0) + person.employee.dependents_count';
+	const excess = `(${household} - 1.0 - 0.0)`;
+	const heads = `(1.0 + (${excess} > 0.0 ? (${excess} < 3.0 ? ${excess} : 3.0) : 0.0))`;
+	const nhi = schemeOf('NHI', [percent('base >= 0.0', 5, 0)], {
+		// One head for the person, one per dependant past the covered count, capped at three.
+		share_for_dependants: `${heads} * share`
+	});
+	const single = charge([nhi], 1000, { person: SINGLE })[0]!;
+	assert.equal(single.employee, 50, 'one head at 5%');
+	const family = charge([nhi], 1000, { person: FAMILY })[0]!;
+	assert.equal(family.employee, 200, 'four heads at 5%, billed per head');
 });
 
-test('a headcount or risk band accepts any wage, because its dimension already decided', () => {
-	assert.equal(
-		bandCeiling({ by: 'HEADCOUNT', from: 0, to: 50 } as never),
-		Number.POSITIVE_INFINITY
-	);
-	assert.equal(bandCeiling({ by: 'RISK_CLASS', class: 'A' } as never), Number.POSITIVE_INFINITY);
-	assert.equal(bandFloor({ by: 'RISK_CLASS', class: 'A' } as never), 0);
-	const byHeadcount = [rate({ by: 'HEADCOUNT', from: 0, to: 5 } as never, percent(1, 1))];
-	assert.equal(
-		selectBand(byHeadcount, context(999_999, { headcount: 4 }), 'PUB').award.employee,
-		1
-	);
-	assert.throws(
-		() => selectBand(byHeadcount, context(1000, { headcount: 5 }), 'PUB'),
-		/no band for a base of 1000/
-	);
+test('a paired-share scheme rounds the total, floors the employee and gives the remainder away', () => {
+	const cpf = schemeOf('CPF', [band('base >= 0.0', '12.0', '12.5')], {
+		rounding: [],
+		total_rounded_employee_floored: true
+	});
+	const [row] = charge([cpf], 1000);
+	assert.equal(row!.employee, 12, 'floored to the dollar');
+	assert.equal(row!.employer, 13, 'the remainder of the rounded 24.5 total');
 });
 
-/**
- * The cumulative constant, on the exact figure the source names as the expensive one.
- *
- * `constant + (chargeable − band_from) × rate%`. Read as a flat addend the same inputs give
- * 3,246.68, so the assertion below is the difference between two readings of one column.
- */
-test('a progressive band charges the accumulated constant plus the marginal slice', () => {
-	const contribution = {
-		row: { code: 'PUB-TAX' },
-		rates: [
-			rate(wage(0, 5000), { kind: 'PROGRESSIVE', constant: 0, rate: 1 } as never),
-			rate(wage(5000, 20_000), { kind: 'PROGRESSIVE', constant: 50, rate: 3 } as never),
-			rate(wage(20_000, null), { kind: 'PROGRESSIVE', constant: 600, rate: 6 } as never)
-		]
-	} as unknown as ContributionConfig;
+test('a progressive scale charges the accumulated constant plus the marginal slice', () => {
+	const contribution = schemeOf('PUB-TAX', [
+		band('base <= 5000.0', '0.0 + base * 1.0 / 100.0', '0.0'),
+		band('base > 5000.0 && base <= 20000.0', '50.0 + (base - 5000.0) * 3.0 / 100.0', '0.0'),
+		band('base > 20000.0', '600.0 + (base - 20000.0) * 6.0 / 100.0', '0.0')
+	]);
 
 	assert.equal(
-		scaleProgressive(contribution, 44_111.4, context(0)),
-		600 + 24_111.4 * 0.06,
+		scaleProgressive(contribution, 44_111.4, { base: 0 }, engine),
+		600 + ((44_111.4 - 20_000) * 6) / 100,
 		'the constant is the charge accumulated below the band, not a flat addend'
 	);
 	assert.notEqual(
-		scaleProgressive(contribution, 44_111.4, context(0)),
-		44_111.4 * 0.06 + 600,
+		Math.round(scaleProgressive(contribution, 44_111.4, { base: 0 }, engine) * 100) / 100,
+		Math.round((44_111.4 * 0.06 + 600) * 100) / 100,
 		'read as an addend this is the 175.00-a-month error decision E1 names'
 	);
-	// The bottom of a band charges its constant and nothing more; a zero or negative base charges 0.
-	assert.equal(scaleProgressive(contribution, 20_000, context(0)), 50 + 15_000 * 0.03);
-	assert.equal(scaleProgressive(contribution, 0, context(0)), 0);
-	assert.equal(scaleProgressive(contribution, -1, context(0)), 0);
+	assert.equal(scaleProgressive(contribution, 20_000, { base: 0 }, engine), 50 + 15_000 * 0.03);
+	assert.equal(scaleProgressive(contribution, 0, { base: 0 }, engine), 0);
+	assert.equal(scaleProgressive(contribution, -1, { base: 0 }, engine), 0);
 });
 
-test('scaling through a band that is not progressive is refused by name', () => {
-	const flat = {
-		row: { code: 'PUB-EPF' },
-		rates: [rate(wage(0, null), percent(11, 13))]
-	} as unknown as ContributionConfig;
-	assert.throws(
-		() => scaleProgressive(flat, 1000, context(0)),
-		/PUB-EPF band 0 – ∞ is not a progressive award/
+test('an annual scale projects, relieves, scales and spreads; a period table does not', () => {
+	const tax = schemeOf(
+		'TAX',
+		[
+			band('base <= 5000.0', '0.0', '0.0'),
+			band('base > 5000.0 && base <= 20000.0', '0.0 + (base - 5000.0) * 1.0 / 100.0', '0.0'),
+			band('base > 20000.0', '150.0 + (base - 20000.0) * 3.0 / 100.0', '0.0')
+		],
+		{ use_period_table: false, relief: '9000.0', rounding: ['TRUNCATE_CENT'] }
 	);
+	// A January monthly payslip: annual gross 48,000 (4,000 × 12) less 9,000 relief = 39,000.
+	// The annual tax is 150 + 19,000 × 3% = 720, spread over the twelve payslips of the year.
+	const [row] = charge([tax], 4000, {
+		projection: { payslipsRemaining: 12, futurePayslipEquivalents: 11 }
+	});
+	assert.equal(row!.employee, 60);
+
+	// The same scheme as a period table charges the period's own figure and spreads nothing.
+	const periodTable = schemeOf('PT', tax.rates, { use_period_table: true, relief: '9000.0' });
+	const [direct] = charge([periodTable], 4000, {
+		projection: { payslipsRemaining: 12, futurePayslipEquivalents: 11 }
+	});
+	assert.equal(direct!.employee, 0, '4,000 is below the 5,000 floor: nothing is withheld');
 });
 
 test('a MONTH-assessed scheme charges once, on the month wage, and nothing in the closing period', () => {
 	// A monthly schedule at a semi-monthly company: the first period carries the month's charge on
-	// the month's wage (2 × the half), the closing period carries none. No country names this rule.
-	const monthly = schemeOf('MONTHLY', LADDER, { assessed: 'MONTH' });
+	// the month's wage (2 × the half), the closing period carries none.
+	const monthly = schemeOf('MONTHLY', LADDER);
+	monthly.row.assessment_period = 'MONTH';
 	const opening = charge([monthly], 2000, {
 		assessment: { periodsPerMonth: 2, periodIndex: 1 }
 	})[0]!;
@@ -342,13 +366,8 @@ test('a MONTH-assessed scheme charges once, on the month wage, and nothing in th
 	assert.equal(closing.employee, 0);
 	assert.equal(closing.employer, 0);
 
-	// A per-period scheme is untouched, and at a monthly company (one period) neither is scaled.
 	const perPeriod = charge([schemeOf('PERIOD', LADDER)], 1000, {
 		assessment: { periodsPerMonth: 2, periodIndex: 1 }
 	})[0]!;
 	assert.equal(perPeriod.base, 1000);
-	const monthlyCompany = charge([monthly], 1000, {
-		assessment: { periodsPerMonth: 1, periodIndex: 1 }
-	})[0]!;
-	assert.equal(monthlyCompany.base, 1000);
 });

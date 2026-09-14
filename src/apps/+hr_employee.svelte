@@ -43,7 +43,7 @@
 		todayKey,
 		workDateCalendarKey
 	} from '../lib/ui/calendar.js';
-	import { inForceOnDay } from '../lib/effective_range.js';
+	import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import {
@@ -53,7 +53,7 @@
 		buildRosterMonth,
 		clockToDayMinutes,
 		dayMinutesToClock,
-		holidayNamesByDate,
+		holidaysByDate,
 		instantFromDayStart,
 		intervalDrafts,
 		minutesFromDayStart,
@@ -65,7 +65,6 @@
 	import { attendanceBoundary } from '../lib/attendance.js';
 	import {
 		payRequestRecordMetadata,
-		settledClaims,
 		sourceLock,
 		sourceLockReason,
 		type DayLock,
@@ -117,7 +116,7 @@
 	const activeEmployments = $derived(
 		(employmentsQuery?.current ?? [])
 			.map(resolveEmployment)
-			.filter((employment) => inForceOnDay(employment.effective_range, today))
+			.filter((employment) => coversDate(employment.effective_range, today))
 	);
 	let selectedEmploymentId = $state<string | null>(null);
 	const employmentOptions = $derived(
@@ -191,7 +190,7 @@
 	 * employee can honestly know about a lock is exactly two things, and both are readable:
 	 *
 	 *   - PENDING  — `approval_id` on their own row. The platform's own stamp.
-	 *   - CONSUMED — the row's own `settled_payslip_id`, naming the payslip that took the record. Granted by
+	 *   - CONSUMED — the row's own `payslip_id`, naming the payslip that took the record. Granted by
 	 *                `settlementLedgerGrants()`, exact, stored, per-record. It is strictly better
 	 *                than the window inference it replaces: the window guessed from a date, this
 	 *                names the period.
@@ -244,11 +243,13 @@
 	 */
 	type CapturedPayRequest = {
 		readonly approval_id: string | null;
-		readonly settled_period?: string | null;
-		readonly payslip_allowance_request_input_allowance_request?: ReadonlyArray<{
-			readonly period: string;
-		}>;
+		readonly payslip_id: string | null;
+		readonly pay_period?: string | null;
 	};
+
+	/** The settlement claim a captured pay request carries, in the shape the badge helper reads. */
+	const capturesOf = (row: CapturedPayRequest) =>
+		row.payslip_id == null ? [] : [{ period: row.pay_period ?? '' }];
 
 	/** The next pay date: the last day of this month, or of next month once it has passed. */
 	const nextPayDate = $derived.by(() => {
@@ -277,7 +278,7 @@
 	 *
 	 * ONE THING IS DELIBERATELY ABSENT, and it is a ruling rather than a gap: `payroll_runs` is not
 	 * readable by an employee, so this calendar has no day axis at all. It draws the record axis —
-	 * pending, and consumed-by-payslip from the row's own `settled_period` — and nothing else. See the note above
+	 * pending, and consumed-by-payslip from the row's own `payslip_id` — and nothing else. See the note above
 	 * `NO_DAY_LOCKS`, and the ladder note in `roster-month-calendar.svelte` for why a rung that
 	 * could never light was removed instead of being left dark.
 	 * ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -371,7 +372,7 @@
 			].flatMap((request) =>
 				request.leave_entry_leave_catalogue == null
 					? []
-					: [[request.leave_catalogue_id, request.leave_entry_leave_catalogue.code] as const]
+					: [[request.catalogue_id, request.leave_entry_leave_catalogue.code] as const]
 			)
 		)
 	);
@@ -474,18 +475,13 @@
 		const ids = scheduleWorkDays.map((row) => row.id);
 		if (ids.length === 0) return null;
 		return client.db.work_days.findMany({
-			where: { id: { in: ids }, settled_payslip_id: { isNull: false } },
-			columns: { id: true, settled_period: true },
+			where: { id: { in: ids }, payslip_id: { isNull: false } },
+			columns: { id: true, payslip_id: true },
 			limit: 200
 		});
 	});
 	const settlementByWorkDayId = $derived(
-		new Map(
-			(scheduleSettlementsQuery?.current ?? []).map((row) => [
-				row.id,
-				{ period: row.settled_period ?? '' }
-			])
-		)
+		new Map((scheduleSettlementsQuery?.current ?? []).map((row) => [row.id, { period: '' }]))
 	);
 	const leaveBalancesQuery = $derived(
 		employmentId == null
@@ -498,7 +494,7 @@
 	const leaveBalanceRows = $derived(leaveBalancesQuery?.current ?? []);
 
 	const scheduleHolidays = $derived(scheduleCalendarResolution.holidays);
-	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
+	const scheduleHolidayNames = $derived(holidaysByDate(scheduleHolidays));
 	const scheduleRosterCodesById = $derived(
 		new Map((scheduleShiftsQuery?.current ?? []).map((code) => [code.id, code]))
 	);
@@ -1111,12 +1107,11 @@
 					]}
 					query={{
 						where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-						orderBy: { effective_on: 'desc' },
-						with: { payslip_leave_input_leave_entry: { columns: { period: true } } }
+						orderBy: { effective_on: 'desc' }
 					}}
 				>
 					{#snippet columns({ Column })}
-						<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
+						<Column name="catalogue_id" label={t('component.catalogue_leave')} />
 						<Column name="event" label={t('leave.activity')} card="title" />
 						<Column name="reference" label={t('component.reference')} />
 						<Column name="days" label={t('component.days')} />
@@ -1136,14 +1131,14 @@
 		description={t('app.hr_employee.my_claims_description')}
 		disabled={!employmentId}
 		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
+			payRequestRecordMetadata(row.approval_id, capturesOf(row), t)}
 		query={{
 			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 			orderBy: { incurred_on: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
-			<Column name="claim_catalogue_id" label={t('component.component')} card="title" />
+			<Column name="catalogue_id" label={t('component.component')} card="title" />
 			<Column name="amount" label={t('component.amount')} />
 			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
 			<Column name="incurred_on" label={t('component.incurred_on')} />
@@ -1163,21 +1158,14 @@
 		description={t('app.hr_employee.my_allowances_description')}
 		disabled={!employmentId}
 		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(
-				row.approval_id,
-				row.payslip_allowance_request_input_allowance_request,
-				t
-			)}
+			payRequestRecordMetadata(row.approval_id, capturesOf(row), t)}
 		query={{
 			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-			orderBy: { created_at: 'desc' },
-			with: {
-				payslip_allowance_request_input_allowance_request: { columns: { period: true } }
-			}
+			orderBy: { created_at: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
-			<Column name="allowance_catalogue_id" label={t('component.component')} card="title" />
+			<Column name="catalogue_id" label={t('component.component')} card="title" />
 			<Column name="amount" label={t('component.amount')} />
 			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
 			<Column name="recurrence" card="subtitle" label={t('component.entry_cadence')} />
@@ -1195,14 +1183,14 @@
 		description={t('app.hr_employee.my_payments_description')}
 		disabled={!employmentId}
 		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
+			payRequestRecordMetadata(row.approval_id, capturesOf(row), t)}
 		query={{
 			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 			orderBy: { effective_on: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
-			<Column name="payment_catalogue_id" label={t('component.component')} card="title" />
+			<Column name="catalogue_id" label={t('component.component')} card="title" />
 			<Column name="amount" label={t('component.amount')} />
 			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
 			<Column name="effective_on" label={t('component.effective_on')} />
@@ -1301,6 +1289,7 @@
 					renderer={FormattedValueRenderer}
 					rendererProps={{ format: ({ row }) => payrollRunPeriod(row) }}
 				/>
+				<Column name="status" label={t('component.status')} card="badge" />
 				<Column name="gross" label={t('component.gross')} />
 				<Column name="total_deductions" label={t('component.deductions')} />
 				<Column name="net" label={t('component.net')} />
@@ -1402,8 +1391,7 @@
 					<Field name="planned_origin" hidden />
 					<Field name="worked_intervals" hidden />
 					<Field name="break_minutes" hidden />
-					<Field name="settled_payslip_id" hidden />
-					<Field name="settled_period" hidden />
+					<Field name="payslip_id" hidden />
 					<Field name="holiday_id" hidden />
 					<Stack gap="sm">
 						<Inline gap="sm" align="end">

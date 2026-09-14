@@ -76,20 +76,10 @@ export default defineModel(
 		 */
 		holiday_id: uuid(),
 		/**
-		 * What working this day earns when the day carries a premium: the holiday/rest-day
-		 * premium (`PAY`), or a day in lieu (`LIEU`) credited to `PUBLIC_HOLIDAY_IN_LIEU`.
-		 * The day sheet offers `LIEU` only on a holiday or rest day worked where the regime
-		 * permits lieu; payroll prices `LIEU` days as ordinary days.
+		 * The payslip that settled this row. Set by the payroll engine when a run captures the row,
+		 * cleared when the draft run is deleted; while set, the row is frozen.
 		 */
-		compensation: enums(['PAY', 'LIEU']).notNull().default('PAY'),
-		/**
-		 * The payslip that settled this row, and the period it belongs to. Set by the payroll engine
-		 * when a run captures the row, cleared when a draft run is deleted; while set, the row is
-		 * frozen. The period is written beside the id so a refusal or a badge can name it without a
-		 * `payroll_runs` read grant.
-		 */
-		settled_payslip_id: uuid(),
-		settled_period: text()
+		payslip_id: uuid()
 	},
 	{
 		description:

@@ -29,6 +29,16 @@ export function nullableNumberFrom(raw: string): number | null {
 	return Number.isFinite(next) ? next : null;
 }
 
+/**
+ * A figure, or a CEL expression producing one — the one raw field shape a `number | string` band
+ * slot accepts. A field that parses as a finite number is that number; anything else is left as
+ * the expression text, which the write-time compiler judges.
+ */
+export function numberOrExpression(raw: string): number | string {
+	const next = decodeNumber(raw);
+	return raw.trim().length > 0 && Number.isFinite(next) ? next : raw;
+}
+
 /** A comma-separated field as a list, with blanks and surrounding space dropped. */
 export function splitList(raw: string): string[] {
 	return raw

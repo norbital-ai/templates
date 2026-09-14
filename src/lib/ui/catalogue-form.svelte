@@ -1,12 +1,12 @@
 <script lang="ts">
 	/**
-	 * The one form behind the three money catalogues: claims, allowances and payments. One row shape
-	 * in three tables, so the family is the table rather than a column and the form takes only the
+	 * The one form behind the two money catalogues: claims and payments. One row shape in two
+	 * tables, so the family is the table rather than a column and the form takes only the
 	 * collection name.
 	 *
-	 * The loan catalogue used to be here too, as the same row minus four columns. `loan_type` and
-	 * `minimum_repayment` ended that: a form serving two row shapes can be typed against only one of
-	 * them, and a union narrows `Field` to their intersection. It has `loan-catalogue-form.svelte`.
+	 * The loan and allowance catalogues used to be here too, as the same row plus extras.
+	 * `loan_type`/`minimum_repayment` and the recurrence facts ended that: a form serving rows of
+	 * different shapes can be typed against only their intersection. They have their own forms.
 	 *
 	 * Segments are tabs, not stacked sections: one panel is on screen at a time, its segment name is
 	 * the tab label, and its fields spread across the sheet instead of down it. The dialog chrome
@@ -22,9 +22,10 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import ExpressionFields from './expression-fields.svelte';
 	import { hrCreateScope } from './create-scope.js';
 
-	type Collection = 'claim_catalogue' | 'allowance_catalogue' | 'payment_catalogue';
+	type Collection = 'claim_catalogue' | 'payment_catalogue';
 	let {
 		collection,
 		record,
@@ -35,6 +36,9 @@
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
+	/** EMPLOYER and DISPLAY settle no direction: the model keeps it null there. */
+	const takesDirection = (destination: unknown): boolean =>
+		destination === 'PAY' || destination === 'NET';
 </script>
 
 <CollectionForm
@@ -46,7 +50,7 @@
 		: t('component.create_catalogue_component')}
 	onAfterSubmit={record ? undefined : close}
 >
-	{#snippet children({ Field })}
+	{#snippet children({ Field, form })}
 		{#snippet payLine()}
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.catalogue_section_pay_line_hint')}</p>
@@ -68,7 +72,19 @@
 						/>
 					{/if}
 					<Field name="code" label={t('component.code')} />
-					<Field name="nature" label={t('component.economic_type')} />
+					<Field name="destination" label={t('component.destination')} />
+					{#if takesDirection(form.values().destination)}
+						<Field name="direction" label={t('component.direction')} />
+					{:else}
+						<Field name="direction" hidden />
+						<span
+							class="hidden"
+							{@attach () => {
+								if (form.values().direction != null)
+									form.setValues({ ...form.values(), direction: null });
+							}}
+						></span>
+					{/if}
 				</Grid>
 			</Stack>
 		{/snippet}
@@ -77,9 +93,14 @@
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.catalogue_section_who_order_hint')}</p>
 				<Grid gap="md" minimum="card">
-					<Column span="all"
-						><Field name="eligibility" label={t('component.who_receives')} /></Column
-					>
+					<div>
+						<Field name="eligibility" label={t('component.who_receives')} />
+						<ExpressionFields
+							site="person"
+							expression={String(form.values().eligibility ?? '')}
+							type="boolean"
+						/>
+					</div>
 					<Field name="sequence" label={t('component.order')} />
 				</Grid>
 			</Stack>
@@ -90,20 +111,8 @@
 				<p class="text-meta">{t('component.catalogue_section_limits_hint')}</p>
 				<Grid gap="md" minimum="card">
 					<Field name="evidence" label={t('component.evidence')} />
-					<Field name="settlement" label={t('component.settlement')} />
-					<Column span="all"><Field name="cap" label={t('component.ceiling')} /></Column>
+					<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
 				</Grid>
-			</Stack>
-		{/snippet}
-
-		{#snippet contributions()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.catalogue_section_contributions_hint')}</p>
-				<Field
-					name="contribution_treatments"
-					label={t('component.contribution_treatments')}
-					description={t('renderer.contribution_treatments.identity')}
-				/>
 			</Stack>
 		{/snippet}
 
@@ -131,12 +140,6 @@
 					label: t('component.catalogue_section_limits'),
 					icon: 'lucide:shield',
 					content: limits
-				},
-				{
-					name: 'contributions',
-					label: t('component.section_contributions'),
-					icon: 'lucide:landmark',
-					content: contributions
 				}
 			] satisfies TabConfig[]}
 		/>

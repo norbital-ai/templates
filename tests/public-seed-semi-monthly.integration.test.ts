@@ -8,6 +8,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
+	COMPANY_ID,
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
@@ -56,9 +57,49 @@ test(
 					{ start: '2020-01-01', end: null }
 				]
 			);
-			// The second entity shares the PUB lineage, so the roster vocabulary and the named pattern
-			// are already its own: both are per jurisdiction now, not per company. Nothing is copied.
-			const patternId = fixture<ReadonlyArray<{ id: string }>>('shift_patterns')[0]!.id;
+			// RFC 0001 scopes roster codes and named patterns to the company; the second entity gets
+			// its own copies, with the pattern's cycle rewritten onto the new roster codes.
+			const sourceShifts = (await session.query(
+				'select * from shift_definitions where company_id = $1',
+				[COMPANY_ID]
+			)) as ReadonlyArray<Record<string, unknown>>;
+			const shiftIds = new Map(sourceShifts.map((row) => [String(row.id), crypto.randomUUID()]));
+			for (const shift of sourceShifts)
+				await session.query(
+					`insert into shift_definitions (id, company_id, code, name, variant, effective_range)
+					 values ($1, $2, $3, $4, $5, $6)`,
+					[
+						shiftIds.get(String(shift.id)),
+						companyId,
+						shift.code,
+						shift.name,
+						shift.variant,
+						shift.effective_range
+					]
+				);
+			const [sourcePattern] = (await session.query('select * from shift_patterns where id = $1', [
+				fixture<ReadonlyArray<{ id: string }>>('shift_patterns')[0]!.id
+			])) as ReadonlyArray<Record<string, unknown>>;
+			assert.ok(sourcePattern);
+			const patternValue = structuredClone(sourcePattern.pattern) as {
+				phases: Array<{ day_cycle: Array<{ roster_code_id: string }> }>;
+			};
+			for (const phase of patternValue.phases)
+				for (const day of phase.day_cycle)
+					day.roster_code_id = shiftIds.get(day.roster_code_id) ?? day.roster_code_id;
+			const patternId = crypto.randomUUID();
+			await session.query(
+				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
+				 values ($1, $2, $3, $4, $5, $6)`,
+				[
+					patternId,
+					companyId,
+					sourcePattern.code,
+					sourcePattern.name,
+					patternValue,
+					sourcePattern.effective_range
+				]
+			);
 
 			const hire = async (number: string, payFrequency: string, wage: number) => {
 				const employeeId = crypto.randomUUID();

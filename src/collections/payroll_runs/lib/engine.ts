@@ -138,12 +138,6 @@ export function gatherPayrollRun(options: {
 	readonly api: PayrollReadApi;
 	readonly companyId: string;
 	readonly period: string;
-	/**
-	 * The employments this run withholds. They are skipped before anything is read about them, so a
-	 * withheld person costs the run nothing and — crucially — cannot refuse it: the precheck and
-	 * every per-employment validation only see the people the run is actually paying.
-	 */
-	readonly withheld?: readonly string[];
 }): Effect.Effect<PreparedRun, never, never> {
 	return Effect.gen(function* () {
 		const api = withReadLog(options.api);
@@ -153,8 +147,7 @@ export function gatherPayrollRun(options: {
 		const facts = yield* gatherRun({
 			api,
 			configuration,
-			window,
-			withheld: options.withheld ?? []
+			window
 		});
 		const { configuration: preparedConfiguration, gathered } = finalizeFamilyConfiguration(
 			configuration,
@@ -264,20 +257,18 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		// Captures, counted separately so the run log distinguishes "captured and priced at nothing"
 		// from "produced money". A source that calculated to zero was still consumed and is still
 		// locked — by its settled payslip, never by a zero-amount output.
-		capturedCount:
-			captures.reduce(
-				(total, capture) =>
-					total + capture.workDays.length + capture.claims.length + capture.payments.length,
-				0
-			) +
-			graph.reduce(
-				(total, payslip) =>
-					total +
-					payslip.payslip_allowance_request_input_payslip.length +
-					payslip.payslip_leave_input_payslip.length +
-					payslip.payslip_loan_repayment_input_payslip.length,
-				0
-			),
+		capturedCount: captures.reduce(
+			(total, capture) =>
+				total +
+				capture.workDays.length +
+				capture.claims.length +
+				capture.payments.length +
+				capture.allowances.length +
+				capture.leave.length +
+				capture.loanRepayments.length +
+				capture.materialised.length,
+			0
+		),
 		warnings: issues
 			.filter((issue) => issue.severity === 'WARNING')
 			.map((issue) => describeIssues([issue], 'warn'))

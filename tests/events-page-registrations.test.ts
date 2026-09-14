@@ -20,13 +20,11 @@ for (const { page, family, employee } of families) {
 		assert.match(text, new RegExp(`collection="${family}_requests"`));
 		assert.match(text, new RegExp(`${family}_request_employment:`));
 		assert.match(text, new RegExp(`${family}_request_${family}_catalogue:`));
-		// A claim or payment carries its own settlement pin; a recurring allowance keeps a capture row.
-		if (family === 'allowance')
-			assert.match(
-				text,
-				/payslip_allowance_request_input_allowance_request: \{ columns: \{ period: true \} \}/
-			);
-		else assert.match(text, /settledClaims\(row\)/);
+		// Every family carries its own settlement pin now; the period shown beside it is the
+		// allowance's own, or the payment's stored pay period.
+		assert.match(text, /payRequestRecordMetadata\(/);
+		assert.match(text, /row\.payslip_id == null/);
+		if (family !== 'allowance') assert.match(text, /row\.pay_period/);
 		assert.doesNotMatch(text, /collection="(?:component|bonus|arrears)_/);
 	});
 
@@ -35,9 +33,7 @@ for (const { page, family, employee } of families) {
 		assert.deepEqual(registrations(tab), ['CollectionTable']);
 		assert.match(tab, new RegExp(`collection="${family}_requests"`));
 		assert.match(tab, /employment_id: employmentId \? \{ eq: employmentId \}/);
-		if (family === 'allowance')
-			assert.match(tab, /payslip_allowance_request_input_allowance_request:/);
-		else assert.match(tab, /settledClaims\(row\)/);
+		assert.match(tab, /payRequestRecordMetadata\(row\.approval_id, capturesOf\(row\), t\)/);
 		if (family === 'claim') assert.doesNotMatch(tab, /features=\{\{ create: false \}\}/);
 		else assert.match(tab, /features=\{\{ create: false \}\}/);
 	});
@@ -68,7 +64,7 @@ test('Settings Catalog exposes every family and scopes shared financial catalogu
 		[...catalogues.matchAll(/name: '([^']+)'/g)].map((match) => match[1]),
 		[
 			'contribution_catalogue',
-			'work_catalogue',
+			'work_rules',
 			'leave_catalogue',
 			'claim_catalogue',
 			'allowance_catalogue',

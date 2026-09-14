@@ -1,4 +1,4 @@
-import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -6,34 +6,27 @@ export default defineModel(
 		settings_id: uuid().notNull(),
 		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
 		code: text({ search: true }).notNull(),
-		/** Which way the line settles: adds to pay, takes from it, costs the employer alone, or is information only. */
-		nature: enums([
-			'EARNING',
-			'NON_WAGE_PAYMENT',
-			'DEDUCTION',
-			'EMPLOYER_COST',
-			'INFORMATION',
-			'ABSENCE'
-		]).notNull(),
 		/**
-		 * How each statutory scheme, by code, charges this component. A scheme the map does not name
-		 * is undecided and the run refuses at ACCUMULATE naming the component and the scheme.
+		 * Where the line settles: `PAY` earns or reduces gross, `NET` pays or deducts outside it,
+		 * `EMPLOYER` costs the employer alone, `DISPLAY` is printed without money.
 		 */
-		contribution_treatments: custom('contribution_treatments').notNull(),
+		destination: enums(['PAY', 'NET', 'EMPLOYER', 'DISPLAY']).notNull(),
+		/** `ADD` adds, `SUBTRACT` takes; null where destination is `EMPLOYER` or `DISPLAY`. */
+		direction: enums(['ADD', 'SUBTRACT']),
+		/** The ordered bands that price this catalogue's entries; see `datatypes/catalogue_band`. */
+		bands: custom('catalogue_band')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/** Formula/dependency and deduction-reduction order, across every catalogue at once. */
 		sequence: integer().notNull(),
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
 		/** Whether a request against this line must, may or need not attach proof. */
-		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
-		/** Whether payroll pays the line or the company pays it directly and payroll only records it. */
-		settlement: enums(['PAYROLL', 'COMPANY_DIRECT']).notNull().default('PAYROLL'),
-		/** The entitlement matrix: the first band whose predicate holds is the ceiling per period; null is no ceiling. */
-		cap: custom('entitlement_cap')
+		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE')
 	},
 	{
 		description:
-			'The payment catalogue of one jurisdiction settings version: code, nature, the treatment every statutory scheme gives it, eligibility, evidence, settlement route and the entitlement ceiling of the payment raised against it. Sealed with its version; the run cites the version it priced against.',
+			'The one-off payment catalogue of one jurisdiction settings version: code, destination and direction, the bands that price and cap the payment (with the schemes each opts into) and the evidence it demands. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code'],
 		icon: 'lucide:wallet',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

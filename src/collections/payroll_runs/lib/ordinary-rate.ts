@@ -1,7 +1,7 @@
 /**
  * The ordinary rate of pay, and one day's wages.
  *
- * The divisor is statutory and lives on `work_catalogue.ordinary_rate` — Malaysia's 26 is EA s.60I,
+ * The divisor is statutory and lives on `work_rules.rates.ordinary` — Malaysia's 26 is EA s.60I,
  * Indonesia's 173 is PP 35/2021, Singapore's 190.67 is 12 × monthly ÷ (52 × 44). A company using
  * 30 where the statute says 26 underpays every overtime hour by 15%, which is why it is not a
  * company setting, and why the overtime rate is this rate and not a company-chosen alternative.
@@ -16,14 +16,13 @@
  * its contractual working days. That is the employee's normal day; a payroll-system convention
  * cannot replace it with a different schedule.
  *
- * `work_catalogue.ordinary_rate` is rows read top-down; `resolveOrdinaryRate` picks the first
+ * `work_rules.rates.ordinary` is rows read top-down; `resolveOrdinaryRate` picks the first
  * whose predicate holds for the person and settles a `WORKING_DAYS` divisor from the month's
  * scheduled working days. Every pricing function below takes that resolved rate.
  */
 
 import { Schema } from 'effect';
 import type { Work } from './configuration.js';
-import type { OrdinaryRate } from '../../../datatypes/ordinary_rate/+definition.js';
 import { isEligible, type PersonContext } from './eligibility.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -50,14 +49,14 @@ type ResolvedOrdinaryRate = { readonly per: 'DAY' | 'HOUR'; readonly divisor: nu
  * that divisor, stops the run by name rather than pricing an hour at nothing.
  */
 export function resolveOrdinaryRate(options: {
-	readonly rows: OrdinaryRate | null | undefined;
+	readonly rows: Work['rates']['ordinary'] | null | undefined;
 	readonly person: PersonContext;
 	readonly workingDays: () => number;
 	readonly employeeNumber?: string;
 }): ResolvedOrdinaryRate {
 	const rows = options.rows ?? [];
 	if (rows.length === 0) throw new Error('The work states no ordinary rate.');
-	const row = rows.find((candidate) => isEligible(candidate.eligibility, options.person));
+	const row = rows.find((candidate) => isEligible(candidate.when, options.person));
 	const who = options.employeeNumber ?? 'this person';
 	if (row == null)
 		throw new Error(`No ordinary rate row covers ${who}; the last row is normally everyone.`);
@@ -67,9 +66,9 @@ export function resolveOrdinaryRate(options: {
 			throw new Error(
 				`The ordinary rate of ${who} divides by the month's working days, and the month has none.`
 			);
-		return { per: row.per, divisor: days };
+		return { per: row.unit, divisor: days };
 	}
-	return { per: row.per, divisor: decodeNumber(row.divisor) };
+	return { per: row.unit, divisor: decodeNumber(row.divisor) };
 }
 
 /**
@@ -131,7 +130,7 @@ export function ordinaryHourlyRate(
 	if (terms.pay_frequency === 'DAILY')
 		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
 	const divisor = rate.divisor;
-	if (!(divisor > 0)) throw new Error('work_catalogue.ordinary_rate.divisor must be positive.');
+	if (!(divisor > 0)) throw new Error('work_rules.rates.ordinary.divisor must be positive.');
 	const monthly = monthlyBaseSalary(terms);
 	return rate.per === 'HOUR'
 		? cents(monthly / divisor)
@@ -171,7 +170,7 @@ type AbsenceDayRateOptions = {
  *
  * Deliberately not `ordinaryDayWage`. That divisor answers "what is an extra day of work worth"
  * (EA s.60I: 26). Withholding pay for a day not worked is proration, and proration is configured in
- * exactly one place — `work_catalogue.proration` — so an absence follows the month's calendar days,
+ * exactly one place — `work_rules.proration` — so an absence follows the month's calendar days,
  * its working days, or a fixed divisor, whichever that work states.
  *
  * Conflating the two over-deducts by the ratio between the divisors: 31/26 in a 31-day Malaysian

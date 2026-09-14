@@ -1,7 +1,7 @@
 <script lang="ts">
-	/** One allowance component. The form is `lib/ui/catalogue-form.svelte`, shared by the three money catalogues. */
+	/** One allowance component. Its own form: the recurrence facts are not on the claim/payment row. */
 	import type { RepresentationProps } from './$types.js';
-	import CatalogueForm from '../../lib/ui/catalogue-form.svelte';
+	import AllowanceCatalogueForm from '../../lib/ui/allowance-catalogue-form.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 </script>
@@ -13,4 +13,4 @@
 	/>
 </svelte:head>
 
-<CatalogueForm collection="allowance_catalogue" {record} {close} />
+<AllowanceCatalogueForm {record} {close} />

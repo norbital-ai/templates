@@ -6,24 +6,23 @@
  * silently read a missing decision as "not chargeable" is stopped here, with a message that names
  * the row to fix.
  *
- * Configuration faults still fail the run: a missing treatment, an unbanded overtime rule, a scheme
- * that has not said what it does with overtime, or a pay cadence the company calendar cannot
- * express. Hours-of-work ceilings do not. A regime limit with `on_exceed=WARN` (and every daily
- * hours breach, which the engine already reclassifies to excess overtime) is reported and the run
- * still builds — Infotech paid those months, and refusing
- * the whole payroll because one person worked 12.3 hours hides every loan, leave and claim the
- * operator came to settle. `on_exceed=BLOCK` on a monthly overtime ceiling still stops the run.
+ * Configuration faults still fail the run: a rate band with no pay item, an opt-in naming a scheme
+ * the version does not levy, or a pay cadence the company calendar cannot express. Hours-of-work
+ * ceilings do not: compliance belongs to the schedule gate, and a measured
+ * overrun is reported here so the run still builds — Infotech paid those months, and refusing the
+ * whole payroll because one person worked 12.3 hours hides every loan, leave and claim the
+ * operator came to settle.
  *
  * Issues stay structured rather than free text, so a screen can link to the row that caused each
  * one, and every message names the employee, the day and the rule wherever a run has them to name.
  */
 
-import { getErrorMessage } from '@norbital-ai/std';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-import { Effect, Result, Schema } from 'effect';
+import { Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
+import type { StatutoryOptIn } from '../../../datatypes/work_rules/+definition.js';
 import { dateKey, requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
@@ -31,7 +30,6 @@ import { coversDate } from './effective.js';
 import { paysOn } from './period.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
-import { parseSpecialRules } from './special-rules.js';
 
 const IssueSeveritySchema = Schema.Literals(['BLOCKER', 'WARNING']);
 type IssueSeverity = Schema.Schema.Type<typeof IssueSeveritySchema>;
@@ -49,66 +47,37 @@ export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 	return issues.filter((issue) => issue.severity !== 'WARNING');
 }
 
-/** The two Work columns a lineage may leave undecided until a run prices one: absence and night. */
-const isJudgedWhenPriced = (component: FamilyPayItem): boolean =>
-	component.family === 'WORK' && (component.output === 'absence' || component.output === 'night');
-
-/** One component's cell for every effective scheme: present, decided, and naming a declared rule. */
-function treatmentIssues(configuration: Configuration, component: FamilyPayItem): RunIssue[] {
-	if (component.nature === 'INFORMATION') return [];
-	const issues: RunIssue[] = [];
-	const collection = `${component.family.toLowerCase()}_catalogue`;
-	const recordId = component.catalogue_id ?? component.id;
-	for (const contribution of configuration.contributions) {
-		const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
-		if (cell == null) {
-			issues.push({
-				code: 'TREATMENT_MISSING',
-				message:
-					`No ${contribution.row.code} treatment exists for ${component.code}. The component ` +
-					'states a treatment for every scheme its jurisdiction levies.',
-				collection,
-				recordId
-			});
-			continue;
-		}
-		if (cell.kind === 'UNSET')
-			issues.push({
-				code: 'TREATMENT_UNSET',
-				message:
-					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
-					'this kind of pay is chargeable.',
-				collection,
-				recordId
-			});
-		if (cell.kind === 'SPECIAL' && !contribution.row.special_rules.includes(cell.rule))
-			issues.push({
-				code: 'SPECIAL_RULE_UNKNOWN',
-				message:
-					`${component.code} × ${contribution.row.code} names special rule "${cell.rule}", ` +
-					`which ${contribution.row.code} does not declare.`,
-				collection,
-				recordId
-			});
-	}
-	return issues;
-}
-
 /**
- * The absence and night columns, judged once a run has priced one: an undecided cell then
- * refuses the run by name, exactly as any other component's would have at configuration time.
+ * A priced Work line may only opt into schemes this settings version actually levies.
+ *
+ * There used to be an undecided-cell grid here: absence and night were refused by name when a run
+ * priced one without an opt-in. The opt-in list is the whole answer now — silence is no effect —
+ * so the fault that remains is the opposite: an opt-in naming a contribution the version does not
+ * carry, which ACCUMULATE silently ignores and no screen would show.
  */
 export function validateAbsenceTreatments(options: {
 	readonly configuration: Configuration;
-	readonly adjustments: readonly { readonly catalogueComponent: FamilyPayItem }[];
+	readonly adjustments: readonly {
+		readonly catalogueComponent: FamilyPayItem;
+		readonly optIns: readonly StatutoryOptIn[];
+	}[];
 }): RunIssue[] {
-	const priced = new Map<string, FamilyPayItem>();
-	for (const row of options.adjustments)
-		if (isJudgedWhenPriced(row.catalogueComponent))
-			priced.set(row.catalogueComponent.id, row.catalogueComponent);
-	return [...priced.values()].flatMap((component) =>
-		treatmentIssues(options.configuration, component)
-	);
+	const levied = new Set(options.configuration.contributions.map((entry) => entry.row.id));
+	const issues: RunIssue[] = [];
+	for (const row of options.adjustments) {
+		if (row.catalogueComponent.family !== 'WORK') continue;
+		for (const optIn of row.optIns)
+			if (!levied.has(optIn.contribution_id))
+				issues.push({
+					code: 'OPT_IN_UNKNOWN',
+					message:
+						`${row.catalogueComponent.code} opts into a statutory scheme this settings version ` +
+						'does not levy. Remove the opt-in or add the scheme to the version in force.',
+					collection: 'jurisdiction_settings',
+					recordId: options.configuration.jurisdiction.id
+				});
+	}
+	return issues;
 }
 
 /** Configuration checks. None of them read a person. */
@@ -123,35 +92,28 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 			'PRORATION_MISSING',
 			`Jurisdiction ${configuration.jurisdiction.code} states no proration basis, so a partial ` +
 				'month cannot be paid.',
-			'work_catalogue',
-			configuration.work.id
+			'jurisdiction_settings',
+			configuration.jurisdiction.id
 		);
 
-	// A jurisdiction that prices overtime needs the two statutory rows its treatments live on.
-	// ACCUMULATE would refuse the first priced overtime line by name; refusing here keeps the
-	// refusal ahead of the run row.
-	if (configuration.overtimeRules.length > 0 && configuration.contributions.length > 0)
-		for (const output of ['overtime', 'overtime_excess'] as const)
+	// Every rate band must settle under a pay item of its own (line:label), or the run has no
+	// component to price the hours it produces.
+	for (const band of configuration.work.rates.bands) {
+		const outputs = [band.line, ...(band.funnel == null ? [] : [band.funnel.line])];
+		for (const line of outputs)
 			if (
 				!configuration.catalogueComponents.some(
-					(component) => component.family === 'WORK' && component.output === output
+					(component) => component.family === 'WORK' && component.output === `${line}:${band.label}`
 				)
 			)
 				blocker(
-					'OVERTIME_COMPONENT_MISSING',
-					`${configuration.company.name} has no ${output} Work output, so no scheme can say what ` +
-						'it does with derived overtime. Add the statutory row with a treatment for every ' +
-						`scheme ${configuration.jurisdiction.code} levies.`,
+					'WORK_BAND_COMPONENT_MISSING',
+					`${configuration.company.name} has no ${line} ${band.label} Work pay item, so the band ` +
+						'has nothing to settle under.',
 					'companies',
 					configuration.company.id
 				);
-
-	// Every monetary component owns a decided cell for every effective statutory scheme. The Work
-	// absence line is the one exception: it is priced only when someone was absent, so its column
-	// may stay undecided in a jurisdiction that never deducts one, and `validateAbsenceTreatments`
-	// judges it on the measured run instead.
-	for (const component of configuration.catalogueComponents)
-		if (!isJudgedWhenPriced(component)) issues.push(...treatmentIssues(configuration, component));
+	}
 
 	// ── the schemes ─────────────────────────────────────────────────────────────────────────────
 	const sequenceById = new Map(
@@ -159,16 +121,6 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	);
 	for (const contribution of configuration.contributions) {
 		const code = contribution.row.code;
-		const parseOutcome = Effect.runSync(
-			Effect.result(Effect.try(() => parseSpecialRules(contribution.row.special_rules, code)))
-		);
-		if (Result.isFailure(parseOutcome))
-			blocker(
-				'SPECIAL_RULE_INVALID',
-				getErrorMessage(parseOutcome.failure),
-				'statutory_contributions',
-				contribution.row.id
-			);
 		if (contribution.rates.length === 0)
 			blocker(
 				'CONTRIBUTION_UNBANDED',
@@ -176,23 +128,10 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				'statutory_contributions',
 				contribution.row.id
 			);
-		const hasTerminalBand = contribution.rates.some((rate) => {
-			const selector = rate.selector;
-			if (selector == null) return false;
-			return (selector.by === 'WAGE' || selector.by === 'WAGE_AND_AGE') && selector.to == null;
-		});
-		const isWageBanded = contribution.rates.some(
-			(rate) => rate.selector?.by === 'WAGE' || rate.selector?.by === 'WAGE_AND_AGE'
-		);
-		if (isWageBanded && contribution.rates.length > 0 && !hasTerminalBand)
-			blocker(
-				'CONTRIBUTION_NO_CEILING',
-				`${code} has no open-ended terminal band. A ceiling is expressed as a band with no upper ` +
-					'bound; without one, a wage above the highest band cannot be charged at all.',
-				'statutory_contributions',
-				contribution.row.id
-			);
-		for (const relievedId of contribution.row.relief_for) {
+		// Coverage is a property of the seeded expressions, not of a band's shape: the terminal rung
+		// is whichever condition an unbounded wage satisfies. A run that reaches a wage no band
+		// matches stops inside `selectBand` and names the scheme, so nothing is silently reused.
+		for (const relievedId of contribution.relievedIds) {
 			const relievedSequence = sequenceById.get(relievedId);
 			if (relievedSequence == null) {
 				blocker(
@@ -221,15 +160,6 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	// MEASURE now emits a line straight from the priced segment, so every rule a day enters pays by
 	// construction and there is nothing left to map. A rule with no band is still unenterable: no
 	// hour can fall inside a band that does not exist, so it would pay nothing whatever MEASURE did.
-	for (const rule of configuration.overtimeRules) {
-		if (rule.band != null) continue;
-		blocker(
-			'OVERTIME_RULE_UNBANDED',
-			`A ${rule.day_type} overtime rule carries no band and can never be entered.`,
-			'work_catalogue',
-			configuration.work.id
-		);
-	}
 
 	return issues;
 }
@@ -255,19 +185,17 @@ function limitBucket(month: string, period: 'MONTH' | 'QUARTER' | 'YEAR'): strin
  * The overtime ceilings that only a measured run can test.
  *
  * A MONTH ceiling reads this run's months; a QUARTER or YEAR ceiling reads the calendar quarter
- * or year to date — the months earlier PAID payslips settled plus this run's. `on_exceed` decides
- * whether the run stops. `WARN` names the person, the period and the authority and lets the
- * payslips be written; `BLOCK` refuses the whole run.
+ * or year to date — the months earlier PAID payslips settled plus this run's. The report is always
+ * a warning: enforcement is the schedule gate's, not the run's.
  */
 export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): RunIssue[] {
 	const issues: RunIssue[] = [];
-	for (const limit of options.configuration.overtimeLimits) {
+	for (const limit of options.configuration.limits) {
 		// The hours are regulated *overtime*, so only a limit that counts overtime hours may be
 		// compared against them. A TOTAL_WORK_HOURS row is a different quantity, not a stricter one.
 		const period = limit.period;
 		if (
-			limit.on_exceed === 'INCENTIVE' ||
-			limit.measures !== 'OVERTIME_HOURS' ||
+			limit.measure !== 'OVERTIME_HOURS' ||
 			(period !== 'MONTH' && period !== 'QUARTER' && period !== 'YEAR')
 		)
 			continue;
@@ -285,22 +213,18 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 					)
 				)
 					add(month, hours);
-		const severity: IssueSeverity = limit.on_exceed === 'BLOCK' ? 'BLOCKER' : 'WARNING';
-		const nextStep =
-			severity === 'BLOCKER'
-				? 'Reduce the recorded overtime, or raise the ceiling on the authority that states it, before this payroll can be built.'
-				: 'The run will still be built; review the attendance or raise the ceiling if the hours should not stand.';
 		for (const [bucket, hours] of totals) {
 			if (!(hours > decodeNumber(limit.max_hours))) continue;
 			issues.push({
 				code: 'OVERTIME_LIMIT_EXCEEDED',
-				severity,
+				severity: 'WARNING' as const,
 				message:
 					`${options.employeeNumber} worked ${hours} regulated overtime hours in ${bucket}, ` +
 					`against a ${limit.max_hours}-hour calendar-${period.toLowerCase()} ceiling ` +
-					`(${options.configuration.work.authority ?? 'the Work catalogue'}, on_exceed=${limit.on_exceed}). ${nextStep}`,
-				collection: 'work_catalogue',
-				recordId: options.configuration.work.id
+					`(${options.configuration.work.authority ?? 'the Work rules'}). The run will still ` +
+					'be built; the schedule gate is where this ceiling refuses.',
+				collection: 'jurisdiction_settings',
+				recordId: options.configuration.jurisdiction.id
 			});
 		}
 	}

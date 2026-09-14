@@ -30,7 +30,6 @@ const AGREED_ROW_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0002';
 const CURRENT_ROW_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0003';
 const LOAN_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0004';
 const REPAYMENT_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0005';
-const WORK_ROW_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0006';
 const INSTALMENT = 300;
 
 const scheme = (id: string, settingsId: string, code: string, sequence: number) => ({
@@ -41,23 +40,26 @@ const scheme = (id: string, settingsId: string, code: string, sequence: number) 
 	name: `Public fixture ${code}`,
 	authority: 'Public fixture',
 	rounding: 'NEAREST_CENT',
-	relief_for: [],
 	sequence,
-	special_rules: [],
+	assessment_period: 'PAY_PERIOD',
+	eligibility: '',
+	rules: {
+		relief: '',
+		base_transform: '',
+		share_for_dependants: '',
+		rounding: ['NEAREST_CENT'],
+		no_withholding_below: 0,
+		use_period_table: true,
+		additional_remuneration_channel: false,
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		total_rounded_employee_floored: false
+	},
 	bands: [
-		{
-			selector: { by: 'WAGE', from: 0, to: null },
-			award: { kind: 'PERCENT', employee: 10, employer: 10 }
-		}
+		{ when: 'base >= 0.0', employee: 'base * 10.0 / 100.0', employer: 'base * 10.0 / 100.0' }
 	],
 	approval_id: null
-});
-
-const workTreatment = (kind: string) => ({
-	salary: { kind },
-	overtime: { kind },
-	overtime_excess: { kind },
-	absence: { kind: 'REDUCE' }
 });
 
 type LoanWorldOptions = {
@@ -102,24 +104,39 @@ function loanWorld(options: LoanWorldOptions = {}) {
 		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0009', NEW_SETTINGS_ID, 'PUB-NEW', 2)
 	);
 
-	world.work_catalogue[0].treatments = { 'PUB-OLD': workTreatment('INCLUDE') };
-	world.work_catalogue.push({
-		...structuredClone(world.work_catalogue[0]),
-		id: WORK_ROW_ID,
-		settings_id: NEW_SETTINGS_ID,
-		treatments: {
-			'PUB-OLD': workTreatment('INCLUDE'),
-			'PUB-NEW': workTreatment('INCLUDE')
-		}
-	});
+	// The work lines' opt-ins ride the settings root (RFC 0001 §6): the first version knows
+	// PUB-OLD, the second adds PUB-NEW, and each body prices the lines it names.
+	const setWorkOptIns = (version: (typeof world.jurisdiction_settings)[number], ids: string[]) => {
+		const rules = version.work_rules as {
+			lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+			rates: { bands: { statutory_opt_ins: unknown[] }[] };
+		};
+		const include = ids.map((id) => ({ contribution_id: id, effect: 'INCLUDE' }));
+		const reduce = ids.map((id) => ({ contribution_id: id, effect: 'REDUCE' }));
+		rules.lines.salary.statutory_opt_ins = include;
+		rules.lines.night.statutory_opt_ins = include;
+		rules.lines.absence.statutory_opt_ins = reduce;
+		for (const band of rules.rates.bands) band.statutory_opt_ins = include;
+	};
+	setWorkOptIns(world.jurisdiction_settings[0]!, ['bbbbbbbb-cccc-4ddd-8eee-ffffffff0007']);
+	setWorkOptIns(world.jurisdiction_settings[1]!, [
+		'bbbbbbbb-cccc-4ddd-8eee-ffffffff0008',
+		'bbbbbbbb-cccc-4ddd-8eee-ffffffff0009'
+	]);
 
 	const agreed = {
 		id: AGREED_ROW_ID,
 		settings_id: JURISDICTION_ID,
 		code: 'STAFF_LOAN',
 		name: 'Staff loan',
-		// The row predates PUB-NEW, so it decides PUB-OLD and nothing else.
-		contribution_treatments: { 'PUB-OLD': { kind: 'EXCLUDE' } },
+		destination: 'NET',
+		direction: 'SUBTRACT',
+		evidence: 'NONE',
+		recurring: false,
+		minimum_repayment: null,
+		loan_type: 'STAFF',
+		// The row predates PUB-NEW, so its bands name neither scheme — silence means no effect.
+		bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
 		sequence: 70,
 		eligibility: options.eligibility ?? '',
 		approval_id: null
@@ -131,9 +148,7 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			id: CURRENT_ROW_ID,
 			settings_id: NEW_SETTINGS_ID,
 			code: options.currentCode ?? agreed.code,
-			eligibility: '',
-			// The current version decides both, and disagrees with the agreed row about PUB-OLD.
-			contribution_treatments: { 'PUB-OLD': { kind: 'REDUCE' }, 'PUB-NEW': { kind: 'REDUCE' } }
+			eligibility: ''
 		}
 	];
 	world.loans.push({
@@ -166,17 +181,13 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			id: 'payslip-2026-01',
 			payroll_run_id: 'run-2026-01',
 			employment_id: EMPLOYMENT_ID,
+			status: 'PAID',
 			paid_at: '2026-01-31',
 			statutory: [],
 			adjustments: [
 				{ family: 'LOAN_REPAYMENT', source_id: REPAYMENT_ID, amount: options.alreadyRecovered }
 			],
 			approval_id: null
-		});
-		world.payslip_loan_repayment_inputs.push({
-			id: 'capture-2026-01',
-			payslip_id: 'payslip-2026-01',
-			loan_repayment_id: REPAYMENT_ID
 		});
 	}
 	return world;
@@ -195,22 +206,22 @@ const build = async (world) =>
 
 const recoveryOf = (slip) => slip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
 
-test('a loan agreed under an earlier revision is recovered, at the run version’s treatment for a scheme sealed after it', async () => {
+test('a loan agreed under an earlier revision is recovered, and a scheme sealed after it stays silent', async () => {
 	const result = await build(loanWorld());
 	const slip = result.payslip_payroll_run[0];
 	const recovery = recoveryOf(slip);
 	assert.ok(recovery != null, 'the instalment is recovered rather than silently skipped');
 	assert.equal(recovery.amount, INSTALMENT);
-	assert.equal(slip.payslip_loan_repayment_input_payslip[0]!.loan_repayment_id, REPAYMENT_ID);
+	const captured = result.captures.find((row) => row.payslipId === slip.id);
+	assert.deepEqual(captured.loanRepayments, [REPAYMENT_ID]);
 
 	const baseOf = (code: string) =>
 		slip.statutory.find((line) => line.scheme_code === code)?.base_amount;
 	assert.ok(baseOf('PUB-OLD')! > 0, 'the wage itself is charged');
-	// PUB-NEW did not exist when the loan was agreed, so it has no cell on the agreed row to keep and
-	// the run's own row decides it — REDUCE, taking the recovery off the chargeable wage. PUB-OLD did
-	// exist, and the agreed row's own EXCLUDE stands against the current row's REDUCE, so the whole
-	// difference between the two bases is this instalment.
-	assert.equal(baseOf('PUB-OLD')! - baseOf('PUB-NEW')!, INSTALMENT);
+	// The agreed row's bands opted into no scheme, and its bands are the ones that priced the
+	// recovery: a scheme sealed into a later version cannot be named by a row that predates it, so
+	// both schemes see the same silence and the two bases match.
+	assert.equal(baseOf('PUB-OLD'), baseOf('PUB-NEW'));
 });
 
 test('a loan whose code the run’s version does not carry refuses the run by name', async () => {
@@ -226,7 +237,7 @@ test('the agreed row’s eligibility still excludes an ineligible person, withou
 	const result = await build(loanWorld({ eligibility: 'employee.gender == "MALE"' }));
 	const slip = result.payslip_payroll_run[0];
 	assert.equal(recoveryOf(slip), undefined);
-	assert.equal(slip.payslip_loan_repayment_input_payslip.length, 0);
+	assert.deepEqual(result.captures.find((row) => row.payslipId === slip.id).loanRepayments, []);
 });
 
 test('an instalment that is not yet due is not recovered early', async () => {

@@ -4,12 +4,42 @@ import { sha256Text } from '@norbital-ai/std/reckon';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
 import { contributionBandSchema as rateBandSchema } from '../datatypes/contribution_bands/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
-import { contributionTreatmentsValueSchema } from '../datatypes/contribution_treatments/+definition.js';
-import type {
-	StatutoryProposalChange,
-	UnreachableSource
-} from '../datatypes/statutory_proposal/+definition.js';
+import { statutoryOptInValueSchema } from '../datatypes/work_rules/+definition.js';
 import { stableJson } from './jurisdiction_settings.js';
+
+/** One research URL that could not be read, with the page reader's reason. */
+export const unreachableSourceSchema = Schema.Struct({
+	url: Schema.NonEmptyString,
+	reason: Schema.NonEmptyString,
+	retrieved_at: Schema.String
+});
+type UnreachableSource = Schema.Schema.Type<typeof unreachableSourceSchema>;
+
+/** One row the drift check found changed, and the page it stands on. */
+const statutoryProposalChangeSchema = Schema.Struct({
+	collection: Schema.Literals(['statutory_contributions', 'leave_catalogue', 'pay_component']),
+	code: Schema.NonEmptyString,
+	field: Schema.Literals(['bands', 'entitlement', 'statutory_opt_ins']),
+	previous: Schema.Unknown,
+	proposed: Schema.Unknown,
+	source_url: Schema.NonEmptyString,
+	quote: Schema.NonEmptyString,
+	retrieved_at: Schema.String,
+	sha256: Schema.String
+});
+export type StatutoryProposalChange = Schema.Schema.Type<typeof statutoryProposalChangeSchema>;
+
+/** The review sheet the drill automation keeps beside a proposed draft. */
+const statutoryProposalValueSchema = Schema.Struct({
+	proposed_by: Schema.Literal('statutory_drift'),
+	run_id: Schema.String,
+	proposed_at: Schema.String,
+	source_version_id: Schema.String,
+	changes: Schema.Array(statutoryProposalChangeSchema),
+	notes: Schema.Array(Schema.String),
+	unreachable: Schema.Array(unreachableSourceSchema)
+});
+export type StatutoryProposal = Schema.Schema.Type<typeof statutoryProposalValueSchema>;
 
 /**
  * Statutory research: reading the official pages a settings version names, and comparing what
@@ -18,7 +48,7 @@ import { stableJson } from './jurisdiction_settings.js';
  * Everything here is either pure or a bounded page read through the runtime's own reader. The
  * model is asked one question per lineage, with `read_official_page` as its only tool, and the
  * answer is decoded to `StatutoryFindingsSchema`: the official band table of each scheme, the
- * official entitlement of each leave, the official treatments of each component, each
+ * official entitlement of each leave, the official opt-ins of each component, each
  * with the page and quote it stands on. `diffStatutoryFindings` then decides what changed; the
  * model never does.
  */
@@ -193,7 +223,7 @@ export const StatutoryFindingsSchema = Schema.Struct({
 	pay_component: Schema.Array(
 		Schema.Struct({
 			code: Schema.NonEmptyString,
-			contribution_treatments: contributionTreatmentsValueSchema,
+			statutory_opt_ins: Schema.Array(statutoryOptInValueSchema),
 			...evidence
 		})
 	),
@@ -215,12 +245,12 @@ export type SealedStatutoryFacts = Readonly<{
 	leave_catalogue: ReadonlyArray<
 		Readonly<{ code: string; name: string; authority: string | null; entitlement: unknown }>
 	>;
-	pay_component: ReadonlyArray<Readonly<{ code: string; contribution_treatments: unknown }>>;
+	pay_component: ReadonlyArray<Readonly<{ code: string; statutory_opt_ins: unknown }>>;
 }>;
 
-/** Equal wage ranges can belong to different eligibility ladders. */
+/** The condition a band governs under is its identity; the money it awards is the change. */
 export const bandKey = (band: Schema.Schema.Type<typeof rateBandSchema>): string =>
-	stableJson([band.selector, (band.eligibility ?? '').trim()]);
+	stableJson(band.when);
 
 type StatutoryDiff = Readonly<{
 	changes: ReadonlyArray<StatutoryProposalChange>;
@@ -291,7 +321,11 @@ export function diffStatutoryFindings(
 		for (const band of finding.bands) {
 			const key = bandKey(band);
 			const prior = scheme.bands.find((row) => bandKey(row) === key);
-			if (prior !== undefined && stableJson(prior.award) === stableJson(band.award)) continue;
+			if (
+				prior !== undefined &&
+				stableJson([prior.employee, prior.employer]) === stableJson([band.employee, band.employer])
+			)
+				continue;
 			changes.push(
 				change(
 					'statutory_contributions',
@@ -323,20 +357,17 @@ export function diffStatutoryFindings(
 			notes.push(`Component ${finding.code}: not a statutory component of this version`);
 			continue;
 		}
-		if (
-			stableJson(component.contribution_treatments) === stableJson(finding.contribution_treatments)
-		)
-			continue;
+		if (stableJson(component.statutory_opt_ins) === stableJson(finding.statutory_opt_ins)) continue;
 		const page = verified(finding, 'Component');
 		if (page == null) continue;
 		changes.push(
 			change(
 				'pay_component',
-				'contribution_treatments',
+				'statutory_opt_ins',
 				finding,
 				page,
-				component.contribution_treatments,
-				finding.contribution_treatments
+				component.statutory_opt_ins,
+				finding.statutory_opt_ins
 			)
 		);
 	}

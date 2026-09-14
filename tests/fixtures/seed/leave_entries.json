@@ -2,7 +2,6 @@
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff2",
 		"employment_id": "44444444-4444-4444-8444-444444444444",
-		"leave_catalogue_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
 		"event": {
 			"kind": "TIME_OFF",
 			"range": {
@@ -24,11 +23,10 @@
 			{
 				"date": "2026-04-16",
 				"days": 1,
-				"leave_catalogue_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
 				"employment_term_id": "55555555-5555-4555-8555-555555555555",
-				"calendar_id": "bbbbbbbb-bbbb-4bbb-8bbb-000000002026",
 				"shift_definition_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
-				"work_day_id": null
+				"work_day_id": null,
+				"catalogue_id": "ffffffff-ffff-4fff-8fff-fffffffffff1"
 			}
 		],
 		"allocations": [
@@ -41,6 +39,7 @@
 				"days": -1,
 				"credit_entry_id": null
 			}
-		]
+		],
+		"catalogue_id": "ffffffff-ffff-4fff-8fff-fffffffffff1"
 	}
 ]

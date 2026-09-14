@@ -104,7 +104,7 @@ test('encash writes exactly the balance the step chose; forfeit writes nothing',
 	assert.equal(encashments.length, 1);
 	assert.deepEqual(encashments[0], {
 		employment_id: id(1),
-		leave_catalogue_id: id(7),
+		catalogue_id: id(7),
 		reference: exitReference(id(1), 'ANNUAL'),
 		event: {
 			kind: 'ENCASHMENT',

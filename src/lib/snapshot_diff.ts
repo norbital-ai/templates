@@ -4,8 +4,8 @@ import { stableJson } from './jurisdiction_settings.js';
  * Snapshot diff: what one jurisdiction settings version changes against another.
  *
  * Pure over rows, so the Settings Changes tab and the unit tests read the same computation. Rows
- * are matched by `code`; a collection whose rows carry none (work_catalogue holds one regime row)
- * is matched as a single row. Only leaves become lines — `bands[3].award.employer: 2,374.75 → 2,478`
+ * are matched by `code`; a collection whose rows carry none is matched as a single row. Only
+ * leaves become lines — `bands[3].employer: base * 13.0 / 100.0 → base * 13.5 / 100.0`
  * — so an operator reads the value that moved rather than two JSON blobs. Provenance columns
  * (`id`, `settings_id`, the audit stamps) are not part of identity and never diff.
  */
@@ -39,7 +39,7 @@ const PROVENANCE = new Set([
 ]);
 
 /** Root scalars worth comparing; name and source lists are identity and provenance, not the law. */
-const ROOT_DIFF_FIELDS = ['currency', 'tax_year_start_month', 'minimum_wages'] as const;
+const ROOT_DIFF_FIELDS = ['payroll', 'wages', 'work_rules'] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	value != null && typeof value === 'object' && !Array.isArray(value);
@@ -86,7 +86,7 @@ export function diffSettingsRoot(
 }
 
 /**
- * A leaf path as a reader reads it: `bands[1].award.employer` is "Band 2 · Award · Employer".
+ * A leaf path as a reader reads it: `bands[1].employer` is "Band 2 · Employer".
  * An indexed segment is singular — "Band 2", "Minimum wage 3" — because it names one row, and a
  * reader counts from one while the array counts from zero.
  */

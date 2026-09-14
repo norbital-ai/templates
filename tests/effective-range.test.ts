@@ -14,19 +14,19 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { inForceOnDay } from '../src/lib/effective_range.ts';
+import { coversDate } from '../src/collections/payroll_runs/lib/effective.ts';
 
 const source = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 test('an inclusive range resolves each bound in the payroll zone, not by slicing the instant', () => {
 	// 1 Sep 2026, 00:00 in Kuala Lumpur is 2026-08-31T16:00:00.000Z.
-	assert.equal(inForceOnDay({ start: '2026-08-31T16:00:00.000Z', end: null }, '2026-08-31'), false);
-	assert.equal(inForceOnDay({ start: '2026-08-31T16:00:00.000Z', end: null }, '2026-09-01'), true);
+	assert.equal(coversDate({ start: '2026-08-31T16:00:00.000Z', end: null }, '2026-08-31'), false);
+	assert.equal(coversDate({ start: '2026-08-31T16:00:00.000Z', end: null }, '2026-09-01'), true);
 	// An inclusive end day belongs to the range; the day after does not.
 	const closed = { start: '2026-09-01T00:00:00.000Z', end: '2026-09-30T15:59:59.999Z' };
-	assert.equal(inForceOnDay(closed, '2026-09-30'), true);
-	assert.equal(inForceOnDay(closed, '2026-10-01'), false);
-	assert.equal(inForceOnDay(null, '2026-09-01'), false);
+	assert.equal(coversDate(closed, '2026-09-30'), true);
+	assert.equal(coversDate(closed, '2026-10-01'), false);
+	assert.equal(coversDate(null, '2026-09-01'), false);
 });
 
 test('statutory facts block overlaps inclusively and close the predecessor the day before', () => {

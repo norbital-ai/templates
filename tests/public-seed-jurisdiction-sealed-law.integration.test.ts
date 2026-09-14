@@ -19,7 +19,7 @@ const JURISDICTION_COLUMNS = {
 	code: true,
 	name: true,
 	sealed_at: true,
-	tax_year_start_month: true
+	change_summary: true
 };
 
 /**
@@ -68,7 +68,7 @@ test(
 								action: 'update',
 								values: {
 									id: JURISDICTION_ID,
-									tax_year_start_month: 7
+									change_summary: 'A sealed version cannot be edited.'
 								}
 							}
 						]
@@ -89,10 +89,7 @@ test(
 			const body = asRecord(refused.value, 'sealed law mutate');
 			assert.equal(body.resolution, 'rejected');
 			assert.equal(body.code, 'refused');
-			assert.match(
-				String(body.message ?? ''),
-				/sealed.*tax_year_start_month|tax_year_start_month.*sealed|cannot change/i
-			);
+			assert.match(String(body.message ?? ''), /is sealed, so change_summary cannot change/i);
 
 			const reloaded = await postGuestCommand(
 				session.host.baseUrl,
@@ -107,7 +104,7 @@ test(
 			);
 			const [after] = rowsOf(reloaded.value, 'PUB after refuse');
 			assert.ok(after);
-			assert.equal(after.tax_year_start_month, row.tax_year_start_month);
+			assert.equal(after.change_summary, row.change_summary);
 			assert.equal(after.code, 'PUB');
 			assert.ok(typeof after.sealed_at === 'string');
 		} finally {

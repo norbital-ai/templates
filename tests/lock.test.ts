@@ -364,15 +364,6 @@ function fakeHookApi({ runs = [], captures = [], payslips = monthlySlips } = {})
 						}
 					])
 			},
-			work_catalogue: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							settings_id: 'settings-1',
-							regime: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
-						}
-					])
-			},
 			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// The lock is the payslip's; the windows above are only where to look.
@@ -442,9 +433,9 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 		kind: 'SETTLED',
 		period: '2026-07'
 	});
-	// The record's own settlement pin is what refuses, and it names the period. A zero-priced
-	// day carries the same pin as one that paid overtime.
-	const settled = { ...existing, settled_payslip_id: 'slip-1', settled_period: '2026-07' };
+	// The record's own settlement pin is what refuses. The period no longer lives on the pin — the
+	// row carries only the payslip that took it — so the sentence names the lock without the month.
+	const settled = { ...existing, payslip_id: 'slip-1' };
 	assert.throws(
 		() =>
 			runMutateBefore({
@@ -452,7 +443,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 				existing: settled,
 				api: fakeHookApi({ runs: monthly })
 			}),
-		/payroll 2026-07 has already taken this record into account/
+		/ already taken this record into account/
 	);
 });
 

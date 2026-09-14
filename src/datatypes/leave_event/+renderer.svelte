@@ -40,7 +40,7 @@
 		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null
 	);
 	const catalogueId = $derived(
-		typeof props.row?.leave_catalogue_id === 'string' ? props.row.leave_catalogue_id : null
+		typeof props.row?.catalogue_id === 'string' ? props.row.catalogue_id : null
 	);
 	const entryId = $derived(typeof props.row?.id === 'string' ? props.row.id : null);
 	let calendarMonth = $state(todayKey().slice(0, 7));
@@ -54,7 +54,7 @@
 			return null;
 		return {
 			employment_id: employmentId,
-			leave_catalogue_id: catalogueId,
+			catalogue_id: catalogueId,
 			calendar_month: calendarMonth,
 			range: current.range,
 			...(entryId == null ? {} : { exclude_entry_id: entryId })
@@ -102,7 +102,7 @@
 			? null
 			: client.db.leave_catalogue.findFirst({
 					where: { id: { eq: catalogueId } },
-					with: { leave_catalogue_settings: { columns: { currency: true } } }
+					with: { leave_catalogue_settings: { columns: { payroll: true } } }
 				})
 	);
 
@@ -111,7 +111,7 @@
 			| (WorkspaceRow<'leave_catalogue'> & {
 					readonly leave_catalogue_settings?: Pick<
 						WorkspaceRow<'jurisdiction_settings'>,
-						'currency'
+						'payroll'
 					> | null;
 			  })
 			| undefined
@@ -128,7 +128,7 @@
 			case 'OTHER_LEAVE':
 				return t('component.excluded_other_leave');
 			case 'PAID_PAYROLL':
-				return t('component.excluded_paid_payroll', { period: day.settled_period ?? '' });
+				return t('component.excluded_paid_payroll');
 			case 'NO_SCHEDULE':
 			case 'MISSING_ROSTER_CODE':
 				return t('component.excluded_no_schedule');
@@ -182,7 +182,7 @@
 					days: 0,
 					gross_amount: {
 						value: 0,
-						currency: catalogue?.leave_catalogue_settings?.currency ?? ''
+						currency: catalogue?.leave_catalogue_settings?.payroll?.currency ?? ''
 					},
 					rate: null,
 					due_on: on

@@ -57,11 +57,30 @@ function rosteredWorkDays(): PayrollWorld['work_days'] {
 	return rows;
 }
 
-const REGIME = {
-	holiday_rest_precedence: 'REST_DAY',
-	overtime_coverage: null,
-	overtime_rules: [],
-	overtime_limits: []
+const WORK_RULES = {
+	proration: { by: 'CALENDAR_DAYS' },
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
+	},
+	rates: {
+		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
+		bands: []
+	},
+	limits: [
+		{
+			key: 'daily_total',
+			period: 'DAY',
+			measure: 'TOTAL_WORK_HOURS',
+			max_hours: 12,
+			unit: 'CLOCK_HOURS'
+		}
+	],
+	breaks: [{ when: 'consecutive_hours > 5.0', owed_minutes: 30, counts_as_worked_time: false }],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	coverage: null,
+	holiday_rest_precedence: 'REST_DAY'
 };
 
 export type PublicPayrollWorldOptions = {
@@ -73,23 +92,25 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 	const standing = {
 		id: STANDING_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		allowance_catalogue_id: TRANSPORT_ID,
+		catalogue_id: TRANSPORT_ID,
 		amount: 310,
-		pay_period: null,
 		// A standing allowance: its window is the recurrence itself, and it pays whole in every
 		// period the window covers rather than depleting across them. There is no date column here
 		// on purpose — the window already states the day it opens.
 		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: '2026-03-31' },
+		derived_from_id: null,
+		payslip_id: null,
 		approval_id: null
 	};
 	const payment = {
 		id: PAYMENT_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		payment_catalogue_id: TRANSPORT_PAYMENT_ID,
+		catalogue_id: TRANSPORT_PAYMENT_ID,
 		amount: 100,
 		effective_on: '2026-01-15',
 		pay_period: '2026-01',
 		reason: 'one-off',
+		payslip_id: null,
 		approval_id: null
 	};
 	return {
@@ -116,26 +137,22 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				voided_at: null,
 				void_reason: null,
 				cloned_from_id: null,
-				currency: 'MYR',
-				tax_year_start_month: 1,
-				timezone: 'Asia/Kuala_Lumpur',
+				payroll: {
+					currency: 'MYR',
+					timezone: 'Asia/Kuala_Lumpur',
+					tax_year_start_month: 1
+				},
+				// No region is named, so the wages map is empty and a scheme's
+				// `minimum_wage(region)` has nothing to read.
+				wages: { by_region: {} },
+				sources: { urls: [] },
 				effective_range: RANGE,
+				work_rules: structuredClone(WORK_RULES),
 				approval_id: null
 			}
 		],
 		statutory_contributions: [],
-		work_catalogue: [
-			{
-				id: BASIC_ID,
-				settings_id: JURISDICTION_ID,
-				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
-				regime: REGIME,
-				treatments: {},
-				authority: null,
-				approval_id: null
-			}
-		],
+		scheme_reliefs: [],
 
 		/**
 		 * One code, two catalogues, two rows. A standing transport allowance and a one-off transport
@@ -150,13 +167,15 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				settings_id: JURISDICTION_ID,
 				code: 'TRANSPORT',
 				name: 'Transport allowance',
-				nature: 'EARNING',
-				contribution_treatments: {},
 				sequence: 50,
 				eligibility: '',
 				evidence: 'NONE',
-				settlement: 'PAYROLL',
-				cap: null,
+				destination: 'PAY',
+				direction: 'ADD',
+				recurring: true,
+				prorates: false,
+				on_day: null,
+				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
 				approval_id: null
 			}
 		],
@@ -166,13 +185,12 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				settings_id: JURISDICTION_ID,
 				code: 'TRANSPORT',
 				name: 'Transport allowance',
-				nature: 'EARNING',
-				contribution_treatments: {},
 				sequence: 51,
 				eligibility: '',
 				evidence: 'NONE',
-				settlement: 'PAYROLL',
-				cap: null,
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
 				approval_id: null
 			}
 		],
@@ -180,7 +198,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		shift_definitions: [
 			{
 				id: WORK_SHIFT_ID,
-				settings_code: 'PF',
+				company_id: COMPANY_ID,
 				code: '7.5AM',
 				name: 'Day',
 				variant: { kind: 'WORK', start_time: '07:30', end_time: '16:30', break_minutes: 60 },
@@ -191,7 +209,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		shift_patterns: [
 			{
 				id: SHIFT_PATTERN_ID,
-				settings_code: 'PF',
+				company_id: COMPANY_ID,
 				code: 'ROSTER-6D-45H-WK',
 				name: 'Rostered, 6 days and 45 hours guaranteed per week',
 				pattern: ROSTERED,
@@ -255,9 +273,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		loan_repayments: [],
 		work_days: rosteredWorkDays(),
 		payroll_runs: [],
-		payslips: [],
-		payslip_allowance_request_inputs: [],
-		payslip_leave_inputs: [],
-		payslip_loan_repayment_inputs: []
+		payslips: []
 	};
 }

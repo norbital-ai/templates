@@ -6,7 +6,6 @@ import type {
 	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
-import { treatmentsInForce } from '../jurisdiction_settings.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 export type Loan = WorkspaceRow<'loans'>;
@@ -20,9 +19,6 @@ type LoanComponent = CatalogueComponent &
 /** A loan with the catalogue row it was agreed against — the revision it pins, read at GATHER. */
 export type PreparedLoan = Loan & { readonly catalogueComponent: LoanComponent };
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
-/** A loan recovery is always a payroll deduction; the catalogue row does not get to say otherwise. */
-const LOAN_NATURE = 'DEDUCTION' as const;
-const LOAN_SETTLEMENT = 'PAYROLL' as const;
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { dateKey } from '../../collections/payroll_runs/lib/dates.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
@@ -36,7 +32,12 @@ import {
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
 import { live } from '../../collections/payroll_runs/lib/effective.js';
-import type { MeasuredAdjustment } from './family.js';
+import {
+	settlementBucket,
+	type MeasuredAdjustment,
+	type SettlementDestination,
+	type SettlementDirection
+} from './family.js';
 
 type MeasureRecoveryOptions = {
 	readonly bundle: EmploymentBundle;
@@ -49,35 +50,26 @@ type MeasureRecoveryOptions = {
 };
 
 /**
- * The pay line a loan is recovered under: its own row, filled from the run's row of the same code.
+ * The pay line a loan is recovered under: its own row, filled with nothing from the run's row.
  *
  * A loan pins the `loan_catalogue` row of the version in force the day it was agreed, and sealing
  * the next version rewrites every catalogue row under a new id (`lib/settings_clone.ts`). So from
  * that version onward the pinned id is in no run's catalogue and resolving the line by id found
  * nothing — every remaining instalment was skipped, the balance stayed outstanding forever, and no
  * payslip line said so. The code is what survives a revision (`settings_id, code` is the
- * catalogue's unique key), so the code resolves the line.
+ * catalogue's unique key), so the code is what the run's version is asked for.
  *
- * The agreed row's own treatment decisions stand — an approved agreement's treatment is history —
- * and the run's row of the same code fills only the cells a scheme sealed later left it silent
- * about. That is the same rule money requests and leave charges are charged under; see
- * `treatmentsInForce`. A code the run's version does not carry at all resolves to nothing, and
- * `validateLoanRecoveries` refuses the run by name rather than recovering nothing quietly.
+ * The agreed row's own bands stand: they are the opt-ins it agreed to, and a scheme sealed into a
+ * later version — which the agreed row could not have named — is silence, and silence is no effect.
+ * Only the run's version must still carry the code, and `validateLoanRecoveries` refuses the run by
+ * name rather than recovering nothing quietly.
  */
 function loanRecoveryComponent(
 	loan: PreparedLoan,
 	currentByCode: ReadonlyMap<string, CatalogueComponent>
 ): LoanComponent | null {
 	const source = loan.catalogueComponent;
-	const current = currentByCode.get(source.code);
-	if (current == null) return null;
-	return {
-		...source,
-		contribution_treatments: treatmentsInForce(
-			source.contribution_treatments,
-			current.contribution_treatments
-		)
-	};
+	return currentByCode.has(source.code) ? source : null;
 }
 
 /** The run's own loan catalogue, by the key that survives a revision. */
@@ -182,6 +174,9 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		const consumed = options.consumedRepayments.get(repayment.id) ?? 0;
 		const outstanding = repaymentOutstanding(repayment, consumed);
 		if (outstanding <= 0) continue;
+		// A repayment another unpaid slip already holds is not this run's to recover. Paid history
+		// with a remainder is: the pin stays until the source is made whole.
+		if (repayment.payslip_id != null && consumed <= 0) continue;
 		const amount = cents(outstanding);
 		assertWithinRepayment({
 			repayment,
@@ -193,12 +188,16 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		recoveries.push({
 			input: { family: 'LOAN_REPAYMENT', id: repayment.id },
 			catalogueComponent: component,
-			nature: component.nature,
+			bucket: settlementBucket(component.destination, component.direction),
+			optIns: component.optIns ?? [],
 			label: component.code,
 			amount,
 			quantity: null,
 			rate: null,
-			statutoryRuleKey: null
+			statutoryRuleKey: null,
+			// Only a recovery that makes the repayment whole is its single payslip link; a partial
+			// one settles this period's slice and leaves the row unlinked for the next.
+			settlesSource: amount >= outstanding
 		});
 	}
 	return recoveries;
@@ -338,6 +337,9 @@ export function prepareLoanPayroll(options: {
 				rawLoans.length === 0
 					? Effect.succeed([])
 					: options.api.db.loan_repayments.findMany({
+							// Pinned repayments are read too: a part-recovered instalment keeps its pin
+							// and the remainder is re-derived from the paid history next period. Whether
+							// the pin is another unpaid slip's is judged where consumption is known.
 							where: { loan_id: { in: rawLoans.map((row) => row.id) } },
 							limit: PAGE_LIMIT
 						})
@@ -388,12 +390,16 @@ export function prepareLoanCatalogue(options: {
 }
 
 /** One stored catalogue row as the engine's pay line; a loan recovery is never anything else. */
-const loanComponent = (row: WorkspaceRow<'loan_catalogue'>) => ({
+const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
 	...row,
 	family: 'LOAN' as const,
-	nature: LOAN_NATURE,
-	settlement: LOAN_SETTLEMENT,
-	definition: { source: 'ENTRY' as const, cap: null }
+	// The enum columns arrive as text at the database boundary; the model constrains them to the
+	// §9 vocabulary, so the engine restates it once here.
+	destination: row.destination as SettlementDestination,
+	direction: row.direction as SettlementDirection | null,
+	// A loan recovery is engine-priced; its bands can only carry opt-ins, so every one is kept.
+	optIns: row.bands.flatMap((band) => band.statutory_opt_ins),
+	definition: { source: 'ENTRY' as const }
 });
 export function prepareLoanConsumption(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -403,11 +409,11 @@ export function prepareLoanConsumption(options: {
 		const db = options.api.db;
 		const priorPayslipIds = [...options.payslipIds];
 		const consumedRepayments = new Map<string, number>();
-		const [links, payslips] = yield* Effect.all(
+		const [repayments, payslips] = yield* Effect.all(
 			[
-				db.payslip_loan_repayment_inputs.findMany({
+				db.loan_repayments.findMany({
 					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { loan_repayment_id: true },
+					columns: { id: true },
 					limit: PAGE_LIMIT
 				}),
 				db.payslips.findMany({
@@ -418,10 +424,10 @@ export function prepareLoanConsumption(options: {
 			],
 			{ concurrency: 'unbounded' }
 		);
-		options.api.reads.assertComplete(links, 'prior loan-repayment captures');
+		options.api.reads.assertComplete(repayments, 'prior loan-repayment captures');
 		options.api.reads.assertComplete(payslips, 'prior loan-recovery adjustments');
 		// A paid capture with no output consumed zero, rather than leaving historical usage unknown.
-		for (const row of links) consumedRepayments.set(row.loan_repayment_id, 0);
+		for (const row of repayments) consumedRepayments.set(row.id, 0);
 		for (const payslip of payslips)
 			for (const row of payslip.adjustments) {
 				if (row.family !== 'LOAN_REPAYMENT') continue;

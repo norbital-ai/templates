@@ -23,12 +23,10 @@ const page = {
 	sha256: 'a'.repeat(64),
 	retrieved_at: '2026-09-07T00:00:00.000Z'
 };
-const band = (employee: number) => ({
-	selector: { by: 'WAGE', from: 0, to: null },
-	award: { kind: 'PERCENT', employee, employer: 13 }
-});
+const OPT_IN_ID = '11111111-1111-4111-8111-111111111111';
+const band = (employee: string) => ({ when: 'base >= 0.0', employee, employer: '13.0' });
 const sealed = {
-	contributions: [{ code: 'EPF', name: 'Fund', authority: 'Act', bands: [band(11)] }],
+	contributions: [{ code: 'EPF', name: 'Fund', authority: 'Act', bands: [band('11.0')] }],
 	leave_catalogue: [
 		{
 			code: 'ANNUAL',
@@ -42,7 +40,7 @@ const sealed = {
 			}
 		}
 	],
-	pay_component: [{ code: 'OVERTIME', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }]
+	pay_component: [{ code: 'OVERTIME', statutory_opt_ins: [] }]
 };
 const quote = 'the employee contribution rate is 12% of wages';
 
@@ -50,7 +48,7 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 	const diff = diffStatutoryFindings(
 		sealed,
 		{
-			contributions: [{ code: 'EPF', bands: [band(12)], source_url: page.url, quote }],
+			contributions: [{ code: 'EPF', bands: [band('12.0')], source_url: page.url, quote }],
 			leave_catalogue: [],
 			pay_component: [],
 			notes: []
@@ -62,8 +60,8 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 		collection: 'statutory_contributions',
 		code: 'EPF',
 		field: 'bands',
-		previous: [band(11)],
-		proposed: [band(12)],
+		previous: [band('11.0')],
+		proposed: [band('12.0')],
 		source_url: page.url,
 		quote,
 		retrieved_at: page.retrieved_at,
@@ -73,10 +71,7 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 });
 
 test('an unchanged table, in any key or band order, is no change', () => {
-	const reordered = {
-		award: { employer: 13, employee: 11, kind: 'PERCENT' },
-		selector: { to: null, from: 0, by: 'WAGE' }
-	};
+	const reordered = { employer: '13.0', employee: '11.0', when: 'base >= 0.0' };
 	const diff = diffStatutoryFindings(
 		sealed,
 		{
@@ -95,12 +90,7 @@ test('an unchanged table, in any key or band order, is no change', () => {
 				}
 			],
 			pay_component: [
-				{
-					code: 'OVERTIME',
-					contribution_treatments: { EPF: { kind: 'EXCLUDE' } },
-					source_url: page.url,
-					quote
-				}
+				{ code: 'OVERTIME', statutory_opt_ins: [], source_url: page.url, quote }
 			],
 			notes: ['A revision is announced for 2028.']
 		},
@@ -115,14 +105,14 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 		sealed,
 		{
 			contributions: [
-				{ code: 'EPF', bands: [band(12)], source_url: page.url, quote: 'invented sentence here' },
+				{ code: 'EPF', bands: [band('12.0')], source_url: page.url, quote: 'invented sentence here' },
 				{
 					code: 'EPF',
-					bands: [band(12)],
+					bands: [band('12.0')],
 					source_url: 'https://statutory.example.org/elsewhere',
 					quote
 				},
-				{ code: 'SOCSO', bands: [band(1)], source_url: page.url, quote }
+				{ code: 'SOCSO', bands: [band('1.0')], source_url: page.url, quote }
 			],
 			leave_catalogue: [],
 			pay_component: [],
@@ -142,17 +132,15 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 		code: 'PUB',
 		name: 'draft',
 		contribution_settings: [
-			{ id: 's1', code: 'EPF', bands: [band(11)] },
-			{ id: 's2', code: 'OTHER', bands: [band(5)] }
+			{ id: 's1', code: 'EPF', bands: [band('11.0')] },
+			{ id: 's2', code: 'OTHER', bands: [band('5.0')] }
 		],
 		leave_catalogue_settings: [
 			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }
 		],
-		work_catalogue_settings: [{ id: 'w1', treatments: {} }],
-		payment_catalogue_settings: [
-			{ id: 'p1', code: 'SEPARATION', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }
-		]
+		payment_catalogue_settings: [{ id: 'p1', code: 'SEPARATION', bands: [] }]
 	};
+	const optionIn = [{ contribution_id: OPT_IN_ID, effect: 'INCLUDE' }];
 	const proposal = {
 		proposed_by: 'statutory_drift',
 		run_id: 'run',
@@ -163,8 +151,8 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 				collection: 'statutory_contributions',
 				code: 'EPF',
 				field: 'bands',
-				previous: [band(11)],
-				proposed: [band(12)],
+				previous: [band('11.0')],
+				proposed: [band('12.0')],
 				source_url: page.url,
 				quote,
 				retrieved_at: page.retrieved_at,
@@ -172,10 +160,10 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 			},
 			{
 				collection: 'pay_component',
-				code: 'OVERTIME',
-				field: 'contribution_treatments',
-				previous: {},
-				proposed: { EPF: { kind: 'INCLUDE' } },
+				code: 'SEPARATION',
+				field: 'statutory_opt_ins',
+				previous: [],
+				proposed: optionIn,
 				source_url: page.url,
 				quote,
 				retrieved_at: page.retrieved_at,
@@ -186,26 +174,22 @@ test('the proposed bands replace the cloned ones in the draft write', () => {
 		unreachable: []
 	};
 	const revised = applyProposedChanges(write, proposal.changes, proposal);
-	assert.equal(revised.research_notes, proposal);
-	assert.deepEqual(revised.contribution_settings[0].bands, [band(12)]);
+	assert.equal(
+		revised.change_summary,
+		'Statutory drift: 2 change(s) proposed from v1 on 2026-09-07T00:00:00.000Z.'
+	);
+	assert.deepEqual(revised.contribution_settings[0].bands, [band('12.0')]);
 	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
 	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
-	assert.deepEqual(revised.work_catalogue_settings[0].treatments, {
-		EPF: {
-			salary: { kind: 'UNSET' },
-			overtime: { kind: 'INCLUDE' },
-			overtime_excess: { kind: 'UNSET' },
-			absence: { kind: 'UNSET' },
-			night: { kind: 'UNSET' }
-		}
-	});
-	assert.deepEqual(revised.payment_catalogue_settings, write.payment_catalogue_settings);
+	assert.deepEqual(revised.payment_catalogue_settings[0].bands, [
+		{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: optionIn }
+	]);
 });
 
 test('a changed rate preserves and targets its eligibility ladder', () => {
-	const first = { ...band(11), eligibility: 'terms.payroll_group == "MONTHLY"' };
-	const second = { ...band(5), eligibility: 'terms.payroll_group == "WEEKLY"' };
-	const proposed = { ...first, award: { ...first.award, employee: 12 } };
+	const first = { when: 'base <= 5000.0', employee: '11.0', employer: '13.0' };
+	const second = { when: 'base > 5000.0', employee: '5.0', employer: '13.0' };
+	const proposed = { ...first, employee: '12.0' };
 	const facts = {
 		...sealed,
 		contributions: [{ ...sealed.contributions[0], bands: [first, second] }]
@@ -224,7 +208,7 @@ test('a changed rate preserves and targets its eligibility ladder', () => {
 	const result = applyProposedChanges(
 		{ contribution_settings: [{ code: 'EPF', bands: [first, second] }] },
 		diff.changes,
-		{}
+		{ changes: diff.changes }
 	);
 	assert.deepEqual(result.contribution_settings[0].bands, [proposed, second]);
 });

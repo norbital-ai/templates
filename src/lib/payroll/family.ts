@@ -1,4 +1,35 @@
-import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
+import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
+import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
+
+/** Where a line settles (RFC 0001 §9). `EMPLOYER` and `DISPLAY` carry no direction. */
+export type SettlementDestination = 'PAY' | 'NET' | 'EMPLOYER' | 'DISPLAY';
+export type SettlementDirection = 'ADD' | 'SUBTRACT';
+
+/** The payslip bucket a line lands in, derived from its catalogue's destination × direction. */
+export type SettlementBucket =
+	'EARNING' | 'ABSENCE' | 'DEDUCTION' | 'NON_WAGE_PAYMENT' | 'EMPLOYER_COST' | 'INFORMATION';
+
+/**
+ * The §9 table: destination × direction → the bucket the line lands in.
+ *
+ * One function, because settle, report, graph and export all ask the same question of a catalogue
+ * row's policy, and a second copy of this switch is how ABSENCE starts settling as an earning.
+ */
+export function settlementBucket(
+	destination: SettlementDestination,
+	direction: SettlementDirection | null
+): SettlementBucket {
+	switch (destination) {
+		case 'PAY':
+			return direction === 'SUBTRACT' ? 'ABSENCE' : 'EARNING';
+		case 'NET':
+			return direction === 'SUBTRACT' ? 'DEDUCTION' : 'NON_WAGE_PAYMENT';
+		case 'EMPLOYER':
+			return 'EMPLOYER_COST';
+		case 'DISPLAY':
+			return 'INFORMATION';
+	}
+}
 
 /** Metadata carried by a family result. Consumers do not need its calculation definition. */
 export type FamilyPayItem = {
@@ -10,13 +41,15 @@ export type FamilyPayItem = {
 	readonly name?: string | null;
 	/** Work and Leave items only: the money catalogues carry no statutory flag. */
 	readonly is_statutory?: boolean;
-	/** The economic direction the line settles in; `ABSENCE` reduces gross, the rest are what they say. */
-	readonly nature: string;
-	readonly contribution_treatments: WorkspaceRow<'claim_catalogue'>['contribution_treatments'];
+	/** How the line settles: destination × direction is its bucket. */
+	readonly destination: SettlementDestination;
+	readonly direction: SettlementDirection | null;
+	/** The ordered bands a catalogue prices its entries with; empty for engine-priced Work lines. */
+	readonly bands: readonly CatalogueBand[];
+	/** Engine-priced lines state their opt-ins on the component; catalogues carry them on bands. */
+	readonly optIns?: readonly StatutoryOptIn[];
 	readonly sequence: number;
 	readonly eligibility: string;
-	/** `PAYROLL` or `COMPANY_DIRECT`; absent on Work items, which payroll always pays. */
-	readonly settlement?: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
 };
 
@@ -26,7 +59,12 @@ import type {
 } from '../../collections/payroll_runs/lib/configuration.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
-import type { PayRequest, PayRequestFamily } from './money.js';
+import type {
+	MaterialisedMoney,
+	PreparedPayRequest,
+	PayRequest,
+	PayRequestFamily
+} from './money.js';
 import type { PayslipBase } from '../../datatypes/payslip_base/+definition.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type { SettledLeaveCapture } from '../leave/payroll.js';
@@ -34,7 +72,6 @@ import type { IsoDate } from '../../collections/payroll_runs/lib/dates.js';
 import type { DailyOvertime } from '../../collections/payroll_runs/lib/overtime.js';
 import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
-import type { FormulaContext } from '../../collections/payroll_runs/lib/formula.js';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
 /**
@@ -47,16 +84,18 @@ import type { PersonContext } from '../../collections/payroll_runs/lib/eligibili
  */
 export type PricedItem = {
 	/**
-	 * The catalogue row this pays. Always present, derived overtime included: a statutory band
-	 * decides what an overtime hour is *worth*, and the Work catalogue's `OVERTIME` /
-	 * `OVERTIME_EXCESS` output is still the line it is paid on. `label` carries the band.
+	 * The catalogue row this pays. Always present, derived overtime included: a work band decides
+	 * what an overtime hour is *worth*, and the Work rules' `OVERTIME` class or funneled
+	 * `INCENTIVE` line is still where it is paid. `label` carries the band.
 	 */
 	readonly catalogueComponent: FamilyPayItem;
 	/**
-	 * What the amount settles as, carried rather than read back off the component, because derived
-	 * overtime has none to read it from. It is always an `EARNING`.
+	 * The bucket the amount settles in (§9), carried rather than read back off the component,
+	 * because derived overtime has none to read it from. It is always an `EARNING`.
 	 */
-	readonly nature: string | null;
+	readonly bucket: SettlementBucket;
+	/** The schemes the priced band opted into; ACCUMULATE reads these and nothing else. */
+	readonly optIns: readonly StatutoryOptIn[];
 	/** What to call this in an engine message — a component code, or the rule key that priced it. */
 	readonly label: string;
 	/** Signed within its economic direction; a reversal negates the original amount. */
@@ -67,8 +106,8 @@ export type PricedItem = {
  * One contracted amount, before any input touched it.
  *
  * BASE is `employment_terms x period`: it points at nothing, which is why it is inlined on
- * `payslips` rather than being a row in `payslip_adjustments`. A formula over the contract is base
- * for the same reason — nobody can edit a record that caused it, because no such record exists.
+ * `payslips` rather than being a row in `payslip_adjustments`: nobody can edit a record that
+ * caused it, because no such record exists.
  */
 export type MeasuredBase = PricedItem & {
 	readonly catalogueComponent: CatalogueComponent;
@@ -79,12 +118,15 @@ export type MeasuredBase = PricedItem & {
 /** One contracted amount as a base line: the catalogue row, how it settles, and the stored entry. */
 export function baseLine(
 	catalogueComponent: CatalogueComponent,
-	nature: string | null,
+	bucket: SettlementBucket,
 	amount: number
 ): MeasuredBase {
 	return {
 		catalogueComponent,
-		nature,
+		bucket,
+		// A base line carries the component's own opt-ins: ACCUMULATE reads them and nothing else,
+		// so dropping them here silently charges no scheme on the contracted wage.
+		optIns: catalogueComponent.optIns ?? [],
 		label: catalogueComponent.code,
 		amount,
 		entry: { component_code: catalogueComponent.code, amount }
@@ -125,15 +167,19 @@ export type MeasuredAdjustment = PricedItem & {
 	readonly statutoryRuleKey: string | null;
 	readonly quantity: number | null;
 	readonly rate: number | null;
+	/** Whether this amount settles its source in full, so the pin may be written. */
+	readonly settlesSource?: boolean;
 };
 
-/** The captured inputs of one employment's payslip, before the junction ids exist. */
+/** The captured inputs of one employment's payslip, as the run must write them. */
 type CapturedInputs = {
 	readonly workDays: readonly string[];
-	/** Every pay request this payslip consumed, kept apart by the collection it came from. */
+	/** Every authored pay request this payslip consumed, kept apart by the collection it came from. */
 	readonly payRequests: Readonly<Record<PayRequestFamily, readonly string[]>>;
 	readonly leave: readonly SettledLeaveCapture[];
 	readonly loanRepayments: readonly string[];
+	/** Per-period rows the run materialised from standing sources, ready to create and link. */
+	readonly materialised: readonly MaterialisedMoney[];
 };
 
 export type MeasuredEmployment = {
@@ -167,7 +213,7 @@ export type MeasuredEmployment = {
 		readonly componentCatalogueId: string;
 		readonly amount: number;
 	} | null;
-	/** Amounts of every component measured, including `INFORMATION` — what formulas read. */
+	/** Amounts of every component measured, including `INFORMATION` — what coverage reads. */
 	readonly componentAmounts: ReadonlyMap<string, number>;
 	readonly ordinaryHourlyRate: number;
 	readonly ordinaryDayWage: number;
@@ -213,12 +259,16 @@ export type MeasureComponentOptions = {
 	readonly employed: PayRange;
 	readonly contracted: PayRange;
 	/** The one component entry this call measures, or `null` for a component no entry feeds. */
-	readonly entry: PayRequest | null;
+	readonly entry: PreparedPayRequest | null;
 	readonly consumedEntries: ReadonlyMap<string, number>;
 	readonly period: string;
 	readonly workingDaysIn: (window: PayRange) => number;
 	readonly allowanceWorkingDaysIn: (sourceMonth: string, window: PayRange) => number;
-	readonly context: () => FormulaContext;
+	/** The day and hour rates the entry context exposes to a catalogue band. */
+	readonly rates: {
+		readonly ordinaryDay: number;
+		readonly ordinaryHour: number;
+	};
 	readonly subject: PersonContext;
 	/**
 	 * Where a measurement says why it produced nothing.

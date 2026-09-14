@@ -68,7 +68,7 @@ test('every charge names the holiday that excluded its day, or none; the entry w
 
 test('entry creation requires complete contract-scoped facts and a supporting reference', () => {
 	const input = submission(timeOff('2026-04-01'));
-	for (const missing of ['employment_id', 'leave_catalogue_id', 'event', 'reference']) {
+	for (const missing of ['employment_id', 'catalogue_id', 'event', 'reference']) {
 		assert.throws(
 			() => before({ ...input, [missing]: undefined }),
 			/employment, leave type, event and unique reference/
@@ -79,7 +79,7 @@ test('entry creation requires complete contract-scoped facts and a supporting re
 
 test('the entry hook requires the certificate identified by the shared Leave planner', () => {
 	const context = leaveContext();
-	context.catalogues[0]!.requires_certificate_after_days = 0;
+	context.catalogues[0]!.evidence_after_days = 0;
 	const input = submission(timeOff('2026-04-01'));
 	assert.throws(() => before(input, context), /certificate is required/);
 	assert.equal(before({ ...input, certificate_file: id(200) }, context).certificate_file, id(200));

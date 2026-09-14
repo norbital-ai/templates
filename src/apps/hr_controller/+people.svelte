@@ -16,7 +16,7 @@
 	import { Bound, Columns, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { employedTodayFilter, todayKey } from '../../lib/ui/calendar.js';
-	import { inForceOnDay } from '../../lib/effective_range.js';
+	import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 	import { dateKey } from '../../lib/iso-day.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -49,7 +49,7 @@
 		new Set(
 			(employmentsQuery?.current ?? [])
 				.map(resolveEmployment)
-				.filter((employment) => inForceOnDay(employment.effective_range, today))
+				.filter((employment) => coversDate(employment.effective_range, today))
 				.map((employment) => employment.employee_id)
 		)
 	);

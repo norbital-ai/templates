@@ -78,32 +78,32 @@ test(
 			const captured = (await session.query(
 				`select 'work_day' as kind, w.id as source_id
 				 from work_days w
-				 join payslips p on p.id = w.settled_payslip_id
+				 join payslips p on p.id = w.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
 				 select 'claim_request', c.id
 				 from claim_requests c
-				 join payslips p on p.id = c.settled_payslip_id
+				 join payslips p on p.id = c.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'allowance_request', allowance_request_id
-				 from payslip_allowance_request_inputs i
-				 join payslips p on p.id = i.payslip_id
-				 where p.payroll_run_id in ($1, $2)
+				 select 'allowance_request', a.id
+				 from allowance_requests a
+				 join payslips p on p.id = a.payslip_id
+				 where p.payroll_run_id in ($1, $2) and a.derived_from_id is not null
 				 union all
 				 select 'payment_request', r.id
 				 from payment_requests r
-				 join payslips p on p.id = r.settled_payslip_id
+				 join payslips p on p.id = r.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'leave_request', leave_entry_id
-				 from payslip_leave_inputs i
-				 join payslips p on p.id = i.payslip_id
+				 select 'leave_request', l.id
+				 from leave_entries l
+				 join payslips p on p.id = l.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'loan_repayment', loan_repayment_id
-				 from payslip_loan_repayment_inputs i
-				 join payslips p on p.id = i.payslip_id
+				 select 'loan_repayment', rp.id
+				 from loan_repayments rp
+				 join payslips p on p.id = rp.payslip_id
 				 where p.payroll_run_id in ($1, $2)`,
 				[februaryId, marchId]
 			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
@@ -169,28 +169,28 @@ test(
 			const leftoverCaptures = (await session.query(
 				`select 'work_day' as kind, id as source_id
 				 from work_days
-				 where settled_payslip_id is not null and id = any($3::uuid[])
+				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
 				 select 'claim_request', id
 				 from claim_requests
-				 where settled_payslip_id is not null and id = any($3::uuid[])
+				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
-				 select 'allowance_request', allowance_request_id
-				 from payslip_allowance_request_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 select 'allowance_request', id
+				 from allowance_requests
+				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
 				 select 'payment_request', id
 				 from payment_requests
-				 where settled_payslip_id is not null and id = any($3::uuid[])
+				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
-				 select 'leave_request', leave_entry_id
-				 from payslip_leave_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 select 'leave_request', id
+				 from leave_entries
+				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
-				 select 'loan_repayment', loan_repayment_id
-				 from payslip_loan_repayment_inputs
-				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))`,
-				[februaryId, marchId, captured.map((row) => row.source_id)]
+				 select 'loan_repayment', id
+				 from loan_repayments
+				 where payslip_id is not null and id = any($1::uuid[])`,
+				[captured.map((row) => row.source_id)]
 			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
 			assert.deepEqual(
 				leftoverCaptures,
@@ -201,13 +201,15 @@ test(
 			const sourceTable = {
 				work_day: 'work_days',
 				claim_request: 'claim_requests',
-				allowance_request: 'allowance_requests',
 				payment_request: 'payment_requests',
 				leave_request: 'leave_entries',
 				loan_repayment: 'loan_repayments'
 			} as const;
 			for (const row of captured) {
-				const table = sourceTable[row.kind];
+				// The per-period rows a standing allowance materialised are released with their slip;
+				// every source — authored or materialised — is unlinked, never deleted.
+				if (row.kind === 'allowance_request') continue;
+				const table = sourceTable[row.kind as keyof typeof sourceTable];
 				assert.ok(table, `unexpected capture kind ${row.kind}`);
 				const surviving = (await session.query(`select id from ${table} where id = $1`, [
 					row.source_id

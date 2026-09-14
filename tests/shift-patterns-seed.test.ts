@@ -15,23 +15,20 @@ const manifest = JSON.parse(
 	readFileSync(new URL('../norbital.template.json', import.meta.url), 'utf8')
 );
 
-test('every public term points at a pattern row of its own lineage, and no term embeds one', () => {
+test('every public term points at a pattern row of its own entity, and no term embeds one', () => {
 	const patterns = fixture('shift_patterns');
 	const terms = fixture('employment_terms');
 	const employments = new Map(fixture('employments').map((row) => [row.id, row]));
-	const settingsCodeByCompany = new Map(
-		fixture('companies').map((row) => [row.id, row.settings_code])
-	);
+	const companies = new Set(fixture('companies').map((row) => row.id));
 	const patternById = new Map(patterns.map((row) => [row.id, row]));
 	assert.ok(patterns.length >= 1);
 	for (const term of terms) {
 		assert.equal('work_pattern' in term, false, `${term.id} still embeds a work pattern`);
 		const pattern = patternById.get(term.shift_pattern_id);
 		assert.ok(pattern, `${term.id} points at ${term.shift_pattern_id}, which is not seeded`);
-		assert.equal(
-			pattern.settings_code,
-			settingsCodeByCompany.get(employments.get(term.employment_id)?.company_id)
-		);
+		const companyId = employments.get(term.employment_id)?.company_id;
+		assert.ok(companies.has(pattern.company_id), `${pattern.id} names a missing entity`);
+		assert.equal(pattern.company_id, companyId, `${term.id} borrows another entity's pattern`);
 	}
 });
 
@@ -41,7 +38,7 @@ test('pattern rows are unique per lineage and code, and decode as the work_patte
 	const codeIds = new Set(codes.map((row) => row.id));
 	const seen = new Set();
 	for (const row of patterns) {
-		const key = `${row.settings_code}:${row.code}`;
+		const key = `${row.company_id}:${row.code}`;
 		assert.equal(seen.has(key), false, `duplicate pattern ${key}`);
 		seen.add(key);
 		assert.ok(row.name.length > 0);
@@ -66,13 +63,7 @@ test('the manifest covers current source collections and stages consumers after 
 				existsSync(new URL(`../src/collections/${entry.name}/+model.ts`, import.meta.url))
 		)
 		.map((entry) => entry.name);
-	const unseededPayrollCollections = [
-		'payroll_runs',
-		'payslips',
-		'payslip_leave_inputs',
-		'payslip_allowance_request_inputs',
-		'payslip_loan_repayment_inputs'
-	];
+	const unseededPayrollCollections = ['payroll_runs', 'payslips'];
 	assert.equal(manifest.counts.collections, collections.length);
 	for (const name of unseededPayrollCollections) assert.ok(collections.includes(name), name);
 	assert.equal(new Set(seeded).size, seeded.length, 'a collection must be seeded only once');
@@ -91,6 +82,7 @@ test('the manifest covers current source collections and stages consumers after 
 		assert.ok(consumerStage > dependencyStage, `${dependency} must precede ${consumer}`);
 	};
 	for (const [dependency, consumer] of [
+		['statutory_contributions', 'scheme_reliefs'],
 		['companies', 'shift_definitions'],
 		['shift_definitions', 'shift_patterns'],
 		['shift_patterns', 'employment_terms'],
@@ -105,7 +97,8 @@ test('the manifest covers current source collections and stages consumers after 
 	])
 		before(dependency, consumer);
 	for (const [catalogue, consumer] of [
-		['work_catalogue', 'work_days'],
+		// Work rules live on the settings root now; the settings→work_days order is asserted above
+		// through `employment_terms`, and `jurisdiction_settings` precedes every catalogue here.
 		['leave_catalogue', 'leave_entries'],
 		['claim_catalogue', 'claim_requests'],
 		['allowance_catalogue', 'allowance_requests'],

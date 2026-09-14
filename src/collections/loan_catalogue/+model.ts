@@ -4,6 +4,7 @@ import {
 	enums,
 	integer,
 	numeric,
+	sql,
 	text,
 	uuid
 } from '@norbital-ai/bolt/authoring';
@@ -15,11 +16,13 @@ export default defineModel(
 		settings_id: uuid().notNull(),
 		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
 		code: text({ search: true }).notNull(),
-		/**
-		 * How each statutory scheme, by code, charges this recovery. A scheme the map does not name
-		 * is undecided and the run refuses at ACCUMULATE naming the component and the scheme.
-		 */
-		contribution_treatments: custom('contribution_treatments').notNull(),
+		/** Recoveries are net deductions: they take from pay after statutory charges, never gross. */
+		destination: enums(['PAY', 'NET', 'EMPLOYER', 'DISPLAY']).notNull().default('NET'),
+		direction: enums(['ADD', 'SUBTRACT']).default('SUBTRACT'),
+		/** The ordered bands that price this catalogue's entries; see `datatypes/catalogue_band`. */
+		bands: custom('catalogue_band')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/**
 		 * What kind of debt this recovers, because they are not collected alike.
 		 *
@@ -47,7 +50,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The loan catalogue of one jurisdiction settings version: the pay lines a loan recovers through, the treatment every statutory scheme gives them and who may borrow. Sealed with its version; the run cites the version it priced against.',
+			'The loan catalogue of one jurisdiction settings version: the pay lines a loan recovers through, the schemes they opt into, the minimum instalment and who may borrow. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]
