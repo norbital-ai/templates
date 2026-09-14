@@ -5,7 +5,8 @@ import {
 	isStatutoryProposal,
 	unreachableSourceSchema,
 	type StatutoryProposal,
-	type StatutoryProposalChange
+	type StatutoryProposalChange,
+	type UnreachableSource
 } from '../datatypes/statutory_proposal/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsValueSchema } from '../datatypes/contribution_treatments/+definition.js';
@@ -34,13 +35,12 @@ import {
 import {
 	describeSourcesRead,
 	diffStatutoryFindings,
-	fetchStatutoryPages,
 	officialUrlFor,
 	rateBandSchema,
-	researchPromptPages,
 	bandKey,
 	StatutoryFindingsSchema,
 	statutoryResearchTool,
+	type ResearchPage,
 	type SealedStatutoryFacts
 } from '../lib/statutory_research.js';
 import { todayKey } from '../lib/ui/calendar.js';
@@ -351,26 +351,17 @@ const researchLineage = (
 			};
 		const sealed = sealedStatutoryFacts(tree);
 		const officialUrl = officialUrlFor(researchUrls);
-		const { pages, unreachable } = yield* fetchStatutoryPages(api, researchUrls, officialUrl);
 		const named = new Set(researchUrls).size;
-		const sources: SourcesRead = { named, read: pages.length, unreachable };
-		const sourcesNote = describeSourcesRead(named, unreachable);
-		if (pages.length === 0)
-			return {
-				code,
-				status: 'sources_unreachable' as const,
-				version_id: versionId,
-				draft_id: null,
-				changes: 0,
-				sources,
-				notes: [`No official page of ${code} could be read; nothing was researched. ${sourcesNote}`]
-			};
-		const tool = statutoryResearchTool(api, officialUrl, pages);
+		// Nothing is retrieved before the agent decides to. The tool fetches on demand, and every
+		// page it opens — or fails to open — is recorded here for the run result and quote checks.
+		const pages: ResearchPage[] = [];
+		const unreachable: UnreachableSource[] = [];
+		const tool = statutoryResearchTool(api, officialUrl, pages, unreachable);
 		const system = [
 			`Today is ${today}. You are the statutory drift research agent for lineage ${code}: ${tree.source.name}, the jurisdiction settings version in force.`,
-			'Check whether the official sources still state the sealed values below, and report only the differences. Decide yourself which sources matter and whether to follow a link further; a listed source may have moved, been superseded, or stopped carrying the table, so judge its standing rather than assuming it. Fewer, authoritative, up-to-date sources settle a lineage; open as many as you need.',
-			'Current sources:',
-			JSON.stringify(researchPromptPages(pages, officialUrl)),
+			'Check whether the official sources still state the sealed values below, and report only the differences. Decide yourself which sources to fetch and whether to follow a link further; a listed source may have moved, been superseded, or stopped carrying the table, so judge its standing rather than assuming it. Fewer, authoritative, up-to-date sources settle a lineage; open as many as you need.',
+			'Current sources — call read_official_page with one of these URLs, or with a link a page you opened carries:',
+			JSON.stringify([...new Set(researchUrls)]),
 			'Current sealed statutory state:',
 			JSON.stringify(sealed)
 		].join('\n');
@@ -395,6 +386,20 @@ const researchLineage = (
 		});
 		const fault = statutoryFindingsFault(findings);
 		if (fault != null) return yield* Effect.die(new Error(fault));
+		// Counts come from what the agent actually read, so a lineage none of whose sources answered
+		// is still named `sources_unreachable` even though nothing was fetched before the call.
+		const sources: SourcesRead = { named, read: pages.length, unreachable };
+		const sourcesNote = describeSourcesRead(named, unreachable);
+		if (pages.length === 0)
+			return {
+				code,
+				status: 'sources_unreachable' as const,
+				version_id: versionId,
+				draft_id: null,
+				changes: 0,
+				sources,
+				notes: [`No official page of ${code} could be read; nothing was researched. ${sourcesNote}`]
+			};
 		const diff = diffStatutoryFindings(sealed, findings, pages);
 		const notes = [sourcesNote, ...diff.notes];
 		if (diff.changes.length === 0)

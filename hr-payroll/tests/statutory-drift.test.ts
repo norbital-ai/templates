@@ -10,7 +10,6 @@ import { Effect } from 'effect';
 import {
 	describeSourcesRead,
 	diffStatutoryFindings,
-	fetchStatutoryPages,
 	officialUrlFor,
 	researchPromptPages,
 	statutoryResearchTool
@@ -71,18 +70,15 @@ test('navigation cannot consume the research text and link budgets', async () =>
 		(_, index) => `<a href="${page.url}/menu-${index}">Employee contribution information</a>`
 	).join('');
 	const table = `${page.url}/table.pdf`;
-	const read = await Effect.runPromise(
-		fetchStatutoryPages(
-			{
-				readUrl: (url) =>
-					Effect.succeed({
-						url,
-						body: `<nav>${nav}</nav><main><p>${page.text}</p><a href="${table}">Current table</a></main>`
-					})
-			},
-			[page.url],
-			officialUrlFor([page.url])
-		)
+	const read = await openViaTool(
+		{
+			readUrl: (url) =>
+				Effect.succeed({
+					url,
+					body: `<nav>${nav}</nav><main><p>${page.text}</p><a href="${table}">Current table</a></main>`
+				})
+		},
+		[page.url]
 	);
 	const [focused] = researchPromptPages(read.pages, officialUrlFor([page.url]));
 	assert.ok(focused.text.includes(page.text));
@@ -112,24 +108,16 @@ test('document and dataset links survive menus without semantic navigation marku
 	assert.deepEqual(focused.links, documents);
 });
 
-test('entry pages do not exhaust the budget for following official links', async () => {
-	const pages = Array.from({ length: 12 }, (_, index) => ({
-		...page,
-		url: `${page.url}/${index}`
-	}));
-	const next = `${page.url}/current-table`;
+test('the research tool bounds itself to twelve opened pages, and re-opening one is free', async () => {
 	const tool = statutoryResearchTool(
 		{ readUrl: (url) => Effect.succeed({ url, body: page.text }) },
 		officialUrlFor([page.url]),
-		pages
+		[]
 	);
-	await Effect.runPromise(tool.run({ url: next }));
-	assert.equal(pages.at(-1).url, next);
-	for (let index = 1; index < 12; index += 1) {
-		await Effect.runPromise(tool.run({ url: `${next}/${index}` }));
-	}
-	await assert.rejects(Effect.runPromise(tool.run({ url: `${next}/over-limit` })));
-	await Effect.runPromise(tool.run({ url: next }));
+	for (let index = 0; index < 12; index += 1)
+		await Effect.runPromise(tool.run({ url: `${page.url}/table-${index}` }));
+	await assert.rejects(Effect.runPromise(tool.run({ url: `${page.url}/over-limit` })));
+	await Effect.runPromise(tool.run({ url: `${page.url}/table-0` }));
 });
 
 test('a changed band table standing on a quote from a retrieved page is one change', () => {
@@ -365,11 +353,21 @@ const partialReader = (failing: readonly string[]) => ({
 				})
 });
 
+/** Open a list of URLs the way the research agent does: through the tool, recording both outcomes. */
+const openViaTool = async (
+	reader: unknown,
+	urls: readonly string[],
+	allowed: readonly string[] = urls
+) => {
+	const pages: Array<Record<string, unknown>> = [];
+	const unreachable: Array<{ url: string; reason: string; retrieved_at: string }> = [];
+	const tool = statutoryResearchTool(reader, officialUrlFor(allowed), pages, unreachable);
+	for (const url of urls) await Effect.runPromise(Effect.exit(tool.run({ url })));
+	return { pages, unreachable };
+};
+
 test('a source that fails to resolve is recorded with url, reason and time while the others are read', async () => {
-	const officialUrl = officialUrlFor([page.url, DOWN_URL]);
-	const read = await Effect.runPromise(
-		fetchStatutoryPages(partialReader([DOWN_URL]), [page.url, DOWN_URL], officialUrl)
-	);
+	const read = await openViaTool(partialReader([DOWN_URL]), [page.url, DOWN_URL]);
 	assert.deepEqual(
 		read.pages.map((row) => row.url),
 		[page.url]
@@ -387,10 +385,7 @@ test('a source that fails to resolve is recorded with url, reason and time while
 });
 
 test('every source failing is no page and every source recorded, never a silent empty read', async () => {
-	const officialUrl = officialUrlFor([page.url, DOWN_URL]);
-	const read = await Effect.runPromise(
-		fetchStatutoryPages(partialReader([page.url, DOWN_URL]), [page.url, DOWN_URL], officialUrl)
-	);
+	const read = await openViaTool(partialReader([page.url, DOWN_URL]), [page.url, DOWN_URL]);
 	assert.deepEqual(read.pages, []);
 	assert.deepEqual(
 		read.unreachable.map((row) => row.url),
@@ -408,19 +403,14 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 				body: '<title>Checking your browser - reCAPTCHA</title><p>Checking your browser before accessing the official site. Click here if you are not automatically redirected after 5 seconds.</p>'
 			})
 	};
-	const read = await Effect.runPromise(
-		fetchStatutoryPages(reader, [page.url], officialUrlFor([page.url]))
-	);
+	const read = await openViaTool(reader, [page.url]);
 	assert.deepEqual(read.pages, []);
 	assert.equal(read.unreachable.length, 1);
 	assert.match(read.unreachable[0].reason, /browser challenge/);
 });
 
 test('a refusal of this module is a recorded reason too: an origin the version does not name', async () => {
-	const officialUrl = officialUrlFor([page.url]);
-	const read = await Effect.runPromise(
-		fetchStatutoryPages(partialReader([]), [page.url, DOWN_URL], officialUrl)
-	);
+	const read = await openViaTool(partialReader([]), [page.url, DOWN_URL], [page.url]);
 	assert.equal(read.pages.length, 1);
 	assert.equal(read.unreachable.length, 1);
 	assert.equal(read.unreachable[0].url, DOWN_URL);
