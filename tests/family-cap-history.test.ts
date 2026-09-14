@@ -219,7 +219,7 @@ test('paid captured amounts, including zero, replace source estimates without ch
 			paid_at: '2026-01-31',
 			statutory: []
 		});
-		settle(world, 'claim_requests', 'prior', 'paid-slip', '2026-01');
+		settle(world, 'claim_requests', 'prior', 'paid-slip');
 		if (captured !== 0)
 			adjust(world, 'paid-slip', { family: 'CLAIM', source_id: 'prior', amount: captured });
 		candidate.amount = 1000 - captured;

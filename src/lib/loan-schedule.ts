@@ -1,5 +1,5 @@
 import { decodeNumber } from '@norbital-ai/std/json';
-import { inForceOnDay } from './effective_range.js';
+import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { newLocalId } from './ids.js';
 import { dateKey, PAYROLL_TIME_ZONE } from './iso-day.js';
 import { startOfDayInstant } from './ui/calendar.js';
@@ -64,7 +64,7 @@ type LoanScheduleRow = {
  * 2. **`due_date` strictly increases along `sequence`.** Strictly: two instalments on one day are
  *    one instalment, and `sequence` would be deciding which of them the engine recovers first.
  * 3. **The last repayment falls inside `effective_range`** — an agreement does not collect after
- *    it has ended. Judged with `inForceOnDay`, the day-head comparison the rest of this workspace
+ *    it has ended. Judged with `coversDate`, the day-head comparison the rest of this workspace
  *    reads a stored range with, so a repayment dated ON the period's end day is inside it. That is
  *    the same boundary `loanInstalmentDays` generates against (`if (day > to) break`), and the two
  *    disagreeing would mean the generator produced a schedule its own rules refuse.
@@ -126,7 +126,7 @@ export function loanScheduleRefusals(input: {
 			readonly start?: string | null;
 			readonly end?: string | null;
 		};
-		if (!inForceOnDay(range, last.day))
+		if (!coversDate(range, last.day))
 			refusals.push({
 				code: SCHEDULE_OUTSIDE_EFFECTIVE_RANGE,
 				message:

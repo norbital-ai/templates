@@ -191,15 +191,6 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
 	});
 
 /**
- * Read access to the settlement pins.
- *
- * The capture junctions are gone: an entry marks its settled payslip on its own row (`payslip_id`),
- * and the field masks that expose it belong to the source collections' own read grants. Nothing is
- * left on the junction side to grant, so this is empty and kept only for its callers' merge sites.
- */
-export const captureLedgerGrants = (): Grants => mergeGrants();
-
-/**
  * What deleting a payroll run takes down with it.
  *
  * A caller's cascade descends as the caller's (RFC 0003 §3.2): the `cascade(...)` edges from a run

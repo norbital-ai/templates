@@ -34,18 +34,12 @@ export type Work = Jurisdiction['work_rules'] & {
  * columns and are lifted into the `ENTRY` arm when loaded; Work synthesizes the rest.
  *
  * - `ENTRY`            — a catalogue band prices the entry through the entry context.
- * - `FORMULA`          — a CEL expression over the payslip context.
  * - `SCHEDULE`         — the contracted amount from `employment_terms` (basic salary).
  * - `DERIVED_OVERTIME` — priced by the jurisdiction's regime from work days, never entered.
  * - `ABSENCE`          — unexplained absence, priced from the day wage.
  */
 export type ComponentDefinition =
 	| { readonly source: 'ENTRY' }
-	| {
-			readonly source: 'FORMULA';
-			readonly unit: 'MONEY' | 'DAYS' | 'HOURS' | 'RATE';
-			readonly expr: string;
-	  }
 	| { readonly source: 'SCHEDULE'; readonly unit: 'MONEY'; readonly reducible: boolean }
 	| { readonly source: 'DERIVED_OVERTIME'; readonly unit: 'MONEY' }
 	| { readonly source: 'ABSENCE'; readonly unit: 'MONEY' };

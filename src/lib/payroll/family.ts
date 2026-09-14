@@ -72,7 +72,6 @@ import type { IsoDate } from '../../collections/payroll_runs/lib/dates.js';
 import type { DailyOvertime } from '../../collections/payroll_runs/lib/overtime.js';
 import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
-import type { FormulaContext } from '../../collections/payroll_runs/lib/formula.js';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 
 /**
@@ -107,8 +106,8 @@ export type PricedItem = {
  * One contracted amount, before any input touched it.
  *
  * BASE is `employment_terms x period`: it points at nothing, which is why it is inlined on
- * `payslips` rather than being a row in `payslip_adjustments`. A formula over the contract is base
- * for the same reason — nobody can edit a record that caused it, because no such record exists.
+ * `payslips` rather than being a row in `payslip_adjustments`: nobody can edit a record that
+ * caused it, because no such record exists.
  */
 export type MeasuredBase = PricedItem & {
 	readonly catalogueComponent: CatalogueComponent;
@@ -214,7 +213,7 @@ export type MeasuredEmployment = {
 		readonly componentCatalogueId: string;
 		readonly amount: number;
 	} | null;
-	/** Amounts of every component measured, including `INFORMATION` — what formulas read. */
+	/** Amounts of every component measured, including `INFORMATION` — what coverage reads. */
 	readonly componentAmounts: ReadonlyMap<string, number>;
 	readonly ordinaryHourlyRate: number;
 	readonly ordinaryDayWage: number;
@@ -265,7 +264,11 @@ export type MeasureComponentOptions = {
 	readonly period: string;
 	readonly workingDaysIn: (window: PayRange) => number;
 	readonly allowanceWorkingDaysIn: (sourceMonth: string, window: PayRange) => number;
-	readonly context: () => FormulaContext;
+	/** The day and hour rates the entry context exposes to a catalogue band. */
+	readonly rates: {
+		readonly ordinaryDay: number;
+		readonly ordinaryHour: number;
+	};
 	readonly subject: PersonContext;
 	/**
 	 * Where a measurement says why it produced nothing.

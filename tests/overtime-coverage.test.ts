@@ -202,11 +202,11 @@ test('the comparand classification is the statute read against what a component 
 	// ladder, so it is never in the set being classified and cannot enter the comparand to begin with.
 	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'SCHEDULE')), 'BASIC_WAGES');
 	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'CASH_FOR_WORK');
-	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'FORMULA')), 'CASH_FOR_WORK');
+	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'CASH_FOR_WORK');
 	assert.equal(classifyWageComparand(component('NET', 'ADD', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('NET', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('PAY', 'SUBTRACT', 'FORMULA')), 'NOT_WAGES');
-	assert.equal(classifyWageComparand(component('DISPLAY', null, 'FORMULA')), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('PAY', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
+	assert.equal(classifyWageComparand(component('DISPLAY', null, 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('EMPLOYER', null, 'ENTRY')), 'NOT_WAGES');
 });
 

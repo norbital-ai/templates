@@ -23,8 +23,6 @@ const line = (overrides) => ({
 	isCompanyDirect: false,
 	isClaim: false,
 	isLoanInstalment: false,
-	overtimeDayType: null,
-	isOvertimeExcess: false,
 	...overrides
 });
 

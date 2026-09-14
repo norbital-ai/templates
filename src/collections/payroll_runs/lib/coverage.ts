@@ -77,10 +77,6 @@ export function classifyWageComparand(component: WageComparandComponent): WageCo
  * month from the day they join, and prorating the comparand would cover them for one month and
  * uncover them the next.
  *
- * `FORMULA` earnings are not counted: their amounts exist only once the component walk has run,
- * which happens after this test has decided who the walk prices overtime for. The under-inclusion
- * keeps an employee inside the ladder rather than outside it, which is the direction the statute
- * reads when doubtful. No seeded company carries a formula earning that a coverage ceiling tests.
  */
 type DeriveStatutoryWagesOptions = {
 	readonly baseSalary: MoneyValue;

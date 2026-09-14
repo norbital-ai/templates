@@ -92,7 +92,7 @@ export function evaluateNumber(
 	context: Record<string, unknown>
 ): number {
 	const value = evaluateExpression(engine, expression, context);
-	const number = typeof value === 'bigint' ? Number(value) : Number(value);
+	const number = Number(value);
 	if (!Number.isFinite(number))
 		throw new Error(`The expression "${expression}" produced ${String(value)}, not a number.`);
 	return number;

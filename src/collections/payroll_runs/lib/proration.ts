@@ -3,7 +3,7 @@
  *
  * An amount is prorated when the employment — or a standing entry's own effective range — covers
  * only part of the pay period. The divisor comes from `work_rules.proration` and nothing else:
- * there is no `prorates` flag on a component, no proration arithmetic inside a formula, and no
+ * there is no `prorates` flag on a component, no proration arithmetic inside a rule, and no
  * branch on a component's name.
  *
  * What prorates is a component's **cadence**, not its kind: basic salary and a recurring allowance

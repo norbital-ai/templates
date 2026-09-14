@@ -43,7 +43,7 @@
 		todayKey,
 		workDateCalendarKey
 	} from '../lib/ui/calendar.js';
-	import { inForceOnDay } from '../lib/effective_range.js';
+	import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import {
@@ -116,7 +116,7 @@
 	const activeEmployments = $derived(
 		(employmentsQuery?.current ?? [])
 			.map(resolveEmployment)
-			.filter((employment) => inForceOnDay(employment.effective_range, today))
+			.filter((employment) => coversDate(employment.effective_range, today))
 	);
 	let selectedEmploymentId = $state<string | null>(null);
 	const employmentOptions = $derived(

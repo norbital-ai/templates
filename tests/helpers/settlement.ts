@@ -24,13 +24,8 @@ export const capturesOf = (built, slip) =>
 		...NO_CAPTURES
 	};
 
-/**
- * Mark one source row as settled by a payslip, the way a prior run's `after` hook would have.
- *
- * `_period` is accepted and ignored: a settlement used to carry the period it settled in, and a
- * caller still passing one is stating a fact the row no longer stores.
- */
-export function settle(world, source, id, payslipId, _period) {
+/** Mark one source row as settled by a payslip, the way a prior run's `after` hook would have. */
+export function settle(world, source, id, payslipId) {
 	const row = world[source].find((candidate) => candidate.id === id);
 	if (row == null) throw new Error(`${source} ${id} is not in the world`);
 	row.payslip_id = payslipId;
