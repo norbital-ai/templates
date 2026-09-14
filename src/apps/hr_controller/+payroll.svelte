@@ -17,6 +17,7 @@
 	import { Bound, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { PAYROLL_RUN_LIST_COLUMNS } from '../../collections/payroll_runs/list-columns.js';
 	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
 	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
@@ -254,7 +255,8 @@
 				query={{
 					where: { company_id: { eq: selectedCompanyId } },
 					orderBy: { period: 'desc' },
-					columns: PAYROLL_RUN_LIST_COLUMNS
+					columns: PAYROLL_RUN_LIST_COLUMNS,
+					with: { payslip_payroll_run: { columns: { id: true, status: true } } }
 				}}
 				exportPipelines={[
 					{
@@ -337,6 +339,19 @@
 				{#snippet columns({ Column })}
 					<Column name="period" label={t('app.payroll.period')} card="title" />
 					<Column name="pay_date" label={t('app.payroll.pay_date')} />
+					<Column
+						name="calculation_version"
+						label={t('app.payroll.paid')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: unknown }) =>
+								t('app.payroll.paid_progress', {
+									paid: progressOf(row).paid,
+									total: progressOf(row).total,
+									percent: progressOf(row).percent
+								})
+						}}
+					/>
 					<Column name="configuration_hash" label={t('app.payroll.policy_snapshot')} />
 				{/snippet}
 				{#snippet ListCard(run)}

@@ -9,9 +9,8 @@ import {
 } from '@norbital-ai/bolt/authoring';
 
 /**
- * One amount due under an agreement, scoped to the same employment contract.
- * A repayment can feed several payslips through partial recovery. The schedule states
- * the amount owed; payroll captures how much each regular run actually recovered.
+ * One amount due under an agreement, scoped to the same employment contract. A repayment is
+ * recovered whole by exactly one payslip, or not yet at all.
  */
 export default defineModel(
 	{
@@ -19,7 +18,7 @@ export default defineModel(
 		employment_id: uuid().notNull(),
 		/** The day the amount comes due; the cutoff maps it to the run that recovers it. */
 		due_date: instant({ precision: 'day' }).notNull(),
-		/** A positive magnitude. Part-recovery is the engine's business, never a smaller row. */
+		/** A positive magnitude, recovered whole. */
 		amount_due: numeric().notNull(),
 		/** One-based position in the loan's plan. */
 		sequence: integer().notNull(),

@@ -9,9 +9,9 @@
  * from, the balance stayed outstanding, and no payslip line or run issue said so.
  *
  * The code is what survives a revision. The loan's own row still decides everything it decided —
- * its eligibility and each treatment it stated — and the run's row of the same code fills only the
- * cells a scheme sealed later left it silent about, exactly as `treatmentsInForce` charges a money
- * request or a leave day. A code the run's version does not carry at all is a refusal by name.
+ * its eligibility and the statutory opt-ins its bands stated — and a scheme sealed later, which the
+ * agreed row could not have named, is silence. A code the run's version does not carry at all is a
+ * refusal by name.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -59,8 +59,8 @@ type LoanWorldOptions = {
 	/** The eligibility the agreed row states; '' is everyone. */
 	readonly eligibility?: string;
 	readonly dueDate?: string;
-	/** What an earlier PAID run already recovered from the instalment. */
-	readonly alreadyRecovered?: number;
+	/** Whether an earlier PAID run already recovered the instalment (whole, by its pin). */
+	readonly alreadyRecovered?: boolean;
 };
 
 /**
@@ -158,9 +158,10 @@ function loanWorld(options: LoanWorldOptions = {}) {
 		due_date: options.dueDate ?? '2026-02-15',
 		amount_due: INSTALMENT,
 		sequence: 1,
+		payslip_id: options.alreadyRecovered ? 'payslip-2026-01' : null,
 		approval_id: null
 	});
-	if (options.alreadyRecovered != null) {
+	if (options.alreadyRecovered) {
 		world.payroll_runs.push({
 			id: 'run-2026-01',
 			company_id: COMPANY_ID,
@@ -174,9 +175,7 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			status: 'PAID',
 			paid_at: '2026-01-31',
 			statutory: [],
-			adjustments: [
-				{ family: 'LOAN_REPAYMENT', source_id: REPAYMENT_ID, amount: options.alreadyRecovered }
-			],
+			adjustments: [{ family: 'LOAN_REPAYMENT', source_id: REPAYMENT_ID, amount: INSTALMENT }],
 			approval_id: null
 		});
 	}
@@ -236,7 +235,7 @@ test('an instalment that is not yet due is not recovered early', async () => {
 });
 
 test('an instalment an earlier paid run settled in full is recovered no further', async () => {
-	const result = await build(loanWorld({ alreadyRecovered: INSTALMENT }));
+	const result = await build(loanWorld({ alreadyRecovered: true }));
 	assert.equal(recoveryOf(result.payslip_payroll_run[0]), undefined);
 });
 

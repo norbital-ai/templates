@@ -185,8 +185,7 @@ function measure(entries) {
 		salary: APRIL,
 		periodsRemaining: 9,
 		headcount: 1,
-		consumedEntries: new Map(),
-		consumedRepayments: new Map()
+		consumedEntries: new Map()
 	});
 }
 

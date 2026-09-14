@@ -16,8 +16,8 @@ import { resolveEmployment, type ResolvedEmployment } from '../../../lib/employm
  * It answers *liveness* and nothing else, and that boundary is worth stating because it used to be
  * crossed. `approval_id` was also being read as a write lock, so one column stood for both
  * "payroll may consume this row" and "nobody may edit this row" — which meant the workspace had no
- * way at all to record that a row *had* been consumed. Consumption is now a captured input: the
- * engine writes a captured input in the source family's junction. All approved siblings remain
+ * way at all to record that a row *had* been consumed. Consumption is now the pin: the engine
+ * sets `payslip_id` on the source row it consumed. All approved siblings remain
  * available for cap accounting; a standing capture excludes a single-use entry from settlement.
  * Recurring allowances remain eligible in each period their range covers.
  */
@@ -156,16 +156,6 @@ export type GatheredRun = {
 	 * asked for, and a capped claim leaves no invented balance behind.
 	 */
 	readonly consumedEntries: ReadonlyMap<string, number>;
-	/**
-	 * `loan_repayment_id` → what earlier PAID runs actually recovered from it.
-	 *
-	 * A repayment may legitimately feed several payslips — net-pay protection can part-recover it —
-	 * so this is the cross-run ceiling the database does not hold: paid recovery across every
-	 * payslip may never exceed the repayment's amount due. This is what replaces carried-forward
-	 * arrears entirely; nothing is written down as outstanding, because what is outstanding is
-	 * exactly `amount_due` minus this sum, re-derived on every build.
-	 */
-	readonly consumedRepayments: ReadonlyMap<string, number>;
 };
 
 /** What `gatherRun` needs: the reads, the picked law and the window. */
@@ -304,8 +294,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				workHolidayEvidence: { inputs: [], holidays: [] },
 				yearToDate: new Map(),
 				priorOvertimeHours: new Map(),
-				consumedEntries: new Map(),
-				consumedRepayments: new Map()
+				consumedEntries: new Map()
 			};
 
 		// One query span covers everyone: the widest attendance window any employment settles over, so
@@ -452,7 +441,6 @@ type PriorSettlement = {
 	readonly yearToDate: Map<string, { employee: number; employer: number; base: number }>;
 	readonly priorOvertimeHours: Map<string, Map<string, number>>;
 	readonly consumedEntries: Map<string, number>;
-	readonly consumedRepayments: Map<string, number>;
 };
 
 function gatherPriorSettlement(
@@ -467,10 +455,9 @@ function gatherPriorSettlement(
 		/**
 		 * Every earlier settled run, not only this tax year's.
 		 *
-		 * Year-to-date is a tax-year question and is still filtered as one below. What a loan
-		 * repayment has repaid is not: a loan written in November is still being recovered in
-		 * February, and reading only the current tax year would report its repayments as untouched and
-		 * deduct them a second time. One read answers both questions; only the summing differs.
+		 * Year-to-date is a tax-year question and is still filtered as one below. What a standing
+		 * entry has already paid is not: an allowance written in November is still being consumed
+		 * in February. One read answers both questions; only the summing differs.
 		 */
 		/**
 		 * Every earlier run, and the *paid slips* inside them — not every earlier PAID run.
@@ -501,12 +488,10 @@ function gatherPriorSettlement(
 		);
 		const totals = new Map<string, { employee: number; employer: number; base: number }>();
 		const consumedEntries = new Map<string, number>();
-		const consumedRepayments = new Map<string, number>();
 		const empty = {
 			yearToDate: totals,
 			priorOvertimeHours: new Map<string, Map<string, number>>(),
-			consumedEntries,
-			consumedRepayments
+			consumedEntries
 		};
 		if (priorRuns.length === 0 || options.employeeIds.length === 0) return empty;
 

@@ -3,7 +3,7 @@
 	 * The loan catalogue's own form.
 	 *
 	 * It used to share `catalogue-form.svelte` with claims, allowances and payments, on the strength
-	 * of a loan row being that row minus a nature, evidence, a ceiling and a settlement route — a
+	 * of a loan row being that row minus evidence and a band ceiling — a
 	 * subset, so one `CollectionForm` cast to a money catalogue could type every field. `loan_type`
 	 * and `minimum_repayment` ended the subset: a form serving two row shapes can only be typed
 	 * against one of them, and a union narrows `Field` to what they have in common, which is neither.

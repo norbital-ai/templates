@@ -41,8 +41,8 @@ flowchart LR
   once, including a signed correction. Recurring allowances remain eligible across their range. A
   type is offered only to the people its catalogue row names, and a receipt is required when the
   row says so.
-- **Loan** owns agreements and repayment schedules. Outstanding recovery is the amount due less
-  paid recoveries. Partial recovery remains at its source.
+- **Loan** owns agreements and repayment schedules. Each repayment row is recovered whole by one
+  payslip; one the net-pay guard cannot carry waits, unlinked, for the next run.
 - **Contribution** evaluates statutory schemes against the opt-ins carried by calculated lines.
 
 The existing `employments` collection represents contracts. Every employee event and payslip names
@@ -62,8 +62,8 @@ entity's Google calendar (`holiday_import`, each 1 October and on demand); every
 the entity already has and never publishes.
 
 Payroll writes `payroll_runs` and `payslips` (adjustments inlined) as one atomic graph, linking
-every consumed entry through its own nullable `payslip_id`; a recurring allowance, a period-split
-Leave slice and a partial loan recovery materialise as per-period entries. Payslips contain status,
+every consumed entry through its own nullable `payslip_id`; a recurring allowance materialises
+one per-period row per payslip. Payslips contain status,
 base, proration and statutory results; adjustments reference their causal entries. Payroll outputs
 are calculated rather than supplied as seed inputs.
 

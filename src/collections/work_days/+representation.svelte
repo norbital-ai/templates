@@ -33,10 +33,8 @@
 	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
 	 * Without it the panel would say a day is editable right up until the hook refused it.
 	 *
-	 * It reads the work-day input junction: a run that read this day captures it whether or not it
-	 * produced money, and the capture is the claim. `settlementLedgerGrants()` is why an ordinary
-	 * rank may read it at all — see `src/lib/policy_grants.ts`; the grant exposes the claim and
-	 * never the amounts.
+	 * It reads the day's own `payslip_id`: a run that read this day pins it whether or not it
+	 * produced money, and the pin is the claim. The grant exposes the claim and never the amounts.
 	 *
 	 * Nothing else is asked. A person-day is held by the claim and by nothing else: a passed date is
 	 * not a lock on this collection, and a paid window governs days that have no record, never a

@@ -25,10 +25,11 @@
  * the employer: the row remains on the payslip for provenance, but no cash passes through the
  * employee.
  *
- * Loan repayments may be reduced to protect net pay. Their outstanding amount is derived from
- * paid captures, so partial recovery remains collectible in a later regular period. Single-use
- * entries and statutory charges must settle in full. If those alone make net negative, refuse
- * the payroll before any input is captured.
+ * A loan repayment is recovered whole or not at all: one repayment row is one payslip line on one
+ * payslip. When net would go negative, whole recoveries are dropped in reverse emission order and
+ * the row stays unlinked, so the next regular run recovers it. Single-use entries and statutory
+ * charges must settle in full. If those alone make net negative, refuse the payroll before any
+ * input is captured.
  */
 
 import { refuse } from '@norbital-ai/bolt/authoring';
@@ -40,7 +41,6 @@ import type {
 	SettlementBucket
 } from '../../../lib/payroll/family.js';
 import { cents } from './rounding.js';
-import { decodeNumber } from '@norbital-ai/std/json';
 
 export type Settlement = {
 	readonly gross: number;
@@ -50,7 +50,7 @@ export type Settlement = {
 	/** Both planes after the guard has run; identical to the input when net never went negative. */
 	readonly base: readonly MeasuredBase[];
 	readonly adjustments: readonly MeasuredAdjustment[];
-	/** What could not be deducted this period, per component. Empty in the ordinary case. */
+	/** The whole loan recoveries the guard dropped this period, per component. Empty in the ordinary case. */
 	readonly shortfalls: readonly {
 		readonly componentCatalogueId: string;
 		readonly amount: number;
@@ -85,25 +85,20 @@ export function settle(options: {
 	const shortfalls: { componentCatalogueId: string; amount: number }[] = [];
 
 	if (net < 0) {
-		const reducible = adjustments
-			.flatMap((item, index) =>
-				item.input.family === 'LOAN_REPAYMENT' && item.bucket === 'DEDUCTION' && item.amount > 0
-					? [{ index, amount: item.amount, component: item.catalogueComponent }]
-					: []
-			)
-			.toReversed();
-		const reducedAdjustments = [...adjustments];
+		// Drop whole recoveries, last emitted first, until net is no longer negative.
 		let outstanding = -net;
-		for (const entry of reducible) {
-			if (outstanding <= 0) break;
-			const relief = Math.min(entry.amount, outstanding);
-			if (relief <= 0) continue;
-			const amount = cents(entry.amount - relief);
-			reducedAdjustments[entry.index] = { ...reducedAdjustments[entry.index]!, amount };
-			shortfalls.push({ componentCatalogueId: entry.component.id, amount: cents(relief) });
-			outstanding = cents(outstanding - relief);
+		const kept: MeasuredAdjustment[] = [];
+		for (const item of adjustments.toReversed()) {
+			const recovery =
+				item.input.family === 'LOAN_REPAYMENT' && item.bucket === 'DEDUCTION' && item.amount > 0;
+			if (recovery && outstanding > 0) {
+				shortfalls.push({ componentCatalogueId: item.catalogueComponent.id, amount: item.amount });
+				outstanding = cents(outstanding - item.amount);
+				continue;
+			}
+			kept.push(item);
 		}
-		adjustments = reducedAdjustments;
+		adjustments = kept.toReversed();
 		otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 		net = cents(gross - statutoryEmployee - otherDeductions + payments);
 	}

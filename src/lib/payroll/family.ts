@@ -135,11 +135,10 @@ export function baseLine(
 /**
  * The one input that caused an adjustment, in the shape `payslip_adjustments.input` is written in.
  *
- * MEASURE speaks of the four input **families** — the business sources themselves; GRAPH maps each
- * family onto the junction collection that stores the capture and the adjustment row the engine
- * emits carries the reference the database enforces. Keeping the family here and the junction
- * handle in GRAPH is what lets MEASURE stay pure: it decides which source caused what, and the
- * id minting and the junction writing happen once, beside them.
+ * MEASURE speaks of the input **families** — the business sources themselves; GRAPH maps each
+ * family onto the source collection whose `payslip_id` it pins. Keeping the family here and the
+ * pin writing in GRAPH is what lets MEASURE stay pure: it decides which source caused what, and
+ * the id minting and the pins happen once, beside them.
  */
 type InputFamily = 'WORK_DAY' | PayRequestFamily | 'LEAVE' | 'LOAN_REPAYMENT';
 
@@ -152,12 +151,10 @@ type MeasuredInput = {
 /**
  * One thing an input caused, in the shape `payslip_adjustments` stores.
  *
- * The adjustment names its causal input by family and source id; GRAPH resolves that to the
- * captured input link the junction row it is about to write will carry, because the junction row —
- * not the source record — is the thing `payslip_adjustments.input` points at. There are no
- * zero-amount settlement locks here any more: a source the run read and priced at nothing is a
- * junction row with no adjustment beside it, because an output that settles to nothing is no output
- * at all, and the capture is what locks the source.
+ * The adjustment names its causal input by family and source id. There are no zero-amount
+ * settlement locks here: a source the run read and priced at nothing is a pinned row with no
+ * adjustment beside it, because an output that settles to nothing is no output at all, and the
+ * pin is what locks the source.
  */
 export type MeasuredAdjustment = PricedItem & {
 	/** The one input that caused this row, by family and source id. */
@@ -166,8 +163,6 @@ export type MeasuredAdjustment = PricedItem & {
 	readonly statutoryRuleKey: string | null;
 	readonly quantity: number | null;
 	readonly rate: number | null;
-	/** Whether this amount settles its source in full, so the pin may be written. */
-	readonly settlesSource?: boolean;
 };
 
 /** The captured inputs of one employment's payslip, as the run must write them. */
@@ -236,8 +231,6 @@ export type MeasureEmploymentOptions = {
 	readonly headcount: number;
 	/** `component_entry_id` → what earlier PAID runs already took from it. See `gather.ts`. */
 	readonly consumedEntries: ReadonlyMap<string, number>;
-	/** `loan_repayment_id` → what earlier PAID runs already recovered from it. See `gather.ts`. */
-	readonly consumedRepayments: ReadonlyMap<string, number>;
 	/** Calculate a deferred period's wages without settling manual money again. */
 	readonly deferredWagesOnly?: boolean;
 };
@@ -272,8 +265,8 @@ export type MeasureComponentOptions = {
 	/**
 	 * Where a measurement says why it produced nothing.
 	 *
-	 * A request the run read and priced at nothing is still captured — the junction row is the
-	 * settlement lock — so a skip is invisible on the payslip and invisible in the source: the
+	 * A request the run read and priced at nothing is still pinned — the pin is the settlement
+	 * lock — so a skip is invisible on the payslip and invisible in the source: the
 	 * entry is marked consumed and no line names it. Every `return null` that is a decision rather
 	 * than an absence says so here, and the run reports them as warnings.
 	 */

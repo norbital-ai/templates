@@ -9,7 +9,7 @@
  * Three things are pinned here, each of which was wrong or unstated before:
  *
  * • A derived overtime line has no component. It must survive the export and report under the
- *   stable band code `overtime.ts` mints, on both the statutory arm and the reclassified excess arm.
+ *   stable band label `overtime.ts` mints.
  * • The schedule is the pattern plus its overrides, not the overrides alone. A PATTERNED employment
  *   carries an explicit roster row only where the month departs from its pattern, so Normal Hours
  *   and Shift Codes have to come from the same resolution the engine prices with.

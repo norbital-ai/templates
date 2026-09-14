@@ -22,11 +22,10 @@ export type LoanRepaymentDraft = {
 };
 
 /**
- * Same minor-unit slack `overConsumesEntry` in `settlement_refusals.ts` uses, for the same reason:
- * amounts are rounded to the currency's minor unit, so a schedule generated as whole units and
- * then edited a hundredth at a time can land one cent either side of the principal. One cent of
- * rounding is not an imbalance; a cent more than that is. Exactly the tolerance is accepted —
- * the comparison is `>`, as it is there.
+ * Minor-unit slack: amounts are rounded to the currency's minor unit, so a schedule generated as
+ * whole units and then edited a hundredth at a time can land one cent either side of the
+ * principal. One cent of rounding is not an imbalance; a cent more than that is. Exactly the
+ * tolerance is accepted — the comparison is `>`.
  */
 const LOAN_SCHEDULE_TOLERANCE = 0.01;
 
@@ -329,21 +328,13 @@ type RepaymentProgress = {
 };
 
 /**
- * How far a schedule has been recovered, from the plan and what paid runs took.
+ * How far a schedule has been recovered, from the plan and what paid slips took.
  *
- * `paidRepayments` is DERIVED, not counted: repayments are recovered in the order they are
+ * `paidRepayments` is DERIVED, not counted: repayments are recovered whole, in the order they are
  * scheduled, so the number settled is the number of leading repayments the recovered total covers.
- * That is the same arithmetic `repaymentOutstanding` in `payroll_runs/lib/entries.ts` makes one
- * repayment at a time — `due - taken`, floored at zero — read across the whole plan. The two agree
- * because the engine's own ceiling (`overRecoversRepayment`) keeps recovery inside each repayment's
- * amount due, so a running total can never overshoot a row and land the count short.
  *
  * `rows` must be in recovery order; every caller reads them ordered by `due_date`, which is the
  * order `sequence` states.
- *
- * The tolerance mirrors `overRecoversRepayment` in `src/lib/settlement_refusals.ts`: amounts are
- * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
- * principal exactly can land a hundredth either side of it across a dozen runs.
  */
 export function repaymentProgress(
 	repayments: readonly { readonly amount_due?: unknown }[],

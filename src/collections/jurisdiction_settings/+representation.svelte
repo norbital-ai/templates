@@ -153,9 +153,9 @@
 
 					<Stack class="border-t pt-6">
 						<Field
-							name="code"
-							label={t('component.settings_lineage')}
-							description={t('component.settings_lineage_version_hint')}
+							name="sources"
+							label={t('component.sources')}
+							description={t('component.settings_section_sources_hint')}
 						/>
 					</Stack>
 				</Stack>

@@ -147,9 +147,11 @@ it('the employee profile draws a vertical event rail per legal entity', async ()
 		const text = (timeline as { text: string }).text;
 		assert.deepEqual(columns, ['Public Fixture Co'], 'one rail per legal entity');
 		assert.ok(
-			events.some((event) => event.includes('Joined') && event.includes('PUB-EMP-0001')),
+			events.some((event) => event.includes('Joined')),
 			`the engagement opens with its hire event: ${JSON.stringify(events)}`
 		);
+		// The contract's number heads its rail and opens the contract; the events read under it.
+		assert.match(text, /PUB-EMP-0001/, 'the rail is headed by the contract number');
 		assert.match(text, /Active/, 'an open engagement reads as active');
 		assertNoErrors(await readErrors(page), 'employment timeline', 0);
 	} finally {

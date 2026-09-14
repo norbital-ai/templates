@@ -79,12 +79,6 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	/**
-	 * Source id → the period that holds its capture, from one junction read.
-	 *
-	 * The three settlement lookups on this screen — attendance, leave, entries — share one shape,
-	 * so the index is built once here and each junction read stays a one-expression query.
-	 */
 	/** Every catalogue read on this page skips rows still held under an approval request. */
 	const approved = { approval_id: { isNull: true } } as const;
 
@@ -235,9 +229,9 @@
 	/**
 	 * What holds one pay request of any family, from the row itself.
 	 *
-	 * Each of the four tables below carries its own capture junction in `with`, so the lock is a
-	 * column of the row it locks rather than two page-level subscriptions — one listing every entry
-	 * id, one listing every capture naming those ids — walked into a Map. The families differ only
+	 * Each of the four tables below carries its own `payslip_id` (and the slip in `with`), so the
+	 * lock is a column of the row it locks rather than two page-level subscriptions walked into a
+	 * Map. The families differ only
 	 * in which relation key holds the capture, which is why the caller hands over the array and this
 	 * function knows nothing about which collection it came from.
 	 */

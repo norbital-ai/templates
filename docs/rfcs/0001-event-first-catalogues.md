@@ -38,8 +38,11 @@ patterns and roster overrides alike; attendance overruns are priced, reported, n
 2. `work_rules` and `statutory_contributions` are standalone line producers on
    `jurisdiction_settings`, not catalogue families.
 3. No capture collections. Every entry carries a nullable `payslip_id`; the run sets it on
-   consumption. One entry = one line = one payslip. (Recurring allowances, period-split leave and
-   partial loan recoveries become per-period entries.)
+   consumption. One entry = one line = one payslip. (A recurring allowance materialises one
+   per-period row per payslip. A leave entry settles whole in one period; a straddling range is
+   refused and entered per period. A loan repayment is recovered whole by one payslip — there is no
+   partial recovery; a repayment the net-pay guard cannot carry stays unlinked for the next run.
+   _Amended 2026-09-15._)
 4. CEL where it removes a hard-coded attribute: band matching, amounts, proration, statutory
    rules and matching, break obligations.
 5. Statutory effect is explicit opt-in per line; silence means no effect.
@@ -62,8 +65,8 @@ patterns and roster overrides alike; attendance overruns are priced, reported, n
     slip is how it is kept out of the file.
 14. Payment and locks are per payslip, never per run. A captured source is locked while the slip
     that consumed it stands; deleting a `DRAFT`/`ON_HOLD` slip releases its own sources, and a
-    `PAID` slip can never be deleted. `payroll_runs.lifecycle` remains a derived reading of its
-    slips (`PAID` only when every slip is paid).
+    `PAID` slip can never be deleted. A run carries no status of its own; the UI rolls its slips
+    up. _Amended 2026-09-15: `lifecycle` is gone entirely._
 
 ## 3. Non-goals
 

@@ -240,18 +240,17 @@ a person left off a list is indistinguishable from a person nobody thought of. T
 exclusion list and no per-run withholding input. A person whose pay has to wait is held at the
 slip: `status ON_HOLD` keeps the slip in its run and keeps the sources it consumed locked, while
 leaving it out of every bank file and the workbook. It can be released back to `DRAFT`, or
-deleted — which releases its own sources — and a `PAID` slip is terminal and never deletable. The
-run's own `lifecycle` remains a derived reading of its slips: `PAID` only when every slip of the
-run is paid.
+deleted — which releases its own sources — and a `PAID` slip is terminal and never deletable. A run
+has no status of its own: the Payroll page rolls its slips up (paid, held, draft counts) when it
+lists them.
 
 **Payment is the payslip's fact, not the run's.** `payslips.paid_at` is the authority: set once,
 from empty, never back — the one column of an immutable output row that may move.
-`payroll_runs.lifecycle` is a reading of the slips, `PAID` only when every slip of the run carries a
-payment (an empty run reads `DRAFT`); marking the run paid stamps `paid_at` on each unpaid slip, and
-a slip can be paid without its neighbours. **Locking follows the person, not the run**: a payroll
+Marking the run paid stamps `paid_at` on each unpaid slip, and a slip can be paid without its
+neighbours. **Locking follows the person, not the run**: a payroll
 window is settled for an employment, so a colleague's held payslip does not keep this person's day
-open and a colleague's payment does not close it. History reads the paid slips themselves, never a
-run's lifecycle, so a half-paid earlier run still contributes the slips that were paid.
+open and a colleague's payment does not close it. History reads the paid slips themselves, so a
+half-paid earlier run still contributes the slips that were paid.
 
 A draft is a frozen calculation. Replacing it means deleting it and creating another. A run whose
 slips are all paid is immutable; a run holding any paid slip refuses deletion, while its drafts
@@ -266,18 +265,21 @@ person's correction used to freeze the next month's payroll for everybody.
 one contract and holds its `status`, base, proration, statutory and adjustment arrays; an
 adjustment names its causal input by family and source id. Every entry collection carries a
 nullable `payslip_id`: the run sets it on consumption, and deleting a `DRAFT` or `ON_HOLD` slip
-clears it. A recurring allowance, a period-split Leave slice and a partial loan recovery
-materialise as per-period entries — one entry per line per payslip — so the pin is always the whole
-lock and there are no capture junctions. The source and the slip must belong to the same contract.
+clears it. A recurring allowance materialises one per-period row per payslip; a Leave entry settles
+whole in the one period that contains all of its days (a range that straddles periods is refused
+and entered as one entry per period); a loan repayment row is recovered whole by one payslip. One
+entry is one line on one payslip, so the pin is always the whole lock and there are no capture
+junctions. The source and the slip must belong to the same contract.
 
-Single-use monetary entries settle once. Loan instalments may be recovered partially; their
-outstanding amount is the scheduled amount less paid recoveries. Other monetary obligations and
-statutory charges settle in full. If net remains negative after the permitted Loan reduction, the
-whole calculation is refused before any link is written.
+Single-use monetary entries settle once. Loan instalments are recovered whole or not at all: the
+next unlinked repayment of each agreement that is due by the period is the one taken. Other
+monetary obligations and statutory charges settle in full. If net would go negative, whole loan
+recoveries are dropped, last emitted first; if net is still negative, the whole calculation is
+refused before any link is written.
 
-What the net-pay guard could not take is reported rather than absorbed. A recovery it trimmed
-raises `LOAN_REPAYMENT_SHORT` as a warning — the arithmetic is right and the remainder stays
-outstanding — and a month that recovers less than the catalogue row's `minimum_repayment` raises
+What the net-pay guard could not take is reported rather than absorbed. A recovery it dropped
+raises `LOAN_REPAYMENT_SHORT` as a warning — the row stays unlinked and the next run recovers it —
+and a month that recovers less than the catalogue row's `minimum_repayment` raises
 `LOAN_REPAYMENT_BELOW_MINIMUM`, which blocks: the operator resolves the deduction or holds that
 person's slip. The same rule governs money requests. A claim, allowance or payment the run read and
 priced at nothing is still linked, and every such decision — an eligibility rule the person fails,
@@ -422,7 +424,7 @@ holds for the person picks the day or hour divisor, and a `WORKING_DAYS` divisor
 scheduled working days for them (`ordinary-rate.ts`, `resolveOrdinaryRate`). `work_rules` may state
 a `night_premium`: hours inside its window add `ordinary_add`% of the hourly rate on ordinary hours
 and `overtime_add`% on overtime hours, one `NIGHT_PREMIUM` line per work day, whose statutory
-opt-ins are stated on `work_rules.lines.night`.
+opt-ins are stated on `work_rules.engine_lines.night`.
 
 Base salary is segmented at effective term boundaries and each segment uses the same full-month
 proration denominator — the month the period sits in, never the run period, so a semi-monthly

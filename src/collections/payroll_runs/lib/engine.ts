@@ -204,14 +204,18 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		const charges = chargesByEmployment.get(employment.id)!;
 		// 7 — SETTLE
 		//
-		// A deduction the guard could not take is not carried anywhere. The adjustment records what
-		// was actually taken, and the difference between that and the source is what remains owed
-		// — derived by the next run from these very rows, never copied into one.
+		// A recovery the guard dropped is not carried anywhere: its repayment row stays unlinked
+		// and the next run recovers it whole.
 		const settlement = settle({
 			base: measured.base,
 			adjustments: measured.adjustments,
 			charges
 		});
+		const recovered = new Set(
+			settlement.adjustments
+				.filter((row) => row.input.family === 'LOAN_REPAYMENT')
+				.map((row) => row.input.id)
+		);
 		// What the guard could not take is a fact about the month, not a rounding: an agreement with
 		// a stated minimum blocks here, one without it warns. Nothing read `shortfalls` before.
 		issues.push(
@@ -234,8 +238,12 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			proration: measured.proration,
 			charges,
 			// The captured inputs: every source the run read, whether or not it produced money. The
-			// junction rows are the settlement lock, so zero-value sources ride with the payslip too.
-			captured: measured.captured
+			// pins are the settlement lock, so zero-value sources ride with the payslip too — except a
+			// repayment the guard dropped, which no slip recovered.
+			captured: {
+				...measured.captured,
+				loanRepayments: measured.captured.loanRepayments.filter((id) => recovered.has(id))
+			}
 		});
 	}
 

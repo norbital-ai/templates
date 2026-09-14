@@ -5,7 +5,9 @@
 	 * two entities of one jurisdiction keep their own — so they are configured where the entity is,
 	 * not under the settings version whose law they operate under.
 	 */
+	import { setContext } from 'svelte';
 	import { client } from '../workspace-client.js';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from './create-scope.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -15,6 +17,11 @@
 	let { company }: { company: WorkspaceRow<'companies'> } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const companyId = $derived(company.id);
+	// A code or pattern created from inside the entity is the entity's: the form inherits it.
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => companyId,
+		settingsCode: () => company.settings_code ?? undefined
+	});
 </script>
 
 {#snippet rosterCodes()}

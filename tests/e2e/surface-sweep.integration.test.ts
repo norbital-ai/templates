@@ -25,12 +25,14 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { startSessionGateway, workspaceDocumentHtml } from '@norbital-ai/bolt-server';
 import {
+	bearerHeaders,
 	guestUrlForChromium,
 	launchChromiumOrSkip,
+	postGuestCommand,
 	type HeadedBrowser,
 	type HeadedPage
 } from '@norbital-ai/test-utilities';
-import { startPublicSeedHost } from '../helpers/public-seed-host.ts';
+import { COMPANY_ID, JURISDICTION_ID, startPublicSeedHost } from '../helpers/public-seed-host.ts';
 import {
 	ERROR_RECORDER,
 	FAILURE_COPY,
@@ -202,20 +204,49 @@ const CATALOGUE_TABS = [
 
 /**
  * The Settings tabs that open a create form outside Catalog, with the scope each form must hide.
- *
- * Schemes inherit the version on screen, so `settings_id` is hidden. Shift codes and patterns
- * belong to the employing entity and Settings is lineage-scoped: that form must ask which entity,
- * so it inherits nothing to hide.
+ * Schemes inherit the version on screen, so `settings_id` is hidden.
  */
 const SETTINGS_FORM_TABS: readonly {
 	readonly tab: string;
 	readonly forbidden: readonly string[];
-}[] = [
-	{ tab: 'Statutory contributions', forbidden: SCOPE_FIELDS },
-	{ tab: 'Scheduling', forbidden: [] }
-];
+}[] = [{ tab: 'Statutory contributions', forbidden: SCOPE_FIELDS }];
 
 const SETTINGS_PATH = '/app/hr_controller/settings';
+
+/**
+ * A sealed version is frozen law and offers no create, so the Settings forms are walked on a
+ * draft: PUB_1 cloned through the operator's own command, then picked in the jurisdiction
+ * picker — `PUB_2`, the lineage's second snapshot.
+ */
+const DRAFT_SNAPSHOT = 'PUB_2';
+const pickVersion = (snapshot: string): string => `(() => {
+	const activate = (node) => {
+		node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+		node.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+		node.click();
+	};
+	const picker = document.querySelector('[data-jurisdiction-scope-combobox]');
+	if (picker == null) return 'missing-picker';
+	if ((picker.textContent ?? '').includes(${JSON.stringify(snapshot)})) return 'picked';
+	const option = [...document.querySelectorAll('[role="option"]')].find((node) =>
+		(node.textContent ?? '').includes(${JSON.stringify(snapshot)})
+	);
+	if (option instanceof HTMLElement) {
+		activate(option);
+		return 'clicked';
+	}
+	const trigger = picker.querySelector('button');
+	if (!(trigger instanceof HTMLElement)) return 'missing-trigger';
+	activate(trigger);
+	return 'opened';
+})()`;
+
+/**
+ * The entity record's Scheduling tabs: roster codes and shift patterns belong to the employing
+ * entity, so a form opened from inside the entity inherits it and hides `company_id`.
+ */
+const ENTITY_SCHEDULING_TABS = ['Roster codes', 'Shift patterns'] as const;
+const ENTITIES_PATH = '/app/hr_controller/entities';
 
 /**
  * Create forms this walk cannot open, as a declared fact.
@@ -231,13 +262,14 @@ const UNOPENABLE_FORMS = new Set<string>([]);
  *
  * The scheduling board is a month calendar: a person-day is created by opening the day, not by a
  * table's New. Its other tabs are the entity's shift codes and patterns, which are not events and
- * carry no scope contract. Settings always offers its tabs' own New buttons (under Catalog,
- * Statutory contributions and Scheduling), so it is not one of these.
+ * carry no scope contract. Settings always offers its tabs' own New buttons (under Catalog and
+ * Statutory contributions), so it is not one of these.
  */
 const NO_CREATE_SURFACES = new Set(['/app/hr_controller/events/work']);
 
+/** The New buttons a surface offers: inside its open record sheet when it has one, else the page's. */
 const NEW_BUTTONS = `(() => JSON.stringify(
-	[...document.querySelectorAll('button')]
+	[...([...document.querySelectorAll('[role="dialog"]')].at(-1) ?? document).querySelectorAll('button')]
 		.filter((node) => /^New\\b/.test((node.textContent ?? '').trim()))
 		.map((node) => ({
 			label: (node.textContent ?? '').trim(),
@@ -625,6 +657,12 @@ it('every scoped create form hides the scope it was opened with, and still draws
 			tabs: [tab],
 			forbidden
 		})),
+		...ENTITY_SCHEDULING_TABS.map((tab) => ({
+			path: ENTITIES_PATH,
+			search: recordStackSearch('companies', COMPANY_ID),
+			tabs: ['Scheduling', tab],
+			forbidden: ['company_id']
+		})),
 		...eventPages.map((path) => ({ path, tabs: [] as string[], forbidden: SCOPE_FIELDS })),
 		// Self-service adds the employment: the record is the reader's own and is never picked.
 		// Its two create forms are the leave and claim families under My events; allowances,
@@ -637,6 +675,16 @@ it('every scoped create form hides the scope it was opened with, and still draws
 	];
 
 	const session = await startPublicSeedHost(`${LABEL}-scope`, { host: '0.0.0.0' });
+	const cloned = await postGuestCommand(
+		session.host.baseUrl,
+		'invoke.new_settings_version',
+		{ input: { settings_id: JURISDICTION_ID, starts_on: '2027-01-01' } },
+		bearerHeaders(session.credential)
+	);
+	assert.ok(
+		cloned.status >= 200 && cloned.status < 300,
+		`cloning PUB_1 into a draft failed: ${JSON.stringify(cloned.value)}`
+	);
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
 	try {
@@ -667,14 +715,28 @@ it('every scoped create form hides the scope it was opened with, and still draws
 		const unopenable: string[] = [];
 		const noCreate: string[] = [];
 		for (const surface of surfaces) {
+			const search = 'search' in surface ? surface.search : '';
 			const label = [surface.path, ...surface.tabs].join(' → ');
-			await navigate(page, surface.path);
+			await navigate(page, `${surface.path}${search}`);
 			await settle(
 				page,
-				(current) => current.path.startsWith(surface.path),
+				(current) =>
+					current.path.startsWith(surface.path) && (search === '' || current.dialogs > 0),
 				label,
 				SETTLE_TIMEOUT_MS
 			);
+			// A record sheet is a dialog already; the create form is the one opened on top of it.
+			const openDialogs = search === '' ? 0 : 1;
+			if (surface.path === SETTINGS_PATH) {
+				const deadline = Date.now() + SETTLE_TIMEOUT_MS;
+				let picked = '';
+				while (Date.now() < deadline && picked !== 'picked') {
+					picked = String(await page.evaluate(pickVersion(DRAFT_SNAPSHOT)));
+					if (picked !== 'picked') await new Promise((resolve) => setTimeout(resolve, 200));
+				}
+				assert.equal(picked, 'picked', `${label}: the draft ${DRAFT_SNAPSHOT} is not pickable`);
+				await settle(page, () => true, `${label}: ${DRAFT_SNAPSHOT}`, SETTLE_TIMEOUT_MS);
+			}
 			for (const tab of surface.tabs) {
 				assert.equal(
 					await page.evaluate(activateNamed('[role="tab"]', tab)),
@@ -702,7 +764,12 @@ it('every scoped create form hides the scope it was opened with, and still draws
 					true,
 					`${formLabel} could not be activated`
 				);
-				await settle(page, (current) => current.dialogs > 0, formLabel, SETTLE_TIMEOUT_MS);
+				await settle(
+					page,
+					(current) => current.dialogs > openDialogs,
+					formLabel,
+					SETTLE_TIMEOUT_MS
+				);
 				const probe = JSON.parse(String(await page.evaluate(scopeProbe(surface.forbidden)))) as {
 					readonly form: boolean;
 					readonly operable: readonly { readonly name: string; readonly label: string }[];

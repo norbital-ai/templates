@@ -126,8 +126,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			period: options.period,
 			cutoffDay: decodeNumber(configuration.company.pay_cutoff_day),
 			cadence,
-			subject,
-			consumedRepayments: options.consumedRepayments
+			subject
 		});
 		for (const recovery of repaymentRecoveries) {
 			const total = (componentAmounts.get(recovery.label) ?? 0) + recovery.amount;
@@ -150,9 +149,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 					PAYMENT: requests.filter((entry) => entry.family === 'PAYMENT').map((entry) => entry.id)
 				},
 				leave: leave.captures,
-				loanRepayments: repaymentRecoveries
-					.filter((recovery) => recovery.settlesSource !== false)
-					.map((recovery) => recovery.input.id),
+				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
 				materialised: requests.flatMap((request) =>
 					request.materialised == null ? [] : [request.materialised]
 				)
@@ -327,8 +324,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				period: options.period,
 				cutoffDay,
 				cadence,
-				subject,
-				consumedRepayments: options.consumedRepayments
+				subject
 			});
 	for (const recovery of repaymentRecoveries) {
 		const running = (componentAmounts.get(recovery.label) ?? 0) + recovery.amount;
@@ -337,12 +333,12 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	}
 
 	/**
-	 * The captured inputs, as the four families the payslip's `inputs` attribute stores.
+	 * The captured inputs, by family: the source rows whose `payslip_id` the run pins.
 	 *
-	 * The junctions ARE the settlement lock now: every source the run READ is a junction row, whether
-	 * or not it produced money — "consumed nothing" and "was never read" are different claims, and
-	 * only the first is a capture. The lock query targets these junction rows, never the adjustments,
-	 * because an input that prices to zero has an output of nothing and still holds its claim.
+	 * The pins ARE the settlement lock: every source the run READ is pinned, whether or not it
+	 * produced money — "consumed nothing" and "was never read" are different claims, and only the
+	 * first is a capture. The lock reads the pin, never the adjustments, because an input that prices
+	 * to zero has an output of nothing and still holds its claim.
 	 *
 	 * The span is the union of the attendance window and the wage window, because both are consumed —
 	 * attendance prices the days worked, and the wage window is what recurring salary covers. The
@@ -371,9 +367,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				])
 			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leave: measuredLeave.captures,
-			loanRepayments: repaymentRecoveries
-				.filter((recovery) => recovery.settlesSource !== false)
-				.map((recovery) => recovery.input.id),
+			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
 			materialised: periodEntries.flatMap((entry) =>
 				entry.materialised == null ? [] : [entry.materialised]
 			)
@@ -402,12 +396,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 function measureArrears(
 	options: Pick<
 		MeasureEmploymentOptions,
-		| 'bundle'
-		| 'configuration'
-		| 'periodsRemaining'
-		| 'headcount'
-		| 'consumedEntries'
-		| 'consumedRepayments'
+		'bundle' | 'configuration' | 'periodsRemaining' | 'headcount' | 'consumedEntries'
 	>
 ): MeasuredEmployment['arrears'] {
 	const owed = options.bundle.arrearsFor;
@@ -441,8 +430,7 @@ function measureArrears(
 		// this one does. Its deductions are discarded either way — only `gross` is read below — but a
 		// second, differently-informed view of the same sources is the kind of thing that is true
 		// until somebody reads more than gross out of it.
-		consumedEntries: options.consumedEntries,
-		consumedRepayments: options.consumedRepayments
+		consumedEntries: options.consumedEntries
 	});
 	// The deferred period's **gross**, by SETTLE's own definition of it and not a second one. What is
 	// owed for a month is what that month's payslip would have said was earned; charging statutory
@@ -460,7 +448,7 @@ import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { prepareWorkCatalogue, prepareWorkInputs } from './work.js';
 import { workPayItems } from './work-lines.js';
 import { prepareMoneyCatalogues, prepareMoneyInputs, prepareMoneyConsumption } from './money.js';
-import { prepareLoanCatalogue, prepareLoanPayroll, prepareLoanConsumption } from './loan.js';
+import { prepareLoanCatalogue, prepareLoanPayroll } from './loan.js';
 import {
 	prepareContributionCatalogue,
 	prepareContributionInputs,
@@ -563,15 +551,11 @@ export function prepareFamilyHistory(
 ) {
 	return Effect.gen(function* () {
 		const scope = { api: options.api, payslipIds: options.payslips.map((row) => row.id) };
-		const [consumedEntries, consumedRepayments] = yield* Effect.all(
-			[prepareMoneyConsumption(scope), prepareLoanConsumption(scope)],
-			{ concurrency: 'unbounded' }
-		);
+		const consumedEntries = yield* prepareMoneyConsumption(scope);
 		return {
 			yearToDate: contributionYearToDate(options),
 			priorOvertimeHours: priorOvertimeHours(options),
-			consumedEntries,
-			consumedRepayments
+			consumedEntries
 		};
 	});
 }
@@ -712,8 +696,7 @@ export function calculateFamilyAssessments(options: {
 	issues.push(
 		...validateLoanRecoveries({
 			configuration,
-			bundles: gathered.bundles,
-			consumedRepayments: gathered.consumedRepayments
+			bundles: gathered.bundles
 		})
 	);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
@@ -749,8 +732,7 @@ export function calculateFamilyAssessments(options: {
 			salary: bundle.window.salary,
 			periodsRemaining: projection.payslipsRemaining,
 			headcount: gathered.headcount,
-			consumedEntries: gathered.consumedEntries,
-			consumedRepayments: gathered.consumedRepayments
+			consumedEntries: gathered.consumedEntries
 		});
 
 		// What the family measurements said about requests they read and paid nothing for. Warnings:

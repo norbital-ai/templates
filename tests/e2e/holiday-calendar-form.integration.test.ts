@@ -315,7 +315,10 @@ it('the entity saves a Google source, imports unpublished holidays and publishes
 			page,
 			`(() => {
 				${ACTIVATE}
-				const node = document.querySelector('[title="Collection actions"]');
+				// The holidays table sits inside the entity's record sheet; the Entities table behind
+				// it has an actions button of its own, so the sheet is the scope.
+				const sheet = [...document.querySelectorAll('[role="dialog"]')].at(-1) ?? document;
+				const node = sheet.querySelector('[title="Collection actions"]');
 				if (!(node instanceof HTMLElement)) return false;
 				activate(node);
 				return true;

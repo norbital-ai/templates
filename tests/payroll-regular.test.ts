@@ -310,9 +310,9 @@ test('captured siblings still count against the annual request cap', async () =>
 	assert.equal((await build(world)).captured.payments.length, 1);
 });
 
-test('loan recovery reduces to available net and keeps the unrecovered balance at its source', async () => {
+test('a loan recovery net pay cannot carry is dropped whole, unpinned and named', async () => {
 	const world = attendedWorld();
-	const before = (await build(world)).slip;
+	const before = await build(world);
 	world.loan_catalogue.push({
 		...world.payment_catalogue[0],
 		id: 'loan-type',
@@ -334,10 +334,15 @@ test('loan recovery reduces to available net and keeps the unrecovered balance a
 		sequence: 1,
 		approval_id: null
 	});
-	const { slip } = await build(world);
-	const recovery = slip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
-	assert.equal(recovery.amount, before.net);
-	assert.equal(slip.net, 0);
+	const { built, slip, captured } = await build(world);
+	assert.equal(
+		slip.adjustments.find((row) => row.family === 'LOAN_REPAYMENT'),
+		undefined,
+		'no partial recovery: the instalment is dropped whole'
+	);
+	assert.equal(slip.net, before.slip.net);
+	assert.deepEqual(captured.loanRepayments, [], 'a dropped recovery pins nothing');
+	assert.ok(built.warnings.some((warning) => warning.includes('LOAN_REPAYMENT_SHORT')));
 	assert.equal(world.loan_repayments[0].amount_due, 10000);
 });
 

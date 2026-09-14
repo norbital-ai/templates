@@ -77,6 +77,8 @@ test('an ended contract recovers its due loan from later manual payments without
 			settle(world, 'loan_repayments', id, payslipId);
 	};
 
+	// February's 100 cannot carry a 150 instalment: the recovery is dropped whole, nothing is
+	// pinned, and the month settles at gross with the shortfall named.
 	let built = buildPayrollRun(await prepare('2026-02'));
 	const february = built.payslip_payroll_run;
 	assert.equal(february.length, 1);
@@ -84,46 +86,38 @@ test('an ended contract recovers its due loan from later manual payments without
 	assert.equal(first.employment_id, EMPLOYMENT_ID);
 	assert.deepEqual(first.base, []);
 	assert.equal(first.gross, 100);
-	assert.equal(first.net, 0);
-	assert.equal(first.total_deductions, 100);
-	const firstRecovery = first.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
-	assert.ok(firstRecovery);
-	assert.equal(firstRecovery.amount, 100);
-	assert.deepEqual(capturesOf(built, first).loanRepayments, ['repayment']);
-	assert.equal(firstRecovery.source_id, 'repayment');
+	assert.equal(first.net, 100);
+	assert.equal(first.total_deductions, 0);
+	assert.equal(
+		first.adjustments.find((row) => row.family === 'LOAN_REPAYMENT'),
+		undefined
+	);
+	assert.deepEqual(capturesOf(built, first).loanRepayments, []);
+	assert.ok(built.warnings.some((warning) => warning.includes('LOAN_REPAYMENT_SHORT')));
 	persist(first, '2026-02');
 
-	// A copy of the settled payment must not inherit its pin.
+	// A later payment that can carry the instalment recovers it whole; the copy of the settled
+	// payment must not inherit its pin.
 	world.payment_requests.push({
 		...firstPayment,
 		id: 'later-payment',
-		amount: 75,
+		amount: 200,
 		effective_on: '2026-03-05',
 		pay_period: '2026-03',
 		payslip_id: null
 	});
-	const preparedMarch = await prepare('2026-03');
-	assert.equal(preparedMarch.gathered.consumedRepayments.get('repayment'), 100);
-	built = buildPayrollRun(preparedMarch);
+	built = buildPayrollRun(await prepare('2026-03'));
 	const march = built.payslip_payroll_run;
 	assert.equal(march.length, 1);
 	const second = march[0]!;
 	assert.equal(second.employment_id, EMPLOYMENT_ID);
 	assert.deepEqual(second.base, []);
-	assert.equal(second.gross, 75);
-	console.log(
-		'DEBUG march',
-		JSON.stringify(second.adjustments.map((a) => [a.family, a.label, a.amount])),
-		'consumed',
-		preparedMarch.gathered.consumedRepayments.get('repayment'),
-		'loans',
-		preparedMarch.gathered.bundles[0]?.loans.length,
-		'repayments',
-		preparedMarch.gathered.bundles[0]?.loanRepayments.map((r) => [r.id, r.due_date, r.amount_due])
-	);
-	assert.equal(second.net, 25);
-	assert.equal(second.total_deductions, 50);
-	assert.equal(second.adjustments.find((row) => row.family === 'LOAN_REPAYMENT')?.amount, 50);
+	assert.equal(second.gross, 200);
+	assert.equal(second.net, 50);
+	assert.equal(second.total_deductions, 150);
+	const recovery = second.adjustments.find((row) => row.family === 'LOAN_REPAYMENT');
+	assert.equal(recovery?.amount, 150);
+	assert.equal(recovery?.source_id, 'repayment');
 	assert.deepEqual(capturesOf(built, second).loanRepayments, ['repayment']);
 	assert.equal(
 		world.loan_repayments[0]!.amount_due,

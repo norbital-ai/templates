@@ -22,7 +22,7 @@ import { todayKey } from './calendar.js';
  * - `employeeId` is set by the employee profile, where a statutory fact names the person: the
  *   person is prefilled and the field is not offered at all.
  * - `settingsId` is set by the Settings page, where every catalogue row belongs to the version on
- *   screen: the form prefills it, hides it, and keys its treatments matrix by that version's schemes.
+ *   screen: the form prefills it, hides it, and keys its statutory opt-ins by that version's schemes.
  *
  * A form opened with no scope keeps its old, unnarrowed behaviour rather than showing nothing.
  */

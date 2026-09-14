@@ -321,8 +321,7 @@ export function makePayrollCpuBenchmarkPreparedRun(): PreparedRun {
 			workHolidayEvidence: { inputs: [], holidays: [] },
 			yearToDate: new Map(),
 			priorOvertimeHours: new Map(),
-			consumedEntries: new Map(),
-			consumedRepayments: new Map()
+			consumedEntries: new Map()
 		},
 		readLog: {
 			assertComplete: (rows) => rows,

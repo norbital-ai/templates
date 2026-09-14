@@ -5,21 +5,13 @@
 	 * ## What is stored, and what is derived
 	 *
 	 * The loan is the agreement; the amounts due under it are `loan_repayments` rows, which is what
-	 * payroll consumes. What has been recovered is the sum of what paid runs actually took, read off
-	 * the recovery adjustments through the repayment-capture junction — not a per-master link.
-	 *
-	 * `paidRepayments` is DERIVED here rather than counted: repayments are recovered in the order
-	 * they are scheduled, so the number settled is the number of leading repayments the recovered
-	 * total covers. That is faithful to how the engine recovers — `measure.ts` takes every repayment
-	 * due on or before the period and nets off what earlier runs already recovered — and it is
-	 * stated as a derivation rather than presented as a stored fact.
-	 *
-	 * Only PAID runs count. A draft run has produced adjustments and paid nobody, and showing its
-	 * figures as recovered would report a loan as settled before the money moved.
+	 * payroll consumes. A repayment is recovered whole by the one payslip its `payslip_id` names, and
+	 * it counts as recovered once that slip is paid: a draft has paid nobody, and showing its rows as
+	 * recovered would report a loan as settled before the money moved.
 	 */
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../../lib/workspace-client.js';
-	import { Result, Schema } from 'effect';
+
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
@@ -105,35 +97,24 @@
 			)
 		];
 		if (ids.length === 0) return null;
-		// The slip's own payment, not its run's summary: recovery recovered is this person's money,
-		// and a colleague's held payslip used to make the run read DRAFT and under-report it.
+		// The slip's own payment, not its run's summary: a repayment is recovered whole by the one
+		// slip it links, and it counts once that slip is paid.
 		return client.db.payslips.findMany({
 			where: { id: { in: ids }, paid_at: { isNotNull: true } },
-			columns: { id: true, adjustments: true },
+			columns: { id: true },
 			limit: 10_000
 		});
 	});
 
-	const recoveryRowSchema = Schema.Struct({
-		adjustments: Schema.Array(
-			Schema.Struct({ family: Schema.String, source_id: Schema.String, amount: Schema.Unknown })
-		)
-	});
-	const decodeRecoveryRow = Schema.decodeUnknownResult(recoveryRowSchema);
-
 	const recoveredByRepaymentId = $derived.by(() => {
-		const totals: Record<string, number> = {};
-		for (const row of recoveriesQuery?.current ?? []) {
-			const parsed = decodeRecoveryRow(row);
-			if (!Result.isSuccess(parsed)) continue;
-			for (const claim of parsed.success.adjustments) {
-				if (claim.family !== 'LOAN_REPAYMENT') continue;
-				const amount = decodeNumber(claim.amount);
-				if (!Number.isFinite(amount)) continue;
-				totals[claim.source_id] = (totals[claim.source_id] ?? 0) + amount;
-			}
-		}
-		return new Map(Object.entries(totals));
+		const paidSlips = new Set((recoveriesQuery?.current ?? []).map((row) => String(row.id)));
+		return new Map(
+			(repaymentsQuery?.current ?? []).flatMap((row) =>
+				row.payslip_id != null && paidSlips.has(String(row.payslip_id))
+					? [[row.id, decodeNumber(row.amount_due)] as const]
+					: []
+			)
+		);
 	});
 
 	type NestedLoan = WorkspaceRow<'loans'> & {
