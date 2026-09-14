@@ -64,7 +64,7 @@ const focusStatutoryText = (text: string, budget: number): string => {
 	return `${kept.join(' ')} [focused: ${kept.length} statutory sentences of a ${text.length}-character page]`;
 };
 
-type ResearchPage = Readonly<{
+export type ResearchPage = Readonly<{
 	url: string;
 	requested_url: string;
 	text: string;
@@ -169,9 +169,6 @@ const fetchStatutoryPage = (
 		};
 	});
 
-/** Bounds of one lineage's research: entry URLs a version may name, and the pages read at once. */
-const RESEARCH_FETCH_LIMITS = { maxEntryUrls: 32, concurrency: 2 } as const;
-
 /**
  * The sentence a failed page read is recorded with: the reader's own message (DNS, connect,
  * HTTP status, byte limit, timeout) or this module's refusal, never nameless.
@@ -181,48 +178,6 @@ const unreachableReason = (cause: Cause.Cause<unknown>): string => {
 	const reason = message.length > 0 ? message.slice(0, 600) : 'The page reader gave no reason.';
 	return /[.!?]$/.test(reason) ? reason : `${reason}.`;
 };
-
-/** The entry pages that answered and, source by source, the ones that did not. */
-type StatutoryPagesRead = Readonly<{
-	pages: ResearchPage[];
-	unreachable: ReadonlyArray<UnreachableSource>;
-}>;
-
-/**
- * The entry pages a lineage's research starts from: the version's research URLs. One slow or
- * refusing site must not end the research while the others answered, and no failure is silent:
- * every source that could not be read is returned with its url, the reason and when it was
- * tried, for the run result and the proposal sheet to carry. Whether no page at all is enough
- * to stop is the caller's decision.
- */
-export const fetchStatutoryPages = (
-	api: PageReader,
-	researchUrls: readonly string[],
-	officialUrl: (url: string) => URL | null
-): Effect.Effect<StatutoryPagesRead> =>
-	Effect.gen(function* () {
-		const urls = [...new Set(researchUrls)];
-		if (urls.length === 0 || urls.length > RESEARCH_FETCH_LIMITS.maxEntryUrls)
-			refuse('A researched version names between one and thirty-two official research URLs.');
-		const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
-		const exits = yield* Effect.forEach(
-			urls,
-			(url) => Effect.exit(fetchStatutoryPage(api, url, officialUrl, retrievedAt)),
-			{ concurrency: RESEARCH_FETCH_LIMITS.concurrency }
-		);
-		const pages: ResearchPage[] = [];
-		const unreachable: UnreachableSource[] = [];
-		for (const [index, exit] of exits.entries()) {
-			if (Exit.isSuccess(exit)) pages.push(exit.value);
-			else
-				unreachable.push({
-					url: urls[index]!,
-					reason: unreachableReason(exit.cause),
-					retrieved_at: retrievedAt
-				});
-		}
-		return { pages, unreachable };
-	});
 
 /** One sentence for a run's history: how many sources answered, and which did not and why. */
 export const describeSourcesRead = (
@@ -242,15 +197,18 @@ const RESEARCH_TOOL_LIMITS = { perPageChars: 12_000, maxLinks: 40, maxPages: 12 
 /**
  * The tool the research model navigates with: open one page on an allowed origin by exact URL
  * and get back its statutory sentences and links. Every page it opens lands in `pages`, so quote
- * verification runs against exactly what the model saw. A disallowed origin, a redirect off it
- * or an empty page is a refusal the model reads as a failed tool result and routes around.
+ * verification runs against exactly what the model saw; every URL that refuses lands in
+ * `unreachable`, so a failed source is recorded by name instead of being silently retried. A
+ * disallowed origin, a redirect off it or an empty page is a refusal the model reads as a failed
+ * tool result and routes around.
  */
 export const statutoryResearchTool = (
 	api: PageReader,
 	officialUrl: (url: string) => URL | null,
-	pages: ResearchPage[]
+	pages: ResearchPage[],
+	unreachable: UnreachableSource[] = []
 ): InferenceTool<{ readonly url: string }> => {
-	const maxPages = pages.length + RESEARCH_TOOL_LIMITS.maxPages;
+	const maxPages = RESEARCH_TOOL_LIMITS.maxPages;
 	return {
 		name: 'read_official_page',
 		description:
@@ -261,16 +219,25 @@ export const statutoryResearchTool = (
 				const known = pages.find((page) => page.url === url || page.requested_url === url);
 				if (known === undefined && pages.length >= maxPages)
 					refuse(
-						`This research turn already followed ${RESEARCH_TOOL_LIMITS.maxPages} additional pages; answer from the pages you have.`
+						`This research turn already opened ${RESEARCH_TOOL_LIMITS.maxPages} pages; answer from the pages you have.`
 					);
-				const page =
-					known ??
-					(yield* fetchStatutoryPage(
-						api,
-						url,
-						officialUrl,
-						new Date(yield* Clock.currentTimeMillis).toISOString()
-					));
+				const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
+				const exit = yield* Effect.exit(
+					known === undefined
+						? fetchStatutoryPage(api, url, officialUrl, retrievedAt)
+						: Effect.succeed(known)
+				);
+				if (Exit.isFailure(exit)) {
+					const already = unreachable.some((source) => source.url === url);
+					if (!already)
+						unreachable.push({
+							url,
+							reason: unreachableReason(exit.cause),
+							retrieved_at: retrievedAt
+						});
+					refuse(`Could not read ${url}: ${unreachableReason(exit.cause)}`);
+				}
+				const page = exit.value;
 				if (known === undefined) pages.push(page);
 				const [view] = researchPromptPages([page], officialUrl, {
 					perPageChars: RESEARCH_TOOL_LIMITS.perPageChars,
