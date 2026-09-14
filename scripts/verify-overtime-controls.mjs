@@ -58,7 +58,7 @@ const scheduled = (overrides = {}) => ({
 
 const workRules = () => ({
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -124,8 +124,11 @@ Effect.runPromise(
 	Effect.scoped(
 		Effect.gen(function* () {
 			const vite = yield* viteResource;
-			const { evaluatedLimits, priceWorkDay } = yield* Effect.tryPromise(() =>
+			const { priceWorkDay } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/lib/payroll/work-bands.ts')
+			);
+			const { evaluatedLimits } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/lib/scheduling/work-limits.ts')
 			);
 			const { deriveDailyOvertime } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/overtime.ts')
@@ -135,8 +138,8 @@ Effect.runPromise(
 			);
 
 			// The CLOCK_HOURS control evaluates net of the break the shift grants: 12 clock less 1.
-			assert.equal(evaluatedLimits(workRules(), 60).daily_total, 11);
-			assert.equal(evaluatedLimits(workRules(), 0).daily_total, 12);
+			assert.equal(evaluatedLimits(workRules().limits, 60).daily_total, 11);
+			assert.equal(evaluatedLimits(workRules().limits, 0).daily_total, 12);
 
 			// Hours are derived from the clocks: a full shift earns nothing, a late clock-out does.
 			assert.equal(deriveDailyOvertime(entry(), scheduled(), []), null);
@@ -151,7 +154,7 @@ Effect.runPromise(
 			// An ordinary overrun funnels the slice above the ceiling at the band's own award.
 			const person = personContext({
 				employee: null,
-				employment: { hire_date: '2020-01-01' },
+				employment: { service_start: '2020-01-01' },
 				terms: null,
 				asOf: '2026-06-30'
 			});

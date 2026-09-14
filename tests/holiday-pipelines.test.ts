@@ -43,7 +43,7 @@ const row = (date: string, name = 'Festival', legal_entity = 'Public Fixture Co'
 	legal_entity,
 	date,
 	name,
-	original_date: null,
+	replaces: null,
 	source: null
 });
 
@@ -105,7 +105,7 @@ const holiday = {
 	company_id: 'TEST',
 	date: '2027-01-01',
 	name: 'Festival',
-	original_date: null,
+	replaces: null,
 	source: null,
 	published_at: '2026-12-01T00:00:00.000Z'
 };
@@ -123,7 +123,7 @@ const references = (runs = [], pins = []) =>
 	}) as never;
 
 const takenByPayroll = references([
-	{ id: 'run-1', period: '2027-01', lifecycle: 'PAID', holidays: [{ id: 'festival' }] }
+	{ id: 'run-1', period: '2027-01', holidays: [{ id: 'festival' }] }
 ]);
 
 test('a holiday payroll has taken refuses being unpublished', async () => {

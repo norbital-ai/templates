@@ -8,7 +8,7 @@
  * employee.gender  employee.age  employee.citizenship  employee.marital_status  employee.spouse_status
  * terms.ordinary_hours_per_week  terms.working_days_per_week
  * employee.solo_parent  employee.race  employee.religion  employee.residency_months
- * employment.type  employment.classification  employment.service_months  employment.hire_date
+ * employment.type  employment.classification  employment.service_months  employment.service_start
  * terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
  * children.count  children.under(age)  company.region
  *
@@ -45,7 +45,8 @@ export type PersonContext = {
 		readonly type: string;
 		readonly classification: string;
 		readonly service_months: number;
-		readonly hire_date: string;
+		/** First day of the stint, `YYYY-MM-DD`; service is measured from it. */
+		readonly service_start: string;
 	};
 	readonly terms: {
 		readonly basic_salary: number;
@@ -86,7 +87,7 @@ type PersonInput = {
 		readonly race?: string | null;
 		readonly religion?: string | null;
 	} | null;
-	readonly employment: { readonly hire_date: string };
+	readonly employment: { readonly service_start: string };
 	readonly terms: {
 		readonly residency_status?: string | null;
 		readonly employment_type?: string | null;
@@ -115,7 +116,7 @@ type PersonInput = {
 
 /** The person context on one date, from approved contract and personal facts. */
 export function personContext(input: PersonInput): PersonContext {
-	const hire = dateKey(input.employment.hire_date);
+	const start = dateKey(input.employment.service_start);
 	const born = dateKey(input.employee?.date_of_birth);
 	const residency = dateKey(input.terms?.residency_since);
 	const salary = input.terms?.base_salary as { value?: unknown } | null | undefined;
@@ -144,8 +145,8 @@ export function personContext(input: PersonInput): PersonContext {
 		employment: {
 			type: input.terms?.employment_type ?? '',
 			classification: input.terms?.work_classification ?? '',
-			service_months: hire === '' ? 0 : completedMonths(hire, input.asOf),
-			hire_date: hire
+			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
+			service_start: start
 		},
 		terms: {
 			basic_salary: salary == null ? 0 : decodeNumber(salary.value),

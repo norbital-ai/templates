@@ -592,7 +592,7 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		const opened = await pollEvaluate(
 			page,
 			`(() => {
-					const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
+					const field = document.querySelector('[data-collection-field="payroll"] input[type="number"]');
 					return field instanceof HTMLInputElement ? 'opened' : 'missing-form';
 				})()`,
 			(value) => value === 'opened',
@@ -608,8 +608,8 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		while (Date.now() < submitDeadline) {
 			sheet = String(
 				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-collection-field="tax_year_start_month"]')?.closest('form') ?? null;
-						const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
+						const form = document.querySelector('[data-collection-field="payroll"]')?.closest('form') ?? null;
+						const field = document.querySelector('[data-collection-field="payroll"] input[type="number"]');
 						if (form === null || !(field instanceof HTMLInputElement)) return 'missing-sheet';
 						// A sealed version renders read-only: the field is disabled and there is nothing to
 						// submit. The refusal the command half proves is reached here by the form's own
@@ -637,8 +637,8 @@ it('HR self-host settings keeps the sealed PUB version form open after a refuse'
 		while (Date.now() < afterDeadline) {
 			after = String(
 				await page.evaluate(`(() => {
-						const form = document.querySelector('[data-collection-field="tax_year_start_month"]')?.closest('form') ?? null;
-						const field = document.querySelector('[data-collection-field="tax_year_start_month"] input');
+						const form = document.querySelector('[data-collection-field="payroll"]')?.closest('form') ?? null;
+						const field = document.querySelector('[data-collection-field="payroll"] input[type="number"]');
 						const note = document.querySelector('[data-settings-sealed-note]');
 						const body = document.body ? document.body.innerText : '';
 						return JSON.stringify({
@@ -1032,18 +1032,13 @@ it('HR self-host leave entry over first and second half of one day charges one d
 			'picked'
 		);
 		assert.equal(
-			await pollEvaluate(
-				page,
-				openField('leave_catalogue_id'),
-				(value) => value === 'opened',
-				'a3-type'
-			),
+			await pollEvaluate(page, openField('catalogue_id'), (value) => value === 'opened', 'a3-type'),
 			'opened'
 		);
 		assert.equal(
 			await pollEvaluate(
 				page,
-				pickExact('ANNUAL · Annual leave', 'leave_catalogue_id'),
+				pickExact('ANNUAL · Annual leave', 'catalogue_id'),
 				(value) => value === 'picked',
 				'a3-annual'
 			),
@@ -1281,9 +1276,9 @@ it('HR self-host entities is a companies table and payroll periods are not 2026-
 });
 
 /**
- * G1: Ask agent paints the user text immediately (pending You).
+ * G1: the workspace agent paints the user text immediately (pending You).
  */
-it('HR self-host Ask agent shows the user text immediately', async () => {
+it('HR self-host Norbius shows the user text immediately', async () => {
 	const session = await startPublicSeedHost('hr-payroll-g1', { host: '0.0.0.0' });
 	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
@@ -1296,18 +1291,16 @@ it('HR self-host Ask agent shows the user text immediately', async () => {
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /Ask agent/, 'g1-shell');
+		await waitForBody(page, /Norbius|Ask agent/, 'g1-shell');
 		const opened = String(
 			await page.evaluate(`(() => {
-					const ask = [...document.querySelectorAll('button')].find((button) =>
-						/Ask agent/.test(button.textContent ?? '')
-					);
-					if (ask === undefined) return 'missing-ask';
+					const ask = document.querySelector('[data-testid="workspace-agent-trigger"]');
+					if (!(ask instanceof HTMLElement)) return 'missing-ask';
 					ask.click();
 					return 'opened';
 				})()`)
 		);
-		assert.equal(opened, 'opened', 'G1 Ask agent missing');
+		assert.equal(opened, 'opened', 'G1 agent trigger missing');
 		const agentTabs = String(
 			await page.evaluate(`(() => {
 					const tabs = [...document.querySelectorAll('[role="tab"]')].map(
@@ -1359,10 +1352,8 @@ it('HR self-host Ask agent shows the user text immediately', async () => {
 					const composerHas =
 						composer instanceof HTMLTextAreaElement &&
 						/How many companies/.test(composer.value);
-					const transcript = [...document.querySelectorAll('li')].some(
-						(node) =>
-							/You/.test(node.textContent ?? '') &&
-							/How many companies/.test(node.textContent ?? '')
+					const transcript = [...document.querySelectorAll('ol li')].some(
+						(node) => /How many companies/.test(node.textContent ?? '')
 					);
 					if (transcript && !composerHas) return 'durable';
 					return JSON.stringify({

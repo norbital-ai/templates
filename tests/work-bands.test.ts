@@ -16,7 +16,7 @@ import { personContext } from '../src/collections/payroll_runs/lib/eligibility.t
 
 const person = personContext({
 	employee: null,
-	employment: { hire_date: '2020-01-01' },
+	employment: { service_start: '2020-01-01' },
 	terms: null,
 	asOf: '2026-06-30'
 });
@@ -40,7 +40,7 @@ const limits = (): WorkRules['limits'] => [
 
 const base = {
 	proration: { by: 'CALENDAR_DAYS' as const },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -155,7 +155,7 @@ test('a day under the limit produces one row and no funnel row', () => {
 });
 
 test('the evaluated CLOCK limit subtracts the shift break', async () => {
-	const { evaluatedLimits } = await import('../src/lib/payroll/work-bands.ts');
-	assert.equal(evaluatedLimits(nihon, 60).daily_total, 11);
-	assert.equal(evaluatedLimits(nihon, 0).daily_total, 12);
+	const { evaluatedLimits } = await import('../src/lib/scheduling/work-limits.ts');
+	assert.equal(evaluatedLimits(nihon.limits, 60).daily_total, 11);
+	assert.equal(evaluatedLimits(nihon.limits, 0).daily_total, 12);
 });

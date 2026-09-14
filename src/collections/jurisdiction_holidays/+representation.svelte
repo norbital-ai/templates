@@ -17,7 +17,7 @@
 	);
 </script>
 
-<RecordShell title={record ? `${record.date} · ${record.name}` : t('holiday_calendar.add')}>
+<RecordShell>
 	<Stack gap="md">
 		<CollectionForm
 			{client}
@@ -33,8 +33,9 @@
 				<Grid gap="md" minimum="compact">
 					<Field name="date" label={t('component.observed_on')} />
 					<Field name="kind" label={t('holiday_calendar.kind')} />
+					<Field name="given_to" label={t('holiday_calendar.given_to')} />
 					<Column span="all"><Field name="name" label={t('component.holiday')} /></Column>
-					<Field name="original_date" label={t('holiday_calendar.original_date')} />
+					<Field name="replaces" label={t('holiday_calendar.replaces')} />
 					<Column span="all">
 						<label class="flex items-start gap-2 text-sm">
 							<input

@@ -22,19 +22,21 @@ const range = (start: string, end = '9999-12-31') => ({
 });
 
 const facts = {
-	hire_date: '2024-03-01',
 	effective_range: range('2024-03-01'),
-	exit_date: null,
-	children: [
-		{ child_birthdate: '2020-06-01', relationship: 'CHILD', effective_range: null },
-		// Closed before the day: not counted.
-		{
-			child_birthdate: '2010-01-01',
-			relationship: 'LEGAL_WARD',
-			effective_range: range('2010-01-01', '2024-12-31')
-		}
-	],
-	employment_employee: { gender: 'F', date_of_birth: '1990-05-10', nationality: 'MY' },
+	employment_employee: {
+		gender: 'F',
+		date_of_birth: '1990-05-10',
+		nationality: 'MY',
+		children: [
+			{ child_birthdate: '2020-06-01', relationship: 'CHILD', effective_range: null },
+			// Closed before the day: not counted.
+			{
+				child_birthdate: '2010-01-01',
+				relationship: 'LEGAL_WARD',
+				effective_range: range('2010-01-01', '2024-12-31')
+			}
+		]
+	},
 	employment_company: { region: 'KL' },
 	term_employment: [
 		{ effective_range: range('2024-03-01', '2025-12-31'), department: 'FINANCE', grade: 'G2' },

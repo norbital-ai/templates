@@ -52,10 +52,7 @@
 						id: true,
 						company_id: true,
 						employee_number: true,
-						hire_date: true,
-						effective_range: true,
-						exit_date: true,
-						exit_reason: true
+						effective_range: true
 					},
 					limit: 1_000
 				})
@@ -63,13 +60,7 @@
 	const employments = $derived(
 		(employmentsQuery?.current ?? [])
 			.map(resolveEmployment)
-			.filter(
-				(row) =>
-					row.company_id === companyId &&
-					coversDate(row.effective_range, todayKey()) &&
-					dateKey(row.hire_date) <= todayKey() &&
-					(row.exit_date == null || dateKey(row.exit_date) >= todayKey())
-			)
+			.filter((row) => row.company_id === companyId && coversDate(row.effective_range, todayKey()))
 	);
 	const employmentsSettled = $derived(employmentsQuery != null && !employmentsQuery.loading);
 	const companiesQuery = client.db.companies.findMany({

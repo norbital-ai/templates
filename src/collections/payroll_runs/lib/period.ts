@@ -426,7 +426,7 @@ export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): s
  * nothing that will ever pick them up.
  */
 export function assertPayrollPeriodAvailable(
-	runs: readonly { readonly period: string; readonly lifecycle: string }[],
+	runs: readonly { readonly period: string }[],
 	period: string
 ): void {
 	if (runs.some((run) => run.period === period))

@@ -71,7 +71,6 @@ function persistPayslip(world, options) {
 		id: options.runId,
 		company_id: COMPANY_ID,
 		period: options.period,
-		lifecycle: options.lifecycle,
 		approval_id: null
 	});
 	// The RFC run's own write already pinned every source it consumed in the world; persisting the
@@ -81,7 +80,7 @@ function persistPayslip(world, options) {
 		id: payslip.id,
 		payroll_run_id: options.runId,
 		employment_id: EMPLOYMENT_ID,
-		paid_at: options.lifecycle === 'PAID' ? `${options.period}-28` : null,
+		paid_at: options.paid === true ? `${options.period}-28` : null,
 		approval_id: null
 	});
 }
@@ -95,7 +94,6 @@ async function withLeaveEntries(world) {
 		is_statutory: false,
 		authority: null,
 		eligibility: '',
-		sequence: 10,
 		destination: 'PAY',
 		direction: 'ADD',
 		bands: [],
@@ -156,7 +154,6 @@ function withRecoverableLoan(world) {
 		direction: 'SUBTRACT',
 		minimum_repayment: null,
 		bands: [],
-		sequence: 80,
 		eligibility: '',
 		approval_id: null
 	});
@@ -190,7 +187,7 @@ test('a Leave entry in each period is captured by that period’s January and Fe
 		created: january,
 		runId: JAN_RUN,
 		period: '2026-01',
-		lifecycle: 'PAID'
+		paid: true
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
@@ -225,7 +222,7 @@ test('a part-recovered loan repayment is recaptured on the next period for the r
 		created: january,
 		runId: JAN_RUN,
 		period: '2026-01',
-		lifecycle: 'PAID'
+		paid: true
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
@@ -273,8 +270,8 @@ test(
 			// written in SQL the way provisioning writes facts.
 			const loanCatalogueId = crypto.randomUUID();
 			await session.query(
-				`insert into loan_catalogue (id, settings_id, code, loan_type, sequence, eligibility)
-				 values ($1, $2, 'CROSS_PERIOD_LOAN', 'STAFF', 80, '')`,
+				`insert into loan_catalogue (id, settings_id, code, loan_type, eligibility)
+				 values ($1, $2, 'CROSS_PERIOD_LOAN', 'STAFF', '')`,
 				[loanCatalogueId, JURISDICTION_ID]
 			);
 			const loanId = crypto.randomUUID();
@@ -338,20 +335,26 @@ test(
 									session.schemaFingerprint,
 									{
 										action: 'mutate',
-										collection: 'payroll_runs',
-										rows: [
-											{
-												action: 'update',
-												values: { id: januaryRun!.id, lifecycle: 'PAID' }
-											}
-										]
+										collection: 'payslips',
+										rows: (
+											(await session.query(
+												'select id, row_version from payslips where payroll_run_id = $1',
+												[januaryRun!.id]
+											)) as ReadonlyArray<{ readonly id: string; readonly row_version: number }>
+										).map((slip) => ({
+											action: 'update',
+											values: { id: slip.id, status: 'PAID', paid_at: '2026-01-28' }
+										}))
 									},
-									[
-										{
-											row: { collection: 'payroll_runs', recordId: januaryRun!.id },
-											rowVersion: januaryRun!.row_version
-										}
-									]
+									(
+										(await session.query(
+											'select id, row_version from payslips where payroll_run_id = $1',
+											[januaryRun!.id]
+										)) as ReadonlyArray<{ readonly id: string; readonly row_version: number }>
+									).map((slip) => ({
+										row: { collection: 'payslips', recordId: slip.id },
+										rowVersion: slip.row_version
+									}))
 								),
 								{ authorization: `Bearer ${session.credential}` }
 							)

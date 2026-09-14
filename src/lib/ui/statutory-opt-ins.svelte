@@ -4,19 +4,19 @@
 	 * amount is included in or reduces, by scheme, with silence meaning no effect.
 	 *
 	 * The schemes are the settings version's own rows, read live and picked by code — never a
-	 * hand-typed UUID. The query is opened only in edit mode; a display surface shows the count.
+	 * hand-typed UUID. The query is opened in every mode so a sealed version can still name the
+	 * schemes it refers to; a disabled surface shows the pairs as compact text, never as empty
+	 * pickers.
 	 *
 	 * Both callers are band editors (a catalogue band and a work band), so this component owns the
 	 * one shape rather than each renderer reimplementing the same two dropdowns.
 	 */
-	import { client } from '../workspace-client.js';
-	import { hrCreateScope } from './create-scope.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Grid } from '@norbital-ai/ui/layout';
 	import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
+	import { statutorySchemeOptions } from './scheme-options.svelte.js';
 
 	type Props = {
 		readonly value: readonly StatutoryOptIn[];
@@ -26,42 +26,31 @@
 
 	let { value, disabled = false, onValueChange }: Props = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const scope = hrCreateScope();
-	const settingsId = $derived(scope?.settingsId?.());
-	const schemesQuery = $derived(
-		disabled
-			? null
-			: client.db.statutory_contributions.findMany({
-					where: {
-						...(settingsId == null ? {} : { settings_id: { eq: settingsId } }),
-						approval_id: { isNull: true }
-					},
-					columns: { id: true, code: true, name: true },
-					orderBy: { sequence: 'asc' },
-					limit: 500
-				})
-	);
-	const schemeOptions = $derived(
-		(schemesQuery?.current ?? []).map((scheme) => ({
-			value: scheme.id,
-			label: scheme.code,
-			search_term: `${scheme.code} ${scheme.name}`
-		}))
-	);
+	const schemes = statutorySchemeOptions();
+	const schemeOptions = $derived(schemes.options);
 	const effectOptions = $derived([
 		{ value: 'INCLUDE' as const, label: t('component.opt_in_include') },
 		{ value: 'REDUCE' as const, label: t('component.opt_in_reduce') }
 	]);
+	const effectLabel = (effect: StatutoryOptIn['effect']): string =>
+		effect === 'REDUCE' ? t('component.opt_in_reduce') : t('component.opt_in_include');
+	/** One line for a matrix cell; the pairs beyond the cell's width are in the title. */
+	const readOnlyText = (rows: readonly StatutoryOptIn[]): string =>
+		rows
+			.map((row) => `${schemes.codeOf(row.contribution_id)} · ${effectLabel(row.effect)}`)
+			.join('   ');
 
 	function edit(index: number, change: Partial<StatutoryOptIn>): void {
 		onValueChange(value.map((row, position) => (position === index ? { ...row, ...change } : row)));
 	}
 </script>
 
-<div class="flex flex-col gap-2">
-	{#each value as row, index (index)}
-		<Grid gap="sm" minimum="compact">
-			<label class="text-sm font-medium">
+{#if disabled}
+	{@render readOnly()}
+{:else}
+	<div class="flex flex-col gap-1">
+		{#each value as row, index (index)}
+			<div class="grid grid-cols-[minmax(9rem,1fr)_minmax(7rem,0.5fr)_auto] items-center gap-2">
 				<Combobox
 					ariaLabel={t('component.statutory_scheme')}
 					options={schemeOptions}
@@ -71,8 +60,6 @@
 					onValueChange={(contribution_id) =>
 						edit(index, { contribution_id: contribution_id ?? '' })}
 				/>
-			</label>
-			<label class="text-sm font-medium">
 				<Combobox
 					ariaLabel={t('component.opt_in_effect')}
 					options={effectOptions}
@@ -83,23 +70,32 @@
 						if (effect) edit(index, { effect });
 					}}
 				/>
-			</label>
-			<Button
-				variant="ghost"
-				size="sm"
-				{disabled}
-				onclick={() => onValueChange(value.filter((_row, position) => position !== index))}
-			>
-				{t('component.remove')}
-			</Button>
-		</Grid>
-	{/each}
-	<Button
-		variant="outline"
-		size="sm"
-		{disabled}
-		onclick={() => onValueChange([...value, { contribution_id: '', effect: 'INCLUDE' }])}
-	>
-		{t('component.add_opt_in')}
-	</Button>
-</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					{disabled}
+					onclick={() => onValueChange(value.filter((_row, position) => position !== index))}
+				>
+					{t('component.remove')}
+				</Button>
+			</div>
+		{/each}
+		<Button
+			variant="outline"
+			size="sm"
+			{disabled}
+			class="w-fit"
+			onclick={() => onValueChange([...value, { contribution_id: '', effect: 'INCLUDE' }])}
+		>
+			{t('component.add_opt_in')}
+		</Button>
+	</div>
+{/if}
+
+{#snippet readOnly()}
+	{#if value.length === 0}
+		<span class="text-meta">—</span>
+	{:else}
+		<span class="block truncate text-sm" title={readOnlyText(value)}>{readOnlyText(value)}</span>
+	{/if}
+{/snippet}

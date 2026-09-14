@@ -44,9 +44,8 @@ test('pattern rows are unique per lineage and code, and decode as the work_patte
 		assert.ok(row.name.length > 0);
 		const decoded = Schema.decodeUnknownSync(workPatternSchema)(row.pattern);
 		if (decoded.type === 'PATTERNED') {
-			for (const phase of decoded.phases)
-				for (const day of phase.day_cycle)
-					assert.ok(codeIds.has(day.roster_code_id), `${row.code} names a missing roster code`);
+			for (const day of decoded.days)
+				assert.ok(codeIds.has(day.roster_code_id), `${row.code} names a missing roster code`);
 		}
 	}
 });
@@ -82,7 +81,6 @@ test('the manifest covers current source collections and stages consumers after 
 		assert.ok(consumerStage > dependencyStage, `${dependency} must precede ${consumer}`);
 	};
 	for (const [dependency, consumer] of [
-		['statutory_contributions', 'scheme_reliefs'],
 		['companies', 'shift_definitions'],
 		['shift_definitions', 'shift_patterns'],
 		['shift_patterns', 'employment_terms'],

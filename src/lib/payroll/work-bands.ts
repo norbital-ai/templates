@@ -11,7 +11,7 @@
  * belongs to the schedule that should have prevented it.
  */
 
-import type { WorkLimit, WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
+import type { WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import {
 	evaluateBoolean,
@@ -19,6 +19,7 @@ import {
 	runtimeExpressionEngine,
 	type ExpressionEngine
 } from '../expressions/evaluate.js';
+import { evaluatedLimits } from '../scheduling/work-limits.js';
 
 /** One finished line the bands produced for one work day. */
 export type WorkBandRow = {
@@ -62,25 +63,6 @@ export type WorkBandRates = {
 /** The band key a priced row maps back to; the component's identity inside Work. */
 function workBandKey(line: string, label: string): string {
 	return `${line}:${label}`;
-}
-
-/**
- * Evaluate every limit into a number for this day.
- *
- * A CLOCK_HOURS day limit is a span the shift was expected to hold: the engine subtracts the
- * break the shift records, so twelve hours less a one-hour break is 11 net worked hours. Every
- * other limit states its figure directly. The map is what a band reads as `limits.<key>` and
- * through `limit("<key>")`.
- */
-export function evaluatedLimits(work: WorkRules, breakMinutes: number): Record<string, number> {
-	const limits: Record<string, number> = {};
-	for (const limit of work.limits) {
-		limits[limit.key] =
-			limit.period === 'DAY' && limit.unit === 'CLOCK_HOURS'
-				? Math.max(0, limit.max_hours - breakMinutes / 60)
-				: limit.max_hours;
-	}
-	return limits;
 }
 
 function contextOf(options: {
@@ -135,7 +117,7 @@ export function priceWorkDay(options: {
 	readonly engine?: ExpressionEngine;
 }): WorkBandRow[] {
 	const { work, day } = options;
-	const limits = evaluatedLimits(work, day.breakMinutes);
+	const limits = evaluatedLimits(work.limits, day.breakMinutes);
 	const engine =
 		options.engine ??
 		runtimeExpressionEngine({

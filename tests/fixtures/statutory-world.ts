@@ -149,6 +149,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		race: person.race ?? null,
 		religion: person.religion ?? null,
 		dependents_count: person.children ?? 0,
+		children: childrenOf(person.children ?? 0, period),
 		approval_id: null
 	}));
 
@@ -157,10 +158,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employee_id: employees[index]!.id,
 		company_id: COMPANY_ID,
 		employee_number: person.key,
-		hire_date: person.hire_date ?? '2015-01-01',
-		exit_date: null,
-		exit_reason: null,
-		children: childrenOf(person.children ?? 0, period),
 		bank: null,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: null },
 		approval_id: null
@@ -194,7 +191,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			const declared = person.registrations?.[scheme.code];
 			facts.push({
 				id: `f-${index}-${scheme.id}`,
-				employment_id: employmentIds[index]!,
+				employee_id: employees[index]!.id,
 				statutory_contribution_id: scheme.id,
 				status: {
 					kind: declared?.kind ?? 'REGISTERED',
@@ -225,9 +222,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		],
 		jurisdiction_settings: versions,
 		statutory_contributions: schemes,
-		scheme_reliefs: readdirSync(resolve(here, 'statutory', code)).includes('scheme_reliefs.json')
-			? law(code, 'scheme_reliefs')
-			: [],
 		loan_catalogue: [],
 		claim_catalogue: [],
 		allowance_catalogue: [],
@@ -264,24 +258,17 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				// these tests want — full attendance, nothing captured, no absence and no overtime —
 				// and a ROSTERED pattern cannot express it, because its plan-only rows read as absence.
 				pattern: {
-					type: 'PATTERNED',
-					anchor_date: '2000-01-03',
-					phases: [
-						{
-							duration: { kind: 'CONTINUOUS' },
-							day_cycle: [
-								{ roster_code_id: SHIFT_ID },
-								{ roster_code_id: SHIFT_ID },
-								{ roster_code_id: SHIFT_ID },
-								{ roster_code_id: SHIFT_ID },
-								{ roster_code_id: SHIFT_ID },
-								{ roster_code_id: REST_ID },
-								{ roster_code_id: REST_ID }
-							]
-						}
+					days: [
+						{ roster_code_id: SHIFT_ID },
+						{ roster_code_id: SHIFT_ID },
+						{ roster_code_id: SHIFT_ID },
+						{ roster_code_id: SHIFT_ID },
+						{ roster_code_id: SHIFT_ID },
+						{ roster_code_id: REST_ID },
+						{ roster_code_id: REST_ID }
 					]
 				},
-				effective_range: RANGE,
+				effective_range: { start: '2000-01-03', end: null },
 				approval_id: null
 			}
 		],
@@ -413,7 +400,7 @@ export function assessStatutory(options: WorldOptions): StatutoryBook {
 				base: charge.base_amount,
 				employee: charge.employee_amount,
 				employer: charge.employer_amount,
-				band: charge.band_key
+				band: charge.rule_when
 			}))
 		}))
 	);
@@ -444,7 +431,7 @@ export function assessStatutoryUnvalidated(options: WorldOptions): StatutoryBook
 				base: charge.base,
 				employee: charge.employee,
 				employer: charge.employer,
-				band: charge.bandReference
+				band: charge.ruleReference
 			}))
 		}))
 	);

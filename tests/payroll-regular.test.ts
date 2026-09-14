@@ -3,6 +3,7 @@ import test from 'node:test';
 import { Effect } from 'effect';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
 import hooks from '../src/collections/payroll_runs/+hooks.ts';
+import payslips from '../src/collections/payslips/+hooks.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { adjust, capturesOf, release, settle } from './helpers/settlement.ts';
@@ -70,40 +71,63 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 	});
 }
 
-test('marking paid rechecks earlier drafts and a draft cannot silently recalculate', async () => {
+test('paying a slip rechecks the person’s earlier periods, and a run cannot silently recalculate', async () => {
 	const world = createPublicPayrollWorld();
-	world.payroll_runs.push({
-		id: 'prior',
-		company_id: COMPANY_ID,
-		period: '2026-01',
-		lifecycle: 'DRAFT'
-	});
-	const existing = {
-		id: 'next',
-		company_id: COMPANY_ID,
-		period: '2026-02',
-		lifecycle: 'DRAFT'
+	world.payroll_runs.push(
+		{ id: 'prior', company_id: COMPANY_ID, period: '2026-01', approval_id: null },
+		{ id: 'next', company_id: COMPANY_ID, period: '2026-02', approval_id: null }
+	);
+	const januarySlip = {
+		id: 'jan-slip',
+		payroll_run_id: 'prior',
+		employment_id: 'emp-1',
+		status: 'DRAFT',
+		paid_at: null,
+		approval_id: null
 	};
-	const context = { existing, api: memoryPayrollApi(world), prepared: new Map() };
+	const februarySlip = {
+		id: 'feb-slip',
+		payroll_run_id: 'next',
+		employment_id: 'emp-1',
+		status: 'DRAFT',
+		paid_at: null,
+		approval_id: null
+	};
+	world.payslips.push(januarySlip, februarySlip);
+	const api = memoryPayrollApi(world);
+
+	// Payment is per slip and in order per person: January still standing refuses February by name.
 	await assert.rejects(
 		Effect.runPromise(
-			hooks.mutate.perRecord.before.handler({ ...context, input: { lifecycle: 'PAID' } })
+			payslips.mutate.perRecord.before.handler({
+				existing: februarySlip,
+				input: { status: 'PAID', paid_at: '2026-02-28' },
+				api
+			})
 		),
-		/must be paid/
+		/still unpaid/
 	);
+	januarySlip.status = 'PAID';
+	januarySlip.paid_at = '2026-01-28';
+	await Effect.runPromise(
+		payslips.mutate.perRecord.before.handler({
+			existing: februarySlip,
+			input: { status: 'PAID', paid_at: '2026-02-28' },
+			api
+		})
+	);
+
+	// The run itself has no writable column: payment is recorded on the slips, never through it.
 	await assert.rejects(
-		Effect.runPromise(hooks.mutate.perRecord.before.handler({ ...context, input: {} })),
-		/inputs are frozen/
-	);
-	world.payroll_runs[0].lifecycle = 'PAID';
-	world.payslips.push({ id: 'slip', payroll_run_id: 'next' });
-	assert.equal(
-		(
-			await Effect.runPromise(
-				hooks.mutate.perRecord.before.handler({ ...context, input: { lifecycle: 'PAID' } })
-			)
-		).lifecycle,
-		'PAID'
+		Effect.runPromise(
+			hooks.mutate.perRecord.before.handler({
+				existing: { id: 'next', company_id: COMPANY_ID, period: '2026-02' },
+				input: {},
+				api,
+				prepared: new Map()
+			})
+		),
+		/frozen once built/
 	);
 });
 
@@ -155,7 +179,6 @@ test('late requests settle once, including corrections, while recurring allowanc
 test('late one-off allowances retain source-month proration', async () => {
 	const world = attendedWorld();
 	world.allowance_catalogue[0].prorates = true;
-	world.employments[0].hire_date = '2026-01-16';
 	world.employments[0].effective_range = { start: '2026-01-16', end: null };
 	world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', on: '2026-01-15' };
 	const { slip } = await build(world);
@@ -320,7 +343,6 @@ test('loan recovery reduces to available net and keeps the unrecovered balance a
 
 test('deferred joining wages do not pay the same late manual request twice', async () => {
 	const world = attendedWorld({ includePayment: true });
-	world.employments[0].hire_date = '2026-01-25';
 	world.employments[0].effective_range = { start: '2026-01-25', end: null };
 	world.payment_requests[0].effective_on = '2026-01-25';
 	const withPayment = (await build(world)).slip.gross;

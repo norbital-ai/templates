@@ -117,11 +117,7 @@ test('a batch does not spend another contract’s balance even for the same empl
 	context.patterns.push({
 		...context.patterns[0]!,
 		id: id(42),
-		pattern: {
-			type: 'PATTERNED',
-			anchor_date: '2025-01-01',
-			phases: [{ duration: { kind: 'CONTINUOUS' }, day_cycle: [{ roster_code_id: id(41) }] }]
-		}
+		pattern: { days: [{ roster_code_id: id(41) }] }
 	});
 	const first = submission(timeOff('2026-04-01', '2026-04-12'), 'SAME-REFERENCE');
 	const second = {

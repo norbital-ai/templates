@@ -4,22 +4,22 @@
 	 * lineage (MY, SG, …) in force today, shared by every entity bound to it. It reads the lineage
 	 * scope the header provides (the jurisdiction picker at the top right,
 	 * `jurisdiction-scope.svelte.ts`), opens one live query for the lineage's versions, and shows
-	 * the version in force (the newest otherwise) under three tabs: General (the root scalars),
-	 * Catalogues and Compare snapshots. Sealing, voiding and cloning versions are not surfaced here.
+	 * the version in force (the newest otherwise) under six tabs: General (the version's own facts),
+	 * Work rules (day pricing, limits and breaks), Statutory contributions, Catalog (the five
+	 * monetary catalogues), Scheduling (the entity's roster codes and shift patterns) and Compare
+	 * snapshots. Sealing, voiding and cloning versions are not surfaced here.
 	 *
-	 * Catalogues is one tab with seven of its own, because there are seven catalogue tables where
-	 * there used to be two. Four of them are the same row — a code, a nature, the treatment every
-	 * scheme gives it, its place in the reduction order, who it covers and what bounds it — and what
-	 * tells them apart is which table a row is in, which is exactly what a tab strip says. Seven tabs at the top level would have said the same thing while
-	 * burying the root scalars among them; a second grouping level under Catalogues would
-	 * have been a level to explain. Compare snapshots reads its own catalogue queries when the tab
-	 * is first opened, so the page still opens exactly one query.
+	 * Statutory contributions is a tab of its own, not a catalogue: a scheme owns a rate ladder
+	 * rather than a family of entries, and the schemes are read as a set with their own reliefs.
+	 * Work rules are the version's, not a catalogue, and roster codes and patterns belong to the
+	 * employing entity rather than the lineage — each is hoisted so no surface has to be read
+	 * through another. Catalog keeps the five families only.
 	 *
 	 * Layout is one `AppShell` (variant `full`) and no page scroll: a tab panel never scrolls, the
-	 * thing inside it does. The payroll form owns a `Scroll` of its own; every catalogue table is a
-	 * bounded `CollectionTable` owning its rows; the Compare snapshots tab owns a `Scroll` of its own. So a
-	 * tab owns exactly one vertical scrollport and wheel events never die inside a clipped panel or
-	 * over chrome.
+	 * thing inside it does. The version forms own a `Scroll` of their own; every catalogue table is
+	 * a bounded `CollectionTable` owning its rows; the Compare snapshots tab owns a `Scroll` of its
+	 * own. So a tab owns exactly one vertical scrollport and wheel events never die inside a clipped
+	 * panel or over chrome.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -28,7 +28,7 @@
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Inline, Scroll } from '@norbital-ai/ui/layout';
+	import { Bound, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import { setContext } from 'svelte';
@@ -36,7 +36,6 @@
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 	import { newestFirst } from '../../lib/jurisdiction_settings.js';
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
-	import WorkRulesRenderer from '../../datatypes/work_rules/+renderer.svelte';
 	import JurisdictionScopeCombobox from './JurisdictionScopeCombobox.svelte';
 	import SnapshotChanges from './SnapshotChanges.svelte';
 	import {
@@ -79,6 +78,12 @@
 	const selectedVersion = $derived<Version | null>(
 		versions.find((version) => version.id === scope?.versionId) ?? versions[0] ?? null
 	);
+	/**
+	 * A sealed version is law that has frozen: its forms render read-only and no table under it
+	 * offers a create. The entity-scoped Scheduling vocabulary is not the version's and stays
+	 * editable.
+	 */
+	const sealed = $derived(selectedVersion?.sealed_at != null);
 
 	/**
 	 * The scope every catalogue form opened from here is drawn against: the version on screen. The
@@ -92,35 +97,42 @@
 	});
 </script>
 
-{#snippet payroll()}
+{#snippet general()}
 	{#if selectedVersion}
 		<Scroll name={t('app.settings.general')} layout="stack" gap="lg">
-			<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
+			<SettingsRepresentation
+				record={selectedVersion}
+				close={() => {}}
+				embedded
+				section="GENERAL"
+			/>
 		</Scroll>
 	{/if}
 {/snippet}
 
 {#snippet contributions()}
 	{#if selectedVersion}
-		<CollectionTable
-			{client}
-			collection="statutory_contributions"
-			view="hr_controller:settings:contributions"
-			title={t('component.statutory_contributions')}
-			description={t('component.statutory_contributions_description')}
-			query={{
-				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
-				orderBy: { sequence: 'asc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="code" label={t('component.code')} card="title" />
-				<Column name="name" label={t('component.name')} card="subtitle" />
-				<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
-				<Column name="sequence" label={t('component.order')} />
-				<Column name="assessment_period" label={t('component.assessment_period')} />
-			{/snippet}
-		</CollectionTable>
+		<Stack gap="lg">
+			<CollectionTable
+				{client}
+				collection="statutory_contributions"
+				view="hr_controller:settings:contributions"
+				title={t('component.statutory_contributions')}
+				description={t('component.statutory_contributions_description')}
+				features={{ create: !sealed }}
+				query={{
+					where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
+					orderBy: { code: 'asc' }
+				}}
+			>
+				{#snippet columns({ Column })}
+					<Column name="code" label={t('component.code')} card="title" />
+					<Column name="name" label={t('component.name')} card="subtitle" />
+					<Column name="is_statutory" label={t('component.is_statutory')} card="badge" />
+					<Column name="assessment_period" label={t('component.assessment_period')} />
+				{/snippet}
+			</CollectionTable>
+		</Stack>
 	{/if}
 {/snippet}
 
@@ -132,7 +144,7 @@
 	<!--
 		Four catalogues, one table. They share one spine — a code, its destination and direction,
 		its place in the reduction order and who it covers — and the family is the table rather than
-		a column on it. Four copies of this markup would be four places for the sequence column to go
+		a column on it. Four copies of this markup would be four places for the order column to go
 		missing from one. `leave_catalogue` is not one of them: its row is a leave first and a pay
 		line second, so it has its own snippet below.
 	-->
@@ -143,6 +155,7 @@
 			view={`hr_controller:settings:${collection}`}
 			{title}
 			{description}
+			features={{ create: !sealed }}
 			query={{
 				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
@@ -152,7 +165,6 @@
 				<Column name="code" label={t('component.code')} card="title" />
 				<Column name="destination" label={t('component.economic_type')} card="subtitle" />
 				<Column name="direction" label={t('component.settlement')} />
-				<Column name="sequence" label={t('component.order')} />
 				<Column name="eligibility" label={t('component.who_receives')} />
 			{/snippet}
 		</CollectionTable>
@@ -161,92 +173,15 @@
 
 {#snippet workRules()}
 	{#if selectedVersion}
-		<!-- The rules live on the version root (RFC 0001 §4) and are edited with it under General;
-		     this tab reads the same value for the shift vocabulary beside it. -->
-		<div class="flex flex-col gap-2">
-			<p class="text-meta">{t('app.settings.work_rules_edit_hint')}</p>
-			<WorkRulesRenderer
-				mode="display"
-				field={{ name: 'work_rules', type: 'work_rules' }}
-				value={selectedVersion.work_rules}
+		<Scroll name={t('component.work_rules')} layout="stack" gap="lg">
+			<SettingsRepresentation
+				record={selectedVersion}
+				close={() => {}}
+				embedded
+				section="WORK_RULES"
 			/>
-		</div>
+		</Scroll>
 	{/if}
-{/snippet}
-
-{#snippet rosterCodes()}
-	{#if selectedVersion}
-		<!-- The vocabulary is the lineage's, not the version's: a new version of the same law keeps
-		     the codes, so every version's Work tab lists the same rows. -->
-		<CollectionTable
-			{client}
-			collection="shift_definitions"
-			view={`hr_controller:settings:shift_definitions:${selectedVersion.code}`}
-			description={t('app.scheduling.shift_intro')}
-			query={{
-				where: { approval_id: { isNull: true } },
-				orderBy: { code: 'asc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="code" card="title" />
-				<Column name="name" card="subtitle" />
-				<Column name="company_id" label={t('component.company')} />
-				<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
-				<Column name="effective_range" label={t('component.effective')} />
-			{/snippet}
-		</CollectionTable>
-	{/if}
-{/snippet}
-
-{#snippet shiftPatterns()}
-	{#if selectedVersion}
-		<CollectionTable
-			{client}
-			collection="shift_patterns"
-			view={`hr_controller:settings:shift_patterns:${selectedVersion.code}`}
-			description={t('app.scheduling.pattern_intro')}
-			query={{
-				where: { approval_id: { isNull: true } },
-				orderBy: { code: 'asc' }
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column name="code" card="title" />
-				<Column name="name" card="subtitle" />
-				<Column name="company_id" label={t('component.company')} />
-				<Column name="pattern" label={t('component.work_pattern')} />
-				<Column name="effective_range" label={t('component.effective')} />
-			{/snippet}
-		</CollectionTable>
-	{/if}
-{/snippet}
-
-{#snippet catalogueWork()}
-	<Tabs
-		animate={false}
-		variant="underline"
-		config={[
-			{
-				name: 'rules',
-				label: t('app.settings.work_rules'),
-				icon: 'lucide:receipt',
-				content: workRules
-			},
-			{
-				name: 'codes',
-				label: t('app.scheduling.tab_shifts'),
-				icon: 'lucide:clock-4',
-				content: rosterCodes
-			},
-			{
-				name: 'patterns',
-				label: t('app.scheduling.tab_patterns'),
-				icon: 'lucide:repeat',
-				content: shiftPatterns
-			}
-		] satisfies TabConfig[]}
-	/>
 {/snippet}
 
 {#snippet catalogueClaims()}
@@ -289,6 +224,7 @@
 			view="hr_controller:settings:leave_catalogue"
 			title={t('app.settings.leave_catalogue')}
 			description={t('app.settings.leave_catalogue_description')}
+			features={{ create: !sealed }}
 			query={{
 				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
@@ -312,24 +248,12 @@
 {/snippet}
 
 {#snippet catalogues()}
-	<!-- Seven catalogues down the left, one table on the right; the table scrolls, the rail does not. -->
+	<!-- Five catalogues down the left, one table on the right; the table scrolls, the rail does not. -->
 	<Tabs
 		animate={false}
 		layout="vertical"
 		variant="underline"
 		config={[
-			{
-				name: 'contribution_catalogue',
-				label: t('app.settings.contribution_catalogue'),
-				icon: 'lucide:landmark',
-				content: contributions
-			},
-			{
-				name: 'work_rules',
-				label: t('app.settings.work_rules'),
-				icon: 'lucide:receipt',
-				content: catalogueWork
-			},
 			{
 				name: 'leave_catalogue',
 				label: t('app.settings.leave_catalogue'),
@@ -433,7 +357,19 @@
 					name: 'general',
 					label: t('app.settings.general'),
 					icon: 'lucide:scale',
-					content: payroll
+					content: general
+				},
+				{
+					name: 'work_rules',
+					label: t('component.work_rules'),
+					icon: 'lucide:receipt',
+					content: workRules
+				},
+				{
+					name: 'contributions',
+					label: t('component.statutory_contributions'),
+					icon: 'lucide:landmark',
+					content: contributions
 				},
 				{
 					name: 'catalog',

@@ -8,7 +8,7 @@ export default {
 		jurisdiction_holidays: {
 			read: {},
 			mutate: {
-				new: { fields: ['company_id', 'date', 'name', 'original_date', 'source'] }
+				new: { fields: ['company_id', 'date', 'name', 'replaces', 'source'] }
 			}
 		}
 	},

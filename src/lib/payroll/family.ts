@@ -48,7 +48,6 @@ export type FamilyPayItem = {
 	readonly bands: readonly CatalogueBand[];
 	/** Engine-priced lines state their opt-ins on the component; catalogues carry them on bands. */
 	readonly optIns?: readonly StatutoryOptIn[];
-	readonly sequence: number;
 	readonly eligibility: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
 };
@@ -281,7 +280,7 @@ export type MeasureComponentOptions = {
 	readonly note: (issue: RunIssue) => void;
 };
 
-/** A family supplies a pure calculation; the coordinator only preserves common sequence order. */
+/** A family supplies a pure calculation; the coordinator only preserves the family pipeline. */
 export type FamilyStep = {
 	readonly item: FamilyPayItem;
 	readonly calculate: () => Measurement | null;

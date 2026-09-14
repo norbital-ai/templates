@@ -20,8 +20,8 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 	if (!employment) refuse('Leave balances require an approved employment.');
 	const company = context.companies.find((row) => row.id === employment.company_id);
 	if (!company) refuse('The employing company is not available.');
-	const through =
-		employment.exit_date == null ? asOf : [asOf, dateKey(employment.exit_date)].toSorted()[0]!;
+	const end = employment.effective_range?.end;
+	const through = end == null ? asOf : [asOf, dateKey(end)].toSorted()[0]!;
 	const version = settingsInForce(context.versions, company.settings_code, through);
 	if (!version) refuse(`No sealed settings cover ${through}.`);
 	return context.catalogues

@@ -14,8 +14,9 @@ export default defineModel(
 	{
 		/** The jurisdiction settings version this row belongs to, sealed with it. */
 		settings_id: uuid().notNull(),
-		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
+		/** The catalogue's stable code, and the display name beside it (RFC 0001 §4). */
 		code: text({ search: true }).notNull(),
+		name: text({ search: true }),
 		/** Recoveries are net deductions: they take from pay after statutory charges, never gross. */
 		destination: enums(['PAY', 'NET', 'EMPLOYER', 'DISPLAY']).notNull().default('NET'),
 		direction: enums(['ADD', 'SUBTRACT']).default('SUBTRACT'),
@@ -43,10 +44,10 @@ export default defineModel(
 		 * Empty where the scheme sets no floor.
 		 */
 		minimum_repayment: numeric(),
-		/** Where the recovery sits in the reduction order, across every catalogue at once. */
-		sequence: integer().notNull(),
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
-		eligibility: text().notNull().default('')
+		eligibility: text().notNull().default(''),
+		/** Whether a repayment against this line must, may or need not attach proof. */
+		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE')
 	},
 	{
 		description:

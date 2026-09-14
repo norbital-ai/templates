@@ -8,7 +8,7 @@ const holiday = (changes: Partial<HolidayRow> = {}): HolidayRow => ({
 	date: '2026-01-01',
 	name: 'Festival',
 	kind: 'PUBLIC',
-	original_date: null,
+	replaces: null,
 	published_at: '2025-12-01T00:00:00Z',
 	...changes
 });

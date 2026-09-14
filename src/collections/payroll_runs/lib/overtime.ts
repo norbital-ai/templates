@@ -276,6 +276,12 @@ export type DailyOvertime = {
 	/** Actual hours at the employer's disposal, used only to locate the total-work-hours boundary. */
 	readonly totalWorkHours: number;
 	/**
+	 * The break the day recorded. A CLOCK_HOURS total-work limit is a span the shift was expected
+	 * to hold: its evaluated ceiling is `max_hours - breakMinutes/60`, which is the same arithmetic
+	 * the priced work-day context evaluates the limit with.
+	 */
+	readonly breakMinutes: number;
+	/**
 	 * The statutory rest break assessed for this day, or null where the jurisdiction declares no rule
 	 * that governs it. Carried whatever `counts_as_worked_time` says, because a compliance shortfall
 	 * is worth reporting on a day that deducted nothing — that is the Malaysian case, and it is the
@@ -362,6 +368,7 @@ export function deriveDailyOvertime(
 		hours,
 		normalHours: day.normalHours,
 		totalWorkHours,
+		breakMinutes: Math.max(0, decodeNumber(entry.break_minutes)),
 		// Null rather than a "no rule" assessment: a consumer asking whether a break governed this day
 		// should not have to reach two levels in to find out that none did.
 		restBreak: restBreak.rule === null ? null : restBreak,

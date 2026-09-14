@@ -10,7 +10,7 @@ const holiday = (date: string, published = true) => ({
 	company_id: '11111111-1111-4111-8111-111111111111',
 	date,
 	name: 'Festival',
-	original_date: null,
+	replaces: null,
 	source: null,
 	published_at: published ? '2025-12-01T00:00:00Z' : null,
 	approval_id: null

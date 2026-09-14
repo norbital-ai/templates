@@ -56,10 +56,10 @@ export default defineModel(
 		/**
 		 * When this person was paid. Null until they were, and set with `status` to `PAID`.
 		 *
-		 * **This is the authority on payment, not `payroll_runs.lifecycle`.** Payment is per slip:
+		 * **This is the authority on payment.** Payment is per slip:
 		 * one person's pay can settle while a colleague's is still held for a correction, and a run
 		 * that had to move as a block made "pay everyone or nobody" the only gesture there was.
-		 * `payroll_runs.lifecycle` is derived from these — `PAID` when every slip of the run carries
+		 * The run's paid state is read from these — `PAID` when every slip of the run carries
 		 * one — so a reader that means "this whole run is settled" is unchanged, while a reader that
 		 * means "this person's pay is settled" reads it here and stops being wrong about a run that
 		 * is half paid.

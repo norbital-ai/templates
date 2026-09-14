@@ -29,9 +29,7 @@ import { statutoryNaming, statutoryOutputIds, type StatutoryRole } from './vocab
 const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
 	componentName: Schema.String,
-	nature: Schema.String,
-	/** The catalogue's own order for this component, which is the order its column is written in. */
-	sequence: Schema.Number,
+	bucket: Schema.String,
 	calculationSource: Schema.String,
 	amount: Schema.Number,
 	quantity: Schema.NullOr(Schema.Number),
@@ -116,9 +114,9 @@ export function identityRow(payslip: ReportPayslip): Record<string, string | num
 /**
  * The sections and their order.
  *
- * A section names either **catalogue natures** or a fixed list of output ids, and a nature section
+ * A section names either **catalogue buckets** or a fixed list of output ids, and a bucket section
  * is filled by the catalogue itself: one column per component the run actually settled, labelled
- * by its catalogue code, in the catalogue's own `sequence` order. That is the whole of the change
+ * by its catalogue code, in code order. That is the whole of the change
  * the 2026-09-10 review asked for. Before it, this layout named a handful of derived sums —
  * `taxableBenefits`, `totalClaims`, `adhocDeductions` — and every code the projection did not
  * recognise disappeared into one of them: an employer with fourteen allowances exported one
@@ -140,13 +138,13 @@ const SECTION_LAYOUT: readonly {
 	readonly unit: 'MONEY' | 'HOURS';
 	readonly statutoryRoles?: readonly StatutoryRole[];
 	readonly outputIds?: readonly string[];
-	/** The catalogue natures whose components are written under this heading, in `sequence` order. */
-	readonly natures?: readonly string[];
+	/** The catalogue buckets whose components are written under this heading, in code order. */
+	readonly buckets?: readonly string[];
 }[] = [
-	{ name: 'Earnings', unit: 'MONEY', natures: ['EARNING'] },
-	{ name: 'Absence & deductions', unit: 'MONEY', natures: ['ABSENCE', 'DEDUCTION'] },
+	{ name: 'Earnings', unit: 'MONEY', buckets: ['EARNING'] },
+	{ name: 'Absence & deductions', unit: 'MONEY', buckets: ['ABSENCE', 'DEDUCTION'] },
 	{ name: 'Gross', unit: 'MONEY', outputIds: ['grossEarnings'] },
-	{ name: 'Payments', unit: 'MONEY', natures: ['NON_WAGE_PAYMENT'] },
+	{ name: 'Payments', unit: 'MONEY', buckets: ['NON_WAGE_PAYMENT'] },
 	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
 	{ name: 'Statutory', unit: 'MONEY', statutoryRoles: ['employee', 'employer'] },
 	{
@@ -155,8 +153,8 @@ const SECTION_LAYOUT: readonly {
 		statutoryRoles: ['total', 'base'],
 		outputIds: ['totalDeductions', 'employerCost']
 	},
-	{ name: 'Employer costs', unit: 'MONEY', natures: ['EMPLOYER_COST'] },
-	{ name: 'Information', unit: 'MONEY', natures: ['INFORMATION'] }
+	{ name: 'Employer costs', unit: 'MONEY', buckets: ['EMPLOYER_COST'] },
+	{ name: 'Information', unit: 'MONEY', buckets: ['INFORMATION'] }
 ];
 
 /** Where output ids the vocabulary does not rank are collected, so a new id is never dropped. */
@@ -252,9 +250,9 @@ export function workbookRows(payslips: readonly ReportPayslip[]): Record<string,
 /**
  * The sections the given payslips actually populate, in layout order.
  *
- * A nature section is filled from the catalogue: every component code these payslips settled under
- * that nature, ordered by the catalogue's own `sequence` and then by code, so two runs of the same
- * catalogue produce the same columns in the same order. A fixed section keeps its stated ids and
+ * A bucket section is filled from the catalogue: every component code these payslips settled under
+ * that bucket, ordered by code, so two runs of the same catalogue produce the same columns in the
+ * same order. A fixed section keeps its stated ids and
  * drops the ones nothing populated.
  *
  * An id no section claims is not dropped — it lands in a trailing `Other` section — so adding an
@@ -265,33 +263,26 @@ export function outputGroups(
 	rows: readonly Record<string, number>[]
 ): OutputSection[] {
 	const present = new Set(rows.flatMap((row) => Object.keys(row)));
-	/** Catalogue order for every code these payslips settled, by the nature it settled under. */
-	const byNature = new Map<string, Map<string, number>>();
+	/** Every code these payslips settled, by the bucket it settled under. */
+	const byBucket = new Map<string, Set<string>>();
 	for (const payslip of payslips)
 		for (const line of payslip.lines) {
-			const codes = byNature.get(line.nature) ?? new Map<string, number>();
-			// The lowest sequence wins where one code appears under two rows of a lineage's history.
-			codes.set(
-				line.componentCode,
-				Math.min(codes.get(line.componentCode) ?? Infinity, line.sequence)
-			);
-			byNature.set(line.nature, codes);
+			const codes = byBucket.get(line.bucket) ?? new Set<string>();
+			codes.add(line.componentCode);
+			byBucket.set(line.bucket, codes);
 		}
 	const claimed = new Set<string>();
 	const groups: OutputSection[] = [];
 	for (const section of SECTION_LAYOUT) {
 		const outputIds =
-			section.natures == null
+			section.buckets == null
 				? [
 						...statutoryOutputIds(section.statutoryRoles ?? []),
 						...(section.outputIds ?? [])
 					].filter((id) => present.has(id))
-				: section.natures
-						.flatMap((nature) => [...(byNature.get(nature) ?? new Map()).entries()])
-						.toSorted(([leftCode, left], [rightCode, right]) =>
-							left === right ? leftCode.localeCompare(rightCode) : left - right
-						)
-						.map(([code]) => code)
+				: section.buckets
+						.flatMap((bucket) => [...(byBucket.get(bucket) ?? new Set<string>())])
+						.toSorted()
 						.filter((id) => present.has(id));
 		for (const id of outputIds) claimed.add(id);
 		if (outputIds.length > 0) groups.push({ name: section.name, unit: section.unit, outputIds });

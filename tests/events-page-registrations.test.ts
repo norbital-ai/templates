@@ -57,14 +57,16 @@ test('Controller Events starts at Work and Employee Events exposes the six famil
 	assert.match(snippet(page, 'paymentEvents'), /eventTable\(myPayments\)/);
 });
 
-test('Settings Catalog exposes every family and scopes shared financial catalogue tables by revision', () => {
+test('Settings hoists schemes out of Catalog, and scopes shared financial catalogue tables by revision', () => {
 	const page = source('apps/hr_controller/+settings.svelte');
+	// The schemes, the work rules and the five monetary catalogue families are tabs of their own.
+	assert.match(page, /content: contributions/);
+	assert.match(page, /content: workRules/);
+	assert.doesNotMatch(page, /content: scheduling/, 'scheduling belongs to the entity');
 	const catalogues = snippet(page, 'catalogues');
 	assert.deepEqual(
 		[...catalogues.matchAll(/name: '([^']+)'/g)].map((match) => match[1]),
 		[
-			'contribution_catalogue',
-			'work_rules',
 			'leave_catalogue',
 			'claim_catalogue',
 			'allowance_catalogue',

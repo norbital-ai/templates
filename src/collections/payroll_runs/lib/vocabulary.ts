@@ -23,7 +23,7 @@ import { Schema } from 'effect';
  *
  * The codes below are `statutory_contributions.code` as seeded (see the statutory rows seed). The
  * order of this array is the order the statutory columns appear in the workbook; within a
- * jurisdiction it follows the scheme's own `sequence`, which is the order the schemes are charged
+ * jurisdiction it follows the order the schemes were charged in (the `produced` dependency graph)
  * in and therefore the order a payroll clerk reads them.
  */
 

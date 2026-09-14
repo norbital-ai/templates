@@ -28,8 +28,7 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 /** A world whose one employment leaves inside the run period and owes one instalment. */
 function leaverOwing(loanType) {
 	const world = createPublicPayrollWorld({ includePayment: true });
-	world.employments[0].exit_date = '2026-01-20';
-	world.employments[0].exit_reason = 'RESIGNATION';
+	world.employments[0].effective_range = { start: '2021-06-01', end: '2026-01-20' };
 	world.allowance_requests.length = 0;
 	const payment = world.payment_requests[0];
 	payment.effective_on = '2026-02-05';

@@ -88,7 +88,7 @@ departure reason remains unresolved.
 | Allowance    | Allowance catalogue and approved awards or recurring assignments                                                                                                                 | Preserve recurrence, amount and the original eligibility window                                     |
 | Payment      | Payment catalogue and approved one-off payments or deductions                                                                                                                    | Preserve source and catalogue IDs, entered amount, effective date, reason and receipt               |
 | Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                                                                  | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
-| Contribution | Scheme catalogues, rules, bands and contract facts                                                                                                                               | Preserve effective applicability and the explicit opt-ins declared by source-family outputs         |
+| Contribution | Scheme catalogues, rules and contract facts                                                                                                                                      | Preserve effective applicability and the explicit opt-ins declared by source-family outputs         |
 
 Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
 claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and

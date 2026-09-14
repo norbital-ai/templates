@@ -31,7 +31,7 @@ import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import { termsAt } from './work.js';
 import { activeTimeOff } from '../leave/activity.js';
-import { termPattern } from '../scheduling/work-pattern.js';
+import { patternAnchor, termPatternRow } from '../scheduling/work-pattern.js';
 import { payRequestTerms } from '../component_entry_cap_subject.js';
 import { resolveSchedule, type ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import {
@@ -41,9 +41,11 @@ import {
 	shiftPeriod
 } from '../../collections/payroll_runs/lib/dates.js';
 import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
+import { serviceStart } from '../employment-contract.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
 import { settlementBucket } from './family.js';
+import { aliasedOptIns, loadOptInAliases } from './contribution.js';
 import type { Measurement, MeasureComponentOptions, PayRange, FamilyStep } from './family.js';
 
 type ClaimRequest =
@@ -399,7 +401,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const subjectOn = (source: PayRequest): PersonContext =>
 			personContext({
 				employee: options.bundle.employee,
-				employment: options.bundle.employment,
+				employment: { service_start: serviceStart(options.bundle.employment) },
 				// A post-departure obligation reads the final terms of its own contract: an event
 				// after the exit is still priced against the last terms that covered the service.
 				terms: payRequestTerms(
@@ -590,12 +592,14 @@ export function prepareAllowanceWork(options: Pick<MeasureComponentOptions, 'bun
 			const planned = dates.flatMap<
 				Pick<EmploymentBundle['workDays'][number], 'work_date' | 'shift_definition_id'>
 			>((date) => {
-				const pattern = termPattern(sourceTermsAt(date), source.patternById);
+				const patternRow = termPatternRow(sourceTermsAt(date), source.patternById);
+				const pattern = patternRow?.pattern ?? null;
 				const row = plannedByDate.get(date);
 				// The approved Leave charge preserves the original shift if an absence changed the roster to OFF.
 				const leaveShift = leaveCharges.get(date)?.shift_definition_id;
 				if (
-					pattern.type === 'ROSTERED' &&
+					pattern != null &&
+					'expectation' in pattern &&
 					row?.shift_definition_id == null &&
 					leaveShift == null &&
 					!source.holidays.has(date)
@@ -605,7 +609,7 @@ export function prepareAllowanceWork(options: Pick<MeasureComponentOptions, 'bun
 					);
 				if (row) allowanceWorkDayIds.add(row.id);
 				if (leaveCharges.has(date))
-					return pattern.type === 'PATTERNED' || leaveShift == null
+					return (pattern != null && 'days' in pattern) || leaveShift == null
 						? []
 						: [{ work_date: date, shift_definition_id: leaveShift }];
 				return row == null ? [] : [row];
@@ -615,11 +619,15 @@ export function prepareAllowanceWork(options: Pick<MeasureComponentOptions, 'bun
 				dates,
 				workDays: planned,
 				configuration: source,
-				terms: (date) => ({
-					work_pattern: termPattern(sourceTermsAt(date), source.patternById),
-					// Only ORDINARY day classification enters this fraction; no clock hours are priced.
-					normal_daily_hours: 8
-				})
+				terms: (date) => {
+					const row = termPatternRow(sourceTermsAt(date), source.patternById);
+					return {
+						work_pattern: row?.pattern ?? null,
+						pattern_anchor: patternAnchor(row),
+						// Only ORDINARY day classification enters this fraction; no clock hours are priced.
+						normal_daily_hours: 8
+					};
+				}
 			});
 			allowanceSchedules.set(sourceMonth, schedule);
 		}
@@ -1114,7 +1122,27 @@ function prepareRequestCatalogues(
 		});
 		options.api.reads.assertComplete(settings, 'source catalogue settings');
 		const settingsById = new Map(settings.map((row) => [row.id, row]));
-		const byId = new Map(components.map((row) => [row.id, row]));
+		// A request may pin a catalogue revision sealed under an earlier version; its opt-ins still
+		// charge the schemes of the version in force (RFC 0002 §6).
+		const aliases = yield* loadOptInAliases({
+			api: options.api,
+			configuration: options.configuration,
+			ids: components.flatMap((row) =>
+				row.bands.flatMap((band) => band.statutory_opt_ins.map((optIn) => optIn.contribution_id))
+			)
+		});
+		const byId = new Map(
+			components.map((row) => [
+				row.id,
+				{
+					...row,
+					bands: row.bands.map((band) => ({
+						...band,
+						statutory_opt_ins: aliasedOptIns(band.statutory_opt_ins, aliases)
+					}))
+				}
+			])
+		);
 		for (const request of requests) {
 			const component = byId.get(request.catalogue_id);
 			const version = component == null ? undefined : settingsById.get(component.settings_id);

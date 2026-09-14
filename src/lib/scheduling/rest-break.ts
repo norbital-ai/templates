@@ -27,7 +27,7 @@ const breakEngine = runtimeExpressionEngine();
  * Whether a working day satisfied the rest break its jurisdiction owes, derived from the punches.
  *
  * The premise this module deliberately does **not** encode is "if someone works N hours of overtime
- * they must take a break". Every statute transcribed in `statutory_regime.rest_break_rules` is a
+ * they must take a break". Every statute transcribed in `work_rules.breaks` is a
  * **consecutive-hours** rule, and overtime is merely the usual way a person crosses the trigger on
  * the far side of a shift. A function of overtime hours would answer wrongly for a ten-hour split
  * shift with no overtime at all, and could not express the Employment Act 1955 s.60A(1) proviso (i)

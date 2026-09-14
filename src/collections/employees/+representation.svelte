@@ -12,26 +12,24 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Result, Schema } from 'effect';
 	import type { RepresentationProps, WorkspaceRow } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import {
+		createCollectionRouteKey,
+		getCollectionNavigationContext
+	} from '@norbital-ai/ui/collection-navigation';
 	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import FormSection from '../../lib/ui/form-section.svelte';
-	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
-	import { AS_ASSIGNED_PATTERN } from '../../lib/scheduling/work-pattern.js';
-	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
-	import { dateKey } from '../../lib/iso-day.js';
+	import { readRange } from '../payroll_runs/lib/effective.js';
 	import {
 		formatCalendarDate,
-		formatEffectiveRange,
 		formatStatutoryFactStatus
 	} from '../../lib/ui/display-formatters.js';
-	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE, todayKey } from '../../lib/ui/calendar.js';
-	import { humanize } from '@norbital-ai/std/string';
+	import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../../lib/ui/calendar.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import Icon from '@iconify/svelte';
@@ -50,114 +48,8 @@
 		> | null;
 	};
 
-	const employmentScheduleSchema = Schema.Union([
-		Schema.Struct({
-			state: Schema.Literals(['current', 'next']),
-			effectiveRange: StoredRangeSchema,
-			summary: Schema.String
-		}),
-		Schema.Struct({ state: Schema.Literal('missing') })
-	]);
-	type EmploymentSchedule = Schema.Schema.Type<typeof employmentScheduleSchema>;
-
-	/** The work-pattern decoder, built once — it is stateless, and a fresh one per term does the same work. */
-	const decodeWorkPattern = Schema.decodeUnknownResult(workPatternSchema);
-
-	function isEffectiveOn(range: StoredRange, date: string): boolean {
-		// Days are resolved through the payroll zone, not sliced from the instant: a UI pick east
-		// of UTC stores the viewer's day boundary, whose text begins a day earlier.
-		const start = dateKey(range.start);
-		if (start === '' || start > date) return false;
-		const end = range.end == null ? '' : dateKey(range.end);
-		return end === '' || end >= date;
-	}
-
-	function summarizePattern(code: string, pattern: WorkPattern): string {
-		if (pattern.type === 'ROSTERED') {
-			if (pattern.expectation.kind === 'AS_ASSIGNED') {
-				return pattern.expectation.maximum_paid_minutes == null
-					? `${code} · Roster-assigned · as assigned`
-					: `${code} · Roster-assigned · up to ${pattern.expectation.maximum_paid_minutes / 60}h/${pattern.expectation.period.toLowerCase()}`;
-			}
-			return `${code} · Roster-assigned · ${pattern.expectation.required_work_days}d · ${pattern.expectation.required_paid_minutes / 60}h/${pattern.expectation.period.toLowerCase()}`;
-		}
-
-		const continuous =
-			pattern.phases.length === 1 && pattern.phases[0]?.duration.kind === 'CONTINUOUS';
-		if (continuous) {
-			const days = pattern.phases[0]?.day_cycle.length ?? 0;
-			return `${code} · ${days}-day cycle · starts ${pattern.anchor_date}`;
-		}
-		return `${code} · ${pattern.phases.length} calendar phases · starts ${pattern.anchor_date}`;
-	}
-
-	/** Terms with no pattern are rostered as assigned; there is no row to name. */
-	function summarizeUnnamed(pattern: WorkPattern): string {
-		if (pattern.type === 'ROSTERED') {
-			if (pattern.expectation.kind === 'AS_ASSIGNED') {
-				return pattern.expectation.maximum_paid_minutes == null
-					? 'Roster-assigned · as assigned'
-					: `Roster-assigned · up to ${pattern.expectation.maximum_paid_minutes / 60}h/${pattern.expectation.period.toLowerCase()}`;
-			}
-			return `Roster-assigned · ${pattern.expectation.required_work_days}d · ${pattern.expectation.required_paid_minutes / 60}h/${pattern.expectation.period.toLowerCase()}`;
-		}
-
-		const continuous =
-			pattern.phases.length === 1 && pattern.phases[0]?.duration.kind === 'CONTINUOUS';
-		if (continuous) {
-			const days = pattern.phases[0]?.day_cycle.length ?? 0;
-			return `Patterned · ${days}-day cycle · starts ${pattern.anchor_date}`;
-		}
-		return `Patterned · ${pattern.phases.length} calendar phases · starts ${pattern.anchor_date}`;
-	}
-
-	function employmentScheduleOn(
-		terms: readonly Pick<
-			EmploymentTerm,
-			'effective_range' | 'shift_pattern_id' | 'term_shift_pattern'
-		>[],
-		date: string
-	): EmploymentSchedule {
-		const candidates = terms.flatMap((term) => {
-			const range = readRange(term.effective_range);
-			if (range == null) return [];
-			// Read through the row: the named pattern the terms point at, or as assigned when none.
-			const row = term.shift_pattern_id == null ? null : (term.term_shift_pattern ?? null);
-			const parsed = decodeWorkPattern(row?.pattern ?? AS_ASSIGNED_PATTERN);
-			return !Result.isSuccess(parsed)
-				? []
-				: [{ range, pattern: parsed.success, code: row?.code ?? null }];
-		});
-		const current = candidates.find((candidate) => isEffectiveOn(candidate.range, date));
-		if (current) {
-			return {
-				state: 'current',
-				effectiveRange: current.range,
-				summary:
-					current.code == null
-						? summarizeUnnamed(current.pattern)
-						: summarizePattern(current.code, current.pattern)
-			};
-		}
-		const next = candidates
-			.filter((candidate) => dateKey(candidate.range.start) > date)
-			.toSorted((left, right) => left.range.start.localeCompare(right.range.start))[0];
-		if (next) {
-			return {
-				state: 'next',
-				effectiveRange: next.range,
-				summary:
-					next.code == null
-						? summarizeUnnamed(next.pattern)
-						: summarizePattern(next.code, next.pattern)
-			};
-		}
-		return { state: 'missing' };
-	}
-
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const today = todayKey();
 	const fileRuntime = getDataRendererRuntimeContext();
 	/**
 	 * Face enrollment opens from here and nowhere else: the kiosk on the wall only clocks. The
@@ -177,12 +69,9 @@
 						id: true,
 						company_id: true,
 						employee_number: true,
-						hire_date: true,
-						effective_range: true,
-						exit_date: true,
-						exit_reason: true
+						effective_range: true
 					},
-					orderBy: { hire_date: 'desc' },
+					orderBy: { employee_number: 'asc' },
 					limit: 100
 				})
 	);
@@ -190,7 +79,8 @@
 	/**
 	 * The scope the profile hands to the forms its tables open (terms, statutory facts). A person
 	 * with one contract has it prefilled and hidden; with several, the picker offers the entity's
-	 * own people, and with none the form is unnarrowed rather than empty.
+	 * own people, and with none the form is unnarrowed rather than empty. Statutory facts name
+	 * the person directly, so the profile always hands its own id for those forms.
 	 */
 	const scopedEmployment = $derived(employments.length === 1 ? employments[0] : undefined);
 	// The entity's lineage rides a second read: `with` joins are untyped on the browser client,
@@ -205,6 +95,7 @@
 	);
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		employmentId: () => scopedEmployment?.id,
+		employeeId: () => record?.id,
 		companyId: () => scopedEmployment?.company_id,
 		settingsCode: () => scopedCompanyQuery?.current?.settings_code ?? undefined
 	});
@@ -234,22 +125,6 @@
 					limit: 500
 				})
 	);
-	function employmentSummary(employment: { id: string; employee_number: unknown }): string {
-		const employeeNumber =
-			employment.employee_number == null ? '—' : String(employment.employee_number);
-		const schedule = employmentScheduleOn(termsByEmployment.get(employment.id) ?? [], today);
-		if (employmentTermsQuery?.loading) {
-			return `${employeeNumber} · ${t('component.schedule_loading')}`;
-		}
-		if (schedule.state === 'missing') {
-			return `${employeeNumber} · ${t('component.schedule_not_configured')}`;
-		}
-		const scheduleLabel =
-			schedule.state === 'current'
-				? t('component.schedule_current', { summary: schedule.summary })
-				: t('component.schedule_next', { summary: schedule.summary });
-		return `${employeeNumber} · ${scheduleLabel} · ${t('component.effective')} ${formatEffectiveRange(schedule.effectiveRange)}`;
-	}
 	const termsByEmployment = $derived.by(() => {
 		const terms = new Map<string, EmploymentTerm[]>();
 		for (const term of employmentTermsQuery?.current ?? []) {
@@ -273,16 +148,20 @@
 		readonly id: string;
 		readonly dateKey: string;
 		readonly kind: 'HIRED' | 'CHANGED' | 'EXITED';
-		readonly employeeNumber: string;
 		readonly detail: string | null;
+	};
+
+	type TimelineContract = {
+		readonly id: string;
+		readonly employeeNumber: string;
+		readonly active: boolean;
+		readonly events: readonly TimelineEvent[];
 	};
 
 	type TimelineColumn = {
 		readonly companyId: string;
 		readonly companyName: string;
-		readonly active: boolean;
-		readonly lastEndKey: string | null;
-		readonly events: readonly TimelineEvent[];
+		readonly contracts: readonly TimelineContract[];
 	};
 
 	// Company names for the timeline columns; the employments read carries only the id.
@@ -311,22 +190,22 @@
 	 * One rail per legal entity, newest event first: joined, every change of terms that followed,
 	 * and the exit when there is one. A promotion, a demotion, a new contract or a return all read
 	 * as one line — the terms summary states what changed — so the record is a history rather than
-	 * a set of bars whose overlap proves a hook.
+	 * a set of bars whose overlap proves a hook. Each contract's number opens the contract itself.
 	 */
 	const timeline = $derived.by(() => {
-		const byCompany = new Map<string, TimelineEvent[]>();
-		const activity = new Map<string, { active: boolean; lastEndKey: string | null }>();
+		const byCompany = new Map<string, TimelineContract[]>();
 		for (const employment of employments) {
 			if (typeof employment.id !== 'string' || typeof employment.company_id !== 'string') continue;
 			const number = employment.employee_number == null ? '—' : String(employment.employee_number);
-			const hireKey =
-				timelineDayKey(employment.hire_date) ??
-				timelineDayKey(readRange(employment.effective_range)?.start) ??
-				today;
+			const range = readRange(employment.effective_range);
+			if (range == null) continue;
+			const hireKey = timelineDayKey(range.start);
+			if (hireKey == null) continue;
+			const endKey = range.end == null ? null : timelineDayKey(range.end);
 			const terms = (termsByEmployment.get(employment.id) ?? [])
 				.flatMap((term) => {
-					const range = readRange(term.effective_range);
-					const key = range == null ? null : timelineDayKey(range.start);
+					const termRange = readRange(term.effective_range);
+					const key = termRange == null ? null : timelineDayKey(termRange.start);
 					if (key == null) return [];
 					const summary =
 						typeof term.summary === 'string' && term.summary !== '' ? term.summary : null;
@@ -338,7 +217,6 @@
 					id: `${employment.id}:hired`,
 					dateKey: hireKey,
 					kind: 'HIRED',
-					employeeNumber: number,
 					detail: terms[0]?.summary ?? null
 				}
 			];
@@ -348,41 +226,45 @@
 						id: `${employment.id}:term:${index}:${term.key}`,
 						dateKey: term.key,
 						kind: 'CHANGED',
-						employeeNumber: number,
 						detail: term.summary
 					});
-			const exitKey = employment.exit_date == null ? null : timelineDayKey(employment.exit_date);
-			if (exitKey != null)
+			if (endKey != null)
 				events.push({
 					id: `${employment.id}:exit`,
-					dateKey: exitKey,
+					dateKey: endKey,
 					kind: 'EXITED',
-					employeeNumber: number,
-					detail: employment.exit_reason == null ? null : humanize(String(employment.exit_reason))
+					detail: null
 				});
+			const contract: TimelineContract = {
+				id: employment.id,
+				employeeNumber: number,
+				active: endKey == null,
+				events: events.toSorted((left, right) => right.dateKey.localeCompare(left.dateKey))
+			};
 			const bucket = byCompany.get(employment.company_id) ?? [];
-			bucket.push(...events);
+			bucket.push(contract);
 			byCompany.set(employment.company_id, bucket);
-			const prior = activity.get(employment.company_id) ?? { active: false, lastEndKey: null };
-			activity.set(employment.company_id, {
-				active: prior.active || exitKey == null,
-				lastEndKey:
-					exitKey != null && (prior.lastEndKey == null || exitKey > prior.lastEndKey)
-						? exitKey
-						: prior.lastEndKey
-			});
 		}
 		const columns: TimelineColumn[] = [...byCompany]
-			.map(([companyId, events]) => ({
+			.map(([companyId, contracts]) => ({
 				companyId,
 				companyName: timelineCompanyNames.get(companyId) ?? companyId,
-				active: activity.get(companyId)?.active ?? false,
-				lastEndKey: activity.get(companyId)?.lastEndKey ?? null,
-				events: events.toSorted((left, right) => right.dateKey.localeCompare(left.dateKey))
+				contracts: contracts.toSorted((left, right) =>
+					left.employeeNumber.localeCompare(right.employeeNumber)
+				)
 			}))
 			.toSorted((left, right) => left.companyName.localeCompare(right.companyName));
 		return { columns };
 	});
+	const detailNavigation = getCollectionNavigationContext();
+	const contractRouteKey = createCollectionRouteKey({ view: 'employees:employments' });
+	function openContract(contractId: string): void {
+		detailNavigation?.open({
+			collectionName: 'employments',
+			recordId: contractId,
+			routeKey: contractRouteKey
+		});
+	}
 
 	const EVENT_LABEL_KEYS = {
 		HIRED: 'component.timeline_hired',
@@ -448,14 +330,16 @@
 					<Grid gap="sm" minimum="compact">
 						<Field name="marital_status" label={t('component.marital_status')} />
 						<Field name="solo_parent" label={t('component.solo_parent')} />
-						<Stack gap="xs">
-							<Field name="race" label={t('component.race')} />
-							<p class="text-meta">{t('component.race_religion_hint')}</p>
-						</Stack>
-						<Stack gap="xs">
-							<Field name="religion" label={t('component.religion')} />
-							<p class="text-meta">{t('component.race_religion_hint')}</p>
-						</Stack>
+						<Field
+							name="race"
+							label={t('component.race')}
+							description={t('component.race_religion_hint')}
+						/>
+						<Field
+							name="religion"
+							label={t('component.religion')}
+							description={t('component.race_religion_hint')}
+						/>
 					</Grid>
 				</FormSection>
 				<FormSection
@@ -465,6 +349,9 @@
 					<Grid gap="sm" minimum="compact">
 						<Field name="spouse_status" label={t('component.spouse')} />
 						<Field name="dependents_count" label={t('component.dependents')} />
+						<Column span="all"
+							><Field name="children" label={t('employee_children.title')} /></Column
+						>
 					</Grid>
 				</FormSection>
 			</Stack>
@@ -484,78 +371,64 @@
 					<Stack gap="lg">
 						{#each timeline.columns as column (column.companyId)}
 							<Stack gap="sm">
-								<Inline align="baseline" justify="between" gap="sm">
-									<h4 class="text-sm font-semibold">{column.companyName}</h4>
-									<span class="text-meta">
-										{#if column.active}
-											{t('component.timeline_active')}
-										{:else if column.lastEndKey != null}
-											{t('component.timeline_last_ended', {
-												date: formatCalendarDate(column.lastEndKey)
-											})}
-										{/if}
-									</span>
-								</Inline>
-								<ol class="ml-1 border-l border-border">
-									{#each column.events as event (event.id)}
-										<li class="relative pb-5 pl-5 last:pb-0">
-											<span
-												class="absolute top-1.5 -left-[5px] size-2 rounded-full {event.kind ===
-												'EXITED'
-													? 'bg-muted-foreground'
-													: event.kind === 'HIRED'
-														? 'bg-primary'
-														: 'bg-brand'}"
-											></span>
-											<Stack gap="xs">
-												<Inline align="baseline" gap="sm">
-													<span class="text-sm font-medium">
-														{t(EVENT_LABEL_KEYS[event.kind])}
-													</span>
-													<span class="text-meta tabular-nums">
-														{formatCalendarDate(event.dateKey)}
-													</span>
-												</Inline>
-												<span class="text-sm">
-													{event.detail ?? t('component.timeline_no_terms')}
-												</span>
-												<span class="text-meta tabular-nums">{event.employeeNumber}</span>
-											</Stack>
-										</li>
-									{/each}
-								</ol>
+								<h4 class="text-sm font-semibold">{column.companyName}</h4>
+								{#each column.contracts as contract (contract.id)}
+									<Stack gap="xs">
+										<Inline align="baseline" gap="sm">
+											<button
+												type="button"
+												class="text-sm font-medium text-primary underline-offset-4 hover:underline"
+												onclick={() => openContract(contract.id)}
+											>
+												{contract.employeeNumber}
+											</button>
+											<span class="text-meta">
+												{#if contract.active}
+													{t('component.timeline_active')}
+												{:else}
+													{t('component.timeline_last_ended', {
+														date: formatCalendarDate(
+															contract.events.find((event) => event.kind === 'EXITED')?.dateKey ??
+																''
+														)
+													})}
+												{/if}
+											</span>
+										</Inline>
+										<ol class="ml-1 border-l border-border">
+											{#each contract.events as event (event.id)}
+												<li class="relative pb-5 pl-5 last:pb-0">
+													<span
+														class="absolute top-1.5 -left-[5px] size-2 rounded-full {event.kind ===
+														'EXITED'
+															? 'bg-muted-foreground'
+															: event.kind === 'HIRED'
+																? 'bg-primary'
+																: 'bg-brand'}"
+													></span>
+													<Stack gap="xs">
+														<Inline align="baseline" gap="sm">
+															<span class="text-sm font-medium">
+																{t(EVENT_LABEL_KEYS[event.kind])}
+															</span>
+															<span class="text-meta tabular-nums">
+																{formatCalendarDate(event.dateKey)}
+															</span>
+														</Inline>
+														<span class="text-sm">
+															{event.detail ?? t('component.timeline_no_terms')}
+														</span>
+													</Stack>
+												</li>
+											{/each}
+										</ol>
+									</Stack>
+								{/each}
 							</Stack>
 						{/each}
 					</Stack>
 				</FormSection>
 			{/if}
-			<CollectionTable
-				{client}
-				collection="employments"
-				view="employees:employments"
-				title={t('component.employments')}
-				description={t('component.employments_description')}
-				query={{
-					where: { employee_id: { eq: record.id } },
-					orderBy: { hire_date: 'desc' }
-				}}
-			>
-				{#snippet columns({ Column: TableColumn })}
-					<TableColumn
-						name="employee_number"
-						card="title"
-						minWidth={280}
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }) =>
-								employmentSummary(row as { id: string; employee_number: unknown })
-						}}
-					/>
-					<TableColumn name="company_id" label={t('component.legal_entity')} card="subtitle" />
-					<TableColumn name="hire_date" label={t('component.hired')} />
-					<TableColumn name="effective_range" label={t('component.effective')} />
-				{/snippet}
-			</CollectionTable>
 		</Stack>
 	{/if}
 {/snippet}
@@ -571,18 +444,16 @@
 			where:
 				record == null
 					? { id: { in: [] } }
-					: // A relation enters a predicate only under a quantifier; naming the related
-						// column directly reads as a field of this collection and is refused.
-						{ statutory_fact_employment: { some: { employee_id: { eq: record.id } } } },
+					: // Facts name the person directly; every row on this tab is this person.
+						{ employee_id: { eq: record.id } },
 			orderBy: { created_at: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column: TableColumn })}
-			<TableColumn name="employment_id" label={t('component.employment')} card="title" />
 			<TableColumn
 				name="statutory_contribution_id"
 				label={t('component.contribution')}
-				card="subtitle"
+				card="title"
 			/>
 			<TableColumn
 				name="status"
@@ -646,7 +517,6 @@
 
 <!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
 <RecordShell
-	title={record?.name ?? t('component.create_employee')}
 	{subtitle}
 	tabs={[
 		{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },

@@ -46,30 +46,28 @@ export type ComponentDefinition =
 
 export type CatalogueComponent = FamilyPayItem & { readonly definition: ComponentDefinition };
 export type WorkLimit = Work['limits'][number];
-export type WorkBreak = Work['breaks'][number];
+type WorkBreak = Work['breaks'][number];
 export type OvertimeCoverageRule = Work['coverage'];
 export type NightPremium = NonNullable<Work['night_premium']>;
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type ShiftPattern = WorkspaceRow<'shift_patterns'>;
 type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
-export type ContributionBand = WorkspaceRow<'statutory_contributions'>['bands'][number];
+export type ContributionRule = WorkspaceRow<'statutory_contributions'>['rules'][number];
 type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
 
-/** One statutory scheme with the bands that were effective when the run was picked. */
+/** One statutory scheme with the rules that were in force when the run was picked. */
 export type ContributionConfig = {
 	readonly row: StatutoryContribution;
-	readonly rates: readonly ContributionBand[];
-	/** The schemes whose chargeable income this scheme's employee share reduces. */
-	readonly relievedIds: readonly string[];
+	readonly rules: readonly ContributionRule[];
 };
 
 export type Configuration = {
 	readonly company: Company;
 	readonly jurisdiction: Jurisdiction;
 	readonly work: Work;
-	/** In `sequence` order — a relief is produced before the scheme that consumes it. */
+	/** In dependency order — a relief is produced before the scheme that reads it. */
 	readonly contributions: readonly ContributionConfig[];
-	/** In `sequence` order — the order MEASURE walks. */
+	/** In the order MEASURE walks: the family pipeline, each family by code. */
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly holidayRestPrecedence: Work['holiday_rest_precedence'];
 	/** The named hour ceilings; schedules must respect them, payroll reports overruns. */
@@ -247,12 +245,11 @@ export function configurationSnapshot(
 		wages: configuration.jurisdiction.wages,
 		contributions: configuration.contributions.map((entry) => ({
 			code: entry.row.code,
-			sequence: entry.row.sequence,
 			assessment_period: entry.row.assessment_period,
-			rules: entry.row.rules,
-			relieved_ids: [...entry.relievedIds].toSorted(),
-			eligibility: entry.row.eligibility ?? '',
-			rates: entry.rates.map((band) => [band.when, band.employee, band.employer])
+			employee_share_annual_cap: entry.row.employee_share_annual_cap ?? null,
+			shared_cap_group: entry.row.shared_cap_group ?? null,
+			project_relief_annually: entry.row.project_relief_annually,
+			rules: entry.rules.map((band) => [band.when, band.employee, band.employer])
 		})),
 		// The catalogue's bands are configuration: an amount, a limit or an opt-in moving is a
 		// different charge even when the same code pays it.
@@ -261,7 +258,6 @@ export function configurationSnapshot(
 				row.code,
 				row.destination,
 				row.direction,
-				row.sequence,
 				row.definition,
 				row.eligibility,
 				row.bands

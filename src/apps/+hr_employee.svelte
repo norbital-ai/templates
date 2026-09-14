@@ -418,10 +418,10 @@
 	);
 
 	const scheduleShiftsQuery = $derived(
-		activeSettingsCode == null
+		scheduleCalendarCompanyId == null
 			? null
 			: client.db.shift_definitions.findMany({
-					where: { ...approved, settings_code: { eq: activeSettingsCode } },
+					where: { ...approved, company_id: { eq: scheduleCalendarCompanyId } },
 					limit: 500
 				})
 	);

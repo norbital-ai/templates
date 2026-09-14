@@ -13,17 +13,17 @@ import {
 } from '../collections/payroll_runs/lib/eligibility.js';
 import { childrenOn, resolveEmployment } from './employment-contract.js';
 import { payRequestTerms } from './component_entry_cap_subject.js';
+import { dateKey } from './iso-day.js';
 
 /** The employment row with its person, terms and entity joined, as the form's one query reads it. */
 type PersonFacts = {
-	readonly hire_date: string;
 	readonly effective_range: unknown;
-	readonly exit_date?: string | null;
-	readonly children?: ReadonlyArray<{
-		readonly child_birthdate: string;
-		readonly effective_range: unknown;
-	}> | null;
-	readonly employment_employee?: Parameters<typeof personContext>[0]['employee'];
+	readonly employment_employee?: Parameters<typeof personContext>[0]['employee'] & {
+		readonly children?: ReadonlyArray<{
+			readonly child_birthdate: string;
+			readonly effective_range: unknown;
+		}> | null;
+	};
 	readonly employment_company?: { readonly region?: string | null } | null;
 	readonly term_employment?: ReadonlyArray<
 		NonNullable<Parameters<typeof personContext>[0]['terms']> & {
@@ -35,11 +35,12 @@ type PersonFacts = {
 /** The person as the predicate grammar sees them on `day`. */
 export function personAsOf(facts: PersonFacts, day: string): PersonContext {
 	const contract = resolveEmployment(facts);
+	const start = contract.effective_range == null ? '' : dateKey(contract.effective_range.start);
 	return personContext({
 		employee: facts.employment_employee ?? null,
-		employment: { hire_date: facts.hire_date },
+		employment: { service_start: start },
 		terms: payRequestTerms(facts.term_employment ?? [], contract, day),
-		children: childrenOn(facts.children ?? [], day),
+		children: childrenOn(facts.employment_employee?.children ?? [], day),
 		company: facts.employment_company ?? null,
 		asOf: day
 	});

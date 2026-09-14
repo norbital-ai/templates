@@ -12,9 +12,9 @@ import {
  *                                  leave, work days, and what earlier PAID runs already consumed
  *
  *  create.before  ─┬─ 2 VALIDATE   everything that can be wrong before a person is measured
- *   pure           ├─ 4 MEASURE    in component sequence: base, proration and adjustments
+ *   pure           ├─ 4 MEASURE    in the family pipeline order: base, proration and adjustments
  *                  ├─ 5 ACCUMULATE every amount through the grid → contribution bases
- *                  ├─ 6 CONTRIBUTE each scheme in sequence: base → employee and employer amounts
+ *                  ├─ 6 CONTRIBUTE each scheme in dependency order: base → employee and employer amounts
  *                  ├─ 7 SETTLE     gross, total deductions, net, employer cost
  *                  └─ 8 GRAPH      the payslips, their captured inputs and their adjustments,
  *                                  returned rather than written
@@ -74,6 +74,8 @@ export const CALCULATION_VERSION = '2026-09-contract-payroll-families' as const;
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
 type PayrollRunGraph = {
 	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>['rows'];
+	/** How every charge was derived, stored whole on the run for the Flow screen (RFC 0002 §5). */
+	readonly calculation_trace: ReturnType<typeof payrollRunGraph>['calculationTrace'];
 	/** What each payslip settled; the run's `after` hook stamps the sources with it. */
 	readonly captures: ReturnType<typeof payrollRunGraph>['captures'];
 	readonly payslipCount: number;
@@ -223,6 +225,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 
 		pending.push({
 			employmentId: employment.id,
+			employeeNumber: String(employment.employee_number),
 			termsThrough,
 			currency: measured.currency,
 			settlement,
@@ -244,9 +247,10 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	if (blocking.length > 0) refuse(describeIssues(blocking));
 
 	// 8 — GRAPH
-	const { rows: graph, captures } = payrollRunGraph({ pending, period });
+	const { rows: graph, captures, calculationTrace } = payrollRunGraph({ pending, period });
 	return {
 		payslip_payroll_run: graph,
+		calculation_trace: calculationTrace,
 		captures,
 		payslipCount: pending.length,
 		baseCount: graph.reduce(

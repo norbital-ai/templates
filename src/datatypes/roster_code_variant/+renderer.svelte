@@ -87,10 +87,10 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	<Stack gap="sm" class="rounded-md border bg-muted/20 p-3">
-		<label class="text-sm font-medium">
+	<Grid gap="sm" minimum="panel">
+		<label class="text-xs">
 			<Stack gap="xs">
-				Kind
+				<span class="text-muted-foreground">Kind</span>
 				<Combobox
 					ariaLabel="Roster code kind"
 					options={kindOptions}
@@ -102,31 +102,30 @@
 			</Stack>
 		</label>
 		{#if current?.kind === 'WORK'}
-			<Grid gap="sm" minimum="compact">
-				<TimeRangeField
-					label={t('component.shift_time_range')}
-					value={workRange}
-					placeholder={workRange?.start}
-					allowStartAfterEnd
-					{disabled}
-					onValueChange={setWorkRange}
-				/>
-				<label class="text-sm font-medium">
-					<Stack gap="xs">
-						{t('component.unpaid_break_hours')}
-						<Input
-							type="number"
-							min="0"
-							step="0.5"
-							value={current.break_minutes / 60}
-							{disabled}
-							oninput={(event) => emitBreakHours(event.currentTarget.value, false)}
-							onchange={(event) => emitBreakHours(event.currentTarget.value, true)}
-						/>
-					</Stack>
-				</label>
-			</Grid>
-			<p class="text-meta">{summary}</p>
+			<TimeRangeField
+				label={t('component.shift_time_range')}
+				value={workRange}
+				placeholder={workRange?.start}
+				allowStartAfterEnd
+				{disabled}
+				onValueChange={setWorkRange}
+			/>
+			<label class="text-xs">
+				<Stack gap="xs">
+					<span class="text-muted-foreground">{t('component.unpaid_break_hours')}</span>
+					<Input
+						class="h-8"
+						type="number"
+						min="0"
+						step="0.5"
+						value={current.break_minutes / 60}
+						{disabled}
+						oninput={(event) => emitBreakHours(event.currentTarget.value, false)}
+						onchange={(event) => emitBreakHours(event.currentTarget.value, true)}
+					/>
+				</Stack>
+			</label>
+			<p class="col-span-full text-meta">{summary}</p>
 		{/if}
-	</Stack>
+	</Grid>
 {/if}

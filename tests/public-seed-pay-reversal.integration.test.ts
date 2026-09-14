@@ -15,6 +15,7 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { markRunPaid } from './helpers/mark-paid.ts';
 
 /**
  * HR19 (b): an Allowance adjustment against a settled payslip line in the same family and contract.
@@ -62,30 +63,7 @@ async function createRun(session: Session, period: string): Promise<string> {
 }
 
 async function markPaid(session: Session, runId: string): Promise<void> {
-	const [run] = (await session.query('select row_version from payroll_runs where id = $1', [
-		runId
-	])) as ReadonlyArray<{ readonly row_version: number | string }>;
-	assert.ok(run, 'the run exists');
-	const paid = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE,
-		mutationPush(
-			session.schemaFingerprint,
-			{
-				action: 'mutate',
-				collection: 'payroll_runs',
-				rows: [{ action: 'update', values: { id: runId, lifecycle: 'PAID' } }]
-			},
-			[
-				{
-					row: { collection: 'payroll_runs', recordId: runId },
-					rowVersion: Number(run.row_version)
-				}
-			]
-		),
-		bearerHeaders(session.credential)
-	);
-	requireAccepted(paid.value, 'mark paid');
+	await markRunPaid(session, runId);
 }
 
 async function payslipOf(session: Session, runId: string) {

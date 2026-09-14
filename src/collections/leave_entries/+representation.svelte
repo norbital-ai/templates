@@ -30,7 +30,7 @@
 	);
 </script>
 
-<RecordShell title={record?.reference ?? t('component.create_leave_entry')}>
+<RecordShell>
 	<CollectionForm
 		{client}
 		collection="leave_entries"
@@ -45,6 +45,9 @@
 			<Field name="leave_code" hidden />
 			<Field name="charges" hidden />
 			<Field name="allocations" hidden />
+			<!-- The payroll engine owns the capture lock; a correction is an event, not a flag. -->
+			<Field name="payslip_id" hidden />
+			<Field name="as_adjustment_entry" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first

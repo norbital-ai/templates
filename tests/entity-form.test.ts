@@ -12,7 +12,9 @@ import { readFileSync } from 'node:fs';
 const source = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 const fieldNames = (text: string): ReadonlyArray<string> =>
-	[...text.matchAll(/<Field\s[^>]*?name="([a-z_]+)"/gs)].map((match) => match[1]!).toSorted();
+	[
+		...new Set([...text.matchAll(/<Field\s[^>]*?name="([a-z_]+)"/gs)].map((match) => match[1]!))
+	].toSorted();
 
 const registrations = (text: string): ReadonlyArray<string> => [
 	...[...text.matchAll(/client\.db\.([a-z_]+)\.(findMany|findFirst)\(/g)].map(
@@ -60,7 +62,7 @@ test('the company form includes identity, payroll settings, payment account and 
 	);
 	assert.match(
 		form,
-		/band\.when\.includes\('risk_class'\)/,
+		/rule\.when\.includes\('risk_class'\)/,
 		"keyed by the lineage schemes' bands, not by a country name"
 	);
 	assert.match(
@@ -89,7 +91,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 	]);
 	for (const hidden of ['sealed_at', 'voided_at', 'void_reason', 'cloned_from_id'])
 		assert.match(form, new RegExp(`<Field name="${hidden}" hidden />`), `${hidden} is hidden`);
-	assert.match(form, /disabled=\{sealed\}/, 'a sealed version renders read-only');
+	assert.match(form, /readonly=\{sealed\}/, 'a sealed version renders read-only');
 	for (const gone of [
 		'lifecycle',
 		'supersedes_id',
@@ -109,22 +111,22 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	assert.deepEqual(
 		registrations(script),
 		['db.jurisdiction_settings.findMany'],
-		'the page is one query over the lineage'
+		'the page reads the lineage'
 	);
 	assert.match(script, /where: onLineage\(code\)/, "scoped by the entity's settings code");
 	for (const tab of ['contributions', 'catalogueLeaves', 'catalogueTable'])
 		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
-	// Work is one catalogue with three tables behind a tab strip: its rules, the roster codes and
-	// the named patterns — the vocabulary is the lineage's, so it lives here rather than on the
-	// scheduling board it serves.
-	const workTab = snippet(settings, 'catalogueWork');
-	assert.match(workTab, /<Tabs\b/);
-	assert.deepEqual(registrations(workTab), []);
-	// The rules are edited with the version root they belong to, so the rules surface queries
-	// nothing of its own; the codes and patterns are their own tables.
+	// Work rules are the version's own form on their own tab.
+	assert.match(snippet(settings, 'workRules'), /SettingsRepresentation/);
 	assert.deepEqual(registrations(snippet(settings, 'workRules')), [], 'workRules');
-	for (const tab of ['rosterCodes', 'shiftPatterns'])
-		assert.deepEqual(registrations(snippet(settings, tab)), ['CollectionTable'], tab);
+	// Roster codes and patterns are the entity's, so they are configured on the entity record,
+	// not under the jurisdiction version.
+	assert.equal(settings.includes('content: scheduling'), false, 'scheduling left the Settings app');
+	const scheduling = source('../src/lib/ui/scheduling-settings.svelte');
+	assert.deepEqual(registrations(scheduling), ['CollectionTable', 'CollectionTable']);
+	assert.match(scheduling, /collection="shift_definitions"/);
+	assert.match(scheduling, /collection="shift_patterns"/);
+	assert.match(scheduling, /company_id: \{ eq: companyId \}/);
 	for (const [tab, collection] of [
 		['catalogueClaims', 'claim_catalogue'],
 		['catalogueAllowances', 'allowance_catalogue'],
@@ -140,6 +142,7 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	assert.equal(settings.includes('HolidaySourceForm'), false, 'so did the entity’s Google source');
 	const entity = source('../src/collections/companies/+representation.svelte');
 	assert.match(entity, /<HolidaySettings company=\{record!\}/);
+	assert.match(entity, /<SchedulingSettings company=\{record!\}/);
 	assert.equal(
 		entity.includes('HolidaySourceForm'),
 		false,
@@ -153,7 +156,7 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	assert.match(holidays, /company_id: \{ eq: companyId \}/);
 	assert.match(holidays, /date: \{ gte: yearRange\.start, lte: yearRange\.end \}/);
 	assert.deepEqual(
-		registrations(snippet(settings, 'payroll')),
+		registrations(snippet(settings, 'general')),
 		[],
 		'the form is the representation'
 	);
@@ -185,8 +188,8 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 		'db.loan_catalogue.findMany'
 	]);
 	assert.match(changes, /settings_id = \{ in: \[baseVersion\.id, compareVersion\.id\] \}/);
-	assert.match(changes, /diffCollection\(collection, previous, proposed\)/);
-	assert.match(changes, /diffSettingsRoot\(baseVersion, compareVersion\)/);
+	assert.match(changes, /diffCollection\(collection, previous, proposed,/);
+	assert.match(changes, /diffSettingsRoot\(\s*baseVersion,\s*compareVersion,/);
 	assert.match(changes, /snapshotId\(code, versions, offset\)/, 'snapshots are CODE_INDEX');
 });
 
@@ -203,7 +206,6 @@ test('the terms form is Pay, Standing, Organisation and Period, scoped to the en
 		'base_salary',
 		'department',
 		'effective_range',
-		'employment_id',
 		'employment_id',
 		'employment_type',
 		'grade',
@@ -240,10 +242,11 @@ test('the terms form is Pay, Standing, Organisation and Period, scoped to the en
 
 test('the statutory fact form is Scheme, Registration and Period; the successor pointer is hook-owned', () => {
 	const form = source('../src/collections/employment_statutory_facts/+representation.svelte');
+	// `employee_id` is declared once per arm (visible when unscoped, hidden when scoped); the
+	// arms are exclusive, so the form names each mutable field exactly once at runtime.
 	assert.deepEqual(fieldNames(form), [
 		'effective_range',
-		'employment_id',
-		'employment_id',
+		'employee_id',
 		'status',
 		'statutory_contribution_id',
 		'supersedes_fact_id'
@@ -255,7 +258,7 @@ test('the statutory fact form is Scheme, Registration and Period; the successor 
 	]);
 	assert.match(form, /<Field name="supersedes_fact_id" hidden \/>/);
 	assert.match(form, /hrCreateScope\(\)/);
-	assert.match(form, /employmentRelationOptions\(scopedCompanyId\)/);
+	assert.match(form, /\{#if scopedEmployeeId != null\}\s*<Field name="employee_id" hidden \/>/);
 	// The scheme picker reaches the version through its relation, under a quantifier, and only
 	// when the page names a lineage; unscoped it offers every scheme rather than none.
 	assert.match(

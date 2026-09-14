@@ -7,26 +7,14 @@
 		"is_statutory": true,
 		"authority": "Public fixture — not a sealed statutory table.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 1,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0",
-				"employee": "base * 11.0 / 100.0",
-				"employer": "base * 13.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)",
+				"employer": "round_cent((base) * 13.0 / 100.0)"
 			}
 		]
 	},
@@ -38,26 +26,14 @@
 		"is_statutory": true,
 		"authority": "Public fixture — invented non-citizen scheme, not a sealed statutory table.",
 		"assessment_period": "PAY_PERIOD",
-		"eligibility": "",
-		"sequence": 2,
-		"rules": {
-			"relief": "",
-			"base_transform": "",
-			"share_for_dependants": "",
-			"rounding": ["NEAREST_CENT"],
-			"no_withholding_below": 0.0,
-			"use_period_table": true,
-			"additional_remuneration_channel": false,
-			"employee_share_annual_cap": null,
-			"shared_cap_group": null,
-			"project_relief_annually": false,
-			"total_rounded_employee_floored": false
-		},
-		"bands": [
+		"employee_share_annual_cap": null,
+		"shared_cap_group": null,
+		"project_relief_annually": false,
+		"rules": [
 			{
-				"when": "base > 0.0",
-				"employee": "base * 5.0 / 100.0",
-				"employer": "base * 5.0 / 100.0"
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
+				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)",
+				"employer": "round_cent((base) * 5.0 / 100.0)"
 			}
 		]
 	}

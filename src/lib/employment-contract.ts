@@ -1,6 +1,10 @@
 import { refuse, type Api } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import { coversDate, readRange } from '../collections/payroll_runs/lib/effective.js';
+import {
+	coversDate,
+	readRange,
+	type StoredRange
+} from '../collections/payroll_runs/lib/effective.js';
 import { dateKey } from './iso-day.js';
 import type { WorkspaceRow } from '$bolt/types.js';
 import type { WorkspaceSchema } from '$bolt/types.js';
@@ -9,7 +13,6 @@ import type { LeaveEvent } from '../datatypes/leave_event/+definition.js';
 
 const CONTRACT_INPUT_SOURCES = [
 	'employment_terms',
-	'employment_statutory_facts',
 	'claim_requests',
 	'allowance_requests',
 	'payment_requests',
@@ -34,7 +37,6 @@ type ContractReader = {
 
 const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> = {
 	employment_terms: 'employment terms',
-	employment_statutory_facts: 'a statutory fact',
 	claim_requests: 'a claim',
 	allowance_requests: 'an allowance',
 	payment_requests: 'a payment',
@@ -121,9 +123,10 @@ export function consumedTermsThrough(api: Api<WorkspaceSchema>, employmentId: st
 		const where = { employment_id: { eq: employmentId } };
 		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId } },
-			columns: { exit_date: true }
+			columns: { effective_range: true }
 		});
-		const exit = employment?.exit_date == null ? null : dateKey(employment.exit_date);
+		const exit = readRange(employment?.effective_range)?.end;
+		const exitKey = exit == null ? null : dateKey(exit);
 		const dates: string[] = [];
 		const work = yield* api.db.work_days.findFirst({
 			where,
@@ -143,7 +146,7 @@ export function consumedTermsThrough(api: Api<WorkspaceSchema>, employmentId: st
 		for (const row of pendingWork) if (row.work_date != null) dates.push(dateKey(row.work_date));
 		for (const row of [...leave, ...pendingLeave]) {
 			if (row.event == null || row.charges == null) continue;
-			const through = leaveTermsThrough(row.event, row.charges, exit);
+			const through = leaveTermsThrough(row.event, row.charges, exitKey);
 			if (through != null) dates.push(through);
 		}
 		const payslip = yield* api.db.payslips.findFirst({
@@ -166,42 +169,21 @@ export function childrenOn<T extends { readonly effective_range: unknown }>(
 	);
 }
 
-/** Service dates are a projection of the signed contract and its recorded departure. */
-export function resolveEmployment<
-	T extends {
-		readonly effective_range: unknown;
-		readonly exit_date?: string | null;
-		readonly exit_reason?: string | null;
-	}
->(contract: T) {
+/** The stint's first day as a `YYYY-MM-DD` key, for the person contexts payroll evaluates. */
+export function serviceStart(employment: { readonly effective_range: StoredRange | null }): string {
+	return employment.effective_range == null ? '' : dateKey(employment.effective_range.start);
+}
+
+/** Service dates are the signed range itself: start is the first day of service, end the last day of work. */
+export function resolveEmployment<T extends { readonly effective_range: unknown }>(contract: T) {
 	const range = readRange(contract.effective_range);
-	const ends = [range?.end, contract.exit_date].filter((value): value is string => value != null);
-	// `.at(0)` and not `[0]`: an indexed read types as `string` while the list may be empty, which
-	// made a contract with neither a range end nor an exit date read as one that ends in a string.
-	const end: string | null =
-		ends.toSorted((a, b) => dateKey(a).localeCompare(dateKey(b))).at(0) ?? null;
-	return {
-		...contract,
-		exit_date: end,
-		exit_reason: contract.exit_reason ?? null,
-		effective_range: range == null ? null : { ...range, end }
-	};
+	return { ...contract, effective_range: range };
 }
 
 export type ResolvedEmployment = ReturnType<typeof resolveEmployment<WorkspaceRow<'employments'>>>;
 
 export type ContractCandidate = Partial<
-	Pick<
-		WorkspaceRow<'employments'>,
-		| 'id'
-		| 'employee_id'
-		| 'company_id'
-		| 'hire_date'
-		| 'effective_range'
-		| 'exit_date'
-		| 'exit_reason'
-		| 'exit_note'
-	>
+	Pick<WorkspaceRow<'employments'>, 'id' | 'employee_id' | 'company_id' | 'effective_range'>
 >;
 
 /** Inclusive service windows are exclusive only within the same person/entity pair. */
@@ -211,14 +193,12 @@ export function assertContractDoesNotOverlap(
 ) {
 	const serviceWindow = (row: ContractCandidate) => {
 		const range = readRange(row.effective_range);
-		const hire = row.hire_date == null ? null : dateKey(row.hire_date);
-		if (!row.employee_id || !row.company_id || !range || !hire)
-			refuse('A contract needs an employee profile, legal entity, hire date and service period.');
-		const start = [hire, dateKey(range.start)].toSorted().at(-1)!;
-		const end = resolveEmployment({ ...row, effective_range: row.effective_range }).exit_date;
-		if (end != null && dateKey(end) < start)
-			refuse('A contract cannot end before its service starts.');
-		return { start, end: end == null ? '9999-12-31' : dateKey(end) };
+		if (!row.employee_id || !row.company_id || !range)
+			refuse('A contract needs an employee profile, legal entity and service period.');
+		const start = dateKey(range.start);
+		const end = range.end == null ? '9999-12-31' : dateKey(range.end);
+		if (end < start) refuse('A contract cannot end before its service starts.');
+		return { start, end };
 	};
 	const window = serviceWindow(candidate);
 	for (const other of others) {

@@ -56,30 +56,17 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		code: 'PUB-EPF',
 		name: 'Public fixture retirement fund',
 		authority: 'Public fixture',
-		sequence: 1,
 		assessment_period: 'PAY_PERIOD',
-		eligibility: '',
-		rules: {
-			relief: '',
-			base_transform: '',
-			share_for_dependants: '',
-			rounding: ['NEAREST_CENT'],
-			no_withholding_below: 0,
-			use_period_table: true,
-			additional_remuneration_channel: false,
-			employee_share_annual_cap: null,
-			shared_cap_group: null,
-			project_relief_annually: false,
-			total_rounded_employee_floored: false
-		},
-		bands: [
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		rules: [
 			{
 				when: 'base >= 0.0',
-				employee: 'base * 11.0 / 100.0',
-				employer: 'base * 13.0 / 100.0'
+				employee: 'round_cent(base * 11.0 / 100.0)',
+				employer: 'round_cent(base * 13.0 / 100.0)'
 			}
 		],
-		relievedIds: [],
 		approval_id: null
 	});
 	// The work lines opt into PUB-EPF on the settings root (RFC 0001 §6): salary and the OT bands
@@ -105,11 +92,15 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 	if (pubEpf != null)
 		for (const version of world.jurisdiction_settings) {
 			const rules = version.work_rules as {
-				lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+				engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
 				rates: { bands: { statutory_opt_ins: unknown[] }[] };
 			};
-			rules.lines.salary.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'INCLUDE' }];
-			rules.lines.absence.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'REDUCE' }];
+			rules.engine_lines.salary.statutory_opt_ins = [
+				{ contribution_id: pubEpf, effect: 'INCLUDE' }
+			];
+			rules.engine_lines.absence.statutory_opt_ins = [
+				{ contribution_id: pubEpf, effect: 'REDUCE' }
+			];
 			for (const band of rules.rates.bands)
 				band.statutory_opt_ins = [{ contribution_id: pubEpf, effect: 'INCLUDE' }];
 		}
@@ -122,6 +113,7 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		marital_status: 'SINGLE',
 		spouse_status: 'NONE',
 		dependents_count: 0,
+		children: [],
 		approval_id: null
 	});
 	world.employments.push({
@@ -129,9 +121,6 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		employee_id: SEMI_MONTHLY_EMPLOYEE_ID,
 		company_id: COMPANY_ID,
 		employee_number: 'PF0002',
-		hire_date: '2022-03-01',
-		exit_date: null,
-		exit_reason: null,
 		bank: null,
 		effective_range: { start: '2022-03-01', end: null },
 		approval_id: null

@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import { readRange, type StoredRange } from '../payroll_runs/lib/effective.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { describeVersion, halfOpenOverlap, stableJson } from '../../lib/jurisdiction_settings.js';
+import { optInsOfBands, refuseUnknownOptIns } from '../../lib/catalogue_rules.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 /** The two columns a sealed version may still take: the void, once. */
@@ -96,13 +97,28 @@ export default {
 							)
 								refuse(`${describeVersion(existing)} is voided; its reason is part of the record.`);
 							if (existing.voided_at == null && input.voided_at != null) {
-								const paid = yield* api.db.payroll_runs.findFirst({
-									where: { settings_id: { eq: existing.id }, lifecycle: { eq: 'PAID' } },
-									columns: { id: true, period: true }
+								const versionRuns = yield* api.db.payroll_runs.findMany({
+									where: { settings_id: { eq: existing.id } },
+									columns: { id: true, period: true },
+									limit: 20_000
 								});
+								const paid =
+									versionRuns.length === 0
+										? null
+										: yield* api.db.payslips.findFirst({
+												where: {
+													payroll_run_id: { in: versionRuns.map((run) => run.id) },
+													status: { eq: 'PAID' }
+												},
+												columns: { payroll_run_id: true }
+											});
+								const paidPeriod =
+									paid == null
+										? null
+										: versionRuns.find((run) => run.id === paid.payroll_run_id)?.period;
 								if (paid != null && String(row.void_reason ?? '').trim() === '')
 									refuse(
-										`${describeVersion(existing)} priced the paid ${paid.period} payroll run, so voiding it states a reason.`
+										`${describeVersion(existing)} priced the paid ${paidPeriod} payroll run, so voiding it states a reason.`
 									);
 							}
 							return input;
@@ -115,6 +131,22 @@ export default {
 						for (const [region, wage] of Object.entries(row.wages?.by_region ?? {}))
 							if (!(Number(wage) > 0))
 								refuse(`The minimum wage of region ${region} must be a positive amount.`);
+						// Every work line's opt-in names a scheme of this version (RFC 0002 §6). On an
+						// update the version's schemes are already stored; a create carries none yet.
+						if (existing != null && row.work_rules != null)
+							yield* refuseUnknownOptIns(
+								api,
+								existing.id,
+								[
+									...optInsOfBands(row.work_rules.rates?.bands),
+									...optInsOfBands([
+										row.work_rules.engine_lines?.salary,
+										row.work_rules.engine_lines?.absence,
+										row.work_rules.engine_lines?.night
+									])
+								],
+								describeVersion(existing)
+							);
 						if (row.sealed_at == null) return input;
 						// Sealing. The database exclusion holds the overlap too; the sentence is why it
 						// happens here, and the batch is read so a predecessor ended in the same write counts.

@@ -15,7 +15,7 @@ const SOCSO = 'adf0f0e0-6b3f-4e3f-9a1e-1f2f3a4b5c6d';
 
 const nihon = {
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: {
 			statutory_opt_ins: [
 				{ contribution_id: EPF, effect: 'INCLUDE' },
@@ -44,7 +44,7 @@ const nihon = {
 				line: 'OVERTIME',
 				when: 'day_type == "PUBLIC_HOLIDAY"',
 				take: 'hours_beyond_normal',
-				price: 'ordinary_hour * 3',
+				price: 'ordinary_hour * 3.0',
 				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
 				statutory_opt_ins: []
 			}
@@ -126,7 +126,56 @@ test('malformed rules are refused', () => {
 				]
 			}
 		},
-		{ ...nihon, holiday_rest_precedence: 'NONE' }
+		{ ...nihon, holiday_rest_precedence: 'NONE' },
+		// CEL is compiled at write: a misspelt member or the wrong result type is refused here,
+		// not when a payroll prices the month the version governs (RFC 0001 §7, acceptance 1).
+		{
+			...nihon,
+			rates: {
+				...nihon.rates,
+				bands: [{ ...nihon.rates.bands[0], when: 'day_typo == "ORDINARY"' }]
+			}
+		},
+		{
+			...nihon,
+			rates: { ...nihon.rates, bands: [{ ...nihon.rates.bands[0], take: 'roster_code' }] }
+		},
+		{
+			...nihon,
+			rates: { ...nihon.rates, bands: [{ ...nihon.rates.bands[0], price: 'ordinary_hour * "x"' }] }
+		},
+		{
+			...nihon,
+			rates: {
+				...nihon.rates,
+				bands: [
+					{
+						...nihon.rates.bands[0],
+						funnel: { above: 'limits.no_such_limit', line: 'INCENTIVE' }
+					}
+				]
+			}
+		},
+		{
+			...nihon,
+			rates: { ...nihon.rates, ordinary: [{ when: 'terms.nope > 1', unit: 'HOUR', divisor: 173 }] }
+		},
+		{
+			...nihon,
+			breaks: [
+				{ when: 'consecutive_hours_typo > 5', owed_minutes: 30, counts_as_worked_time: false }
+			]
+		},
+		{
+			...nihon,
+			breaks: [
+				{
+					when: 'consecutive_hours > 5',
+					owed_minutes: 'typod_hours * 2',
+					counts_as_worked_time: false
+				}
+			]
+		}
 	])
 		assert.throws(() => decode(bad), undefined, JSON.stringify(bad).slice(0, 80));
 });

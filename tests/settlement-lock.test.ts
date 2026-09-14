@@ -42,7 +42,7 @@ import {
 
 const WORK = {
 	proration: { by: 'CALENDAR_DAYS' },
-	lines: {
+	engine_lines: {
 		salary: { statutory_opt_ins: [] },
 		absence: { statutory_opt_ins: [] },
 		night: { statutory_opt_ins: [] }
@@ -84,15 +84,12 @@ const BASIC = {
 	code: 'BASIC',
 	destination: 'PAY',
 	direction: 'ADD',
-	is_statutory: false,
-	sequence: 10,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
 	effective_range: { start: '2020-01-01', end: null }
 };
 
 const PATTERN = {
-	type: 'ROSTERED',
 	expectation: {
 		kind: 'GUARANTEED_SCHEDULE',
 		period: 'WEEK',
@@ -121,8 +118,6 @@ function measure(overrides = {}) {
 			employee_id: 'ee-1',
 			employee_number: 'PUBEM0023',
 			settings_id: 'jur-my',
-			hire_date: '2021-06-01',
-			exit_date: null,
 			effective_range: { start: '2021-06-01', end: null }
 		},
 		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },

@@ -1,7 +1,14 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { patternRosterCodeId, patternWorkload } from '../src/lib/scheduling/work-pattern.ts';
+import {
+	patternAnchor,
+	patternRosterCodeId,
+	patternRosterCodeIds,
+	patternWorkload,
+	termPattern,
+	termPatternRow
+} from '../src/lib/scheduling/work-pattern.ts';
 import { workWindow } from '../src/lib/scheduling/roster-code.ts';
 
 const DAY = '00000000-0000-4000-8000-000000000001';
@@ -27,22 +34,14 @@ const codes = new Map([
 	[OFF, { code: 'OFF', variant: { kind: 'OFF' } }]
 ]);
 
+const dayOf = (roster_code_id) => ({ roster_code_id });
+
 test('one seven-day cycle normalizes a fixed five-day employment', () => {
-	const pattern = {
-		type: 'PATTERNED',
-		anchor_date: '2026-08-03',
-		phases: [
-			{
-				duration: { kind: 'CONTINUOUS' },
-				day_cycle: [DAY, DAY, DAY, DAY, DAY, OFF, REST].map((roster_code_id) => ({
-					roster_code_id
-				}))
-			}
-		]
-	};
-	assert.equal(patternRosterCodeId(pattern, '2026-08-08'), OFF);
-	assert.equal(patternRosterCodeId(pattern, '2026-08-09'), REST);
-	assert.equal(patternRosterCodeId(pattern, '2026-08-02'), REST);
+	const pattern = { days: [DAY, DAY, DAY, DAY, DAY, OFF, REST].map(dayOf) };
+	const anchor = '2026-08-03';
+	assert.equal(patternRosterCodeId(pattern, '2026-08-08', anchor), OFF);
+	assert.equal(patternRosterCodeId(pattern, '2026-08-09', anchor), REST);
+	assert.equal(patternRosterCodeId(pattern, '2026-08-02', anchor), REST);
 	assert.deepEqual(patternWorkload(pattern, codes), {
 		work_days: 5,
 		paid_minutes: 2400,
@@ -51,20 +50,22 @@ test('one seven-day cycle normalizes a fixed five-day employment', () => {
 	});
 });
 
-test('calendar-month phases model three months of days then three months of nights', () => {
+test('an expectation projects no cycle and states its own amount', () => {
 	const pattern = {
-		type: 'PATTERNED',
-		anchor_date: '2026-01-01',
-		phases: [
-			{ duration: { kind: 'CALENDAR_MONTHS', months: 3 }, day_cycle: [{ roster_code_id: DAY }] },
-			{ duration: { kind: 'CALENDAR_MONTHS', months: 3 }, day_cycle: [{ roster_code_id: NIGHT }] }
-		]
+		expectation: {
+			kind: 'GUARANTEED_SCHEDULE',
+			period: 'WEEK',
+			required_work_days: 3,
+			required_paid_minutes: 1440
+		}
 	};
-	assert.equal(patternRosterCodeId(pattern, '2026-03-31'), DAY);
-	assert.equal(patternRosterCodeId(pattern, '2025-12-31'), NIGHT);
-	assert.equal(patternRosterCodeId(pattern, '2026-04-01'), NIGHT);
-	assert.equal(patternRosterCodeId(pattern, '2026-07-01'), DAY);
-	assert.equal(patternRosterCodeId(pattern, '2027-01-01'), DAY);
+	assert.equal(patternRosterCodeId(pattern, '2026-08-04', '2026-08-03'), null);
+	assert.deepEqual(patternWorkload(pattern, codes), {
+		work_days: 3,
+		paid_minutes: 1440,
+		reference_days: 7,
+		average_weekly_paid_minutes: 1440
+	});
 });
 
 test('crossing midnight and paid minutes derive from the WORK code', () => {
@@ -78,55 +79,31 @@ test('crossing midnight and paid minutes derive from the WORK code', () => {
 	});
 });
 
-test('monthly-rostered guarantees expose only the non-derivable contractual expectation', () => {
-	assert.deepEqual(
-		patternWorkload(
-			{
-				type: 'ROSTERED',
-				expectation: {
-					kind: 'GUARANTEED_SCHEDULE',
-					period: 'WEEK',
-					required_work_days: 3,
-					required_paid_minutes: 1440
-				}
-			},
-			codes
-		),
-		{
-			work_days: 3,
-			paid_minutes: 1440,
-			reference_days: 7,
-			average_weekly_paid_minutes: 1440
-		}
-	);
-});
-
 /* ── the pattern is read through the terms row ──────────────────────────────────────────────── */
 
-import {
-	AS_ASSIGNED_PATTERN,
-	patternRosterCodeIds,
-	termPattern,
-	termPatternRow
-} from '../src/lib/scheduling/work-pattern.ts';
-
-const twoOnTwoOff = {
-	type: 'PATTERNED',
-	anchor_date: '2026-08-03',
-	phases: [
-		{
-			duration: { kind: 'CONTINUOUS' },
-			day_cycle: [DAY, DAY, OFF, OFF].map((roster_code_id) => ({ roster_code_id }))
-		}
-	]
+const twoOnTwoOff = { days: [DAY, DAY, OFF, OFF].map(dayOf) };
+const namedRow = {
+	id: 'sp-1',
+	code: 'DAY-2x2',
+	pattern: twoOnTwoOff,
+	effective_range: {
+		start: '2026-08-03T00:00:00.000Z',
+		end: null
+	}
 };
-const namedRow = { id: 'sp-1', code: 'DAY-2x2', pattern: twoOnTwoOff };
 
 test('terms project through the named pattern row that rode the read', () => {
 	const term = { shift_pattern_id: 'sp-1', term_shift_pattern: namedRow };
 	assert.equal(termPatternRow(term)?.code, 'DAY-2x2');
-	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-05'), OFF);
-	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-07'), DAY);
+	assert.equal(patternAnchor(termPatternRow(term)), '2026-08-03');
+	assert.equal(
+		patternRosterCodeId(termPattern(term), '2026-08-05', patternAnchor(termPatternRow(term))),
+		OFF
+	);
+	assert.equal(
+		patternRosterCodeId(termPattern(term), '2026-08-07', patternAnchor(termPatternRow(term))),
+		DAY
+	);
 });
 
 test('terms project through a company pattern map when the row did not ride the read', () => {
@@ -144,8 +121,8 @@ test('terms project through a company pattern map when the row did not ride the 
 test('terms naming no pattern are rostered as assigned: nothing projected, nothing guaranteed', () => {
 	const term = { shift_pattern_id: null };
 	assert.equal(termPatternRow(term), null);
-	assert.deepEqual(termPattern(term), AS_ASSIGNED_PATTERN);
-	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-05'), null);
+	assert.equal(termPattern(term), null);
+	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-05', null), null);
 	assert.equal(patternWorkload(termPattern(term), codes), null);
 });
 
@@ -153,7 +130,12 @@ test('a pointer whose row was not loaded refuses rather than projecting nothing'
 	assert.throws(() => termPattern({ shift_pattern_id: 'sp-missing' }), /sp-missing/);
 });
 
-test('the roster codes a pattern names are listed once each; a rostered pattern names none', () => {
+test('the roster codes a pattern names are listed once each; an expectation names none', () => {
 	assert.deepEqual(patternRosterCodeIds(twoOnTwoOff), [DAY, OFF]);
-	assert.deepEqual(patternRosterCodeIds(AS_ASSIGNED_PATTERN), []);
+	assert.deepEqual(
+		patternRosterCodeIds({
+			expectation: { kind: 'AS_ASSIGNED', period: 'MONTH', maximum_paid_minutes: null }
+		}),
+		[]
+	);
 });

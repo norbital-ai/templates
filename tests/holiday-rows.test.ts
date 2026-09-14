@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import { dedupeHolidayRows } from '../src/lib/holiday-rows.ts';
-import { holidayImportPayload } from '../src/lib/holiday-workbook.ts';
+import {
+	holidayBulkImportPayload,
+	holidayCompanyImportPayload
+} from '../src/lib/holiday-workbook.ts';
 
 const api = (existing: ReadonlyArray<{ company_id: string; date: string }>) =>
 	({
@@ -12,7 +15,7 @@ const row = (date: string, name = 'Festival', company_id = 'MY') => ({
 	company_id,
 	date,
 	name,
-	original_date: null,
+	replaces: null,
 	source: null
 });
 
@@ -40,43 +43,84 @@ test('a row without an entity, a real day or a name refuses the whole import', a
 		{ ...row('2027-01-01'), company_id: ' ' },
 		row('2027-02-30'),
 		row('2027-01-01', ' '),
-		{ ...row('2027-01-01'), original_date: 'yesterday' }
+		{ ...row('2027-01-01'), replaces: 'yesterday' }
 	])
 		await assert.rejects(Effect.runPromise(dedupeHolidayRows(api([]), [bad])));
 });
 
-test('the holidays sheet reads one long-form row per day, with an optional original date', () => {
+test('each entity sheet reads its days under the sheet name; a readme sheet is ignored', () => {
 	const grids = new Map([
 		[
-			'Holidays',
+			'Read me first',
+			[['Holidays import — one sheet per entity'], [], ['Name each sheet for its entity.']]
+		],
+		[
+			'Public Fixture Co',
 			[
-				['legal_entity', 'date', 'name', 'original_date'],
-				['Public Fixture Co', '2027-01-01', "New Year's Day", null],
-				[
-					'Public Fixture Co',
-					new Date('2027-05-03T00:00:00Z'),
-					'Labour Day (in lieu)',
-					'2027-05-01'
-				]
+				['date', 'name', 'replaces'],
+				['2027-01-01', "New Year's Day", null],
+				[new Date('2027-05-03T00:00:00Z'), 'Labour Day (in lieu)', '2027-05-01']
+			]
+		],
+		[
+			'Second Entity Sdn Bhd',
+			[
+				['date', 'name'],
+				['2027-02-01', 'Federal Territory Day']
 			]
 		]
 	]);
-	const payload = holidayImportPayload(grids);
+	const payload = holidayBulkImportPayload(grids);
 	assert.deepEqual(
 		payload.rows.map((entry) => [
 			entry.legal_entity,
 			entry.date,
 			entry.name,
-			entry.original_date,
+			entry.replaces,
 			entry.source
 		]),
 		[
 			['Public Fixture Co', '2027-01-01', "New Year's Day", null, 'spreadsheet'],
-			['Public Fixture Co', '2027-05-03', 'Labour Day (in lieu)', '2027-05-01', 'spreadsheet']
+			['Public Fixture Co', '2027-05-03', 'Labour Day (in lieu)', '2027-05-01', 'spreadsheet'],
+			['Second Entity Sdn Bhd', '2027-02-01', 'Federal Territory Day', null, 'spreadsheet']
 		]
 	);
 	assert.throws(
-		() => holidayImportPayload(new Map([['Holidays', [['legal_entity', 'date', 'name']]]])),
-		/no rows|no holidays/
+		() => holidayBulkImportPayload(new Map([['Read me first', [['Holidays import']]]])),
+		/no holidays/
+	);
+});
+
+test('one entity reads whichever sheet carries its days and owns every row', () => {
+	const grids = new Map([
+		['Read me first', [['Holidays import']]],
+		[
+			'Public Fixture Co',
+			[
+				['date', 'name', 'replaces'],
+				['2027-01-01', "New Year's Day", null]
+			]
+		]
+	]);
+	const payload = holidayCompanyImportPayload('Public Fixture Co')(grids);
+	assert.deepEqual(
+		payload.rows.map((entry) => [entry.legal_entity, entry.date, entry.name]),
+		[['Public Fixture Co', '2027-01-01', "New Year's Day"]]
+	);
+	assert.throws(
+		() =>
+			holidayCompanyImportPayload('Public Fixture Co')(
+				new Map([
+					['Public Fixture Co', [['date', 'name']]],
+					[
+						'Second Entity Sdn Bhd',
+						[
+							['date', 'name'],
+							['2027-02-01', 'Federal Territory Day']
+						]
+					]
+				])
+			),
+		/no "Holidays" sheet/
 	);
 });

@@ -110,7 +110,7 @@ function grant(
 				marital_status: facts.marital_status ?? null,
 				solo_parent: facts.solo_parent ?? null
 			},
-			employment: { hire_date: hire },
+			employment: { service_start: hire },
 			terms: {
 				residency_status: facts.citizenship ?? null,
 				work_classification: facts.classification ?? null

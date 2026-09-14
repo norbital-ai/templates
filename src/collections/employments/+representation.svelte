@@ -11,6 +11,7 @@
 	import Icon from '@iconify/svelte';
 	import OffboardingFlow from '../../lib/ui/offboarding/offboarding-flow.svelte';
 	import ChangeTermsFlow from '../../lib/ui/offboarding/change-terms-flow.svelte';
+	import { readRange } from '../payroll_runs/lib/effective.js';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -38,7 +39,6 @@
 			? []
 			: [
 					client.db.employment_terms,
-					client.db.employment_statutory_facts,
 					client.db.claim_requests,
 					client.db.allowance_requests,
 					client.db.payment_requests,
@@ -56,7 +56,9 @@
 	);
 	const sealed = $derived(consumers.some((query) => query.current != null));
 	const sealQuery = $derived(consumers.find((query) => query.loading) ?? null);
-	const departed = $derived(record?.exit_date != null);
+	/** A closed range is a departed contract: only comments stay writable, and the flows hide. */
+	const departed = $derived(readRange(record?.effective_range)?.end != null);
+	const rangeStart = $derived(readRange(record?.effective_range)?.start ?? '');
 </script>
 
 <svelte:head>
@@ -66,20 +68,27 @@
 	/>
 </svelte:head>
 
-<RecordShell title={record?.employee_number ?? t('component.create_employment')}>
+{#snippet contractActions()}
+	{#if record != null && !departed}
+		<div class="flex gap-2">
+			<Button variant="outline" size="sm" onclick={() => (changeTermsOpen = true)}>
+				<Icon icon="lucide:file-signature" class="size-4" />
+				{t('offboarding.change_terms')}
+			</Button>
+			<Button variant="destructive" size="sm" onclick={() => (offboardOpen = true)}>
+				<Icon icon="lucide:log-out" class="size-4" />
+				{t('offboarding.open')}
+			</Button>
+		</div>
+	{/if}
+{/snippet}
+
+<RecordShell
+	subtitle={sealed ? t('component.employment_sealed') : undefined}
+	actions={record != null && !departed ? contractActions : undefined}
+>
 	<Stack gap="md">
-		{#if sealed}<p class="text-sm text-muted-foreground">{t('component.employment_sealed')}</p>{/if}
-		{#if record != null && record.exit_date == null}
-			<div class="flex gap-2">
-				<Button variant="secondary" onclick={() => (changeTermsOpen = true)}>
-					<Icon icon="lucide:file-signature" class="size-4" />
-					{t('offboarding.change_terms')}
-				</Button>
-				<Button variant="destructive" onclick={() => (offboardOpen = true)}>
-					<Icon icon="lucide:log-out" class="size-4" />
-					{t('offboarding.open')}
-				</Button>
-			</div>
+		{#if record != null && !departed}
 			<Dialog.Root bind:open={changeTermsOpen}>
 				<Dialog.Content class="max-w-2xl">
 					<Dialog.Header>
@@ -106,7 +115,7 @@
 						<OffboardingFlow
 							employment={{
 								id: record.id,
-								hire_date: record.hire_date,
+								range_start: rangeStart,
 								company_id: record.company_id,
 								employee_number: record.employee_number
 							}}
@@ -121,7 +130,7 @@
 		<CollectionForm
 			{client}
 			collection="employments"
-			disabled={(sealed && departed) || (sealQuery?.loading ?? false)}
+			disabled={sealQuery?.loading ?? false}
 			defaultValues={defaults}
 			submitLabel={record ? t('component.save_employment') : t('component.create_employment')}
 			onAfterSubmit={record ? undefined : close}
@@ -155,7 +164,6 @@
 						/>
 					{/if}
 					<Field name="employee_number" label={t('component.employee_number')} disabled={sealed} />
-					<Field name="hire_date" label={t('component.hired')} disabled={sealed} />
 					<Column span="all"
 						><Field name="bank" label={t('component.pay_destination')} disabled={sealed} /></Column
 					>
@@ -166,14 +174,7 @@
 							disabled={sealed}
 						/></Column
 					>
-					<Column span="all">
-						<h3 class="text-sm font-medium">{t('component.departure')}</h3>
-						<p class="text-sm text-muted-foreground">{t('component.departure_description')}</p>
-					</Column>
-					<Field name="exit_date" label={t('component.exited')} disabled={departed} />
-					<Field name="exit_reason" label={t('component.exit_reason')} disabled={departed} />
-					<Column span="all"><Field name="exit_note" disabled={departed} /></Column>
-					<Column span="all"><Field name="children" label={t('employee_children.title')} /></Column>
+					<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
 				</Grid>
 			{/snippet}
 		</CollectionForm>

@@ -191,10 +191,7 @@ function readImportContracts(
 				employee_id: true,
 				company_id: true,
 				employee_number: true,
-				hire_date: true,
-				effective_range: true,
-				exit_date: true,
-				exit_reason: true
+				effective_range: true
 			},
 			limit: QUERY_LIMIT
 		});
@@ -206,7 +203,6 @@ function readImportContracts(
 				const matches = contracts.filter(
 					(contract) =>
 						contract.employee_number === row.employee_number &&
-						dateKey(contract.hire_date) <= row.work_date &&
 						coversDate(contract.effective_range, row.work_date)
 				);
 				if (matches.length === 0)

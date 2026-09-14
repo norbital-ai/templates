@@ -32,32 +32,23 @@ const LOAN_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0004';
 const REPAYMENT_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0005';
 const INSTALMENT = 300;
 
-const scheme = (id: string, settingsId: string, code: string, sequence: number) => ({
+const scheme = (id: string, settingsId: string, code: string) => ({
 	id,
 	settings_id: settingsId,
 	is_statutory: true,
 	code,
 	name: `Public fixture ${code}`,
 	authority: 'Public fixture',
-	rounding: 'NEAREST_CENT',
-	sequence,
 	assessment_period: 'PAY_PERIOD',
-	eligibility: '',
-	rules: {
-		relief: '',
-		base_transform: '',
-		share_for_dependants: '',
-		rounding: ['NEAREST_CENT'],
-		no_withholding_below: 0,
-		use_period_table: true,
-		additional_remuneration_channel: false,
-		employee_share_annual_cap: null,
-		shared_cap_group: null,
-		project_relief_annually: false,
-		total_rounded_employee_floored: false
-	},
-	bands: [
-		{ when: 'base >= 0.0', employee: 'base * 10.0 / 100.0', employer: 'base * 10.0 / 100.0' }
+	employee_share_annual_cap: null,
+	shared_cap_group: null,
+	project_relief_annually: false,
+	rules: [
+		{
+			when: 'base >= 0.0',
+			employee: 'round_cent(base * 10.0 / 100.0)',
+			employer: 'round_cent(base * 10.0 / 100.0)'
+		}
 	],
 	approval_id: null
 });
@@ -99,23 +90,23 @@ function loanWorld(options: LoanWorldOptions = {}) {
 	oldSettings.effective_range = { start: '2020-01-01', end: '2026-02-01' };
 
 	world.statutory_contributions.push(
-		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0007', JURISDICTION_ID, 'PUB-OLD', 1),
-		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0008', NEW_SETTINGS_ID, 'PUB-OLD', 1),
-		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0009', NEW_SETTINGS_ID, 'PUB-NEW', 2)
+		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0007', JURISDICTION_ID, 'PUB-OLD'),
+		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0008', NEW_SETTINGS_ID, 'PUB-OLD'),
+		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0009', NEW_SETTINGS_ID, 'PUB-NEW')
 	);
 
 	// The work lines' opt-ins ride the settings root (RFC 0001 §6): the first version knows
 	// PUB-OLD, the second adds PUB-NEW, and each body prices the lines it names.
 	const setWorkOptIns = (version: (typeof world.jurisdiction_settings)[number], ids: string[]) => {
 		const rules = version.work_rules as {
-			lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+			engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
 			rates: { bands: { statutory_opt_ins: unknown[] }[] };
 		};
 		const include = ids.map((id) => ({ contribution_id: id, effect: 'INCLUDE' }));
 		const reduce = ids.map((id) => ({ contribution_id: id, effect: 'REDUCE' }));
-		rules.lines.salary.statutory_opt_ins = include;
-		rules.lines.night.statutory_opt_ins = include;
-		rules.lines.absence.statutory_opt_ins = reduce;
+		rules.engine_lines.salary.statutory_opt_ins = include;
+		rules.engine_lines.night.statutory_opt_ins = include;
+		rules.engine_lines.absence.statutory_opt_ins = reduce;
 		for (const band of rules.rates.bands) band.statutory_opt_ins = include;
 	};
 	setWorkOptIns(world.jurisdiction_settings[0]!, ['bbbbbbbb-cccc-4ddd-8eee-ffffffff0007']);
@@ -174,7 +165,6 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			id: 'run-2026-01',
 			company_id: COMPANY_ID,
 			period: '2026-01',
-			lifecycle: 'PAID',
 			approval_id: null
 		});
 		world.payslips.push({
@@ -248,4 +238,28 @@ test('an instalment that is not yet due is not recovered early', async () => {
 test('an instalment an earlier paid run settled in full is recovered no further', async () => {
 	const result = await build(loanWorld({ alreadyRecovered: INSTALMENT }));
 	assert.equal(recoveryOf(result.payslip_payroll_run[0]), undefined);
+});
+
+test('one payslip links to one repayment entry, not the agreement’s arrears', async () => {
+	const world = loanWorld({ dueDate: '2026-01-15' });
+	world.loan_repayments.push({
+		id: 'bbbbbbbb-cccc-4ddd-8eee-ffffffff0006',
+		loan_id: LOAN_ID,
+		employment_id: EMPLOYMENT_ID,
+		due_date: '2026-02-10',
+		amount_due: INSTALMENT,
+		sequence: 2,
+		approval_id: null
+	});
+	const result = await build(world);
+	const slip = result.payslip_payroll_run[0];
+	const recoveries = slip.adjustments.filter((row) => row.family === 'LOAN_REPAYMENT');
+	assert.equal(recoveries.length, 1, 'two due instalments do not sweep into one payslip');
+	assert.equal(recoveries[0].source_id, REPAYMENT_ID, 'the earliest outstanding is the one taken');
+	assert.equal(recoveries[0].amount, INSTALMENT);
+	assert.deepEqual(
+		result.captures.find((row) => row.payslipId === slip.id).loanRepayments,
+		[REPAYMENT_ID],
+		'and the pin names that one entry'
+	);
 });

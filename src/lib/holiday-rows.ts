@@ -9,7 +9,7 @@ export type HolidayImportRow = {
 	readonly company_id: string;
 	readonly date: string;
 	readonly name: string;
-	readonly original_date: string | null;
+	readonly replaces: string | null;
 	readonly source: string | null;
 };
 
@@ -55,8 +55,8 @@ export const dedupeHolidayRows = (
 			if (!code) refuse(`Row ${date} ${row.name}: a holiday needs the entity that observes it.`);
 			if (!isCalendarDate(date)) refuse(`Row ${code} ${row.name}: ${date} is not a calendar day.`);
 			if (!row.name.trim()) refuse(`Row ${code} ${date}: a holiday needs a name.`);
-			if (row.original_date != null && !isCalendarDate(row.original_date))
-				refuse(`Row ${code} ${date}: original date ${row.original_date} is not a calendar day.`);
+			if (row.replaces != null && !isCalendarDate(row.replaces))
+				refuse(`Row ${code} ${date}: replaced date ${row.replaces} is not a calendar day.`);
 			// The last statement of a day wins within one file: a sheet repeating a day is a sheet that
 			// was edited, not two holidays. It is reported rather than silent.
 			const key = `${code} ${date}`;
@@ -72,7 +72,7 @@ export const dedupeHolidayRows = (
 				company_id: code,
 				date,
 				name: row.name.trim(),
-				original_date: row.original_date,
+				replaces: row.replaces,
 				source: row.source
 			});
 		}

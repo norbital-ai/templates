@@ -12,8 +12,7 @@ import { capturesOf, settle } from './helpers/settlement.ts';
 
 test('an ended contract recovers its due loan from later manual payments without reviving salary', async () => {
 	const world = createPublicPayrollWorld({ includePayment: true });
-	world.employments[0]!.exit_date = '2026-01-20';
-	world.employments[0]!.exit_reason = 'RESIGNATION';
+	world.employments[0]!.effective_range = { start: '2021-06-01', end: '2026-01-20' };
 	world.allowance_requests.length = 0;
 	const firstPayment = world.payment_requests[0]!;
 	firstPayment.effective_on = '2026-02-05';
@@ -60,7 +59,6 @@ test('an ended contract recovers its due loan from later manual payments without
 			id: runId,
 			company_id: COMPANY_ID,
 			period,
-			lifecycle: 'PAID',
 			approval_id: null
 		});
 		world.payslips.push({

@@ -4,6 +4,7 @@ import type { Api } from '$bolt/types.js';
 import { readRange } from '../collections/payroll_runs/lib/effective.js';
 import { describeVersion } from './jurisdiction_settings.js';
 import { dateKey } from './iso-day.js';
+import type { StatutoryOptIn } from '../datatypes/work_rules/+definition.js';
 
 /**
  * A new version of a jurisdiction settings lineage: one version and every row under it, cloned
@@ -13,8 +14,7 @@ import { dateKey } from './iso-day.js';
  * version action; `automations/+statutory_drift.ts` proposes a draft carrying the statutory rows
  * an official page contradicts. The clone is three steps so the automation can revise the draft
  * before it is written: read the tree, shape the write, write it. Schemes keep their codes under
- * new ids and its `scheme_reliefs` edges are rewritten to the clone ids so reliefs stay inside the new
- * version; bands follow their scheme. Everything lands in one write, nested under the root. The
+ * new ids; their rules follow them. Everything lands in one write, nested under the root. The
  * draft is the controller's to edit; sealing it is the HR Manager's act.
  */
 
@@ -47,7 +47,6 @@ type SettingsCloneApi = Readonly<{
 		Db,
 		| 'jurisdiction_settings'
 		| 'statutory_contributions'
-		| 'scheme_reliefs'
 		| 'leave_catalogue'
 		| 'loan_catalogue'
 		| 'claim_catalogue'
@@ -62,8 +61,6 @@ type Row<N extends keyof Db> = Effect.Success<ReturnType<Db[N]['findMany']>>[num
 export type SettingsVersionTree = Readonly<{
 	source: Row<'jurisdiction_settings'>;
 	schemes: ReadonlyArray<Row<'statutory_contributions'>>;
-	/** Scheme-to-scheme reliefs under those schemes, both ends inside this version. */
-	schemeReliefs: ReadonlyArray<Row<'scheme_reliefs'>>;
 	catalogueLeaves: ReadonlyArray<Row<'leave_catalogue'>>;
 	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
 	claimCatalogue: ReadonlyArray<Row<'claim_catalogue'>>;
@@ -103,13 +100,6 @@ export const readSettingsVersionTree = (
 			],
 			{ concurrency: 'unbounded' }
 		);
-		const schemeReliefs =
-			schemes.length === 0
-				? []
-				: yield* api.db.scheme_reliefs.findMany({
-						where: { relieving_id: { in: schemes.map((scheme) => scheme.id) } },
-						limit: LIMIT
-					});
 		for (const rows of [
 			schemes,
 			catalogueLeaves,
@@ -122,7 +112,6 @@ export const readSettingsVersionTree = (
 		return {
 			source,
 			schemes,
-			schemeReliefs,
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
@@ -140,15 +129,18 @@ type SettingsDraftOptions = Readonly<{
 /**
  * The write that creates the draft, pure over the tree. The root carries no id: a submitted id is
  * read as an update of a stored row, and the runtime assigns the draft's own.
+ *
+ * Scheme rows keep their codes under new ids, so every `statutory_opt_ins` reference is remapped
+ * to the clone's scheme id (RFC 0002 §6): an opt-in is a foreign key to a scheme *of this version*,
+ * and a clone that kept the predecessor's ids would point at another version's rows.
  */
 export function settingsDraftWrite(
 	tree: SettingsVersionTree,
 	options: SettingsDraftOptions
-): Readonly<{ name: string; write: SettingsDraftWrite }> {
+): Readonly<{ name: string; write: SettingsDraftWrite; schemeIds: ReadonlyMap<string, string> }> {
 	const {
 		source,
 		schemes,
-		schemeReliefs,
 		catalogueLeaves,
 		loanCatalogue,
 		claimCatalogue,
@@ -160,7 +152,33 @@ export function settingsDraftWrite(
 	if (sourceStart !== '' && options.starts_on <= sourceStart)
 		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
 	const schemeIds = new Map(schemes.map((scheme) => [scheme.id, crypto.randomUUID()]));
-	const cloneIdOf = (schemeId: string): string => schemeIds.get(schemeId) ?? crypto.randomUUID();
+	const remapOptIns = (optIns: readonly StatutoryOptIn[] | undefined): readonly StatutoryOptIn[] =>
+		(optIns ?? []).map((optIn) => ({
+			...optIn,
+			contribution_id: schemeIds.get(optIn.contribution_id) ?? optIn.contribution_id
+		}));
+	const remapBands = <T extends { readonly statutory_opt_ins?: readonly StatutoryOptIn[] }>(
+		band: T
+	): T => ({ ...band, statutory_opt_ins: remapOptIns(band.statutory_opt_ins) });
+	type WorkRules = NonNullable<Row<'jurisdiction_settings'>['work_rules']>;
+	const remapWorkRules = (work: WorkRules): WorkRules => ({
+		...work,
+		engine_lines: {
+			salary: {
+				...work.engine_lines.salary,
+				statutory_opt_ins: remapOptIns(work.engine_lines.salary.statutory_opt_ins)
+			},
+			absence: {
+				...work.engine_lines.absence,
+				statutory_opt_ins: remapOptIns(work.engine_lines.absence.statutory_opt_ins)
+			},
+			night: {
+				...work.engine_lines.night,
+				statutory_opt_ins: remapOptIns(work.engine_lines.night.statutory_opt_ins)
+			}
+		},
+		rates: { ...work.rates, bands: work.rates.bands.map(remapBands) }
+	});
 	const {
 		id: _sourceId,
 		approval_id: _approval,
@@ -175,6 +193,7 @@ export function settingsDraftWrite(
 	const name = options.name ?? `${source.code} from ${options.starts_on}`;
 	return {
 		name,
+		schemeIds,
 		write: {
 			...root,
 			name,
@@ -183,36 +202,35 @@ export function settingsDraftWrite(
 			void_reason: null,
 			cloned_from_id: source.id,
 			effective_range: { start: `${options.starts_on}T00:00:00.000Z`, end: null },
+			work_rules: root.work_rules == null ? root.work_rules : remapWorkRules(root.work_rules),
 			contribution_settings: schemes.map((scheme) => ({
 				...cloneRow(scheme),
-				id: cloneIdOf(scheme.id),
-				relief_relieving: schemeReliefs
-					.filter((relief) => relief.relieving_id === scheme.id)
-					.map((relief) => ({
-						id: crypto.randomUUID(),
-						relieving_id: cloneIdOf(scheme.id),
-						relieved_id: cloneIdOf(relief.relieved_id)
-					}))
+				id: schemeIds.get(scheme.id)!
 			})),
 			leave_catalogue_settings: catalogueLeaves.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID()
+				id: crypto.randomUUID(),
+				bands: row.bands.map(remapBands)
 			})),
 			loan_catalogue_settings: loanCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID()
+				id: crypto.randomUUID(),
+				bands: row.bands.map(remapBands)
 			})),
 			claim_catalogue_settings: claimCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID()
+				id: crypto.randomUUID(),
+				bands: row.bands.map(remapBands)
 			})),
 			allowance_catalogue_settings: allowanceCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID()
+				id: crypto.randomUUID(),
+				bands: row.bands.map(remapBands)
 			})),
 			payment_catalogue_settings: paymentCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID()
+				id: crypto.randomUUID(),
+				bands: row.bands.map(remapBands)
 			}))
 		}
 	};

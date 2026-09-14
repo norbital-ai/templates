@@ -58,9 +58,9 @@ test(
 			const februaryId = crypto.randomUUID();
 			await session.query(
 				`insert into payroll_runs
-				(id, company_id, period, lifecycle, settings_id, configuration_hash,
+				(id, company_id, period, settings_id, configuration_hash,
 				 calculation_version, pay_date, attendance_from, attendance_to, holidays)
-				select $1, company_id, $2, lifecycle, settings_id, configuration_hash,
+				select $1, company_id, $2, settings_id, configuration_hash,
 				 calculation_version, pay_date, attendance_from, attendance_to, holidays
 				from payroll_runs where id = $3`,
 				[februaryId, FEBRUARY_2026, marchId]

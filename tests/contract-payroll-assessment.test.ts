@@ -21,7 +21,6 @@ function rehireWorld() {
 	world.employments.push({
 		...old,
 		id: 'new-contract',
-		hire_date: '2026-01-16',
 		effective_range: { start: '2026-01-16', end: null }
 	});
 	world.employment_terms.push({
@@ -45,24 +44,11 @@ function rehireWorld() {
 		name: 'Invented fixed assessment',
 		authority: 'Public regression fixture',
 		is_statutory: true,
-		rounding: 'NEAREST_CENT',
-		sequence: 1,
 		assessment_period: 'PAY_PERIOD',
-		eligibility: '',
-		rules: {
-			relief: '',
-			base_transform: '',
-			share_for_dependants: '',
-			rounding: ['NEAREST_CENT'],
-			no_withholding_below: 0,
-			use_period_table: true,
-			additional_remuneration_channel: false,
-			employee_share_annual_cap: null,
-			shared_cap_group: null,
-			project_relief_annually: false,
-			total_rounded_employee_floored: false
-		},
-		bands: [{ when: 'base >= 0.0', employee: '30.01', employer: '60.01' }],
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		rules: [{ when: 'base >= 0.0', employee: 'round_cent(30.01)', employer: 'round_cent(60.01)' }],
 		approval_id: null
 	});
 	const pubFixedId =
@@ -74,11 +60,15 @@ function rehireWorld() {
 				band.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
 	for (const version of world.jurisdiction_settings) {
 		const rules = version.work_rules as {
-			lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+			engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
 			rates: { bands: { statutory_opt_ins: unknown[] }[] };
 		};
-		rules.lines.salary.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
-		rules.lines.absence.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'REDUCE' }];
+		rules.engine_lines.salary.statutory_opt_ins = [
+			{ contribution_id: pubFixedId, effect: 'INCLUDE' }
+		];
+		rules.engine_lines.absence.statutory_opt_ins = [
+			{ contribution_id: pubFixedId, effect: 'REDUCE' }
+		];
 		for (const band of rules.rates.bands)
 			band.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
 	}

@@ -1,4 +1,4 @@
-/** Families prepare their own inputs and calculations. This coordinator preserves cross-family sequence and contribution staging. */
+/** Families prepare their own inputs and calculations. This coordinator preserves the family pipeline and contribution staging. */
 import { decodeNumber } from '@norbital-ai/std/json';
 import type {
 	Configuration,
@@ -19,6 +19,7 @@ import { type PayCadence, type PayFrequency } from '../../collections/payroll_ru
 import { calculateLeavePayroll } from '../leave/payroll.js';
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
+import { serviceStart } from '../employment-contract.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type {
 	MeasuredEmployment,
@@ -88,7 +89,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const adjustments: MeasuredAdjustment[] = [...leave.adjustments];
 		const subject = personContext({
 			employee: bundle.employee,
-			employment: bundle.employment,
+			employment: { service_start: serviceStart(bundle.employment) },
 			terms: finalTerms,
 			children: bundle.children,
 			company: configuration.company,
@@ -252,10 +253,13 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			? calculatedArrears
 			: null;
 
-	// ── walk the catalogue in component sequence ───────────────────────────────────────────────
+	// ── walk the families in pipeline order: leave coverage, then work, then the money requests ─
 	const base: MeasuredBase[] = [];
 	const proration: PayslipProration[] = [];
 	const adjustments: MeasuredAdjustment[] = [];
+	// Leave coverage lands before the work steps that read it; nothing declares an order, and no
+	// amount depends on one — the buckets are summed in SETTLE.
+	adjustments.push(...measuredLeave.adjustments);
 	if (arrears != null) {
 		const component = configuration.catalogueComponents.find(
 			(row) => row.id === arrears.componentCatalogueId
@@ -278,17 +282,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		);
 		componentAmounts.set(component.code, arrears.amount);
 	}
-	const leaveRemaining = [...measuredLeave.adjustments].sort(
-		(a, b) => a.catalogueComponent.sequence - b.catalogueComponent.sequence
-	);
-	const addLeaveThrough = (sequence: number) => {
-		while (leaveRemaining[0] != null && leaveRemaining[0].catalogueComponent.sequence <= sequence) {
-			const item = leaveRemaining.shift()!;
-			const running = (componentAmounts.get(item.label) ?? 0) + item.amount;
-			componentAmounts.set(item.label, running);
-			adjustments.push(item);
-		}
-	};
 	const stepOptions = {
 		bundle,
 		configuration,
@@ -305,10 +298,14 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	};
 	const steps = [
 		...prepareWorkSteps(stepOptions),
-		...prepareMoneySteps({ ...stepOptions, requests: periodEntries })
-	].toSorted((a, b) => a.item.sequence - b.item.sequence);
+		// The requests arrive in query order; their code is the inferred, deterministic order.
+		...prepareMoneySteps({ ...stepOptions, requests: periodEntries }).toSorted((a, b) =>
+			a.item.code === b.item.code
+				? a.item.id.localeCompare(b.item.id)
+				: a.item.code.localeCompare(b.item.code)
+		)
+	];
 	for (const step of steps) {
-		addLeaveThrough(step.item.sequence);
 		const measured = step.calculate();
 		if (measured == null) continue;
 		const component = step.item;
@@ -320,7 +317,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		adjustments.push(...measured.adjustments);
 	}
 
-	addLeaveThrough(Infinity);
 	adjustments.push(...workAttendance.adjustments);
 
 	const repaymentRecoveries = options.deferredWagesOnly
@@ -497,8 +493,8 @@ export function prepareFamilyCatalogues(options: {
 			...work,
 			contributions,
 			catalogueLeaves,
-			catalogueComponents: [...workPayItems(work.work), ...money, ...loans].toSorted(
-				(a, b) => decodeNumber(a.sequence) - decodeNumber(b.sequence)
+			catalogueComponents: [...workPayItems(work.work), ...money, ...loans].toSorted((a, b) =>
+				a.code === b.code ? a.id.localeCompare(b.id) : a.code.localeCompare(b.code)
 			)
 		};
 	});
@@ -521,7 +517,7 @@ export function prepareFamilyObligations(options: {
 }
 export function prepareFamilyInputs(
 	options: Omit<Parameters<typeof prepareMoneyInputs>[0], 'employmentIds'> & {
-		readonly employments: readonly { readonly id: string }[];
+		readonly employments: readonly { readonly id: string; readonly employee_id: string }[];
 		readonly requestsByEmployment: ReadonlyMap<string, readonly PreparedPayRequest[]>;
 		readonly cadenceByEmployment: ReadonlyMap<
 			string,
@@ -537,10 +533,11 @@ export function prepareFamilyInputs(
 		const inputOptions = {
 			...options,
 			employmentIds: options.employments.map((row) => row.id),
+			employeeIds: [...new Set(options.employments.map((row) => row.employee_id))],
 			allowanceConfigurations,
 			allowanceMonthsByEmployment
 		};
-		const [work, loans, factsByEmployment] = yield* Effect.all(
+		const [work, loans, factsByEmployee] = yield* Effect.all(
 			[
 				prepareWorkInputs(inputOptions),
 				prepareLoanPayroll(inputOptions),
@@ -551,7 +548,7 @@ export function prepareFamilyInputs(
 		return {
 			...work,
 			...loans,
-			factsByEmployment,
+			factsByEmployee,
 			allowanceConfigurations,
 			allowanceMonthsByEmployment
 		};

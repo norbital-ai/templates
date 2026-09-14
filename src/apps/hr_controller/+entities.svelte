@@ -4,6 +4,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { holidayBulkImportPayload } from '../../lib/holiday-workbook.js';
+	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
@@ -21,6 +23,23 @@
 		title={t('app.hr_controller.entities_title')}
 		description={t('app.hr_controller.entities_description')}
 		query={{ orderBy: { name: 'asc' } }}
+		importPipelines={[
+			{
+				id: 'entities-holidays-bulk',
+				label: t('holiday_import.spreadsheet'),
+				description: t('holiday_import.spreadsheet_description'),
+				icon: 'lucide:upload',
+				run: () =>
+					runWorkbookImport(
+						{
+							collectionName: 'jurisdiction_holidays',
+							recordLabel: t('app.settings.holidays').toLowerCase(),
+							buildPayload: holidayBulkImportPayload
+						},
+						t
+					)
+			}
+		]}
 	>
 		{#snippet columns({ Column })}
 			<Column name="name" card="title" />

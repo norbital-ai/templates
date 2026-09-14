@@ -1,13 +1,13 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
-import { promoteRunIfFullyPaid } from '../payroll_runs/lib/paid.js';
 
 /**
  * A payslip is engine output, and output is create-and-delete, never edit — with exactly one
- * exception, and its lifecycle is it.
+ * exception, and its payment is it.
  *
- * `status` moves `DRAFT → ON_HOLD → DRAFT`, and `DRAFT`/`ON_HOLD → PAID`. `PAID` is terminal:
+ * `status` is the run's payment state — moves `DRAFT → ON_HOLD → DRAFT`, and `DRAFT`/`ON_HOLD`
+ * `→ PAID`. `PAID` is terminal:
  * money has left the building, the slip can never be deleted, and a correction is a component
  * entry in a later draft run. `ON_HOLD` is a reviewed slip deliberately kept out of the bank file,
  * and it can be released back to `DRAFT`.
@@ -30,7 +30,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses editing a payslip except its lifecycle: status moves DRAFT↔ON_HOLD or to PAID with paid_at, PAID is terminal, and payment order holds per person.',
+					'Refuses editing a payslip except its payment status: status moves DRAFT↔ON_HOLD or to PAID with paid_at, PAID is terminal, and payment order holds per person.',
 				handler: ({ input, existing, parent, api }) =>
 					Effect.gen(function* () {
 						if (existing === undefined) {
@@ -103,12 +103,6 @@ export default {
 						}
 						return input;
 					})
-			},
-			after: {
-				description:
-					'Moves the payslip’s run to PAID once every slip it holds has been paid, so the run’s lifecycle stays a reading of its slips rather than a second fact.',
-				handler: ({ record, api }): Effect.Effect<void> =>
-					promoteRunIfFullyPaid(api, record.payroll_run_id)
 			}
 		}
 	},

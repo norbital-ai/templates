@@ -15,8 +15,7 @@ import { outputGroups, workbookRows } from '../src/collections/payroll_runs/lib/
 const line = (overrides) => ({
 	componentCode: 'UNUSED',
 	componentName: 'Unused',
-	nature: 'EARNING',
-	sequence: 500,
+	bucket: 'EARNING',
 	calculationSource: 'ENTRY',
 	amount: 0,
 	quantity: null,
@@ -38,7 +37,7 @@ const payslip = (employeeNumber, lines) => ({
 	hireDate: '2024-01-01',
 	lastDay: null,
 	attendance: { normalHours: 176, actualHours: 176, shiftCodes: ['G'] },
-	gross: lines.reduce((total, row) => total + (row.nature === 'EARNING' ? row.amount : 0), 0),
+	gross: lines.reduce((total, row) => total + (row.bucket === 'EARNING' ? row.amount : 0), 0),
 	totalDeductions: 0,
 	net: 0,
 	employerCost: 0,
@@ -48,18 +47,18 @@ const payslip = (employeeNumber, lines) => ({
 
 const PAYSLIPS = [
 	payslip('E1', [
-		line({ componentCode: 'BASIC', sequence: 100, calculationSource: 'SCHEDULE', amount: 3000 }),
-		line({ componentCode: 'OVERTIME', sequence: 20, calculationSource: 'OVERTIME', amount: 120 }),
-		line({ componentCode: 'TRANSPORT', sequence: 50, amount: 200 }),
-		line({ componentCode: 'MEAL', sequence: 51, amount: 90 }),
-		line({ componentCode: 'PHONE', sequence: 52, amount: 40 }),
-		line({ componentCode: 'ABSENCE', sequence: 1000, nature: 'ABSENCE', amount: 75 }),
-		line({ componentCode: 'STAFF_LOAN', sequence: 900, nature: 'DEDUCTION', amount: 150 }),
-		line({ componentCode: 'PARKING_FINE', sequence: 901, nature: 'DEDUCTION', amount: 30 })
+		line({ componentCode: 'BASIC', calculationSource: 'SCHEDULE', amount: 3000 }),
+		line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 120 }),
+		line({ componentCode: 'TRANSPORT', amount: 200 }),
+		line({ componentCode: 'MEAL', amount: 90 }),
+		line({ componentCode: 'PHONE', amount: 40 }),
+		line({ componentCode: 'ABSENCE', bucket: 'ABSENCE', amount: 75 }),
+		line({ componentCode: 'STAFF_LOAN', bucket: 'DEDUCTION', amount: 150 }),
+		line({ componentCode: 'PARKING_FINE', bucket: 'DEDUCTION', amount: 30 })
 	]),
 	payslip('E2', [
-		line({ componentCode: 'BASIC', sequence: 100, calculationSource: 'SCHEDULE', amount: 2500 }),
-		line({ componentCode: 'MEDICAL', sequence: 300, nature: 'NON_WAGE_PAYMENT', amount: 60 })
+		line({ componentCode: 'BASIC', calculationSource: 'SCHEDULE', amount: 2500 }),
+		line({ componentCode: 'MEDICAL', bucket: 'NON_WAGE_PAYMENT', amount: 60 })
 	])
 ];
 
@@ -77,21 +76,21 @@ test('three allowances are three columns, not one lump', () => {
 		);
 });
 
-test('columns are written in the catalogue’s own sequence order', () => {
+test('columns are written in code order, the inferred catalogue order', () => {
 	assert.deepEqual(section('Earnings').outputIds, [
-		'OVERTIME',
-		'TRANSPORT',
+		'BASIC',
 		'MEAL',
+		'OVERTIME',
 		'PHONE',
-		'BASIC'
+		'TRANSPORT'
 	]);
 });
 
-test('a component is filed under the nature it settled as', () => {
+test('a component is filed under the bucket it settled as', () => {
 	assert.deepEqual(section('Absence & deductions').outputIds, [
-		'STAFF_LOAN',
+		'ABSENCE',
 		'PARKING_FINE',
-		'ABSENCE'
+		'STAFF_LOAN'
 	]);
 	assert.deepEqual(section('Payments').outputIds, ['MEDICAL']);
 	assert.deepEqual(section('Gross').outputIds, ['grossEarnings']);
@@ -109,8 +108,8 @@ test('a sheet is squared off: a component one person did not settle is an explic
 test('two lines under one code are one column and one sum', () => {
 	const twice = [
 		payslip('E3', [
-			line({ componentCode: 'OVERTIME', sequence: 20, amount: 40 }),
-			line({ componentCode: 'OVERTIME', sequence: 20, amount: 60 })
+			line({ componentCode: 'OVERTIME', amount: 40 }),
+			line({ componentCode: 'OVERTIME', amount: 60 })
 		])
 	];
 	assert.equal(workbookRows(twice)[0].OVERTIME, 100);

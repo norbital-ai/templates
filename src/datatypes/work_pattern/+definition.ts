@@ -1,22 +1,8 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
-import { calendarDay } from '../../lib/iso-day.js';
 
 const patternDayValueSchema = Schema.Struct({
 	roster_code_id: Schema.String.check(Schema.isUUID())
-});
-
-const phaseDurationValueSchema = Schema.Union([
-	Schema.Struct({ kind: Schema.Literal('CONTINUOUS') }),
-	Schema.Struct({
-		kind: Schema.Literal('CALENDAR_MONTHS'),
-		months: Schema.Int.check(Schema.isGreaterThan(0))
-	})
-]);
-
-const phaseValueSchema = Schema.Struct({
-	duration: phaseDurationValueSchema,
-	day_cycle: Schema.Array(patternDayValueSchema).check(Schema.isMinLength(1))
 });
 
 const periodSchema = Schema.Literals(['WEEK', 'MONTH']);
@@ -38,21 +24,18 @@ const rosterExpectationValueSchema = Schema.Union([
 /**
  * The employment's one canonical schedule term.
  *
- * PATTERNED covers a fixed week, a short crew rotation and long alternating phases with the same
- * shape. One continuous phase repeats its day cycle forever; two or more calendar-month phases
- * repeat as an outer sequence (for example three months of days, then three months of nights).
+ * `days` is a repeating cycle of roster codes, anchored at the `shift_patterns` row's effective
+ * start: one day per list entry, repeating forever. There is no anchor on the value and no phase
+ * duration — the pattern row already states when it begins, and a crew rotation is a long cycle.
  *
- * ROSTERED is reserved for assignments that cannot be generated. Its expectation exists only
- * because there is no cycle from which a guaranteed amount or contractual cap could be derived.
+ * `expectation` is reserved for assignments that cannot be generated: a guaranteed weekly or
+ * monthly amount the roster must satisfy, or an as-assigned statement with an optional cap.
  */
 export const workPatternValueSchema = Schema.Union([
 	Schema.Struct({
-		type: Schema.Literal('PATTERNED'),
-		anchor_date: calendarDay,
-		phases: Schema.Array(phaseValueSchema).check(Schema.isMinLength(1))
+		days: Schema.Array(patternDayValueSchema).check(Schema.isMinLength(1))
 	}),
 	Schema.Struct({
-		type: Schema.Literal('ROSTERED'),
 		expectation: rosterExpectationValueSchema
 	})
 ]);
@@ -67,6 +50,6 @@ export const workPatternSchema = Schema.toStandardSchemaV1(workPatternValueSchem
 export default defineCustomType({
 	name: 'work_pattern',
 	description:
-		'The employment schedule term: either generated from one or more repeating phases, or assigned roster by roster under a guaranteed or as-assigned expectation.',
+		'The employment schedule term: a repeating day cycle of roster codes, anchored at the pattern row’s effective start, or a guaranteed/as-assigned expectation where no cycle can be generated.',
 	schema: workPatternSchema
 });

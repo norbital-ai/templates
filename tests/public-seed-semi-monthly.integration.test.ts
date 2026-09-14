@@ -13,6 +13,7 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { markRunPaid } from './helpers/mark-paid.ts';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 
 /** A stored day-precision instant, read back as the payroll calendar day it began. */
@@ -84,9 +85,8 @@ test(
 			const patternValue = structuredClone(sourcePattern.pattern) as {
 				phases: Array<{ day_cycle: Array<{ roster_code_id: string }> }>;
 			};
-			for (const phase of patternValue.phases)
-				for (const day of phase.day_cycle)
-					day.roster_code_id = shiftIds.get(day.roster_code_id) ?? day.roster_code_id;
+			for (const day of patternValue.days)
+				day.roster_code_id = shiftIds.get(day.roster_code_id) ?? day.roster_code_id;
 			const patternId = crypto.randomUUID();
 			await session.query(
 				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
@@ -110,16 +110,9 @@ test(
 					[employeeId, `Semi ${number}`, '1990-05-05', 'MALE', 'SINGLE', 'NONE', 0]
 				);
 				await session.query(
-					`insert into employments (id, employee_id, company_id, employee_number, hire_date, effective_range)
-					 values ($1, $2, $3, $4, $5, $6)`,
-					[
-						employmentId,
-						employeeId,
-						companyId,
-						number,
-						'2022-03-01',
-						{ start: '2022-03-01', end: null }
-					]
+					`insert into employments (id, employee_id, company_id, employee_number, effective_range)
+					 values ($1, $2, $3, $4, $5)`,
+					[employmentId, employeeId, companyId, number, { start: '2022-03-01', end: null }]
 				);
 				await session.query(
 					`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification,
@@ -205,24 +198,7 @@ test(
 			// The second half no longer waits for the first to be paid: a standing draft used to
 			// refuse the next period outright, so one person's correction froze everybody's next
 			// payroll. What stays ordered is payment, which is what the mark-paid below proves.
-			requireAccepted(
-				(
-					await command(
-						{
-							action: 'mutate',
-							collection: 'payroll_runs',
-							rows: [{ action: 'update', values: { id: firstId, lifecycle: 'PAID' } }]
-						},
-						[
-							{
-								row: { collection: 'payroll_runs', recordId: firstId },
-								rowVersion: Number(first.row_version)
-							}
-						]
-					)
-				).value,
-				'first half paid'
-			);
+			await markRunPaid(session, firstId);
 
 			// Half 2: the 16th to the end for the semi-monthly employment, the cutoff window for the
 			// monthly one; the run records the envelope and pays at the month end.

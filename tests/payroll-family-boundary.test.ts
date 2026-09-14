@@ -22,7 +22,6 @@ function mixedFamilies() {
 		...world.payment_catalogue[0],
 		id: 'claim-type',
 		code: 'EXPENSE',
-		sequence: 200,
 		bands: [
 			{
 				when: '',
@@ -44,7 +43,6 @@ function mixedFamilies() {
 		...world.payment_catalogue[0],
 		id: 'loan-type',
 		code: 'LOAN',
-		sequence: 400,
 		destination: 'NET',
 		direction: 'SUBTRACT'
 	});

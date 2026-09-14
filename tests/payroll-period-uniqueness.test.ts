@@ -20,15 +20,11 @@ test('the next regular period may stand on an unsettled one, and cannot backfill
 		assertPayrollPeriodAvailable([{ period: '2026-01', lifecycle: 'DRAFT' }], '2026-02')
 	);
 	assert.throws(
-		() => assertPayrollPeriodAvailable([{ period: '2026-02', lifecycle: 'PAID' }], '2026-01'),
+		() => assertPayrollPeriodAvailable([{ period: '2026-02' }], '2026-01'),
 		/next payroll period/
 	);
-	assert.doesNotThrow(() =>
-		assertPayrollPeriodAvailable([{ period: '2026-01', lifecycle: 'PAID' }], '2026-02')
-	);
-	assert.doesNotThrow(() =>
-		assertPayrollPeriodAvailable([{ period: '2026-01-1', lifecycle: 'PAID' }], '2026-01-2')
-	);
+	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2026-01' }], '2026-02'));
+	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2026-01-1' }], '2026-01-2'));
 });
 
 test('payroll creation accepts company and period without a run type', () => {

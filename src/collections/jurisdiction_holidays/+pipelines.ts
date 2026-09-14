@@ -23,7 +23,7 @@ const importSchema = Schema.Union([
 				legal_entity: Schema.String,
 				date: Schema.String,
 				name: Schema.String,
-				original_date: Schema.NullOr(Schema.String),
+				replaces: Schema.NullOr(Schema.String),
 				source: Schema.NullOr(Schema.String)
 			})
 		)
@@ -73,7 +73,7 @@ export default {
 					company_id: byName.get(row.legal_entity.trim().toLowerCase())![0]!,
 					date: row.date,
 					name: row.name,
-					original_date: row.original_date,
+					replaces: row.replaces,
 					source: row.source
 				}));
 				const { inserts, reconciliation } = yield* dedupeHolidayRows(api, rows);
@@ -88,7 +88,7 @@ export default {
 					company_id: row.company_id,
 					date: row.date,
 					name: row.name,
-					original_date: row.original_date,
+					replaces: row.replaces,
 					source: row.source ?? 'spreadsheet'
 				}));
 			})

@@ -5,7 +5,95 @@ items only with the evidence named beside them.
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked
 
+## Status 2026-09-14 (RFC 0002 close-out)
+
+RFC 0001's catalogue spine, work rules, destinations/directions, entries and `payslip_id` stand.
+Its statutory scheme shape does not: RFC 0002 replaced it, and the Phase 2 blocks below record a
+differently-shaped intermediate revision (`eligibility`, `sequence`, typed `statutory_rules`,
+`scheme_reliefs`, `contribution_bands`) that no longer exists in the tree. Read those blocks as
+history, not as a description of the code.
+
+The RFC 0002 audit's deviations were closed in this pass:
+
+- **Write-time FK** (`src/lib/catalogue_rules.ts`, `leave_catalogue/+hooks.ts`,
+  `jurisdiction_settings/+hooks.ts`): every `statutory_opt_ins` id — catalogue bands, work bands and
+  engine lines — must name a scheme of the row's own settings version, or the write refuses. The
+  run-build `OPT_IN_UNKNOWN` guard now covers every family, not only Work.
+- **Write-time dependency contract** (`statutory_contributions/+hooks.ts`): every rule's `when`,
+  `employee` and `employer` compile; every `produced.<code>` mention names a scheme of the version;
+  a mention that closes a loop refuses with its path; a producer another rule names cannot be
+  deleted. `mentions.ts` reads mentions from the compiled CEL AST (a string literal is not a
+  mention) with a per-rules cache.
+- **Clone remap** (`settings_clone.ts`, `+statutory_drift.ts`): scheme rows keep their codes under
+  new ids, so every opt-in in cloned catalogue bands, cloned work rules and drift-proposed opt-ins
+  is remapped to the clone's scheme id.
+- **Shims purged**: `ContributionBase/Charge.special`, `special_amounts`, the dead rounding methods
+  (`NONE`, `TABLE`, the paired total) and the drift `bands` alias are gone; the datatype is
+  `contribution_rules`; the scheme UI names rules and shows the opted-in lines and the derived
+  `produced.<code>` dependencies.
+- **Docs**: `docs/architecture.md` contribution section rewritten to the landed shape; RFC 0001 §8
+  marked superseded; RFC 0002 finalized.
+
+Gates for this pass: `pnpm sync` clean (24 collections); `pnpm lint` clean; `pnpm test` green —
+`norbital-doctor` 0 error 0 hint, four verify scripts and **853/853 tests**.
+
+The local probe also ran: `pnpm run env -- serve --template=hr-payroll --seed=bank`, then a real
+OpsPH semi-monthly run through the UI (10 payslips; statutory rows read back with the governing
+rule's `when`, base, employee and employer), plus the payslip's derivation affordance and the scheme card's flow diagram. It surfaced
+two things this pass then closed: pinned catalogue revisions' opt-ins are aliased to the version in
+force (`loadOptInAliases`), and Nihon loan `40069e44…` in the bank was a mapping defect — the
+workbook's `SUM(E10:U10)` misses the last two of 12 filled instalment cells, so `principal` is
+corrected from the cached 845.00 to the grid's own 1,014.00.
+
+## Status 2026-09-14 (post-audit close-out)
+
+An audit against the merged tree found the migration structurally landed but with real gaps. This
+pass closed them:
+
+- **Schedule-time limit gate** (`src/lib/scheduling/work-limits.ts`): `limits` are now enforced on
+  pattern writes and roster overrides, not only reported at payroll. The gate projects the pattern
+  cycle plus the explicit overlay (day → year), evaluates a CLOCK_HOURS day ceiling against the
+  granted break exactly as the priced context does, and quotes the limit key and authority. The
+  §7.5 `schedule` context is built where the gate decides. `tests/schedule-limits.test.ts` covers the
+  CLOCK evaluation, normal/spread/weekly/monthly breaches, changed-date scoping, projection bounds
+  and plan resolution.
+- **Write-time compile closed**: `work_rules` compiles every band `when`/`take`/`price`, funnel,
+  ordinary-rate row and break rule at write (band: `work_day`, ordinary: `person`); the leave
+  `convertor` compiles over the entry context in the catalogue hook. `compileExpression` now accepts
+  cel-js's integral (bigint) results as numbers, so `overtime_hours > 4 ? 60 : 30` is legal.
+  `tests/work-rules-type.test.ts` proves the refusals.
+- **Seeded coverage table (§5)**: MY and MY-nihon gain `normal_day` 8, `spread_day` 10 and
+  `weekly_total` 45 with s.60A(1)(b)–(d) citations, and the stale "NOT APPLIED" authority text is
+  corrected; PH gains the art.83 `normal_day` 8 and its art.85 meal period is owed on any worked day
+  (no hours trigger), as the RFC's table states. Both the seed bank and `tests/fixtures/statutory`
+  carry the change; the refresh script now points at `jurisdiction/` and warns that the fixtures are
+  a curated snapshot, not a mirror.
+- **UI bugs the sweep caught**: `jurisdiction_holidays` declared `given_to` on the form; the
+  `allowance_requests` and `leave_entries` forms declared their engine-owned hidden fields; the
+  events board and the employee calendar no longer filter `shift_definitions` by the removed
+  `settings_code` (that stale query was the source of the recurring `sync.connect` 400 on
+  client-side navigation).
+- **`nature` is gone from the presentation layer**: the workbook report's settlement field is
+  `bucket`, matching `payslip_adjustments.bucket` and `SettlementBucket`.
+- **Settings information architecture** (user-directed, post-RFC): schemes are hoisted out of
+  Catalog into a Statutory contributions tab; work rules have their own editable tab; roster codes
+  and shift patterns move to a Scheduling tab; General carries only the version's own facts
+  (identity, payroll, wages, changes, sources). Catalog keeps the five families. The representation
+  takes the semantic group it is drawn for, and a create still carries both groups.
+- **E2E**: the incentive test now proves the funnel on new labels (`INCENTIVE` 2 h + `OVERTIME` 3 h
+  at 1.5×); the public fixture carries the funnel; surface-sweep expectations follow the new tabs
+  and forms; the headed probes' stale selectors are corrected. Green at last observation:
+  `holiday-calendar-form`, `incentive-overtime`, `surface-sweep`, and 11 of 12 headed probes (the
+  twelfth, the conversation witness row, fails on the agent's environment, not its selector).
+- **Still open**: a full `pnpm test:e2e` rerun after the Settings restructure; the manual tenant
+  probe (`pnpm run env -- serve --template=hr-payroll --seed=bank`); the Kdit/Nihon/OpsPH tallies
+  against the raw workbooks, which no test in the template exercises (the `public-seed-*` suites
+  reconcile the invented public fixture, not the bank).
+
 ## Status 2026-09-15 — migration landed
+
+_Superseded by the close-out above: the schedule-time limit gate, the write-time compile and the
+seed coverage table were still open despite this block's claims._
 
 - **Phases 1–9 are landed in the `rfc-0001-event-first-catalogues` worktree. No legacy concept or
   compatibility shim remains in the template.** Final gates observed on the settled tree:

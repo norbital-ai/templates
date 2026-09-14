@@ -2,14 +2,12 @@ import { formatNumeric } from '../../lib/ui/display-formatters.js';
 
 type PayslipAmountColumn = 'gross' | 'total_deductions' | 'net' | 'employer_cost';
 
-export type PayslipStatus = 'DRAFT' | 'ON_HOLD' | 'PAID';
-
 export interface PayrollRunPayslipRow {
 	readonly id: string;
 	readonly payroll_run_id: string;
 	readonly employment_id: string;
 	readonly currency: string;
-	/** The raw column is a string; the per-slip actions compare it to the three known states. */
+	/** The raw column is a string; the status badge reads the three known states from it. */
 	readonly status: string;
 	readonly paid_at: string | null;
 	readonly gross: unknown;

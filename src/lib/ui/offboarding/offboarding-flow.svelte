@@ -1,11 +1,12 @@
 <script lang="ts">
 	/**
-	 * End an active employment in three steps: last day of work, reason, remaining leave.
+	 * End an active employment in two steps: last day of work plus comments, then remaining leave.
 	 *
 	 * Encash writes one `ENCASHMENT` entry per leave type for the whole remaining balance on the
 	 * last day; forfeit writes nothing. The submit sends the encashments first so a refused entry
 	 * refuses the whole off-boarding before the departure is recorded, and skips entries an
-	 * earlier attempt already posted, so retrying never double-pays.
+	 * earlier attempt already posted, so retrying never double-pays. Departure closes the
+	 * contract's range on the last day; there is no reason code.
 	 */
 	import { Effect } from 'effect';
 	import { client } from '../../workspace-client.js';
@@ -27,9 +28,7 @@
 	import {
 		buildOffboardingWrites,
 		encashableBalance,
-		EXIT_REASONS,
 		exitReference,
-		type ExitReason,
 		type OffboardingChoice,
 		type OffboardingDeparture
 	} from './offboarding-submit.js';
@@ -40,19 +39,18 @@
 	}: {
 		employment: {
 			readonly id: string;
-			readonly hire_date: string;
+			readonly range_start: string;
 			readonly company_id: string;
 			readonly employee_number: unknown;
 		};
 		onclose: () => void;
 	} = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const hireDay = $derived(dateKey(employment.hire_date));
+	const startDay = $derived(dateKey(employment.range_start));
 	const today = todayKey();
 
 	let step = $state(1);
 	let lastDay = $state(today);
-	let reason = $state('');
 	let note = $state('');
 	let decisions = $state<Record<string, { encash: boolean | null; gross: string; rate: string }>>(
 		{}
@@ -60,9 +58,9 @@
 	let stepError = $state<string | null>(null);
 	let submitting = $state(false);
 
-	const lastDayValid = $derived(lastDay !== '' && lastDay >= hireDay);
+	const lastDayValid = $derived(lastDay !== '' && lastDay >= startDay);
 	const balancesInput = $derived(
-		step === 3 && lastDayValid ? { employment_id: employment.id, as_of: lastDay } : null
+		step === 2 && lastDayValid ? { employment_id: employment.id, as_of: lastDay } : null
 	);
 	const balancesQuery = $derived(
 		balancesInput == null
@@ -114,15 +112,10 @@
 
 	function nextFromLastDay(): void {
 		stepError =
-			lastDay === '' || lastDay < hireDay
-				? t('offboarding.need_last_day', { hire: hireDay })
+			lastDay === '' || lastDay < startDay
+				? t('offboarding.need_last_day', { hire: startDay })
 				: null;
 		if (stepError == null) step = 2;
-	}
-
-	function nextFromReason(): void {
-		stepError = reason === '' ? t('offboarding.need_reason') : null;
-		if (stepError == null) step = 3;
 	}
 
 	type DraftedWrites = {
@@ -138,10 +131,6 @@
 		stepError = null;
 		if (currency == null) {
 			stepError = t('offboarding.currency_unavailable');
-			return null;
-		}
-		if (!(EXIT_REASONS as readonly string[]).includes(reason)) {
-			stepError = t('offboarding.need_reason');
 			return null;
 		}
 		try {
@@ -160,19 +149,16 @@
 			}
 			const writes = buildOffboardingWrites({
 				employmentId: employment.id,
+				rangeStart: employment.range_start,
 				lastDay,
-				reason,
+				rangeEnd: startOfDayInstant(lastDay, PAYROLL_TIME_ZONE),
 				note: note.trim() === '' ? null : note.trim(),
 				summaries,
 				choices: parsed,
 				currency
 			});
 			return {
-				departure: {
-					...writes.departure,
-					exit_date: startOfDayInstant(lastDay, PAYROLL_TIME_ZONE),
-					exit_reason: reason as ExitReason
-				},
+				departure: writes.departure,
 				encashments: writes.encashments
 					.filter((entry) => !postedRefs.has(entry.reference))
 					.map((entry) => ({
@@ -194,47 +180,22 @@
 	<ol class="flex gap-2 text-sm">
 		<li class:font-semibold={step === 1}>{t('offboarding.step_last_day')}</li>
 		<li aria-hidden="true">·</li>
-		<li class:font-semibold={step === 2}>{t('offboarding.step_reason')}</li>
-		<li aria-hidden="true">·</li>
-		<li class:font-semibold={step === 3}>{t('offboarding.step_leave')}</li>
+		<li class:font-semibold={step === 2}>{t('offboarding.step_leave')}</li>
 	</ol>
 
 	{#if step === 1}
 		<FormSection first title={t('offboarding.step_last_day')} hint={t('offboarding.last_day_hint')}>
-			<label class="text-sm font-medium"
-				><Stack gap="xs"
-					>{t('offboarding.last_day')}<Input
-						type="date"
-						value={lastDay}
-						min={hireDay}
-						oninput={(event) => {
-							lastDay = event.currentTarget.value;
-						}}
-					/></Stack
-				></label
-			>
-		</FormSection>
-		{#if stepError}<p class="text-sm text-destructive" role="alert">{stepError}</p>{/if}
-		<Cluster>
-			<Button type="button" disabled={!lastDayValid} onclick={nextFromLastDay}
-				>{t('offboarding.continue')}</Button
-			>
-		</Cluster>
-	{:else if step === 2}
-		<FormSection first title={t('offboarding.step_reason')} hint={t('offboarding.reason_hint')}>
 			<Stack gap="sm">
 				<label class="text-sm font-medium"
 					><Stack gap="xs"
-						>{t('offboarding.reason')}<select
-							class="border-input bg-background flex h-8 rounded-md border px-3 text-sm"
-							value={reason}
-							onchange={(event) => {
-								reason = event.currentTarget.value;
+						>{t('offboarding.last_day')}<Input
+							type="date"
+							value={lastDay}
+							min={startDay}
+							oninput={(event) => {
+								lastDay = event.currentTarget.value;
 							}}
-						>
-							<option value=""></option>
-							{#each EXIT_REASONS as value}<option {value}>{value}</option>{/each}
-						</select></Stack
+						/></Stack
 					></label
 				>
 				<label class="text-sm font-medium"
@@ -251,10 +212,7 @@
 		</FormSection>
 		{#if stepError}<p class="text-sm text-destructive" role="alert">{stepError}</p>{/if}
 		<Cluster>
-			<Button type="button" variant="secondary" onclick={() => (step = 1)}
-				>{t('offboarding.back')}</Button
-			>
-			<Button type="button" disabled={reason === ''} onclick={nextFromReason}
+			<Button type="button" disabled={!lastDayValid} onclick={nextFromLastDay}
 				>{t('offboarding.continue')}</Button
 			>
 		</Cluster>
@@ -367,7 +325,7 @@
 		</FormSection>
 		{#if stepError}<p class="text-sm text-destructive" role="alert">{stepError}</p>{/if}
 		<Cluster>
-			<Button type="button" variant="secondary" disabled={submitting} onclick={() => (step = 2)}
+			<Button type="button" variant="secondary" disabled={submitting} onclick={() => (step = 1)}
 				>{t('offboarding.back')}</Button
 			>
 			<Button

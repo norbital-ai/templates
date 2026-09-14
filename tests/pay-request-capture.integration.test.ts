@@ -65,7 +65,6 @@ function persistPayslip(world, options) {
 		id: options.runId,
 		company_id: COMPANY_ID,
 		period: options.period,
-		lifecycle: options.lifecycle,
 		approval_id: null
 	});
 	world.payslips.push({
@@ -91,7 +90,7 @@ test('a standing allowance is captured on two periods and two payslips', async (
 		payslipId: januarySlip.id,
 		payslip: januarySlip,
 		period: '2026-01',
-		lifecycle: 'PAID'
+		paid: true
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
@@ -121,7 +120,7 @@ test('a captured single-use request is excluded from the next regular payroll', 
 		payslipId: januarySlip.id,
 		payslip: januarySlip,
 		period: '2026-01',
-		lifecycle: 'PAID'
+		paid: true
 	});
 
 	const february = await createPayrollRun(world, '2026-02');
@@ -163,8 +162,11 @@ test(
 				requireAccepted(created.value, `${CREATE_PAYROLL_COMMAND} ${period}`);
 				if (period === JANUARY_2026) {
 					await session.query(
-						`update payroll_runs set lifecycle = 'PAID' where company_id = $1 and period = $2`,
-						[COMPANY_ID, JANUARY_2026]
+						`update payslips set status = 'PAID', paid_at = $3
+						  where payroll_run_id = (
+							select id from payroll_runs where company_id = $1 and period = $2
+						  )`,
+						[COMPANY_ID, JANUARY_2026, `${JANUARY_2026}-28`]
 					);
 				}
 			}

@@ -32,22 +32,17 @@ const OFF = code(OFF_ID, 'OFF', { kind: 'OFF' });
 const shiftById = new Map([DAY, NIGHT, REST, OFF].map((row) => [row.id, row]));
 
 const weeklyPattern = {
-	type: 'PATTERNED',
-	anchor_date: '2026-03-02', // Monday
-	phases: [
-		{
-			duration: { kind: 'CONTINUOUS' },
-			day_cycle: [DAY_ID, DAY_ID, DAY_ID, DAY_ID, DAY_ID, OFF_ID, REST_ID].map(
-				(roster_code_id) => ({ roster_code_id })
-			)
-		}
-	]
+	days: [DAY_ID, DAY_ID, DAY_ID, DAY_ID, DAY_ID, OFF_ID, REST_ID].map((roster_code_id) => ({
+		roster_code_id
+	}))
 };
+const weeklyAnchor = '2026-03-02'; // Monday
 
 const terms =
-	(work_pattern = weeklyPattern) =>
+	(work_pattern = weeklyPattern, pattern_anchor = weeklyAnchor) =>
 	() => ({
 		work_pattern,
+		pattern_anchor,
 		normal_daily_hours: 8
 	});
 
@@ -89,39 +84,13 @@ test('an observed public holiday overlays the pattern and roster instead of beco
 			holidays: new Map([
 				[
 					'2026-03-06',
-					{ date: '2026-03-06', original_date: null, name: 'Observed holiday', source: null }
+					{ date: '2026-03-06', replaces: null, name: 'Observed holiday', source: null }
 				]
 			])
 		}
 	});
 	assert.equal(schedule.get('2026-03-06').dayType, 'PUBLIC_HOLIDAY');
 	assert.equal(schedule.get('2026-03-06').shift.code, 'D');
-});
-
-test('calendar-month phases support a three-month day / three-month night rotation', () => {
-	const phased = {
-		type: 'PATTERNED',
-		anchor_date: '2026-01-01',
-		phases: [
-			{
-				duration: { kind: 'CALENDAR_MONTHS', months: 3 },
-				day_cycle: [{ roster_code_id: DAY_ID }]
-			},
-			{
-				duration: { kind: 'CALENDAR_MONTHS', months: 3 },
-				day_cycle: [{ roster_code_id: NIGHT_ID }]
-			}
-		]
-	};
-	const schedule = resolveSchedule({
-		window: { start: '2026-03-31', end: '2026-04-01' },
-		dates: ['2026-03-31', '2026-04-01'],
-		terms: terms(phased),
-		workDays: [],
-		configuration: { holidayRestPrecedence: 'REST_DAY', shiftById, holidays: new Map() }
-	});
-	assert.equal(schedule.get('2026-03-31').shift.code, 'D');
-	assert.equal(schedule.get('2026-04-01').shift.code, 'N');
 });
 
 test('a holiday on a rest day uses the declared rate precedence without creating another holiday', () => {
@@ -135,7 +104,7 @@ test('a holiday on a rest day uses the declared rate precedence without creating
 				shiftById,
 				holidayRestPrecedence: precedence,
 				holidays: new Map([
-					['2026-03-08', { date: '2026-03-08', name: 'Holiday', original_date: null, source: null }]
+					['2026-03-08', { date: '2026-03-08', name: 'Holiday', replaces: null, source: null }]
 				])
 			}
 		});
@@ -160,7 +129,7 @@ test('only the jurisdiction-observed substitute date receives holiday treatment'
 					{
 						date: '2026-03-10',
 						name: 'Observed holiday',
-						original_date: '2026-03-08',
+						replaces: '2026-03-08',
 						source: null
 					}
 				]

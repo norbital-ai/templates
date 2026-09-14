@@ -12,31 +12,25 @@ const EPF = {
 	row: {
 		id: 'scheme-epf',
 		code: 'EPF',
-		sequence: 10,
 		assessment_period: 'PAY_PERIOD',
-		eligibility: '',
-		rules: {
-			relief: '',
-			base_transform: '',
-			share_for_dependants: '',
-			rounding: ['NEAREST_CENT'],
-			no_withholding_below: 0,
-			use_period_table: true,
-			additional_remuneration_channel: false,
-			employee_share_annual_cap: null,
-			shared_cap_group: null,
-			project_relief_annually: false,
-			total_rounded_employee_floored: false
-		}
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		rules: [
+			{
+				when: 'base >= 0.0',
+				employee: 'round_cent(base * 11.0 / 100.0)',
+				employer: 'round_cent(base * 13.0 / 100.0)'
+			}
+		]
 	},
-	rates: [
+	rules: [
 		{
 			when: 'base >= 0.0',
-			employee: 'base * 11.0 / 100.0',
-			employer: 'base * 13.0 / 100.0'
+			employee: 'round_cent(base * 11.0 / 100.0)',
+			employer: 'round_cent(base * 13.0 / 100.0)'
 		}
-	],
-	relievedIds: []
+	]
 };
 
 const component = (code, definition) => ({
@@ -49,7 +43,6 @@ const component = (code, definition) => ({
 	destination: 'PAY',
 	direction: 'ADD',
 	optIns: [],
-	sequence: 20,
 	eligibility: '',
 	definition: definition ?? { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 });

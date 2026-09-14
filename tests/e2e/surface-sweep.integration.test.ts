@@ -69,12 +69,7 @@ const SKIPPED_SURFACES = new Set(['/app/hr_controller/kiosk']);
  * it appears; the fix is the same everywhere, which is to make the skipped set a declared fact
  * that has to be edited on purpose.
  */
-const NO_REPRESENTATION = new Set([
-	'loan_repayments',
-	'payslip_allowance_request_inputs',
-	'payslip_leave_inputs',
-	'payslip_loan_repayment_inputs'
-]);
+const NO_REPRESENTATION = new Set(['loan_repayments']);
 
 /**
  * Collections the public seed carries no row for, so this walk cannot render their representation.
@@ -196,16 +191,29 @@ type Report = {
  */
 const SCOPE_FIELDS = ['settings_id', 'company_id'] as const;
 
-/** The seven tables of Settings → Catalog, by the tab that opens each. */
+/** The five tables of Settings → Catalog, by the tab that opens each. */
 const CATALOGUE_TABS = [
-	'Contribution',
-	'Work',
 	'Leave catalogue',
 	'Claim catalogue',
 	'Allowance catalogue',
 	'Adhoc',
 	'Loan catalogue'
 ] as const;
+
+/**
+ * The Settings tabs that open a create form outside Catalog, with the scope each form must hide.
+ *
+ * Schemes inherit the version on screen, so `settings_id` is hidden. Shift codes and patterns
+ * belong to the employing entity and Settings is lineage-scoped: that form must ask which entity,
+ * so it inherits nothing to hide.
+ */
+const SETTINGS_FORM_TABS: readonly {
+	readonly tab: string;
+	readonly forbidden: readonly string[];
+}[] = [
+	{ tab: 'Statutory contributions', forbidden: SCOPE_FIELDS },
+	{ tab: 'Scheduling', forbidden: [] }
+];
 
 const SETTINGS_PATH = '/app/hr_controller/settings';
 
@@ -223,7 +231,8 @@ const UNOPENABLE_FORMS = new Set<string>([]);
  *
  * The scheduling board is a month calendar: a person-day is created by opening the day, not by a
  * table's New. Its other tabs are the entity's shift codes and patterns, which are not events and
- * carry no scope contract.
+ * carry no scope contract. Settings always offers its tabs' own New buttons (under Catalog,
+ * Statutory contributions and Scheduling), so it is not one of these.
  */
 const NO_CREATE_SURFACES = new Set(['/app/hr_controller/events/work']);
 
@@ -611,6 +620,11 @@ it('every scoped create form hides the scope it was opened with, and still draws
 			tabs: ['Catalog', tab],
 			forbidden: SCOPE_FIELDS
 		})),
+		...SETTINGS_FORM_TABS.map(({ tab, forbidden }) => ({
+			path: SETTINGS_PATH,
+			tabs: [tab],
+			forbidden
+		})),
 		...eventPages.map((path) => ({ path, tabs: [] as string[], forbidden: SCOPE_FIELDS })),
 		// Self-service adds the employment: the record is the reader's own and is never picked.
 		// Its two create forms are the leave and claim families under My events; allowances,
@@ -631,7 +645,7 @@ it('every scoped create form hides the scope it was opened with, and still draws
 		// hidden as the one surface this walk never opened. One seeded person is given the walker's
 		// address, exactly as the H5 board test does.
 		const bound = (await session.query(
-			'update employees set email = $1 where id = (select employee_id from employments where exit_date is null order by employee_number limit 1) returning id',
+			"update employees set email = $1 where id = (select employee_id from employments where effective_range->>'end' is null order by employee_number limit 1) returning id",
 			[`${LABEL}-founder@example.test`]
 		)) as readonly unknown[];
 		assert.equal(bound.length, 1, 'the public seed carries no employment to read self-service as');

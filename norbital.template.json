@@ -6,7 +6,7 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 25,
+		"collections": 24,
 		"apps": 12,
 		"automations": 2
 	},
@@ -26,7 +26,6 @@
 				"allowance_catalogue",
 				"payment_catalogue"
 			],
-			["scheme_reliefs"],
 			["employees", "shift_definitions", "jurisdiction_holidays"],
 			["shift_patterns"],
 			["employments"],
@@ -36,6 +35,6 @@
 			["loan_repayments"]
 		]
 	},
-	"name_zh": "HR 与薪资",
-	"description_zh": "基于生效日期的雇佣事实、考勤、休假与法定缴款规则，运行多国 HR 与薪资。"
+	"name_zh": "HR \u4e0e\u85aa\u8d44",
+	"description_zh": "\u57fa\u4e8e\u751f\u6548\u65e5\u671f\u7684\u96c7\u4f63\u4e8b\u5b9e\u3001\u8003\u52e4\u3001\u4f11\u5047\u4e0e\u6cd5\u5b9a\u7f34\u6b3e\u89c4\u5219\uff0c\u8fd0\u884c\u591a\u56fd HR \u4e0e\u85aa\u8d44\u3002"
 }

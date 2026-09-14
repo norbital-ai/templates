@@ -39,6 +39,7 @@ import {
 	personContext,
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
+import { serviceStart } from '../employment-contract.js';
 import {
 	deriveDailyOvertime,
 	ordinaryWorkedHours,
@@ -60,7 +61,7 @@ import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.j
 import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
 	validateDailyOvertimeHoursLimit,
-	validateAbsenceTreatments,
+	validateOptIns,
 	validateDailyWorkLimit,
 	validateOpenWorkDays,
 	validateOvertimeLimits,
@@ -71,9 +72,11 @@ import {
 import { leaveCoverage } from '../leave/payroll.js';
 import { countryOf } from '../jurisdiction_settings.js';
 import {
+	patternAnchor,
 	patternRosterCodeId,
 	patternWorkload,
 	termPattern,
+	termPatternRow,
 	type PatternWorkload
 } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
@@ -288,7 +291,7 @@ export function termsAt(
 	return row;
 }
 
-export function payFrequency(value: string | null): RateTerms['pay_frequency'] {
+function payFrequency(value: string | null): RateTerms['pay_frequency'] {
 	const found = PAY_FREQUENCIES.find((candidate) => candidate === value);
 	if (!found)
 		throw new Error(
@@ -440,8 +443,10 @@ export function prepareWorkContext(
 			workDays: bundle.workDays,
 			window: complianceWindow
 		});
+		const patternRow = termPatternRow(row, configuration.patternById);
 		return {
-			work_pattern: termPattern(row, configuration.patternById),
+			work_pattern: patternRow?.pattern ?? null,
+			pattern_anchor: patternAnchor(patternRow),
 			// A rostered zero carries no weekly pattern; the day length falls back to the same
 			// neutral eight hours the rate terms resolve against.
 			normal_daily_hours:
@@ -507,7 +512,7 @@ export function prepareWorkContext(
 
 	const subject = personContext({
 		employee: bundle.employee,
-		employment: bundle.employment,
+		employment: { service_start: serviceStart(bundle.employment) },
 		terms: closingTerms,
 		// The working week the roster produced, so a rate row can turn on it. The Philippine day
 		// factor is 261 annual days for a five-day week and 313 for a six-day one, which is
@@ -965,9 +970,10 @@ function measureWorkComponent(
 			}
 			const actual = actualByDate.get(date);
 			const intervals = actual?.worked_intervals;
+			const patternRow = termPatternRow(dayTerms, options.configuration.patternById);
 			const codeId =
 				planByDate.get(date) ??
-				patternRosterCodeId(termPattern(dayTerms, options.configuration.patternById), date);
+				patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
 			if (codeId == null) continue;
 			const code = options.configuration.shiftById.get(codeId);
 			if (code == null)
@@ -1238,7 +1244,7 @@ export function validateWorkResult(options: {
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;
-	const issues: RunIssue[] = validateAbsenceTreatments({
+	const issues: RunIssue[] = validateOptIns({
 		configuration,
 		adjustments: measured.adjustments
 	});
@@ -1262,7 +1268,8 @@ export function validateWorkResult(options: {
 				...validateDailyWorkLimit({
 					employeeNumber: bundle.employment.employee_number,
 					days: measured.overtimeDays,
-					maxWorkHours: limit.max_hours
+					maxWorkHours: limit.max_hours,
+					unit: limit.unit
 				})
 			);
 		if (limit.measure === 'OVERTIME_HOURS')

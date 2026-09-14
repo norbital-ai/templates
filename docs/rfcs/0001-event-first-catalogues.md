@@ -1,8 +1,17 @@
 # RFC 0001 — Event-first catalogues, limit-referencing bands, explicit CEL contexts
 
-- Status: Accepted, implementation not started
+- Status: Accepted; the scheme shapes in §8 (and the scheme lines in the model sketch) are
+  superseded by [RFC 0002 — Schemes are rules](./0002-schemes-are-rules.md)
 - Scope: `templates/hr-payroll` (schema, engine, UI, seed shape) and `seed_bank/norbital_hr`
 - Tracker: `docs/rfcs/0001-tracker.md`
+
+> **Superseded in part.** RFC 0002 replaced the statutory scheme this RFC specified.
+> `statutory_contributions.eligibility`, `sequence`, the typed `statutory_rules` remainder and the
+> `scheme_reliefs` junction are gone: a scheme now holds `rules: [{ when, employee, employer }]`
+> expressions plus the three relief-pool columns, and the order payroll applies schemes in is
+> derived from `produced.<code>` mentions. Read the schema sketch and §8 below as the earlier
+> design; RFC 0002 is what landed. Everything else in this RFC (the catalogue spine, work rules,
+> destinations and directions, entries and `payslip_id`) stands.
 
 ## 1. Summary
 
@@ -92,12 +101,10 @@ jurisdiction_settings
    1 ──< N payroll_runs [restrict]
 
 statutory_contributions                       N >── 1 settings [cascade]
-├─ code · name · is_statutory · authority · eligibility CEL · sequence · assessment_period
-├─ rules { relief CEL · base_transform CEL · share_for_dependants CEL · rounding[] ·
-│          no_withholding_below · use_period_table · additional_remuneration_channel ·
-│          employee_share_annual_cap · shared_cap_group · project_relief_annually }
-└─ bands[ { when CEL · employee CEL -> money · employer CEL -> money } ]
-   1 ──< N scheme_reliefs (relieving) [cascade] · (relieved) [restrict]
+│   (superseded by RFC 0002: no `eligibility`, no `sequence`, no typed `rules`,
+│    no `scheme_reliefs`; `rules: [ { when, employee, employer } ]` + three pool columns)
+├─ code · name · is_statutory · authority · assessment_period
+└─ rules[ { when CEL · employee CEL -> money · employer CEL -> money } ]
    1 ──< N employment_statutory_facts [restrict]
 
 ENTITY SIDE
@@ -278,7 +285,7 @@ ordinary_hour · ordinary_day · day_wage
 limits { ...evaluated... } · person PersonContext · holiday { kind · name }
 ```
 
-### 7.4 `SchemeContext` — scheme `rules` and band `when`/`employee`/`employer`
+### 7.4 `SchemeContext` — scheme `rules` and the rule `when`/`employee`/`employer`
 
 Built by `schemeContext(...)` inside the contribution step after bases are assembled.
 
@@ -312,6 +319,10 @@ literals (`0.0`) and `double(...)` where a value may be integral; there is no bi
 (`EXPRESSION_CONTEXTS`) rendered by the UI Fields panel.
 
 ## 8. Statutory contributions
+
+> Superseded by [RFC 0002 §3](./0002-schemes-are-rules.md). The landed shape is
+> `rules[ { when, employee, employer } ]` expressions, the three relief-pool columns, and
+> `produced.<code>` mentions as the only dependency declaration.
 
 Base = sum of lines whose explicit opt-in names the scheme. Then `rules` (relief, base
 transform, dependants as CEL; rounding, period table, caps, withholding as typed), then
@@ -371,7 +382,7 @@ CASE B — a premium day was worked and OIL is owed
  [5] SETTLE       PAY +/- · NET +/- · EMPLOYER · DISPLAY -> gross · net adjustments ·
         |           employer cost
         |
- [6] STATUTORY    SchemeContext: opt-in bases -> rules -> bands(when/employee/employer)
+ [6] STATUTORY    SchemeContext: opt-in bases -> rules(when/employee/employer)
         |           rounding · caps · reliefs · period table
         |
  [7] FINALISE     net = gross - statutory - net deductions + net additions ->

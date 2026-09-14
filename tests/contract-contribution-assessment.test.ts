@@ -5,33 +5,26 @@ import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
 import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
-/** A person with nothing recorded: every scheme and band without a predicate covers them. */
+/** A person with nothing recorded: every scheme and rule without a predicate covers them. */
 const NOBODY = personContext({
 	employee: null,
-	employment: { hire_date: '' },
+	employment: { service_start: '' },
 	terms: null,
 	asOf: '2026-12-31'
 });
 
 type Contract = Parameters<typeof assessContributions>[0][number];
+type Band = ContributionConfig['rules'][number];
 
-type Band = ContributionConfig['rates'][number];
-
-const RULES = {
-	relief: '',
-	base_transform: '',
-	share_for_dependants: '',
-	rounding: ['NEAREST_CENT'] as const,
-	no_withholding_below: 0,
-	use_period_table: true,
-	additional_remuneration_channel: false,
-	employee_share_annual_cap: null,
-	shared_cap_group: null,
-	project_relief_annually: false,
-	total_rounded_employee_floored: false
-};
-
-function scheme(code: string, band: Band, rules: Partial<typeof RULES> = {}): ContributionConfig {
+function scheme(
+	code: string,
+	bands: readonly Band[],
+	pool: {
+		readonly employee_share_annual_cap?: number | null;
+		readonly shared_cap_group?: string | null;
+		readonly project_relief_annually?: boolean;
+	} = {}
+): ContributionConfig {
 	return {
 		row: {
 			id: code,
@@ -41,14 +34,12 @@ function scheme(code: string, band: Band, rules: Partial<typeof RULES> = {}): Co
 			is_statutory: true,
 			authority: 'Invented regression fixture',
 			assessment_period: 'PAY_PERIOD',
-			eligibility: '',
-			sequence: 1,
-			approval_id: null,
-			rules: { ...RULES, rounding: [...RULES.rounding], ...rules },
-			bands: [band]
+			employee_share_annual_cap: pool.employee_share_annual_cap ?? null,
+			shared_cap_group: pool.shared_cap_group ?? null,
+			project_relief_annually: pool.project_relief_annually ?? false,
+			rules: [...bands]
 		},
-		rates: [band],
-		relievedIds: []
+		rules: bands
 	} as unknown as ContributionConfig;
 }
 
@@ -62,7 +53,7 @@ function contract(
 		employment: { id, employee_id: 'person', company_id: 'company', employee_number: 'Fixture 1' },
 		window: { payFrequency: 'MONTHLY', salary: { start: '2026-12-01', end: '2026-12-31' } },
 		calculation: {
-			bases: contributions.map((contribution) => ({ contribution, base, special: {} })),
+			bases: contributions.map((contribution) => ({ contribution, base, lines: [] })),
 			facts: new Map(),
 			yearToDate: () => ({ base: 0, employee: 0, employer: 0 }),
 			age: 40,
@@ -76,11 +67,9 @@ function contract(
 	};
 }
 
-const fixed = scheme('PUB-FIXED', {
-	when: 'base >= 0.0',
-	employee: '100.01',
-	employer: '200.03'
-});
+const fixed = scheme('PUB_FIXED', [
+	{ when: 'base >= 0.0', employee: 'round_cent(100.01)', employer: 'round_cent(200.03)' }
+]);
 
 test('two contracts receive one fixed assessment, with deterministic cent allocations and their own bases', () => {
 	const contracts = [contract('a', 1000, [fixed]), contract('b', 1000, [fixed])];
@@ -95,38 +84,45 @@ test('two contracts receive one fixed assessment, with deterministic cent alloca
 });
 
 test('a periodic progressive threshold applies to combined contract remuneration', () => {
-	const ladder = scheme('PUB-PERIOD', {
-		when: 'base > 1000.0',
-		employee: '0.0 + (base - 1000.0) * 10.0 / 100.0',
-		employer: '0.0'
-	});
-	ladder.rates = [{ when: 'base <= 1000.0', employee: '0.0', employer: '0.0' }, ladder.rates[0]!];
-	(ladder.row as { bands: readonly Band[] }).bands = ladder.rates;
+	const ladder = scheme('PUB_PERIOD', [
+		{ when: 'base <= 1000.0', employee: 'round_cent(0.0)', employer: '0.0' },
+		{
+			when: 'base > 1000.0',
+			employee: 'round_cent(0.0 + (base - 1000.0) * 10.0 / 100.0)',
+			employer: '0.0'
+		}
+	]);
 	const result = assessContributions([contract('a', 750, [ladder]), contract('b', 750, [ladder])]);
 	assert.equal(result.get('a')![0]!.employee + result.get('b')![0]!.employee, 50);
-	assert.equal(result.get('a')![0]!.bandReference, 'base > 1000.0');
+	assert.equal(result.get('a')![0]!.ruleReference, 'base > 1000.0');
 });
 
 test('personal relief, a shared relief cap and prior YTD are applied once for the person', () => {
-	const tax = scheme(
-		'PUB-TAX',
-		{ when: 'base > 0.0', employee: 'base * 10.0 / 100.0', employer: '0.0' },
-		{ use_period_table: false, relief: '1200.0' }
-	);
-	const relieving = (code: string, employee: number): ContributionConfig => {
-		const fund = scheme(
+	const chargeable =
+		'(year_to_date.base + base * (1.0 + projection.future_equivalents) - produced.PUB_FUND_A.employee - produced.PUB_FUND_B.employee - 1200.0)';
+	const clamped = `(${chargeable} > 0.0 ? ${chargeable} : 0.0)`;
+	const scaled = `progressive(${clamped}, [0.0, 0.0, 10.0])`;
+	const tax = scheme('PUB_TAX', [
+		{
+			when: 'true',
+			employee: `round_cent((${scaled} - year_to_date.employee > 0.0 ? (${scaled} - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0))`,
+			employer: '0.0'
+		}
+	]);
+	const relieving = (code: string, employee: number): ContributionConfig =>
+		scheme(
 			code,
-			{
-				when: 'base >= 0.0',
-				employee: `base * ${employee}.0 / 100.0`,
-				employer: '0.0'
-			},
+			[
+				{
+					when: 'base >= 0.0',
+					employee: `round_cent(base * ${employee}.0 / 100.0)`,
+					employer: '0.0'
+				}
+			],
 			{ employee_share_annual_cap: 100, shared_cap_group: 'shared' }
 		);
-		return { ...fund, relievedIds: [tax.row.id] };
-	};
-	const schemes = [relieving('PUB-FUND-A', 10), relieving('PUB-FUND-B', 5), tax];
-	const prior = new Map([['PUB-TAX', { base: 2000, employee: 100, employer: 0 }]]);
+	const schemes = [relieving('PUB_FUND_A', 10), relieving('PUB_FUND_B', 5), tax];
+	const prior = new Map([['PUB_TAX', { base: 2000, employee: 100, employer: 0 }]]);
 	const yearToDate = (code: string) => prior.get(code) ?? { base: 0, employee: 0, employer: 0 };
 	const contracts = [
 		contract('a', 1000, schemes, { yearToDate }),
@@ -135,28 +131,13 @@ test('personal relief, a shared relief cap and prior YTD are applied once for th
 	const result = assessContributions(contracts);
 	assert.equal(result.get('a')![2]!.employee + result.get('b')![2]!.employee, 170);
 	assert.deepEqual(assessContributions(contracts.toReversed()), result);
-	assert.deepEqual(prior.get('PUB-TAX'), { base: 2000, employee: 100, employer: 0 });
-});
-
-test('ordinary and additional remuneration retain contract provenance while sharing one assessment', () => {
-	const tax = scheme(
-		'PUB-TAX',
-		{ when: 'base > 0.0', employee: 'base * 10.0 / 100.0', employer: '0.0' },
-		{ use_period_table: false, additional_remuneration_channel: true }
-	);
-	const ordinary = contract('a', 1000, [tax]);
-	const additional = contract('b', 0, [tax], {
-		bases: [{ contribution: tax, base: 0, special: { ADDITIONAL_REMUNERATION: 1000 } }]
-	});
-	const result = assessContributions([ordinary, additional]);
-	assert.equal(result.get('a')![0]!.employee, 100);
-	assert.equal(result.get('b')![0]!.employee, 100);
-	assert.deepEqual(result.get('b')![0]!.special, { ADDITIONAL_REMUNERATION: 1000 });
-	assert.equal(result.get('b')![0]!.base, 0);
+	assert.deepEqual(prior.get('PUB_TAX'), { base: 2000, employee: 100, employer: 0 });
 });
 
 test('rounding leftovers never create a negative allocation on a small final contract', () => {
-	const tiny = scheme('PUB-TINY', { when: 'base >= 0.0', employee: '0.02', employer: '0.01' });
+	const tiny = scheme('PUB_TINY', [
+		{ when: 'base >= 0.0', employee: 'round_cent(0.02)', employer: 'round_cent(0.01)' }
+	]);
 	const result = assessContributions(['c', 'b', 'a'].map((id) => contract(id, 1, [tiny])));
 	assert.deepEqual(
 		[...result.values()].map((charges) => charges[0]!.employee),
@@ -196,7 +177,7 @@ for (const status of [
 					contract('a', 1000, [fixed]),
 					contract('b', 1000, [fixed], { facts: new Map([[fixed.row.id, status]]) })
 				]),
-			/conflicting PUB-FIXED registrations or rate overrides/
+			/conflicting PUB_FIXED registrations or rate overrides/
 		);
 	});
 }

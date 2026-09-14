@@ -22,7 +22,7 @@ export const payerAccountSchema = Schema.Struct({
 });
 export type PayerAccount = Schema.Schema.Type<typeof payerAccountSchema>;
 
-export type BankPayment = Readonly<{
+type BankPayment = Readonly<{
 	employeeNumber: string;
 	currency: string;
 	net: number;

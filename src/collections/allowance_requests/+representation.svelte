@@ -12,7 +12,7 @@
 	 * (`EligibleTypes`); the hook holds the same rule on the event date.
 	 */
 	import { client } from '../../lib/workspace-client.js';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
@@ -25,7 +25,7 @@
 	import FormSection from '../../lib/ui/form-section.svelte';
 
 	let { record, close }: RepresentationProps = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const createScope = hrCreateScope();
 	const scopedEmploymentId = $derived(createScope?.employmentId?.());
 	const scopedCompanyId = $derived(createScope?.companyId());
@@ -48,11 +48,17 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
+	/** A payroll capture freezes the row: the shell header carries the lock, the chrome the sentence. */
+	const locked = $derived(recordMetadata.length > 0);
 </script>
 
-<RecordShell title={record ? formatNumeric(record.amount) : t('component.create_allowance')}>
+<RecordShell
+	icon={locked ? 'lucide:lock-keyhole' : undefined}
+	badge={locked ? t('recordMetadata.readOnly') : undefined}
+>
 	<CollectionForm
 		{client}
+		notice="header"
 		collection="allowance_requests"
 		defaultValues={formValues}
 		{recordMetadata}
@@ -62,6 +68,10 @@
 		{#snippet children({ Field, form })}
 			{@const employmentId =
 				scopedEmploymentId ?? (String(form.values().employment_id ?? '') || undefined)}
+			<!-- The payroll engine owns both: `payslip_id` is the capture lock, and a per-period row
+			     materialised from a standing allowance carries the source it came from. -->
+			<Field name="payslip_id" hidden />
+			<Field name="derived_from_id" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first

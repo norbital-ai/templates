@@ -62,17 +62,7 @@ export default ((r) => ({
 				to: r.jurisdiction_settings.id
 			})
 		),
-		statutory_fact_contribution: r.many.employment_statutory_facts(),
-		relief_relieving: cascade(
-			r.many.scheme_reliefs({
-				from: r.scheme_reliefs.relieving_id,
-				to: r.statutory_contributions.id
-			})
-		),
-		relief_relieved: r.many.scheme_reliefs({
-			from: r.scheme_reliefs.relieved_id,
-			to: r.statutory_contributions.id
-		})
+		statutory_fact_contribution: r.many.employment_statutory_facts()
 	},
 
 	companies: {
@@ -157,7 +147,8 @@ export default ((r) => ({
 	},
 
 	employees: {
-		employment_employee: r.many.employments()
+		employment_employee: r.many.employments(),
+		statutory_fact_employee: r.many.employment_statutory_facts()
 	},
 
 	employments: {
@@ -170,7 +161,6 @@ export default ((r) => ({
 			to: r.companies.id
 		}),
 		term_employment: r.many.employment_terms(),
-		statutory_fact_employment: r.many.employment_statutory_facts(),
 		claim_request_employment: r.many.claim_requests(),
 		allowance_request_employment: r.many.allowance_requests(),
 		payment_request_employment: r.many.payment_requests(),
@@ -196,10 +186,10 @@ export default ((r) => ({
 	},
 
 	employment_statutory_facts: {
-		statutory_fact_employment: cascade(
-			r.one.employments({
-				from: r.employment_statutory_facts.employment_id,
-				to: r.employments.id
+		statutory_fact_employee: cascade(
+			r.one.employees({
+				from: r.employment_statutory_facts.employee_id,
+				to: r.employees.id
 			})
 		),
 		statutory_fact_contribution: r.one.statutory_contributions({

@@ -1,5 +1,3 @@
-import { Schema } from 'effect';
-
 /**
  * Money rounding.
  *
@@ -11,26 +9,19 @@ import { Schema } from 'effect';
  */
 
 /**
- * Every rounding token the engine executes. `statutory_contributions.rules.rounding` names the
- * chain a scheme applies, in order. `NEAREST_UNIT` and
- * `FLOOR_UNIT` are reached only by paired-share statutory contracts such as Singapore CPF, where
- * `roundContributionShares` applies them directly. Nothing else selects a method: every other
- * money rounding in the engine is `cents`, because a jurisdiction-wide money mode was never wired
- * to the arithmetic and the audit hash it fed made a changed hash mean a changed column instead of
- * changed law.
+ * Every rounding the engine executes. A scheme's rule names one of these as a registered helper
+ * (`round_cent`, `round_5_cents`, `truncate_cent`, `up_5_cents`, `round_unit`, `floor_unit`,
+ * `up_to_unit`); `roundMoney` is their shared implementation, called by `cents` and the overtime
+ * floor too.
  */
-export const RoundingMethodSchema = Schema.Literals([
-	'NONE',
-	'NEAREST_CENT',
-	'NEAREST_5_CENTS',
-	'TRUNCATE_CENT',
-	'UP_5_CENTS',
-	'NEAREST_UNIT',
-	'FLOOR_UNIT',
-	'UP_TO_UNIT',
-	'TABLE'
-]);
-export type RoundingMethod = Schema.Schema.Type<typeof RoundingMethodSchema>;
+type RoundingMethod =
+	| 'NEAREST_CENT'
+	| 'NEAREST_5_CENTS'
+	| 'TRUNCATE_CENT'
+	| 'UP_5_CENTS'
+	| 'NEAREST_UNIT'
+	| 'FLOOR_UNIT'
+	| 'UP_TO_UNIT';
 
 function epsilon(value: number): number {
 	return Number.EPSILON * Math.max(1, Math.abs(value)) * 4;
@@ -39,17 +30,14 @@ function epsilon(value: number): number {
 /**
  * Round a money value.
  *
- * `TABLE` is the identity: a tabled statutory amount is the published figure and is returned
- * verbatim — rounding it would move every SOCSO and EIS employer share by a cent or two (E3, E12).
- * `UP_TO_UNIT` is EPF's "round up to the next ringgit", applied to each share independently.
+ * Every method is deterministic arithmetic on one value; a published table amount is returned by
+ * the rule expression itself and is never passed here, because rounding it would move every SOCSO
+ * and EIS employer share by a cent or two (E3, E12).
  */
 export function roundMoney(value: number, method: RoundingMethod): number {
 	if (!Number.isFinite(value)) throw new Error('Cannot round a non-finite amount.');
 	const eps = epsilon(value);
 	switch (method) {
-		case 'NONE':
-		case 'TABLE':
-			return value;
 		case 'NEAREST_CENT':
 			return Math.round((value + eps) * 100) / 100;
 		case 'NEAREST_5_CENTS':

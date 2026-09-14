@@ -107,8 +107,8 @@ test(
 			assert.ok(settings, 'the public seed carries a component catalogue');
 			await session.query(
 				`insert into loan_catalogue
-				 (id, settings_id, code, loan_type, sequence, eligibility)
-				 values ($1, $2, 'LOAN_RECOVERY', 'STAFF', 90, '')`,
+				 (id, settings_id, code, loan_type, eligibility)
+				 values ($1, $2, 'LOAN_RECOVERY', 'STAFF', '')`,
 				[COMPONENT_ID, settings.settings_id]
 			);
 			await session.query(
@@ -477,8 +477,8 @@ test(
 			const payslipId = crypto.randomUUID();
 			await session.query(
 				`insert into payroll_runs
-				(id, company_id, period, lifecycle, settings_id, configuration_hash, holidays, calculation_version, pay_date, attendance_from, attendance_to)
-				values ($1, $2, '2026-04', 'DRAFT', $3, 'loan-capture-fixture', '[]'::jsonb, 'loan-capture-fixture', '2026-04-30', '2026-04-01', '2026-04-30')`,
+				(id, company_id, period, settings_id, configuration_hash, holidays, calculation_version, pay_date, attendance_from, attendance_to)
+				values ($1, $2, '2026-04', $3, 'loan-capture-fixture', '[]'::jsonb, 'loan-capture-fixture', '2026-04-30', '2026-04-01', '2026-04-30')`,
 				[runId, COMPANY_ID, settings.settings_id]
 			);
 			await session.query(

@@ -4,8 +4,9 @@ export default defineModel(
 	{
 		/** The jurisdiction settings version this row belongs to, sealed with it. */
 		settings_id: uuid().notNull(),
-		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
+		/** The catalogue's stable code, and the display name beside it (RFC 0001 §4). */
 		code: text({ search: true }).notNull(),
+		name: text({ search: true }),
 		/**
 		 * Where the line settles: `PAY` earns or reduces gross, `NET` pays or deducts outside it,
 		 * `EMPLOYER` costs the employer alone, `DISPLAY` is printed without money.
@@ -17,8 +18,6 @@ export default defineModel(
 		bands: custom('catalogue_band')
 			.notNull()
 			.default(sql`'[]'::jsonb`),
-		/** Formula/dependency and deduction-reduction order, across every catalogue at once. */
-		sequence: integer().notNull(),
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
 		/** Whether a request against this line must, may or need not attach proof. */

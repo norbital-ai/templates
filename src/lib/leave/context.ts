@@ -28,6 +28,7 @@ type ReadTables =
 	| 'employees'
 	| 'companies'
 	| 'jurisdiction_settings'
+	| 'statutory_contributions'
 	| 'leave_catalogue'
 	| 'employment_terms'
 	| 'work_days'
@@ -49,10 +50,7 @@ function complete<T>(rows: T[], name: string): T[] {
 }
 
 export type LeaveContext = {
-	employments: Pick<
-		ResolvedEmployment,
-		'id' | 'employee_id' | 'company_id' | 'hire_date' | 'exit_date' | 'children'
-	>[];
+	employments: Pick<ResolvedEmployment, 'id' | 'employee_id' | 'company_id' | 'effective_range'>[];
 	companies: Pick<WorkspaceRow<'companies'>, 'id' | 'settings_code' | 'region'>[];
 	employees: Pick<
 		WorkspaceRow<'employees'>,
@@ -64,6 +62,7 @@ export type LeaveContext = {
 		| 'solo_parent'
 		| 'race'
 		| 'religion'
+		| 'children'
 	>[];
 	terms: Pick<
 		WorkspaceRow<'employment_terms'>,
@@ -102,7 +101,6 @@ export type LeaveContext = {
 		| 'eligibility'
 		| 'entitlement'
 		| 'is_statutory'
-		| 'sequence'
 		| 'destination'
 		| 'direction'
 		| 'evidence_after_days'
@@ -111,7 +109,7 @@ export type LeaveContext = {
 	>[];
 	holidays: Pick<
 		WorkspaceRow<'jurisdiction_holidays'>,
-		'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'given_to' | 'published_at'
+		'id' | 'company_id' | 'date' | 'name' | 'kind' | 'replaces' | 'given_to' | 'published_at'
 	>[];
 	workDays: Pick<
 		WorkspaceRow<'work_days'>,
@@ -119,7 +117,7 @@ export type LeaveContext = {
 	>[];
 	runs: Pick<
 		WorkspaceRow<'payroll_runs'>,
-		'id' | 'company_id' | 'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
+		'id' | 'company_id' | 'period' | 'attendance_from' | 'attendance_to'
 	>[];
 	patterns: Pick<WorkspaceRow<'shift_patterns'>, 'id' | 'code' | 'pattern' | 'effective_range'>[];
 	shifts: Pick<
@@ -148,11 +146,7 @@ export function readLeaveContext(
 					id: true,
 					employee_id: true,
 					company_id: true,
-					hire_date: true,
-					effective_range: true,
-					exit_date: true,
-					exit_reason: true,
-					children: true
+					effective_range: true
 				},
 				limit: LIMIT
 			}),
@@ -177,7 +171,8 @@ export function readLeaveContext(
 						marital_status: true,
 						solo_parent: true,
 						race: true,
-						religion: true
+						religion: true,
+						children: true
 					},
 					limit: LIMIT
 				}),
@@ -231,7 +226,6 @@ export function readLeaveContext(
 						id: true,
 						company_id: true,
 						period: true,
-						lifecycle: true,
 						attendance_from: true,
 						attendance_to: true
 					},
@@ -314,7 +308,6 @@ export function readLeaveContext(
 					eligibility: true,
 					entitlement: true,
 					is_statutory: true,
-					sequence: true,
 					destination: true,
 					direction: true,
 					evidence_after_days: true,
@@ -341,7 +334,7 @@ export function readLeaveContext(
 					date: true,
 					name: true,
 					kind: true,
-					original_date: true,
+					replaces: true,
 					given_to: true,
 					published_at: true
 				},
@@ -408,8 +401,9 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 	const employee = context.employees.find((row) => row.id === employment.employee_id);
 	if (!employee) refuse('The employee is not available.');
 	const terms = context.terms.filter((row) => row.employment_id === employmentId);
-	const hire = dateKey(employment.hire_date);
-	const exit = employment.exit_date == null ? null : dateKey(employment.exit_date);
+	const range = employment.effective_range;
+	const hire = range == null ? '' : dateKey(range.start);
+	const exit = range?.end == null ? null : dateKey(range.end);
 	const settingsOn = (date: string) => {
 		const row = settingsInForce(context.versions, company.settings_code, date);
 		if (!row) refuse(`No sealed settings cover ${date}.`);
@@ -433,9 +427,9 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 	const personOn = (date: string): PersonContext =>
 		personContext({
 			employee,
-			employment,
+			employment: { service_start: hire },
 			terms: terms.find((row) => coversDate(row.effective_range, date)) ?? null,
-			children: childrenOn(employment.children, date),
+			children: childrenOn(employee.children ?? [], date),
 			company,
 			asOf: date
 		});

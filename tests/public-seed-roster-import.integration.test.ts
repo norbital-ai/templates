@@ -238,10 +238,6 @@ test(
 					(select id from payroll_runs where company_id = $1 and period = $2)`,
 				[COMPANY_ID, JANUARY_2026]
 			);
-			await session.query(
-				`update payroll_runs set lifecycle = 'PAID' where company_id = $1 and period = $2`,
-				[COMPANY_ID, JANUARY_2026]
-			);
 
 			const payload = await rosterPayloadFromXlsx(JANUARY_2026, [
 				['PUB-EMP-0001', '2026-01-18', 'OFF']

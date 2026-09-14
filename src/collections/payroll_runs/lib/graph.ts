@@ -35,6 +35,7 @@ import type { Settlement } from './settle.js';
 
 export type PendingPayslip = {
 	readonly employmentId: string;
+	readonly employeeNumber: string;
 	readonly termsThrough: string;
 	readonly currency: string;
 	readonly settlement: Settlement;
@@ -89,8 +90,7 @@ export function payrollRunGraph(options: {
 				base_amount: charge.base,
 				employee_amount: charge.employee,
 				employer_amount: charge.employer,
-				band_key: charge.bandReference,
-				special_amounts: charge.special
+				rule_when: charge.ruleReference
 			})),
 			gross: payslip.settlement.gross,
 			total_deductions: payslip.settlement.totalDeductions,
@@ -110,7 +110,32 @@ export function payrollRunGraph(options: {
 			}))
 		};
 	});
-	return { rows, captures };
+	return {
+		rows,
+		captures,
+		calculationTrace: options.pending.map((payslip) => ({
+			employment_id: payslip.employmentId,
+			employee_number: payslip.employeeNumber,
+			schemes: payslip.charges.map((charge) => ({
+				scheme_code: charge.contribution.row.code,
+				rule_when: charge.ruleReference,
+				base_amount: charge.base,
+				employee_amount: charge.employee,
+				employer_amount: charge.employer,
+				inputs: charge.inputs.map((line) => ({
+					code: line.code,
+					label: line.label,
+					effect: line.effect,
+					amount: line.amount
+				})),
+				reads: charge.reads.map((read) => ({
+					code: read.code,
+					employee_amount: read.employee_amount,
+					employer_amount: read.employer_amount
+				}))
+			}))
+		}))
+	};
 }
 
 export type { MaterialisedMoney, PayRequestFamily, SettlementBucket, PayslipAdjustment };

@@ -9,7 +9,6 @@ export const leavePayItemSchema = Schema.Struct({
 	settings_id: Schema.String.check(Schema.isUUID()),
 	code: Schema.NonEmptyString,
 	is_statutory: Schema.Boolean,
-	sequence: Schema.Int,
 	bucket: Schema.Literals(['EARNING', 'ABSENCE']),
 	statutory_opt_ins: Schema.Array(statutoryOptInValueSchema),
 	date: Schema.NullOr(calendarDay),

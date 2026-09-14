@@ -33,28 +33,18 @@ const PUB2_URL = 'https://statutory.example.org/pub2/rates';
 
 /** The public fixture's PUB-EPF band, as seeded: employee 11%, employer 13%. */
 const sealedBand = {
-	when: 'base > 0.0',
-	employee: 'base * 11.0 / 100.0',
-	employer: 'base * 13.0 / 100.0'
+	when: '(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0',
+	employee: 'round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)',
+	employer: 'round_cent((base) * 13.0 / 100.0)'
 };
-const proposedBand = { ...sealedBand, employee: 'base * 12.0 / 100.0' };
-const pub2Band = {
-	when: 'base > 0.0',
-	employee: 'base * 5.0 / 100.0',
-	employer: 'base * 5.0 / 100.0'
+const proposedRule = {
+	...sealedBand,
+	employee: 'round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 12.0 / 100.0)'
 };
-const PUB2_RULES = {
-	relief: '',
-	base_transform: '',
-	share_for_dependants: '',
-	rounding: ['NEAREST_CENT'],
-	no_withholding_below: 0,
-	use_period_table: true,
-	additional_remuneration_channel: false,
-	employee_share_annual_cap: null,
-	shared_cap_group: null,
-	project_relief_annually: false,
-	total_rounded_employee_floored: false
+const pub2Rule = {
+	when: 'base > 0.0',
+	employee: 'round_cent(base * 5.0 / 100.0)',
+	employer: 'round_cent(base * 5.0 / 100.0)'
 };
 
 const pubQuote =
@@ -90,7 +80,7 @@ const driftAi = (failPub2: () => boolean) => {
 				code === 'PUB'
 					? {
 							contributions: [
-								{ code: 'PUB-EPF', bands: [proposedBand], source_url: url, quote: pubQuote }
+								{ code: 'PUB-EPF', rules: [proposedRule], source_url: url, quote: pubQuote }
 							],
 							leave_catalogue: [],
 							pay_component: [],
@@ -98,7 +88,7 @@ const driftAi = (failPub2: () => boolean) => {
 						}
 					: {
 							contributions: [
-								{ code: 'PUB2-EPF', bands: [pub2Band], source_url: url, quote: pub2Quote }
+								{ code: 'PUB2-EPF', rules: [pub2Rule], source_url: url, quote: pub2Quote }
 							],
 							leave_catalogue: [],
 							pay_component: [],
@@ -268,12 +258,12 @@ test(
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, assessment_period, eligibility, sequence, rules, bands)
-				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'PAY_PERIOD', '', 1, $3, $4)`,
-				[PUB2_SCHEME_ID, PUB2_ID, PUB2_RULES, [pub2Band]]
+				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, assessment_period, employee_share_annual_cap, shared_cap_group, project_relief_annually, rules)
+				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'PAY_PERIOD', null, null, false, $3)`,
+				[PUB2_SCHEME_ID, PUB2_ID, [pub2Rule]]
 			);
 			const sealedBefore = await session.query(
-				`select s.id, s.row_version, c.bands from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
+				`select s.id, s.row_version, c.rules from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
 			);
 
 			const start = () =>
@@ -364,9 +354,9 @@ test(
 				{
 					collection: 'statutory_contributions',
 					code: 'PUB-EPF',
-					field: 'bands',
+					field: 'rules',
 					previous: [sealedBand],
-					proposed: [proposedBand],
+					proposed: [proposedRule],
 					source_url: PUB_URL,
 					quote: pubQuote
 				}
@@ -376,17 +366,17 @@ test(
 
 			// The draft carries the changed band under the cloned scheme, and the unchanged one as sealed.
 			const draftBands = (await session.query(
-				`select c.code, c.bands from statutory_contributions c where c.settings_id = $1 order by c.code`,
+				`select c.code, c.rules from statutory_contributions c where c.settings_id = $1 order by c.code`,
 				[draft.id]
 			)) as Row[];
 			assert.deepEqual(
 				draftBands.map((row) => [
 					row.code,
-					(row.bands as ReadonlyArray<{ employee: string }>)[0]!.employee
+					(row.rules as ReadonlyArray<{ employee: string }>)[0]!.employee
 				]),
 				[
-					['PUB-EPF', 'base * 12.0 / 100.0'],
-					['PUB-EPF-NC', 'base * 5.0 / 100.0']
+					['PUB-EPF', proposedRule.employee],
+					['PUB-EPF-NC', 'round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)']
 				]
 			);
 			const draftChildren = (await session.query(
@@ -401,15 +391,15 @@ test(
 
 			// Nothing sealed changed: same row versions, same bands.
 			const sealedAfter = await session.query(
-				`select s.id, s.row_version, c.bands from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
+				`select s.id, s.row_version, c.rules from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id where s.sealed_at is not null order by c.id`
 			);
 			assert.deepEqual(sealedAfter, sealedBefore);
 			const [sealedEpf] = (await session.query(
-				`select bands from statutory_contributions where id = $1`,
+				`select rules from statutory_contributions where id = $1`,
 				[STATUTORY_PUB_EPF_ID]
 			)) as Row[];
 			assert.deepEqual(
-				(sealedEpf?.bands as ReadonlyArray<{ employee: string }>)[0]?.employee,
+				(sealedEpf?.rules as ReadonlyArray<{ employee: string }>)[0]?.employee,
 				sealedBand.employee
 			);
 

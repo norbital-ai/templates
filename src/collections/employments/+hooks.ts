@@ -1,7 +1,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { stableJson } from '../../lib/jurisdiction_settings.js';
-import { dateKey } from '../../lib/iso-day.js';
+import { readRange } from '../payroll_runs/lib/effective.js';
 import {
 	assertContractDoesNotOverlap,
 	assertContractUnreferenced,
@@ -15,7 +15,6 @@ type Prepared = {
 	pending: ContractCandidate[];
 };
 const LIMIT = 20_000;
-const DEPARTURE = ['exit_date', 'exit_reason', 'exit_note'] as const;
 
 export default {
 	mutate: {
@@ -63,7 +62,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Enforce one active contract per employee and entity; permanently freeze every referenced contract; record departure once.',
+					'Enforce one contract per employee and entity on any date; permanently freeze every referenced contract; departure closes the range once and only comments stay writable after.',
 				handler: ({ input, existing, recordId, prepared, parent, api }) =>
 					Effect.gen(function* () {
 						if (prepared.stored.length >= LIMIT || prepared.pending.length >= LIMIT)
@@ -87,39 +86,34 @@ export default {
 							assertContractDoesNotOverlap(candidate, candidates.slice(index + 1));
 						const held = prepared.stored.find((row) => row.id === recordId);
 						const candidate = bindParent({ ...held, ...existing, ...input });
-						if (candidate.exit_date != null) {
-							if (!candidate.exit_reason)
-								refuse('Departure requires a last employment date and reason.');
-							if (dateKey(candidate.exit_date) < dateKey(candidate.hire_date ?? ''))
-								refuse('Departure cannot precede the contract hire date.');
-						} else if (candidate.exit_reason != null || candidate.exit_note != null)
-							refuse('Departure requires a last employment date and reason.');
 						assertContractDoesNotOverlap(
 							candidate,
 							[...prepared.stored, ...prepared.pending].filter((row) => row.id !== recordId)
 						);
 						if (existing == null)
 							return { ...input, ...(parentColumn == null ? {} : { [parentColumn]: parent!.id }) };
-						if (input.children != null) {
-							const prior = existing.children ?? [];
-							if (
-								input.children.length < prior.length ||
-								prior.some((row, index) => stableJson(row) !== stableJson(input.children![index]))
-							)
-								refuse(
-									'Child facts are append-only. Close a wrong fact with its effective period and append the correction.'
-								);
-						}
 						const differs = ([key, value]: [string, unknown]) =>
 							key !== 'id' &&
 							key !== 'row_version' &&
 							stableJson(value) !== stableJson(Reflect.get(existing, key));
-						const entries = Object.entries(input);
-						const isDeparture = (key: string) => (DEPARTURE as readonly string[]).includes(key);
-						// Departure is recorded once on the sealed contract; the contract itself stays frozen.
-						if (existing.exit_date != null && entries.some((e) => isDeparture(e[0]) && differs(e)))
-							refuse('A recorded departure cannot be edited.');
-						if (entries.some((e) => !isDeparture(e[0]) && e[0] !== 'children' && differs(e)))
+						const changed = Object.entries(input)
+							.filter(differs)
+							.map(([key]) => key);
+						const onlyComments = changed.length > 0 && changed.every((key) => key === 'comments');
+						if (readRange(existing.effective_range)?.end != null) {
+							// A closed contract never reopens; a rehire is a new contract.
+							if (changed.includes('effective_range'))
+								refuse('A closed contract cannot be reopened. Create a new contract for a rehire.');
+							if (!onlyComments && changed.length > 0)
+								yield* assertContractUnreferenced(api, existing.id);
+							return input;
+						}
+						// An open contract closes its range (departure) and keeps comments freely;
+						// anything else must clear the seal first.
+						const onlyCloseAndComments = changed.every(
+							(key) => key === 'comments' || key === 'effective_range'
+						);
+						if (!onlyCloseAndComments && changed.length > 0)
 							yield* assertContractUnreferenced(api, existing.id);
 						return input;
 					})

@@ -94,7 +94,7 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
+	<Grid gap="sm" minimum="compact">
 		<Combobox
 			options={KIND_OPTIONS}
 			value={current?.kind ?? null}

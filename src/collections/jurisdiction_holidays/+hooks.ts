@@ -12,7 +12,6 @@ type HolidaySnapshotLike = { readonly id: string };
 type RunLike = {
 	readonly id: string;
 	readonly period: string;
-	readonly lifecycle: string;
 	readonly holidays: readonly HolidaySnapshotLike[] | null;
 };
 
@@ -44,8 +43,8 @@ export default {
 						if (row.date == null || !isCalendarDate(dateKey(row.date)))
 							refuse('A holiday needs a valid calendar day.');
 						if (!String(row.name ?? '').trim()) refuse('A holiday needs a name.');
-						if (row.original_date != null && !isCalendarDate(dateKey(row.original_date)))
-							refuse('The original date must be a valid calendar day.');
+						if (row.replaces != null && !isCalendarDate(dateKey(row.replaces)))
+							refuse('The replaced date must be a valid calendar day.');
 						if (existing == null) return input;
 						const unpublishing = input.published_at === null && existing.published_at != null;
 						const movingIdentity = IDENTITY.some(
@@ -55,8 +54,7 @@ export default {
 						);
 						if (!unpublishing && !movingIdentity) return input;
 						const runs = (yield* api.db.payroll_runs.findMany({
-							where: { lifecycle: { in: ['DRAFT', 'PAID'] } },
-							columns: { id: true, period: true, lifecycle: true, holidays: true },
+							columns: { id: true, period: true, holidays: true },
 							limit: QUERY_LIMIT
 						})) as readonly RunLike[];
 						if (runs.length >= QUERY_LIMIT)
@@ -99,8 +97,7 @@ export default {
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
 						const runs = (yield* api.db.payroll_runs.findMany({
-							where: { lifecycle: { in: ['DRAFT', 'PAID'] } },
-							columns: { id: true, period: true, lifecycle: true, holidays: true },
+							columns: { id: true, period: true, holidays: true },
 							limit: QUERY_LIMIT
 						})) as readonly RunLike[];
 						if (runs.length >= QUERY_LIMIT)

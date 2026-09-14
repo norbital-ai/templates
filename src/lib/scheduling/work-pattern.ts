@@ -1,24 +1,18 @@
 import { Schema } from 'effect';
 import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
+import { dateKey } from '../iso-day.js';
+import { readRange } from '../../collections/payroll_runs/lib/effective.js';
 import { rosterCodeKind, workWindow, type RosterCodeLike } from './roster-code.js';
 
 const DAY_MS = 86_400_000;
-
-/**
- * The pattern of terms that name none: rostered as assigned, with nothing to project and no
- * guarantee to measure. One value, so every reader that resolves a NULL `shift_pattern_id` lands
- * on the same expectation rather than each inventing its own.
- */
-export const AS_ASSIGNED_PATTERN: WorkPattern = {
-	type: 'ROSTERED',
-	expectation: { kind: 'AS_ASSIGNED', period: 'MONTH', maximum_paid_minutes: null }
-};
 
 /** A `shift_patterns` row as the pattern readers need it. */
 export type ShiftPatternLike = {
 	readonly id: string;
 	readonly code: string;
 	readonly pattern: WorkPattern;
+	/** The stored effective range; the cycle counts from its start. Missing only in code fixtures. */
+	readonly effective_range?: unknown;
 };
 
 /**
@@ -54,20 +48,31 @@ export function termPatternRow(
 	);
 }
 
-/** The pattern value one terms row projects from: the named row's, else rostered as assigned. */
+/** The pattern value one terms row projects from, or null when the terms name no pattern. */
 export function termPattern(
 	term: TermPatternLike,
 	patternById?: ReadonlyMap<string, ShiftPatternLike>
-): WorkPattern {
-	return termPatternRow(term, patternById)?.pattern ?? AS_ASSIGNED_PATTERN;
+): WorkPattern | null {
+	return termPatternRow(term, patternById)?.pattern ?? null;
 }
 
-/** Every roster code a pattern's cycles name; empty for a rostered pattern. */
-export function patternRosterCodeIds(pattern: WorkPattern): string[] {
-	if (pattern.type !== 'PATTERNED') return [];
-	return [
-		...new Set(pattern.phases.flatMap((phase) => phase.day_cycle.map((day) => day.roster_code_id)))
-	];
+/**
+ * The day a pattern's cycle counts from: the effective start of the `shift_patterns` row. Terms
+ * name the pattern and the pattern row states its own beginning, so the anchor is never an operator
+ * decision and no value carries a second date.
+ */
+export function patternAnchor(
+	row: { readonly effective_range?: unknown } | null | undefined
+): string | null {
+	if (row == null) return null;
+	const range = readRange(row.effective_range);
+	return range == null ? null : dateKey(range.start);
+}
+
+/** Every roster code a pattern's cycle names; empty for an expectation. */
+export function patternRosterCodeIds(pattern: WorkPattern | null): string[] {
+	if (pattern == null || !('days' in pattern)) return [];
+	return [...new Set(pattern.days.map((day) => day.roster_code_id))];
 }
 
 function dateNumber(date: string): number {
@@ -76,62 +81,19 @@ function dateNumber(date: string): number {
 	return Math.floor(value / DAY_MS);
 }
 
-function addMonths(date: string, months: number): string {
-	const source = new Date(`${date}T00:00:00.000Z`);
-	const sourceDay = source.getUTCDate();
-	const target = new Date(Date.UTC(source.getUTCFullYear(), source.getUTCMonth() + months, 1));
-	const last = new Date(
-		Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)
-	).getUTCDate();
-	target.setUTCDate(Math.min(sourceDay, last));
-	return target.toISOString().slice(0, 10);
-}
-
-function patternedPhaseOn(pattern: Extract<WorkPattern, { type: 'PATTERNED' }>, date: string) {
-	if (pattern.phases.length === 1 && pattern.phases[0]!.duration.kind === 'CONTINUOUS') {
-		return { phase: pattern.phases[0]!, startsOn: pattern.anchor_date };
-	}
-	if (pattern.phases.some((phase) => phase.duration.kind === 'CONTINUOUS')) {
-		throw new Error('CONTINUOUS is valid only for a single-phase work pattern.');
-	}
-
-	// Checked before either direction is walked. It used to be checked only on the backwards path,
-	// so a phase duration that is neither CONTINUOUS nor CALENDAR_MONTHS threw for a date before the
-	// anchor and *hung* for one after it: the walk below skips a phase it cannot measure, so with no
-	// measurable phase `cycleStart` never advances and the loop spins for ever. A hang inside a
-	// payroll run has no error to report and nothing to diagnose, which is worse than a refusal.
-	const cycleMonths = pattern.phases.reduce((total, phase) => {
-		if (phase.duration.kind !== 'CALENDAR_MONTHS') {
-			throw new Error('A multi-phase pattern requires calendar-month durations.');
-		}
-		return total + phase.duration.months;
-	}, 0);
-
-	let cycleStart = pattern.anchor_date;
-	if (date < cycleStart) {
-		// Move back in whole outer cycles until this date is in or after the candidate cycle. The
-		// anchor identifies a phase boundary; it is not the earliest date payroll is allowed to ask.
-		do {
-			cycleStart = addMonths(cycleStart, -cycleMonths);
-		} while (date < cycleStart);
-	}
-	for (;;) {
-		for (const phase of pattern.phases) {
-			if (phase.duration.kind !== 'CALENDAR_MONTHS') continue;
-			const phaseEnd = addMonths(cycleStart, phase.duration.months);
-			if (date < phaseEnd) return { phase, startsOn: cycleStart };
-			cycleStart = phaseEnd;
-		}
-	}
-}
-
-export function patternRosterCodeId(pattern: WorkPattern, date: string): string | null {
-	if (pattern.type === 'ROSTERED') return null;
-	const { phase, startsOn } = patternedPhaseOn(pattern, date);
-	const offset = dateNumber(date) - dateNumber(startsOn);
-	const index =
-		((offset % phase.day_cycle.length) + phase.day_cycle.length) % phase.day_cycle.length;
-	return phase.day_cycle[index]!.roster_code_id;
+/**
+ * The roster code one day projects, or null when the pattern generates nothing for that day. The
+ * cycle's first day is `anchor`, the pattern row's effective start, and it repeats forever.
+ */
+export function patternRosterCodeId(
+	pattern: WorkPattern | null,
+	date: string,
+	anchor: string | null
+): string | null {
+	if (pattern == null || !('days' in pattern) || anchor == null) return null;
+	const offset = dateNumber(date) - dateNumber(anchor);
+	const index = ((offset % pattern.days.length) + pattern.days.length) % pattern.days.length;
+	return pattern.days[index]!.roster_code_id;
 }
 
 const patternWorkloadSchema = Schema.Struct({
@@ -143,15 +105,15 @@ const patternWorkloadSchema = Schema.Struct({
 export type PatternWorkload = Schema.Schema.Type<typeof patternWorkloadSchema>;
 
 /**
- * Derive the amount promised by a pattern. For calendar-month phases the full outer sequence is
- * enumerated once, so February and a 31-day month contribute their real number of days rather than
- * an invented four-weeks-per-month approximation.
+ * Derive the amount promised by a pattern: the expectation's own statement where there is no
+ * cycle, else the day cycle's real total over one full turn of the cycle.
  */
 export function patternWorkload(
-	pattern: WorkPattern,
+	pattern: WorkPattern | null,
 	rosterCodeById: ReadonlyMap<string, RosterCodeLike>
 ): PatternWorkload | null {
-	if (pattern.type === 'ROSTERED') {
+	if (pattern == null) return null;
+	if ('expectation' in pattern) {
 		if (pattern.expectation.kind === 'AS_ASSIGNED') return null;
 		const referenceDays = pattern.expectation.period === 'WEEK' ? 7 : 30;
 		return {
@@ -162,28 +124,8 @@ export function patternWorkload(
 		};
 	}
 
-	let referenceDays: number;
-	let spans: number[];
-	if (pattern.phases.length === 1 && pattern.phases[0]!.duration.kind === 'CONTINUOUS') {
-		referenceDays = pattern.phases[0]!.day_cycle.length;
-		spans = [referenceDays];
-	} else {
-		spans = [];
-		let end = pattern.anchor_date;
-		for (const phase of pattern.phases) {
-			if (phase.duration.kind !== 'CALENDAR_MONTHS') {
-				throw new Error('A multi-phase pattern requires calendar-month durations.');
-			}
-			const next = addMonths(end, phase.duration.months);
-			spans.push(dateNumber(next) - dateNumber(end));
-			end = next;
-		}
-		referenceDays = dateNumber(end) - dateNumber(pattern.anchor_date);
-	}
-
-	// One pass over each roster code: the enumeration above used to re-resolve the phase per
-	// day (`patternRosterCodeId`), re-walking the phases and re-parsing the clocks behind every
-	// code, so a year-long cycle cost thousands of phase walks per employment per run.
+	const referenceDays = pattern.days.length;
+	// One pass over each roster code: the paid minutes are the only fact the workload needs.
 	const paidMinutesByCode = new Map<string, number | null>();
 	const paidMinutesOf = (id: string): number | null => {
 		const known = paidMinutesByCode.get(id);
@@ -198,16 +140,12 @@ export function patternWorkload(
 
 	let workDays = 0;
 	let paidMinutes = 0;
-	pattern.phases.forEach((phase, phaseIndex) => {
-		const span = spans[phaseIndex]!;
-		const cycle = phase.day_cycle;
-		for (let day = 0; day < span; day += 1) {
-			const paid = paidMinutesOf(cycle[day % cycle.length]!.roster_code_id);
-			if (paid == null) continue;
-			workDays += 1;
-			paidMinutes += paid;
-		}
-	});
+	for (const day of pattern.days) {
+		const paid = paidMinutesOf(day.roster_code_id);
+		if (paid == null) continue;
+		workDays += 1;
+		paidMinutes += paid;
+	}
 	return {
 		work_days: workDays,
 		paid_minutes: paidMinutes,

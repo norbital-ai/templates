@@ -27,7 +27,7 @@
 	);
 </script>
 
-<RecordShell title={record?.summary ?? t('component.create_terms')}>
+<RecordShell>
 	<CollectionForm
 		{client}
 		collection="employment_terms"

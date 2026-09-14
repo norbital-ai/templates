@@ -59,7 +59,7 @@ const person = (hoursPerWeek: number, daysPerWeek: number, payrollGroup: string)
 			race: null,
 			religion: null
 		},
-		employment: { hire_date: '2020-01-01' },
+		employment: { service_start: '2020-01-01' },
 		terms: {
 			residency_status: 'CITIZEN',
 			employment_type: 'PERMANENT',

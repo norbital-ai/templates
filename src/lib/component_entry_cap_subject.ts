@@ -15,7 +15,6 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { personContext, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { childrenOn, resolveEmployment } from './employment-contract.js';
-import type { WorkspaceRow } from '$bolt/types.js';
 import { dateKey } from './iso-day.js';
 
 const LIMIT = 10_000;
@@ -23,11 +22,11 @@ const LIMIT = 10_000;
 /** Later obligations use the final terms of their own closed contract; in-service gaps stay gaps. */
 export function payRequestTerms<T extends { readonly effective_range: unknown }>(
 	terms: readonly T[],
-	employment: { readonly exit_date?: string | null },
+	employment: { readonly effective_range: { readonly end: string | null } | null },
 	eventDate: string
 ): T | null {
-	const end = employment.exit_date == null ? null : dateKey(employment.exit_date);
-	const date = end != null && eventDate > end ? end : eventDate;
+	const end = employment.effective_range?.end;
+	const date = end != null && eventDate > dateKey(end) ? dateKey(end) : eventDate;
 	return terms.find((row) => coversDate(row.effective_range, date)) ?? null;
 }
 
@@ -68,15 +67,12 @@ export function capSubject(
 				employee_id: true,
 				company_id: true,
 				employee_number: true,
-				hire_date: true,
-				effective_range: true,
-				exit_date: true,
-				exit_reason: true,
-				children: true
+				effective_range: true
 			}
 		});
 		if (employment == null) return null;
 		const contract = resolveEmployment(employment as Parameters<typeof resolveEmployment>[0]);
+		const start = contract.effective_range == null ? '' : dateKey(contract.effective_range.start);
 		const [employee, terms, company] = yield* Effect.all(
 			[
 				api.db.employees.findFirst({
@@ -88,7 +84,8 @@ export function capSubject(
 						marital_status: true,
 						solo_parent: true,
 						race: true,
-						religion: true
+						religion: true,
+						children: true
 					}
 				}),
 				api.db.employment_terms.findMany({
@@ -107,14 +104,18 @@ export function capSubject(
 		const at = (date: string): PersonContext =>
 			personContext({
 				employee: employee as never,
-				employment: { hire_date: String(employment.hire_date) },
+				employment: { service_start: start },
 				terms: payRequestTerms(
 					terms as readonly { effective_range: unknown }[],
 					contract,
 					date
 				) as never,
 				children: childrenOn(
-					(employment.children ?? []) as WorkspaceRow<'employments'>['children'],
+					(
+						employee as {
+							children?: readonly { child_birthdate: string; effective_range: unknown }[] | null;
+						} | null
+					)?.children ?? [],
 					date
 				),
 				company: company as never,

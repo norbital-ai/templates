@@ -53,8 +53,6 @@ function settle(world, period, prepared, built) {
 		id: runId,
 		company_id: COMPANY_ID,
 		period,
-		lifecycle: 'PAID',
-		sequence: 0,
 		pay_date: prepared.window.payDate,
 		attendance_from: prepared.window.attendance.start,
 		attendance_to: prepared.window.attendance.end,
@@ -251,6 +249,15 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
  * first from a projection of the whole year off fifteen days' wages, the second from the year-to-
  * date it reads back off the first.
  */
+/**
+ * The annual scale as its rules state it: project the year, clamp at zero, scale through the
+ * published ladder, spread what is left, then round to the cent.
+ */
+const PUB_TAX_CHARGEABLE = 'year_to_date.base + base * (1.0 + projection.future_equivalents)';
+const PUB_TAX_CLAMPED = `(${PUB_TAX_CHARGEABLE} > 0.0 ? ${PUB_TAX_CHARGEABLE} : 0.0)`;
+const PUB_TAX_SCALED = `progressive(${PUB_TAX_CLAMPED}, [0.0, 0.0, 0.0, 20000.0, 0.0, 1.0, 35000.0, 150.0, 3.0, 50000.0, 600.0, 8.0])`;
+const PUB_TAX_EMPLOYEE = `round_cent((${PUB_TAX_SCALED} - year_to_date.employee > 0.0 ? (${PUB_TAX_SCALED} - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0))`;
+
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	world.employment_terms[0].base_salary = { value: SEMI_MONTHLY_BASE, currency: 'MYR' };
@@ -264,55 +271,26 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		name: 'Public fixture withholding',
 		authority: 'Public fixture',
 		assessment_period: 'PAY_PERIOD',
-		eligibility: '',
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
 		approval_id: null,
-		rules: {
-			relief: '',
-			base_transform: '',
-			share_for_dependants: '',
-			rounding: ['NEAREST_CENT'],
-			no_withholding_below: 0,
-			use_period_table: false,
-			additional_remuneration_channel: false,
-			employee_share_annual_cap: null,
-			shared_cap_group: null,
-			project_relief_annually: false,
-			total_rounded_employee_floored: false
-		},
-		bands: [
-			{ when: 'base <= 20000.0', employee: '0.0', employer: '0.0' },
-			{
-				when: 'base > 20000.0 && base <= 35000.0',
-				employee: '0.0 + (base - 20000.0) * 1.0 / 100.0',
-				employer: '0.0'
-			},
-			{
-				when: 'base > 35000.0 && base <= 50000.0',
-				employee: '150.0 + (base - 35000.0) * 3.0 / 100.0',
-				employer: '0.0'
-			},
-			{
-				when: 'base > 50000.0',
-				employee: '600.0 + (base - 50000.0) * 8.0 / 100.0',
-				employer: '0.0'
-			}
-		]
+		rules: [{ when: 'true', employee: PUB_TAX_EMPLOYEE, employer: '0.0' }]
 	});
-	world.statutory_contributions.at(-1)!.relievedIds = [];
 	const workSchemeIds = ['PUB-EPF', 'PUB-TAX'].flatMap((code) => {
 		const row = world.statutory_contributions.find((candidate) => candidate.code === code);
 		return row == null ? [] : [row.id as string];
 	});
 	for (const version of world.jurisdiction_settings) {
 		const rules = version.work_rules as {
-			lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
+			engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
 			rates: { bands: { statutory_opt_ins: unknown[] }[] };
 		};
 		const include = workSchemeIds.map((id) => ({ contribution_id: id, effect: 'INCLUDE' }));
 		const reduce = workSchemeIds.map((id) => ({ contribution_id: id, effect: 'REDUCE' }));
-		rules.lines.salary.statutory_opt_ins = include;
-		rules.lines.night.statutory_opt_ins = include;
-		rules.lines.absence.statutory_opt_ins = reduce;
+		rules.engine_lines.salary.statutory_opt_ins = include;
+		rules.engine_lines.night.statutory_opt_ins = include;
+		rules.engine_lines.absence.statutory_opt_ins = reduce;
 		for (const band of rules.rates.bands) band.statutory_opt_ins = include;
 		for (const catalogue of [
 			world.claim_catalogue,

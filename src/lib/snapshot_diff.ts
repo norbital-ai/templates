@@ -56,18 +56,48 @@ const display = (value: unknown): string | number | boolean | null => {
 	return JSON.stringify(value) ?? String(value);
 };
 
-const walk = (previous: unknown, proposed: unknown, path: string, into: LeafChange[]): void => {
+/**
+ * How a caller names a scheme: an opt-in stores the row id, but a row id is provenance, not law.
+ * Cloning a version remaps every opt-in to the new version's scheme rows while the code stays, so
+ * the compare reads each id through this lookup and a leaf whose two sides name the same code is
+ * not a change at all.
+ */
+type ContributionCodeOf = (contributionId: string) => string | null;
+
+const walk = (
+	previous: unknown,
+	proposed: unknown,
+	path: string,
+	into: LeafChange[],
+	codeOf?: ContributionCodeOf
+): void => {
 	if (stableJson(previous) === stableJson(proposed)) return;
 	if (Array.isArray(previous) && Array.isArray(proposed)) {
 		const length = Math.max(previous.length, proposed.length);
 		for (let index = 0; index < length; index += 1)
-			walk(previous[index], proposed[index], `${path}[${index}]`, into);
+			walk(previous[index], proposed[index], `${path}[${index}]`, into, codeOf);
 		return;
 	}
 	if (isRecord(previous) && isRecord(proposed)) {
 		const keys = [...new Set([...Object.keys(previous), ...Object.keys(proposed)])].sort();
-		for (const key of keys)
-			walk(previous[key], proposed[key], path === '' ? key : `${path}.${key}`, into);
+		for (const key of keys) {
+			const from = previous[key];
+			const to = proposed[key];
+			if (key === 'contribution_id' && codeOf != null) {
+				const before = typeof from === 'string' ? codeOf(from) : null;
+				const after = typeof to === 'string' ? codeOf(to) : null;
+				if (before != null && after != null) {
+					if (before !== after)
+						into.push({
+							path: path === '' ? key : `${path}.${key}`,
+							previous: before,
+							proposed: after
+						});
+					continue;
+				}
+			}
+			walk(from, to, path === '' ? key : `${path}.${key}`, into, codeOf);
+		}
 		return;
 	}
 	into.push({ path, previous: display(previous), proposed: display(proposed) });
@@ -76,12 +106,13 @@ const walk = (previous: unknown, proposed: unknown, path: string, into: LeafChan
 /** The root scalars that differ between two versions, one leaf per moved value. */
 export function diffSettingsRoot(
 	previous: object | null | undefined,
-	proposed: object | null | undefined
+	proposed: object | null | undefined,
+	codeOf?: ContributionCodeOf
 ): readonly LeafChange[] {
 	const changes: LeafChange[] = [];
 	if (previous == null || proposed == null) return changes;
 	for (const field of ROOT_DIFF_FIELDS)
-		walk(asRecord(previous)[field], asRecord(proposed)[field], field, changes);
+		walk(asRecord(previous)[field], asRecord(proposed)[field], field, changes, codeOf);
 	return changes;
 }
 
@@ -111,7 +142,8 @@ export function formatLeafPath(path: string): string {
 export function diffCollection(
 	collection: string,
 	previous: readonly object[],
-	proposed: readonly object[]
+	proposed: readonly object[],
+	codeOf?: ContributionCodeOf
 ): CollectionDiff | null {
 	const single =
 		previous.length === 1 &&
@@ -133,7 +165,7 @@ export function diffCollection(
 			continue;
 		}
 		const changes: LeafChange[] = [];
-		walk(stripped(old), stripped(row), '', changes);
+		walk(stripped(old), stripped(row), '', changes, codeOf);
 		if (changes.length > 0) rows.push({ code: key, name: nameOf(row), state: 'CHANGED', changes });
 	}
 	for (const [key, row] of before)

@@ -22,20 +22,18 @@ import {
 	type SettlementDirection,
 	type FamilyPayItem
 } from '../../../lib/payroll/family.js';
-import {
-	LEAVE_ABSENCE_SEQUENCE,
-	LEAVE_ENCASHMENT_SEQUENCE,
-	encashmentCode
-} from '../../../lib/leave/pay-items.js';
+import { encashmentCode } from '../../../lib/leave/pay-items.js';
 import { PAGE_LIMIT, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import {
+	patternAnchor,
 	patternRosterCodeId,
 	patternRosterCodeIds,
-	termPattern
+	termPattern,
+	termPatternRow
 } from '../../../lib/scheduling/work-pattern.js';
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import type { WorkspaceRow } from '../$types.js';
@@ -78,7 +76,6 @@ type RunRow = Pick<
 
 /** What a settled line's catalogue says about it, reduced to the workbook's questions. */
 type ExportLine = {
-	readonly sequence: number;
 	readonly calculationSource: string;
 	readonly bucket: SettlementBucket;
 	readonly destination: SettlementDestination;
@@ -256,7 +253,6 @@ export function loadRunExports(
 			if (version != null)
 				for (const item of workPayItems({ ...version.work_rules, settings_id: version.id }))
 					componentByCode.set(item.code, {
-						sequence: decodeNumber(item.sequence),
 						calculationSource: item.definition.source,
 						bucket: settlementBucket(item.destination, item.direction),
 						destination: item.destination,
@@ -265,7 +261,6 @@ export function loadRunExports(
 			for (const row of leaves.filter((row) => row.settings_id === run.settings_id)) {
 				const destination = row.destination as SettlementDestination;
 				componentByCode.set(encashmentCode(row.code), {
-					sequence: LEAVE_ENCASHMENT_SEQUENCE,
 					calculationSource: 'DERIVED',
 					bucket: 'EARNING',
 					destination,
@@ -273,7 +268,6 @@ export function loadRunExports(
 				});
 				if (!row.paid)
 					componentByCode.set(row.code, {
-						sequence: LEAVE_ABSENCE_SEQUENCE,
 						calculationSource: 'DERIVED',
 						bucket: 'ABSENCE',
 						destination,
@@ -293,7 +287,6 @@ export function loadRunExports(
 					const destination = row.destination as SettlementDestination;
 					const direction = row.direction as SettlementDirection | null;
 					componentByCode.set(row.code, {
-						sequence: decodeNumber(row.sequence),
 						calculationSource: 'ENTRY',
 						bucket: settlementBucket(destination, direction),
 						destination,
@@ -316,13 +309,13 @@ export function loadRunExports(
 				const employeeNumber = employment?.employee_number ?? payslip.employment_id;
 				const employee = employment == null ? null : employeeById.get(employment.employee_id);
 				const hireDate =
-					employment == null
+					employment?.effective_range == null
 						? null
-						: requiredDateKey(employment.hire_date, 'employments.hire_date');
+						: requiredDateKey(employment.effective_range.start, 'employments.effective_range');
 				const exitDate =
-					employment?.exit_date == null
+					employment?.effective_range?.end == null
 						? null
-						: requiredDateKey(employment.exit_date, 'employments.exit_date');
+						: requiredDateKey(employment.effective_range.end, 'employments.effective_range');
 				const employmentTerms = termsByEmployment.get(payslip.employment_id) ?? [];
 				// A leaver's terms end on their last day, and their wages arrive after it. Reading the
 				// terms at the pay date therefore found nothing for exactly the people whose final
@@ -363,8 +356,12 @@ export function loadRunExports(
 					if ((hireDate != null && date < hireDate) || (exitDate != null && date > exitDate))
 						return [];
 					const dayTerms = effectiveOn(employmentTerms, date);
-					const codeId =
-						dayTerms == null ? null : patternRosterCodeId(termPattern(dayTerms, patternById), date);
+					const patternRow = dayTerms == null ? null : termPatternRow(dayTerms, patternById);
+					const codeId = patternRosterCodeId(
+						patternRow?.pattern ?? null,
+						date,
+						patternAnchor(patternRow)
+					);
 					const shift = codeId == null ? null : shiftById.get(codeId);
 					return shift == null ? [] : [{ code: shift.code, shift }];
 				});
@@ -406,10 +403,7 @@ export function loadRunExports(
 							componentName: componentCode,
 							// An adjustment states the bucket it settled in; a base line reads its
 							// catalogue's, and a code the run no longer carries is informational.
-							nature: bucket ?? line?.bucket ?? 'INFORMATION',
-							// The catalogue's order is the column order. A code the run's catalogue no
-							// longer carries sorts last rather than jumping to the front.
-							sequence: line?.sequence ?? Number.MAX_SAFE_INTEGER,
+							bucket: bucket ?? line?.bucket ?? 'INFORMATION',
 							calculationSource: line?.calculationSource ?? 'DERIVED',
 							amount,
 							quantity,
@@ -461,13 +455,13 @@ export function loadRunExports(
 					employeeName: employee?.name ?? employeeNumber,
 					identityNumber: employee?.identity_number ?? null,
 					hireDate:
-						employment == null
+						employment?.effective_range == null
 							? ''
-							: requiredDateKey(employment.hire_date, 'employments.hire_date'),
+							: requiredDateKey(employment.effective_range.start, 'employments.effective_range'),
 					lastDay:
-						employment?.exit_date == null
+						employment?.effective_range?.end == null
 							? null
-							: requiredDateKey(employment.exit_date, 'employments.exit_date'),
+							: requiredDateKey(employment.effective_range.end, 'employments.effective_range'),
 					attendance: {
 						normalHours: scheduled.reduce(
 							(total, day) =>

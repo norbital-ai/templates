@@ -28,8 +28,8 @@ export default defineModel(
 		/**
 		 * The occupational risk group the entity is rated in, where its regime prices a contribution
 		 * by risk rather than by wage or age. Indonesia's JKK is published as a risk ladder
-		 * (a band whose `when` reads `risk_class`), so `selectBand` filters the JKK bands on this column; a null risk
-		 * class in such a jurisdiction matches no band and the run stops naming JKK. Entities whose
+		 * (a rule whose `when` reads `risk_class`), so `selectRule` filters the JKK rules on this column; a null risk
+		 * class in such a jurisdiction matches no rule and the run stops naming JKK. Entities whose
 		 * jurisdiction has no risk-keyed scheme leave it empty, and the form does not show it.
 		 */
 		risk_class: text(),

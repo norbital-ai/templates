@@ -49,7 +49,7 @@ const viteResource = Effect.acquireRelease(
 const line = (overrides) => ({
 	componentCode: 'UNUSED',
 	componentName: 'Unused',
-	nature: 'EARNING',
+	bucket: 'EARNING',
 	sequence: 500,
 	calculationSource: 'ENTRY',
 	amount: 0,
@@ -89,7 +89,7 @@ const VERIFIED = {
 			componentCode: 'UNPAID_LEAVE_DEDUCTION',
 			sequence: 1000,
 			componentName: 'Unpaid leave',
-			nature: 'ABSENCE',
+			bucket: 'ABSENCE',
 			calculationSource: 'DERIVED',
 			amount: 55.66,
 			quantity: 0.5
@@ -106,7 +106,7 @@ const VERIFIED = {
 			componentCode: 'MEDICAL_CLAIM',
 			sequence: 300,
 			componentName: 'Medical claim',
-			nature: 'NON_WAGE_PAYMENT',
+			bucket: 'NON_WAGE_PAYMENT',
 			amount: 93.5,
 			isClaim: true
 		})
@@ -170,7 +170,7 @@ const JOINER = {
 			componentCode: 'STAFF_LOAN',
 			sequence: 900,
 			componentName: 'Staff loan instalment',
-			nature: 'DEDUCTION',
+			bucket: 'DEDUCTION',
 			amount: 100,
 			isLoanInstalment: true
 		})
@@ -542,8 +542,8 @@ Effect.runPromise(
 				'Employee number',
 				'Employment ID',
 				'Currency',
-				'OVERTIME',
 				'BASIC',
+				'OVERTIME',
 				'grossEarnings',
 				'netPay',
 				'cpfEmployee',
@@ -565,8 +565,8 @@ Effect.runPromise(
 				'PUBSG0001',
 				'emp-sg-1',
 				'SGD',
-				300,
 				5000,
+				300,
 				5300,
 				4240,
 				1060,

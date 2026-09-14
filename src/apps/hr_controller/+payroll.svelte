@@ -46,6 +46,21 @@
 
 	const today = todayKey();
 
+	/** Payment is a fact of the slips; a run reads its progress rather than declaring a state. */
+	const progressOf = (
+		run: unknown
+	): { readonly paid: number; readonly total: number; readonly percent: number } => {
+		const slips =
+			(run as { readonly payslip_payroll_run?: readonly { readonly status: string }[] })
+				.payslip_payroll_run ?? [];
+		const paid = slips.filter((slip) => slip.status === 'PAID').length;
+		return {
+			paid,
+			total: slips.length,
+			percent: slips.length === 0 ? 0 : Math.round((paid / slips.length) * 100)
+		};
+	};
+
 	const payrollRunsQuery = $derived(
 		selectedCompanyId == null
 			? null
@@ -53,6 +68,7 @@
 					where: { company_id: { eq: selectedCompanyId } },
 					orderBy: { period: 'desc' },
 					columns: PAYROLL_RUN_LIST_COLUMNS,
+					with: { payslip_payroll_run: { columns: { id: true, status: true } } },
 					limit: 500
 				})
 	);
@@ -81,7 +97,7 @@
 				return {
 					period,
 					payDate: payDateFor(period),
-					runState: run?.lifecycle ?? null,
+					runState: run == null ? null : `${progressOf(run).paid}/${progressOf(run).total}`,
 					attendance: run
 						? `${formatCalendarInstant(run.attendance_from)} → ${formatCalendarInstant(run.attendance_to)}`
 						: null
@@ -96,8 +112,9 @@
 	});
 
 	const lateCount = $derived(cycleBoard.filter((row) => row.status === 'late').length);
-	const draftRunCount = $derived(
-		(payrollRunsQuery?.current ?? []).filter((run) => run.lifecycle === 'DRAFT').length
+	const unpaidRunCount = $derived(
+		(payrollRunsQuery?.current ?? []).filter((run) => progressOf(run).paid < progressOf(run).total)
+			.length
 	);
 	function timingLabel(row: CycleRow): string {
 		const days = daysBetweenKeys(today, row.payDate);
@@ -159,9 +176,9 @@
 								</span>
 								·
 							{/if}
-							{draftRunCount === 1
-								? t('app.payroll.draft_run_one')
-								: t('app.payroll.draft_runs_many', { count: draftRunCount })}
+							{unpaidRunCount === 1
+								? t('app.payroll.unpaid_run_one')
+								: t('app.payroll.unpaid_runs_many', { count: unpaidRunCount })}
 						</p>
 					</Inline>
 					<div class="rounded-lg border">
@@ -310,7 +327,7 @@
 						if (selectedRows.length === 0) {
 							return t('table.pipelineSelectRows', { label: t('component.delete_draft') });
 						}
-						if (selectedRows.some((row) => row.lifecycle !== 'DRAFT')) {
+						if (selectedRows.some((row) => progressOf(row).paid > 0)) {
 							return t('component.cannot_delete_paid');
 						}
 						return null;
@@ -319,7 +336,6 @@
 			>
 				{#snippet columns({ Column })}
 					<Column name="period" label={t('app.payroll.period')} card="title" />
-					<Column name="lifecycle" label={t('app.payroll.lifecycle')} card="badge" />
 					<Column name="pay_date" label={t('app.payroll.pay_date')} />
 					<Column name="configuration_hash" label={t('app.payroll.policy_snapshot')} />
 				{/snippet}
@@ -327,7 +343,13 @@
 					<Stack gap="xs">
 						<Inline align="start" justify="between" gap="sm">
 							<p class="truncate font-medium">{run.period}</p>
-							<span class="shrink-0 text-meta">{run.lifecycle}</span>
+							<span class="shrink-0 text-meta">
+								{t('app.payroll.paid_progress', {
+									paid: progressOf(run).paid,
+									total: progressOf(run).total,
+									percent: progressOf(run).percent
+								})}
+							</span>
 						</Inline>
 						<p class="truncate text-sm text-muted-foreground">
 							{t('app.payroll.pays_line', { date: formatCalendarInstant(run.pay_date) })}

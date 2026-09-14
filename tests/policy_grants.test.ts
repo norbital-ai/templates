@@ -195,7 +195,7 @@ test('an employee cannot mutate a new payroll run, and neither can a supervisor 
 		const [calendar] = grantsFor(policy, 'payroll_runs', 'read');
 		assert.deepEqual(
 			calendar.fields,
-			['company_id', 'period', 'lifecycle', 'attendance_from', 'attendance_to'],
+			['company_id', 'period', 'attendance_from', 'attendance_to'],
 			nameOf(policy)
 		);
 	}

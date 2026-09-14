@@ -8,7 +8,7 @@ const festival = {
 	date: '2026-02-03',
 	name: 'Festival',
 	kind: 'PUBLIC',
-	original_date: null,
+	replaces: null,
 	published_at: '2025-12-01T00:00:00Z'
 };
 const later = { ...festival, id: 'later', date: '2026-06-01', name: 'Other festival' };
