@@ -26,7 +26,7 @@ import type { LeaveActivity } from './pending.js';
 
 export type LeaveSubmission = {
 	readonly employment_id: string;
-	readonly leave_catalogue_id: string;
+	readonly catalogue_id: string;
 	readonly reference: string;
 	readonly event: LeaveEvent;
 };
@@ -91,7 +91,7 @@ export function measureLeaveDay(
 	const pattern = termPattern(term, new Map(context.patterns.map((row) => [row.id, row])));
 	const codeId = override?.shift_definition_id ?? patternRosterCodeId(pattern, date);
 	const shift = context.shifts.find(
-		(row) => row.id === codeId && row.settings_code === rules.company.settings_code
+		(row) => row.id === codeId && row.company_id === rules.company.id
 	);
 	if (!shift || !coversDate(shift.effective_range, date))
 		return { eligible: false as const, reason: 'MISSING_ROSTER_CODE' as const, evidence };
@@ -132,7 +132,7 @@ export function planLeaveActivity(
 	id: string,
 	entries: readonly LeaveActivity[] = context.entries
 ) {
-	const rules = leaveRules(context, input.employment_id, input.leave_catalogue_id);
+	const rules = leaveRules(context, input.employment_id, input.catalogue_id);
 	if (!input.reference.trim()) refuse('A leave entry needs a unique supporting reference.');
 	const sameLeave = entries.filter(
 		(row) => row.employment_id === input.employment_id && row.leave_code === rules.selected.code
@@ -190,7 +190,7 @@ export function planLeaveActivity(
 				charges.push({
 					date,
 					days,
-					leave_catalogue_id: day.catalogue.id,
+					catalogue_id: day.catalogue.id,
 					employment_term_id: day.term.id,
 					holiday_id: day.evidence.holiday_id,
 					shift_definition_id: day.shift.id,
@@ -202,8 +202,8 @@ export function planLeaveActivity(
 			const quantity = charges.reduce((sum, row) => sum + row.days, 0);
 			certificateRequired = charges.some((row) => {
 				const threshold = context.catalogues.find(
-					(catalogue) => catalogue.id === row.leave_catalogue_id
-				)?.requires_certificate_after_days;
+					(catalogue) => catalogue.id === row.catalogue_id
+				)?.evidence_after_days;
 				return threshold != null && quantity > threshold;
 			});
 			event = { ...event, chargeable_days: quantity };
@@ -228,7 +228,7 @@ export function planLeaveActivity(
 			if (date < event.source_window.start)
 				refuse('The source window falls after this employment ended.');
 			if (date < rules.hire) refuse('Encashment cannot consume leave before employment began.');
-			if (amount.currency !== rules.settingsOn(date).currency)
+			if (amount.currency !== rules.settingsOn(date).payroll.currency)
 				refuse('The agreed encashment currency must match the source jurisdiction currency.');
 			if (
 				Math.abs(
@@ -294,21 +294,27 @@ export function planLeaveActivity(
 					: original.event.effective_on;
 			if (event.effective_on < originalDate)
 				refuse('A reversal cannot precede its original activity.');
-			const captured = context.captures.filter((row) => row.leave_entry_id === original.id);
 			let currency: string | null = null;
 			let total = 0n;
-			for (const capture of captured) {
+			if (original.payslip_id != null) {
 				// This person's own payslip. Payment is per slip, so a colleague still waiting on a
 				// correction no longer holds this reversal — the run reading DRAFT because of them
 				// used to refuse a reversal whose money had in fact been paid.
-				const payslip = context.payslips.find((row) => row.id === capture.payslip_id);
+				const payslip = context.payslips.find((row) => row.id === original.payslip_id);
 				if (payslip == null || payslip.paid_at == null)
 					refuse('Delete or settle the draft payroll holding this leave before reversing it.');
-				const amount = capture.gross_amount;
-				if (currency != null && currency !== amount.currency)
-					refuse('Leave captures use inconsistent currencies.');
-				currency = amount.currency;
-				total += toMinorUnits(amount.value, amount.currency);
+				// The settled lines are the frozen evidence: no junction stores them any more, so the
+				// reversal's gross is read back off the payslip the entry is pinned to.
+				for (const line of payslip.adjustments) {
+					if (line.family !== 'LEAVE' || line.source_id !== original.id) continue;
+					if (currency != null && currency !== payslip.currency)
+						refuse('Leave captures use inconsistent currencies.');
+					currency = payslip.currency;
+					total += toMinorUnits(
+						line.bucket === 'ABSENCE' ? -line.amount : line.amount,
+						payslip.currency
+					);
+				}
 			}
 			const gross =
 				currency == null || total === 0n
@@ -335,12 +341,14 @@ export function planLeaveActivity(
 	);
 	return {
 		employment_id: input.employment_id,
-		leave_catalogue_id: rules.selected.id,
+		catalogue_id: rules.selected.id,
 		leave_code: rules.selected.code,
 		reference: input.reference,
 		event,
 		charges,
 		allocations,
+		// A planned entry is not settled: the payroll stamps the pin when it consumes the row.
+		payslip_id: null,
 		certificateRequired
 	};
 }

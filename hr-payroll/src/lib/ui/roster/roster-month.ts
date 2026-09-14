@@ -295,7 +295,7 @@ function attendanceIntervals(day: WorkDayLike | undefined): readonly WorkedInter
 const leaveRequestLikeSchema = Schema.Struct({
 	employment_id: Schema.String,
 	kind: Schema.NullOr(Schema.String),
-	leave_catalogue_id: Schema.String,
+	catalogue_id: Schema.String,
 	from_date: Schema.NullOr(calendarInstantSchema),
 	to_date: Schema.NullOr(calendarInstantSchema),
 	half_day_start: Schema.NullOr(Schema.Boolean),
@@ -306,9 +306,17 @@ type LeaveRequestLike = Schema.Schema.Type<typeof leaveRequestLikeSchema>;
 
 const holidayLikeSchema = Schema.Struct({
 	date: calendarInstantSchema,
-	name: Schema.String
+	name: Schema.String,
+	/**
+	 * The facts the per-person `given_to` rule needs (RFC 0001 §10). A SUBSTITUTE holiday scoped
+	 * to `ONLY_IF_OFF_ON_REPLACED_DATE` is not a holiday for a person whose roster had the
+	 * replaced date as WORK; the board applies the same check `resolveSchedule` does.
+	 */
+	kind: Schema.optional(Schema.NullOr(Schema.String)),
+	original_date: Schema.optional(Schema.NullOr(calendarInstantSchema)),
+	given_to: Schema.optional(Schema.NullOr(Schema.String))
 });
-type HolidayLike = Schema.Schema.Type<typeof holidayLikeSchema>;
+export type HolidayLike = Schema.Schema.Type<typeof holidayLikeSchema>;
 
 /** Every calendar day of a `YYYY-MM` month, in order. */
 export function monthDays(month: string): string[] {
@@ -370,13 +378,20 @@ export function employmentMonthEmptyReason(
 }
 
 /**
- * The company calendar as a date lookup.
+ * The company calendar as a date lookup, whole rows rather than names.
  *
  * The board draws its holiday column from this and `buildRosterMonth` overlays the same map onto
- * every person-day, so a holiday cannot be marked in the header and missing from the cells below it.
+ * every person-day, so a holiday cannot be marked in the header and missing from the cells below
+ * it. The whole row rides along because a SUBSTITUTE holiday may be scoped to the staff who were
+ * off on the replaced date, and that rule can only be applied with `given_to` and `original_date`.
  */
-export function holidayNamesByDate(holidays: readonly HolidayLike[]): Map<string, string> {
-	return new Map(holidays.map((holiday) => [formatDateISO(holiday.date), holiday.name]));
+export function holidaysByDate(holidays: readonly HolidayLike[]): Map<string, HolidayLike> {
+	return new Map(holidays.map((holiday) => [formatDateISO(holiday.date), holiday]));
+}
+
+/** Whether a holiday falls to everyone, or only to staff who were off on the replaced date. */
+function holidayAppliesToEveryone(holiday: Pick<HolidayLike, 'given_to'>): boolean {
+	return holiday.given_to !== 'ONLY_IF_OFF_ON_REPLACED_DATE';
 }
 
 /** Whether an effective-dated row covers a calendar day. Shared with the app's swap logic. */
@@ -466,7 +481,7 @@ const dayIndexesSchema = Schema.Struct({
 		Schema.Struct({ code: Schema.String, halfDay: Schema.Boolean })
 	),
 	pendingLeave: Schema.ReadonlyMap(Schema.String, Schema.Boolean),
-	holidayByDate: Schema.ReadonlyMap(Schema.String, Schema.String)
+	holidayByDate: Schema.ReadonlyMap(Schema.String, holidayLikeSchema)
 });
 type DayIndexes = Schema.Schema.Type<typeof dayIndexesSchema>;
 
@@ -481,14 +496,14 @@ function buildDayIndexes(
 	first: string,
 	last: string
 ): DayIndexes {
-	const holidayByDate = holidayNamesByDate(options.holidays);
+	const holidayByDate = holidaysByDate(options.holidays);
 
 	const workDay = indexWorkDaysByPersonDay(options.workDays);
 
 	const leave = new Map<string, { code: string; halfDay: boolean; days: number }>();
 	for (const request of options.leaveRequests) {
 		if (request.kind !== 'TIME_OFF') continue;
-		const code = options.leaveCodeById.get(request.leave_catalogue_id) ?? 'LEAVE';
+		const code = options.leaveCodeById.get(request.catalogue_id) ?? 'LEAVE';
 		for (const charge of request.charges) {
 			if (charge.date < first || charge.date > last) continue;
 			const key = personDayKey(request.employment_id, charge.date);
@@ -510,6 +525,29 @@ function buildDayIndexes(
 	}
 
 	return { workDay, leave, pendingLeave, holidayByDate };
+}
+
+/**
+ * Whether one holiday is this person's. A scoped `SUBSTITUTE` belongs only to the staff whose
+ * roster had the replaced date off; the check is the one `resolveSchedule` makes — the explicit
+ * plan first, then the pattern projection — so a board cell and a priced day cannot disagree.
+ */
+function holidayAppliesTo(
+	holiday: HolidayLike,
+	options: BuildRosterMonthOptions,
+	indexes: DayIndexes,
+	employmentId: string
+): boolean {
+	if (holidayAppliesToEveryone(holiday) || holiday.original_date == null) return true;
+	const replaced = formatDateISO(holiday.original_date);
+	const override = indexes.workDay.get(personDayKey(employmentId, replaced));
+	const term = activeTerm(options.employmentTerms, employmentId, replaced);
+	const pattern = term == null ? null : termPattern(term);
+	const codeId =
+		override?.shift_definition_id ??
+		(pattern == null ? null : patternRosterCodeId(pattern, replaced));
+	const code = codeId == null ? null : options.rosterCodesById.get(codeId);
+	return code == null || rosterCodeKind(code.variant) !== 'WORK';
 }
 
 /**
@@ -559,7 +597,11 @@ function factsForDate(
 			: employmentEnd != null && date > employmentEnd
 				? ('EXITED' as const)
 				: ('ACTIVE' as const);
-	const holidayName = indexes.holidayByDate.get(date) ?? null;
+	const holiday = indexes.holidayByDate.get(date) ?? null;
+	const holidayName =
+		holiday != null && holidayAppliesTo(holiday, options, indexes, employmentId)
+			? holiday.name
+			: null;
 	const conflicts: ConflictKind[] = [];
 	if (pendingLeave && designation === 'WORK') conflicts.push('PENDING_LEAVE_OVERLAP');
 	if (leave != null && (designation === 'WORK' || intervals.length > 0)) {
@@ -1161,6 +1203,20 @@ export const HOLIDAY_PRESENTATION: {
 	 */
 	headerClassName: 'bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-100'
 };
+
+/**
+ * The sentence a board header draws for a holiday.
+ *
+ * A holiday scoped to the staff who were off on the replaced date is named with that scope, so a
+ * reader can tell why the person beside them does not carry the same mark.
+ */
+export function holidayTitle(holiday: HolidayLike, t: Translator): string {
+	const base = `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday.name}`;
+	if (holidayAppliesToEveryone(holiday)) return base;
+	return `${base} · ${t('roster.holiday_recipients', {
+		date: holiday.original_date == null ? '' : formatDateISO(holiday.original_date)
+	})}`;
+}
 
 /** The glyph a cell carries: the shift code when there is one, else what kind of day it is. */
 function statusGlyph(day: DayFacts): string {

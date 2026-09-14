@@ -15,7 +15,6 @@ import {
 	type PayrollReadApi,
 	type ReadLog
 } from '../../collections/payroll_runs/lib/api.js';
-import { workPayItems } from '../../collections/work_catalogue/pay-items.js';
 import type { ComponentDefinition } from '../../collections/payroll_runs/lib/configuration.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
@@ -42,17 +41,12 @@ import {
 } from '../../collections/payroll_runs/lib/eligibility.js';
 import { evaluateFormula } from '../../collections/payroll_runs/lib/formula.js';
 import {
-	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
 	ordinaryWorkedHours,
 	nightWindowHours,
-	overtimeBandCode,
-	priceDay,
-	type DailyOvertime,
-	type ExcessHours,
-	type OvertimeBandIdentity,
-	type PricedSegment
+	type DailyOvertime
 } from '../../collections/payroll_runs/lib/overtime.js';
+import { priceWorkDay, type WorkBandDay } from './work-bands.js';
 import {
 	absenceDayRate,
 	ordinaryDayWage,
@@ -92,13 +86,13 @@ import type {
 	MeasureEmploymentOptions,
 	PayRange
 } from './family.js';
-import { baseLine } from './family.js';
+import { baseLine, settlementBucket } from './family.js';
 
 /** Work resolves its catalogue and the roster definitions used throughout the payroll window. */
 export function prepareWorkCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly jurisdiction: Configuration['jurisdiction'];
-	readonly settingsCode: string;
+	readonly companyId: string;
 	readonly windowStart: IsoDate;
 	readonly windowEnd: IsoDate;
 }): Effect.Effect<
@@ -106,42 +100,34 @@ export function prepareWorkCatalogue(options: {
 		Configuration,
 		| 'work'
 		| 'holidayRestPrecedence'
-		| 'overtimeRules'
-		| 'overtimeLimits'
-		| 'restBreakRules'
+		| 'limits'
+		| 'breaks'
 		| 'nightPremium'
 		| 'overtimeCoverageRule'
 		| 'shiftById'
 		| 'patternById'
-	> & { readonly payItems: Configuration['catalogueComponents'] }
+	>
 > {
 	return Effect.gen(function* () {
 		const { jurisdiction, windowStart, windowEnd } = options;
 		const db = options.api.db;
 		const approved = { approval_id: { isNull: true } } as const;
-		const [workRows, shiftRows, patternRows] = yield* Effect.all(
+		const [shiftRows, patternRows] = yield* Effect.all(
 			[
-				db.work_catalogue.findMany({
-					where: { settings_id: { eq: jurisdiction.id }, ...approved },
-					limit: PAGE_LIMIT
-				}),
 				db.shift_definitions.findMany({
-					where: { settings_code: { eq: options.settingsCode }, ...approved },
+					where: { company_id: { eq: options.companyId }, ...approved },
 					limit: PAGE_LIMIT
 				}),
 				db.shift_patterns.findMany({
-					where: { settings_code: { eq: options.settingsCode }, ...approved },
+					where: { company_id: { eq: options.companyId }, ...approved },
 					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
-		options.api.reads.assertComplete(workRows, 'Work catalogue');
-		const activeWork = live(workRows);
-		if (activeWork.length !== 1)
-			refuse(`Settings ${jurisdiction.code} require exactly one Work catalogue definition.`);
 		const work: Configuration['work'] = {
-			...activeWork[0]!,
+			...jurisdiction.work_rules,
+			settings_id: jurisdiction.id,
 			jurisdiction_code: jurisdiction.jurisdiction_code
 		};
 		options.api.reads.assertComplete(shiftRows, 'shift definitions');
@@ -149,18 +135,13 @@ export function prepareWorkCatalogue(options: {
 		const shifts = live(shiftRows).filter((row) =>
 			overlapsRange(row.effective_range, windowStart, windowEnd)
 		);
-		const regime = work.regime;
-		if (regime == null)
-			refuse(`Jurisdiction ${jurisdiction.code} has no statutory regime snapshot.`);
 		return {
 			work,
-			payItems: workPayItems(work).map((row) => ({ ...row, settlement: 'PAYROLL' as const })),
-			holidayRestPrecedence: regime.holiday_rest_precedence,
-			overtimeRules: regime.overtime_rules,
-			overtimeLimits: regime.overtime_limits,
-			restBreakRules: regime.rest_break_rules ?? [],
-			nightPremium: regime.night_premium ?? null,
-			overtimeCoverageRule: regime.overtime_coverage,
+			holidayRestPrecedence: work.holiday_rest_precedence,
+			limits: work.limits,
+			breaks: work.breaks,
+			nightPremium: work.night_premium ?? null,
+			overtimeCoverageRule: work.coverage,
 			shiftById: new Map(shifts.map((row) => [row.id, row])),
 			// A terms row still names its original pattern after that pattern's effective range ends.
 			patternById: new Map(live(patternRows).map((row) => [row.id, row]))
@@ -168,7 +149,7 @@ export function prepareWorkCatalogue(options: {
 	});
 }
 
-/** Read current Work, source-month allowance rosters, and their exact retained holiday evidence. */
+/** Read current Work days, source-month allowance rosters, and their exact retained holiday evidence. */
 export function prepareWorkInputs(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly employmentIds: readonly string[];
@@ -192,6 +173,8 @@ export function prepareWorkInputs(options: {
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(workDayRows, 'work days');
+		// A late allowance is measured on its source month's roster, so those rows are read too —
+		// only where the source month's law prorates by working days, because nothing else asks.
 		const historicalWorkDays: Array<EmploymentBundle['workDays'][number]> = [];
 		for (const [sourceMonth, source] of allowanceConfigurations) {
 			if (source.work.proration.by !== 'WORKING_DAYS') continue;
@@ -240,63 +223,6 @@ export function prepareWorkInputs(options: {
 			workHolidayEvidence: { inputs: workHolidayInputs, holidays: live(workHolidays) }
 		};
 	});
-}
-
-/**
- * The total-work-hours boundary past which overtime is reclassified as excess.
- *
- * It is the jurisdiction's own ceiling — Malaysia's twelve hours under EA 1955 s.60A(7) — and not a
- * number a company configures. It used to be read off the `after_total_work_hours` field of the
- * overflow components, which meant a company could quietly move a statutory boundary, and two
- * of them in the same country could disagree about where it sits.
- */
-function dailyTotalWorkLimit(configuration: Configuration): number | null {
-	const limits = statutoryLimits(configuration).filter(
-		(limit) => limit.period === 'DAY' && limit.measures === 'TOTAL_WORK_HOURS'
-	);
-	if (limits.length > 1)
-		throw new Error('More than one daily work limit is effective for this jurisdiction.');
-	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
-}
-
-/**
- * The ordinary-day overtime-hours ceiling (Vietnam / Indonesia's four hours).
- *
- * Distinct from `dailyTotalWorkLimit`: that one measures every clocked hour, this one measures
- * derived overtime hours. A jurisdiction that states neither has no daily reclassification.
- */
-export function dailyOvertimeHoursLimit(configuration: Configuration): number | null {
-	const limits = statutoryLimits(configuration).filter(
-		(limit) => limit.period === 'DAY' && limit.measures === 'OVERTIME_HOURS'
-	);
-	if (limits.length > 1)
-		throw new Error('More than one daily overtime-hours limit is effective for this jurisdiction.');
-	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
-}
-
-/** The statute's ceilings: every limit that is not an INCENTIVE boundary. */
-function statutoryLimits(configuration: Configuration) {
-	return configuration.overtimeLimits.filter((limit) => limit.on_exceed !== 'INCENTIVE');
-}
-
-/**
- * The regime's INCENTIVE boundary, in hours worked on an ordinary day, or null where the lineage
- * states none and the statutory ceilings classify. Nihon's forked lineage states 11.
- */
-function incentiveBoundary(configuration: Configuration): number | null {
-	const limits = configuration.overtimeLimits.filter((limit) => limit.on_exceed === 'INCENTIVE');
-	if (limits.length > 1)
-		throw new Error('More than one INCENTIVE boundary is effective for this jurisdiction.');
-	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
-}
-
-function monthlyOvertimeLimit(configuration: Configuration): number | null {
-	const limits = statutoryLimits(configuration).filter(
-		(limit) => limit.period === 'MONTH' && limit.measures === 'OVERTIME_HOURS'
-	);
-	if (limits.length > 1)
-		throw new Error('More than one monthly overtime limit is effective for this jurisdiction.');
-	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
 }
 
 /** Everything `isStatutoryOvertimePayCovered` tests: the jurisdiction's rule and one employment's facts. */
@@ -482,28 +408,6 @@ function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
 	return `${title} @ ${start} · ${decodeNumber(terms.base_salary?.value ?? 0).toFixed(2)}`;
 }
 
-/**
- * A day in lieu prices as an ordinary day.
- *
- * Holiday and rest-day work prices on the statute's premium ladder — except when the day chose
- * lieu: the leave credit is the compensation, so the clocks price as an ordinary day. Hours past
- * the shift still price as overtime, at ordinary rates; only the premium ladder is forgone.
- * Everything else the schedule resolved — the shift, the normal hours — is untouched.
- */
-export function pricedDay(
-	entry: { readonly compensation?: string | null },
-	day: ScheduledDay
-): ScheduledDay {
-	if (entry.compensation !== 'LIEU') return day;
-	if (
-		day.dayType !== 'PUBLIC_HOLIDAY' &&
-		day.dayType !== 'SPECIAL_HOLIDAY' &&
-		day.dayType !== 'REST_DAY'
-	)
-		return day;
-	return { ...day, dayType: 'ORDINARY' };
-}
-
 /** Prepare schedule and rates before money-family totals determine statutory overtime coverage. */
 export function prepareWorkContext(
 	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'salary'> & {
@@ -590,7 +494,7 @@ export function prepareWorkContext(
 	 *
 	 * `ordinary_day_wage` divides by `ordinary_rate.divisor` — 26 in Malaysia, EA s.60I — because that
 	 * is the basis the Act sets for what an extra day of work is worth. Withholding pay for a day not
-	 * worked is proration, and proration is `work_catalogue.proration`: the month's calendar days here,
+	 * worked is proration, and proration is `work_rules.proration`: the month's calendar days here,
 	 * working days elsewhere. Valuing an absence at the overtime divisor over-deducts by the ratio
 	 * between them — 31/26, about 19%, on every employee with unpaid leave.
 	 *
@@ -625,7 +529,7 @@ export function prepareWorkContext(
 	// the first ordinary-rate row that covers this person, a WORKING_DAYS divisor being the pay
 	// month's scheduled working days.
 	const ordinaryRate = resolveOrdinaryRate({
-		rows: configuration.work.ordinary_rate,
+		rows: configuration.work.rates.ordinary,
 		person: subject,
 		workingDays: () => workingDaysIn(monthBounds(monthKey(options.salary.start))),
 		employeeNumber: bundle.employment.employee_number
@@ -705,29 +609,40 @@ export function calculateWorkAttendance(
 	// worked. Only the second is attendance, and only attendance can be priced or claimed — a day
 	// carrying nothing but a plan has no clock to derive an hour from and no punch to freeze.
 	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
-	const dailyWorkLimit = dailyTotalWorkLimit(configuration);
-	const dailyOvertimeLimit = dailyOvertimeHoursLimit(configuration);
 	// Overtime settles in the window the hours fall in: this employment's own attendance window.
 	const overtimeAttendance = attendance;
 	const overtimeDays: DailyOvertime[] = [];
-	const segments: PricedSegment[] = [];
-	const excess: ExcessHours[] = [];
+	const bandDays: WorkBandDay[] = [];
 	for (const entry of attendedDays) {
 		const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 		if (workDate < complianceWindow.start || workDate > complianceWindow.end) continue;
 		const day = schedule.get(workDate);
 		if (!day) continue;
-		// The statutory rest break reaches pay here and nowhere else. It reduces payable overtime only
-		// where the jurisdiction states the break is not working time; where the statute is silent —
-		// Malaysia — it is assessed, carried for reporting, and priced at nothing.
-		// A lieu day forgone its premium at the roster: price the clocks ordinary.
+		// Attendance is priced as it happened: the break rule belongs to the schedule gate
+		// (`work_rules.breaks`), not to the money.
 		const derived = deriveDailyOvertime(
 			entry,
-			pricedDay(entry, day),
-			configuration.restBreakRules,
-			offsetMinutesFor(configuration.jurisdiction.timezone, workDate)
+			day,
+			configuration.breaks,
+			offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate)
 		);
-		if (derived) overtimeDays.push(derived);
+		if (!derived) continue;
+		overtimeDays.push(derived);
+		bandDays.push({
+			workDayId: derived.workDayId,
+			date: derived.date,
+			dayType: derived.dayType,
+			workedHours: derived.totalWorkHours,
+			normalHours: derived.normalHours,
+			overtimeHours: derived.hours,
+			breakMinutes: decodeNumber(entry.break_minutes ?? 0),
+			rosterCode: day.shift?.code ?? '',
+			holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
+			holidayName: configuration.holidays.get(workDate)?.name ?? '',
+			monthOvertimeHours: 0,
+			consecutiveHours: derived.restBreak?.longestRunHours ?? 0,
+			continuousAttendance: false
+		});
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
 	// First Schedule para 3 — basic plus every other cash payment for work done, less overtime pay —
@@ -754,29 +669,23 @@ export function calculateWorkAttendance(
 		employeeNumber: bundle.employment.employee_number,
 		authority: configuration.work.authority
 	});
-	const classifiedOvertime = classifyOvertimeByCalendarMonth({
-		days: overtimeDays,
-		dailyWorkLimit,
-		dailyOvertimeHoursLimit: dailyOvertimeLimit,
-		monthlyOrdinaryOvertimeLimit: monthlyOvertimeLimit(configuration),
-		ordinaryDayIncentiveBoundary: incentiveBoundary(configuration)
-	});
-	if (paymentEligible) {
-		for (const classified of classifiedOvertime) {
-			if (
-				classified.day.date < overtimeAttendance.start ||
-				classified.day.date > overtimeAttendance.end
+	// The running month counter a band reads as `month_overtime_hours`: regulated OT so far this
+	// calendar month, including this day.
+	const monthRunning = new Map<string, number>();
+	const bandDaysWithMonths = [...bandDays]
+		.toSorted((left, right) => (left.date < right.date ? -1 : left.date > right.date ? 1 : 0))
+		.map((day) => {
+			const month = monthKey(day.date);
+			const regulated = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
+			const next = (monthRunning.get(month) ?? 0) + (regulated ? day.overtimeHours : 0);
+			monthRunning.set(month, next);
+			return { ...day, monthOvertimeHours: next };
+		});
+	const pricedBandDays = paymentEligible
+		? bandDaysWithMonths.filter(
+				(day) => day.date >= overtimeAttendance.start && day.date <= overtimeAttendance.end
 			)
-				continue;
-			const priced = priceDay({
-				day: classified.day,
-				rules: configuration.overtimeRules,
-				retainedHours: classified.retainedHours
-			});
-			segments.push(...priced.segments);
-			excess.push(...priced.excess);
-		}
-	}
+		: [];
 	const calendarMonthOvertimeHours = new Map<string, number>();
 	for (const day of overtimeDays) {
 		if (day.dayType !== 'ORDINARY' && day.dayType !== 'OFF_DAY') continue;
@@ -840,12 +749,12 @@ export function calculateWorkAttendance(
 					const date = requiredDateKey(entry.work_date, 'work_days.work_date');
 					if (date < overtimeAttendance.start || date > overtimeAttendance.end) return [];
 					const day = schedule.get(date);
-					const priced = day == null ? null : pricedDay(entry, day);
+					const priced = day;
 					const night = nightWindowHours(
 						entry,
 						nightPremium,
 						priced != null && priced.dayType === 'ORDINARY' ? priced.shift : null,
-						offsetMinutesFor(configuration.jurisdiction.timezone, date)
+						offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date)
 					);
 					// Overtime hours add nothing where the person is outside statutory overtime pay.
 					const overtime = paymentEligible ? night.overtime : 0;
@@ -855,11 +764,11 @@ export function calculateWorkAttendance(
 				});
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
 	const adjustments = [
-		...measureOvertime({
-			segments,
-			excess,
-			hourlyRate,
-			dayWage,
+		...measureWorkBands({
+			work: configuration.work,
+			person: subject,
+			days: pricedBandDays,
+			rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage },
 			catalogueComponents: configuration.catalogueComponents
 		}),
 		...(nightPremium == null
@@ -912,7 +821,7 @@ function measureWorkComponent(
 	const definition = options.component.definition;
 	if (definition == null)
 		throw new Error(`Component ${options.component.code} has no definition to measure.`);
-	const nature = options.component.nature;
+	const bucket = settlementBucket(options.component.destination, options.component.direction);
 
 	/**
 	 * The terms covering one calendar day, clamped to the contracted span: days past the contract
@@ -1017,7 +926,7 @@ function measureWorkComponent(
 		});
 		return {
 			amount,
-			base: [baseLine(options.component, nature, amount)],
+			base: [baseLine(options.component, bucket, amount)],
 			// A period one terms row covers whole is still one segment, and it is still recorded:
 			// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
 			// sometimes is a payslip whose reader has to know when.
@@ -1080,7 +989,7 @@ function measureWorkComponent(
 							ordinaryWorkedHours(
 								actual,
 								shift,
-								offsetMinutesFor(options.configuration.jurisdiction.timezone, date)
+								offsetMinutesFor(options.configuration.jurisdiction.payroll.timezone, date)
 							) +
 								(leave[date] ?? 0) * scheduledHours
 						)
@@ -1091,7 +1000,7 @@ function measureWorkComponent(
 		const amount = cents(exact);
 		return {
 			amount,
-			base: [baseLine(options.component, nature, amount)],
+			base: [baseLine(options.component, bucket, amount)],
 			proration: [],
 			adjustments: []
 		};
@@ -1110,7 +1019,7 @@ function measureWorkComponent(
 		const magnitude = cents(Math.abs(amount));
 		return {
 			amount: magnitude,
-			base: [baseLine(options.component, nature, magnitude)],
+			base: [baseLine(options.component, bucket, magnitude)],
 			proration: [],
 			adjustments: []
 		};
@@ -1123,8 +1032,8 @@ function measureWorkComponent(
 			throw new Error('Work cannot measure a money-entry component.');
 		case 'FORMULA':
 			return measureFormula(definition);
-		// Priced by the regime from work days (`measureOvertime`), never by the catalogue walk: the
-		// row exists so the scheme treatments of derived overtime live where every treatment does.
+		// Priced by the rules from work days (`measureOvertime`), never by the catalogue walk: the
+		// row exists so the opt-ins of derived overtime live where every other opt-in does.
 		case 'ABSENCE':
 		case 'DERIVED_OVERTIME':
 			return null;
@@ -1173,7 +1082,8 @@ function measureAbsence(options: {
 	return options.days.map((day) => ({
 		input: { family: 'WORK_DAY' as const, id: day.id },
 		catalogueComponent: component,
-		nature: component.nature,
+		bucket: settlementBucket(component.destination, component.direction),
+		optIns: component.optIns ?? [],
 		label: component.code,
 		amount: cents(options.dayWage * day.days),
 		quantity: day.days,
@@ -1214,7 +1124,8 @@ function measureNightPremium(options: {
 			{
 				input: { family: 'WORK_DAY' as const, id: day.id },
 				catalogueComponent: component,
-				nature: 'EARNING' as const,
+				bucket: settlementBucket(component.destination, component.direction),
+				optIns: component.optIns ?? [],
 				label: component.code,
 				amount,
 				quantity: day.ordinary + day.overtime,
@@ -1226,146 +1137,56 @@ function measureNightPremium(options: {
 }
 
 /**
- * Overtime, priced from the clocks and the statute and from nothing else.
+ * Work bands, priced from the clocks and the version's own rules (RFC 0001 §6).
  *
- * Every hour that reached this point has already been derived from a work day, classified against
- * the daily and calendar-month controls, and valued by one band of the jurisdiction's
- * `overtime_rules`. An adjustment is one band's segments **on one day** summed: the band triple —
- * day type, measure, band floor — plus the excess flag is the whole of what identifies the rule,
- * and it is what the row carries in place of a component, because there is no component. A
- * company cannot add an overtime band, remove one, or pay a different multiple for one; those are
- * the statute's to say.
- *
- * ## Why the day is part of the grouping now
- *
- * The pre-restructure lines had no causal input, so a line could be one band's worth of a whole month. A
- * `payslip_adjustments` row points at exactly ONE work day, and a row that summed five days could
- * name only one of them — so the grouping is `(work day x band)` and a month produces more rows
- * than it used to. That is the correct number: each one is a claim over the clock that priced it,
- * and the settlement lock is the row rather than a second collection.
- *
- * The valuation is the arithmetic exactly as it was when a component owned it:
- *
- * - hourly awards accumulate multiplier-weighted hours and are priced once against the
- *   jurisdiction's ordinary hourly rate, while stepped day-wage awards accumulate day-wage
- *   multiples.
- * - a band that comes out at zero produces no row at all, not a zero one. The day is still
- *   captured: it falls through to the junction row `measureEmployment` stores for every day it read
- *   and priced at nothing.
+ * Each day's facts go to `priceWorkDay`; every row it returns is one payslip line, one row per
+ * (work day × band × class), settled under the component whose output is `line:label`. The funnel
+ * has already moved the hours above the named limit to the funnel line at the band's own award,
+ * so the incentive keeps the multiple of the band the hours came from.
  */
-/**
- * Everything `measureOvertime` prices: the classified segments and the rates they were derived at.
- */
-type MeasureOvertimeOptions = {
-	readonly catalogueComponents: readonly CatalogueComponent[];
-	readonly segments: readonly PricedSegment[];
-	readonly excess: readonly ExcessHours[];
-	readonly hourlyRate: number;
-	readonly dayWage: number;
-};
-
-function measureOvertime(options: MeasureOvertimeOptions): MeasuredAdjustment[] {
-	const rows: MeasuredAdjustment[] = [];
-	const asAdjustment = (
-		band: OvertimeBandIdentity,
-		workDayId: string,
-		excess: boolean,
-		measurement: { amount: number; quantity: number; rate: number }
-	): MeasuredAdjustment => {
-		const ruleKey = overtimeBandCode({ excess, ...band });
-		const component = options.catalogueComponents.find(
-			(row) => row.family === 'WORK' && row.output === (excess ? 'overtime_excess' : 'overtime')
-		);
-		if (component == null) throw new Error('Work catalogue is missing its overtime output.');
-		return {
-			input: { family: 'WORK_DAY', id: workDayId },
-			catalogueComponent: component,
-			nature: 'EARNING',
-			label: ruleKey,
-			amount: measurement.amount,
-			quantity: measurement.quantity,
-			rate: measurement.rate,
-			// Output provenance: the band triple plus the excess flag is the whole of what identifies
-			// the rule, and together with the run's `statutory_snapshot_id` it identifies the applied
-			// rule exactly. The band itself lives in the run's statutory snapshot.
-			statutoryRuleKey: ruleKey
-		};
+function measureWorkBands(options: {
+	readonly work: Configuration['work'];
+	readonly person: PersonContext;
+	readonly days: readonly WorkBandDay[];
+	readonly rates: {
+		readonly ordinaryHour: number;
+		readonly ordinaryDay: number;
+		readonly dayWage: number;
 	};
-
-	for (const [key, matched] of groupByDayAndBand(options.segments)) {
-		let hours = 0;
-		let weighted = 0;
-		let dayWageAmount = 0;
-		for (const segment of matched) {
-			hours += segment.hours;
-			if (segment.award === 'DAY_WAGE_MULTIPLE') {
-				dayWageAmount += segment.multiple * options.dayWage;
-				continue;
-			}
-			weighted += segment.hours * segment.multiple;
-		}
-		const amount = cents(weighted * options.hourlyRate + dayWageAmount);
-		if (amount === 0) continue;
-		rows.push(
-			asAdjustment(key.band, key.workDayId, false, {
-				amount,
-				quantity: hours,
-				rate: options.hourlyRate
-			})
-		);
-	}
-
-	for (const [key, matched] of groupByDayAndBand(options.excess)) {
-		const valuedAt = matched[0]!.valuedAt;
-		if (matched.some((row) => row.valuedAt !== valuedAt))
-			throw new Error(
-				`The ${overtimeBandCode({ excess: true, ...key.band })} band produced excess hours valued ` +
-					'both as an hourly award and as a day wage. One band values its hours one way.'
-			);
-		// Units are already the legal value factor: multiplier-weighted hours for hourly awards,
-		// or the incremental statutory day-wage multiple for a stepped flat award.
-		const units = matched.reduce((total, row) => total + row.units, 0);
-		const hours = matched.reduce((total, row) => total + row.hours, 0);
-		const rate = valuedAt === 'ORDINARY_DAY_WAGE' ? options.dayWage : options.hourlyRate;
-		const amount = cents(units * rate);
-		if (amount === 0) continue;
-		rows.push(asAdjustment(key.band, key.workDayId, true, { amount, quantity: hours, rate }));
-	}
-
-	return rows;
-}
-
-/**
- * Priced rows collected under the work day and the band that valued them, first-seen order.
- *
- * Order is the days' order, which is stable for the same clocks; nothing about the money depends on
- * it, but a payslip whose row order moved between two identical builds would look like a change.
- *
- * The day is in the key because a `payslip_adjustments` row names exactly one source. A month's
- * worth of one band used to be one line; it is now one row per day, which is more rows and the
- * right ones — each is the claim over the clock that priced it.
- */
-function groupByDayAndBand<T extends OvertimeBandIdentity & { readonly workDayId: string }>(
-	rows: readonly T[]
-): Map<{ band: OvertimeBandIdentity; workDayId: string }, T[]> {
-	const byKey = new Map<
-		string,
-		{ key: { band: OvertimeBandIdentity; workDayId: string }; rows: T[] }
-	>();
-	for (const row of rows) {
-		const key = `${row.workDayId}:${row.dayType}:${row.measure}:${row.bandFrom}`;
-		const bucket = byKey.get(key);
-		if (bucket) bucket.rows.push(row);
-		else
-			byKey.set(key, {
-				key: {
-					band: { dayType: row.dayType, measure: row.measure, bandFrom: row.bandFrom },
-					workDayId: row.workDayId
-				},
-				rows: [row]
+	readonly catalogueComponents: readonly CatalogueComponent[];
+}): MeasuredAdjustment[] {
+	const byOutput = new Map(
+		options.catalogueComponents
+			.filter((row) => row.family === 'WORK')
+			.map((row) => [row.output ?? '', row])
+	);
+	const rows: MeasuredAdjustment[] = [];
+	for (const day of options.days) {
+		for (const row of priceWorkDay({
+			work: options.work,
+			person: options.person,
+			day,
+			rates: options.rates
+		})) {
+			const component = byOutput.get(`${row.line}:${row.label}`);
+			if (component == null)
+				throw new Error(
+					`Work rules produced ${row.line} ${row.label} with no pay item to settle it.`
+				);
+			rows.push({
+				input: { family: 'WORK_DAY', id: row.workDayId },
+				catalogueComponent: component,
+				bucket: settlementBucket(component.destination, component.direction),
+				optIns: component.optIns ?? [],
+				label: row.label,
+				amount: cents(row.amount),
+				quantity: row.hours,
+				rate: row.rate,
+				statutoryRuleKey: row.ruleKey
 			});
+		}
 	}
-	return new Map([...byKey.values()].map((entry) => [entry.key, entry.rows]));
+	return rows;
 }
 
 export function prepareWorkSteps(
@@ -1457,23 +1278,25 @@ export function validateWorkResult(options: {
 	// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
 	// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
 	// inheriting one from a statute that does not govern it.
-	const dailyWorkLimit = dailyTotalWorkLimit(configuration);
-	if (dailyWorkLimit != null)
-		issues.push(
-			...validateDailyWorkLimit({
-				employeeNumber: bundle.employment.employee_number,
-				days: measured.overtimeDays,
-				maxWorkHours: dailyWorkLimit
-			})
-		);
-	const dailyOvertimeLimit = dailyOvertimeHoursLimit(configuration);
-	if (dailyOvertimeLimit != null)
-		issues.push(
-			...validateDailyOvertimeHoursLimit({
-				employeeNumber: bundle.employment.employee_number,
-				days: measured.overtimeDays,
-				maxOvertimeHours: dailyOvertimeLimit
-			})
-		);
+	// Daily ceilings are reported from the named limits; the schedule gate is where they refuse.
+	for (const limit of configuration.limits) {
+		if (limit.period !== 'DAY') continue;
+		if (limit.measure === 'TOTAL_WORK_HOURS')
+			issues.push(
+				...validateDailyWorkLimit({
+					employeeNumber: bundle.employment.employee_number,
+					days: measured.overtimeDays,
+					maxWorkHours: limit.max_hours
+				})
+			);
+		if (limit.measure === 'OVERTIME_HOURS')
+			issues.push(
+				...validateDailyOvertimeHoursLimit({
+					employeeNumber: bundle.employment.employee_number,
+					days: measured.overtimeDays,
+					maxOvertimeHours: limit.max_hours
+				})
+			);
+	}
 	return issues;
 }

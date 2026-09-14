@@ -22,7 +22,6 @@ type Row = Readonly<Record<string, unknown>>;
 const CHILDREN = [
 	'statutory_contributions',
 	'leave_catalogue',
-	'work_catalogue',
 	'claim_catalogue',
 	'allowance_catalogue',
 	'payment_catalogue',
@@ -83,32 +82,13 @@ test(
 				JURISDICTION_ID
 			]);
 			const before = await childRows(session, JURISDICTION_ID);
-
-			const originalWork = before.work_catalogue![0]!;
-			const forbiddenWorkEdit = await command(
-				session,
-				{
-					action: 'mutate',
-					collection: 'work_catalogue',
-					rows: [
-						{
-							action: 'update',
-							values: {
-								id: String(originalWork.id),
-								authority: 'UNREVIEWED'
-							}
-						}
-					]
-				},
-				[
-					{
-						row: { collection: 'work_catalogue', recordId: String(originalWork.id) },
-						rowVersion: await rowVersion(session, 'work_catalogue', String(originalWork.id))
-					}
-				]
-			);
-			assert.equal(asRecord(forbiddenWorkEdit.value, 'sealed Work edit').resolution, 'rejected');
-			assert.match(String(asRecord(forbiddenWorkEdit.value, 'sealed Work edit').message), /sealed/);
+			// RFC 0001 moved the Work rules onto the version row itself, so the clone check reads
+			// the root rather than a child collection.
+			const [sourceSettings] = (await session.query(
+				'select work_rules from jurisdiction_settings where id = $1',
+				[JURISDICTION_ID]
+			)) as Row[];
+			assert.ok(sourceSettings, 'the PUB version carries its work rules');
 
 			// (b) clone: every child count equal, every id new, every settings_id the new version's.
 			const created = requireOk(
@@ -131,6 +111,11 @@ test(
 			assert.equal(draft.sealed_at, null, 'a new version is a draft');
 			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
 			assert.deepEqual(draft.effective_range, { start: '2026-03-01T00:00:00.000Z', end: null });
+			assert.deepEqual(
+				draft.work_rules,
+				sourceSettings.work_rules,
+				'the version’s own Work rules survive cloning'
+			);
 			const after = await childRows(session, newId);
 			for (const table of CHILDREN) {
 				assert.equal(after[table]!.length, before[table]!.length, `${table}: counts equal`);
@@ -140,45 +125,6 @@ test(
 					assert.equal(row.settings_id, newId, `${table}: under the new version`);
 				}
 			}
-			const clonedWork = after.work_catalogue![0]!;
-			for (const column of ['proration', 'ordinary_rate', 'regime', 'treatments', 'authority']) {
-				assert.deepEqual(
-					clonedWork[column],
-					originalWork[column],
-					`Work ${column} survives cloning`
-				);
-			}
-			const changeWork = (regime: unknown) =>
-				command(
-					session,
-					{
-						action: 'mutate',
-						collection: 'work_catalogue',
-						rows: [{ action: 'update', values: { id: String(clonedWork.id), regime } }]
-					},
-					[
-						{
-							row: { collection: 'work_catalogue', recordId: String(clonedWork.id) },
-							rowVersion: Number(clonedWork.row_version)
-						}
-					]
-				);
-			// The draft's own hook still judges the regime: two overlapping bands are refused by name.
-			const overlappingRule = {
-				day_type: 'ORDINARY',
-				band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-				award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
-			};
-			const invalidWork = await changeWork({
-				...asRecord(clonedWork.regime, 'regime'),
-				overtime_rules: [overlappingRule, overlappingRule]
-			});
-			assert.equal(asRecord(invalidWork.value, 'overlapping Work bands').resolution, 'rejected');
-			assert.match(
-				String(asRecord(invalidWork.value, 'overlapping Work bands').message),
-				/overtime bands overlap/
-			);
-
 			const codes = (table: string, rows: Row[]) => rows.map((row) => row.code).toSorted();
 			for (const table of CHILDREN)
 				assert.deepEqual(codes(table, after[table]!), codes(table, before[table]!), table);
@@ -311,11 +257,11 @@ test(
 							code: 'PUB',
 							name: 'PUB overlapping',
 							sealed_at: new Date().toISOString(),
-							currency: 'MYR',
-							tax_year_start_month: 1,
-
 							jurisdiction_code: 'TEST-JUR',
-
+							payroll: draft.payroll,
+							wages: draft.wages,
+							sources: draft.sources,
+							work_rules: draft.work_rules,
 							effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
 						}
 					}
@@ -332,13 +278,52 @@ test(
 				`insert into companies (id, settings_code, name, registration_number, pay_cutoff_day, pay_frequency, effective_range) values ($1, 'PUB', 'Public Sibling Co', 'PUB-CO-0003', 21, 'MONTHLY', $2)`,
 				[companyId, { start: '2020-01-01', end: null }]
 			);
-			// The sibling shares the PUB lineage, so the roster codes and the named pattern are
-			// already its own; its terms point at the same pattern every PUB employment does.
+			// RFC 0001 scopes roster codes and named patterns to the company; the sibling entity gets
+			// its own copies, with the pattern's cycle rewritten onto the new roster codes.
+			const sourceShifts = (await session.query(
+				'select * from shift_definitions where company_id = $1',
+				[COMPANY_ID]
+			)) as Row[];
+			const shiftIds = new Map(sourceShifts.map((row) => [String(row.id), crypto.randomUUID()]));
+			for (const shift of sourceShifts)
+				await session.query(
+					`insert into shift_definitions (id, company_id, code, name, variant, effective_range)
+					 values ($1, $2, $3, $4, $5, $6)`,
+					[
+						shiftIds.get(String(shift.id)),
+						companyId,
+						shift.code,
+						shift.name,
+						shift.variant,
+						shift.effective_range
+					]
+				);
 			const [terms] = (await session.query(
 				'select shift_pattern_id from employment_terms where employment_id = $1',
 				['44444444-4444-4444-8444-444444444444']
 			)) as Row[];
-			const siblingPatternId = terms!.shift_pattern_id;
+			const [sourcePattern] = (await session.query('select * from shift_patterns where id = $1', [
+				terms!.shift_pattern_id
+			])) as Row[];
+			const patternValue = structuredClone(sourcePattern!.pattern) as {
+				phases: Array<{ day_cycle: Array<{ roster_code_id: string }> }>;
+			};
+			for (const phase of patternValue.phases)
+				for (const day of phase.day_cycle)
+					day.roster_code_id = shiftIds.get(day.roster_code_id) ?? day.roster_code_id;
+			const siblingPatternId = crypto.randomUUID();
+			await session.query(
+				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
+				 values ($1, $2, $3, $4, $5, $6)`,
+				[
+					siblingPatternId,
+					companyId,
+					sourcePattern!.code,
+					sourcePattern!.name,
+					patternValue,
+					sourcePattern!.effective_range
+				]
+			);
 			const employeeId = crypto.randomUUID();
 			const employmentId = crypto.randomUUID();
 			await session.query(

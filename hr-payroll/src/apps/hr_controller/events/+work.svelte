@@ -54,7 +54,7 @@
 		buildRosterMonth,
 		employmentMonthEmptyReason,
 		employmentOverlapsMonth,
-		holidayNamesByDate,
+		holidaysByDate,
 		indexWorkDaysByPersonDay,
 		lockRung,
 		lockRungFreezes,
@@ -70,10 +70,7 @@
 	} from '../../../lib/ui/roster/roster-month.js';
 	import { patternRosterCodeId, termPattern } from '../../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
-	import {
-		oilDecisionsOfMonth,
-		unresolvedClockOutEmploymentIds as openClockOutEmploymentIds
-	} from '../../../lib/ui/roster/roster-month-board-filter.js';
+	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../../lib/ui/roster/roster-month-board-filter.js';
 	import {
 		MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS,
 		MONTH_BOARD_QUERY_LIMITS,
@@ -119,8 +116,6 @@
 	const swap = $state({ source: null as BoardCell | null });
 	/** Local-only eye filter: it narrows the already-loaded month facts and never issues a query. */
 	let unresolvedClockOutsOnly = $state(false);
-	/** The same kind of local eye, for the days a lieu decision is owed on. */
-	let oilDecisionsOnly = $state(false);
 	/**
 	 * Search and filter state in the same model every collection surface uses.
 	 *
@@ -309,23 +304,6 @@
 	);
 
 	/**
-	 * The regime governing the open day sheet: lieu is offered only where the version in force
-	 * on that date permits it. One lineage-scoped read beside the leave catalogue's.
-	 */
-	const workCatalogueQuery = $derived(
-		selectedSettingsCode == null
-			? null
-			: client.db.work_catalogue.findMany({
-					where: {
-						...approved,
-						work_catalogue_settings: { some: onLineage(selectedSettingsCode) }
-					},
-					columns: { settings_id: true, regime: true },
-					limit: 100
-				})
-	);
-
-	/**
 	 * The month's person-days: ONE query where there were two.
 	 *
 	 * The board used to read the roster's own relationship for the plan and a month-scoped
@@ -407,7 +385,7 @@
 				id: true,
 				approval_id: true,
 				employment_id: true,
-				leave_catalogue_id: true,
+				catalogue_id: true,
 				kind: true,
 				from_date: true,
 				to_date: true,
@@ -440,7 +418,7 @@
 	 *
 	 * The board could already say "this day is inside a paid period" — arithmetic over
 	 * `payroll_runs` windows. It could not say "a run has taken THIS record", which is the fact the
-	 * owner actually asked to see and the only one that is stored. The day's own `settled_period` answers it,
+	 * owner actually asked to see and the only one that is stored. The day's own `payslip_id` answers it,
 	 * and `+hr_controller.ts` already grants the read: `settlementLedgerGrants` exists so that
 	 * a refusal can be an explanation rather than an access denial. A run that read a day and priced
 	 * it at nothing wrote a row here with amount 0, and that row is still the claim.
@@ -451,17 +429,14 @@
 	const settlementsQuery = $derived.by(() => {
 		if (selectedCompanyId == null || workDayIds.length === 0) return null;
 		return client.db.work_days.findMany({
-			where: { ...approved, id: { in: workDayIds }, settled_payslip_id: { isNull: false } },
-			columns: { id: true, settled_period: true },
+			where: { ...approved, id: { in: workDayIds }, payslip_id: { isNull: false } },
+			columns: { id: true, payslip_id: true },
 			limit: MONTH_BOARD_QUERY_LIMITS.settlementClaims
 		});
 	});
 	const settlementClaims = $derived(
 		new Map<string, SettlementClaim>(
-			(settlementsQuery?.current ?? []).map((capture) => [
-				capture.id,
-				{ period: capture.settled_period ?? '' }
-			])
+			(settlementsQuery?.current ?? []).map((capture) => [capture.id, { period: '' }])
 		)
 	);
 
@@ -544,7 +519,7 @@
 
 	/** Overlaid onto the board from the published jurisdiction calendar; never a mark stored on a roster entry. */
 	const jurisdictionHolidays = $derived(calendarResolution.holidays);
-	const holidayNames = $derived(holidayNamesByDate(jurisdictionHolidays));
+	const holidayNames = $derived(holidaysByDate(jurisdictionHolidays));
 
 	const facts = $derived(
 		buildRosterMonth({
@@ -606,14 +581,6 @@
 		if (!unresolvedClockOutsOnly) return null;
 		return openClockOutEmploymentIds(facts.values());
 	});
-	/**
-	 * The month's pending time-off-in-lieu decisions.
-	 *
-	 * Derived from the same loaded facts, like the clock-out eye, and for the same reason: a
-	 * separate exception list would be a second place to read one month. The count is shown whether
-	 * or not the filter is on, because the point is that the decision stops being invisible.
-	 */
-	const oilDecisions = $derived(oilDecisionsOfMonth(facts.values(), workDays));
 	const boardPeople = $derived(
 		people.filter((person) => {
 			const term = boardQuery.search.toLowerCase();
@@ -625,7 +592,6 @@
 				!unresolvedClockOutEmploymentIds.has(person.id)
 			)
 				return false;
-			if (oilDecisionsOnly && !oilDecisions.employmentIds.has(person.id)) return false;
 			return (
 				boardQuery.filters.length === 0 ||
 				filteredWorkDaysQuery?.current === undefined ||
@@ -788,29 +754,6 @@
 	const daySheetEntry = $derived(
 		daySheetKey == null ? null : (workDayByKey.get(daySheetKey) ?? null)
 	);
-	/** The stored pay-or-lieu choice the drawer seeds its radio from; `PAY` when unchosen. */
-	const daySheetCompensation = $derived((daySheetEntry?.compensation ?? 'PAY') as 'PAY' | 'LIEU');
-	/**
-	 * Whether the drawer offers lieu: a holiday or rest day worked, where the regime in force on
-	 * that date permits it. The hook refuses whatever slips past.
-	 */
-	const daySheetLieuOffered = $derived.by(() => {
-		const facts = daySheetDay;
-		if (facts == null || daySheet.date == null || selectedSettingsCode == null) return false;
-		const worked = facts.attendanceState === 'CLOSED' || facts.workedIntervalCount > 0;
-		if (!worked) return false;
-		if (facts.holidayName == null && (facts.overrideKind ?? facts.baseKind) !== 'REST')
-			return false;
-		const version = settingsInForce(
-			calendarSettingsQuery?.current ?? [],
-			selectedSettingsCode,
-			daySheet.date
-		);
-		const regime = (workCatalogueQuery?.current ?? []).find(
-			(row) => row.settings_id === version?.id
-		)?.regime as { holiday_work_compensation?: string } | undefined;
-		return regime?.holiday_work_compensation === 'PAY_OR_LIEU';
-	});
 	/**
 	 * The punches the drawer edits.
 	 *
@@ -1064,19 +1007,6 @@
 				</Badge>
 			{/each}
 		{/if}
-		{#if oilDecisions.exceptions.length > 0 || oilDecisionsOnly}
-			<Button
-				size="sm"
-				variant={oilDecisionsOnly ? 'default' : 'outline'}
-				aria-pressed={oilDecisionsOnly}
-				onclick={() => (oilDecisionsOnly = !oilDecisionsOnly)}
-			>
-				<IconWrapper name="lucide:calendar-heart" class="size-3.5" />
-				{t('app.scheduling.oil_decisions', {
-					count: oilDecisions.exceptions.length.toLocaleString()
-				})}
-			</Button>
-		{/if}
 		<Button
 			size="sm"
 			variant={unresolvedClockOutsOnly ? 'default' : 'outline'}
@@ -1266,8 +1196,6 @@
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
 	canSwap={swapEnabled}
-	compensation={daySheetCompensation}
-	lieuOffered={daySheetLieuOffered}
 	resolveOverlap={(codeId) =>
 		daySheet.employmentId == null || daySheet.date == null
 			? null

@@ -1,0 +1,123 @@
+/**
+ * The five CEL contexts of RFC 0001 §7: what each site exposes, and what it refuses.
+ *
+ * The compiler runs at catalogue write time against the blank instance, so an unknown member,
+ * an undeclared identifier, an unparseable expression or a wrong result type is refused before
+ * any payroll can read it.
+ */
+
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { compileExpression } from '../src/lib/expressions/compile.ts';
+import { EXPRESSION_CONTEXTS } from '../src/lib/expressions/contexts.ts';
+import { evaluateNumber, runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
+
+test('every site compiles expressions over its own context', () => {
+	const cases = [
+		['person', 'employment.service_months >= 12 && company.region == "I"', 'boolean'],
+		['person', 'children.under(7) >= 1', 'boolean'],
+		['entry', 'entry.days * rates.ordinary_day', 'number'],
+		['entry', 'leave.days("ANNUAL_LEAVE") > 0 && entry.captures.remaining > 0', 'boolean'],
+		['entry', 'entry.amount * period.instalments', 'number'],
+		['work_day', 'total_work_hours > limits.daily_total', 'boolean'],
+		[
+			'work_day',
+			'(total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0.0) * ordinary_hour',
+			'number'
+		],
+		['work_day', 'day_type == "PUBLIC_HOLIDAY" && break_minutes < 30', 'boolean'],
+		['scheme', 'base > 5000 && age >= 60', 'boolean'],
+		['scheme', 'year_to_date.employee + produced.EPF.employee', 'number'],
+		['scheme', 'minimum_wage(region) > 0 && headcount > 10', 'boolean'],
+		['schedule', 'projected.week_hours > limits.weekly_total', 'boolean'],
+		['schedule', 'plan.break_minutes >= 30', 'boolean']
+	] as const;
+	for (const [site, expression, type] of cases)
+		assert.equal(compileExpression({ expression, site, type }), null, `${site}: ${expression}`);
+});
+
+test('unknown members, undeclared identifiers, bad syntax and wrong types are refused', () => {
+	assert.match(
+		compileExpression({
+			expression: 'employee.spouse == "NONE"',
+			site: 'person',
+			type: 'boolean'
+		}) ?? '',
+		/employee\.spouse, which the person context does not carry/
+	);
+	assert.match(
+		compileExpression({ expression: 'company.name == "X"', site: 'person', type: 'boolean' }) ?? '',
+		/company\.region/
+	);
+	assert.match(
+		compileExpression({ expression: 'bsae > 1', site: 'scheme', type: 'boolean' }) ?? '',
+		/bsae/
+	);
+	assert.match(
+		compileExpression({ expression: 'entry.amount', site: 'entry', type: 'boolean' }) ?? '',
+		/must produce a boolean/
+	);
+	assert.match(
+		compileExpression({ expression: 'employee.age >', site: 'person', type: 'boolean' }) ?? '',
+		/does not compile/
+	);
+	assert.match(
+		compileExpression({
+			expression: 'maximum(1, 2) > 0',
+			site: 'work_day',
+			type: 'boolean'
+		}) ?? '',
+		/does not compile/
+	);
+	// Another site's members are not in scope.
+	assert.match(
+		compileExpression({ expression: 'base > 1', site: 'work_day', type: 'boolean' }) ?? '',
+		/base/
+	);
+});
+
+test('every declared path in the catalogue compiles as a value', () => {
+	const isFunction = (path: string) =>
+		['under', 'days', 'balance', 'minimum_wage'].includes(path.split('.').at(-1) ?? '');
+	for (const context of Object.values(EXPRESSION_CONTEXTS))
+		for (const field of context.fields) {
+			const path = field.path.replace(/\(.*$/, '').replace(/<.*$/, '').trim();
+			if (isFunction(path) || field.path.includes('<')) continue;
+			const expression = `${path} != null`;
+			assert.equal(
+				compileExpression({ expression, site: context.site, type: 'boolean' }),
+				null,
+				`${context.site}: ${expression}`
+			);
+		}
+});
+
+test('the runtime closures compute what the seeds name', () => {
+	const engine = runtimeExpressionEngine({
+		minimumWage: (region) => (region === 'I' ? 1700 : 0),
+		limits: { daily_total: 11, normal_day: 8 },
+		workingDays: () => 22
+	});
+	const run = (expression: string, context: Record<string, unknown>) =>
+		evaluateNumber(engine, expression, context);
+
+	assert.equal(run('bracket(base, 5000.0, 100.0)', { base: 3395.34 }), 3400);
+	assert.equal(run('bracket(base, 5000.0, 100.0)', { base: 5000 }), 5000);
+	assert.equal(run('bracket(base, 5000.0, 100.0)', { base: 5000.01 }), 5000.01);
+	// A chain nests: EPF brackets under 20,000 in twenties, then everything in hundreds.
+	assert.equal(
+		run('bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0)', { base: 3395.34 }),
+		3400
+	);
+	assert.equal(run('ladder(base, [1000.0, 5000.0, 10000.0])', { base: 3200 }), 5000);
+	assert.equal(run('ladder(base, [1000.0, 5000.0, 10000.0])', { base: 12000 }), 10000);
+	assert.equal(run('minimum_wage(region) * 0.5', { region: 'I' }), 850);
+	assert.equal(
+		run('total_work_hours > limit("daily_total") ? total_work_hours - limit("daily_total") : 0.0', {
+			total_work_hours: 13
+		}),
+		2
+	);
+	assert.equal(run('calendar_days("2026-02")', {}), 28);
+	assert.equal(run('working_days("2026-02")', {}), 22);
+});

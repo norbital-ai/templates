@@ -24,8 +24,11 @@ test('the payroll-run payslip query projects the employee code and every display
 		where: { payroll_run_id: { eq: 'run-1' } },
 		columns: {
 			id: true,
+			payroll_run_id: true,
 			employment_id: true,
 			currency: true,
+			status: true,
+			paid_at: true,
 			gross: true,
 			total_deductions: true,
 			net: true,

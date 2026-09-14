@@ -85,7 +85,7 @@
 		if (ids.length === 0) return null;
 		return client.db.loan_repayments.findMany({
 			where: { loan_id: { in: ids } },
-			columns: { id: true, loan_id: true, amount_due: true, sequence: true },
+			columns: { id: true, loan_id: true, amount_due: true, sequence: true, payslip_id: true },
 			limit: 10_000
 		});
 	});
@@ -96,17 +96,14 @@
 		}
 		return new Map(Object.entries(grouped));
 	});
-	const capturesQuery = $derived.by(() => {
-		const ids = (repaymentsQuery?.current ?? []).map((row) => row.id);
-		if (ids.length === 0) return null;
-		return client.db.payslip_loan_repayment_inputs.findMany({
-			where: { loan_repayment_id: { in: ids } },
-			columns: { payslip_id: true },
-			limit: 10_000
-		});
-	});
 	const recoveriesQuery = $derived.by(() => {
-		const ids = [...new Set((capturesQuery?.current ?? []).map((row) => row.payslip_id))];
+		const ids = [
+			...new Set(
+				(repaymentsQuery?.current ?? []).flatMap((row) =>
+					row.payslip_id == null ? [] : [row.payslip_id]
+				)
+			)
+		];
 		if (ids.length === 0) return null;
 		// The slip's own payment, not its run's summary: recovery recovered is this person's money,
 		// and a colleague's held payslip used to make the run read DRAFT and under-report it.
@@ -237,7 +234,7 @@
 						name="loan_catalogue_id"
 						label={t('app.loans.deducted_as')}
 						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }) => componentLabel(row) }}
+						rendererProps={{ format: ({ row }: { row: NestedLoan }) => componentLabel(row) }}
 					/>
 					<Column name="principal" label={t('app.loans.principal_outstanding')} />
 					<Column name="effective_range" />

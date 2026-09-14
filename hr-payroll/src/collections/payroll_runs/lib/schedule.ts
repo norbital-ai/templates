@@ -19,7 +19,7 @@ import type { Configuration, ShiftDefinition } from './configuration.js';
 import { requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
-import { RULE_DAY_TYPES } from '../../../datatypes/statutory_regime/+definition.js';
+import { RULE_DAY_TYPES } from '../../../lib/payroll/work-rules-values.js';
 import type { HolidaySnapshot } from '../../../datatypes/holiday_snapshots/+definition.js';
 import type { PayrollWindow } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -28,8 +28,8 @@ const DayTypeSchema = Schema.Literals([...RULE_DAY_TYPES, 'OFF_DAY']);
 export type DayType = Schema.Schema.Type<typeof DayTypeSchema>;
 
 /** The overtime rules are stated for four day types; an off day is priced as an ordinary one. */
-export const RuleDayTypeSchema = Schema.Literals(RULE_DAY_TYPES);
-export type RuleDayType = Schema.Schema.Type<typeof RuleDayTypeSchema>;
+const RuleDayTypeSchema = Schema.Literals(RULE_DAY_TYPES);
+type RuleDayType = Schema.Schema.Type<typeof RuleDayTypeSchema>;
 
 export function ruleDayType(dayType: DayType): RuleDayType {
 	return dayType === 'OFF_DAY' ? 'ORDINARY' : dayType;
@@ -136,6 +136,23 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		return code;
 	};
 
+	/**
+	 * The contractual kind on one date: the explicit plan when the row carries one, else the
+	 * pattern projection — the same precedence the day itself resolves. Null where neither names
+	 * a code or the date sits outside this contract.
+	 */
+	const baseKindOn = (date: IsoDate): 'WORK' | 'REST' | 'OFF' | null => {
+		try {
+			const planned = plannedByDate.get(date);
+			const term = options.terms(date);
+			const projectedId = patternRosterCodeId(term.work_pattern, date);
+			const codeId = planned?.shift_definition_id ?? projectedId;
+			return codeId == null ? null : scheduledCode(codeFor(codeId, date), date).kind;
+		} catch {
+			return null;
+		}
+	};
+
 	let clampStart: string | null = null;
 	const pending: {
 		date: IsoDate;
@@ -180,7 +197,16 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		// the protected day type: scheduled overtime is derived from that difference, not tagged.
 		const dayCode = patternCode ?? assignmentCode;
 		const baseDayType = dayCode == null ? 'OFF_DAY' : dayTypeFor(dayCode.kind);
-		const holiday = options.configuration.holidays.get(date);
+		const holidayRow = options.configuration.holidays.get(date);
+		// A holiday scoped to staff who were off on the replaced date does not apply to someone
+		// whose roster had that date as WORK: the holiday itself was their day off, and the
+		// observed day is an ordinary working day for them (RFC 0001 §3).
+		const holiday =
+			holidayRow?.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' &&
+			holidayRow.original_date != null &&
+			baseKindOn(holidayRow.original_date) === 'WORK'
+				? undefined
+				: holidayRow;
 		// Observed dates come only from the jurisdiction calendar. The pricing rule resolves overlap.
 		let dayType: DayType = holiday ? holidayDayType(holiday) : baseDayType;
 		if (holiday && baseDayType === 'REST_DAY') {

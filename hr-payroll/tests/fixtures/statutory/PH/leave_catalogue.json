@@ -7,56 +7,36 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "34a9d916-95b8-5897-86cb-23107540c44a",
@@ -66,50 +46,7 @@
 		"is_statutory": true,
 		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -120,7 +57,11 @@
 					"days": 10
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": []
 	},
 	{
 		"id": "65bf1678-c12d-5fba-9782-eebc730b3a55",
@@ -130,56 +71,37 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": 2,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 2,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "7155abd6-f390-5f9f-8002-8fd49646511c",
@@ -189,50 +111,7 @@
 		"is_statutory": true,
 		"authority": "Republic Act 8187 sec. 3",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -243,7 +122,30 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "8ec6350a-e936-5750-a24a-5b8a4219159d",
@@ -253,50 +155,7 @@
 		"is_statutory": true,
 		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -307,7 +166,11 @@
 					"days": 60
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": []
 	},
 	{
 		"id": "8f71c0d7-3e3b-5234-8e4a-0abe31b43f63",
@@ -317,56 +180,36 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b35799d7-fb9e-54ea-bce4-40f0f7688842",
@@ -376,50 +219,7 @@
 		"is_statutory": true,
 		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95",
 		"eligibility": "employment.classification != \"MANAGERIAL\"",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -430,7 +230,30 @@
 					"days": 5
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ba8cc01f-31bc-5e6e-8916-466ed1abf0ad",
@@ -440,56 +263,36 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "bd9e3c08-cd1d-5b71-88fa-ca9683e3af50",
@@ -499,50 +302,7 @@
 		"is_statutory": true,
 		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -557,7 +317,31 @@
 					"days": 105
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "c0e9d788-41af-5389-9f6c-0b8f53ca8c58",
@@ -567,56 +351,37 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "df3b701b-526e-567d-b7dc-d3bab16d2443",
@@ -626,56 +391,59 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "a423b464-8df4-5426-8c48-3941dcdfb301",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "fbf0eced-5a1e-55c8-8c18-9443a661ea14",
@@ -685,50 +453,7 @@
 		"is_statutory": true,
 		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act)",
 		"eligibility": "employee.solo_parent",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -739,7 +464,11 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": []
 	},
 	{
 		"id": "fec62c00-6026-5bd8-b1db-e66cfbdef574",
@@ -749,55 +478,58 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"SSS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SSS_EC": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PHIC": {
-				"absence": {
-					"kind": "EXCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"HDMF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			},
-			"WTAX": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "a423b464-8df4-5426-8c48-3941dcdfb301",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	}
 ]

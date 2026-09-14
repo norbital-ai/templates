@@ -32,6 +32,6 @@ test('Employee Leave combines one computed balance query with a contract-scoped 
 	assert.deepEqual(registrations(tab), ['CollectionTable']);
 	assert.match(tab, /collection="leave_entries"/);
 	assert.match(tab, /employment_id: employmentId \? \{ eq: employmentId \}/);
-	assert.match(tab, /payslip_leave_input_leave_entry: \{ columns: \{ period: true \} \}/);
+	assert.doesNotMatch(tab, /payslip_leave_input/);
 	assert.match(tab, /operations: \['update', 'delete'\]/);
 });

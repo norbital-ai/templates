@@ -98,21 +98,18 @@
 	 * The repayments a payroll run has already captured.
 	 *
 	 * These are history: the generator re-dates and re-prices everything else around them, and the
-	 * matrix must not offer them for editing. One junction lookup, keyed by the loan's own
-	 * repayment ids — a repayment is captured once per period it is recovered in.
+	 * matrix must not offer them for editing. The capture is the repayment's own `payslip_id`.
 	 */
 	const capturedQuery = $derived.by(() => {
 		const ids = schedule.map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_loan_repayment_inputs.findMany({
-			where: { loan_repayment_id: { in: ids } },
-			columns: { loan_repayment_id: true },
+		return client.db.loan_repayments.findMany({
+			where: { id: { in: ids }, payslip_id: { isNotNull: true } },
+			columns: { id: true },
 			limit: 10_000
 		});
 	});
-	const lockedIds = $derived(
-		new Set((capturedQuery?.current ?? []).map((row) => row.loan_repayment_id))
-	);
+	const lockedIds = $derived(new Set((capturedQuery?.current ?? []).map((row) => row.id)));
 
 	const applySchedule = (
 		rows: readonly LoanRepaymentDraft[],

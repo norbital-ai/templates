@@ -7,36 +7,294 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": null,
-		"currency": "IDR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Jakarta",
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
 			"end": "2026-01-01T00:00:00.000Z"
 		},
-		"research_urls": [
-			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf",
-			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
-			"https://jdih.kemnaker.go.id/peraturan/detail/608/peraturan-pemerintah-nomor-46-tahun-2015",
-			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/Salinan_PP_Nomor_49_Tahun_2023.pdf",
-			"https://jdih.kemnaker.go.id/peraturan/detail/1725/peraturan-pemerintah-nomor-37-tahun-2021",
-			"https://peraturan.bpk.go.id/Details/136650/perpres-no-64-tahun-2020",
-			"https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf",
-			"https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf",
-			"https://peraturan.bpk.go.id/Download/344279/Perpres%20Nomor%2059%20Tahun%202024.pdf",
-			"https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
-			"https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003",
-			"https://jdih.kemnaker.go.id/peraturan/detail/2610/peraturan-menteri-nomor-16-tahun-2024",
-			"https://jdih.jakarta.go.id/dokumen/detail/14171/keputusan-gubernur-nomor-829-tahun-2024-tentang-upah-minimum-provinsi-tahun-2025",
-			"https://jdih.jakarta.go.id/dokumen/detail/14763"
-		],
-		"minimum_wages": {
-			"DKI Jakarta": 5396761,
-			"Jawa Barat": 2191232.18,
-			"Kabupaten Bekasi": 5558515.1
-		},
 		"jurisdiction_code": "ID",
-		"change_summary": "The corrected base under PP 6/2025: JHT 2%/3.7%; JP 1%/2% with the 10,547,400 ceiling; JKK I–V 0.10–1.60% and JKM 0.30%; JKP 0.14% employer; Kesehatan 1%/4% with the Perpres 59/2024 art.32(2) minimum-wage floor; PPh 21 TER; PP 35/2021 working time and the statutory leave heads."
+		"change_summary": "The corrected base under PP 6/2025: JHT 2%/3.7%; JP 1%/2% with the 10,547,400 ceiling; JKK I–V 0.10–1.60% and JKM 0.30%; JKP 0.14% employer; Kesehatan 1%/4% with the Perpres 59/2024 art.32(2) minimum-wage floor; PPh 21 TER; PP 35/2021 working time and the statutory leave heads.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "1ed6b721-56d3-4fcf-8b52-0b96dcbaf4b6",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "a42ee1d4-776e-4b2e-943c-6e240e132645",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "5e3ac325-b154-42a9-9fc1-6d6c28f36fff",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "4dcef5fc-93b3-4a01-b2f8-385e4a58f122",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "4bf3843b-8734-408a-9735-6cd35bcede91",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "302ab052-abe0-4266-bcd0-aacb86d23c84",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "1ed6b721-56d3-4fcf-8b52-0b96dcbaf4b6",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "a42ee1d4-776e-4b2e-943c-6e240e132645",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "5e3ac325-b154-42a9-9fc1-6d6c28f36fff",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "4dcef5fc-93b3-4a01-b2f8-385e4a58f122",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "4bf3843b-8734-408a-9735-6cd35bcede91",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "302ab052-abe0-4266-bcd0-aacb86d23c84",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "HOUR",
+						"divisor": 173
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "4.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 4.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "4.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 4.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_ot",
+					"period": "DAY",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "weekly_ot",
+					"period": "WEEK",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 18,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 4.0 && continuous_attendance",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF"
+			},
+			"coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": []
+			},
+			"holiday_rest_precedence": "REST_DAY",
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week."
+		},
+		"payroll": {
+			"currency": "IDR",
+			"timezone": "Asia/Jakarta",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {
+				"DKI Jakarta": 5396761,
+				"Jawa Barat": 2191232.18,
+				"Kabupaten Bekasi": 5558515.1
+			}
+		},
+		"sources": {
+			"urls": [
+				"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf",
+				"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
+				"https://jdih.kemnaker.go.id/peraturan/detail/608/peraturan-pemerintah-nomor-46-tahun-2015",
+				"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/Salinan_PP_Nomor_49_Tahun_2023.pdf",
+				"https://jdih.kemnaker.go.id/peraturan/detail/1725/peraturan-pemerintah-nomor-37-tahun-2021",
+				"https://peraturan.bpk.go.id/Details/136650/perpres-no-64-tahun-2020",
+				"https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf",
+				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf",
+				"https://peraturan.bpk.go.id/Download/344279/Perpres%20Nomor%2059%20Tahun%202024.pdf",
+				"https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
+				"https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003",
+				"https://jdih.kemnaker.go.id/peraturan/detail/2610/peraturan-menteri-nomor-16-tahun-2024",
+				"https://jdih.jakarta.go.id/dokumen/detail/14171/keputusan-gubernur-nomor-829-tahun-2024-tentang-upah-minimum-provinsi-tahun-2025",
+				"https://jdih.jakarta.go.id/dokumen/detail/14763"
+			]
+		}
 	},
 	{
 		"id": "2287c37a-12ab-464a-9721-122b74c9e39e",
@@ -46,29 +304,287 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
-		"currency": "IDR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Jakarta",
 		"effective_range": {
 			"start": "2026-01-01T00:00:00.000Z",
 			"end": "2026-03-01T00:00:00.000Z"
 		},
-		"research_urls": [
-			"https://peraturan.bpk.go.id/Details/339037/pp-no-49-tahun-2025",
-			"https://money.kompas.com/read/2026/01/09/092557026/ump-2026-resmi-berlaku-ini-daftar-lengkap-upah-minimum-seluruh-provinsi",
-			"https://jdih.jakarta.go.id/dokumen/detail/14763",
-			"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf",
-			"https://peraturan.bpk.go.id/Details/136650/perpres-no-64-tahun-2020",
-			"https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf",
-			"https://peraturan.bpk.go.id/Download/344279/Perpres%20Nomor%2059%20Tahun%202024.pdf"
-		],
-		"minimum_wages": {
-			"DKI Jakarta": 5729876,
-			"Jawa Barat": 2317601,
-			"Kabupaten Bekasi": 5938885
-		},
 		"jurisdiction_code": "ID",
-		"change_summary": "The 2026 UMP under PP 49/2025 (DKI Jakarta 5,729,876; Jawa Barat 2,317,601; Kabupaten Bekasi 5,938,885) lifts the BPJS Kesehatan floor on 1 January 2026. Nothing else moves."
+		"change_summary": "The 2026 UMP under PP 49/2025 (DKI Jakarta 5,729,876; Jawa Barat 2,317,601; Kabupaten Bekasi 5,938,885) lifts the BPJS Kesehatan floor on 1 January 2026. Nothing else moves.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "1fc84b08-22b6-4d48-a2c4-e909eb29c62d",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "5d9cfe95-6ca8-4e8f-84a3-3113b8adba36",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "ed8a3f29-c3c9-4dd0-b151-504d3902920e",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "5cdd1702-5407-4fe3-a29a-5cd8c5b7da20",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "b662790f-0fee-4d21-8373-7b318a5d8ddd",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "395ef462-7094-451a-902f-573ee961bec8",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "1fc84b08-22b6-4d48-a2c4-e909eb29c62d",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "5d9cfe95-6ca8-4e8f-84a3-3113b8adba36",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "ed8a3f29-c3c9-4dd0-b151-504d3902920e",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "5cdd1702-5407-4fe3-a29a-5cd8c5b7da20",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "b662790f-0fee-4d21-8373-7b318a5d8ddd",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "395ef462-7094-451a-902f-573ee961bec8",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "HOUR",
+						"divisor": 173
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "4.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 4.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "4.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 4.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_ot",
+					"period": "DAY",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "weekly_ot",
+					"period": "WEEK",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 18,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 4.0 && continuous_attendance",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF"
+			},
+			"coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": []
+			},
+			"holiday_rest_precedence": "REST_DAY",
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week."
+		},
+		"payroll": {
+			"currency": "IDR",
+			"timezone": "Asia/Jakarta",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {
+				"DKI Jakarta": 5729876,
+				"Jawa Barat": 2317601,
+				"Kabupaten Bekasi": 5938885
+			}
+		},
+		"sources": {
+			"urls": [
+				"https://peraturan.bpk.go.id/Details/339037/pp-no-49-tahun-2025",
+				"https://money.kompas.com/read/2026/01/09/092557026/ump-2026-resmi-berlaku-ini-daftar-lengkap-upah-minimum-seluruh-provinsi",
+				"https://jdih.jakarta.go.id/dokumen/detail/14763",
+				"https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf",
+				"https://peraturan.bpk.go.id/Details/136650/perpres-no-64-tahun-2020",
+				"https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf",
+				"https://peraturan.bpk.go.id/Download/344279/Perpres%20Nomor%2059%20Tahun%202024.pdf"
+			]
+		}
 	},
 	{
 		"id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
@@ -78,27 +594,285 @@
 		"voided_at": null,
 		"void_reason": null,
 		"cloned_from_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
-		"currency": "IDR",
-		"tax_year_start_month": 1,
-		"timezone": "Asia/Jakarta",
 		"effective_range": {
 			"start": "2026-03-01T00:00:00.000Z",
 			"end": "9999-12-31T00:00:00.000Z"
 		},
-		"research_urls": [
-			"https://www.bpjsketenagakerjaan.go.id/berita.html",
-			"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
-			"https://www.bpjsketenagakerjaan.go.id/penerima-upah.html",
-			"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
-			"https://jateng.antaranews.com/berita/625410/bpjsketenagakerjaan-sosialisasikan-batasan-upah-jaminan-pensiun",
-			"https://www.bpjsketenagakerjaan.go.id/berita/29347/Korban-PHK-Dapat-60-persen-Gaji-Selama-6-Bulan%2C-Ini-Kata-Bos-BPJS-Ketenagakerjaan"
-		],
-		"minimum_wages": {
-			"DKI Jakarta": 5729876,
-			"Jawa Barat": 2317601,
-			"Kabupaten Bekasi": 5938885
-		},
 		"jurisdiction_code": "ID",
-		"change_summary": "The Jaminan Pensiun wage ceiling rises to 11,086,300 on 1 March 2026 (SE BPJS Ketenagakerjaan B/1226/022026, 25 February 2026), so the capped charge becomes 110,863 / 221,726."
+		"change_summary": "The Jaminan Pensiun wage ceiling rises to 11,086,300 on 1 March 2026 (SE BPJS Ketenagakerjaan B/1226/022026, 25 February 2026), so the capped charge becomes 110,863 / 221,726.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "e8af2b2c-4f82-409f-a794-f817c435054b",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "87c1513c-2c16-41a0-8812-d611049699a3",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "HOUR",
+						"divisor": 173
+					}
+				],
+				"bands": [
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "1.5",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.5",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "4.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 4.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "2.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "3.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 3.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "4.0",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 4.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_ot",
+					"period": "DAY",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 4,
+					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "weekly_ot",
+					"period": "WEEK",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 18,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 4.0 && continuous_attendance",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF"
+			},
+			"coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": []
+			},
+			"holiday_rest_precedence": "REST_DAY",
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week."
+		},
+		"payroll": {
+			"currency": "IDR",
+			"timezone": "Asia/Jakarta",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {
+				"DKI Jakarta": 5729876,
+				"Jawa Barat": 2317601,
+				"Kabupaten Bekasi": 5938885
+			}
+		},
+		"sources": {
+			"urls": [
+				"https://www.bpjsketenagakerjaan.go.id/berita.html",
+				"https://www.bpjsketenagakerjaan.go.id/peraturan.html",
+				"https://www.bpjsketenagakerjaan.go.id/penerima-upah.html",
+				"https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf",
+				"https://jateng.antaranews.com/berita/625410/bpjsketenagakerjaan-sosialisasikan-batasan-upah-jaminan-pensiun",
+				"https://www.bpjsketenagakerjaan.go.id/berita/29347/Korban-PHK-Dapat-60-persen-Gaji-Selama-6-Bulan%2C-Ini-Kata-Bos-BPJS-Ketenagakerjaan"
+			]
+		}
 	}
 ]

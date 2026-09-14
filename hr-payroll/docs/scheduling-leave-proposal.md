@@ -77,12 +77,11 @@ flowchart LR
 
 Nothing asks a year to be complete: a day that is not published is simply not a holiday, and a
 missing year is not a block. The freeze derives from live references, not a stamp: a
-work day classified as a holiday pins it (`work_days.holiday_id`) and a payroll run captures the
+work day classified as a holiday pins it (`work_days.holiday_id`) and a payroll run snapshots the
 holidays it read (`payroll_runs.holidays`). Retracting a holiday (unpublish, moving its day or
-entity, delete) is refused while a run captures it; otherwise the pinning days are re-saved —
-re-classified, lieu credits reversed — while a credit already taken refuses the change. A finished
-run is never touched by a holiday published later, and an import skips a day the entity
-already has.
+entity, delete) is refused while a run snapshots it; otherwise the pinning days are re-saved —
+re-classified — while any Leave charge that names the holiday refuses the change. A finished run is
+never touched by a holiday published later, and an import skips a day the entity already has.
 
 Observed substitute dates are their own rows with an `original_date`. Work's explicit precedence
 resolves an overlap with a rest day without inventing a personal substitute date. Leave charging,
@@ -121,8 +120,8 @@ detector; conditional approval based on joined schedule/calendar facts still nee
 workflow integration. Detection alone is not an automatic approval path.
 
 The ordinary approval policy remains authoritative. Paying hours that occurred does not establish
-that the schedule complied with working-time requirements. Detailed rounding, excess-overtime and
-coverage rules remain in [Architecture](architecture.md#work-calculation).
+that the schedule complied with working-time requirements. Detailed band pricing, the incentive
+funnel, limits, breaks and coverage rules remain in [Architecture](architecture.md#work-calculation).
 
 ## Time-off interaction
 
@@ -156,23 +155,23 @@ to its window; a multi-month absence is not charged entirely to the first month.
 
 ## Stored facts and derived views
 
-| Store                                                           | Derive or prepare                                            |
-| --------------------------------------------------------------- | ------------------------------------------------------------ |
-| Contract, terms and named pattern reference                     | Service scope and projected base                             |
-| Roster-code variant and explicit dated assignment               | Normal minutes, final day type and workload                  |
-| Published holiday rows and permanent input captures             | Holiday classification for each date                         |
-| Observed intervals and break minutes                            | Open/closed state, duration and overtime value               |
-| Approved activity, half-day range and frozen dated charges      | Calendar presentation and period-specific charge selection   |
-| Manual carry/encashment/correction terms and source allocations | Balance, expiry and outstanding monetary obligations         |
-| Effective family catalogues and contract facts                  | Eligibility, entitlement, contribution treatment and amounts |
+| Store                                                           | Derive or prepare                                          |
+| --------------------------------------------------------------- | ---------------------------------------------------------- |
+| Contract, terms and named pattern reference                     | Service scope and projected base                           |
+| Roster-code variant and explicit dated assignment               | Normal minutes, final day type and workload                |
+| Published holiday rows and an entry's own pay link              | Holiday classification for each date                       |
+| Observed intervals and break minutes                            | Open/closed state, duration and overtime value             |
+| Approved activity, half-day range and frozen dated charges      | Calendar presentation and period-specific charge selection |
+| Manual carry/encashment/correction terms and source allocations | Balance, expiry and outstanding monetary obligations       |
+| Effective family catalogues and contract facts                  | Eligibility, entitlement, statutory opt-ins and amounts    |
 
-An approved charge or captured classification is historical evidence, even if the original value was
+An approved charge or frozen classification is historical evidence, even if the original value was
 calculated. Recomputing a current preview must not rewrite consumed evidence. Corrections use new
 approved activities.
 
 ## Attendance kiosk
 
-The kiosk writes `work_days.worked_intervals` through the same contract, Leave, capture and paid-window
+The kiosk writes `work_days.worked_intervals` through the same contract, Leave, link and paid-window
 guards as other attendance entry. Device accounts use the Attendance Kiosk team and restricted kiosk
 policy. The kiosk app declares `bolt:kiosk` for the chromeless shell. Camera use requires HTTPS;
 matching and punches require the network because there is no offline queue.

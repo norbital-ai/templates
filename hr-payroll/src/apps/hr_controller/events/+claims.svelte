@@ -4,7 +4,7 @@
 	 * capture that settled each.
 	 *
 	 * One live query. The capture rides the claim row through
-	 * the row's own `settled_period`, so the lock state is a column of the row it locks
+	 * the row's own `payslip_id` and its pay period, so the lock state is a column of the row it locks
 	 * rather than a second subscription (B12).
 	 *
 	 * Rows still held under an approval are listed rather than filtered out, and wear the pending
@@ -30,7 +30,7 @@
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
-	import { payRequestRecordMetadata, settledClaims } from '../../../lib/scheduling/lock.js';
+	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -79,7 +79,11 @@
 				view={`hr_controller:events:claims:${selectedCompanyId}`}
 				title={t('app.claims.title')}
 				recordMetadata={(row: ClaimRow) =>
-					payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
+					payRequestRecordMetadata(
+						row.approval_id,
+						row.payslip_id == null ? [] : [{ period: row.pay_period ?? '' }],
+						t
+					)}
 				query={{
 					where: {
 						claim_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
@@ -93,7 +97,7 @@
 			>
 				{#snippet columns({ Column })}
 					<Column
-						name="claim_catalogue_id"
+						name="catalogue_id"
 						label={t('component.component')}
 						card="title"
 						renderer={FormattedValueRenderer}

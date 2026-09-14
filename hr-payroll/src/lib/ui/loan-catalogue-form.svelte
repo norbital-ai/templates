@@ -19,6 +19,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import ExpressionFields from './expression-fields.svelte';
 	import { hrCreateScope } from './create-scope.js';
 
 	let { record, close }: { record: WorkspaceRow<'loan_catalogue'> | null; close: () => void } =
@@ -27,6 +28,9 @@
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
+	/** EMPLOYER and DISPLAY settle no direction: the model keeps it null there. */
+	const takesDirection = (destination: unknown): boolean =>
+		destination === 'PAY' || destination === 'NET';
 </script>
 
 <CollectionForm
@@ -38,7 +42,7 @@
 		: t('component.create_catalogue_component')}
 	onAfterSubmit={record ? undefined : close}
 >
-	{#snippet children({ Field })}
+	{#snippet children({ Field, form })}
 		{#snippet payLine()}
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.catalogue_section_pay_line_loan_hint')}</p>
@@ -61,6 +65,19 @@
 					{/if}
 					<Field name="code" label={t('component.code')} />
 					<Field name="sequence" label={t('component.order')} />
+					<Field name="destination" label={t('component.destination')} />
+					{#if takesDirection(form.values().destination)}
+						<Field name="direction" label={t('component.direction')} />
+					{:else}
+						<Field name="direction" hidden />
+						<span
+							class="hidden"
+							{@attach () => {
+								if (form.values().direction != null)
+									form.setValues({ ...form.values(), direction: null });
+							}}
+						></span>
+					{/if}
 					<!-- Only a debt has these: whose it is, and the least a month may recover. -->
 					<Field name="loan_type" label={t('component.loan_type')} />
 					<Field
@@ -68,6 +85,7 @@
 						label={t('component.minimum_repayment')}
 						placeholder={t('component.minimum_repayment_hint')}
 					/>
+					<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
 				</Grid>
 			</Stack>
 		{/snippet}
@@ -76,21 +94,15 @@
 			<Stack gap="sm">
 				<p class="text-meta">{t('component.catalogue_section_who_hint')}</p>
 				<Grid gap="md" minimum="card">
-					<Column span="all"
-						><Field name="eligibility" label={t('component.who_receives')} /></Column
-					>
+					<div>
+						<Field name="eligibility" label={t('component.who_receives')} />
+						<ExpressionFields
+							site="person"
+							expression={String(form.values().eligibility ?? '')}
+							type="boolean"
+						/>
+					</div>
 				</Grid>
-			</Stack>
-		{/snippet}
-
-		{#snippet contributions()}
-			<Stack gap="sm">
-				<p class="text-meta">{t('component.catalogue_section_contributions_hint')}</p>
-				<Field
-					name="contribution_treatments"
-					label={t('component.contribution_treatments')}
-					description={t('renderer.contribution_treatments.identity')}
-				/>
 			</Stack>
 		{/snippet}
 
@@ -112,12 +124,6 @@
 					label: t('component.catalogue_section_who'),
 					icon: 'lucide:users',
 					content: who
-				},
-				{
-					name: 'contributions',
-					label: t('component.section_contributions'),
-					icon: 'lucide:landmark',
-					content: contributions
 				}
 			] satisfies TabConfig[]}
 		/>

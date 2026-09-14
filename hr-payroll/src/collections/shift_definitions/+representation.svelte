@@ -1,8 +1,7 @@
 <script lang="ts">
 	/**
-	 * A roster code of one jurisdiction lineage. The Settings Work catalogue hosts these, so the
-	 * lineage is not a question the form asks; the dialog chrome names the record. Opened without
-	 * that scope the field returns, rather than the form offering nothing.
+	 * A roster code of one entity, entity-owned like its holidays (RFC 0001 §11). The scope names
+	 * the entity, so the form does not ask; opened without a scope the field returns.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -15,9 +14,9 @@
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const createScope = hrCreateScope();
-	const scopedSettingsCode = $derived(createScope?.settingsCode());
+	const scopedCompanyId = $derived(createScope?.companyId());
 	const defaults = $derived(
-		record ?? (scopedSettingsCode == null ? undefined : { settings_code: scopedSettingsCode })
+		record ?? (scopedCompanyId == null ? undefined : { company_id: scopedCompanyId })
 	);
 </script>
 
@@ -31,10 +30,10 @@
 		<Stack gap="sm">
 			<p class="text-meta">{t('component.shift_section_hint')}</p>
 			<Grid gap="md" minimum="card">
-				{#if scopedSettingsCode != null}
-					<Field name="settings_code" hidden />
+				{#if scopedCompanyId != null}
+					<Field name="company_id" hidden />
 				{:else}
-					<Field name="settings_code" label={t('component.settings_lineage')} />
+					<Field name="company_id" label={t('component.company')} />
 				{/if}
 				<Field name="code" />
 				<Field name="name" />

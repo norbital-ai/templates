@@ -183,13 +183,13 @@ function settledDayMessage(period: string, date: string, action: string): string
 const sourceLockSchema = Schema.Union([
 	Schema.Struct({ kind: Schema.Literal('NONE') }),
 	Schema.Struct({ kind: Schema.Literal('PENDING_APPROVAL') }),
-	Schema.Struct({ kind: Schema.Literal('SETTLED'), period: Schema.String }),
+	Schema.Struct({ kind: Schema.Literal('SETTLED'), period: Schema.NullOr(Schema.String) }),
 	Schema.Struct({ kind: Schema.Literal('DATE_PASSED'), date: Schema.String }),
 	Schema.Struct({ kind: Schema.Literal('PAID_DAY'), period: Schema.String, date: Schema.String })
 ]);
 
 /** The claim a `payslip_adjustments` row makes, reduced to what a refusal has to say. */
-const settlementClaimSchema = Schema.Struct({ period: Schema.String });
+const settlementClaimSchema = Schema.Struct({ period: Schema.NullOr(Schema.String) });
 export type SourceLock = Schema.Schema.Type<typeof sourceLockSchema>;
 
 /** The claim a `payslip_adjustments` row makes, reduced to what a refusal has to say. */
@@ -307,9 +307,10 @@ export function sourceLockMessage(lock: SourceLock, action: string): string {
 			// Both halves matter — "locked" on its own sends the person to look for a setting, and the
 			// only two ways out are deleting the run (if it is still a draft) or an adjustment entry.
 			return (
-				`${action} is locked: payroll ${lock.period} has already taken this record into account. ` +
-				'Delete that run to release it while it is still a draft, or correct it with an ' +
-				'adjustment entry once it has been paid.'
+				`${action} is locked: payroll ` +
+				(lock.period == null ? 'has' : `${lock.period} has`) +
+				' already taken this record into account. Delete that run to release it while it is ' +
+				'still a draft, or correct it with an adjustment entry once it has been paid.'
 			);
 		case 'PAID_DAY':
 			return settledDayMessage(lock.period, lock.date, action);
@@ -350,7 +351,7 @@ function sourceLockI18nParams(lock: SourceLock): SourceLockI18nParams | undefine
 		case 'DATE_PASSED':
 			return { date: lock.date };
 		case 'SETTLED':
-			return { period: lock.period };
+			return lock.period == null ? undefined : { period: lock.period };
 		case 'PAID_DAY':
 			return { period: lock.period, date: lock.date };
 		case 'NONE':
@@ -399,31 +400,31 @@ export function sourceLockRecordMetadata(
 }
 
 /** The columns the payroll engine writes when it captures or releases a single-use source. */
-const SETTLEMENT_KEYS = new Set(['id', 'row_version', 'settled_payslip_id', 'settled_period']);
+const SETTLEMENT_KEYS = new Set(['id', 'row_version', 'payslip_id']);
 
 /** Whether a write is the engine's capture or release — the one write a settled row accepts. */
 export function isSettlementWrite(input: Readonly<Record<string, unknown>>): boolean {
 	return Object.keys(input).every((key) => SETTLEMENT_KEYS.has(key));
 }
 
-/** The claim a settled source carries, read off its own row. */
+/** The claim a settled source carries, read off its own row. The period is read through the slip. */
 export function settledClaim(row: {
-	readonly settled_period?: string | null;
-}): { readonly period: string } | undefined {
-	return row.settled_period == null ? undefined : { period: row.settled_period };
+	readonly payslip_id?: string | null;
+}): { readonly period: string | null } | undefined {
+	return row.payslip_id == null ? undefined : { period: null };
 }
 
 /**
  * The shared settlement-lock read, for every source family's update and delete hooks.
  *
- * Each hook supplies the capture lookup over its own junction — the generated client keeps its
+ * Each hook supplies the settlement lookup over its own row — the generated client keeps its
  * per-collection query types — and this one decision turns whatever it finds into the same refusal
  * the screens compute from the same inputs. A pending approval still answers first (the platform's
- * 409, not ours); a capture names the period that has to release the record. Every settled source
- * carries `settled_period` exactly so this refusal never needs a `payroll_runs` read grant.
+ * 409, not ours); the pinned `payslip_id` names the slip that has to release the record, so this
+ * refusal never needs a `payroll_runs` read grant.
  */
 type RefuseIfCapturedOptions = {
-	readonly capture: Effect.Effect<{ readonly period: string } | undefined, never, never>;
+	readonly capture: Effect.Effect<{ readonly period: string | null } | undefined, never, never>;
 	readonly approvalId: string | null | undefined;
 	readonly action: string;
 };
@@ -498,13 +499,6 @@ export const planChanges = (
  * pay request dated in the past is ordinary, and only a settlement or a pending approval freezes
  * one.
  */
-/** The settlement claim of a single-use row, in the array shape the badge helper reads. */
-export function settledClaims(row: {
-	readonly settled_period?: string | null;
-}): ReadonlyArray<{ readonly period: string }> {
-	return row.settled_period == null ? [] : [{ period: row.settled_period }];
-}
-
 export function payRequestRecordMetadata(
 	approvalId: string | null,
 	captures: ReadonlyArray<{ readonly period: string }> | null | undefined,

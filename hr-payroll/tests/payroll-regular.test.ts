@@ -6,6 +6,7 @@ import hooks from '../src/collections/payroll_runs/+hooks.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { adjust, capturesOf, release, settle } from './helpers/settlement.ts';
+import { assertPayRequestAdmissible } from '../src/lib/pay_request_hooks.ts';
 
 test('a run reads only the catalogue of the version it picked, never a sibling version’s', async () => {
 	const world = createPublicPayrollWorld();
@@ -14,10 +15,8 @@ test('a run reads only the catalogue of the version it picked, never a sibling v
 			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 		);
 	const expected = buildPayrollRun(await prepare()).payslip_payroll_run;
-	const basic = world.work_catalogue[0];
-	assert.ok(basic);
-	// Two more versions of the lineage (a draft and a voided one) carry their own BASIC clones;
-	// the picked version's catalogue is the only one the run prices.
+	// Two more versions of the lineage (a draft and a voided one) carry their own work rules;
+	// the picked version's root is the only one the run prices.
 	world.jurisdiction_settings.push(
 		{
 			...structuredClone(world.jurisdiction_settings[0]),
@@ -32,10 +31,6 @@ test('a run reads only the catalogue of the version it picked, never a sibling v
 			voided_at: '2025-12-31T00:00:00.000Z',
 			void_reason: 'superseded'
 		}
-	);
-	world.work_catalogue.push(
-		{ ...structuredClone(basic), id: 'other-basic-1', settings_id: 'other-settings-1' },
-		{ ...structuredClone(basic), id: 'other-basic-2', settings_id: 'other-settings-2' }
 	);
 	const actual = buildPayrollRun(await prepare()).payslip_payroll_run;
 	assert.equal(actual[0].gross, expected[0].gross);
@@ -141,10 +136,11 @@ test('late requests settle once, including corrections, while recurring allowanc
 	const next = await build(world);
 	assert.equal(next.captured.payments.length, 0);
 	assert.equal(
-		next.prepared.gathered.bundles[0].payRequests.find((row) => row.id === payment.id)?.captured,
-		true
+		next.prepared.gathered.bundles[0].payRequests.some((row) => row.id === payment.id),
+		false,
+		'a settled request is not read into the next build'
 	);
-	assert.equal(next.slip.payslip_allowance_request_input_payslip.length, 1);
+	assert.equal(next.captured.materialised.length, 1);
 	payment.as_adjustment_entry = true;
 	assert.equal((await build(world)).captured.payments.length, 0);
 	release(world, 'payment_requests');
@@ -158,17 +154,15 @@ test('late requests settle once, including corrections, while recurring allowanc
 
 test('late one-off allowances retain source-month proration', async () => {
 	const world = attendedWorld();
+	world.allowance_catalogue[0].prorates = true;
 	world.employments[0].hire_date = '2026-01-16';
 	world.employments[0].effective_range = { start: '2026-01-16', end: null };
 	world.allowance_requests[0].recurrence = { kind: 'ONE_OFF', on: '2026-01-15' };
 	const { slip } = await build(world);
 	const row = slip.adjustments.find((row) => row.family === 'ALLOWANCE');
 	assert.equal(row.amount, 160);
-	world.payslip_allowance_request_inputs.push({
-		allowance_request_id: world.allowance_requests[0].id,
-		payslip_id: 'paid-slip'
-	});
-	assert.equal((await build(world)).slip.payslip_allowance_request_input_payslip.length, 0);
+	world.allowance_requests[0].payslip_id = 'paid-slip';
+	assert.equal((await build(world)).captured.allowances.length, 0);
 });
 
 for (const frequency of ['DAILY', 'HOURLY']) {
@@ -197,14 +191,17 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 					proration: 'NONE',
 					bands: []
 				},
-				requires_certificate_after_days: null,
+				evidence_after_days: null,
 				paid,
-				treatments: {}
+				evidence: 'NONE',
+				destination: paid ? 'DISPLAY' : 'PAY',
+				direction: paid ? null : 'SUBTRACT',
+				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }]
 			});
 			world.leave_entries.push({
 				id: '00000000-0000-4000-8000-000000000002',
 				employment_id: terms.employment_id,
-				leave_catalogue_id: catalogueId,
+				catalogue_id: catalogueId,
 				leave_code: 'TEST_LEAVE',
 				reference: 'TEST-LEAVE',
 				approval_id: null,
@@ -222,7 +219,7 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 					{
 						date: '2026-01-05',
 						days: 1,
-						leave_catalogue_id: catalogueId,
+						catalogue_id: catalogueId,
 						employment_term_id: terms.id,
 						holiday_id: null,
 						shift_definition_id: day.shift_definition_id,
@@ -230,14 +227,16 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 					}
 				]
 			});
-			const { slip } = await build(world, '2026-01');
+			const { slip, captured } = await build(world, '2026-01');
 			assert.equal(
 				slip.base.find((row) => row.component_code === 'BASIC').amount,
 				regular.base.find((row) => row.component_code === 'BASIC').amount
 			);
 			assert.equal(slip.gross, regular.gross - (paid ? 0 : 80));
-			assert.equal(slip.payslip_leave_input_payslip.length, 1);
-			assert.equal(slip.payslip_leave_input_payslip[0].gross_amount.value, paid ? 0 : -80);
+			assert.deepEqual(captured.leave, ['00000000-0000-4000-8000-000000000002']);
+			const deduction = slip.adjustments.find((row) => row.family === 'LEAVE');
+			assert.equal(deduction?.bucket, paid ? undefined : 'ABSENCE');
+			assert.equal(deduction?.amount ?? 0, paid ? 0 : 80);
 		});
 	}
 }
@@ -247,7 +246,8 @@ test('single-use recoveries cannot be silently reduced or leave a negative paysl
 	world.payment_requests[0].as_adjustment_entry = true;
 	world.payment_requests[0].amount = 100000;
 	await assert.rejects(build(world), /net pay is negative/);
-	world.payment_catalogue[0].nature = 'DEDUCTION';
+	world.payment_catalogue[0].destination = 'NET';
+	world.payment_catalogue[0].direction = 'SUBTRACT';
 	world.payment_requests[0].as_adjustment_entry = false;
 	await assert.rejects(build(world), /net pay is negative/);
 });
@@ -255,20 +255,34 @@ test('single-use recoveries cannot be silently reduced or leave a negative paysl
 test('captured siblings still count against the annual request cap', async () => {
 	const world = attendedWorld({ includePayment: true });
 	const first = world.payment_requests[0];
-	world.payment_requests.push({
+	const later = {
 		...first,
 		id: 'later-payment',
 		effective_on: '2026-02-05',
 		pay_period: '2026-02'
-	});
+	};
+	world.payment_requests.push(later);
 	settle(world, 'payment_requests', first.id, 'prior-slip', '2026-01');
 	adjust(world, 'prior-slip', { family: 'PAYMENT', source_id: first.id, amount: 100 });
-	world.payment_catalogue[0].cap = {
-		period: 'CALENDAR_YEAR',
-		on_exceed: 'BLOCK',
-		bands: [{ eligibility: '', amount: 150 }]
-	};
-	await assert.rejects(build(world), /entitlement exceeded/);
+	world.payment_catalogue[0].bands = [
+		{
+			when: '',
+			amount: 'entry.amount',
+			limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 150 },
+			statutory_opt_ins: []
+		}
+	];
+	// The write door is where captured usage is counted: the pinned sibling's paid amount plus the
+	// candidate's own magnitude trips the ceiling.
+	await assert.rejects(
+		Effect.runPromise(
+			assertPayRequestAdmissible(
+				{ family: 'PAYMENT', noun: 'payment', eventDate: (row) => row.effective_on },
+				{ api: memoryPayrollApi(world) as never, input: later, existing: undefined }
+			)
+		),
+		/entitlement exceeded/
+	);
 	world.payment_requests[1].amount = 50;
 	assert.equal((await build(world)).captured.payments.length, 1);
 });
@@ -279,7 +293,9 @@ test('loan recovery reduces to available net and keeps the unrecovered balance a
 	world.loan_catalogue.push({
 		...world.payment_catalogue[0],
 		id: 'loan-type',
-		code: 'LOAN'
+		code: 'LOAN',
+		destination: 'NET',
+		direction: 'SUBTRACT'
 	});
 	world.loans.push({
 		id: 'loan',
@@ -324,7 +340,7 @@ test('ended contracts settle approved Payment and Claim once without reviving Wo
 	world.claim_requests.push({
 		id: 'receipt',
 		employment_id: world.employments[0].id,
-		claim_catalogue_id: 'expense',
+		catalogue_id: 'expense',
 		amount: 25,
 		incurred_on: '2026-01-15',
 		approval_id: null
@@ -334,7 +350,7 @@ test('ended contracts settle approved Payment and Claim once without reviving Wo
 	assert.deepEqual(slip.base, []);
 	assert.deepEqual(slip.proration, []);
 	assert.equal(captured.workDays.length, 0);
-	assert.equal(slip.payslip_allowance_request_input_payslip.length, 0);
+	assert.equal(captured.allowances.length, 0);
 	assert.equal(captured.payments.length, 1);
 	assert.equal(captured.claims.length, 1);
 	settle(world, 'payment_requests', world.payment_requests[0].id, 'paid');
@@ -366,7 +382,7 @@ for (const family of ['payment', 'claim', 'allowance']) {
 			world.claim_requests.push({
 				id: 'old-receipt',
 				employment_id: world.employments[0].id,
-				claim_catalogue_id: 'claim-type',
+				catalogue_id: 'claim-type',
 				amount: 100,
 				incurred_on: '2026-01-15',
 				approval_id: null
@@ -385,16 +401,10 @@ for (const family of ['payment', 'claim', 'allowance']) {
 			effective_range: { start: '2026-02-01', end: null }
 		};
 		world.jurisdiction_settings.push(currentSettings);
-		world.work_catalogue.push({
-			...world.work_catalogue[0],
-			id: 'current-work',
-			settings_id: currentSettings.id
-		});
 		world[`${family}_catalogue`].push({
 			...source,
 			id: 'current-family-item',
-			settings_id: currentSettings.id,
-			nature: 'DEDUCTION'
+			settings_id: currentSettings.id
 		});
 		const { slip, prepared } = await build(world);
 		const output = slip.adjustments.find((row) => row.family === family.toUpperCase());

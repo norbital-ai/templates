@@ -14,7 +14,14 @@ import { resolveEmployment } from '../../../lib/employment-contract.js';
 
 import { Effect, Schema } from 'effect';
 import type { PayrollReadApi } from './api.js';
-import { workPayItems } from '../../work_catalogue/pay-items.js';
+import { workPayItems } from '../../../lib/payroll/work-lines.js';
+import {
+	settlementBucket,
+	type SettlementBucket,
+	type SettlementDestination,
+	type SettlementDirection,
+	type FamilyPayItem
+} from '../../../lib/payroll/family.js';
 import {
 	LEAVE_ABSENCE_SEQUENCE,
 	LEAVE_ENCASHMENT_SEQUENCE,
@@ -69,37 +76,21 @@ type RunRow = Pick<
 	'id' | 'company_id' | 'settings_id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
 >;
 
+/** What a settled line's catalogue says about it, reduced to the workbook's questions. */
+type ExportLine = {
+	readonly sequence: number;
+	readonly calculationSource: string;
+	readonly bucket: SettlementBucket;
+	readonly destination: SettlementDestination;
+	readonly family: FamilyPayItem['family'];
+};
+
 function timestampHours(row: WorkDayLike): number {
 	const elapsed = normalizedWorkedIntervals(row).reduce(
 		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
 		0
 	);
 	return Math.max(0, elapsed - Math.max(0, decodeNumber(row.break_minutes)) / 60);
-}
-
-/**
- * The statutory day type a rule key names.
- *
- * The key spells the band as `OT_[EXCESS_]<day type>_<measure>_<from>` — the same shape
- * `overtimeBandCode` writes — so the day type is the key's own words rather than a decode of a
- * band blob. Two of the three day types are themselves two words long (`REST_DAY`,
- * `PUBLIC_HOLIDAY`), so the match is prefix-based longest-first, not a split on `_`; an unknown
- * key still names itself in the workbook column.
- */
-const RULE_KEY_DAY_TYPES = ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY', 'ORDINARY'] as const;
-
-function overtimeRuleKeyDayType(ruleKey: string): (typeof RULE_KEY_DAY_TYPES)[number] | null {
-	const withoutPrefix = ruleKey.replace('OT_', '').replace('EXCESS_', '');
-	return (
-		RULE_KEY_DAY_TYPES.find(
-			(dayType) => withoutPrefix.startsWith(`${dayType}_`) || withoutPrefix === dayType
-		) ?? null
-	);
-}
-
-/** Whether a rule key names the excess above the statutory ceiling. */
-function overtimeRuleKeyIsExcess(ruleKey: string): boolean {
-	return ruleKey.includes('_EXCESS_');
 }
 
 /** Every roster code a pattern can project, so the shift definitions behind one can be loaded. */
@@ -131,11 +122,14 @@ export function loadRunExports(
 			return decoded._tag === 'Some' ? decoded.value : null;
 		};
 
-		const payslips = yield* readApi.db.payslips.findMany({
+		const readPayslips = yield* readApi.db.payslips.findMany({
 			where: { payroll_run_id: { in: runIds } },
 			limit: PAGE_LIMIT
 		});
-		readApi.reads.assertComplete(payslips, 'payslips');
+		readApi.reads.assertComplete(readPayslips, 'payslips');
+		// A held slip is deliberately out of the bank file and the workbook: its money has not been
+		// paid and its row may still be re-priced. Draft and paid slips are what an export is for.
+		const payslips = readPayslips.filter((row) => row.status !== 'ON_HOLD');
 		if (payslips.length === 0)
 			return runs.map((run) => ({
 				runId: run.id,
@@ -157,7 +151,7 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [employments, workCatalogues, leaves, claims, allowances, payments, terms, workDays] =
+		const [employments, settingsVersions, leaves, claims, allowances, payments, terms, workDays] =
 			yield* Effect.all(
 				[
 					api.db.employments.findMany({
@@ -167,7 +161,7 @@ export function loadRunExports(
 					// Every catalogue: a settled payslip line names a component by code, and the code may come
 					// from any of them. Merged here for the same reason the run merges them — the export asks
 					// what a line *is*, never which table declared it.
-					api.db.work_catalogue.findMany({ limit: PAGE_LIMIT }),
+					api.db.jurisdiction_settings.findMany({ limit: PAGE_LIMIT }),
 					api.db.leave_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.claim_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.allowance_catalogue.findMany({ limit: PAGE_LIMIT }),
@@ -190,7 +184,7 @@ export function loadRunExports(
 				{ concurrency: 'unbounded' }
 			);
 		for (const [name, rows] of Object.entries({
-			workCatalogues,
+			settingsVersions,
 			leaves,
 			claims,
 			allowances,
@@ -257,40 +251,55 @@ export function loadRunExports(
 		const payslipsByRun = Map.groupBy(payslips, (row) => row.payroll_run_id);
 
 		return runs.map((run) => {
-			const componentByCode = new Map(
-				[
-					...workCatalogues
-						.filter((row) => row.settings_id === run.settings_id)
-						.flatMap(workPayItems),
-					...leaves
-						.filter((row) => row.settings_id === run.settings_id)
-						.flatMap((row) => [
-							{
-								code: encashmentCode(row.code),
-								nature: 'EARNING',
-								sequence: LEAVE_ENCASHMENT_SEQUENCE,
-								settlement: 'PAYROLL' as const,
-								definition: null
-							},
-							...(!row.paid
-								? [
-										{
-											code: row.code,
-											nature: 'ABSENCE',
-											sequence: LEAVE_ABSENCE_SEQUENCE,
-											settlement: 'PAYROLL' as const,
-											definition: null
-										}
-									]
-								: [])
-						]),
-					// The money catalogues store flat columns; the export reads them through the same
-					// `ENTRY` arm the run does.
-					...[...claims, ...allowances, ...payments]
-						.filter((row) => row.settings_id === run.settings_id)
-						.map((row) => ({ ...row, definition: { source: 'ENTRY' as const, cap: row.cap } }))
-				].map((row) => [row.code, row])
-			);
+			const version = settingsVersions.find((row) => row.id === run.settings_id);
+			const componentByCode = new Map<string, ExportLine>();
+			if (version != null)
+				for (const item of workPayItems({ ...version.work_rules, settings_id: version.id }))
+					componentByCode.set(item.code, {
+						sequence: decodeNumber(item.sequence),
+						calculationSource: item.definition.source,
+						bucket: settlementBucket(item.destination, item.direction),
+						destination: item.destination,
+						family: item.family
+					});
+			for (const row of leaves.filter((row) => row.settings_id === run.settings_id)) {
+				const destination = row.destination as SettlementDestination;
+				componentByCode.set(encashmentCode(row.code), {
+					sequence: LEAVE_ENCASHMENT_SEQUENCE,
+					calculationSource: 'DERIVED',
+					bucket: 'EARNING',
+					destination,
+					family: 'LEAVE'
+				});
+				if (!row.paid)
+					componentByCode.set(row.code, {
+						sequence: LEAVE_ABSENCE_SEQUENCE,
+						calculationSource: 'DERIVED',
+						bucket: 'ABSENCE',
+						destination,
+						family: 'LEAVE'
+					});
+			}
+			// The money catalogues store flat columns; the export reads them through the same
+			// `ENTRY` arm the run does.
+			for (const [family, rows] of [
+				['CLAIM', claims],
+				['ALLOWANCE', allowances],
+				['PAYMENT', payments]
+			] as const)
+				for (const row of rows.filter((row) => row.settings_id === run.settings_id)) {
+					// The enum columns arrive as text at the database boundary; the models constrain
+					// them to the §9 vocabulary.
+					const destination = row.destination as SettlementDestination;
+					const direction = row.direction as SettlementDirection | null;
+					componentByCode.set(row.code, {
+						sequence: decodeNumber(row.sequence),
+						calculationSource: 'ENTRY',
+						bucket: settlementBucket(destination, direction),
+						destination,
+						family
+					});
+				}
 
 			const runPayslips = payslipsByRun.get(run.id) ?? [];
 			const runAttendanceFrom = requiredDateKey(
@@ -387,26 +396,26 @@ export function loadRunExports(
 				const reportLine = (
 					componentCode: string,
 					amount: number,
-					quantity: number | null
+					quantity: number | null,
+					bucket?: SettlementBucket
 				): ReportLine[] => {
-					const catalogueComponent = componentByCode.get(componentCode);
-					const definition = catalogueComponent?.definition ?? null;
+					const line = componentByCode.get(componentCode);
 					return [
 						{
 							componentCode: componentCode,
 							componentName: componentCode,
-							nature: catalogueComponent?.nature ?? 'INFORMATION',
+							// An adjustment states the bucket it settled in; a base line reads its
+							// catalogue's, and a code the run no longer carries is informational.
+							nature: bucket ?? line?.bucket ?? 'INFORMATION',
 							// The catalogue's order is the column order. A code the run's catalogue no
 							// longer carries sorts last rather than jumping to the front.
-							sequence:
-								catalogueComponent?.sequence == null
-									? Number.MAX_SAFE_INTEGER
-									: decodeNumber(catalogueComponent.sequence),
-							calculationSource: definition?.source ?? 'DERIVED',
+							sequence: line?.sequence ?? Number.MAX_SAFE_INTEGER,
+							calculationSource: line?.calculationSource ?? 'DERIVED',
 							amount,
 							quantity,
-							isCompanyDirect: catalogueComponent?.settlement === 'COMPANY_DIRECT',
-							isClaim: definition?.source === 'ENTRY' && definition.cap != null,
+							isCompanyDirect: line?.destination === 'EMPLOYER',
+							// A claim is the claim catalogue's own line, whatever its bands cap it at.
+							isClaim: line?.family === 'CLAIM',
 							isLoanInstalment: false,
 							overtimeDayType: null,
 							isOvertimeExcess: false
@@ -417,37 +426,19 @@ export function loadRunExports(
 					...payslip.base.flatMap((entry) =>
 						reportLine(entry.component_code, decodeNumber(entry.amount), null)
 					),
-					...payslipAdjustments.flatMap((row): ReportLine[] => {
-						const ruleKey = row.statutory_rule_key;
-						// A derived overtime row is settled under the Work catalogue's `OVERTIME` or
-						// `OVERTIME_EXCESS` component, which `component_code` carries like every other
-						// row — the workbook groups by the catalogue, so the column has to be the
-						// catalogue's. The rule key is provenance beside it, and the workbook still
-						// reads it for the day type and the excess flag: it spells the band as
-						// `OT_[EXCESS_]<day type>_<measure>_<from>`, the shape `overtimeBandCode`
-						// writes, so neither fact has to decode a band blob.
-						const lines = reportLine(
+					...payslipAdjustments.flatMap((row): ReportLine[] =>
+						reportLine(
 							row.component_code,
 							decodeNumber(row.amount),
-							row.quantity == null ? null : decodeNumber(row.quantity)
-						);
-						if (ruleKey != null)
-							return lines.map((line) => ({
-								...line,
-								nature: 'EARNING',
-								calculationSource: overtimeRuleKeyIsExcess(ruleKey)
-									? 'OVERTIME_EXCESS'
-									: 'OVERTIME',
-								overtimeDayType: overtimeRuleKeyDayType(ruleKey),
-								isOvertimeExcess: overtimeRuleKeyIsExcess(ruleKey)
-							}));
-						return lines.map((line) => ({
+							row.quantity == null ? null : decodeNumber(row.quantity),
+							row.bucket
+						).map((line) => ({
 							...line,
 							// Recovery of a loan repayment is the one adjustment a workbook reports
 							// separately, and the input family is what says so.
 							isLoanInstalment: row.family === 'LOAN_REPAYMENT'
-						}));
-					})
+						}))
+					)
 				];
 				const contributionTotals = new Map<
 					string,

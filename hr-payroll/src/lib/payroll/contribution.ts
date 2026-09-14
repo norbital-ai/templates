@@ -131,25 +131,13 @@ import {
 } from '../../collections/payroll_runs/lib/api.js';
 import { realignStatutoryFacts } from '../../collections/payroll_runs/lib/statutory-facts.js';
 import { live, coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import type {
-	Configuration,
-	ContributionRate
-} from '../../collections/payroll_runs/lib/configuration.js';
+import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
-import { bandAgeFloor, bandCeiling } from '../../collections/payroll_runs/lib/bands.js';
 import { accumulateBases } from '../../collections/payroll_runs/lib/accumulate.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
 import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import type { MeasuredEmployment } from './family.js';
-function bandOrder(left: ContributionRate, right: ContributionRate): number {
-	const ceiling = (rate: ContributionRate): number =>
-		rate.selector == null ? Number.NEGATIVE_INFINITY : bandCeiling(rate.selector);
-	const ageFloor = (rate: ContributionRate): number =>
-		rate.selector == null ? 0 : bandAgeFloor(rate.selector);
-	return ceiling(left) - ceiling(right) || ageFloor(left) - ageFloor(right);
-}
-
 export function prepareContributionCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly settingsId: string;
@@ -164,7 +152,30 @@ export function prepareContributionCatalogue(options: {
 		const contributions = live(rows).toSorted(
 			(a, b) => decodeNumber(a.sequence) - decodeNumber(b.sequence)
 		);
-		return contributions.map((row) => ({ row, rates: row.bands.toSorted(bandOrder) }));
+		// Scheme-to-scheme reliefs are junction rows, keyed by scheme id: each relieving scheme
+		// carries the ids of the schemes its employee share reduces.
+		const reliefs =
+			contributions.length === 0
+				? []
+				: yield* options.api.db.scheme_reliefs.findMany({
+						where: {
+							relieving_id: { in: contributions.map((row) => row.id) },
+							...approved
+						},
+						limit: PAGE_LIMIT
+					});
+		options.api.reads.assertComplete(reliefs, 'scheme reliefs');
+		const relievedBy = new Map<string, string[]>();
+		for (const relief of live(reliefs))
+			relievedBy.set(relief.relieving_id, [
+				...(relievedBy.get(relief.relieving_id) ?? []),
+				relief.relieved_id
+			]);
+		return contributions.map((row) => ({
+			row,
+			rates: row.bands,
+			relievedIds: relievedBy.get(row.id) ?? []
+		}));
 	});
 }
 export function prepareContributionInputs(options: {
@@ -216,7 +227,7 @@ function regionalMinimumWage(
 ): number | null {
 	const region = configuration.company.region;
 	if (region == null || region === '') return null;
-	const wage = configuration.jurisdiction.minimum_wages?.[region];
+	const wage = configuration.jurisdiction.wages?.by_region?.[region];
 	return wage == null ? null : decodeNumber(wage);
 }
 
@@ -259,13 +270,6 @@ export function prepareContributionAssessment(options: {
 			headcount,
 			riskClass: configuration.company.risk_class,
 			projection,
-			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
-			dependents: decodeNumber(bundle.employee.dependents_count ?? 0),
-			// A scheme that insures a household counts a spouse as one of the people it covers,
-			// whether or not that spouse has income of their own — which is a different question from
-			// whether a tax relief is due for them. Indonesia's BPJS Kesehatan covers the worker, a
-			// spouse and three children before it charges for a fourth family member.
-			hasSpouse: bundle.employee.spouse_status != null && bundle.employee.spouse_status !== 'NONE',
 			person: personContext({
 				employee: bundle.employee,
 				employment: bundle.employment,

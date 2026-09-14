@@ -46,11 +46,11 @@ test(
 			// Clone the settings identity from the public fixture; only the version and its span differ.
 			await session.query(
 				`insert into jurisdiction_settings
-				   (id, code, jurisdiction_code, name, sealed_at, voided_at, void_reason, cloned_from_id, currency,
-				    tax_year_start_month, timezone, effective_range,
+				   (id, code, jurisdiction_code, name, sealed_at, voided_at, void_reason, cloned_from_id,
+				    payroll, wages, sources, work_rules, effective_range,
 				    approval_id, created_at, updated_at)
 				 select $1, code, jurisdiction_code, 'Public fixture profile (superseded)', '2018-01-01T00:00:00.000Z',
-				        null, null, id, currency, tax_year_start_month, timezone,
+				        null, null, id, payroll, wages, sources, work_rules,
 				        $2::jsonb, null, created_at, updated_at
 				   from jurisdiction_settings where id = $3`,
 				[
@@ -66,12 +66,12 @@ test(
 			// `ANNUAL_LEAVE` the owner saw in their picker.
 			await session.query(
 				`insert into leave_catalogue
-				   (id, settings_id, code, name, is_statutory, authority, eligibility,
-				    requires_certificate_after_days, paid, entitlement,
-				    treatments, approval_id, created_at, updated_at)
-				 select $1, $2, code, name, is_statutory, authority, eligibility,
-				        requires_certificate_after_days, paid, entitlement,
-				        treatments, null, created_at, updated_at
+				   (id, settings_id, code, name, is_statutory, authority, eligibility, sequence,
+				    destination, direction, bands, evidence, paid, evidence_after_days, convertor,
+				    entitlement, approval_id, created_at, updated_at)
+				 select $1, $2, code, name, is_statutory, authority, eligibility, sequence,
+				        destination, direction, bands, evidence, paid, evidence_after_days, convertor,
+				        entitlement, null, created_at, updated_at
 				   from leave_catalogue where code = 'ANNUAL' and settings_id = $3`,
 				[OLD_ANNUAL_ID, OLD_VERSION_ID, JURISDICTION_ID]
 			);

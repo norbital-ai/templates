@@ -50,9 +50,6 @@
 			WorkspaceRow<'allowance_catalogue'>,
 			'code'
 		> | null;
-		readonly payslip_allowance_request_input_allowance_request?: ReadonlyArray<
-			Pick<WorkspaceRow<'payslip_allowance_request_inputs'>, 'period'>
-		> | null;
 	};
 </script>
 
@@ -85,7 +82,7 @@
 				recordMetadata={(row: AllowanceRow) =>
 					payRequestRecordMetadata(
 						row.approval_id,
-						row.payslip_allowance_request_input_allowance_request,
+						row.payslip_id == null ? [] : [{ period: '' }],
 						t
 					)}
 				query={{
@@ -95,14 +92,13 @@
 					orderBy: { created_at: 'desc' },
 					with: {
 						allowance_request_employment: { columns: { employee_number: true } },
-						allowance_request_allowance_catalogue: { columns: { code: true } },
-						payslip_allowance_request_input_allowance_request: { columns: { period: true } }
+						allowance_request_allowance_catalogue: { columns: { code: true } }
 					}
 				}}
 			>
 				{#snippet columns({ Column })}
 					<Column
-						name="allowance_catalogue_id"
+						name="catalogue_id"
 						label={t('component.component')}
 						card="title"
 						renderer={FormattedValueRenderer}

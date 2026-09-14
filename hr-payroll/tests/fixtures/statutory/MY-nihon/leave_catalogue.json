@@ -7,72 +7,83 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "9be4495b-d341-5736-80b1-c6cc59c2c4bd",
@@ -82,72 +93,83 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "a13c9fc7-9e3a-5fec-bcfa-1fdcb5bf0c2b",
@@ -157,66 +179,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -227,7 +190,78 @@
 					"days": 98
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d85b43a1-c3cf-5bc5-9bf4-af2bb9151cd1",
@@ -237,66 +271,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -307,7 +282,78 @@
 					"days": 60
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "3cbafd6d-e372-51ea-a83f-27e237e371c3",
@@ -317,66 +363,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -395,7 +382,78 @@
 					"days": 14
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "0029463c-160a-5b8c-bf4f-aac034c4a3b5",
@@ -405,72 +463,83 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d900dd65-69fe-5a50-8952-8707b32ceb0d",
@@ -480,66 +549,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -558,7 +568,77 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "3af6f1cd-7cfe-592f-8918-3b25afe40645",
@@ -568,72 +648,83 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "a40af711-9465-5acf-a0b1-3b5fbc07817d",
@@ -643,66 +734,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -713,7 +745,77 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "e89d8d1e-eddb-5a1a-9dd4-166f0f1bc9bc",
@@ -723,72 +825,83 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "96892bca-d430-534d-8e2e-f04e150f4e28",
@@ -798,80 +911,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "2e9c6fd6-ae88-50af-8dd3-4ba24677730e",
@@ -881,80 +1005,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d81567f6-b3e6-519e-b706-2db9ae43939d",
@@ -964,74 +1099,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1042,7 +1110,86 @@
 					"days": 98
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b22f1cc5-b21d-5b54-b588-ed33de3eb6c9",
@@ -1052,74 +1199,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1130,7 +1210,86 @@
 					"days": 60
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b4904409-8be5-5737-b6ce-31ba9fbd14eb",
@@ -1140,74 +1299,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1226,7 +1318,86 @@
 					"days": 14
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "435d04ef-c6d9-5886-98bb-ce84407cf6ec",
@@ -1236,80 +1407,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ec3555e4-1ffd-5724-a710-60f853aad5e3",
@@ -1319,74 +1501,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1405,7 +1520,85 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "b5077ac6-df55-5b21-b93d-3606e6a14ec5",
@@ -1415,80 +1608,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "db87d86e-8cff-5d00-ad31-7d51b57f97cb",
@@ -1498,74 +1702,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1576,7 +1713,85 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "1ccb5685-1f81-5a54-ac2d-985abbd06485",
@@ -1586,80 +1801,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "7b6d1a78-585c-5b86-849c-55709240ab8e",
@@ -1669,80 +1895,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "5220e3c0-f49b-5c65-a3fd-0427b7aad511",
@@ -1752,80 +1989,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "37b2e944-dbcd-5765-8c89-df607135384c",
@@ -1835,74 +2083,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.37(1)(a) read with s.37(1)(d)(ii) — maternity leave of not less than ninety-eight consecutive days. The LEAVE is unconditional and is what this row grants. NOT APPLIED: the maternity ALLOWANCE conditions. s.37(2)(a) makes the allowance payable only where the employee was employed for ninety days or more in the aggregate during the nine months immediately before her confinement AND was employed at any time in the four months immediately before it; s.37(1)(c) withholds it where she has five or more surviving children at the time of the confinement. The row carries one paid/unpaid flag for the whole leave, so nothing here can pay some maternity days and withhold others.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1913,7 +2094,86 @@
 					"days": 98
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "f8f14ec6-242f-56d6-bff6-d30bdde06e68",
@@ -1923,74 +2183,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60F(1)(bb) — 60 days of paid sick leave in the aggregate in each calendar year where hospitalisation is necessary, IN ADDITION to the s.60F(1)(aa) days since the Employment (Amendment) Act 2022 deleted the former 60-day aggregate proviso. Certification is required. No proration.",
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2001,7 +2194,86 @@
 					"days": 60
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "31ae2d39-df7c-54ea-8f35-6086df2935fb",
@@ -2011,74 +2283,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60F(1)(aa)(i)-(iii) — 14, 18 or 22 days of paid sick leave in the aggregate in each calendar year by length of service, where no hospitalisation is necessary. s.60F(1) makes examination by a registered medical practitioner or dental surgeon, or by a medical officer, a condition of the entitlement, so a certificate is required from the FIRST day; s.60F(2) deems sick absence without that certificate to be absence without leave. s.60F carries no proration clause and the entitlement must not be prorated.",
 		"eligibility": "",
-		"requires_certificate_after_days": 1,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2097,7 +2302,86 @@
 					"days": 14
 				}
 			]
-		}
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "36f8e7b1-a967-55c2-93fb-95b288b430e8",
@@ -2107,80 +2391,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "4f7e6aea-7ae4-52f5-b7ce-501897ed3538",
@@ -2190,74 +2485,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. NOT APPLIED: (a) the fraction rule in those same words — a fraction of a day less than one half is disregarded and one half or more is rounded to one day — for which the shape has no slot; (b) the second proviso to s.60E(1), which forfeits the entitlement where the employee has been absent without permission and without reasonable excuse for more than ten per cent of the working days of the qualifying twelve months; (c) the section's service-anniversary basis, since the entitlement here is expressed per calendar year.",
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2276,7 +2504,85 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "d0b18c92-0239-58bb-8d00-233a214797b2",
@@ -2286,80 +2592,91 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "9ae0e5c3-6244-5a04-b4af-39ef160b2bf3",
@@ -2369,74 +2686,7 @@
 		"is_statutory": true,
 		"authority": "Employment Act 1955 s.60FA — seven consecutive days of paid paternity leave per confinement for a MARRIED male employee who has been employed by the same employer for at least twelve months immediately before the leave begins (s.60FA(1) and (3)(a)); the eligibility predicate carries all three conditions. NOT APPLIED: the s.60FA(2) restriction to five confinements irrespective of the number of spouses, and the s.60FA(3)(b) requirement that the employee notify the employer of the confinement at least thirty days before the expected confinement or as early as possible after it — neither has a home in the entitlement shape.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && employment.service_months >= 12",
-		"requires_certificate_after_days": null,
 		"paid": true,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "INCLUDE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -2447,7 +2697,85 @@
 					"days": 7
 				}
 			]
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "INCLUDE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "3186ae92-1266-5476-9335-25f5dbd203f0",
@@ -2457,79 +2785,90 @@
 		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
-		"requires_certificate_after_days": null,
 		"paid": false,
-		"treatments": {
-			"EPF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_PR": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EPF_NON_CITIZEN": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SOCSO": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"SKBBK": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"EIS": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"PCB": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "INCLUDE"
-				}
-			},
-			"HRDF": {
-				"absence": {
-					"kind": "REDUCE"
-				},
-				"encashment": {
-					"kind": "EXCLUDE"
-				}
-			}
-		},
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "dc18ecc0-7f7e-5374-af38-e50ceab5ae98",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "9cfebde5-2ef8-59c5-90af-f030f17ddf43",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "ab08e529-7c5c-5c14-be7d-6a30060c742e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "366189ea-6535-5152-827c-e089c658630e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3927f5b2-9c12-536e-83ab-61a71c8ca270",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "58ed3f09-3669-585a-b347-f167d79d5825",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "6864f50a-b27c-52c9-9b42-627e34f0085e",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "3b0f1447-b613-55e1-99de-c0f1752852f5",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	}
 ]

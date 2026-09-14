@@ -1,167 +1,36 @@
 /**
- * Selecting a band of a statutory contribution.
+ * Selecting a band of a statutory contribution (RFC 0001 §8).
  *
- * **A wage band is chosen by its ceiling.** The published PERKESO and EPF schedules read "wages
- * exceeding X but not exceeding Y", so a wage of exactly 4,800.00 belongs to the band ending at
- * 4,800.00, not to the one starting there. Keying on the floor instead shifts every SOCSO and EIS
- * amount by one band — half a ringgit of employee share and 1.75 of employer share on every
- * payslip in the company (decision E3, and the `statutory-band` category of the parity baseline).
+ * Bands are expressions, read in declaration order: the first whose `when` holds governs. That is
+ * exactly how a statute writes its table — "wages exceeding X but not exceeding Y" — so the seeded
+ * order is the published order and no ceiling arithmetic stands between the law and the number.
  *
- * Non-wage dimensions — age, headcount, risk class, and the band's own eligibility predicate — are
- * filters applied first; the wage ceiling then picks one row from what survives. That is what lets
- * EPF, SOCSO and EIS each carry a second age class over the very same wage ladder, and CPF a
- * ladder per residency year.
- *
- * A wage above every ceiling is an **error**, never a silent fall back to the last row. A ceiling
- * is expressed as an open-ended terminal band (`to: null`); an engine that quietly reuses the last
- * finite band instead is a wrong-answer generator that nobody can see (decision E24).
+ * The terminal rung's condition is what makes high wages chargeable; a ladder that matches nobody
+ * at a wage is a seeding fault that must stop a run rather than quietly fall back to the last row
+ * (decision E24).
  */
 
-import type { ContributionRate } from './configuration.js';
-import { isEligible, type PersonContext } from './eligibility.js';
+import { evaluateBoolean } from '../../../lib/expressions/evaluate.js';
+import type { ExpressionEngine } from '../../../lib/expressions/evaluate.js';
+import type { ContributionBand } from './configuration.js';
 
-/** The four arms of `rate_selector`. A row whose selector is absent is a data error, not a band. */
-type BandSelector = NonNullable<ContributionRate['selector']>;
-type BandAward = NonNullable<ContributionRate['award']>;
-
-/** The non-wage dimensions that choose a band, and the wage the choice is asked about. */
-export type BandContext = {
-	readonly base: number;
-	/** Completed years of age at the period end. `null` where date of birth is unknown. */
-	readonly age: number | null;
-	/** Active employments in the company at the period end. */
-	readonly headcount: number;
-	readonly riskClass: string | null;
-	/** The person a band's `eligibility` predicate is asked about. */
-	readonly person: PersonContext;
-};
+/** The scheme context a band's expressions are evaluated against; see `lib/expressions`. */
+export type BandContext = Record<string, unknown>;
 
 /**
- * A band row with its variant columns present.
- *
- * `custom()` columns come back nullable whatever the model declares, so the engine states the
- * requirement once, here, rather than testing for it at a dozen call sites. A band without a
- * selector cannot be matched and a band without an award pays nothing — both are seeding faults
- * that must stop a run rather than quietly cost or overcharge someone.
- */
-type ResolvedBand = {
-	readonly row: ContributionRate;
-	readonly selector: BandSelector;
-	readonly award: BandAward;
-};
-
-function resolveBand(rate: ContributionRate, contributionCode: string): ResolvedBand {
-	const { selector, award } = rate;
-	if (selector == null)
-		throw new Error(`A ${contributionCode} rate band has no selector, so nothing can match it.`);
-	if (award == null)
-		throw new Error(`A ${contributionCode} rate band has no award, so it would pay nothing.`);
-	return { row: rate, selector, award };
-}
-
-/** Whether a band's non-wage dimensions admit this employment at all. */
-function dimensionsMatch(selector: BandSelector, context: BandContext): boolean {
-	switch (selector.by) {
-		case 'WAGE':
-			return true;
-		case 'WAGE_AND_AGE': {
-			if (context.age == null) return false;
-			return (
-				context.age >= selector.age_from &&
-				(selector.age_to == null || context.age < selector.age_to)
-			);
-		}
-		case 'HEADCOUNT':
-			return (
-				context.headcount >= selector.from &&
-				(selector.to == null || context.headcount < selector.to)
-			);
-		case 'RISK_CLASS':
-			return context.riskClass != null && selector.class === context.riskClass;
-	}
-	throw new Error(`Unsupported band selector: ${Reflect.get(selector, 'by')}`);
-}
-
-/**
- * The wage ceiling a band is keyed on.
- *
- * A headcount or risk-class band does not band on the wage at all, so it accepts any base: its one
- * dimension has already been decided by `dimensionsMatch`.
- */
-export function bandCeiling(selector: BandSelector): number {
-	switch (selector.by) {
-		case 'WAGE':
-		case 'WAGE_AND_AGE':
-			return selector.to == null ? Number.POSITIVE_INFINITY : selector.to;
-		case 'HEADCOUNT':
-		case 'RISK_CLASS':
-			return Number.POSITIVE_INFINITY;
-	}
-	throw new Error(`Unsupported band selector: ${Reflect.get(selector, 'by')}`);
-}
-
-/** The floor a `PROGRESSIVE` award measures its slice from. */
-export function bandFloor(selector: BandSelector): number {
-	switch (selector.by) {
-		case 'WAGE':
-		case 'WAGE_AND_AGE':
-		case 'HEADCOUNT':
-			return selector.from;
-		case 'RISK_CLASS':
-			return 0;
-	}
-	throw new Error(`Unsupported band selector: ${Reflect.get(selector, 'by')}`);
-}
-
-/** The age floor a band applies from, used only to order two bands sharing a ceiling. */
-export function bandAgeFloor(selector: BandSelector): number {
-	return selector.by === 'WAGE_AND_AGE' ? selector.age_from : 0;
-}
-
-/** A human-readable band label, stored on the payslip so a figure can be traced to its row. */
-export function bandReference(selector: BandSelector): string {
-	switch (selector.by) {
-		case 'WAGE':
-			return `${selector.from} – ${selector.to ?? '∞'}`;
-		case 'WAGE_AND_AGE':
-			return `${selector.from} – ${selector.to ?? '∞'} · age ${selector.age_from}–${selector.age_to ?? '∞'}`;
-		case 'HEADCOUNT':
-			return `headcount ${selector.from} – ${selector.to ?? '∞'}`;
-		case 'RISK_CLASS':
-			return `risk ${selector.class}`;
-	}
-	throw new Error(`Unsupported band selector: ${Reflect.get(selector, 'by')}`);
-}
-
-/**
- * Pick the one band that governs. `rates` is expected in ascending-ceiling order, which
- * `pickConfiguration` guarantees.
+ * Pick the one band that governs. The result is the matched band row itself; its `employee` and
+ * `employer` expressions are evaluated by the caller against the same context.
  */
 export function selectBand(
-	rates: readonly ContributionRate[],
+	bands: readonly ContributionBand[],
 	context: BandContext,
+	engine: ExpressionEngine,
 	contributionCode: string
-): ResolvedBand {
-	const candidates = rates
-		.map((rate) => resolveBand(rate, contributionCode))
-		.filter(
-			(band) =>
-				isEligible(band.row.eligibility, context.person) && dimensionsMatch(band.selector, context)
-		);
-	if (candidates.length === 0)
-		throw new Error(
-			`${contributionCode} has no band for a base of ${context.base}` +
-				`${context.age == null ? '' : ` at age ${context.age}`}. ` +
-				'Every combination a payroll can present must be banded.'
-		);
-	const matched = candidates.find((band) => context.base <= bandCeiling(band.selector));
-	if (!matched) {
-		const highest = candidates[candidates.length - 1];
-		throw new Error(
-			`${contributionCode} has no band covering a base of ${context.base}: the highest band ends ` +
-				`at ${highest == null ? 'nothing' : bandCeiling(highest.selector)}. A ceiling is an ` +
-				'open-ended terminal band, not the absence of one.'
-		);
-	}
-	return matched;
+): ContributionBand {
+	for (const band of bands) if (evaluateBoolean(engine, band.when, context)) return band;
+	const base = typeof context.base === 'number' ? context.base : 0;
+	throw new Error(
+		`${contributionCode} has no band whose condition holds for a base of ${base}. ` +
+			'Every combination a payroll can present must be banded.'
+	);
 }

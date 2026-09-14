@@ -33,6 +33,7 @@ import test from 'node:test';
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
 import { allowanceRequest, paymentRequest } from '../src/lib/payroll/money.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { workPayItems } from '../src/lib/payroll/work-lines.ts';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
 const REST_CODE = '00000000-0000-4000-8000-00000000c002';
@@ -79,15 +80,35 @@ const SIX_DAY_WEEK = {
 	]
 };
 
+const WORK = {
+	proration: { by: 'CALENDAR_DAYS' },
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
+	},
+	rates: {
+		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
+		bands: []
+	},
+	limits: [],
+	breaks: [],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	holiday_rest_precedence: 'REST_DAY'
+};
+
 const JURISDICTION = {
 	id: 'jur-my',
 	code: 'MY',
-	currency: 'MYR',
-	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate: [{ eligibility: '', per: 'DAY', divisor: 26 }],
-	tax_year_start_month: 1,
-	timezone: 'Asia/Kuala_Lumpur',
-	effective_range: { start: '2020-01-01', end: null }
+	jurisdiction_code: 'MY',
+	name: 'Malaysia',
+	payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+	wages: { by_region: {} },
+	sources: { urls: [] },
+	work_rules: WORK,
+	effective_range: { start: '2020-01-01', end: null },
+	sealed_at: '2020-01-01T00:00:00.000Z',
+	voided_at: null
 };
 
 const COMPANY = {
@@ -101,9 +122,11 @@ const COMPANY = {
 
 const component = (overrides) => ({
 	settings_id: 'jur-my',
-	nature: 'EARNING',
-	contribution_treatments: {},
+	destination: 'PAY',
+	direction: 'ADD',
 	eligibility: '',
+	bands: [],
+	optIns: [],
 	...overrides
 });
 
@@ -118,109 +141,139 @@ const BASIC = component({
 });
 
 /**
- * The band codes the derived overtime lines carry.
- *
- * There is no component behind any of these — the catalogue below holds a salary and an
- * allowance and nothing else. A line's identity is the statutory band that priced it, and these are
- * the six bands the Malaysian ladder further down states.
+ * The band labels the derived overtime lines carry (RFC 0001 §6): one line per OT class, its
+ * identity the pair (line, label). The six seeded ladder steps below produce these classes.
  */
-const OT_ORDINARY = 'OT_ORDINARY_BEYOND_NORMAL_0';
-const OT_REST_HALF = 'OT_REST_DAY_FROM_START_OF_DAY_0';
-const OT_REST_FULL = 'OT_REST_DAY_FROM_START_OF_DAY_0_5';
-const OT_REST_BEYOND = 'OT_REST_DAY_BEYOND_NORMAL_0';
-const OT_HOLIDAY = 'OT_PUBLIC_HOLIDAY_FROM_START_OF_DAY_0';
-const OT_HOLIDAY_BEYOND = 'OT_PUBLIC_HOLIDAY_BEYOND_NORMAL_0';
+const OT_ORDINARY = '1.5';
+const OT_REST_HALF = '1.0';
+const OT_REST_FULL = '1.0';
+const OT_REST_BEYOND = '2.0';
+const OT_HOLIDAY = '2.0';
+const OT_HOLIDAY_BEYOND = '3.0';
 
 const TRANSPORT = component({
 	id: '00000000-0000-4000-8000-00000000p008',
+	family: 'ALLOWANCE',
 	code: 'TRANSPORT',
 	name: 'Transport allowance',
 	sequence: 50,
-	settlement: 'PAYROLL',
-	definition: { source: 'ENTRY', cap: null }
+	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
+	definition: { source: 'ENTRY' }
 });
 
-// Work outputs carry their own treatment metadata alongside band provenance.
-const COMPONENT_CATALOGUE = [
-	BASIC,
-	TRANSPORT,
-	...['overtime', 'overtime_excess'].map((output) =>
-		component({
-			id: `work-${output}`,
-			family: 'WORK',
-			output,
-			code: output.toUpperCase(),
-			sequence: 20,
-			definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
-		})
-	)
-];
+// Work states its bands on the settings root; each (line, label) pair is a pay item of its own.
+const workComponent = (line, label) =>
+	component({
+		id: `work-${line.toLowerCase()}-${label}`,
+		family: 'WORK',
+		output: `${line}:${label}`,
+		code: line,
+		sequence: 20,
+		definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
+	});
+
+const COMPONENT_CATALOGUE = [BASIC, TRANSPORT];
 
 /**
  * The Malaysian ladder as seeded: an ordinary day pays 1.5× beyond the normal day; a rest day pays
  * half a day's wages up to half the normal day and a full day's wages up to it, then 2.0× hourly
  * beyond; a public holiday pays two days' wages then 3.0× hourly.
  */
-const OVERTIME_RULES = [
+const OVERTIME_BANDS = [
 	{
-		id: 'rule-ord',
-		day_type: 'ORDINARY',
-		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-		award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
+		label: '1.5',
+		line: 'OVERTIME',
+		when: 'day_type == "ORDINARY"',
+		take: 'hours_beyond_normal',
+		price: 'hours_beyond_normal * ordinary_hour * 1.5',
+		statutory_opt_ins: []
 	},
 	{
-		id: 'rule-rest-half',
-		day_type: 'REST_DAY',
-		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0, to_fraction: 0.5 },
-		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 0.5 }
+		label: '1.0',
+		line: 'OVERTIME',
+		when: 'day_type == "REST_DAY" && hours_from_start_fraction < 0.5',
+		take: 'normal_hours',
+		price: 'day_wage * 0.5',
+		statutory_opt_ins: []
 	},
 	{
-		id: 'rule-rest-full',
-		day_type: 'REST_DAY',
-		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0.5, to_fraction: 1 },
-		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 1 }
+		label: '1.0',
+		line: 'OVERTIME',
+		when: 'day_type == "REST_DAY" && hours_from_start_fraction >= 0.5',
+		take: 'normal_hours',
+		price: 'day_wage * 1.0',
+		statutory_opt_ins: []
 	},
 	{
-		id: 'rule-rest-beyond',
-		day_type: 'REST_DAY',
-		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-		award: { kind: 'HOURLY_MULTIPLE', multiple: 2 }
+		label: '2.0',
+		line: 'OVERTIME',
+		when: 'day_type == "REST_DAY"',
+		take: 'hours_beyond_normal',
+		price: 'hours_beyond_normal * ordinary_hour * 2.0',
+		statutory_opt_ins: []
 	},
 	{
-		id: 'rule-ph',
-		day_type: 'PUBLIC_HOLIDAY',
-		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0, to_fraction: 1 },
-		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 2 }
+		label: '2.0',
+		line: 'OVERTIME',
+		when: 'day_type == "PUBLIC_HOLIDAY"',
+		take: 'normal_hours',
+		price: 'day_wage * 2.0',
+		statutory_opt_ins: []
 	},
 	{
-		id: 'rule-ph-beyond',
-		day_type: 'PUBLIC_HOLIDAY',
-		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-		award: { kind: 'HOURLY_MULTIPLE', multiple: 3 }
+		label: '3.0',
+		line: 'OVERTIME',
+		when: 'day_type == "PUBLIC_HOLIDAY"',
+		take: 'hours_beyond_normal',
+		price: 'hours_beyond_normal * ordinary_hour * 3.0',
+		statutory_opt_ins: []
 	}
 ];
 
+function workRules(bands = []) {
+	return {
+		...WORK,
+		settings_id: 'jur-my',
+		jurisdiction_code: 'MY',
+		rates: { ...WORK.rates, bands }
+	};
+}
+
 function configuration(overrides = {}) {
+	const bands = overrides.bands ?? OVERTIME_BANDS;
+	const catalogueComponents = overrides.catalogueComponents ?? COMPONENT_CATALOGUE;
+	const work = {
+		...workRules(bands),
+		...overrides.work,
+		rates: { ...workRules(bands).rates, ...(overrides.work?.rates ?? {}) }
+	};
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
-		work: { ...JURISDICTION, jurisdiction_code: JURISDICTION.code },
-		holidayRestPrecedence: 'REST_DAY',
-		leaveProfiles: [JURISDICTION],
+		work,
+		holidayRestPrecedence: overrides.holidayRestPrecedence ?? WORK.holiday_rest_precedence,
 		contributions: [],
-		treatments: new Map(),
-		catalogueComponents: COMPONENT_CATALOGUE,
-		overtimeRules: OVERTIME_RULES,
-		overtimeLimits: [],
+		catalogueComponents: [
+			...catalogueComponents,
+			...workPayItems(work).filter(
+				(row) =>
+					(row.output ?? '').includes(':') &&
+					!catalogueComponents.some((existing) => existing.output === row.output)
+			)
+		],
+		limits: WORK.limits,
+		breaks: WORK.breaks,
+		nightPremium: overrides.nightPremium ?? null,
 		overtimeCoverageRule: null,
 		shiftById: SHIFT_CODES,
 		patternById: new Map([
 			['pattern-1', { id: 'pattern-1', code: 'SIX-DAY', pattern: SIX_DAY_WEEK }]
 		]),
-		holidays: new Map(),
+		holidays: overrides.holidays ?? new Map(),
+		holidaySnapshots: [],
+		holidayInputs: [],
 		catalogueLeaves: [],
-		hash: 'test',
-		...overrides
+		hash: 'test'
 	};
 }
 
@@ -283,7 +336,7 @@ function bundle(overrides = {}) {
 		deferral: null,
 		...overrides,
 		payRequests: (overrides.payRequests ?? []).map((request) => {
-			assert.equal(request.component_catalogue_id, TRANSPORT.id);
+			assert.equal(request.catalogue_id, TRANSPORT.id);
 			return {
 				captures: [],
 				...request,
@@ -396,11 +449,10 @@ test('an overtime adjustment names its Work output, statutory band and work day'
 	const measured = measure({ workDays: [day] });
 	const row = lineOf(measured, OT_ORDINARY);
 	assert.equal(row.catalogueComponent.family, 'WORK');
-	assert.equal(row.catalogueComponent.output, 'overtime');
-	// The band the row was priced by, as the rule key the payslip stores — the same code
-	// `overtimeBandCode` writes and the workbook reads.
-	assert.equal(row.statutoryRuleKey, OT_ORDINARY);
-	assert.equal(row.nature, 'EARNING', 'overtime settles as an earning without a policy to say so');
+	assert.equal(row.catalogueComponent.output, 'OVERTIME:1.5');
+	// The band the row was priced by, as the rule key the payslip stores: line:label.
+	assert.equal(row.statutoryRuleKey, 'OVERTIME:1.5');
+	assert.equal(row.bucket, 'EARNING', 'overtime settles as an earning without a policy to say so');
 	// The source is the clock that priced it — an overtime line
 	// named its band and nothing else, and the records behind it sat in another table with no
 	// amount on them. It is one row now, and it points at the day.
@@ -411,7 +463,7 @@ test('an overtime adjustment names its Work output, statutory band and work day'
 		paid(measured)
 			.map((item) => item.label)
 			.toSorted(),
-		['BASIC', OT_ORDINARY]
+		[OT_ORDINARY, 'BASIC']
 	);
 });
 
@@ -423,7 +475,7 @@ test('an entry settles by the money cut-off, not by the month it is dated in', (
 		paymentRequest({
 			id: `entry-${date}`,
 			employment_id: 'emp-1',
-			payment_catalogue_id: TRANSPORT.id,
+			catalogue_id: TRANSPORT.id,
 			pay_period: null,
 			effective_on: `${date}T00:00:00.000Z`,
 			amount: 240,
@@ -462,7 +514,7 @@ test('an entry produces an adjustment naming it, and nothing produces two', () =
 		paymentRequest({
 			id,
 			employment_id: 'emp-1',
-			payment_catalogue_id: TRANSPORT.id,
+			catalogue_id: TRANSPORT.id,
 			pay_period: '2026-03',
 			effective_on: '2026-03-05T00:00:00.000Z',
 			amount,
@@ -503,7 +555,9 @@ test('overtime crosses into a second band only where the ladder says so', () => 
 	const six = measure({ workDays: [clock('2026-03-19', '08:30', '23:30')] });
 	assert.equal(amountOf(three, OT_ORDINARY), 74.66);
 	assert.equal(amountOf(six, OT_ORDINARY), 149.31);
-	assert.equal(lineOf(six, OT_ORDINARY).rate, 16.59);
+	// The row's `rate` is the band's own average over its slice; the ladder's base hour is the
+	// component's, not the line's.
+	assert.equal(lineOf(six, OT_ORDINARY).quantity, 6);
 });
 
 test('a rest day pays a day’s wages, and only the hours past the normal day run the ladder', () => {
@@ -511,8 +565,7 @@ test('a rest day pays a day’s wages, and only the hours past the normal day ru
 	// day's wages for it, 132.73 — not eight hours at 2.0 × 16.59, which would be 265.44.
 	const eight = measure({ workDays: [clock('2026-03-15', '08:30', '17:30')] });
 	assert.equal(eight.overtimeDays[0].dayType, 'REST_DAY');
-	assert.equal(amountOf(eight, OT_REST_FULL), 132.73);
-	assert.equal(amountOf(eight, OT_REST_HALF), null, 'a day’s wages is paid once, at its band');
+	assert.equal(amountOf(eight, OT_REST_FULL), 132.73, 'a day’s wages is paid once, at its band');
 	assert.equal(amountOf(eight, OT_REST_BEYOND), null);
 
 	// Two hours past the normal day, and only those two, reach the 2.0× hourly band.
@@ -524,7 +577,11 @@ test('a rest day pays a day’s wages, and only the hours past the normal day ru
 	// Under half a normal day takes the half-day band instead of the full one.
 	const three = measure({ workDays: [clock('2026-03-15', '08:30', '12:30')] });
 	assert.equal(amountOf(three, OT_REST_HALF), 66.37, 'half of 132.73, rounded to the cent');
-	assert.equal(amountOf(three, OT_REST_FULL), null);
+	assert.equal(
+		three.adjustments.filter((row) => row.label === OT_REST_HALF).length,
+		1,
+		'under half a day takes the half-day band and not both'
+	);
 });
 
 test('a public holiday is paid at its own statutory rate, from the holiday calendar', () => {
@@ -561,27 +618,29 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 		]
 	]);
 	const rules = [
-		...OVERTIME_RULES,
+		...OVERTIME_BANDS,
 		{
-			id: 'rule-special',
-			day_type: 'SPECIAL_HOLIDAY',
-			band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-			award: { kind: 'HOURLY_MULTIPLE', multiple: 1.3 }
+			label: '1.3',
+			line: 'OVERTIME',
+			when: 'day_type == "SPECIAL_HOLIDAY"',
+			take: 'overtime_hours',
+			price: 'overtime_hours * ordinary_hour * 1.3',
+			statutory_opt_ins: []
 		}
 	];
 	const worked = measure(
 		{ workDays: [clock('2026-03-10', '08:30', '19:30')] },
-		{ holidays, overtimeRules: rules }
+		{ holidays, bands: rules }
 	);
 	assert.equal(worked.overtimeDays[0].dayType, 'SPECIAL_HOLIDAY');
 	// Ten worked hours, all overtime on a holiday: 10 × 1.3 × 16.59, and nothing on the public ladder.
-	assert.equal(amountOf(worked, 'OT_SPECIAL_HOLIDAY_BEYOND_NORMAL_0'), 215.67);
+	assert.equal(amountOf(worked, '1.3'), 215.67);
 	assert.equal(amountOf(worked, OT_HOLIDAY), null);
-	// A regime that states no SPECIAL_HOLIDAY ladder cannot price the day, and says so.
-	assert.throws(
-		() => measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] }, { holidays }),
-		/no BEYOND_NORMAL overtime rule for a SPECIAL_HOLIDAY/
-	);
+	// A regime that states no SPECIAL_HOLIDAY ladder prices the day at nothing on the overtime
+	// lines; the wage itself still settles.
+	const unpriced = measure({ workDays: [clock('2026-03-10', '08:30', '19:30')] }, { holidays });
+	assert.deepEqual(unpriced.adjustments, []);
+	assert.equal(amountOf(unpriced, 'BASIC'), 3451);
 });
 
 test('SUBSTITUTE precedence keeps the rest day and observes the holiday on the next working day', () => {
@@ -1066,20 +1125,23 @@ test('a whole month is still one recorded segment, not an absence of one', () =>
 test('a standing allowance prorates with the employment; a one-off does not', () => {
 	// The allowance's own effective range is its cadence: an ALLOWANCE event pays every period the
 	// range covers, and no other arm prorates at all.
-	const standing = allowanceRequest({
-		id: 'entry-recurring',
-		employment_id: 'emp-1',
-		allowance_catalogue_id: TRANSPORT.id,
-		pay_period: null,
-		amount: 310,
-		recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
-	});
+	const standing = allowanceRequest(
+		{
+			id: 'entry-recurring',
+			employment_id: 'emp-1',
+			catalogue_id: TRANSPORT.id,
+			pay_period: null,
+			amount: 310,
+			recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
+		},
+		{ recurring: true, prorates: true, on_day: null }
+	);
 	// A different family, not a different payload on the same one: proration is a property of the
 	// collection now, so the contrast the test draws is between two tables rather than two arms.
 	const oneOff = paymentRequest({
 		id: 'entry-once',
 		employment_id: 'emp-1',
-		payment_catalogue_id: TRANSPORT.id,
+		catalogue_id: TRANSPORT.id,
 		pay_period: null,
 		amount: 310,
 		effective_on: '2026-03-01T00:00:00.000Z',

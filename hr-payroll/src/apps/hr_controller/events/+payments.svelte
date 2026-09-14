@@ -15,7 +15,7 @@
 	} from '../company-scope.svelte.js';
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
-	import { payRequestRecordMetadata, settledClaims } from '../../../lib/scheduling/lock.js';
+	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -65,7 +65,11 @@
 				view={`hr_controller:events:payments:${selectedCompanyId}`}
 				title={t('app.payments.title')}
 				recordMetadata={(row: PaymentRow) =>
-					payRequestRecordMetadata(row.approval_id, settledClaims(row), t)}
+					payRequestRecordMetadata(
+						row.approval_id,
+						row.payslip_id == null ? [] : [{ period: row.pay_period ?? '' }],
+						t
+					)}
 				query={{
 					where: {
 						payment_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
@@ -79,7 +83,7 @@
 			>
 				{#snippet columns({ Column })}
 					<Column
-						name="payment_catalogue_id"
+						name="catalogue_id"
 						label={t('component.component')}
 						card="title"
 						renderer={FormattedValueRenderer}

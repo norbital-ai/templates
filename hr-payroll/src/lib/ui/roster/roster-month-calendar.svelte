@@ -93,7 +93,8 @@
 		personDayKey,
 		planGlyph,
 		resolveCellLayers,
-		type DayFacts
+		type DayFacts,
+		type HolidayLike
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
@@ -130,7 +131,7 @@
 		/** The shared fact table, keyed `employmentId:date` exactly as the board keys it. */
 		facts: ReadonlyMap<string, DayFacts>;
 		today: string;
-		holidayNames: ReadonlyMap<string, string>;
+		holidayNames: ReadonlyMap<string, HolidayLike>;
 		/** Keep the calendar shell mounted while a new month's live queries settle. */
 		loading?: boolean;
 		/**

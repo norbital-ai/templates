@@ -247,7 +247,7 @@ test(
 								values: {
 									id: entryId,
 									employment_id: employmentId,
-									leave_catalogue_id: 'ffffffff-ffff-4fff-8fff-fffffffffff1',
+									catalogue_id: 'ffffffff-ffff-4fff-8fff-fffffffffff1',
 									reference: 'MANUAL-DEPARTURE-1',
 									certificate_file: null,
 									event: {
@@ -296,10 +296,10 @@ test(
 			assert.deepEqual(slip.base, []);
 			assert.equal(
 				(
-					await session.query(
-						'select id from payslip_leave_inputs where leave_entry_id = $1 and payslip_id = $2',
-						[entryId, slip.id]
-					)
+					await session.query('select id from leave_entries where id = $1 and payslip_id = $2', [
+						entryId,
+						slip.id
+					])
 				).length,
 				1
 			);

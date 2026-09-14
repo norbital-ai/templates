@@ -7,7 +7,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Preserve Claim catalogue rows belonging to sealed settings versions; compile the eligibility expressions and require a named rule behind every special treatment.',
+					'Preserve Claim catalogue rows belonging to sealed settings versions; compile the eligibility expression.',
 				handler: ({ input, existing, api }) => admitCatalogueRow(api, input, existing, 'Claim')
 			}
 		}

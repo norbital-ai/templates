@@ -46,7 +46,7 @@ function facts(): LeaveContext {
 			{
 				id: id(6),
 				code: 'TEST',
-				currency: 'MYR',
+				payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
 				jurisdiction_code: 'TEST-JUR',
 				sealed_at: '2025-01-01',
 				voided_at: null,
@@ -62,7 +62,10 @@ function facts(): LeaveContext {
 				name: 'Annual leave',
 				is_statutory: false,
 				paid: true,
-				treatments: {},
+				evidence: 'NONE',
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
 				eligibility: '',
 				entitlement: {
 					availability: 'UPFRONT',
@@ -70,7 +73,7 @@ function facts(): LeaveContext {
 					year_start_month: 1,
 					bands: [{ eligibility: '', days: 12 }]
 				},
-				requires_certificate_after_days: null
+				evidence_after_days: null
 			}
 		],
 		holidays: [],
@@ -93,7 +96,7 @@ function facts(): LeaveContext {
 		shifts: [
 			{
 				id: id(8),
-				settings_code: 'TEST',
+				company_id: id(3),
 				effective_range: span,
 				variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 }
 			}
@@ -102,7 +105,7 @@ function facts(): LeaveContext {
 }
 const submission = (event: LeaveSubmission['event'], reference = 'test'): LeaveSubmission => ({
 	employment_id: id(1),
-	leave_catalogue_id: id(7),
+	catalogue_id: id(7),
 	reference,
 	event
 });
@@ -162,24 +165,48 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 		original_date: null,
 		published_at: '2025-01-01T00:00:00.000Z'
 	});
-	const row = approve(context, {
-		kind: 'TIME_OFF',
-		range: {
-			start: { date: '2026-01-30', half: 'SECOND' },
-			end: { date: '2026-02-02', half: 'FIRST' }
+	// A time-off entry settles whole in one period, so the collapsed range is two entries — one per
+	// period — and each keeps its exact half-day charges and holiday evidence.
+	const january = approve(
+		context,
+		{
+			kind: 'TIME_OFF',
+			range: {
+				start: { date: '2026-01-30', half: 'SECOND' },
+				end: { date: '2026-01-30', half: 'SECOND' }
+			},
+			chargeable_days: 99,
+			reason: null
 		},
-		chargeable_days: 99,
-		reason: null
-	});
+		101
+	);
+	const february = approve(
+		context,
+		{
+			kind: 'TIME_OFF',
+			range: {
+				start: { date: '2026-02-01', half: 'FIRST' },
+				end: { date: '2026-02-02', half: 'FIRST' }
+			},
+			chargeable_days: 99,
+			reason: null
+		},
+		102
+	);
 	assert.deepEqual(
-		row.charges.map((charge) => [charge.date, charge.days]),
+		january.charges.map((charge) => [charge.date, charge.days]),
+		[['2026-01-30', 0.5]]
+	);
+	assert.deepEqual(
+		february.charges.map((charge) => [charge.date, charge.days]),
 		[
-			['2026-01-30', 0.5],
 			['2026-02-01', 1],
 			['2026-02-02', 0.5]
 		]
 	);
-	assert.equal(row.event.kind === 'TIME_OFF' && row.event.chargeable_days, 2);
+	assert.equal(january.event.kind === 'TIME_OFF' && january.event.chargeable_days, 0.5);
+	assert.equal(february.event.kind === 'TIME_OFF' && february.event.chargeable_days, 1.5);
+	const row = january;
 	const jan = leavePayrollInputs({
 		entries: context.entries,
 		salaryWindow: { start: '2026-01-01', end: '2026-01-31' },
@@ -336,24 +363,22 @@ test('reversal restores original credits and cancels an uncaptured monetary obli
 test('a paid reversal uses captured money exactly; a draft holding the source must be resolved first', () => {
 	const context = facts();
 	const original = approve(context, cash());
-	context.runs.push({
-		id: id(20),
-		company_id: id(3),
-		period: '2026-09',
-		lifecycle: 'DRAFT',
-		attendance_from: '2026-09-01',
-		attendance_to: '2026-09-30'
+	context.payslips.push({
+		id: id(21),
+		payroll_run_id: id(20),
+		status: 'DRAFT',
+		paid_at: null,
+		currency: 'MYR',
+		// The settled lines are the frozen evidence now: the reversal reads its gross back off the
+		// payslip the entry is pinned to.
+		adjustments: [{ family: 'LEAVE', source_id: original.id, bucket: 'EARNING', amount: 150 }]
 	});
-	context.payslips.push({ id: id(21), payroll_run_id: id(20) });
-	context.captures.push({
-		leave_entry_id: original.id,
-		payslip_id: id(21),
-		charges: [],
-		gross_amount: { value: 150, currency: 'MYR' }
-	});
+	original.payslip_id = id(21);
 	assert.throws(() => approve(context, reversal(original), 11), /draft payroll/);
 	// Payment is the slip's fact, so this is what settles the capture — not its run's summary.
-	context.payslips.find((row) => row.id === id(21))!.paid_at = '2027-03-31';
+	const slip = context.payslips.find((row) => row.id === id(21))!;
+	slip.paid_at = '2027-03-31';
+	slip.status = 'PAID';
 	const correction = approve(context, reversal(original), 11);
 	assert.deepEqual(correction.event.kind === 'REVERSAL' && correction.event.gross_amount, {
 		value: -150,
@@ -363,7 +388,7 @@ test('a paid reversal uses captured money exactly; a draft holding the source mu
 		entries: context.entries,
 		salaryWindow: { start: '2027-04-01', end: '2027-04-30' },
 		dueThrough: '2027-04-30',
-		captures: context.captures
+		captures: [{ leave_entry_id: original.id }]
 	});
 	assert.equal(due.monetary.length, 1);
 	assert.equal(due.monetary[0]!.entry.id, correction.id);
@@ -462,7 +487,7 @@ test('leave preview is JSON-safe and keeps the unused half available beside a ho
 	});
 	const preview = evaluateLeavePreview(context, {
 		employment_id: id(1),
-		leave_catalogue_id: id(7),
+		catalogue_id: id(7),
 		range: {
 			start: { date: '2026-01-26', half: 'SECOND' },
 			end: { date: '2026-01-27', half: 'SECOND' }

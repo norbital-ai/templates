@@ -178,7 +178,7 @@
 					.map((entry) => ({
 						id: crypto.randomUUID(),
 						employment_id: entry.employment_id,
-						leave_catalogue_id: entry.leave_catalogue_id,
+						catalogue_id: entry.catalogue_id,
 						reference: entry.reference,
 						event: entry.event
 					}))

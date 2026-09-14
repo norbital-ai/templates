@@ -8,13 +8,14 @@ import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather
 import {
 	inclusiveDays,
 	monthDays,
+	monthKey,
 	periodMonth,
 	requiredDateKey
 } from '../../collections/payroll_runs/lib/dates.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import { type PayCadence } from '../../collections/payroll_runs/lib/period.js';
+import { type PayCadence, type PayFrequency } from '../../collections/payroll_runs/lib/period.js';
 import type { FormulaContext } from '../../collections/payroll_runs/lib/formula.js';
 import { calculateLeavePayroll, leaveCoverage } from '../leave/payroll.js';
 import { prorationFraction } from '../../collections/payroll_runs/lib/proration.js';
@@ -22,21 +23,22 @@ import { normalDailyHours } from '../../collections/payroll_runs/lib/schedule.js
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
-import { treatmentsInForce } from '../jurisdiction_settings.js';
 import type {
 	MeasuredEmployment,
 	MeasureEmploymentOptions,
 	MeasuredBase,
 	MeasuredAdjustment
 } from './family.js';
-import { baseLine } from './family.js';
+import { baseLine, settlementBucket } from './family.js';
 import {
 	PAY_REQUEST_FAMILIES,
 	requestIsDue,
+	prepareAllowanceSources,
 	prepareAllowanceWork,
 	prepareMoneySteps,
 	type PayRequest,
-	type PayRequestFamily
+	type PayRequestFamily,
+	type PreparedPayRequest
 } from './money.js';
 import { prepareWorkContext, calculateWorkAttendance, prepareWorkSteps, termsAt } from './work.js';
 import { measureLoanRecoveries, validateLoanRecoveries } from './loan.js';
@@ -45,33 +47,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	/** What the family measurements reported about the requests they read and did not pay. */
 	const notes: RunIssue[] = [];
 	const { bundle } = options;
-	const sourceComponents = new Map(
-		options.configuration.catalogueComponents.map((component) => [component.id, component])
-	);
-	// A request keeps the catalogue row it was raised against; a scheme sealed after that revision
-	// has no cell there and is decided by the run's row of the same code. See `treatmentsInForce`.
-	const currentByCode = new Map(
-		options.configuration.catalogueComponents.map((component) => [
-			`${component.family}:${component.code}`,
-			component
-		])
-	);
-	for (const request of bundle.payRequests) {
-		const source = request.catalogueComponent;
-		sourceComponents.set(source.id, {
-			...source,
-			contribution_treatments: treatmentsInForce(
-				source.contribution_treatments,
-				currentByCode.get(`${source.family}:${source.code}`)?.contribution_treatments
-			)
-		});
-	}
-	const configuration = {
-		...options.configuration,
-		catalogueComponents: [...sourceComponents.values()].toSorted(
-			(left, right) => left.sequence - right.sequence
-		)
-	};
+	// A request prices under the catalogue row it was raised against; its bands carry the opt-ins, so
+	// a scheme sealed after that revision is simply not opted into (silence means no effect).
+	const configuration = options.configuration;
 	// The attendance window is the employment's, not the run's: a leaver settling in their final
 	// period is measured to the exit date, because no later run will ever read those days.
 	const attendance = bundle.attendance;
@@ -79,7 +57,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	const { allowanceWorkDayIds, allowanceWorkingDaysIn } = prepareAllowanceWork({ bundle });
 
 	if (employed == null) {
-		const currency = configuration.jurisdiction.currency;
+		const currency = configuration.jurisdiction.payroll.currency;
 		const leave = calculateLeavePayroll({
 			prepared: bundle.leave,
 			window: options.salary,
@@ -99,6 +77,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const requests = bundle.payRequests.filter(
 			(request) =>
 				!request.recurring &&
+				request.materialised == null &&
 				requestIsDue(
 					request,
 					options.period,
@@ -117,7 +96,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			entries[component.code] =
 				(entries[component.code] ?? 0) +
 				requests
-					.filter((request) => request.component_catalogue_id === component.id)
+					.filter((request) => request.catalogue_id === component.id)
 					.reduce((sum, request) => sum + request.sign * decodeNumber(request.amount), 0);
 		}
 		for (const item of leave.adjustments) {
@@ -200,7 +179,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			requests,
 			consumedEntries: options.consumedEntries,
 			period: options.period,
-			workingDaysIn: () => 0,
+			// A late allowance earned over its source month prorates on that month’s working days:
+			// the source-month schedule is what `allowanceWorkingDaysIn` resolves, historical terms
+			// included. A zero here priced every late allowance on a departed contract at nothing.
+			workingDaysIn: (window) => allowanceWorkingDaysIn(monthKey(window.start), window),
 			allowanceWorkingDaysIn,
 			context,
 			subject,
@@ -245,7 +227,12 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 					PAYMENT: requests.filter((entry) => entry.family === 'PAYMENT').map((entry) => entry.id)
 				},
 				leave: leave.captures,
-				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
+				loanRepayments: repaymentRecoveries
+					.filter((recovery) => recovery.settlesSource !== false)
+					.map((recovery) => recovery.input.id),
+				materialised: requests.flatMap((request) =>
+					request.materialised == null ? [] : [request.materialised]
+				)
 			},
 			arrears: null,
 			componentAmounts,
@@ -283,7 +270,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			(!options.deferredWagesOnly || request.recurring) &&
 			requestIsDue(request, options.period, options.salary, cutoffDay, cadence)
 	);
-	const entriesByComponent = Map.groupBy(periodEntries, (entry) => entry.component_catalogue_id);
+	const entriesByComponent = Map.groupBy(periodEntries, (entry) => entry.catalogue_id);
 	const entryTotalByComponentId = new Map<string, number>();
 	for (const component of configuration.catalogueComponents) {
 		entryTotalByComponentId.set(
@@ -388,7 +375,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		},
 		jurisdiction: {
 			code: configuration.jurisdiction.code,
-			currency: configuration.jurisdiction.currency,
+			currency: configuration.jurisdiction.payroll.currency,
 			ordinary_rate_per: work.ordinaryRate.per,
 			ordinary_rate_divisor: work.ordinaryRate.divisor
 		}
@@ -442,7 +429,13 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		// month's own contract produced it — so it is base, exactly like the wage it stands in for,
 		// and it rides the wage's own component: a second base line under the same code, which the
 		// formula context and every total sum.
-		base.push(baseLine(component, component.nature, arrears.amount));
+		base.push(
+			baseLine(
+				component,
+				settlementBucket(component.destination, component.direction),
+				arrears.amount
+			)
+		);
 		componentAmounts.set(component.code, arrears.amount);
 		componentsByCode[component.code] = arrears.amount;
 	}
@@ -484,7 +477,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 		componentAmounts.set(component.code, running);
 		componentsByCode[component.code] = running;
-		if (component.nature === 'INFORMATION') continue;
+		if (settlementBucket(component.destination, component.direction) === 'INFORMATION') continue;
 		base.push(...measured.base);
 		proration.push(...measured.proration);
 		adjustments.push(...measured.adjustments);
@@ -539,11 +532,19 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			payRequests: Object.fromEntries(
 				PAY_REQUEST_FAMILIES.map((family) => [
 					family,
-					periodEntries.filter((entry) => entry.family === family).map((entry) => entry.id)
+					// A materialised occurrence is created with its pin; only authored sources are pinned.
+					periodEntries
+						.filter((entry) => entry.family === family && entry.materialised == null)
+						.map((entry) => entry.id)
 				])
 			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leave: measuredLeave.captures,
-			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
+			loanRepayments: repaymentRecoveries
+				.filter((recovery) => recovery.settlesSource !== false)
+				.map((recovery) => recovery.input.id),
+			materialised: periodEntries.flatMap((entry) =>
+				entry.materialised == null ? [] : [entry.materialised]
+			)
 		},
 		arrears,
 		notes,
@@ -625,12 +626,8 @@ function measureArrears(
 import { Effect } from 'effect';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { prepareWorkCatalogue, prepareWorkInputs } from './work.js';
-import {
-	prepareMoneyCatalogues,
-	prepareMoneyInputs,
-	prepareAllowanceSources,
-	prepareMoneyConsumption
-} from './money.js';
+import { workPayItems } from './work-lines.js';
+import { prepareMoneyCatalogues, prepareMoneyInputs, prepareMoneyConsumption } from './money.js';
 import { prepareLoanCatalogue, prepareLoanPayroll, prepareLoanConsumption } from './loan.js';
 import {
 	prepareContributionCatalogue,
@@ -644,7 +641,7 @@ import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js
 export function prepareFamilyCatalogues(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly jurisdiction: Jurisdiction;
-	readonly settingsCode: string;
+	readonly companyId: string;
 	readonly windowStart: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
 	readonly windowEnd: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
 }) {
@@ -660,12 +657,11 @@ export function prepareFamilyCatalogues(options: {
 			],
 			{ concurrency: 'unbounded' }
 		);
-		const { payItems, ...workConfiguration } = work;
 		return {
-			...workConfiguration,
+			...work,
 			contributions,
 			catalogueLeaves,
-			catalogueComponents: [...payItems, ...money, ...loans].toSorted(
+			catalogueComponents: [...workPayItems(work.work), ...money, ...loans].toSorted(
 				(a, b) => decodeNumber(a.sequence) - decodeNumber(b.sequence)
 			)
 		};
@@ -677,19 +673,27 @@ export function prepareFamilyObligations(options: {
 	readonly employmentIds: readonly string[];
 	readonly period: string;
 	readonly asOf: string;
+	readonly periodWindow: { readonly start: string; readonly end: string };
 }) {
 	return Effect.gen(function* () {
-		const [leaveByEmployment, requestsByEmployment] = yield* Effect.all(
+		const [leaveByEmployment, money] = yield* Effect.all(
 			[prepareLeavePayroll(options), prepareMoneyInputs(options)],
 			{ concurrency: 'unbounded' }
 		);
-		return { leaveByEmployment, requestsByEmployment };
+		return { leaveByEmployment, requestsByEmployment: money.requestsByEmployment };
 	});
 }
 export function prepareFamilyInputs(
-	options: Parameters<typeof prepareAllowanceSources>[0] & {
+	options: Omit<Parameters<typeof prepareMoneyInputs>[0], 'employmentIds'> & {
+		readonly employments: readonly { readonly id: string }[];
+		readonly requestsByEmployment: ReadonlyMap<string, readonly PreparedPayRequest[]>;
+		readonly cadenceByEmployment: ReadonlyMap<
+			string,
+			{ readonly window: PayrollWindow; readonly payFrequency: PayFrequency }
+		>;
+		readonly window: PayrollWindow;
 		readonly complianceSpan: PayrollWindow['attendance'];
-	}
+	} & Omit<Parameters<typeof prepareLoanPayroll>[0], 'employmentIds' | 'employments'>
 ) {
 	return Effect.gen(function* () {
 		const { allowanceConfigurations, allowanceMonthsByEmployment } =
@@ -741,9 +745,8 @@ export function prepareFamilyHistory(
 
 /**
  * Regulated overtime hours earlier PAID payslips settled: employee id → calendar month → hours.
- * Regulated is ordinary/off-day overtime, statutory or excess — the same counter the monthly
- * ceiling reads — identified by the band code the line carries (`OT_ORDINARY_…`,
- * `OT_EXCESS_ORDINARY_…`). Rest-day and holiday work is outside every hours ceiling.
+ * Regulated is ordinary/off-day overtime — the same counter the monthly ceiling reads — identified
+ * by the OVERTIME line the band carries. Rest-day and holiday work is outside every hours ceiling.
  */
 function priorOvertimeHours(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
@@ -758,11 +761,7 @@ function priorOvertimeHours(options: {
 		const month = periodMonth(period);
 		for (const line of payslip.adjustments) {
 			const key = line.statutory_rule_key ?? '';
-			if (
-				line.family !== 'WORK_DAY' ||
-				!(key.startsWith('OT_ORDINARY_') || key.startsWith('OT_EXCESS_ORDINARY_'))
-			)
-				continue;
+			if (line.family !== 'WORK_DAY' || !key.startsWith('OVERTIME:')) continue;
 			const byMonth = hours.get(employeeId) ?? new Map<string, number>();
 			byMonth.set(month, (byMonth.get(month) ?? 0) + decodeNumber(line.quantity ?? 0));
 			hours.set(employeeId, byMonth);
@@ -804,6 +803,8 @@ export function finalizeFamilyConfiguration(
 		return { ...pinned, hash: sha256Json(configurationSnapshot(pinned, period)) };
 	};
 	const current = withWorkHolidays(configuration, window.period);
+	// Source-month configurations are the run's evidence too: the same work-holiday pins reach them,
+	// and their calendars ride the run's holiday snapshot, so a payslip re-reads the days it paid.
 	const allowanceSources = new Map(
 		facts.bundles.flatMap((bundle) => [...(bundle.allowanceConfigurations ?? [])])
 	);
@@ -888,7 +889,7 @@ export function calculateFamilyAssessments(options: {
 		readonly termsThrough: string;
 		readonly projection: ReturnType<typeof payProjection>;
 	}> = [];
-	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.tax_year_start_month);
+	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 
 	for (const bundle of gathered.bundles) {
 		// A skipped joining period is skipped: no payslip, no lines, no statutory charge. The days it

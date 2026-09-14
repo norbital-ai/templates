@@ -5,23 +5,28 @@
 		"code": "PUB-EPF",
 		"name": "Public fixture retirement fund",
 		"is_statutory": true,
-		"authority": "Public fixture \u2014 not a sealed statutory table.",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
+		"authority": "Public fixture — not a sealed statutory table.",
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 1,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0,
-					"to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 11,
-					"employer": 13
-				}
+				"when": "base > 0.0",
+				"employee": "base * 11.0 / 100.0",
+				"employer": "base * 13.0 / 100.0"
 			}
 		]
 	},
@@ -31,23 +36,28 @@
 		"code": "PUB-EPF-NC",
 		"name": "Public fixture non-citizen retirement fund",
 		"is_statutory": true,
-		"authority": "Public fixture \u2014 invented non-citizen scheme, not a sealed statutory table.",
-		"rounding": "NEAREST_CENT",
-		"relief_for": [],
+		"authority": "Public fixture — invented non-citizen scheme, not a sealed statutory table.",
+		"assessment_period": "PAY_PERIOD",
+		"eligibility": "",
 		"sequence": 2,
-		"special_rules": [],
+		"rules": {
+			"relief": "",
+			"base_transform": "",
+			"share_for_dependants": "",
+			"rounding": ["NEAREST_CENT"],
+			"no_withholding_below": 0.0,
+			"use_period_table": true,
+			"additional_remuneration_channel": false,
+			"employee_share_annual_cap": null,
+			"shared_cap_group": null,
+			"project_relief_annually": false,
+			"total_rounded_employee_floored": false
+		},
 		"bands": [
 			{
-				"selector": {
-					"by": "WAGE",
-					"from": 0,
-					"to": null
-				},
-				"award": {
-					"kind": "PERCENT",
-					"employee": 5,
-					"employer": 5
-				}
+				"when": "base > 0.0",
+				"employee": "base * 5.0 / 100.0",
+				"employer": "base * 5.0 / 100.0"
 			}
 		]
 	}

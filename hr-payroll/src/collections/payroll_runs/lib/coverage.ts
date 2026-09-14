@@ -54,7 +54,8 @@ const WageComparandCategorySchema = Schema.Literals(['BASIC_WAGES', 'CASH_FOR_WO
 type WageComparandCategory = Schema.Schema.Type<typeof WageComparandCategorySchema>;
 
 const WageComparandComponentSchema = Schema.Struct({
-	nature: Schema.NullOr(Schema.String),
+	destination: Schema.NullOr(Schema.String),
+	direction: Schema.NullOr(Schema.String),
 	definition: Schema.NullOr(Schema.Struct({ source: Schema.String }))
 });
 type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
@@ -63,7 +64,7 @@ type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSc
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
 	const source = component.definition?.source;
 	if (source === 'SCHEDULE') return 'BASIC_WAGES';
-	if (component.nature === 'EARNING') return 'CASH_FOR_WORK';
+	if (component.destination === 'PAY' && component.direction !== 'SUBTRACT') return 'CASH_FOR_WORK';
 	return 'NOT_WAGES';
 }
 

@@ -3,8 +3,9 @@
 ![HR & Payroll workspace thumbnail](assets/thumbnail.svg)
 
 This Bolt workspace calculates payroll from approved employment, attendance, Leave and monetary
-entries. Effective catalogue revisions define calculation rules and statutory treatments. Results
-retain their source captures and calculation provenance.
+entries. Effective catalogue revisions define calculation rules and statutory opt-ins. Every entry
+the run consumes is linked to the payslip that settled it, and results retain their calculation
+provenance.
 
 ## Payroll model
 
@@ -12,9 +13,10 @@ Exactly one payroll is permitted per company and period. A draft can be deleted 
 a paid payroll is immutable. Late approved payments and corrections settle through a later regular
 period. There is no ad hoc payroll or second run for a settled period.
 
-The domain families are Work, Leave, Claim, Allowance, Adhoc, Loan and Contribution. Each owns its
-catalogue and business inputs. Adhoc uses one catalogue and one request collection for bonuses,
-notice pay, separation payments and corrections.
+The domain families are Work, Leave, Claim, Allowance, Adhoc, Loan and Contribution. Work's rules
+live on the settings version; every other family owns its catalogue and business entries. Adhoc
+uses one catalogue and one request collection for bonuses, notice pay, separation payments and
+corrections.
 
 ```mermaid
 flowchart LR
@@ -27,7 +29,7 @@ flowchart LR
     Prepare --> Calculate[Calculate family results]
     Calculate --> Contribution[Calculate contributions]
     Contribution --> Settle[Settle gross and net]
-    Settle --> Commit[Atomically store payroll, contract payslips, captures and seals]
+    Settle --> Commit[Atomically store payroll, contract payslips, entry links and seals]
 ```
 
 - **Work** owns salary, overtime and unexplained absence calculations.
@@ -40,8 +42,8 @@ flowchart LR
   type is offered only to the people its catalogue row names, and a receipt is required when the
   row says so.
 - **Loan** owns agreements and repayment schedules. Outstanding recovery is the amount due less
-  paid captures. Partial recovery remains at its source.
-- **Contribution** evaluates statutory schemes against the treatments supplied by calculated items.
+  paid recoveries. Partial recovery remains at its source.
+- **Contribution** evaluates statutory schemes against the opt-ins carried by calculated lines.
 
 The existing `employments` collection represents contracts. Every employee event and payslip names
 its contract. A person may have at most one active contract per entity on any date, including future
@@ -53,15 +55,17 @@ required across contracts for the same person and entity.
 Observed holidays are one row each per legal entity, independent of employment and settings
 revisions, and each is published on its own: a published holiday is used by rosters, leave and
 payroll from then on, an unpublished one is not there. Payroll reads the holidays published for its
-entity at the point of running and captures them on the run; a finished run never changes. A holiday
+entity at the point of running and snapshots them on the run; a finished run never changes. A holiday
 a work day or payroll run has read is frozen — its day, name and publication cannot change and it
 cannot be deleted. Holidays arrive by hand, from the holidays spreadsheet template, or from the
 entity's Google calendar (`holiday_import`, each 1 October and on demand); every door skips a day
 the entity already has and never publishes.
 
-Payroll writes `payroll_runs`, `payslips` (adjustments inlined), the three capture junctions
-(allowance, leave, loan repayment) and the single-use sources' settlement pins as one atomic graph. Payslips contain base, proration and statutory results; adjustments reference their
-causal captures. Payroll outputs are calculated rather than supplied as seed inputs.
+Payroll writes `payroll_runs` and `payslips` (adjustments inlined) as one atomic graph, linking
+every consumed entry through its own nullable `payslip_id`; a recurring allowance, a period-split
+Leave slice and a partial loan recovery materialise as per-period entries. Payslips contain status,
+base, proration and statutory results; adjustments reference their causal entries. Payroll outputs
+are calculated rather than supplied as seed inputs.
 
 Only approved, committed source rows are payable. Held creates live in the platform approval
 queue. Leave includes their debit reservations when calculating available entitlement.
@@ -74,15 +78,15 @@ manual encashment, carry-forward, adjustments and reversals.
 
 **Controller** shares the selected legal entity across its pages:
 
-| Area               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Entities           | Select the legal entity; its Holidays tab holds the entity's holidays and Google source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| People             | Profiles, contracts, departures, effective terms and statutory facts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Events             | Work, Leave, Claim, Allowance, Adhoc and Loan records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Payroll            | Create the regular period, review results, mark paid and export                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Settings → Catalog | Review family definitions within the settings lineage; a money catalogue row says who may raise it and up to what ceiling, and a leave row who earns how many days, as predicates over the person (standing, family, residency months), the contract's terms and `grade`, and the company's region; a scheme and each of its bands say whom they cover the same way; a leave is paid or not, with one scheme matrix for its unpaid and encashed days; the work row is the rate of pay (rows by predicate), the overtime regime with its night premium and one scheme matrix for salary, overtime, excess overtime, absence and the night premium, cited once |
-| Settings → Compare | Diff two snapshots of the selected lineage: the settings fields and every catalogue row, leaf by leaf                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Kiosk              | Attendance clock and face enrollment                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Area               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entities           | Select the legal entity; its Holidays tab holds the entity's holidays and Google source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| People             | Profiles, contracts, departures, effective terms and statutory facts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Events             | Work, Leave, Claim, Allowance, Adhoc and Loan records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Payroll            | Create the regular period, review results, mark paid and export                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Settings → Catalog | Review family definitions within the settings lineage; a money catalogue row says who may raise it and up to what ceiling, and a leave row who earns how many days, as predicates over the person (standing, family, residency months), the contract's terms and `grade`, and the company's region; a scheme and each of its bands say whom they cover the same way; a leave is paid or not, with its bands carrying the statutory opt-ins; the work rules are the proration basis, the ordinary-rate rows, the ordered bands and their funnel, the limits and breaks schedules must respect, the night premium and one citation |
+| Settings → Compare | Diff two snapshots of the selected lineage: the settings fields and every catalogue row, leaf by leaf                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Kiosk              | Attendance clock and face enrollment                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Policies distinguish employee, supervisor, manager, HR controller, HR manager, senior management
 and kiosk access. Payroll writes belong to HR manager and senior management. Approved Leave entries

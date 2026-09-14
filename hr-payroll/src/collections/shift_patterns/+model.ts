@@ -1,4 +1,4 @@
-import { custom, defineModel, text } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * A named shift pattern: the base every employment on it projects its days from.
@@ -16,7 +16,8 @@ import { custom, defineModel, text } from '@norbital-ai/bolt/authoring';
  */
 export default defineModel(
 	{
-		settings_code: text({ search: true }).notNull(),
+		/** The entity the pattern belongs to, like its holidays (RFC 0001 §11). */
+		company_id: uuid().notNull(),
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }).notNull(),
 		pattern: custom('work_pattern').notNull(),
@@ -27,6 +28,6 @@ export default defineModel(
 			'A named shift pattern of one jurisdiction lineage: the repeating day cycle of roster codes (or the rostered expectation) that employment terms point at. Every day an employment has no roster row for is projected from its pattern.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:repeat',
-		indexes: [{ columns: ['settings_code', 'code'], unique: true }]
+		indexes: [{ columns: ['company_id', 'code'], unique: true }]
 	}
 );

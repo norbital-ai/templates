@@ -16,13 +16,12 @@ import {
 } from '../../collections/payroll_runs/lib/eligibility.js';
 
 /**
- * The leave type lieu credits are earned into. Its catalogue row is `availability: UNLIMITED`
- * with no bands — but unlike an unmetered type (NS call-ups) it is earned by credit only: the
- * computed entitlement is zero and the work-day credits are its only days, so spending without
- * credit is refused and reversing into spent credit is refused. The work-day hook posts and
- * reverses the entries; this is what makes those entries the whole balance.
+ * The leave type off-in-lieu days are recorded under (RFC 0001 §10). Its catalogue row is
+ * `availability: UNLIMITED` with no bands, and HR records every movement by hand — an ADJUSTMENT
+ * to grant, a TIME_OFF to take, a REVERSAL to return — so the computed entitlement is zero and
+ * the approved entries are the whole balance.
  */
-export const LIEU_LEAVE_CODE = 'PUBLIC_HOLIDAY_IN_LIEU';
+const LIEU_LEAVE_CODE = 'PUBLIC_HOLIDAY_IN_LIEU';
 
 type ReadTables =
 	| 'employments'
@@ -36,7 +35,6 @@ type ReadTables =
 	| 'shift_definitions'
 	| 'jurisdiction_holidays'
 	| 'payroll_runs'
-	| 'payslip_leave_inputs'
 	| 'payslips';
 export type LeaveReadApi = {
 	db: { [K in ReadTables]: Pick<Api<WorkspaceSchema>['db'][K], 'findMany'> } & {
@@ -88,7 +86,7 @@ export type LeaveContext = {
 		WorkspaceRow<'jurisdiction_settings'>,
 		| 'id'
 		| 'code'
-		| 'currency'
+		| 'payroll'
 		| 'jurisdiction_code'
 		| 'sealed_at'
 		| 'voided_at'
@@ -104,13 +102,16 @@ export type LeaveContext = {
 		| 'eligibility'
 		| 'entitlement'
 		| 'is_statutory'
-		| 'requires_certificate_after_days'
+		| 'sequence'
+		| 'destination'
+		| 'direction'
+		| 'evidence_after_days'
 		| 'paid'
-		| 'treatments'
+		| 'bands'
 	>[];
 	holidays: Pick<
 		WorkspaceRow<'jurisdiction_holidays'>,
-		'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'published_at'
+		'id' | 'company_id' | 'date' | 'name' | 'kind' | 'original_date' | 'given_to' | 'published_at'
 	>[];
 	workDays: Pick<
 		WorkspaceRow<'work_days'>,
@@ -123,13 +124,12 @@ export type LeaveContext = {
 	patterns: Pick<WorkspaceRow<'shift_patterns'>, 'id' | 'code' | 'pattern' | 'effective_range'>[];
 	shifts: Pick<
 		WorkspaceRow<'shift_definitions'>,
-		'id' | 'settings_code' | 'variant' | 'effective_range'
+		'id' | 'company_id' | 'variant' | 'effective_range'
 	>[];
-	captures: Pick<
-		WorkspaceRow<'payslip_leave_inputs'>,
-		'leave_entry_id' | 'payslip_id' | 'gross_amount' | 'charges' | 'pay_items'
+	payslips: Pick<
+		WorkspaceRow<'payslips'>,
+		'id' | 'payroll_run_id' | 'employment_id' | 'currency' | 'paid_at' | 'adjustments'
 	>[];
-	payslips: Pick<WorkspaceRow<'payslips'>, 'id' | 'payroll_run_id' | 'employment_id' | 'paid_at'>[];
 };
 
 /** One batched, guarded read of employment history and manual activity. No balance rows or writes. */
@@ -205,13 +205,14 @@ export function readLeaveContext(
 					columns: {
 						id: true,
 						employment_id: true,
-						leave_catalogue_id: true,
+						catalogue_id: true,
 						leave_code: true,
 						reference: true,
 						event: true,
 						charges: true,
 						allocations: true,
-						approval_id: true
+						approval_id: true,
+						payslip_id: true
 					},
 					limit: LIMIT
 				}),
@@ -265,13 +266,13 @@ export function readLeaveContext(
 				: yield* Effect.all(
 						[
 							api.db.shift_patterns.findMany({
-								where: { settings_code: { in: settingsCodes }, approval_id: { isNull: true } },
+								where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
 								columns: { id: true, code: true, pattern: true, effective_range: true },
 								limit: LIMIT
 							}),
 							api.db.shift_definitions.findMany({
-								where: { settings_code: { in: settingsCodes }, approval_id: { isNull: true } },
-								columns: { id: true, settings_code: true, variant: true, effective_range: true },
+								where: { company_id: { in: companyIds }, approval_id: { isNull: true } },
+								columns: { id: true, company_id: true, variant: true, effective_range: true },
 								limit: LIMIT
 							})
 						],
@@ -290,7 +291,7 @@ export function readLeaveContext(
 					code: true,
 					jurisdiction_code: true,
 					sealed_at: true,
-					currency: true,
+					payroll: true,
 					voided_at: true,
 					effective_range: true,
 					approval_id: true
@@ -313,9 +314,12 @@ export function readLeaveContext(
 					eligibility: true,
 					entitlement: true,
 					is_statutory: true,
-					requires_certificate_after_days: true,
+					sequence: true,
+					destination: true,
+					direction: true,
+					evidence_after_days: true,
 					paid: true,
-					treatments: true
+					bands: true
 				},
 				limit: LIMIT
 			}),
@@ -338,6 +342,7 @@ export function readLeaveContext(
 					name: true,
 					kind: true,
 					original_date: true,
+					given_to: true,
 					published_at: true
 				},
 				limit: LIMIT
@@ -345,38 +350,28 @@ export function readLeaveContext(
 			'holidays'
 		);
 		const entries = yield* withPendingLeaveEntries(api, ids, stored);
-		const captures = !includeSettlements
-			? []
-			: complete(
-					yield* api.db.payslip_leave_inputs.findMany({
-						where: {
-							leave_entry_id: { in: stored.map((row) => row.id) },
-							approval_id: { isNull: true }
-						},
-						columns: {
-							leave_entry_id: true,
-							payslip_id: true,
-							gross_amount: true,
-							charges: true,
-							pay_items: true
-						},
-						limit: LIMIT
-					}),
-					'leave captures'
-				);
+		// A settled entry names its payslip directly; there is no capture junction any more. The
+		// payslip's stored adjustments are the frozen evidence a reversal negates.
+		const settlingIds = [
+			...new Set(stored.flatMap((row) => (row.payslip_id == null ? [] : [row.payslip_id])))
+		];
 		const payslips =
-			captures.length === 0
+			!includeSettlements || settlingIds.length === 0
 				? []
 				: complete(
 						yield* api.db.payslips.findMany({
-							where: {
-								id: { in: [...new Set(captures.map((row) => row.payslip_id))] },
-								approval_id: { isNull: true }
+							where: { id: { in: settlingIds }, approval_id: { isNull: true } },
+							columns: {
+								id: true,
+								payroll_run_id: true,
+								employment_id: true,
+								currency: true,
+								paid_at: true,
+								adjustments: true
 							},
-							columns: { id: true, payroll_run_id: true, employment_id: true, paid_at: true },
 							limit: LIMIT
 						}),
-						'capturing payslips'
+						'settling payslips'
 					);
 		return {
 			employments,
@@ -391,7 +386,6 @@ export function readLeaveContext(
 			runs,
 			patterns,
 			shifts,
-			captures,
 			payslips
 		};
 	});

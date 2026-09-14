@@ -52,7 +52,6 @@ test(
 				'team',
 				'jurisdiction_settings',
 				'companies',
-				'work_catalogue',
 				'statutory_contributions',
 				'leave_catalogue',
 				'claim_catalogue',
@@ -434,7 +433,7 @@ test(
 							values: {
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
-								leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+								catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 								reference: 'PUBLIC-PENDING-2026-04-15',
 								event: {
 									kind: 'TIME_OFF',

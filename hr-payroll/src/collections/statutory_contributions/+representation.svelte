@@ -1,8 +1,9 @@
 <script lang="ts">
 	/**
-	 * One statutory scheme, and the rate bands that price it. A row like "5.5% from RM0 to RM5,000"
-	 * is meaningless without the EPF/SOCSO/EIS scheme whose wage ladder it is a rung of, so the bands
-	 * are the scheme's own `bands` column; the datatype refuses two rungs that overlap.
+	 * One statutory scheme: the expressions that price it and the bands that select them. A row like
+	 * "5.5% from RM0 to RM5,000" is meaningless without the EPF/SOCSO/EIS scheme whose ladder it is a
+	 * rung of, so the bands are the scheme's own `bands` column; the datatype compiles every
+	 * expression against the scheme context when the row is written.
 	 *
 	 * `settings_id` is never a field on the Settings page: the page names the version and the form
 	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
@@ -80,8 +81,7 @@
 				>
 					<Grid gap="sm" minimum="compact">
 						<Field name="sequence" label={t('component.order')} />
-						<Field name="rounding" label={t('component.rounding')} />
-						<Field name="assessed" label={t('component.assessment_period')} />
+						<Field name="assessment_period" label={t('component.assessment_period')} />
 					</Grid>
 				</FormSection>
 
@@ -96,20 +96,7 @@
 					title={t('component.scheme_section_exceptions')}
 					hint={t('component.scheme_section_exceptions_hint')}
 				>
-					<Field
-						name="relief_for"
-						label={t('component.gives_relief_for')}
-						relationOptions={{
-							label: (contribution) =>
-								[contribution.code, contribution.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
-							where: settingsId == null ? undefined : { settings_id: { eq: settingsId } },
-							orderBy: { sequence: 'asc' },
-							limit: 500
-						}}
-					/>
-					<Field name="special_rules" label={t('component.named_special_rules')} />
+					<Field name="rules" label={t('component.scheme_rules')} />
 				</FormSection>
 			</Stack>
 		{/snippet}

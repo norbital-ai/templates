@@ -1,3 +1,12 @@
+/**
+ * Overtime controls: hours become money, and the statutory ceiling funnels instead of dropping.
+ *
+ * The pre-RFC engine classified a day into retained and excess hours (`classifyOvertimeByCalendarMonth`)
+ * and then priced the retained slice (`priceDay`). RFC 0001 removed both: overtime hours are derived
+ * from the clocks (`deriveDailyOvertime`) and priced by the version's `rates.bands`, where the slice
+ * above a named limit funnels to the INCENTIVE line at the band's own award (RFC 0001 §6). These
+ * checks exercise those two halves against the migrated source.
+ */
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,102 +26,162 @@ const viteResource = Effect.acquireRelease(
 	(vite) => Effect.orDie(Effect.tryPromise(() => vite.close()))
 );
 
+/** 08:30–17:30 with an hour's scheduled break; attendance is recorded at UTC+8. */
+const DAY_SHIFT = {
+	id: 'shift-day',
+	code: 'D',
+	start_time: '08:30',
+	end_time: '17:30',
+	break_minutes: 60,
+	crosses_midnight: false,
+	elapsed_minutes: 540,
+	paid_minutes: 480
+};
+
+const at = (date, time) => `${date}T${time}:00.000+08:00`;
+const interval = (start, end) => ({ start: at('2026-03-10', start), end: at('2026-03-10', end) });
+const entry = (overrides = {}) => ({
+	id: 'work-day',
+	work_date: '2026-03-10',
+	worked_intervals: [interval('08:30', '17:30')],
+	break_minutes: 60,
+	...overrides
+});
+const scheduled = (overrides = {}) => ({
+	date: '2026-03-10',
+	dayType: 'ORDINARY',
+	shift: DAY_SHIFT,
+	clampStart: '08:30',
+	normalHours: 8,
+	...overrides
+});
+
+const workRules = () => ({
+	proration: { by: 'CALENDAR_DAYS' },
+	lines: {
+		salary: { statutory_opt_ins: [] },
+		absence: { statutory_opt_ins: [] },
+		night: { statutory_opt_ins: [] }
+	},
+	rates: {
+		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
+		bands: [
+			{
+				label: '1.5',
+				line: 'OVERTIME',
+				when: 'day_type == "ORDINARY"',
+				take: 'hours_beyond_normal',
+				price: 'hours_beyond_normal * ordinary_hour * 1.5',
+				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
+				statutory_opt_ins: []
+			},
+			{
+				label: '3.0',
+				line: 'OVERTIME',
+				when: 'day_type == "PUBLIC_HOLIDAY"',
+				take: 'hours_beyond_normal',
+				price: 'hours_beyond_normal * ordinary_hour * 3.0',
+				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
+				statutory_opt_ins: []
+			}
+		]
+	},
+	limits: [
+		{
+			key: 'daily_total',
+			period: 'DAY',
+			measure: 'TOTAL_WORK_HOURS',
+			max_hours: 12,
+			unit: 'CLOCK_HOURS'
+		}
+	],
+	breaks: [],
+	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
+	coverage: null,
+	holiday_rest_precedence: 'REST_DAY'
+});
+
+const bandDay = (overrides = {}) => ({
+	workDayId: 'day-1',
+	date: '2026-03-10',
+	dayType: 'ORDINARY',
+	workedHours: 13,
+	normalHours: 9,
+	overtimeHours: 4,
+	breakMinutes: 60,
+	rosterCode: 'D',
+	holidayKind: '',
+	holidayName: '',
+	monthOvertimeHours: 20,
+	continuousAttendance: false,
+	consecutiveHours: 4,
+	...overrides
+});
+
+const rates = { ordinaryHour: 25.5, ordinaryDay: 204, dayWage: 204 };
+
 Effect.runPromise(
 	Effect.scoped(
 		Effect.gen(function* () {
 			const vite = yield* viteResource;
-			const { classifyOvertimeByCalendarMonth, priceDay } = yield* Effect.tryPromise(() =>
+			const { evaluatedLimits, priceWorkDay } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/lib/payroll/work-bands.ts')
+			);
+			const { deriveDailyOvertime } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/overtime.ts')
 			);
+			const { personContext } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/payroll_runs/lib/eligibility.ts')
+			);
 
-			const day = (date, hours, totalWorkHours, dayType = 'ORDINARY') => ({
-				date,
-				timeEntryId: `time:${date}`,
-				dayType,
-				hours,
-				normalHours: 8.5,
-				totalWorkHours
+			// The CLOCK_HOURS control evaluates net of the break the shift grants: 12 clock less 1.
+			assert.equal(evaluatedLimits(workRules(), 60).daily_total, 11);
+			assert.equal(evaluatedLimits(workRules(), 0).daily_total, 12);
+
+			// Hours are derived from the clocks: a full shift earns nothing, a late clock-out does.
+			assert.equal(deriveDailyOvertime(entry(), scheduled(), []), null);
+			const late = deriveDailyOvertime(
+				entry({ worked_intervals: [interval('08:30', '20:45')] }),
+				scheduled(),
+				[]
+			);
+			assert.equal(late.hours, 3, '08:30–20:45 is 3h15m outside the shift, floored to 3');
+			assert.equal(late.totalWorkHours, 11.25, '12.25 clocked less the recorded hour');
+
+			// An ordinary overrun funnels the slice above the ceiling at the band's own award.
+			const person = personContext({
+				employee: null,
+				employment: { hire_date: '2020-01-01' },
+				terms: null,
+				asOf: '2026-06-30'
 			});
-
-			const elevenHours = classifyOvertimeByCalendarMonth({
-				days: [day('2026-01-06', 2.5, 11)],
-				dailyWorkLimit: 12,
-				monthlyOrdinaryOvertimeLimit: 104
-			})[0];
-			assert.equal(elevenHours.retainedHours, 2.5);
-			assert.equal(elevenHours.excessHours, 0);
-
-			const thirteenHours = classifyOvertimeByCalendarMonth({
-				days: [day('2026-01-06', 4.5, 13)],
-				dailyWorkLimit: 12,
-				monthlyOrdinaryOvertimeLimit: 104
-			})[0];
-			assert.equal(thirteenHours.retainedHours, 3.5);
-			assert.equal(thirteenHours.excessHours, 1);
-
-			const flooredDailySurplus = classifyOvertimeByCalendarMonth({
-				days: [day('2026-01-06', 4, 12.9)],
-				dailyWorkLimit: 12,
-				monthlyOrdinaryOvertimeLimit: 104
-			})[0];
-			assert.equal(flooredDailySurplus.retainedHours, 3.5);
-			assert.equal(flooredDailySurplus.excessHours, 0.5);
-
-			const vietnamDailyOt = classifyOvertimeByCalendarMonth({
-				days: [day('2026-01-06', 6, 14)],
-				dailyWorkLimit: null,
-				dailyOvertimeHoursLimit: 4,
-				monthlyOrdinaryOvertimeLimit: 40
-			})[0];
-			assert.equal(vietnamDailyOt.retainedHours, 4);
-			assert.equal(vietnamDailyOt.excessHours, 2);
-
-			const monthly = classifyOvertimeByCalendarMonth({
-				days: [
-					day('2026-01-01', 100, 108.5),
-					day('2026-01-02', 10, 10, 'REST_DAY'),
-					day('2026-01-03', 10, 10, 'PUBLIC_HOLIDAY'),
-					day('2026-01-31', 6, 14.5),
-					day('2026-02-01', 6, 14.5)
-				],
-				dailyWorkLimit: null,
-				monthlyOrdinaryOvertimeLimit: 104
+			const priced = priceWorkDay({
+				work: workRules(),
+				person,
+				day: bandDay(),
+				rates
 			});
 			assert.deepEqual(
-				monthly.map(({ retainedHours, excessHours }) => ({ retainedHours, excessHours })),
+				priced.map((row) => [row.line, row.hours, Math.round(row.amount * 100) / 100]),
 				[
-					{ retainedHours: 100, excessHours: 0 },
-					{ retainedHours: 10, excessHours: 0 },
-					{ retainedHours: 10, excessHours: 0 },
-					{ retainedHours: 4, excessHours: 2 },
-					{ retainedHours: 6, excessHours: 0 }
+					['OVERTIME', 2, 76.5],
+					['INCENTIVE', 2, 76.5]
 				]
 			);
 
-			const ordinaryRule = {
-				id: 'ordinary-1.5',
-				day_type: 'ORDINARY',
-				band: {
-					measure: 'BEYOND_NORMAL',
-					from_hours: 0,
-					to_hours: null,
-					from_fraction: 0,
-					to_fraction: null
-				},
-				award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
-			};
-			const priced = priceDay({
-				day: day('2026-01-06', 4.5, 13),
-				rules: [ordinaryRule],
-				retainedHours: 3.5
+			// A public holiday keeps its ×3 on the funneled hours.
+			const holiday = priceWorkDay({
+				work: workRules(),
+				person,
+				day: bandDay({ dayType: 'PUBLIC_HOLIDAY', workedHours: 12, overtimeHours: 12 }),
+				rates
 			});
-			assert.equal(
-				priced.segments.reduce((sum, row) => sum + row.hours, 0),
-				3.5
-			);
 			assert.deepEqual(
-				priced.excess.map(({ hours, units, valuedAt }) => ({ hours, units, valuedAt })),
-				[{ hours: 1, units: 1.5, valuedAt: 'ORDINARY_HOURLY' }]
+				holiday.map((row) => [row.line, row.hours, Math.round(row.amount * 100) / 100]),
+				[
+					['OVERTIME', 2, 153],
+					['INCENTIVE', 1, 76.5]
+				]
 			);
 
 			console.log('Overtime controls verified: 6 checks passed.');

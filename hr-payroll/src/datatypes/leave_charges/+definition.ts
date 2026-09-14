@@ -6,7 +6,7 @@ const id = Schema.String.check(Schema.isUUID());
 export const leaveChargeSchema = Schema.Struct({
 	date: calendarDay,
 	days: Schema.Literals([0.5, 1]),
-	leave_catalogue_id: id,
+	catalogue_id: id,
 	employment_term_id: id,
 	/** The published holiday that excluded the day from the charge, when one did. */
 	holiday_id: Schema.NullOr(id),

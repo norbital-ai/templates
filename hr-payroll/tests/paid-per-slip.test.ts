@@ -28,6 +28,7 @@ function world(runs, slips) {
 		Object.entries(where).every(([column, condition]) => {
 			const value = row[column];
 			if ('eq' in condition) return value === condition.eq;
+			if ('ne' in condition) return value !== condition.ne;
 			if ('lt' in condition) return value < condition.lt;
 			if ('in' in condition) return condition.in.includes(value);
 			if ('isNull' in condition) return condition.isNull === (value == null);
@@ -44,14 +45,29 @@ function world(runs, slips) {
 					Object.assign(rows.find((row) => row.id === value.id) ?? {}, value);
 			})
 	});
-	return { api: { db: { payroll_runs: table(runs), payslips: table(slips) } }, written };
+	const empty = table([]);
+	return {
+		api: {
+			db: {
+				payroll_runs: table(runs),
+				payslips: table(slips),
+				work_days: empty,
+				claim_requests: empty,
+				payment_requests: empty,
+				allowance_requests: empty,
+				leave_entries: empty,
+				loan_repayments: empty
+			}
+		},
+		written
+	};
 }
 
 const pay = (api, existing, paid_at = '2026-02-28') =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			return yield* payslipHooks.mutate.perRecord.before.handler({
-				input: { id: existing.id, paid_at },
+				input: { id: existing.id, status: 'PAID', paid_at },
 				existing,
 				api
 			});
@@ -72,19 +88,20 @@ test('a run is PAID only when every slip it holds is', async () => {
 		const runs = [{ ...RUN, lifecycle: 'DRAFT' }];
 		const { api } = world(
 			runs,
-			slips.map((paid_at, index) => ({
+			slips.map((paid, index) => ({
 				id: `slip-${index}`,
 				payroll_run_id: RUN.id,
-				paid_at
+				status: paid ? 'PAID' : 'DRAFT',
+				paid_at: paid ? '2026-02-28' : null
 			}))
 		);
 		await Effect.runPromise(promoteRunIfFullyPaid(api, RUN.id));
 		return runs[0].lifecycle;
 	};
 	assert.equal(await lifecycleOf([]), 'DRAFT', 'nothing to pay is not paid');
-	assert.equal(await lifecycleOf(['2026-02-28']), 'PAID');
+	assert.equal(await lifecycleOf([true]), 'PAID');
 	assert.equal(
-		await lifecycleOf(['2026-02-28', null]),
+		await lifecycleOf([true, false]),
 		'DRAFT',
 		'half paid reads DRAFT, which keeps every lock closed'
 	);
@@ -92,18 +109,26 @@ test('a run is PAID only when every slip it holds is', async () => {
 
 test('one person is paid while a colleague is held, and the run stays DRAFT', async () => {
 	const slips = [
-		{ id: 'slip-a', payroll_run_id: RUN.id, employment_id: 'emp-a', paid_at: null },
-		{ id: 'slip-b', payroll_run_id: RUN.id, employment_id: 'emp-b', paid_at: null }
+		{
+			id: 'slip-a',
+			payroll_run_id: RUN.id,
+			employment_id: 'emp-a',
+			status: 'DRAFT',
+			paid_at: null
+		},
+		{ id: 'slip-b', payroll_run_id: RUN.id, employment_id: 'emp-b', status: 'DRAFT', paid_at: null }
 	];
 	const runs = [{ ...RUN, lifecycle: 'DRAFT' }];
 	const { api, written } = world(runs, slips);
 	await pay(api, slips[0]);
+	slips[0].status = 'PAID';
 	slips[0].paid_at = '2026-02-28';
 	await Effect.runPromise(promoteRunIfFullyPaid(api, RUN.id));
 	assert.equal(runs[0].lifecycle, 'DRAFT', 'the colleague is still unpaid');
 	assert.deepEqual(written, []);
 
 	await pay(api, slips[1]);
+	slips[1].status = 'PAID';
 	slips[1].paid_at = '2026-02-28';
 	await Effect.runPromise(promoteRunIfFullyPaid(api, RUN.id));
 	assert.equal(runs[0].lifecycle, 'PAID');
@@ -111,10 +136,22 @@ test('one person is paid while a colleague is held, and the run stays DRAFT', as
 
 test('a person’s own earlier period is paid first, and a colleague’s is not their problem', async () => {
 	const slips = [
-		{ id: 'jan-a', payroll_run_id: EARLIER.id, employment_id: 'emp-a', paid_at: null },
-		{ id: 'jan-b', payroll_run_id: EARLIER.id, employment_id: 'emp-b', paid_at: '2026-01-31' },
-		{ id: 'feb-a', payroll_run_id: RUN.id, employment_id: 'emp-a', paid_at: null },
-		{ id: 'feb-b', payroll_run_id: RUN.id, employment_id: 'emp-b', paid_at: null }
+		{
+			id: 'jan-a',
+			payroll_run_id: EARLIER.id,
+			employment_id: 'emp-a',
+			status: 'DRAFT',
+			paid_at: null
+		},
+		{
+			id: 'jan-b',
+			payroll_run_id: EARLIER.id,
+			employment_id: 'emp-b',
+			status: 'PAID',
+			paid_at: '2026-01-31'
+		},
+		{ id: 'feb-a', payroll_run_id: RUN.id, employment_id: 'emp-a', status: 'DRAFT', paid_at: null },
+		{ id: 'feb-b', payroll_run_id: RUN.id, employment_id: 'emp-b', status: 'DRAFT', paid_at: null }
 	];
 	const { api } = world(
 		[
@@ -137,18 +174,25 @@ test('paid is a door that opens once and never closes', async () => {
 		id: 'slip-a',
 		payroll_run_id: RUN.id,
 		employment_id: 'emp-a',
+		status: 'PAID',
 		paid_at: '2026-02-28'
 	};
 	const { api } = world([{ ...RUN, lifecycle: 'PAID' }], [paid]);
 	assert.match(await refusalOf(() => pay(api, paid)), /already paid/);
 	assert.match(
-		await refusalOf(() => pay(api, { ...paid, paid_at: null }, null)),
+		await refusalOf(() => pay(api, { ...paid, status: 'DRAFT', paid_at: null }, null)),
 		/needs the day it was paid/
 	);
 });
 
 test('every other column is still engine output', async () => {
-	const slip = { id: 'slip-a', payroll_run_id: RUN.id, employment_id: 'emp-a', paid_at: null };
+	const slip = {
+		id: 'slip-a',
+		payroll_run_id: RUN.id,
+		employment_id: 'emp-a',
+		status: 'DRAFT',
+		paid_at: null
+	};
 	const { api } = world([{ ...RUN, lifecycle: 'DRAFT' }], [slip]);
 	assert.match(
 		await refusalOf(() =>
@@ -167,21 +211,31 @@ test('every other column is still engine output', async () => {
 });
 
 test('a paid slip cannot be deleted, whatever its run reports', () => {
+	const remove = (api, existing) => {
+		try {
+			Effect.runSync(payslipHooks.delete.perRecord.before.handler({ existing, api }));
+			return '';
+		} catch (error) {
+			return refusalMessage(error);
+		}
+	};
 	assert.match(
-		refusalMessage(
-			(() => {
-				try {
-					payslipHooks.delete.perRecord.before.handler({
-						existing: { id: 'slip-a', paid_at: '2026-02-28' }
-					});
-					return new Error('');
-				} catch (error) {
-					return error;
-				}
-			})()
-		),
+		remove(world([{ ...RUN, lifecycle: 'PAID' }], []).api, {
+			id: 'slip-a',
+			payroll_run_id: RUN.id,
+			status: 'PAID',
+			paid_at: '2026-02-28'
+		}),
 		/has been paid and cannot be deleted/
 	);
 	// An unpaid slip still leaves with its draft recalculation.
-	payslipHooks.delete.perRecord.before.handler({ existing: { id: 'slip-a', paid_at: null } });
+	assert.equal(
+		remove(world([{ ...RUN, lifecycle: 'DRAFT' }], []).api, {
+			id: 'slip-a',
+			payroll_run_id: RUN.id,
+			status: 'DRAFT',
+			paid_at: null
+		}),
+		''
+	);
 });

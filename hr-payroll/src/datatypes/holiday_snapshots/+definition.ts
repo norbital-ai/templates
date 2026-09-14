@@ -10,6 +10,7 @@ export const holidaySnapshotSchema = Schema.Struct({
 	name: Schema.String,
 	kind: Schema.Literals(['PUBLIC', 'SPECIAL', 'SUBSTITUTE']),
 	original_date: Schema.NullOr(calendarDay),
+	given_to: Schema.Literals(['EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE']),
 	published_at: Schema.String
 });
 

@@ -182,9 +182,6 @@ const world = (options = {}) => {
 							: within(where, 'id', stored)
 					)
 			},
-			payslip_loan_repayment_inputs: {
-				findFirst: () => Effect.succeed(options.captured === true ? { period: PERIOD } : undefined)
-			},
 			loan_catalogue: {
 				findFirst: () => Effect.succeed({ code: 'LOAN' })
 			}
@@ -197,7 +194,13 @@ const run = (effect) => (Effect.isEffect(effect) ? Effect.runSync(effect) : effe
 const write = (inputs, options = {}) => {
 	const api = world(options);
 	const prepared = run(loanRepaymentHooks.mutate.prepare({ inputs, api }));
-	const stored = options.stored ?? BALANCED;
+	const stored =
+		options.captured === true
+			? (options.stored ?? BALANCED).map((row) => ({
+					...row,
+					payslip_id: row.payslip_id ?? 'slip-1'
+				}))
+			: (options.stored ?? BALANCED);
 	return inputs.map((input) =>
 		run(
 			loanRepaymentHooks.mutate.perRecord.before.handler({
@@ -331,7 +334,7 @@ test('an existing repayment cannot move between employment contracts even with a
 test('a repayment a payroll run has captured still cannot be rewritten', () => {
 	assert.throws(
 		() => before({ amount_due: 251 }, { ...BALANCED[0] }, { captured: true }),
-		new RegExp(`payroll ${PERIOD} has already taken this record into account`)
+		/settled by a payroll and cannot be changed/
 	);
 });
 
@@ -362,7 +365,7 @@ test('captured no-op restatement compares PostgreSQL zoned and numeric represent
 		])
 			assert.throws(
 				() => write([{ id: 'r1', due_date }], { stored, captured: true }),
-				/payroll 2026-07 has already taken/
+				/settled by a payroll and cannot be changed/
 			);
 	}
 });
@@ -415,7 +418,7 @@ test('repayment deletion requires its enclosing agreement, and captured history 
 	const remove = (parent, captured = false) =>
 		run(
 			loanRepaymentHooks.delete.perRecord.before.handler({
-				existing: BALANCED[0],
+				existing: captured ? { ...BALANCED[0], payslip_id: 'slip-1' } : BALANCED[0],
 				parent,
 				api: world({ captured })
 			})
@@ -424,7 +427,7 @@ test('repayment deletion requires its enclosing agreement, and captured history 
 	for (const action of ['update', 'delete']) {
 		const parent = { collection: 'loans', id: LOAN, column: 'loan_id', values: agreement, action };
 		assert.doesNotThrow(() => remove(parent));
-		assert.throws(() => remove(parent, true), /payroll 2026-07 has already taken/);
+		assert.throws(() => remove(parent, true), /settled by a payroll/);
 	}
 	assert.throws(
 		() =>
