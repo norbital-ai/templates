@@ -7,7 +7,8 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
+import { lawFileExists, readLawFile } from './fixtures/law-file.ts';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,8 +37,8 @@ test('every fixture opt-in names a scheme of its own settings version', () => {
 	for (const root of ROOTS)
 		for (const lineage of readdirSync(root)) {
 			const dir = `${root}/${lineage}`;
-			if (!existsSync(`${dir}/statutory_contributions.json`)) continue;
-			const schemes = JSON.parse(readFileSync(`${dir}/statutory_contributions.json`, 'utf8'));
+			if (!lawFileExists(`${dir}/statutory_contributions`)) continue;
+			const schemes = readLawFile(`${dir}/statutory_contributions`);
 			const idsByVersion = new Map();
 			for (const scheme of schemes) {
 				const ids = idsByVersion.get(scheme.settings_id) ?? new Set();
@@ -45,9 +46,8 @@ test('every fixture opt-in names a scheme of its own settings version', () => {
 				idsByVersion.set(scheme.settings_id, ids);
 			}
 			for (const file of FILES) {
-				const path = `${dir}/${file}.json`;
-				if (!existsSync(path)) continue;
-				const parsed = JSON.parse(readFileSync(path, 'utf8'));
+				if (!lawFileExists(`${dir}/${file}`)) continue;
+				const parsed = readLawFile(`${dir}/${file}`);
 				for (const row of Array.isArray(parsed) ? parsed : [parsed]) {
 					const versionId = file === 'jurisdiction_settings' ? row.id : row.settings_id;
 					const ids = idsByVersion.get(versionId);

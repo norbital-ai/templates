@@ -15,7 +15,19 @@
  * Usage: node scripts/refresh-statutory-fixtures.mjs [path-to-seed-bank]
  */
 
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync
+} from 'node:fs';
+import { gzipSync } from 'node:zlib';
+
+/** The host's ceiling on one authored text file; see `tests/fixtures/law-file.ts`. */
+const HOST_TEXT_FILE_CEILING = 1_048_576;
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -54,7 +66,15 @@ for (const code of LINEAGES) {
 			console.error(`${code} has no ${file}.`);
 			process.exit(1);
 		}
-		cpSync(from, resolve(target, file));
+		// The host refuses any authored text file over its 1 MiB ceiling and skips what it does not
+		// recognise, so a fixture that large is committed gzipped; `tests/fixtures/law-file.ts`
+		// reads both forms.
+		const to = resolve(target, file);
+		rmSync(to, { force: true });
+		rmSync(`${to}.gz`, { force: true });
+		if (statSync(from).size > HOST_TEXT_FILE_CEILING)
+			writeFileSync(`${to}.gz`, gzipSync(readFileSync(from)));
+		else cpSync(from, to);
 	}
 	console.log(`${code}: ${FILES.length} files`);
 }
