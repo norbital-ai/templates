@@ -28,14 +28,10 @@ const KEYWORDS = new Set(['true', 'false', 'null', 'in']);
  */
 function expressionEngine() {
 	return createReckonEngine()
-		.registerFunction('calendar_days', 'calendar_days(string): double', () => 31)
-		.registerFunction('working_days', 'working_days(string): double', () => 22)
 		.registerFunction('minimum_wage', 'minimum_wage(string): double', () => 1700)
-		.registerFunction('limit', 'limit(string): double', () => 11)
 		.registerFunction('bracket', 'bracket(dyn, dyn, dyn): double', (base) => Number(base))
 		.registerFunction('ladder', 'ladder(dyn, list<dyn>): double', (base) => Number(base))
 		.registerFunction('round_cent', 'round_cent(dyn): double', (value) => Number(value))
-		.registerFunction('round_5_cents', 'round_5_cents(dyn): double', (value) => Number(value))
 		.registerFunction('truncate_cent', 'truncate_cent(dyn): double', (value) => Number(value))
 		.registerFunction('up_5_cents', 'up_5_cents(dyn): double', (value) => Number(value))
 		.registerFunction('round_unit', 'round_unit(dyn): double', (value) => Number(value))

@@ -1,6 +1,5 @@
 import { decodeNumber } from '@norbital-ai/std/json';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { newLocalId } from './ids.js';
 import { dateKey, PAYROLL_TIME_ZONE } from './iso-day.js';
 import { startOfDayInstant } from './ui/calendar.js';
 
@@ -171,7 +170,7 @@ export function loanScheduleOrdered(
 
 export function createLoanRepaymentDraft(previous?: LoanRepaymentDraft): LoanRepaymentDraft {
 	return {
-		id: newLocalId(),
+		id: crypto.randomUUID(),
 		due_date: null,
 		amount_due: null,
 		sequence: (previous?.sequence ?? 0) + 1
@@ -308,7 +307,7 @@ export function generateLoanSchedule(input: {
 			? Math.floor(residual / openDays.length)
 			: roundedUp;
 	const generated = openDays.map((day, index) => ({
-		id: reusable[index]?.id ?? newLocalId(),
+		id: reusable[index]?.id ?? crypto.randomUUID(),
 		due_date: startOfDayInstant(day, PAYROLL_TIME_ZONE),
 		amount_due:
 			index === openDays.length - 1 ? residual - instalment * (openDays.length - 1) : instalment,

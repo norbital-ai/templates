@@ -28,9 +28,7 @@ test('every site compiles expressions over its own context', () => {
 		['work_day', 'day_type == "PUBLIC_HOLIDAY" && break_minutes < 30', 'boolean'],
 		['scheme', 'base > 5000 && age >= 60', 'boolean'],
 		['scheme', 'year_to_date.employee + produced.EPF.employee', 'number'],
-		['scheme', 'minimum_wage(region) > 0 && headcount > 10', 'boolean'],
-		['schedule', 'projected.week_hours > limits.weekly_total', 'boolean'],
-		['schedule', 'plan.break_minutes >= 30', 'boolean']
+		['scheme', 'minimum_wage(region) > 0 && headcount > 10', 'boolean']
 	] as const;
 	for (const [site, expression, type] of cases)
 		assert.equal(compileExpression({ expression, site, type }), null, `${site}: ${expression}`);
@@ -94,9 +92,7 @@ test('every declared path in the catalogue compiles as a value', () => {
 
 test('the runtime closures compute what the seeds name', () => {
 	const engine = runtimeExpressionEngine({
-		minimumWage: (region) => (region === 'I' ? 1700 : 0),
-		limits: { daily_total: 11, normal_day: 8 },
-		workingDays: () => 22
+		minimumWage: (region) => (region === 'I' ? 1700 : 0)
 	});
 	const run = (expression: string, context: Record<string, unknown>) =>
 		evaluateNumber(engine, expression, context);
@@ -113,11 +109,10 @@ test('the runtime closures compute what the seeds name', () => {
 	assert.equal(run('ladder(base, [1000.0, 5000.0, 10000.0])', { base: 12000 }), 10000);
 	assert.equal(run('minimum_wage(region) * 0.5', { region: 'I' }), 850);
 	assert.equal(
-		run('total_work_hours > limit("daily_total") ? total_work_hours - limit("daily_total") : 0.0', {
-			total_work_hours: 13
+		run('total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0.0', {
+			total_work_hours: 13,
+			limits: { daily_total: 11 }
 		}),
 		2
 	);
-	assert.equal(run('calendar_days("2026-02")', {}), 28);
-	assert.equal(run('working_days("2026-02")', {}), 22);
 });

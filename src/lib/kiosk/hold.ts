@@ -48,7 +48,9 @@ export const observeKioskHold = (
 	now: number
 ): KioskHold | null => {
 	if (face === null || !Number.isFinite(face.liveScore)) return null;
-	if (!sameKioskPerson(face.embedding, face.embedding)) return null;
+	// A zero or non-finite embedding is no face to hold.
+	const norm = face.embedding.reduce((sum, value) => sum + value * value, 0);
+	if (!Number.isFinite(norm) || norm === 0) return null;
 	const continuing =
 		previous !== null && now >= previous.seenAt && sameKioskPerson(previous.probe, face.embedding);
 	const liveScore = continuing

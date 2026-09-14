@@ -19,7 +19,6 @@
 import { getErrorMessage, toError } from '@norbital-ai/std';
 import { Effect } from 'effect';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { newLocalId } from '../ids.js';
 import { importCollectionRecords } from '@norbital-ai/bolt/client';
 import { toast } from 'svelte-sonner';
 import type { Translator } from './roster/roster-month.js';
@@ -162,7 +161,7 @@ export function runWorkbookImport(options: WorkbookImportOptions, t: Translator)
 							records: [
 								{
 									collection: options.collectionName,
-									id: newLocalId(),
+									id: crypto.randomUUID(),
 									values: payload
 								}
 							]

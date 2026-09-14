@@ -321,11 +321,6 @@ export function sourceLockMessage(lock: SourceLock, action: string): string {
 	}
 }
 
-export function assertSourceUnlocked(lock: SourceLock, action: string): void {
-	if (!sourceLockBlocksWrite(lock)) return;
-	throw new Error(sourceLockMessage(lock, action));
-}
-
 /** Catalog key for the operator-facing lock sentence. */
 export function sourceLockI18nKey(lock: SourceLock): SourceLockI18nKey | null {
 	switch (lock.kind) {

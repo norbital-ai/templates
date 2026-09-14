@@ -13,7 +13,6 @@
 	import { holidayCompanyImportPayload } from '../holiday-workbook.js';
 	import { runWorkbookImport } from './workbook-import.js';
 	import { importCollectionRecords } from '@norbital-ai/bolt/client';
-	import { newLocalId } from '../ids.js';
 	import type { WorkspaceRow } from '$bolt/types.js';
 
 	/**
@@ -52,7 +51,7 @@
 					records: [
 						{
 							collection: 'jurisdiction_holidays',
-							id: newLocalId(),
+							id: crypto.randomUUID(),
 							values: { publish: rows.map((row) => row.id), published }
 						}
 					]

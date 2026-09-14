@@ -15,13 +15,7 @@
  * floor too.
  */
 type RoundingMethod =
-	| 'NEAREST_CENT'
-	| 'NEAREST_5_CENTS'
-	| 'TRUNCATE_CENT'
-	| 'UP_5_CENTS'
-	| 'NEAREST_UNIT'
-	| 'FLOOR_UNIT'
-	| 'UP_TO_UNIT';
+	'NEAREST_CENT' | 'TRUNCATE_CENT' | 'UP_5_CENTS' | 'NEAREST_UNIT' | 'FLOOR_UNIT' | 'UP_TO_UNIT';
 
 function epsilon(value: number): number {
 	return Number.EPSILON * Math.max(1, Math.abs(value)) * 4;
@@ -40,8 +34,6 @@ export function roundMoney(value: number, method: RoundingMethod): number {
 	switch (method) {
 		case 'NEAREST_CENT':
 			return Math.round((value + eps) * 100) / 100;
-		case 'NEAREST_5_CENTS':
-			return Math.round((value + eps) * 20) / 20;
 		case 'TRUNCATE_CENT':
 			return Math.trunc(value * 100 + (value < 0 ? -eps : eps)) / 100;
 		case 'UP_5_CENTS':

@@ -119,18 +119,6 @@ export function ocbcFastFile(request: BankFileRequest): BankFile {
 	};
 }
 
-/**
- * The formatters this build holds, keyed by the payer BIC's bank prefix. A bank not named here has
- * no format and the caller keeps the generic listing.
- */
-const FORMATTERS: Readonly<Record<string, (request: BankFileRequest) => BankFile>> = {
-	OCBCSG: ocbcFastFile
-};
-
-export const bankFileFor = (request: BankFileRequest): BankFile | null => {
-	const prefix = request.payer.bank_code.slice(0, 6).toUpperCase();
-	const formatter = FORMATTERS[prefix];
-	return formatter === undefined ? null : formatter(request);
-};
-
-export const supportedBankPrefixes = Object.keys(FORMATTERS);
+/** OCBC Singapore is the one bank this build formats for; any other payer keeps the generic listing. */
+export const bankFileFor = (request: BankFileRequest): BankFile | null =>
+	request.payer.bank_code.slice(0, 6).toUpperCase() === 'OCBCSG' ? ocbcFastFile(request) : null;

@@ -6,8 +6,6 @@ import {
 	calendarDayAsPickerInstant,
 	calendarDayFromPickerInstant,
 	calendarDateInTimeZone,
-	instantRangeAsDayPickerValue,
-	instantRangeFromDayPickerValue,
 	monthWorkDateInstantBounds,
 	periodWindow,
 	startOfDayInstant,
@@ -42,29 +40,6 @@ describe('calendar-day picker adapters', () => {
 
 		assert.equal(selectedDay, '2026-08-26');
 		assert.equal(startOfDayInstant(selectedDay, payrollTimeZone), stored);
-	});
-
-	it('round-trips closed and open day ranges without inventing an upper bound', () => {
-		const payrollTimeZone = 'Asia/Kuala_Lumpur';
-		const pickerTimeZone = 'America/Los_Angeles';
-		const closed = {
-			start: '2026-08-25T16:00:00.000Z',
-			end: '2026-08-30T16:00:00.000Z'
-		};
-		const open = { start: closed.start, end: null };
-
-		const closedPicker = instantRangeAsDayPickerValue(closed, payrollTimeZone, pickerTimeZone);
-		const openPicker = instantRangeAsDayPickerValue(open, payrollTimeZone, pickerTimeZone);
-
-		assert.deepEqual(
-			instantRangeFromDayPickerValue(closedPicker, payrollTimeZone, pickerTimeZone),
-			closed
-		);
-		assert.deepEqual(openPicker, { start: '2026-08-26T07:00:00.000Z' });
-		assert.deepEqual(
-			instantRangeFromDayPickerValue(openPicker, payrollTimeZone, pickerTimeZone),
-			open
-		);
 	});
 
 	it('A1: a local-midnight work_date is the payroll calendar day, not the UTC day', () => {

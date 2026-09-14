@@ -5,11 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	bankFileFor,
-	ocbcFastFile,
-	supportedBankPrefixes
-} from '../src/collections/payroll_runs/lib/bank-formats.ts';
+import { bankFileFor, ocbcFastFile } from '../src/collections/payroll_runs/lib/bank-formats.ts';
 
 const payer = {
 	bank_name: 'OVERSEA-CHINESE BANKING CORPORATION LIMITED',
@@ -93,7 +89,6 @@ test('an amount keeps its cents and a short account is left-padded to nine digit
 });
 
 test('the registry names a formatter only for the banks it holds, and no others', () => {
-	assert.deepEqual(supportedBankPrefixes, ['OCBCSG']);
 	assert.equal(
 		bankFileFor({ payDate: '2026-09-12', period: '2026-09', payer, payments })?.format,
 		'ocbc-fast'

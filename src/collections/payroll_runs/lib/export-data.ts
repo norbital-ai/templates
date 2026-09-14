@@ -22,7 +22,7 @@ import {
 	type SettlementDirection,
 	type FamilyPayItem
 } from '../../../lib/payroll/family.js';
-import { encashmentCode } from '../../../lib/leave/pay-items.js';
+import { encashmentCode } from '../../../lib/leave/payroll.js';
 import { PAGE_LIMIT, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';

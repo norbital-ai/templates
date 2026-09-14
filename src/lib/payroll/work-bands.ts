@@ -14,9 +14,9 @@
 import type { WorkRateBand, WorkRules } from '../../datatypes/work_rules/+definition.js';
 import type { PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import {
+	expressionEngine,
 	evaluateBoolean,
 	evaluateNumber,
-	runtimeExpressionEngine,
 	type ExpressionEngine
 } from '../expressions/evaluate.js';
 import { evaluatedLimits } from '../scheduling/work-limits.js';
@@ -118,14 +118,7 @@ export function priceWorkDay(options: {
 }): WorkBandRow[] {
 	const { work, day } = options;
 	const limits = evaluatedLimits(work.limits, day.breakMinutes);
-	const engine =
-		options.engine ??
-		runtimeExpressionEngine({
-			limits,
-			minimumWage: () => 0,
-			calendarDays: () => 0,
-			workingDays: () => 0
-		});
+	const engine = options.engine ?? expressionEngine;
 	const context = contextOf({ person: options.person, day, rates: options.rates, limits });
 	const slices: {
 		readonly band: WorkRateBand;

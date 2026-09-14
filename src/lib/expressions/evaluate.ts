@@ -11,40 +11,17 @@ import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
 import { childUnder } from './child-under.js';
 
-function monthDays(month: string): number {
-	const [year, index] = month.split('-').map(Number);
-	if (year == null || index == null) return 0;
-	return new Date(Date.UTC(year, index, 0)).getUTCDate();
-}
-
 /** The engine a run evaluates expressions with; see `compile.ts` for the compile-time twin. */
 export function runtimeExpressionEngine(
 	options: {
 		/** The version's minimum wage by region, for `minimum_wage(region)`. */
 		readonly minimumWage?: (region: string) => number;
-		/** Evaluated limit values, for `limit(key)`; `limits.<key>` reads the context directly. */
-		readonly limits?: Readonly<Record<string, number>>;
-		/** Working days in a `YYYY-MM` month, for `working_days(month)`. */
-		readonly workingDays?: (month: string) => number;
-		/** Calendar days in a `YYYY-MM` month, for `calendar_days(month)`. */
-		readonly calendarDays?: (month: string) => number;
 	} = {}
 ) {
 	return (
 		createReckonEngine()
-			.registerFunction(
-				'calendar_days',
-				'calendar_days(string): double',
-				(month) => options.calendarDays?.(String(month)) ?? monthDays(String(month))
-			)
-			.registerFunction('working_days', 'working_days(string): double', (month) =>
-				options.workingDays == null ? 22 : options.workingDays(String(month))
-			)
 			.registerFunction('minimum_wage', 'minimum_wage(string): double', (region) =>
 				options.minimumWage == null ? 0 : Number(options.minimumWage(String(region)))
-			)
-			.registerFunction('limit', 'limit(string): double', (key) =>
-				Number(options.limits?.[String(key)] ?? 0)
 			)
 			// One rung of a wage-bracket ladder: while the wage is within `upTo`, round it up to the
 			// next `step`. A chain nests the calls; see `bracketBase` for why the step vanishes above
@@ -65,9 +42,6 @@ export function runtimeExpressionEngine(
 			// to `roundMoney`, so the epsilon that protects the engine's floats is shared.
 			.registerFunction('round_cent', 'round_cent(dyn): double', (value) =>
 				roundMoney(Number(value), 'NEAREST_CENT')
-			)
-			.registerFunction('round_5_cents', 'round_5_cents(dyn): double', (value) =>
-				roundMoney(Number(value), 'NEAREST_5_CENTS')
 			)
 			.registerFunction('truncate_cent', 'truncate_cent(dyn): double', (value) =>
 				roundMoney(Number(value), 'TRUNCATE_CENT')
@@ -147,3 +121,6 @@ export function evaluateBoolean(
 		throw new Error(`The expression "${expression}" produced ${String(value)}, not a boolean.`);
 	return value;
 }
+
+/** The one engine every site without a version-bound helper shares; it holds no state. */
+export const expressionEngine = runtimeExpressionEngine();

@@ -140,50 +140,6 @@ interface DayPickerInstantRange {
 	readonly end?: string;
 }
 
-/**
- * Present a stored calendar-day instant range to a viewer without changing either visible day.
- * An absent upper bound stays absent rather than becoming a made-up sentinel date.
- */
-export function instantRangeAsDayPickerValue(
-	range: Readonly<{ start: string; end: string | null }>,
-	calendarTimeZone: string,
-	pickerTimeZone: string
-): DayPickerInstantRange {
-	const pickerBound = (value: string) =>
-		calendarDayAsPickerInstant(
-			calendarDateInTimeZone(new Date(value), calendarTimeZone),
-			pickerTimeZone
-		);
-	return range.end === null
-		? { start: pickerBound(range.start) }
-		: { start: pickerBound(range.start), end: pickerBound(range.end) };
-}
-
-/** Translate a day-precision picker range back to calendar boundaries in the business timezone. */
-export function instantRangeFromDayPickerValue(
-	value: unknown,
-	calendarTimeZone: string,
-	pickerTimeZone: string
-): { readonly start: string; readonly end: string | null } | null {
-	if (value == null || typeof value !== 'object') return null;
-	const start = Reflect.get(value, 'start');
-	const end = Reflect.get(value, 'end');
-	if (typeof start !== 'string' || (end != null && typeof end !== 'string')) return null;
-	return Result.getOrElse(
-		Result.try(() => ({
-			start: startOfDayInstant(
-				calendarDayFromPickerInstant(start, pickerTimeZone),
-				calendarTimeZone
-			),
-			end:
-				end == null
-					? null
-					: startOfDayInstant(calendarDayFromPickerInstant(end, pickerTimeZone), calendarTimeZone)
-		})),
-		() => null
-	);
-}
-
 /** A calendar day shifted by whole days without involving the browser's local timezone. */
 export function shiftDayKey(day: string, days: number): string {
 	return addDays(day, Math.trunc(days));
