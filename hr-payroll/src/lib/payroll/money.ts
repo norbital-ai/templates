@@ -432,7 +432,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		if (!isEligible(options.component.eligibility, subject))
 			return skipped('this employment does not satisfy the catalogue’s eligibility rule');
 
-		const formula = options.context();
+		const rates = options.rates;
 		const captures = entry.captures;
 		const paidToDate = captures.reduce((sum, capture) => sum + capture.amount, 0);
 		const context = entryContext({
@@ -442,8 +442,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			periodStart: options.salary.start,
 			periodEnd: options.salary.end,
 			instalments: 1,
-			ordinaryDay: formula.derived.ordinary_day_wage,
-			ordinaryHour: formula.derived.ordinary_hourly_rate,
+			ordinaryDay: rates.ordinaryDay,
+			ordinaryHour: rates.ordinaryHour,
 			limits: Object.fromEntries(
 				options.configuration.limits.map((limit) => [limit.key, limit.max_hours])
 			),

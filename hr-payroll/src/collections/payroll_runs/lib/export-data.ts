@@ -416,9 +416,7 @@ export function loadRunExports(
 							isCompanyDirect: line?.destination === 'EMPLOYER',
 							// A claim is the claim catalogue's own line, whatever its bands cap it at.
 							isClaim: line?.family === 'CLAIM',
-							isLoanInstalment: false,
-							overtimeDayType: null,
-							isOvertimeExcess: false
+							isLoanInstalment: false
 						}
 					];
 				};

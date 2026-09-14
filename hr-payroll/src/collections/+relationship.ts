@@ -1,5 +1,5 @@
 import type { Relationships } from './$types.js';
-import { cascade, setNull } from '@norbital-ai/bolt/authoring';
+import { cascade, deferrable, setNull } from '@norbital-ai/bolt/authoring';
 
 /**
  * The relation graph. Foreign keys are derived from here, never declared in a `+model.ts`.
@@ -219,8 +219,8 @@ export default ((r) => ({
 			to: r.employments.id
 		}),
 		/** The one payslip that consumed this entry; a deleted slip clears the key. */
-		claim_request_payslip: setNull(
-			r.one.payslips({ from: r.claim_requests.payslip_id, to: r.payslips.id })
+		claim_request_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.claim_requests.payslip_id, to: r.payslips.id }))
 		),
 		claim_request_claim_catalogue: r.one.claim_catalogue({
 			from: r.claim_requests.catalogue_id,
@@ -233,8 +233,8 @@ export default ((r) => ({
 			from: r.allowance_requests.employment_id,
 			to: r.employments.id
 		}),
-		allowance_request_payslip: setNull(
-			r.one.payslips({ from: r.allowance_requests.payslip_id, to: r.payslips.id })
+		allowance_request_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.allowance_requests.payslip_id, to: r.payslips.id }))
 		),
 		allowance_request_allowance_catalogue: r.one.allowance_catalogue({
 			from: r.allowance_requests.catalogue_id,
@@ -247,8 +247,8 @@ export default ((r) => ({
 			from: r.payment_requests.employment_id,
 			to: r.employments.id
 		}),
-		payment_request_payslip: setNull(
-			r.one.payslips({ from: r.payment_requests.payslip_id, to: r.payslips.id })
+		payment_request_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.payment_requests.payslip_id, to: r.payslips.id }))
 		),
 		payment_request_payment_catalogue: r.one.payment_catalogue({
 			from: r.payment_requests.catalogue_id,
@@ -261,8 +261,8 @@ export default ((r) => ({
 			from: r.leave_entries.employment_id,
 			to: r.employments.id
 		}),
-		leave_entry_payslip: setNull(
-			r.one.payslips({ from: r.leave_entries.payslip_id, to: r.payslips.id })
+		leave_entry_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.leave_entries.payslip_id, to: r.payslips.id }))
 		),
 		leave_entry_leave_catalogue: r.one.leave_catalogue({
 			from: r.leave_entries.catalogue_id,
@@ -280,7 +280,9 @@ export default ((r) => ({
 			from: r.work_days.holiday_id,
 			to: r.jurisdiction_holidays.id
 		}),
-		work_day_payslip: setNull(r.one.payslips({ from: r.work_days.payslip_id, to: r.payslips.id })),
+		work_day_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.work_days.payslip_id, to: r.payslips.id }))
+		),
 		work_day_employment: r.one.employments({
 			from: r.work_days.employment_id,
 			to: r.employments.id
@@ -338,8 +340,8 @@ export default ((r) => ({
 			from: r.loan_repayments.employment_id,
 			to: r.employments.id
 		}),
-		loan_repayment_payslip: setNull(
-			r.one.payslips({ from: r.loan_repayments.payslip_id, to: r.payslips.id })
+		loan_repayment_payslip: deferrable(
+			setNull(r.one.payslips({ from: r.loan_repayments.payslip_id, to: r.payslips.id }))
 		),
 		loan_repayment_loan: cascade(
 			r.one.loans({

@@ -16,10 +16,7 @@ import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import { type PayCadence, type PayFrequency } from '../../collections/payroll_runs/lib/period.js';
-import type { FormulaContext } from '../../collections/payroll_runs/lib/formula.js';
-import { calculateLeavePayroll, leaveCoverage } from '../leave/payroll.js';
-import { prorationFraction } from '../../collections/payroll_runs/lib/proration.js';
-import { normalDailyHours } from '../../collections/payroll_runs/lib/schedule.js';
+import { calculateLeavePayroll } from '../leave/payroll.js';
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
@@ -89,21 +86,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 
 		const componentAmounts = new Map<string, number>();
 		const adjustments: MeasuredAdjustment[] = [...leave.adjustments];
-		const components: Record<string, number> = {};
-		const entries: Record<string, number> = {};
-		for (const component of configuration.catalogueComponents) {
-			components[component.code] = 0;
-			entries[component.code] =
-				(entries[component.code] ?? 0) +
-				requests
-					.filter((request) => request.catalogue_id === component.id)
-					.reduce((sum, request) => sum + request.sign * decodeNumber(request.amount), 0);
-		}
-		for (const item of leave.adjustments) {
-			const total = (componentAmounts.get(item.label) ?? 0) + item.amount;
-			componentAmounts.set(item.label, total);
-			components[item.label] = total;
-		}
 		const subject = personContext({
 			employee: bundle.employee,
 			employment: bundle.employment,
@@ -111,64 +93,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			children: bundle.children,
 			company: configuration.company,
 			asOf: finalDate
-		});
-		const facts: Record<string, string | number | boolean> = {};
-		for (const contribution of configuration.contributions) {
-			const status = bundle.statutoryFacts.find(
-				(fact) =>
-					fact.statutory_contribution_id === contribution.row.id &&
-					coversDate(fact.effective_range, finalDate)
-			)?.status;
-			facts[`${contribution.row.code}.registered`] = status == null || status.kind === 'REGISTERED';
-			facts[`${contribution.row.code}.reference_number`] =
-				status?.kind === 'REGISTERED' ? status.reference_number : '';
-			facts[`${contribution.row.code}.rate_override`] =
-				status?.kind === 'REGISTERED' ? (status.rate_override ?? -1) : -1;
-			facts[`${contribution.row.code}.reason`] =
-				status?.kind === 'NOT_REGISTERED' ? status.reason : '';
-		}
-		const context = (): FormulaContext => ({
-			components,
-			entries,
-			facts,
-			leaveDays: Object.fromEntries(configuration.catalogueLeaves.map((row) => [row.code, 0])),
-			leaveBalances: bundle.leave.balances,
-			terms: {
-				base_salary: decodeNumber(finalTerms.base_salary.value),
-				currency,
-				pay_frequency: finalTerms.pay_frequency,
-				ordinary_hours_per_week: 0,
-				working_days_per_week: 0,
-				work_classification: finalTerms.work_classification ?? '',
-				employment_type: finalTerms.employment_type ?? '',
-				rest_day: ''
-			},
-			derived: {
-				service_months: subject.employment.service_months,
-				age: bundle.age ?? -1,
-				employed_days: 0,
-				headcount: options.headcount,
-				ordinary_hourly_rate: 0,
-				normal_daily_hours: 0,
-				night_shift_hours: 0,
-				ordinary_day_wage: 0,
-				absence_day_wage: 0
-			},
-			period: {
-				start: options.salary.start,
-				end: options.salary.end,
-				calendar_days: monthDays(options.salary.start),
-				working_days: 0,
-				periods_remaining: options.periodsRemaining,
-				pay_fraction: 0
-			},
-			// An ended contract earns no rate this period, so its ordinary rate is not resolved.
-			jurisdiction: {
-				code: configuration.jurisdiction.code,
-				currency,
-				ordinary_rate_per: '',
-				ordinary_rate_divisor: 0
-			}
 		});
 		for (const step of prepareMoneySteps({
 			bundle,
@@ -184,7 +108,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			// included. A zero here priced every late allowance on a departed contract at nothing.
 			workingDaysIn: (window) => allowanceWorkingDaysIn(monthKey(window.start), window),
 			allowanceWorkingDaysIn,
-			context,
+			rates: { ordinaryDay: 0, ordinaryHour: 0 },
 			subject,
 			note: (issue: RunIssue) => notes.push(issue)
 		})) {
@@ -192,7 +116,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			if (measured == null) continue;
 			const total = (componentAmounts.get(step.item.code) ?? 0) + measured.amount;
 			componentAmounts.set(step.item.code, total);
-			components[step.item.code] = total;
 			adjustments.push(...measured.adjustments);
 		}
 
@@ -208,7 +131,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		for (const recovery of repaymentRecoveries) {
 			const total = (componentAmounts.get(recovery.label) ?? 0) + recovery.amount;
 			componentAmounts.set(recovery.label, total);
-			components[recovery.label] = total;
 			adjustments.push(recovery);
 		}
 		return {
@@ -299,88 +221,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	});
 
 	const componentAmounts = new Map<string, number>();
-	const componentsByCode: Record<string, number> = {};
-	// `entry(CODE)` is the formula vocabulary and it is unchanged: an entry is what a person or HR
-	// raised against a component this period, which is exactly what the word always meant.
-	const entryTotals: Record<string, number> = {};
-	for (const component of configuration.catalogueComponents) {
-		componentsByCode[component.code] = 0;
-		entryTotals[component.code] =
-			(entryTotals[component.code] ?? 0) + (entryTotalByComponentId.get(component.id) ?? 0);
-	}
-	const facts: Record<string, string | number | boolean> = {};
-	for (const contribution of configuration.contributions) {
-		const fact = bundle.statutoryFacts.find(
-			(row) =>
-				row.statutory_contribution_id === contribution.row.id &&
-				coversDate(row.effective_range, options.salary.end)
-		);
-		const status = fact?.status;
-		// An absent row means registered with nothing captured, so the default is registration.
-		facts[`${contribution.row.code}.registered`] = status == null || status.kind === 'REGISTERED';
-		facts[`${contribution.row.code}.reference_number`] =
-			status != null && status.kind === 'REGISTERED' ? status.reference_number : '';
-		facts[`${contribution.row.code}.rate_override`] =
-			status != null && status.kind === 'REGISTERED' && status.rate_override != null
-				? status.rate_override
-				: -1;
-		facts[`${contribution.row.code}.reason`] =
-			status != null && status.kind === 'NOT_REGISTERED' ? status.reason : '';
-	}
-	const leaveDays = Object.fromEntries(configuration.catalogueLeaves.map((row) => [row.code, 0]));
-	Object.assign(leaveDays, leaveCoverage(bundle.leave, attendance).byCode);
-	const leaveBalances = bundle.leave.balances;
-	const periodCalendarDays = monthDays(options.salary.start);
-	const context = (): FormulaContext => ({
-		components: componentsByCode,
-		entries: entryTotals,
-		facts,
-		leaveDays,
-		leaveBalances,
-		terms: {
-			base_salary: rateTerms.base_salary.value,
-			currency,
-			pay_frequency: rateTerms.pay_frequency,
-			ordinary_hours_per_week: rateTerms.ordinary_hours_per_week,
-			working_days_per_week: rateTerms.working_days_per_week,
-			// Emitted as empty strings rather than omitted: CEL has no `?.` and throws on a missing key.
-			work_classification: closingTerms.work_classification ?? '',
-			employment_type: closingTerms.employment_type ?? '',
-			rest_day: ''
-		},
-		derived: {
-			service_months: bundle.serviceMonths,
-			age: bundle.age ?? -1,
-			employed_days: inclusiveDays(employed.start, employed.end),
-			headcount: options.headcount,
-			ordinary_hourly_rate: hourlyRate,
-			normal_daily_hours: normalDailyHours(rateTerms),
-			night_shift_hours: nightShiftHours,
-			ordinary_day_wage: dayWage,
-			absence_day_wage: absenceDayWage
-		},
-		period: {
-			start: options.salary.start,
-			end: options.salary.end,
-			calendar_days: periodCalendarDays,
-			working_days: workingDaysIn(options.salary),
-			periods_remaining: options.periodsRemaining,
-			pay_fraction: prorationFraction({
-				work: configuration.work,
-				period: options.salary,
-				covered: wageDays,
-				workingDaysIn,
-				instalments: closingTerms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1
-			})
-		},
-		jurisdiction: {
-			code: configuration.jurisdiction.code,
-			currency: configuration.jurisdiction.payroll.currency,
-			ordinary_rate_per: work.ordinaryRate.per,
-			ordinary_rate_divisor: work.ordinaryRate.divisor
-		}
-	});
-
 	// ── what a deferred earlier period owes, measured the same way it would have been paid ──────
 	//
 	// The arrears is **this same function**, run against the deferred period's own windows. That is
@@ -427,8 +267,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			);
 		// Derived back pay points at nothing a person can edit — the deferral rule and the earlier
 		// month's own contract produced it — so it is base, exactly like the wage it stands in for,
-		// and it rides the wage's own component: a second base line under the same code, which the
-		// formula context and every total sum.
+		// and it rides the wage's own component: a second base line under the same code, which
+		// every total sums.
 		base.push(
 			baseLine(
 				component,
@@ -437,7 +277,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			)
 		);
 		componentAmounts.set(component.code, arrears.amount);
-		componentsByCode[component.code] = arrears.amount;
 	}
 	const leaveRemaining = [...measuredLeave.adjustments].sort(
 		(a, b) => a.catalogueComponent.sequence - b.catalogueComponent.sequence
@@ -447,7 +286,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			const item = leaveRemaining.shift()!;
 			const running = (componentAmounts.get(item.label) ?? 0) + item.amount;
 			componentAmounts.set(item.label, running);
-			componentsByCode[item.label] = running;
 			adjustments.push(item);
 		}
 	};
@@ -461,7 +299,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		period: options.period,
 		workingDaysIn,
 		allowanceWorkingDaysIn,
-		context,
+		rates: { ordinaryDay: dayWage, ordinaryHour: hourlyRate },
 		subject,
 		note: (issue: RunIssue) => notes.push(issue)
 	};
@@ -476,7 +314,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const component = step.item;
 		const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 		componentAmounts.set(component.code, running);
-		componentsByCode[component.code] = running;
 		if (settlementBucket(component.destination, component.direction) === 'INFORMATION') continue;
 		base.push(...measured.base);
 		proration.push(...measured.proration);
@@ -500,7 +337,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	for (const recovery of repaymentRecoveries) {
 		const running = (componentAmounts.get(recovery.label) ?? 0) + recovery.amount;
 		componentAmounts.set(recovery.label, running);
-		componentsByCode[recovery.label] = running;
 		adjustments.push(recovery);
 	}
 

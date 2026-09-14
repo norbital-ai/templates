@@ -262,7 +262,7 @@ test('captured siblings still count against the annual request cap', async () =>
 		pay_period: '2026-02'
 	};
 	world.payment_requests.push(later);
-	settle(world, 'payment_requests', first.id, 'prior-slip', '2026-01');
+	settle(world, 'payment_requests', first.id, 'prior-slip');
 	adjust(world, 'prior-slip', { family: 'PAYMENT', source_id: first.id, amount: 100 });
 	world.payment_catalogue[0].bands = [
 		{

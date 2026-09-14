@@ -74,9 +74,9 @@ test('an ended contract recovers its due loan from later manual payments without
 			approval_id: null
 		});
 		for (const id of capturesOf(built, slip).payments)
-			settle(world, 'payment_requests', id, payslipId, period);
+			settle(world, 'payment_requests', id, payslipId);
 		for (const id of capturesOf(built, slip).loanRepayments)
-			settle(world, 'loan_repayments', id, payslipId, period);
+			settle(world, 'loan_repayments', id, payslipId);
 	};
 
 	let built = buildPayrollRun(await prepare('2026-02'));

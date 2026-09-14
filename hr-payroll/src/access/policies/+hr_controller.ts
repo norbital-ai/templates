@@ -1,5 +1,4 @@
 import {
-	captureLedgerGrants,
 	grantsOn,
 	grantOn,
 	hrLeaveEntryGrant,
@@ -124,7 +123,6 @@ export default {
 
 		payrollGrants('read'),
 		// The Scheduling app reads the capture junctions as this subject to mark consumed days.
-		captureLedgerGrants(),
 		grantOn('payroll_runs', 'mutate.new', { approval: payrollRunApprovalFromController })
 	),
 	/**

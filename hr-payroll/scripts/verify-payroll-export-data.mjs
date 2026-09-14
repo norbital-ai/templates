@@ -399,9 +399,6 @@ Effect.runPromise(
 			// spelled is no longer recorded, so the loaded line carries none and is not flagged as
 			// the reclassified arm — the component code (`INCENTIVE`) is what says so.
 			assert.equal(typeof PAYSLIPS[0].adjustments[0].statutory_rule_key, 'string');
-			assert.equal(patterned.lines[1].overtimeDayType, null);
-			assert.equal(patterned.lines[1].isOvertimeExcess, false);
-			assert.equal(patterned.lines[2].isOvertimeExcess, false);
 			assert.equal(patterned.lines[2].calculationSource, 'DERIVED_OVERTIME');
 
 			// The workbook's columns are the catalogue's: each overtime arm reports under the Work
@@ -410,8 +407,6 @@ Effect.runPromise(
 			const [row] = workbookRows([patterned]);
 			assert.equal(row.OVERTIME, 132.73, 'statutory overtime settles on the OVERTIME component');
 			assert.equal(row.INCENTIVE, 33.18, 'funneled overtime settles on the INCENTIVE component');
-			assert.equal(row.ot20Hours, 0, 'no stored day type, so the 2.0× bucket is empty');
-			assert.equal(row.ot10Hours, 0, 'no stored day type, so the 1.0× bucket is empty');
 
 			// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
 			const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;

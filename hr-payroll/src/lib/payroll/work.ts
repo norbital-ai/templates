@@ -39,7 +39,6 @@ import {
 	personContext,
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
-import { evaluateFormula } from '../../collections/payroll_runs/lib/formula.js';
 import {
 	deriveDailyOvertime,
 	ordinaryWorkedHours,
@@ -58,7 +57,7 @@ import { prorationSegment } from '../../collections/payroll_runs/lib/proration.j
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { resolveSchedule } from '../../collections/payroll_runs/lib/schedule.js';
 import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
-import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
+import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
 	validateDailyOvertimeHoursLimit,
 	validateAbsenceTreatments,
@@ -288,8 +287,6 @@ export function termsAt(
 		);
 	return row;
 }
-
-const PAY_FREQUENCIES = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
 
 export function payFrequency(value: string | null): RateTerms['pay_frequency'] {
 	const found = PAY_FREQUENCIES.find((candidate) => candidate === value);
@@ -815,7 +812,7 @@ function measureWorkComponent(
 		| 'contracted'
 		| 'period'
 		| 'workingDaysIn'
-		| 'context'
+		| 'rates'
 	>
 ): Measurement | null {
 	const definition = options.component.definition;
@@ -1006,32 +1003,11 @@ function measureWorkComponent(
 		};
 	};
 
-	/** A formula evaluates the prepared family context and emits one base amount. */
-	const measureFormula = (
-		definition: Extract<ComponentDefinition, { source: 'FORMULA' }>
-	): Measurement | null => {
-		const amount = evaluateFormula({
-			code: options.component.code,
-			expr: definition.expr,
-			context: options.context()
-		});
-		if (amount === 0 && definition.unit !== 'RATE') return null;
-		const magnitude = cents(Math.abs(amount));
-		return {
-			amount: magnitude,
-			base: [baseLine(options.component, bucket, magnitude)],
-			proration: [],
-			adjustments: []
-		};
-	};
-
 	switch (definition.source) {
 		case 'SCHEDULE':
 			return measureSchedule();
 		case 'ENTRY':
 			throw new Error('Work cannot measure a money-entry component.');
-		case 'FORMULA':
-			return measureFormula(definition);
 		// Priced by the rules from work days (`measureOvertime`), never by the catalogue walk: the
 		// row exists so the opt-ins of derived overtime live where every other opt-in does.
 		case 'ABSENCE':

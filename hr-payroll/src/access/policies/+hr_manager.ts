@@ -1,5 +1,4 @@
 import {
-	captureLedgerGrants,
 	grantsOn,
 	grantOn,
 	hrLeaveEntryGrant,
@@ -103,7 +102,6 @@ export default {
 
 		payrollGrants('read'),
 		// The Scheduling app reads the capture junctions as this subject to mark consumed days.
-		captureLedgerGrants(),
 		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
 		payrollRunCascadeGrants(),
 		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
