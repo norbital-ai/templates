@@ -55,10 +55,7 @@
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 </script>
 
-<RecordShell
-	icon={settledBy != null ? 'lucide:lock-keyhole' : undefined}
-	badge={settledBy != null ? t('recordMetadata.readOnly') : undefined}
->
+<RecordShell>
 	<CollectionForm
 		{client}
 		notice="header"

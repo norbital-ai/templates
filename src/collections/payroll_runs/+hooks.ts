@@ -134,11 +134,15 @@ export default {
 						});
 						if (runs.length >= 20_000) refuse('Too many payrolls to verify settlement order.');
 						assertPayrollPeriodAvailable(runs, one.period!);
+						const gatherStarted = Date.now();
 						const run = yield* gatherPayrollRun({
 							api,
 							companyId: one.company_id!,
 							period: one.period!
 						});
+						yield* Effect.log(
+							`[payroll-timing] ${one.period} gather=${Date.now() - gatherStarted}ms`
+						);
 						return [runKey(one.company_id!, one.period!), run] as const;
 					})
 				);
@@ -178,15 +182,24 @@ export default {
 						const facts = prepared.get(runKey(companyId, period));
 						if (facts == null)
 							refuse(`Payroll ${period} was not prepared. This is a bug, not a data fault.`);
+						const precheckStarted = Date.now();
 						const blocking = yield* payrollRunPrecheck({
 							api,
 							configuration: facts.configuration,
 							window: facts.window
 						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
+						const buildStarted = Date.now();
 						const built = yield* buildGraph(facts);
+						const pinStarted = Date.now();
 						const writers = captureWriters(api as unknown as CaptureApi);
 						for (const writer of writers) yield* writer.pin(built.captures);
+						// Wall time per phase from inside the guest: the compute budget is the isolate's own
+						// meter, and a host-side profile of the same run under-counted it threefold.
+						yield* Effect.log(
+							`[payroll-timing] ${period} precheck=${buildStarted - precheckStarted}ms ` +
+								`build=${pinStarted - buildStarted}ms pin=${Date.now() - pinStarted}ms`
+						);
 						// The per-period rows materialised from standing sources: created with the run,
 						// pinned to the payslip they priced, deleted with it. The id is the runtime's.
 						const rows = built.captures.flatMap((capture) => capture.materialised);
