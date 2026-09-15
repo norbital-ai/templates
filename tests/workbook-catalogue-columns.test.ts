@@ -89,22 +89,17 @@ test('three allowances are three columns, not one lump', () => {
 test('sections read in the clerk’s order: basic, allowances, overtime, absence, gross, statutory, deductions, payments, net', () => {
 	assert.deepEqual(
 		groups().map((group) => group.name),
-		[
-			'Basic',
-			'Allowances',
-			'Overtime',
-			'Absence',
-			'Gross',
-			'Deductions',
-			'Payments',
-			'Net'
-		]
+		['Basic', 'Allowances', 'Overtime', 'Absence', 'Gross', 'Deductions', 'Payments', 'Net']
 	);
 	assert.deepEqual(section('Basic').outputIds, ['BASIC']);
 	// Within a section, code order: the inferred catalogue order.
 	assert.deepEqual(section('Allowances').outputIds, ['MEAL', 'PHONE', 'TRANSPORT']);
 	assert.deepEqual(section('Overtime').outputIds, ['OVERTIME']);
-	assert.equal(section('Totals & bases'), undefined, 'the deduction total, employer cost and statutory totals are not columns');
+	assert.equal(
+		section('Totals & bases'),
+		undefined,
+		'the deduction total, employer cost and statutory totals are not columns'
+	);
 });
 
 test('a component is filed under the bucket it settled as', () => {
@@ -141,14 +136,33 @@ test('overtime is one column per band, and the funnel past the ceiling one per b
 	const banded = [
 		payslip('E9', [
 			line({ componentCode: 'BASIC', calculationSource: 'SCHEDULE', amount: 3000 }),
-			line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 120, label: 'OT-1.5X' }),
-			line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 80, label: 'OT-2.0X' }),
-			line({ componentCode: 'INCENTIVE', calculationSource: 'OVERTIME', amount: 30, label: 'OT-1.5X' })
+			line({
+				componentCode: 'OVERTIME',
+				calculationSource: 'OVERTIME',
+				amount: 120,
+				label: 'OT-1.5X'
+			}),
+			line({
+				componentCode: 'OVERTIME',
+				calculationSource: 'OVERTIME',
+				amount: 80,
+				label: 'OT-2.0X'
+			}),
+			line({
+				componentCode: 'INCENTIVE',
+				calculationSource: 'OVERTIME',
+				amount: 30,
+				label: 'OT-1.5X'
+			})
 		])
 	];
 	const rows = workbookRows(banded);
 	const overtime = outputGroups(banded, rows).find((group) => group.name === 'Overtime');
-	assert.deepEqual(overtime.outputIds, ['INCENTIVE:OT-1.5X', 'OVERTIME:OT-1.5X', 'OVERTIME:OT-2.0X']);
+	assert.deepEqual(overtime.outputIds, [
+		'INCENTIVE:OT-1.5X',
+		'OVERTIME:OT-1.5X',
+		'OVERTIME:OT-2.0X'
+	]);
 	assert.equal(rows[0]['OVERTIME:OT-1.5X'], 120);
 	assert.equal(rows[0]['OVERTIME:OT-2.0X'], 80);
 	assert.equal(rows[0]['INCENTIVE:OT-1.5X'], 30);
