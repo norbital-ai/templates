@@ -37,13 +37,7 @@ export default defineModel(
 		 * The payslip that settled this row. Set by the payroll engine when a run captures the row,
 		 * cleared when the draft run is deleted; while set, the row is frozen.
 		 */
-		payslip_id: uuid(),
-		/**
-		 * Set when the payroll engine materialised this row from a scheduled catalogue row:
-		 * `<catalogue row id>:<occurrence>`. Created with the run, pinned to the payslip it priced;
-		 * an unpinned one is the orphan of a deleted draft and is never read as a source.
-		 */
-		schedule_key: text()
+		payslip_id: uuid()
 	},
 	{
 		description:
@@ -54,8 +48,7 @@ export default defineModel(
 			{ columns: ['employment_id', 'pay_period'] },
 			{ columns: ['catalogue_id'] },
 			{ columns: ['employment_id', 'effective_on'] },
-			{ columns: ['payslip_id'] },
-			{ columns: ['schedule_key'] }
+			{ columns: ['payslip_id'] }
 		]
 	}
 );
