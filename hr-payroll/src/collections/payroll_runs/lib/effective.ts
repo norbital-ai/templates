@@ -44,7 +44,10 @@ const rangeCache = new WeakMap<object, StoredRange | null>();
 function decodeRange(value: unknown): StoredRange | null {
 	const parsed = Option.getOrNull(Schema.decodeUnknownOption(StoredRangeSchema)(value));
 	if (parsed == null || parsed.start === '') return null;
-	return { start: parsed.start, end: parsed.end === '' ? null : parsed.end };
+	// The seed bank and the people forms store an open contract as an end in year 9999; the engine
+	// reads that as open, so a current contract can still be closed and never shows as departed.
+	const end = parsed.end === '' || parsed.end?.startsWith('9999') ? null : parsed.end;
+	return { start: parsed.start, end };
 }
 
 /** Whether an `effective_range` covers a calendar day. Both ends inclusive. */

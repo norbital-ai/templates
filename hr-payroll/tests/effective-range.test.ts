@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { coversDate } from '../src/collections/payroll_runs/lib/effective.ts';
+import { coversDate, readRange } from '../src/collections/payroll_runs/lib/effective.ts';
 
 const source = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -42,4 +42,12 @@ test('statutory facts block overlaps inclusively and close the predecessor the d
 		/Date\.parse\(successorRange\.start\) - 86_400_000/,
 		'the predecessor closes on the day before the successor begins'
 	);
+});
+
+test('a year-9999 end is read as an open contract', () => {
+	assert.equal(
+		readRange({ start: '2019-12-02T00:00:00.000Z', end: '9999-12-31T23:59:59.999Z' })?.end,
+		null
+	);
+	assert.equal(readRange({ start: '2019-12-02', end: '2026-02-10T15:59:59.999Z' })?.end, '2026-02-10T15:59:59.999Z');
 });
