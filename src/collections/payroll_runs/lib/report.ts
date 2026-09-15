@@ -28,6 +28,8 @@ const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
 	componentName: Schema.String,
 	bucket: Schema.String,
+	/** The input family that caused the line: BASE for the contracted amount, else the payslip adjustment's. */
+	family: Schema.String,
 	calculationSource: Schema.String,
 	amount: Schema.Number,
 	quantity: Schema.NullOr(Schema.Number),
@@ -120,9 +122,9 @@ export function identityRow(payslip: ReportPayslip): Record<string, string | num
  * recognise disappeared into one of them: an employer with fourteen allowances exported one
  * `allowance` column and could not reconcile a single line of it.
  *
- * The order is still the order a payroll clerk reads: what was earned, what absence and deductions
- * took away, gross, what is paid after gross, net, the statutory charges, the totals and the bases
- * they were charged on, the employer's own costs, anything informational, and finally attendance.
+ * The order is the order a payroll clerk reads: basic, allowances, overtime, absence, back pay and
+ * other earnings, gross, the statutory charges, deductions, what is paid after gross, net, the
+ * totals and the bases they were charged on, the employer's own costs, anything informational.
  *
  * `unit` is not decoration: an attendance column counts hours, and formatting hours as money — or
  * tinting them like money — is how a reader ends up reading 7.50 as seven ringgit fifty.
@@ -131,28 +133,50 @@ export function identityRow(payslip: ReportPayslip): Record<string, string | num
  * decided by the schemes the jurisdiction actually runs, so this layout is the same layout in Kuala
  * Lumpur and in Manila — only its statutory block is filled differently.
  */
+/** The columns a bucket section claims: a predicate over the settled lines, in the clerk's order. */
+type LineMatch = (line: ReportLine) => boolean;
+const EARNING_FAMILIES_RANKED = ['BASE', 'ALLOWANCE', 'WORK_DAY'] as const;
+
 const SECTION_LAYOUT: readonly {
 	readonly name: string;
 	readonly unit: 'MONEY' | 'HOURS';
 	readonly statutoryRoles?: readonly StatutoryRole[];
 	readonly outputIds?: readonly string[];
-	/** The catalogue buckets whose components are written under this heading, in code order. */
-	readonly buckets?: readonly string[];
+	/** The settled lines whose codes are written under this heading, in code order. */
+	readonly lines?: LineMatch;
 }[] = [
-	{ name: 'Earnings', unit: 'MONEY', buckets: ['EARNING'] },
-	{ name: 'Absence & deductions', unit: 'MONEY', buckets: ['ABSENCE', 'DEDUCTION'] },
+	{ name: 'Basic', unit: 'MONEY', lines: (line) => line.family === 'BASE' },
+	{
+		name: 'Allowances',
+		unit: 'MONEY',
+		lines: (line) => line.bucket === 'EARNING' && line.family === 'ALLOWANCE'
+	},
+	{
+		name: 'Overtime',
+		unit: 'MONEY',
+		lines: (line) => line.bucket === 'EARNING' && line.family === 'WORK_DAY'
+	},
+	{ name: 'Absence', unit: 'MONEY', lines: (line) => line.bucket === 'ABSENCE' },
+	{
+		name: 'Back pay & other earnings',
+		unit: 'MONEY',
+		lines: (line) =>
+			line.bucket === 'EARNING' &&
+			!(EARNING_FAMILIES_RANKED as readonly string[]).includes(line.family)
+	},
 	{ name: 'Gross', unit: 'MONEY', outputIds: ['grossEarnings'] },
-	{ name: 'Payments', unit: 'MONEY', buckets: ['NON_WAGE_PAYMENT'] },
-	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
 	{ name: 'Statutory', unit: 'MONEY', statutoryRoles: ['employee', 'employer'] },
+	{ name: 'Deductions', unit: 'MONEY', lines: (line) => line.bucket === 'DEDUCTION' },
+	{ name: 'Payments', unit: 'MONEY', lines: (line) => line.bucket === 'NON_WAGE_PAYMENT' },
+	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
 	{
 		name: 'Totals & bases',
 		unit: 'MONEY',
 		statutoryRoles: ['total', 'base'],
 		outputIds: ['totalDeductions', 'employerCost']
 	},
-	{ name: 'Employer costs', unit: 'MONEY', buckets: ['EMPLOYER_COST'] },
-	{ name: 'Information', unit: 'MONEY', buckets: ['INFORMATION'] }
+	{ name: 'Employer costs', unit: 'MONEY', lines: (line) => line.bucket === 'EMPLOYER_COST' },
+	{ name: 'Information', unit: 'MONEY', lines: (line) => line.bucket === 'INFORMATION' }
 ];
 
 /** Where output ids no section ranks are collected, so a new id is never dropped. */
@@ -287,29 +311,23 @@ export function outputGroups(
 	rows: readonly Record<string, number>[]
 ): OutputSection[] {
 	const present = new Set(rows.flatMap((row) => Object.keys(row)));
-	/** Every code these payslips settled, by the bucket it settled under. */
-	const byBucket = new Map<string, Set<string>>();
-	for (const payslip of payslips)
-		for (const line of payslip.lines) {
-			const codes = byBucket.get(line.bucket) ?? new Set<string>();
-			codes.add(line.componentCode);
-			byBucket.set(line.bucket, codes);
-		}
+	const lines = payslips.flatMap((payslip) => payslip.lines);
 	const claimed = new Set<string>();
 	const groups: OutputSection[] = [];
 	for (const section of SECTION_LAYOUT) {
+		const match = section.lines;
 		const outputIds =
-			section.buckets == null
+			match == null
 				? [
 						...(section.statutoryRoles ?? []).flatMap((role) =>
 							[...present].filter((id) => !FIXED_IDS.has(id) && hasRole(id, role)).toSorted()
 						),
 						...(section.outputIds ?? [])
 					].filter((id) => present.has(id))
-				: section.buckets
-						.flatMap((bucket) => [...(byBucket.get(bucket) ?? new Set<string>())])
+				: [...new Set(lines.filter(match).map((line) => line.componentCode))]
 						.toSorted()
-						.filter((id) => present.has(id));
+						// A code is one column: the first section that claims it keeps it.
+						.filter((id) => present.has(id) && !claimed.has(id));
 		for (const id of outputIds) claimed.add(id);
 		if (outputIds.length > 0) groups.push({ name: section.name, unit: section.unit, outputIds });
 	}

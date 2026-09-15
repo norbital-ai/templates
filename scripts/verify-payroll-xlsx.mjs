@@ -57,8 +57,22 @@ const line = (overrides) => ({
 	isCompanyDirect: false,
 	isClaim: false,
 	isLoanInstalment: false,
+	family: familyOf(overrides),
 	...overrides
 });
+/** The input family a fixture line stands for, read off what the fixture already says about it. */
+const familyOf = (overrides) =>
+	overrides.calculationSource === 'SCHEDULE'
+		? 'BASE'
+		: overrides.calculationSource === 'OVERTIME' || overrides.calculationSource === 'INCENTIVE'
+			? 'WORK_DAY'
+			: overrides.isClaim
+				? 'CLAIM'
+				: overrides.isLoanInstalment
+					? 'LOAN_REPAYMENT'
+					: overrides.bucket === 'ABSENCE'
+						? 'WORK_DAY'
+						: 'ALLOWANCE';
 
 /** The employee `verify-payroll-arithmetic.mjs` verifies: basic 3,451, NPL 55.66, overtime 365.44. */
 const VERIFIED = {
@@ -427,12 +441,15 @@ Effect.runPromise(
 				bandedSections.map(([name]) => name),
 				[
 					'Identity',
-					'Earnings',
-					'Absence & deductions',
+					'Basic',
+					'Allowances',
+					'Overtime',
+					'Absence',
 					'Gross',
+					'Statutory',
+					'Deductions',
 					'Payments',
 					'Net',
-					'Statutory',
 					'Totals & bases'
 				],
 				'the listing’s section order is the reader’s order'
@@ -545,10 +562,10 @@ Effect.runPromise(
 				'BASIC',
 				'OVERTIME',
 				'grossEarnings',
-				'netPay',
 				'cpfEmployee',
 				'cpfEmployer',
 				'sdlEmployer',
+				'netPay',
 				'totalCpf',
 				'cpfGross',
 				'sdlGross',
@@ -560,9 +577,11 @@ Effect.runPromise(
 			assert.equal(generic.getRow(1).getCell(1).value, null);
 			assert.equal(generic.getRow(1).getCell(2).value, 'Identity');
 			assert.equal(mergeMaster(generic, 1, 3), 'B1');
-			assert.equal(generic.getRow(1).getCell(4).value, 'Earnings');
+			assert.equal(generic.getRow(1).getCell(4).value, 'Basic');
+			assert.equal(generic.getRow(1).getCell(5).value, 'Overtime');
 			assert.equal(generic.getRow(1).getCell(6).value, 'Gross');
-			assert.equal(generic.getRow(1).getCell(8).value, 'Statutory');
+			assert.equal(generic.getRow(1).getCell(7).value, 'Statutory');
+			assert.equal(generic.getRow(1).getCell(10).value, 'Net');
 			assert.deepEqual(rowValues(generic, 3), [
 				'PUBSG0001',
 				'Public Non-Citizen Employee',
@@ -570,10 +589,10 @@ Effect.runPromise(
 				5000,
 				300,
 				5300,
-				4240,
 				1060,
 				901,
 				13.25,
+				4240,
 				1961,
 				5300,
 				5300,

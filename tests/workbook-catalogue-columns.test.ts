@@ -22,6 +22,16 @@ const line = (overrides) => ({
 	isCompanyDirect: false,
 	isClaim: false,
 	isLoanInstalment: false,
+	family:
+		overrides.calculationSource === 'SCHEDULE'
+			? 'BASE'
+			: overrides.calculationSource === 'OVERTIME'
+				? 'WORK_DAY'
+				: overrides.bucket === 'ABSENCE'
+					? 'WORK_DAY'
+					: overrides.bucket === 'DEDUCTION'
+						? 'PAYMENT'
+						: 'ALLOWANCE',
 	...overrides
 });
 
@@ -66,7 +76,7 @@ const groups = () => outputGroups(PAYSLIPS, workbookRows(PAYSLIPS));
 const section = (name) => groups().find((group) => group.name === name);
 
 test('three allowances are three columns, not one lump', () => {
-	const earnings = section('Earnings');
+	const earnings = section('Allowances');
 	for (const code of ['TRANSPORT', 'MEAL', 'PHONE'])
 		assert.ok(earnings.outputIds.includes(code), `${code} has no column of its own`);
 	for (const lump of ['taxableBenefits', 'adhocDeductions', 'totalClaims', 'proratedSalary'])
@@ -76,22 +86,30 @@ test('three allowances are three columns, not one lump', () => {
 		);
 });
 
-test('columns are written in code order, the inferred catalogue order', () => {
-	assert.deepEqual(section('Earnings').outputIds, [
-		'BASIC',
-		'MEAL',
-		'OVERTIME',
-		'PHONE',
-		'TRANSPORT'
-	]);
+test('sections read in the clerk’s order: basic, allowances, overtime, absence, gross, statutory, deductions, payments, net', () => {
+	assert.deepEqual(
+		groups().map((group) => group.name),
+		[
+			'Basic',
+			'Allowances',
+			'Overtime',
+			'Absence',
+			'Gross',
+			'Deductions',
+			'Payments',
+			'Net',
+			'Totals & bases'
+		]
+	);
+	assert.deepEqual(section('Basic').outputIds, ['BASIC']);
+	// Within a section, code order: the inferred catalogue order.
+	assert.deepEqual(section('Allowances').outputIds, ['MEAL', 'PHONE', 'TRANSPORT']);
+	assert.deepEqual(section('Overtime').outputIds, ['OVERTIME']);
 });
 
 test('a component is filed under the bucket it settled as', () => {
-	assert.deepEqual(section('Absence & deductions').outputIds, [
-		'ABSENCE',
-		'PARKING_FINE',
-		'STAFF_LOAN'
-	]);
+	assert.deepEqual(section('Absence').outputIds, ['ABSENCE']);
+	assert.deepEqual(section('Deductions').outputIds, ['PARKING_FINE', 'STAFF_LOAN']);
 	assert.deepEqual(section('Payments').outputIds, ['MEDICAL']);
 	assert.deepEqual(section('Gross').outputIds, ['grossEarnings']);
 	assert.deepEqual(section('Net').outputIds, ['netPay']);
@@ -108,13 +126,13 @@ test('a sheet is squared off: a component one person did not settle is an explic
 test('two lines under one code are one column and one sum', () => {
 	const twice = [
 		payslip('E3', [
-			line({ componentCode: 'OVERTIME', amount: 40 }),
-			line({ componentCode: 'OVERTIME', amount: 60 })
+			line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 40 }),
+			line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 60 })
 		])
 	];
 	assert.equal(workbookRows(twice)[0].OVERTIME, 100);
 	assert.deepEqual(
-		outputGroups(twice, workbookRows(twice)).find((group) => group.name === 'Earnings').outputIds,
+		outputGroups(twice, workbookRows(twice)).find((group) => group.name === 'Overtime').outputIds,
 		['OVERTIME']
 	);
 });

@@ -394,6 +394,7 @@ export function loadRunExports(
 					componentCode: string,
 					amount: number,
 					quantity: number | null,
+					family: string,
 					bucket?: SettlementBucket
 				): ReportLine[] => {
 					const line = componentByCode.get(componentCode);
@@ -401,6 +402,7 @@ export function loadRunExports(
 						{
 							componentCode: componentCode,
 							componentName: componentCode,
+							family,
 							// An adjustment states the bucket it settled in; a base line reads its
 							// catalogue's, and a code the run no longer carries is informational.
 							bucket: bucket ?? line?.bucket ?? 'INFORMATION',
@@ -416,13 +418,14 @@ export function loadRunExports(
 				};
 				const reportLines: ReportLine[] = [
 					...payslip.base.flatMap((entry) =>
-						reportLine(entry.component_code, decodeNumber(entry.amount), null)
+						reportLine(entry.component_code, decodeNumber(entry.amount), null, 'BASE')
 					),
 					...payslipAdjustments.flatMap((row): ReportLine[] =>
 						reportLine(
 							row.component_code,
 							decodeNumber(row.amount),
 							row.quantity == null ? null : decodeNumber(row.quantity),
+							row.family,
 							row.bucket
 						).map((line) => ({
 							...line,
