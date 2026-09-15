@@ -28,6 +28,16 @@ import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed
  * `field_ops_whatsapp` policy, the `write_collection` mutation through the assignment hooks,
  * and the reply on the contractor's conversation.
  */
+/** The runtime writes the registration link into the notice; the claim id is its `claim` query. */
+const claimIdOf = (payload: unknown): string | undefined => {
+	const text = (payload as { text?: unknown }).text;
+	if (typeof text !== 'string') return undefined;
+	const link = text.split('\n').find((line) => line.includes('claim='));
+	return link === undefined
+		? undefined
+		: (new URLSearchParams(link.split('?')[1] ?? '').get('claim') ?? undefined);
+};
+
 const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 180_000;
 const ENVOY = 'field_ops_whatsapp';
 const SENDER_JID = '6591234567@s.whatsapp.net';
@@ -136,8 +146,8 @@ test(
 			assert.ok(notice !== undefined);
 			assert.equal(notice.channel, 'whatsapp');
 			assert.equal(notice.recipient, STRANGER_JID);
-			const registration = (notice.payload as { registration?: { claimId?: string } }).registration;
-			assert.ok(registration?.claimId, 'the registration notice carries a claim');
+			const registration = { claimId: claimIdOf(notice.payload) };
+			assert.ok(registration.claimId, 'the registration notice carries a claim');
 			const inspected = requireOk(
 				await system('envoys.registration.inspect', { claimId: registration.claimId }),
 				'envoys.registration.inspect'
@@ -262,8 +272,7 @@ test(
 			assert.equal(stranger.status, 'registration_required');
 			const notice = sends.find((send) => send.recipient === STRANGER_JID);
 			assert.ok(notice !== undefined);
-			const claimId = (notice.payload as { registration?: { claimId?: string } }).registration
-				?.claimId;
+			const claimId = claimIdOf(notice.payload);
 			assert.ok(claimId, 'the registration notice carries a claim');
 
 			// The workspace invites the contractor, who signs in through the real code flow —
