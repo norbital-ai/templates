@@ -162,7 +162,9 @@ const SECTION_LAYOUT: readonly {
 		// A clerk reads overtime by its multiple — 1.5x, 2x, 3x and the incentive past the ceiling
 		// at each — so a derived overtime row is a column per band, not one lump under its code.
 		columnId: (line) =>
-			line.label === undefined || line.label === '' ? line.componentCode : `${line.componentCode}:${line.label}`
+			line.label === undefined || line.label === ''
+				? line.componentCode
+				: `${line.componentCode}:${line.label}`
 	},
 	{ name: 'Absence', unit: 'MONEY', lines: (line) => line.bucket === 'ABSENCE' },
 	{
