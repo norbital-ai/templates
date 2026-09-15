@@ -925,6 +925,10 @@
 				{
 					"family": "PAYMENT",
 					"code": "RETROACTIVE_PAY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "THR"
 				}
 			]
 		}
@@ -1855,6 +1859,10 @@
 				{
 					"family": "PAYMENT",
 					"code": "RETROACTIVE_PAY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "THR"
 				}
 			]
 		}
@@ -2785,6 +2793,10 @@
 				{
 					"family": "PAYMENT",
 					"code": "RETROACTIVE_PAY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "THR"
 				}
 			]
 		}

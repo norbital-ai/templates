@@ -1024,6 +1024,8 @@
 	"renderer.catalogue_schedule.every": "到期周期",
 	"renderer.catalogue_schedule.every_year": "每年",
 	"renderer.catalogue_schedule.every_month": "每月",
+	"renderer.catalogue_schedule.every_separation": "离职时",
+	"renderer.catalogue_schedule.summary_separation": "于离职日",
 	"renderer.catalogue_schedule.month": "月份（1–12）",
 	"renderer.catalogue_schedule.day": "日期（1–31，超出按月末）",
 	"renderer.catalogue_schedule.from_service_months": "服务月数门槛",

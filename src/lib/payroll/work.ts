@@ -37,7 +37,7 @@ import {
 	personContext,
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
-import { serviceStart } from '../employment-contract.js';
+import { stint } from '../employment-contract.js';
 import {
 	deriveDailyOvertime,
 	ordinaryWorkedHours,
@@ -446,7 +446,7 @@ export function prepareWorkContext(
 
 	const subject = personContext({
 		employee: bundle.employee,
-		employment: { service_start: serviceStart(bundle.employment) },
+		employment: stint(bundle.employment),
 		terms: closingTerms,
 		// The working week the roster produced, so a rate row can turn on it. The Philippine day
 		// factor is 261 annual days for a five-day week and 313 for a six-day one, which is

@@ -134,7 +134,8 @@ import {
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
-import { serviceStart } from '../employment-contract.js';
+import { stint } from '../employment-contract.js';
+import { fixedAllowancesOn } from './money.js';
 import type { MeasuredEmployment } from './family.js';
 export function prepareContributionCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -226,7 +227,8 @@ export function minimumWageIssues(options: {
 		if (!(basic < wage)) continue;
 		const person = personContext({
 			employee: bundle.employee,
-			employment: { service_start: serviceStart(bundle.employment) },
+			employment: stint(bundle.employment),
+			fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
 			terms: term,
 			children: bundle.children,
 			company: configuration.company,
@@ -280,7 +282,8 @@ export function prepareContributionAssessment(options: {
 	}
 	const person = personContext({
 		employee: bundle.employee,
-		employment: { service_start: serviceStart(bundle.employment) },
+		employment: stint(bundle.employment),
+		fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
 		terms:
 			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
 			bundle.terms.at(-1) ??

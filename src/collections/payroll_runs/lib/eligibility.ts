@@ -45,11 +45,21 @@ export type PersonContext = {
 		readonly type: string;
 		readonly classification: string;
 		readonly service_months: number;
+		/** Completed years of service on the rule date; separation payments count in these. */
+		readonly service_years: number;
 		/** First day of the stint, `YYYY-MM-DD`; service is measured from it. */
 		readonly service_start: string;
+		/** Last day of work, or empty while the stint is open. */
+		readonly exit_date: string;
+		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
+		readonly exit_reason: string;
 	};
 	readonly terms: {
 		readonly basic_salary: number;
+		/** Standing PAY allowances in force on the rule date; 0 where the caller knows none. */
+		readonly fixed_allowances: number;
+		/** Basic plus the fixed allowances: "one month's wage" where a statute says so. */
+		readonly monthly_wage: number;
 		readonly workman: boolean;
 		/** The statutory work category itself, for an overtime predicate that names one. */
 		readonly statutory_work_category: string;
@@ -93,7 +103,13 @@ type PersonInput = {
 		readonly race?: string | null;
 		readonly religion?: string | null;
 	} | null;
-	readonly employment: { readonly service_start: string };
+	readonly employment: {
+		readonly service_start: string;
+		readonly exit_date?: string | null;
+		readonly exit_reason?: string | null;
+	};
+	/** Standing PAY allowances in force on `asOf`, summed; see `fixedAllowancesOn`. */
+	readonly fixedAllowances?: number | null;
 	readonly terms: {
 		readonly residency_status?: string | null;
 		readonly employment_type?: string | null;
@@ -130,6 +146,9 @@ export function personContext(input: PersonInput): PersonContext {
 	const born = dateKey(input.employee?.date_of_birth);
 	const residency = dateKey(input.terms?.residency_since);
 	const salary = input.terms?.base_salary as { value?: unknown } | null | undefined;
+	const basic = salary == null ? 0 : decodeNumber(salary.value);
+	const fixed = decodeNumber(input.fixedAllowances ?? 0);
+	const exit = dateKey(input.employment.exit_date);
 	const ages = (input.children ?? [])
 		.map((child) => dateKey(child.child_birthdate))
 		.filter((birth) => birth !== '' && birth <= input.asOf)
@@ -156,10 +175,15 @@ export function personContext(input: PersonInput): PersonContext {
 			type: input.terms?.employment_type ?? '',
 			classification: input.terms?.work_classification ?? '',
 			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
-			service_start: start
+			service_years: start === '' ? 0 : completedYears(start, input.asOf),
+			service_start: start,
+			exit_date: exit,
+			exit_reason: input.employment.exit_reason ?? ''
 		},
 		terms: {
-			basic_salary: salary == null ? 0 : decodeNumber(salary.value),
+			basic_salary: basic,
+			fixed_allowances: fixed,
+			monthly_wage: basic + fixed,
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			statutory_work_category: input.terms?.statutory_work_category ?? '',
 			statutory_wages: decodeNumber(input.statutoryWages ?? 0),

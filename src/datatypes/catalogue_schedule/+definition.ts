@@ -11,9 +11,11 @@ import { compileExpression } from '../../lib/expressions/compile.js';
  * over the entry context, year axis included. `when` narrows who is owed it on that day; empty is
  * everyone. `from_service_months` is the qualifying service on the day. `on_separation` owes the
  * year's occurrence, on the exit date, to a leaver whose final period closes before the day.
+ * `every: SEPARATION` has no calendar: the occurrence is the exit date itself, once per stint —
+ * termination pay, retirement pay, notice in lieu, leave commutation (RFC 0005 §1.3).
  */
 export const catalogueScheduleValueSchema = Schema.Struct({
-	every: Schema.Literals(['YEAR', 'MONTH']),
+	every: Schema.Literals(['YEAR', 'MONTH', 'SEPARATION']),
 	/** 1–12; read on a yearly schedule only. */
 	month: Schema.NullOr(
 		Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 12 }))
@@ -46,7 +48,7 @@ export const DEFAULT_SCHEDULE: CatalogueSchedule = {
 export default defineCustomType({
 	name: 'catalogue_schedule',
 	description:
-		'When a scheduled catalogue row falls due: yearly on a month and day or monthly on a day, who is owed it on that day, the qualifying service, and whether a leaver is owed the year’s occurrence on separation.',
+		'When a scheduled catalogue row falls due: yearly on a month and day, monthly on a day, or on separation; who is owed it on that day, the qualifying service, and whether a leaver is owed a yearly occurrence early.',
 	schema: Schema.toStandardSchemaV1(catalogueScheduleValueSchema, {
 		parseOptions: { onExcessProperty: 'error' }
 	})

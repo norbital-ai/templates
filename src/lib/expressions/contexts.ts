@@ -47,7 +47,19 @@ const PERSON_FIELDS: readonly ContextField[] = [
 	{ path: 'employment.classification', description: 'Work classification' },
 	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
 	{ path: 'employment.service_start', description: 'First day of the stint' },
+	{ path: 'employment.service_years', description: 'Completed years since the stint began' },
+	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
+	{
+		path: 'employment.exit_reason',
+		description:
+			'RESIGNATION | DISMISSAL | REDUNDANCY | RETIREMENT | END_OF_CONTRACT | MUTUAL | DEATH, or empty'
+	},
 	{ path: 'terms.basic_salary', description: 'Contracted monthly base salary' },
+	{
+		path: 'terms.fixed_allowances',
+		description: 'Standing PAY allowances in force on the rule date'
+	},
+	{ path: 'terms.monthly_wage', description: 'Basic salary plus the fixed allowances' },
 	{
 		path: 'terms.statutory_wages',
 		description:
@@ -79,9 +91,19 @@ const PERSON_BLANK = {
 		religion: '',
 		residency_months: 0
 	},
-	employment: { type: '', classification: '', service_months: 0, service_start: '' },
+	employment: {
+		type: '',
+		classification: '',
+		service_months: 0,
+		service_years: 0,
+		service_start: '',
+		exit_date: '',
+		exit_reason: ''
+	},
 	terms: {
 		basic_salary: 0,
+		fixed_allowances: 0,
+		monthly_wage: 0,
 		workman: false,
 		statutory_work_category: '',
 		statutory_wages: 0,

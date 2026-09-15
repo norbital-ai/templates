@@ -1024,6 +1024,8 @@
 	"renderer.catalogue_schedule.every": "Falls due",
 	"renderer.catalogue_schedule.every_year": "Every year",
 	"renderer.catalogue_schedule.every_month": "Every month",
+	"renderer.catalogue_schedule.every_separation": "On separation",
+	"renderer.catalogue_schedule.summary_separation": "On the exit date",
 	"renderer.catalogue_schedule.month": "Month (1–12)",
 	"renderer.catalogue_schedule.day": "Day (1–31, clamped to the month)",
 	"renderer.catalogue_schedule.from_service_months": "Qualifying service, months",

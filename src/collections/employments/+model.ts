@@ -1,4 +1,4 @@
-import { custom, defineModel, integer, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -16,7 +16,21 @@ export default defineModel(
 		 * Departure closes the range; a rehire is a new contract, never a reopened one.
 		 */
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
-		/** Free-text departure note, kept as the contract's comments; the only field that stays writable after the range closes. */
+		/**
+		 * Why the stint ended (RFC 0005 §3). Every separation payment the law owes turns on it:
+		 * separation pay by cause, retirement pay, notice in lieu. Written with the departure and
+		 * correctable after; `employment.exit_reason` is how a catalogue band reads it.
+		 */
+		exit_reason: enums([
+			'RESIGNATION',
+			'DISMISSAL',
+			'REDUNDANCY',
+			'RETIREMENT',
+			'END_OF_CONTRACT',
+			'MUTUAL',
+			'DEATH'
+		]),
+		/** Free-text departure note, kept as the contract's comments; writable after the range closes. */
 		comments: text()
 	},
 	{
