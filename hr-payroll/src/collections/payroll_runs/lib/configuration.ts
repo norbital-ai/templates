@@ -158,6 +158,7 @@ export function pickConfiguration(
 					`${code} version whose effective range covers the period.`
 			);
 
+		const cataloguesStarted = Date.now();
 		const familyConfiguration = yield* prepareFamilyCatalogues({
 			api: options.api,
 			jurisdiction,
@@ -165,6 +166,9 @@ export function pickConfiguration(
 			windowStart,
 			windowEnd
 		});
+		yield* Effect.log(
+			`[payroll-timing] catalogues=${Date.now() - cataloguesStarted}ms for ${jurisdiction.id}`
+		);
 		const { contributions } = familyConfiguration;
 		// The catalogue rows carry `destination` and `direction` as text at the database boundary,
 		// where the models constrain them to the §9 vocabulary. The engine restates the spine once,
@@ -214,7 +218,12 @@ export function pickConfiguration(
 
 		return {
 			...configuration,
-			hash: sha256Json(configurationSnapshot(configuration, options.window.period))
+			hash: (() => {
+				const hashStarted = Date.now();
+				const hash = sha256Json(configurationSnapshot(configuration, options.window.period));
+				console.log(`[payroll-timing] hash=${Date.now() - hashStarted}ms`);
+				return hash;
+			})()
 		};
 	});
 }
