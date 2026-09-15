@@ -8,7 +8,7 @@
  * written rather than discovered when a payroll is priced.
  */
 
-import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
+import { programFor } from './evaluate.js';
 import {
 	EXPRESSION_CONTEXTS,
 	type ExpressionContext,
@@ -19,32 +19,13 @@ import {
 const KEYWORDS = new Set(['true', 'false', 'null', 'in']);
 
 /**
- * The engine every expression site shares: the compile-time check below and the run-time
- * builders call the same factory, so a function an expression may call is callable in both.
+ * Compiled by the same environment the run evaluates with (`programFor`), so a function an
+ * expression may call is callable in both and a stand-in list cannot drift from the real one.
  *
  * No custom binary `min`/`max`: cel-js refuses a `(dyn, dyn)` overload beside its own
  * `(dyn, string)` one, and its aggregate forms already cover lists. Clamp with a ternary
  * (`total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0`).
  */
-function expressionEngine() {
-	return createReckonEngine()
-		.registerFunction('minimum_wage', 'minimum_wage(string): double', () => 1700)
-		.registerFunction('bracket', 'bracket(dyn, dyn, dyn): double', (base) => Number(base))
-		.registerFunction('ladder', 'ladder(dyn, list<dyn>): double', (base) => Number(base))
-		.registerFunction('round_cent', 'round_cent(dyn): double', (value) => Number(value))
-		.registerFunction('truncate_cent', 'truncate_cent(dyn): double', (value) => Number(value))
-		.registerFunction('up_5_cents', 'up_5_cents(dyn): double', (value) => Number(value))
-		.registerFunction('round_unit', 'round_unit(dyn): double', (value) => Number(value))
-		.registerFunction('floor_unit', 'floor_unit(dyn): double', (value) => Number(value))
-		.registerFunction('up_to_unit', 'up_to_unit(dyn): double', (value) => Number(value))
-		.registerFunction('progressive', 'progressive(dyn, list<dyn>): double', () => 0)
-		.registerFunction('map.under', 'map.under(int): int', () => 0n)
-		.registerFunction('map.days', 'map.days(string): double', () => 0)
-		.registerFunction('map.balance', 'map.balance(string): double', () => 0);
-}
-
-/** Compile-time stand-ins; the engine builders supply the real values at run time. */
-const engine = expressionEngine();
 
 /** Dotted paths as written, with `(args)` and `<key>` suffixes stripped. */
 function declaredPaths(context: ExpressionContext): readonly string[] {
@@ -105,12 +86,6 @@ export function compileExpression(options: {
 	const context = EXPRESSION_CONTEXTS[options.site];
 	const memberFault = unknownMember(context, expression);
 	if (memberFault != null) return memberFault;
-	const definition: ComputationDefinition = {
-		id: `expression:${options.site}`,
-		tables: {},
-		exprs: { value: expression },
-		outputs: ['value']
-	};
 	// `produced.<code>` is an open map: the blank carries a zero row for every code the expression
 	// names, so the check runs against the shape the run will supply rather than refusing a legal
 	// mention of a scheme this expression cannot see declared anywhere.
@@ -125,9 +100,7 @@ export function compileExpression(options: {
 	};
 	let value: unknown;
 	try {
-		value = engine.runComputation<Record<string, unknown>, { value: unknown }>(definition, {
-			...blank
-		}).outputs.value;
+		value = programFor(expression)({ ...blank });
 	} catch (error) {
 		const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
 		return `The ${options.site} expression does not compile: ${message}`;
