@@ -67,122 +67,131 @@ tests), fixed allowances as a contract fact (derived from standing allowance row
 
 ## 2. Open gaps
 
-### 3.1 Contributions, levies and tax
+### 2.1 Contributions, levies and tax
 
-| # | Jur | Obligation (instrument) | Captured | Missing Status |
-| --- | --- | -------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- --- |
-| 1 | SG | CPF Additional Wage ceiling, 102,000 − OW (CPF Act) | year_to_date per scheme | `year.earned.<OW codes>` on the scheme site open |
-| 2 | SG | CPF rate band moves the month after the birthday | employee.age in years | birthday-month test (`employee.age_months`) open |
-| 3 | SG | SINDA covers citizens, PRs and EP holders; SHG opt-out | race, religion | `employee.pass_type`; an opt-out election open |
-| 4 | SG | SPR full-rate joint election (Tables 4/5) | residency status and since | election open |
-| 5 | SG | SPR residency with no recorded start (records) | field exists, value missing | records seed |
-| 6 | MY | SOCSO first entry ≥ 55; EIS 57-and-never-contributed | registration status | `facts.<scheme>.since` open |
-| 7 | MY | HRD Corp Malaysians-only base and headcount; 5–9 election | headcount, NOT_REGISTERED | headcount predicate, `base.entries[].when`; election is now open |
-| 8 | MY | EPF Parts A/C/E/F round the total, then split | rules | now: `up_to_unit(employee + employer)` in the rule seed |
-| 9 | MY | PCB disabled person RM6,000, disabled spouse RM5,000, zakat | — | elections on the PCB fact open |
-| 10 | MY | PCB non-resident 30% | rate_override on the fact | now seed |
-| 11 | MY | SKBBK phases 2–3 (2028, 2031) | — | future sealed versions seed |
-| 12 | PH | PhilHealth premium computed once then split | two independent 2.5% legs | now: `employer = round_cent(base × 0.05) − employee` seed |
-| 13 | PH | SSS Regular SS / MPF employer split (Circular 2024-006) | one employer figure | now: two schemes in one relief group seed |
-| 14 | PH | PhilHealth and Pag-IBIG on the contractual, unprorated salary | base from measured lines | `base.salary: CONTRACTUAL` open |
-| 15 | PH | Regional wage orders | `wages.by_region` empty | seed seed |
-| 16 | PH | Minimum-wage earners' premium pay exempt from WTAX (RA 9504) | — | base entry `when` over `terms.base_salary <= minimum_wage(region)` open |
-| 17 | PH | De minimis meal cap, 30% of the minimum wage | `annual_exempt` as a number | `annual_exempt` as an expression open |
-| 18 | VN | Contribution base is the contractual salary (art. 168) | measured | `base.salary: CONTRACTUAL` open |
-| 19 | VN | Union fee 2% on the employer's whole salary fund | per employment | `assessed_on: COMPANY` open |
-| 20 | VN | Union dues 1% from members | — | election `union_member` open |
-| 21 | VN | Reduced 0.3% occupational-accident rate for a qualifying employer | risk_class | `company.facts` open |
-| 22 | VN | Overtime premium PIT-exempt (pre-July versions) | base by line family | base entries by band label (`OVERTIME:premium`) open |
-| 23 | TW | Sub-minimum insured grades (part-time) | employment.type | now seed |
-| 24 | TW | 積欠工資墊償基金 0.025% on the establishment | — | `assessed_on: COMPANY` open |
-| 25 | TW | NHI 補充保費 2.11% on bonuses over 4× the insured salary | — | `year.earned.<bonus codes>` on the scheme site; COMPANY employer leg open |
-| 26 | TW | 勞退 voluntary employee contribution up to 6% | — | election `voluntary_rate` open |
-| 27 | TW | 薪資所得扣繳稅額表 election (table vs 5%) | — | election + a second ladder open |
-| 28 | TW | EI nationality and age boundary | rules | now seed |
-| 29 | TW | Insured-grade rounding table | — | table transcription seed |
-| 30 | ID | Non-JKP population, JKP eligibility (< 54, national), JP nationality | nationality; NOT_REGISTERED | partly now (`facts.JKP.registered`) open |
-| 31 | ID | BPJS Kesehatan floor is the district UMK | by_region incl. Kabupaten Bekasi | seed the company region by district seed |
-| 32 | ID | PPh 21 DTP for five labour-intensive sectors (PMK 105/2025) | — | `company.facts.sector` open |
-| 33 | ID | Employer JKK/JKM/Kesehatan premiums as taxable income | — | base entry naming another scheme's employer share open |
-| 34 | ID | PTKP for a married woman (TK/0 unless certified) | marital status | election `ptkp` open |
-| 35 | ID | JP ceiling revision 2027-03 | — | future version seed |
-| 36 | PH | Year-end annualised withholding (RR 11-2018 s.16) | year_to_date; last_of_year on the entry site only | `period.last_of_year` on the scheme site; the annual ladder; retires 10 keyed rows open |
-| 37 | ID | PPh 21 December reckoning (PMK 168/2023) | same | same; retires 13 keyed rows open |
-| 38 | VN | Year-end PIT finalisation | same | same open |
+| #   | Jur | Obligation (instrument)                                              | Captured                                          | Missing                                                                            | Status |
+| --- | --- | -------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- | ------ |
+| 1   | SG  | CPF Additional Wage ceiling, 102,000 − OW (CPF Act)                  | year_to_date per scheme                           | `year.earned.<OW codes>` on the scheme site                                        | open   |
+| 2   | SG  | CPF rate band moves the month after the birthday                     | employee.age in years                             | birthday-month test (`employee.age_months`)                                        | open   |
+| 3   | SG  | SINDA covers citizens, PRs and EP holders; SHG opt-out               | race, religion                                    | `employee.pass_type`; an opt-out election                                          | open   |
+| 4   | SG  | SPR full-rate joint election (Tables 4/5)                            | residency status and since                        | election                                                                           | open   |
+| 5   | SG  | SPR residency with no recorded start (records)                       | field exists, value missing                       | records                                                                            | seed   |
+| 6   | MY  | SOCSO first entry ≥ 55; EIS 57-and-never-contributed                 | registration status                               | `facts.<scheme>.since`                                                             | open   |
+| 7   | MY  | HRD Corp Malaysians-only base and headcount; 5–9 election            | headcount, NOT_REGISTERED                         | headcount predicate, `base.entries[].when`; election is now                        | open   |
+| 8   | MY  | EPF Parts A/C/E/F round the total, then split                        | rules                                             | now: `up_to_unit(employee + employer)` in the rule                                 | seed   |
+| 9   | MY  | PCB disabled person RM6,000, disabled spouse RM5,000, zakat          | —                                                 | elections on the PCB fact                                                          | open   |
+| 10  | MY  | PCB non-resident 30%                                                 | rate_override on the fact                         | now                                                                                | seed   |
+| 11  | MY  | SKBBK phases 2–3 (2028, 2031)                                        | —                                                 | future sealed versions                                                             | seed   |
+| 12  | PH  | PhilHealth premium computed once then split                          | two independent 2.5% legs                         | now: `employer = round_cent(base × 0.05) − employee`                               | seed   |
+| 13  | PH  | SSS Regular SS / MPF employer split (Circular 2024-006)              | one employer figure                               | now: two schemes in one relief group                                               | seed   |
+| 14  | PH  | PhilHealth and Pag-IBIG on the contractual, unprorated salary        | base from measured lines                          | `base.salary: CONTRACTUAL`                                                         | open   |
+| 15  | PH  | Regional wage orders                                                 | `wages.by_region` empty                           | seed                                                                               | seed   |
+| 16  | PH  | Minimum-wage earners' premium pay exempt from WTAX (RA 9504)         | —                                                 | base entry `when` over `terms.base_salary <= minimum_wage(region)`                 | open   |
+| 17  | PH  | De minimis meal cap, 30% of the minimum wage                         | `annual_exempt` as a number                       | `annual_exempt` as an expression                                                   | open   |
+| 18  | VN  | Contribution base is the contractual salary (art. 168)               | measured                                          | `base.salary: CONTRACTUAL`                                                         | open   |
+| 19  | VN  | Union fee 2% on the employer's whole salary fund                     | per employment                                    | `assessed_on: COMPANY`                                                             | open   |
+| 20  | VN  | Union dues 1% from members                                           | —                                                 | election `union_member`                                                            | open   |
+| 21  | VN  | Reduced 0.3% occupational-accident rate for a qualifying employer    | risk_class                                        | `company.facts`                                                                    | open   |
+| 22  | VN  | Overtime premium PIT-exempt (pre-July versions)                      | base by line family                               | base entries by band label (`OVERTIME:premium`)                                    | open   |
+| 23  | TW  | Sub-minimum insured grades (part-time)                               | employment.type                                   | now                                                                                | seed   |
+| 24  | TW  | 積欠工資墊償基金 0.025% on the establishment                         | —                                                 | `assessed_on: COMPANY`                                                             | open   |
+| 25  | TW  | NHI 補充保費 2.11% on bonuses over 4× the insured salary             | —                                                 | `year.earned.<bonus codes>` on the scheme site; COMPANY employer leg               | open   |
+| 26  | TW  | 勞退 voluntary employee contribution up to 6%                        | —                                                 | election `voluntary_rate`                                                          | open   |
+| 27  | TW  | 薪資所得扣繳稅額表 election (table vs 5%)                            | —                                                 | election + a second ladder                                                         | open   |
+| 28  | TW  | EI nationality and age boundary                                      | rules                                             | now                                                                                | seed   |
+| 29  | TW  | Insured-grade rounding table                                         | —                                                 | table transcription                                                                | seed   |
+| 30  | ID  | Non-JKP population, JKP eligibility (< 54, national), JP nationality | nationality; NOT_REGISTERED                       | partly now (`facts.JKP.registered`)                                                | open   |
+| 31  | ID  | BPJS Kesehatan floor is the district UMK                             | by_region incl. Kabupaten Bekasi                  | seed the company region by district                                                | seed   |
+| 32  | ID  | PPh 21 DTP for five labour-intensive sectors (PMK 105/2025)          | —                                                 | `company.facts.sector`                                                             | open   |
+| 33  | ID  | Employer JKK/JKM/Kesehatan premiums as taxable income                | —                                                 | base entry naming another scheme's employer share                                  | open   |
+| 34  | ID  | PTKP for a married woman (TK/0 unless certified)                     | marital status                                    | election `ptkp`                                                                    | open   |
+| 35  | ID  | JP ceiling revision 2027-03                                          | —                                                 | future version                                                                     | seed   |
+| 36  | PH  | Year-end annualised withholding (RR 11-2018 s.16)                    | year_to_date; last_of_year on the entry site only | `period.last_of_year` on the scheme site; the annual ladder; retires 10 keyed rows | open   |
+| 37  | ID  | PPh 21 December reckoning (PMK 168/2023)                             | same                                              | same; retires 13 keyed rows                                                        | open   |
+| 38  | VN  | Year-end PIT finalisation                                            | same                                              | same                                                                               | open   |
 
-### 3.2 Work
+### 2.2 Work
 
-| # | Jur | Obligation (instrument) | Captured | Missing Status |
-| --- | --- | ---------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------- --- |
-| 39 | PH | Compounded day types: 260% holiday-on-rest-day, 150% special | holiday.kind; rest day not exposed | `day.rest_day` in bands open |
-| 40 | PH | 100% of the daily wage for an unworked regular holiday (art. 94) | holidays; no unworked pay | a Work row the calendar raises open |
-| 41 | PH | Art. 82 coverage exclusions beyond MANAGERIAL | overtime_when | now seed |
-| 42 | PH | Art. 85 compensable short breaks | breaks[].when | now seed |
-| 43 | PH | 313 / 365 day factors by pay basis | working_days_per_week | `person.terms.pay_basis` in `ordinary_divisor_days` open |
-| 44 | PH | Apprentice / learner 75% of the minimum wage | wages.applies_when | `wage_floor` as an expression open |
-| 45 | MY | Normal hours declaration: 8 a day, 10 spread (s.60A) | limits | `work_rules.normal_hours` expression open |
-| 46 | MY | Rest-day pay for daily-, hourly-, piece-rated (s.60(3)) | — | `pay_basis` in bands open |
-| 47 | MY | Domestic employees outside ss.60–60F | — | `employment.type = DOMESTIC` open |
-| 48 | MY | s.59(1) rest day suspended during maternity and sick leave | weekly_rest_rule | `suspended_when` open |
-| 49 | SG | Part 4 second ceiling SGD 2,600 | overtime_when | now seed |
-| 50 | SG | Rest-day work at the employee's request pays half (s.37(2)) | — | `work_day.requested_by` fact open |
-| 51 | SG | 5-day / 9-hour week (s.38(1)) | — | `normal_hours` expression open |
-| 52 | SG | Public holiday on a non-working day | holiday_rest_precedence | a Work row the calendar raises open |
-| 53 | VN | Night overtime adds 20% of the day-type wage (art. 98(3)) | one night rate | night bands by day type open |
-| 54 | VN | 300-hour yearly ceiling for art. 107(3) sectors | limits | now: `limits[].when` seed |
-| 55 | VN | 45-minute night-shift break (art. 109(1)) | breaks | `breaks[].when` over `night_hours` open |
-| 56 | VN | Four-rest-days-a-month average | weekly_rest_rule | `average_over_days` open |
-| 57 | VN | Holiday on the weekly rest day at 300% | SUBSTITUTE precedence | `day.rest_day` + holiday.kind open |
-| 58 | TW | 54-hour monthly overtime variant on consent (§32(2)) | limits | `company.facts.overtime_consent` in `limits[].when` open |
-| 59 | TW | §35 break proviso, §84-1 責任制 | — | `company.facts` open |
-| 60 | ID | 75% overtime base where fixed allowances exist (PP 35/2021 art. 32(4)) | `terms.fixed_allowances` on the person site | the divisor reading `terms.monthly_wage` open |
-| 61 | ID | Art. 26(2) rest-day and holiday overtime carve-out | limits[].when | now seed |
+| #   | Jur | Obligation (instrument)                                                | Captured                                    | Missing                                             | Status |
+| --- | --- | ---------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------- | ------ |
+| 39  | PH  | Compounded day types: 260% holiday-on-rest-day, 150% special           | holiday.kind; rest day not exposed          | `day.rest_day` in bands                             | open   |
+| 40  | PH  | 100% of the daily wage for an unworked regular holiday (art. 94)       | holidays; no unworked pay                   | a Work row the calendar raises                      | open   |
+| 41  | PH  | Art. 82 coverage exclusions beyond MANAGERIAL                          | overtime_when                               | now                                                 | seed   |
+| 42  | PH  | Art. 85 compensable short breaks                                       | breaks[].when                               | now                                                 | seed   |
+| 43  | PH  | 313 / 365 day factors by pay basis                                     | working_days_per_week                       | `person.terms.pay_basis` in `ordinary_divisor_days` | open   |
+| 44  | PH  | Apprentice / learner 75% of the minimum wage                           | wages.applies_when                          | `wage_floor` as an expression                       | open   |
+| 45  | MY  | Normal hours declaration: 8 a day, 10 spread (s.60A)                   | limits                                      | `work_rules.normal_hours` expression                | open   |
+| 46  | MY  | Rest-day pay for daily-, hourly-, piece-rated (s.60(3))                | —                                           | `pay_basis` in bands                                | open   |
+| 47  | MY  | Domestic employees outside ss.60–60F                                   | —                                           | `employment.type = DOMESTIC`                        | open   |
+| 48  | MY  | s.59(1) rest day suspended during maternity and sick leave             | weekly_rest_rule                            | `suspended_when`                                    | open   |
+| 49  | SG  | Part 4 second ceiling SGD 2,600                                        | overtime_when                               | now                                                 | seed   |
+| 50  | SG  | Rest-day work at the employee's request pays half (s.37(2))            | —                                           | `work_day.requested_by` fact                        | open   |
+| 51  | SG  | 5-day / 9-hour week (s.38(1))                                          | —                                           | `normal_hours` expression                           | open   |
+| 52  | SG  | Public holiday on a non-working day                                    | holiday_rest_precedence                     | a Work row the calendar raises                      | open   |
+| 53  | VN  | Night overtime adds 20% of the day-type wage (art. 98(3))              | one night rate                              | night bands by day type                             | open   |
+| 54  | VN  | 300-hour yearly ceiling for art. 107(3) sectors                        | limits                                      | now: `limits[].when`                                | seed   |
+| 55  | VN  | 45-minute night-shift break (art. 109(1))                              | breaks                                      | `breaks[].when` over `night_hours`                  | open   |
+| 56  | VN  | Four-rest-days-a-month average                                         | weekly_rest_rule                            | `average_over_days`                                 | open   |
+| 57  | VN  | Holiday on the weekly rest day at 300%                                 | SUBSTITUTE precedence                       | `day.rest_day` + holiday.kind                       | open   |
+| 58  | TW  | 54-hour monthly overtime variant on consent (§32(2))                   | limits                                      | `company.facts.overtime_consent` in `limits[].when` | open   |
+| 59  | TW  | §35 break proviso, §84-1 責任制                                        | —                                           | `company.facts`                                     | open   |
+| 60  | ID  | 75% overtime base where fixed allowances exist (PP 35/2021 art. 32(4)) | `terms.fixed_allowances` on the person site | the divisor reading `terms.monthly_wage`            | open   |
+| 61  | ID  | Art. 26(2) rest-day and holiday overtime carve-out                     | limits[].when                               | now                                                 | seed   |
 
-### 3.3 Leave
+### 2.3 Leave
 
-| # | Jur | Obligation (instrument) | Captured | Missing Status |
-| --- | --- | -------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------- --- |
-| 62 | MY | Annual-leave fraction rule and 10% forfeiture (s.60E(1)) | — | `year.days_absent_unauthorised`, rounding in the band open |
-| 63 | MY | Maternity allowance conditions: 90 days in the 4 months before (s.37(2)) | — | BIRTH event, `pay_fraction` open |
-| 64 | MY | Paternity: five confinements in a lifetime, notice (s.60FA) | — | LIFETIME keyed to the child open |
-| 65 | PH | SIL exclusions: < 10 employees, field personnel | headcount | `company.facts`, headcount predicate open |
-| 66 | PH | Maternity: 60-day miscarriage case, SSS 3-in-12 contribution test | — | BIRTH event kind, `facts.SSS.since` open |
-| 67 | PH | Paternity: first four deliveries of the legitimate spouse | — | LIFETIME: child open |
-| 68 | PH | RA 9710: six months' aggregate service in the last twelve | service_months | ROLLING_MONTHS: 12 open |
-| 69 | PH | Solo-parent leave: forfeitable, ID card | solo_parent flag | ID evidence, forfeiture rule open |
-| 70 | SG | Hospitalisation leave includes the outpatient days | two quotas | `consumes` open |
-| 71 | SG | Child citizenship, EA maternity conditions, marriage window, lifetime caps, SPL pool, adoption age | children birthdates | child facts (citizenship), BIRTH/ADOPTION events, LIFETIME per child open |
-| 72 | SG | Retirement / re-employment ages; NDR 2026 childcare expansion | — | future versions seed |
-| 73 | VN | Seniority ladder past 30 years (art. 114) | bands to 30 | entitlement `days` as an expression open |
-| 74 | VN | Arduous cohorts, disabled worker | classification enum | classification values, `employee.disabled` open |
-| 75 | VN | Maternity and paternity variants (multiple births, surgery) | — | BIRTH facts open |
-| 76 | VN | Art. 115 personal leave per event | CALENDAR_YEAR | PER_EVENT keyed to an event open |
-| 77 | VN | Sick, maternity, paternity paid by social insurance | paid: false | `paid_by: FUND`, employer reimbursement line open |
-| 78 | VN | Sick-leave bands by insurance years, not service | service_months | `facts.SI.since_months` open |
-| 79 | VN | Elective National Day adjacent day | — | company holiday row (records) seed |
-| 80 | TW | Half-pay leave | paid boolean | `pay_fraction` open |
-| 81 | TW | Hospitalised sickness leave: one year within two | — | ROLLING_MONTHS: 24 open |
-| 82 | TW | Bereavement and miscarriage tiers by relationship | — | event attributes open |
-| 83 | TW | 家庭照顧假 counted inside 事假 | — | `consumes` open |
-| 84 | TW | Hourly leave (from 2026-01-01) | half-day units | `leave_event` in hours open |
-| 85 | TW | Encashment re-grading of the insured salary | — | `base.entries[].when` open |
-| 86 | ID | Sick-pay scale 100 / 75 / 50 / 25 by month (art. 93(3)) | paid boolean | `pay_fraction` over months open |
-| 87 | ID | KIA maternity and paternity extensions (UU 4/2024) | — | BIRTH facts open |
-| 88 | ID | Cuti bersama set against annual leave | — | `consumes` open |
+| #   | Jur | Obligation (instrument)                                                                            | Captured            | Missing                                                              | Status |
+| --- | --- | -------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------- | ------ |
+| 62  | MY  | Annual-leave fraction rule and 10% forfeiture (s.60E(1))                                           | —                   | `year.days_absent_unauthorised`, rounding in the band                | open   |
+| 63  | MY  | Maternity allowance conditions: 90 days in the 4 months before (s.37(2))                           | —                   | BIRTH event, `pay_fraction`                                          | open   |
+| 64  | MY  | Paternity: five confinements in a lifetime, notice (s.60FA)                                        | —                   | LIFETIME keyed to the child                                          | open   |
+| 65  | PH  | SIL exclusions: < 10 employees, field personnel                                                    | headcount           | `company.facts`, headcount predicate                                 | open   |
+| 66  | PH  | Maternity: 60-day miscarriage case, SSS 3-in-12 contribution test                                  | —                   | BIRTH event kind, `facts.SSS.since`                                  | open   |
+| 67  | PH  | Paternity: first four deliveries of the legitimate spouse                                          | —                   | LIFETIME: child                                                      | open   |
+| 68  | PH  | RA 9710: six months' aggregate service in the last twelve                                          | service_months      | ROLLING_MONTHS: 12                                                   | open   |
+| 69  | PH  | Solo-parent leave: forfeitable, ID card                                                            | solo_parent flag    | ID evidence, forfeiture rule                                         | open   |
+| 70  | SG  | Hospitalisation leave includes the outpatient days                                                 | two quotas          | `consumes`                                                           | open   |
+| 71  | SG  | Child citizenship, EA maternity conditions, marriage window, lifetime caps, SPL pool, adoption age | children birthdates | child facts (citizenship), BIRTH/ADOPTION events, LIFETIME per child | open   |
+| 72  | SG  | Retirement / re-employment ages; NDR 2026 childcare expansion                                      | —                   | future versions                                                      | seed   |
+| 73  | VN  | Seniority ladder past 30 years (art. 114)                                                          | bands to 30         | entitlement `days` as an expression                                  | open   |
+| 74  | VN  | Arduous cohorts, disabled worker                                                                   | classification enum | classification values, `employee.disabled`                           | open   |
+| 75  | VN  | Maternity and paternity variants (multiple births, surgery)                                        | —                   | BIRTH facts                                                          | open   |
+| 76  | VN  | Art. 115 personal leave per event                                                                  | CALENDAR_YEAR       | PER_EVENT keyed to an event                                          | open   |
+| 77  | VN  | Sick, maternity, paternity paid by social insurance                                                | paid: false         | `paid_by: FUND`, employer reimbursement line                         | open   |
+| 78  | VN  | Sick-leave bands by insurance years, not service                                                   | service_months      | `facts.SI.since_months`                                              | open   |
+| 79  | VN  | Elective National Day adjacent day                                                                 | —                   | company holiday row (records)                                        | seed   |
+| 80  | TW  | Half-pay leave                                                                                     | paid boolean        | `pay_fraction`                                                       | open   |
+| 81  | TW  | Hospitalised sickness leave: one year within two                                                   | —                   | ROLLING_MONTHS: 24                                                   | open   |
+| 82  | TW  | Bereavement and miscarriage tiers by relationship                                                  | —                   | event attributes                                                     | open   |
+| 83  | TW  | 家庭照顧假 counted inside 事假                                                                     | —                   | `consumes`                                                           | open   |
+| 84  | TW  | Hourly leave (from 2026-01-01)                                                                     | half-day units      | `leave_event` in hours                                               | open   |
+| 85  | TW  | Encashment re-grading of the insured salary                                                        | —                   | `base.entries[].when`                                                | open   |
+| 86  | ID  | Sick-pay scale 100 / 75 / 50 / 25 by month (art. 93(3))                                            | paid boolean        | `pay_fraction` over months                                           | open   |
+| 87  | ID  | KIA maternity and paternity extensions (UU 4/2024)                                                 | —                   | BIRTH facts                                                          | open   |
+| 88  | ID  | Cuti bersama set against annual leave                                                              | —                   | `consumes`                                                           | open   |
 
-### 3.4 Separation
+### 2.4 Separation
 
-| # | Jur | Obligation (instrument) | Captured | Missing Status |
-| --- | ---------- | ---------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------- --- |
-| 89 | MY | Termination and lay-off benefits: 10 / 15 / 20 days' wages per year (Regs 1980) | exit_reason, service_years | the row, bands over reason and service; EA coverage test open |
-| 90 | PH | Separation pay ½ or 1 month per year by cause (art. 298–299) | exit_reason, service_years | the row and bands open |
-| 91 | PH | Retirement pay 22.5 days per year, 60–65, 5 years' service (RA 7641) | age, service_years | the row; RETIREMENT reason open |
-| 92 | ID | Pesangon, UPMK, UPH multipliers by reason and service (PP 35/2021) | exit_reason, monthly_wage | the row and bands open |
-| 93 | VN | Severance and job-loss allowance net of UI-insured years (art. 46–47) | exit_reason, service_years | `facts.UI.since`; the row open |
-| 94 | TW | Severance ½ month per year, cap 6 (勞退條例 §12) | exit_reason, service_years | old/new scheme election; the row open |
-| 95 | all | Leave commutation at exit (PH art. 95, VN art. 113(3), TW LSA §38(4), MY s.60E(3)) | ENCASHMENT keyed by hand | `leave.balance(code)` on the entry site; the trigger open |
-| 96 | all | Notice pay in lieu | — | notice period on the terms; the row open |
-| 97 | PH, ID, VN | Final pay timing (30 days; 14 days) | exit_date | a due-date rule open |
+| #   | Jur        | Obligation (instrument)                                                                        | Captured                   | Missing                                                       | Status |
+| --- | ---------- | ---------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------- | ------ |
+| 89  | MY         | Termination and lay-off benefits: 10 / 15 / 20 days' wages per year (Regs 1980)                | exit_reason, service_years | the row, bands over reason and service; EA coverage test      | open   |
+| 90  | PH         | Separation pay ½ or 1 month per year by cause (art. 298–299)                                   | exit_reason, service_years | the row and bands                                             | open   |
+| 91  | PH         | Retirement pay 22.5 days per year, 60–65, 5 years' service (RA 7641)                           | age, service_years         | the row; RETIREMENT reason                                    | open   |
+| 92  | ID         | Pesangon, UPMK, UPH multipliers by reason and service (PP 35/2021)                             | exit_reason, monthly_wage  | the row and bands                                             | open   |
+| 93  | VN         | Severance and job-loss allowance net of UI-insured years (art. 46–47)                          | exit_reason, service_years | `facts.UI.since`; the row                                     | open   |
+| 94  | TW         | Severance ½ month per year, cap 6 (勞退條例 §12)                                               | exit_reason, service_years | old/new scheme election; the row                              | open   |
+| 95  | all        | Leave commutation at exit (PH art. 95, VN art. 113(3), TW LSA §38(4), MY s.60E(3))             | ENCASHMENT keyed by hand   | `leave.balance(code)` on the entry site; the trigger          | open   |
+| 96  | all        | Notice pay in lieu                                                                             | —                          | notice period on the terms; the row                           | open   |
+| 97  | PH, ID, VN | Final pay timing (30 days; 14 days)                                                            | exit_date                  | a due-date rule                                               | open   |
+| 98  | TW         | 綜合所得稅 annual assessment: the year's withholding reconciled against the annual scale       | year_to_date               | `period.last_of_year` on the scheme site; the annual ladder   | open   |
+| 99  | TW         | Tax residency by domicile and days present (所得稅法 §7(3)), approximated by citizenship today | residency_status           | `employee.tax_domicile`, `days_present_year`                  | open   |
+| 100 | TW         | LSA §32-1 補休: overtime converted to compensatory time off hour for hour                      | TOIL conversion exists     | now                                                           | seed   |
+| 101 | TW         | 勞基法 §56 舊制 pension reserve on the establishment                                           | —                          | employer obligation outside payroll; tracked for completeness | open   |
+| 102 | TW         | 116年 minimum wage and grade tables (審議會 2026-09-24)                                        | —                          | future sealed version                                         | seed   |
+| 103 | MY         | SKBBK local opt-out ("TIDAK MENYERTAI") from 2026-07-08                                        | NOT_REGISTERED fact        | now                                                           | seed   |
+| 104 | MY         | EPF age-75 ceiling on Part F                                                                   | rules on EPF, EPF_PR       | source question: Part F prints no age limit                   | seed   |
+| 105 | PH         | The ₱90,000 exclusion is one pool across 13th month and the `bonus` allowance                  | `annual_exempt` per entry  | a shared annual exemption group across entries                | open   |
+| 106 | SG         | SPR first- and second-year tables at 2027-01-01                                                | —                          | future sealed version                                         | seed   |
 
 ## 3. Register rows still keyed by hand
 
