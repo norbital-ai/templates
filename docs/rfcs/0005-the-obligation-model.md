@@ -186,23 +186,50 @@ so a write of an unknown key is refused and the UI can render the right form per
 | nihon `CP38`                                              | 2     | evidence (an authority's order)                                                                                                                                        |
 | nihon `MEDICAL_CLAIM*`                                    | 88    | claims; correct                                                                                                                                                        |
 
-## 6. Landing order
+## 6. Whose obligation it is: generate, guard, record
+
+An obligation is the engine's when its amount follows from facts the system already holds and from
+the law's own clock. It is the HR controller's when it follows from a decision or from evidence only
+a person can supply. The test: could two competent controllers, given the same records, lawfully
+arrive at different numbers? No → tier 1. Fixed once they decide → tier 2. The decision or the
+evidence itself → tier 3.
+
+| Tier       | The engine…                                                        | Covers                                                                                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 Generate | produces the line unprompted; a run that omits it is non-compliant | contributions and levies, withholding and its year-end reckoning, overtime, holiday, rest-day and night pay, hours limits and breaks, leave pricing once leave is recorded, calendar payments (13th month, THR), minimum-wage coverage |
+| 2 Guard    | checks a keyed line against the statutory floor; refuses or warns  | separation pay, retirement pay, notice in lieu, mandatory leave commutation at exit                                                                                                                                                    |
+| 3 Record   | holds a typed field, and refuses a rule whose fact nobody recorded | exit date and reason, elections, registrations and their dates, children and birth events, pass type, disability, union membership, company facts, claims, loans, authority orders, discretionary bonuses                              |
+
+Of the open residues, about 60 are tier 1, about 20 are tier 3 fields with a refusal when absent,
+and the separation block of §1.3 is tier 2: a floor check per lineage rather than generation.
+
+What the HR controller has to do for the engine to be compliant: record every exit with a date and
+a reason; key separation packages and ex gratia as payment entries; decide discretionary encashment
+and record mandatory commutation; maintain elections, registrations with dates, family events with
+evidence, pass type, disability and union membership; maintain company facts (sector, overtime
+consent, the levy's headcount population); key what is evidence by nature.
+
+## 6a. Landing order
 
 Each step is small because the shape already exists somewhere; each is a data-model change with a
 golden that states the law, never a per-country branch.
 
-1. **Separation** (landed 2026-09-16): `employments.exit_reason`; `catalogue_schedule.every`
+1. **Separation trigger** (landed 2026-09-16): `employments.exit_reason`; `catalogue_schedule.every`
    gains `SEPARATION`; `employment.exit_reason`, `service_years`, `terms.fixed_allowances` on the
    person site; ID `THR` as a PAYMENT SCHEDULE row and the KDIT rows converted; goldens for THR.
-2. **Separation payments seeded** per lineage from §1.3, each a PAYMENT row with `every: SEPARATION`
-   and bands over `employment.exit_reason` and `service_years`; leave commutation reads
-   `leave.balance`.
-3. **Year-end true-ups**: `period.last_of_year` and `year.*` on the scheme site; PH annualisation
-   and ID December rules as ladders; the opsph and KDIT prior-year rows retired.
-4. **Facts**: `elections` and `since` on the statutory fact, `companies.facts`, `employee_events`;
-   the version declares its keys; MY/TW/SG/ID election residues seeded.
-5. **Leave**: `pay_fraction`, `paid_by`, windows keyed to events, `consumes`.
-6. **Work day**: compounded day types, unworked holiday pay, `pay_basis`.
+2. **Year-end true-ups** (tier 1): `period.last_of_year` and `year.*` on the scheme site; PH
+   annualisation and ID December rules as ladders; the opsph and KDIT prior-year rows retired.
+3. **Contribution and work-day members** (tier 1): `since` and `assessed_on: COMPANY`, base entries
+   naming another scheme's share or a band label; `day.rest_day`, `holiday.kind`, `pay_basis`;
+   the PH compounded day types and unworked holiday pay, MY daily-rated rest-day pay, VN night
+   overtime by day type.
+4. **Leave pricing** (tier 1): `pay_fraction`, `paid_by`, windows keyed to recorded events,
+   `consumes`.
+5. **Fact fields** (tier 3): typed `elections` per version, `employee_events`, `companies.facts`;
+   the version declares its keys; a rule that reads an unrecorded fact refuses by name.
+6. **Separation floors** (tier 2): one floor rule per lineage from §1.3 over `exit_reason` and
+   `service_years`; a leaver's final run warns below the floor. The SEPARATION trigger can propose
+   the line as a draft entry where a company wants it raised.
 
 ## 7. What is deliberately not done
 
