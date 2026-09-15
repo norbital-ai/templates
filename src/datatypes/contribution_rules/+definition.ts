@@ -36,13 +36,13 @@ export const contributionRulesValueSchema = Schema.Array(contributionRuleSchema)
 			const employee = compileExpression({
 				expression: rule.employee,
 				site: 'scheme',
-				type: 'number'
+				type: 'money'
 			});
 			if (employee != null) return employee;
 			const employer = compileExpression({
 				expression: rule.employer,
 				site: 'scheme',
-				type: 'number'
+				type: 'money'
 			});
 			if (employer != null) return employer;
 		}

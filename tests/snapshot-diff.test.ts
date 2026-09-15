@@ -10,46 +10,30 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { diffCollection, diffSettingsRoot } from '../src/lib/snapshot_diff.ts';
 
-const rules = (contributionId: string) => ({
-	work_rules: {
-		engine_lines: {
-			salary: { statutory_opt_ins: [{ contribution_id: contributionId, effect: 'INCLUDE' }] }
-		}
-	}
-});
-const codeOf = (id: string): string | null =>
-	({ 'row-a': 'JHT', 'row-b': 'JHT', 'row-c': 'PPH21' })[id] ?? null;
+const rules = (divisor: string) => ({ work_rules: { ordinary_divisor_days: divisor } });
 
-test('a remapped opt-in on the same scheme code is not a change', () => {
-	const changes = diffSettingsRoot(rules('row-a'), rules('row-b'), codeOf);
-	assert.deepEqual(changes, []);
-});
-
-test('an opt-in that moved scheme reads as the two codes', () => {
-	const changes = diffSettingsRoot(rules('row-a'), rules('row-c'), codeOf);
+test('an unchanged root is no change; a moved divisor reads as its leaf', () => {
+	assert.deepEqual(diffSettingsRoot(rules('26.0'), rules('26.0')), []);
+	const changes = diffSettingsRoot(rules('26.0'), rules('30.0'));
 	assert.equal(changes.length, 1);
-	assert.equal(changes[0]?.previous, 'JHT');
-	assert.equal(changes[0]?.proposed, 'PPH21');
-	assert.match(changes[0]?.path ?? '', /contribution_id$/);
+	assert.equal(changes[0]?.previous, '26.0');
+	assert.equal(changes[0]?.proposed, '30.0');
+	assert.match(changes[0]?.path ?? '', /ordinary_divisor_days$/);
 });
 
-test('without a lookup the raw ids still diff', () => {
-	const changes = diffSettingsRoot(rules('row-a'), rules('row-b'));
-	assert.equal(changes.length, 1);
-});
-
-test('a catalogue band’s remapped opt-in is not a change either', () => {
-	const catalogue = (contributionId: string) => [
+test('a scheme whose base admits one more row reads as that entry', () => {
+	const scheme = (entries: readonly { family: string; code: string }[]) => [
 		{
-			code: 'ANNUAL_LEAVE',
-			bands: [{ when: '', amount: 1, statutory_opt_ins: [{ contribution_id: contributionId }] }]
+			code: 'EPF',
+			base: { salary: true, absence: true, overtime: false, night_premium: false, entries }
 		}
 	];
-	assert.equal(
-		diffCollection('leave_catalogue', catalogue('row-a'), catalogue('row-b'), codeOf),
-		null
+	assert.equal(diffCollection('statutory_contributions', scheme([]), scheme([])), null);
+	const moved = diffCollection(
+		'statutory_contributions',
+		scheme([]),
+		scheme([{ family: 'LEAVE', code: 'ANNUAL' }])
 	);
-	const moved = diffCollection('leave_catalogue', catalogue('row-a'), catalogue('row-c'), codeOf);
-	assert.equal(moved?.rows[0]?.changes[0]?.previous, 'JHT');
-	assert.equal(moved?.rows[0]?.changes[0]?.proposed, 'PPH21');
+	assert.equal(moved?.rows[0]?.code, 'EPF');
+	assert.match(moved?.rows[0]?.changes[0]?.path ?? '', /^base\.entries\[0\]/);
 });

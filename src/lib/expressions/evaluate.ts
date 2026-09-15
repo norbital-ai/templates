@@ -61,8 +61,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 		}
 	],
 	['map.under(int): int', childUnder],
-	['map.days(string): double', () => 0],
-	['map.balance(string): double', () => 0]
+	['map.days(string): double', () => 0]
 ];
 
 export function runtimeExpressionEngine(

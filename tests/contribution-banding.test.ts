@@ -88,6 +88,7 @@ const schemeOf = (
 			shared_cap_group: null,
 			project_relief_annually: false,
 			rules,
+			base: { salary: true, absence: true, overtime: true, night_premium: true, entries: [] },
 			...over
 		},
 		rules
@@ -310,7 +311,16 @@ test('the calculation trace keeps each base line and the reads a charge made', (
 	// The flow stored on the run is copied from the charge: base lines in accumulation order, then
 	// the produced reads the rule made. Nothing is recalculated for the reader.
 	const fund = schemeOf('FUND', [band('base >= 0.0', '100.0', '0.0')]);
-	const tax = schemeOf('TAX', [band('base >= 0.0', 'produced.FUND.employee', '0.0')]);
+	// TAX admits one payment row and no work line, so only the BONUS line feeds it.
+	const tax = schemeOf('TAX', [band('base >= 0.0', 'produced.FUND.employee', '0.0')], {
+		base: {
+			salary: false,
+			absence: false,
+			overtime: false,
+			night_premium: false,
+			entries: [{ family: 'PAYMENT', code: 'BONUS' }]
+		}
+	});
 	const priced = (
 		label: string,
 		contribution: ContributionConfig,
@@ -318,9 +328,13 @@ test('the calculation trace keeps each base line and the reads a charge made', (
 		amount: number
 	) =>
 		({
-			catalogueComponent: { code: label },
-			bucket: 'EARNING',
-			optIns: [{ contribution_id: contribution.row.id, effect }],
+			// A work line the base admits by flag (BASIC by `salary`, an unpaid day by `absence`),
+			// or a payment row it names in `entries`.
+			catalogueComponent:
+				label === 'BONUS'
+					? { code: label, family: 'PAYMENT' }
+					: { code: label, family: 'WORK', output: label === 'BASIC' ? 'salary' : 'absence' },
+			bucket: effect === 'REDUCE' ? 'ABSENCE' : 'EARNING',
 			label,
 			amount
 		}) as never;
@@ -329,7 +343,7 @@ test('the calculation trace keeps each base line and the reads a charge made', (
 		items: [
 			priced('BASIC', fund, 'INCLUDE', 1000),
 			priced('UNPAID_LEAVE', fund, 'REDUCE', 200),
-			priced('BASIC', tax, 'INCLUDE', 500)
+			priced('BONUS', tax, 'INCLUDE', 500)
 		],
 		employeeNumber: 'X'
 	});
@@ -349,7 +363,7 @@ test('the calculation trace keeps each base line and the reads a charge made', (
 		{ code: 'UNPAID_LEAVE', label: 'UNPAID_LEAVE', effect: 'REDUCE', amount: 200 }
 	]);
 	assert.deepEqual(charges[1]!.inputs, [
-		{ code: 'BASIC', label: 'BASIC', effect: 'INCLUDE', amount: 500 }
+		{ code: 'BONUS', label: 'BONUS', effect: 'INCLUDE', amount: 500 }
 	]);
 	assert.deepEqual(charges[1]!.reads, [{ code: 'FUND', employee_amount: 100, employer_amount: 0 }]);
 });

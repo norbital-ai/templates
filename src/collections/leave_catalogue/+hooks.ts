@@ -2,7 +2,6 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { compileEligibility } from '../payroll_runs/lib/eligibility.js';
 import { refuseUnlessDraftOnBoth } from '../../lib/settings_seal.js';
-import { optInsOfBands, refuseUnknownOptIns } from '../../lib/catalogue_rules.js';
 import type { Hooks } from './$types.js';
 
 /** Sealed catalogue revisions remain the historical rules used by entitlement queries. */
@@ -11,7 +10,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses any write once the jurisdiction settings version is sealed; compiles the eligibility expression and every entitlement band predicate against the person context, requires a citation on a statutory row, and refuses an opt-in naming a scheme the version does not carry.',
+					'Refuses any write once the jurisdiction settings version is sealed; compiles the eligibility expression and every entitlement band predicate against the person context',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
@@ -27,14 +26,6 @@ export default {
 							const bandProblem = compileEligibility(band.eligibility);
 							if (bandProblem != null) refuse(`Entitlement band: ${bandProblem}`);
 						}
-						yield* refuseUnknownOptIns(
-							api,
-							row.settings_id,
-							optInsOfBands(row.bands),
-							`Leave ${String(row.code ?? '')}`
-						);
-						if (row.is_statutory === true && String(row.authority ?? '').trim() === '')
-							refuse('A statutory leave cites the section of law it transcribes.');
 						return input;
 					})
 			}

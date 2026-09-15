@@ -26,8 +26,7 @@ function mixedFamilies() {
 			{
 				when: '',
 				amount: 'entry.amount',
-				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 500 },
-				statutory_opt_ins: []
+				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: '500.0' }
 			}
 		]
 	});

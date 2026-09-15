@@ -50,9 +50,9 @@ Different business inputs retain typed collections. A family interface does not 
 entry table. `lib/payroll/family.ts` carries the shared pay-item metadata: every catalogue row and
 every engine-priced Work line states its `destination` (`PAY`, `NET`, `EMPLOYER`, `DISPLAY`) and
 `direction` (`ADD`/`SUBTRACT`), which is the §9 table the settlement reads. Work is not a catalogue:
-its lines live on `settings.work_rules`, priced by `rates.bands` in declaration order. Leave
-declares the metadata of its distinct monetary outputs. Contribution consumes the statutory opt-ins
-the priced lines carry rather than inspecting the activity that produced them.
+its lines live on `settings.work_rules`, priced by `bands` in declaration order. Leave
+declares the metadata of its distinct monetary outputs. Contribution reads each scheme's own base
+declaration (RFC 0003 §1) rather than inspecting the activity that produced a line.
 
 ## Catalogue revisions and holidays
 
@@ -141,7 +141,7 @@ The family processing boundary has four responsibilities:
 | --------- | ------------------------------------------------- | ------------------------------------------------------------------ |
 | Prepare   | Resolve common run context and invoke preparation | Read approved domain facts, applicable revisions and earlier links |
 | Calculate | Invoke source calculations, then Contribution     | Produce results from prepared inputs without additional reads      |
-| Settle    | Apply shared arithmetic and recovery ordering     | Supply destination, direction, opt-ins and recoverable constraints |
+| Settle    | Apply shared arithmetic and recovery ordering     | Supply destination, direction and recoverable constraints          |
 | Commit    | Return the complete atomic graph                  | Supply causal entry links and frozen calculation evidence          |
 
 `lib/payroll/families.ts` is the static coordinator used by the payroll run core:
@@ -152,7 +152,7 @@ The family processing boundary has four responsibilities:
 | `prepareFamilyObligations`    | Prepare approved Leave and monetary obligations for contract selection             |
 | `prepareFamilyInputs`         | Prepare Work, Loan and Contribution facts and required historical Allowance inputs |
 | `prepareFamilyHistory`        | Resolve earlier links, recoveries and Contribution YTD                             |
-| `finalizeFamilyConfiguration` | Complete shared prepared configuration, statutory opt-ins and calendar evidence    |
+| `finalizeFamilyConfiguration` | Complete shared prepared configuration and calendar evidence                       |
 | `calculateFamilies`           | Coordinate source-family calculations in dependency order                          |
 | `calculateFamilyAssessments`  | Validate family inputs/results and assess grouped Contribution                     |
 
@@ -169,11 +169,11 @@ prepared facts without database writes. The run core does not query family-owned
 tables or dispatch their calculation definitions.
 
 The money catalogues (Claim, Allowance, Payment) share the catalogue spine — code, destination and
-direction, an ordered band table with each band's entitlement limit and statutory opt-ins, and the
+direction, an optional ordered band table with each band's amount and entitlement limit, and the
 `evidence` it demands — which `money.ts` lifts into the engine's `ENTRY` definition. Bands are read
-in order: the first band whose `when` holds for the entry supplies its amount, its ceiling and its
-opt-ins; no band holding means no entitlement, refused when the request is written and paid nothing
-by the run. A Loan catalogue row adds the two facts only a debt has: `loan_type` (`STAFF`,
+in order: the first band whose `when` holds for the entry supplies its amount and its ceiling; a
+row with no bands settles the entry's own amount; no band holding means no entitlement, refused
+when the request is written and paid nothing by the run. A Loan catalogue row adds the two facts only a debt has: `loan_type` (`STAFF`,
 `GOVERNMENT`, `FESTIVE`) and `minimum_repayment`. A `GOVERNMENT` advance is owed to the authority
 rather than the employer, so the final payslip does not settle it and the balance survives the
 contract; the other two end with the employment like any deduction. The Allowance row adds its
@@ -210,8 +210,7 @@ a claim, allowance or payment is a type, an amount, a date, a receipt when the t
 and whether it claws an earlier line back.
 
 The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
-Preparation gathers the input snapshot once. Validation refuses an opt-in naming a scheme the
-version does not levy, a rate band with no pay item, required facts, open clocks, missing calendar
+Preparation gathers the input snapshot once. Validation refuses a rate band with no pay item, required facts, open clocks, missing calendar
 coverage, invalid references and truncated reads. Nothing is persisted until all contracts have a
 valid result graph.
 
@@ -419,12 +418,12 @@ Where the applicable Work rules require the Malaysian statutory floor, the compa
 off-day work use the ordinary ladder. Rest and public-holiday work may combine a day-wage award
 within normal hours and an hourly award beyond them; a flat source multiplier cannot express that.
 
-`work_rules.rates.ordinary` is rows of `{when, unit, divisor}` read in order; the first whose `when`
-holds for the person picks the day or hour divisor, and a `WORKING_DAYS` divisor is the pay month's
-scheduled working days for them (`ordinary-rate.ts`, `resolveOrdinaryRate`). `work_rules` may state
-a `night_premium`: hours inside its window add `ordinary_add`% of the hourly rate on ordinary hours
-and `overtime_add`% on overtime hours, one `NIGHT_PREMIUM` line per work day, whose statutory
-opt-ins are stated on `work_rules.engine_lines.night`.
+`work_rules.ordinary_divisor_days` is one expression over the person returning days per month —
+`26.0`, `period.working_days` (the pay month's scheduled working days), or a ternary over the
+week shape — and an hour is that day over the contract's normal daily hours (`ordinary-rate.ts`,
+`ordinaryDivisorDays`). `work_rules` may state a `night_premium`: hours inside its window add
+`ordinary_add`% of the hourly rate on ordinary hours and `overtime_add`% on overtime hours, one
+`NIGHT_PREMIUM` line per work day, which a scheme charges through its own `night_premium` flag.
 
 Base salary is segmented at effective term boundaries and each segment uses the same full-month
 proration denominator — the month the period sits in, never the run period, so a semi-monthly
@@ -445,11 +444,12 @@ the ledger is the whole balance and a credit already spent refuses reversal.
 
 ### Overtime classes and the incentive funnel
 
-Work prices the day through `work_rules.rates.bands` in declaration order: each band states a `when`
-condition, the slice it `take`s and the money that slice `price`s, and one component is emitted per
-(line, label) pair — so `OVERTIME 1.0/1.5/2.0/3.0` and `INCENTIVE` each settle as their own payslip
-line. A band's `funnel` routes the portion of its slice above `limits.<key>` to the funnel line at
-the band's own award: a three-times holiday hour funnels as `INCENTIVE` at three times, not at a
+Work prices the day through `work_rules.bands` in declaration order: each band states a `when`
+condition, the hours it takes (`take_hours`) and the money that slice earns (`price_amount`, which
+reads the slice actually consumed as `hours`), and one component is emitted per (line, label) pair
+— so `OVERTIME 1.0/1.5/2.0/3.0` and `INCENTIVE` each settle as their own payslip line. A band's
+`funnel_above_hours` routes the portion of its slice above it to the `INCENTIVE` line at the band's
+own award: a three-times holiday hour funnels as `INCENTIVE` at three times, not at a
 fixed multiple. Jurisdictions without a funnel simply state their statutory ladder.
 
 Attendance overruns are priced and reported, never blocked and never discarded. Hours a schedule
@@ -459,37 +459,30 @@ projection breaches any `limits` or `breaks` entry is refused, the projection be
 own cycle of roster codes plus the explicit roster overlay (`src/lib/scheduling/work-limits.ts`) —
 while payroll only reports them.
 
-### Coverage
+### Overtime eligibility
 
-`work_rules.coverage` states a wage basis, ceiling and inclusivity, category basis and
-exemptions/exclusions; `work_rules.authority` is the citation for the whole regime, and refusals
-quote it. `coverage.ts` evaluates excluded categories first,
-then exemptions, then the wage test. It returns COVERED, NOT_COVERED or UNDETERMINED. Missing wage
-basis or mismatched currency cannot be replaced with a convenient salary field. A null coverage
-rule currently means universal coverage; it does not establish that the jurisdiction has been
-researched.
-
-Where the configured rule uses statutory wages, `deriveStatutoryWages` combines contracted basic
-wages with eligible cash-for-work entries. This comparison uses contractual figures, not prorated
-partial-month pay. Overtime itself is excluded from that input set. The current classification
-cannot distinguish commissions or subsistence allowance from other earnings, and formula amounts
-are unavailable at this stage. These are explicit limits of the coverage calculation.
+`work_rules.overtime_when` is one boolean over the person (RFC 0003 §2.2): who the overtime ladder
+covers, empty being everyone. It reads the employment terms' own enums (`employment.classification`,
+`terms.statutory_work_category`) and `terms.statutory_wages`, the Employment Act s.2 comparand that
+`statutory-wages.ts` derives from contracted basic wages plus eligible cash-for-work entries —
+contractual figures, not prorated partial-month pay, with overtime structurally outside the set. A
+person the predicate rejects earns no band line and no overtime night add. `work_rules.authority`
+is the citation for the whole regime. An empty predicate does not establish that the jurisdiction
+has been researched, and the classification cannot distinguish commissions or subsistence
+allowance from other earnings.
 
 ## Contribution calculation and audit
 
-Statutory effect is explicit opt-in per line. Each priced line — an engine-priced Work line, a
-catalogue band — carries `statutory_opt_ins[]` naming the scheme's `contribution_id` and its effect:
-
-| Opt-in    | Base effect                                               |
-| --------- | --------------------------------------------------------- |
-| `INCLUDE` | Include the amount                                        |
-| `REDUCE`  | Reduce the base by the applicable absence/recovery amount |
-| silence   | No effect on that scheme                                  |
-
-The run assembles each scheme's base from the signed sum of the lines that name it — `INCLUDE` adds,
-`REDUCE` subtracts — so a scheme with no opted-in lines charges nothing. A scheme carries no list of
-its lines and no `eligibility` field: ineligibility is a rule whose `when` nobody matches, and a
-person who matches no rule is charged nothing and appears on no payslip.
+Each scheme declares its own base (RFC 0003 §1). `statutory_contributions.base` states whether
+salary, absence, the overtime classes (the incentive funnel included) and the night premium are in
+it, and which catalogue rows of its version are (`entries`, by family and code). A line the
+declaration admits joins the base with the sign of its own landing — an earning, non-wage payment
+or employer cost adds, an absence or deduction subtracts — so a scheme whose base admits nothing
+charges nothing, and no line names a scheme. An unpaid leave day is an absence; a leave row in
+`entries` is its encashment. The write refuses an entry naming a row the version does not carry
+and the seal refuses a scheme that admits nothing. A scheme carries no `eligibility` field:
+ineligibility is a rule whose `when` nobody matches, and a person who matches no rule is charged
+nothing and appears on no payslip.
 
 A scheme's `rules` are `{when, employee, employer}` expressions over the `scheme` context (`base`,
 `assessment_period`, `period`, `year_to_date`, `projection`, `person`, `region`,
@@ -508,8 +501,8 @@ the company's region's wage in `jurisdiction_settings.wages.by_region`; a compan
 version names no wage for stops the run under such a scheme.
 
 A shared code survives catalogue revisions. Historical approved entries retain their source
-catalogue metadata; the current run resolves the applicable Contribution scheme and rules, and a
-pinned revision's opt-ins are aliased by scheme code to the version in force (`loadOptInAliases`).
+catalogue metadata; the current run resolves the applicable Contribution scheme and rules, and the
+version in force decides by code which settled lines are in each scheme's base.
 The payslip persists the base, employee and employer amounts and the governing rule's `when` as
 `rule_when`, so an amount-only reconciliation cannot hide an incorrect base. The run also keeps the
 whole derivation as `calculation_trace`: per payslip, each charged scheme's base lines, producer
@@ -600,7 +593,7 @@ work. The source assessment below distinguishes primary instruments from reprodu
 
 The earlier research did not establish the paid/unpaid status of the Malaysian leisure break or
 the Philippine ordinary meal period from the cited primary wording. The current `work_rules.breaks`
-states each obligation as a CEL `when`, the `owed_minutes` (a figure or an expression) and whether
+states each obligation as a `when` over the work day, the `owed_minutes` expression and whether
 it `counts_as_worked_time`; the shift's `break_minutes` is what the shift grants. Omitted or empty
 rules produce no assessment.
 

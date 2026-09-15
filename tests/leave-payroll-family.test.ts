@@ -21,21 +21,12 @@ const catalogue: PreparedLeavePayroll['catalogues'][number] = {
 	settings_id: id(2),
 	code: 'UNPAID',
 	name: 'Unpaid leave',
-	is_statutory: false,
 	eligibility: '',
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
 	evidence_after_days: null,
 	paid: false,
 	destination: 'PAY',
-	direction: 'SUBTRACT',
-	bands: [
-		{
-			when: '',
-			amount: 'entry.amount',
-			limit: null,
-			statutory_opt_ins: [{ contribution_id: id(9), effect: 'REDUCE' }]
-		}
-	]
+	direction: 'SUBTRACT'
 };
 function charge(date: string, days: 0.5 | 1 = 1): LeaveCharge {
 	return {
@@ -94,7 +85,6 @@ function prepared(
 		entries,
 		catalogues: [catalogue],
 		captures: [],
-		balances: {},
 		deductionEligibility: Object.fromEntries(
 			entries.flatMap((row) => row.charges.map((charge) => [`${row.id}/${charge.date}`, true]))
 		),
@@ -198,7 +188,7 @@ test('a paid reversal preserves the original amounts and contribution direction'
 		]
 	);
 	assert.equal(output.captures[0]!.gross_amount.value, 185.19);
-	assert.equal(output.adjustments[0]!.catalogueComponent.optIns[0]!.effect, 'REDUCE');
+	assert.ok(output.adjustments.every((row) => row.bucket === 'ABSENCE'));
 	assert.equal(output.captures[0]!.charges.length, 0);
 });
 

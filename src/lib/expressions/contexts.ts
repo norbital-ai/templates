@@ -13,7 +13,8 @@
  */
 
 export type ExpressionSite = 'person' | 'entry' | 'work_day' | 'scheme';
-export type ExpressionType = 'boolean' | 'number';
+/** What an expression returns: a boolean, or a number in the unit its field is named for. */
+export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days';
 
 type ContextField = {
 	readonly path: string;
@@ -47,7 +48,13 @@ const PERSON_FIELDS: readonly ContextField[] = [
 	{ path: 'employment.service_months', description: 'Completed months since the stint began' },
 	{ path: 'employment.service_start', description: 'First day of the stint' },
 	{ path: 'terms.basic_salary', description: 'Contracted monthly base salary' },
+	{
+		path: 'terms.statutory_wages',
+		description:
+			'Wages a statutory ceiling reads: basic plus every other cash payment for work in the run'
+	},
 	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
+	{ path: 'terms.statutory_work_category', description: 'Statutory work category of the terms' },
 	{ path: 'terms.department', description: 'Department' },
 	{ path: 'terms.payroll_group', description: 'Payroll group' },
 	{ path: 'terms.grade', description: 'Grade' },
@@ -55,7 +62,8 @@ const PERSON_FIELDS: readonly ContextField[] = [
 	{ path: 'terms.working_days_per_week', description: 'Roster-measured working week, days' },
 	{ path: 'children.count', description: 'Recorded children on the rule date' },
 	{ path: 'children.under(n)', description: 'Children under n completed years' },
-	{ path: 'company.region', description: 'Employing entity region' }
+	{ path: 'company.region', description: 'Employing entity region' },
+	{ path: 'period.working_days', description: 'Scheduled working days of the pay month' }
 ];
 
 const PERSON_BLANK = {
@@ -75,6 +83,8 @@ const PERSON_BLANK = {
 	terms: {
 		basic_salary: 0,
 		workman: false,
+		statutory_work_category: '',
+		statutory_wages: 0,
 		department: '',
 		payroll_group: '',
 		grade: '',
@@ -82,7 +92,8 @@ const PERSON_BLANK = {
 		working_days_per_week: 0
 	},
 	children: { count: 0, ages: [] },
-	company: { region: '' }
+	company: { region: '' },
+	period: { working_days: 22 }
 };
 
 const personFields = (prefix: string): ContextField[] =>
@@ -138,8 +149,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'period.end', description: 'Pay period end' },
 		{ path: 'period.index', description: 'Which instalment of the month this period is' },
 		{ path: 'period.instalments', description: 'Instalments the month is paid in' },
-		{ path: 'leave.days(code)', description: 'Charged days of one leave code in the window' },
-		{ path: 'leave.balance(code)', description: 'Available days of one leave code' }
+		{ path: 'leave.days(code)', description: 'Charged days of one leave code in the window' }
 	],
 	bare: [],
 	open: ['limits'],
@@ -184,13 +194,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		{ path: 'consecutive_hours', description: 'Longest unbroken work run in the day' },
 		{ path: 'continuous_attendance', description: 'Work that must be carried on continuously' },
 		{ path: 'roster_code', description: 'The roster code that planned the day' },
-		{ path: 'paid_minutes', description: 'Paid minutes of the planned shift' },
 		{ path: 'break_minutes', description: 'Break the shift grants' },
-		{ path: 'start_time', description: 'Shift start, HH:MM' },
-		{ path: 'end_time', description: 'Shift end, HH:MM' },
 		{ path: 'ordinary_hour', description: 'Ordinary hour rate' },
 		{ path: 'ordinary_day', description: 'Ordinary day rate' },
 		{ path: 'day_wage', description: 'Ordinary day wage' },
+		{ path: 'hours', description: 'The hours this band consumed, for its price' },
 		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
 		{ path: 'holiday.kind', description: 'PUBLIC | SPECIAL | SUBSTITUTE, or empty' },
 		{ path: 'holiday.name', description: 'Published holiday name, or empty' }
@@ -208,13 +216,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'consecutive_hours',
 		'continuous_attendance',
 		'roster_code',
-		'paid_minutes',
 		'break_minutes',
-		'start_time',
-		'end_time',
 		'ordinary_hour',
 		'ordinary_day',
-		'day_wage'
+		'day_wage',
+		'hours'
 	],
 	open: ['limits'],
 	blank: {
@@ -231,13 +237,11 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		consecutive_hours: 4,
 		continuous_attendance: false,
 		roster_code: 'AM0830',
-		paid_minutes: 540,
 		break_minutes: 60,
-		start_time: '08:30',
-		end_time: '18:30',
 		ordinary_hour: 25.5,
 		ordinary_day: 204,
 		day_wage: 204,
+		hours: 4,
 		limits: structuredClone(LIMITS_BLANK),
 		holiday: { kind: '', name: '' }
 	}
@@ -263,6 +267,11 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		{ path: 'projection.future_equivalents', description: 'Future payslips of this size' },
 		{ path: 'region', description: 'The employing entity region' },
 		{ path: 'minimum_wage(region)', description: 'The version minimum wage for a region' },
+		{
+			path: 'wage_floor',
+			description:
+				'The company region minimum wage where the wages order covers this person, else 0'
+		},
 		{ path: 'headcount', description: 'Active employments in the entity' },
 		{ path: 'age', description: 'Completed years on the period end' },
 		{ path: 'risk_class', description: 'The employment risk class, or empty' },
@@ -281,6 +290,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		'code',
 		'assessment_period',
 		'region',
+		'wage_floor',
 		'headcount',
 		'age',
 		'risk_class',
@@ -290,6 +300,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	blank: {
 		person: personBlank(),
 		base: 0,
+		wage_floor: 0,
 		code: '',
 		assessment_period: 'PAY_PERIOD',
 		period: { key: '', index: 1, instalments: 1 },

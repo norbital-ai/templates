@@ -151,7 +151,7 @@ test('an open clock is refused rather than priced as if it had stopped', () => {
 
 const breakRule = (overrides) => ({
 	when: 'consecutive_hours > 5.0',
-	owed_minutes: 30,
+	owed_minutes: '30.0',
 	counts_as_worked_time: null,
 	...overrides
 });

@@ -128,9 +128,13 @@ import { accumulateBases } from '../../collections/payroll_runs/lib/accumulate.j
 import { orderSchemes } from '../../collections/payroll_runs/lib/mentions.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
-import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
+import {
+	isEligible,
+	personContext,
+	type PersonContext
+} from '../../collections/payroll_runs/lib/eligibility.js';
+import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import { serviceStart } from '../employment-contract.js';
-import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
 import type { MeasuredEmployment } from './family.js';
 export function prepareContributionCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -147,63 +151,6 @@ export function prepareContributionCatalogue(options: {
 	});
 }
 
-/**
- * Opt-ins name scheme rows within one settings version, and a request, loan or leave entry may pin
- * a catalogue revision sealed under an earlier version. The run levies the version in force, so
- * each foreign id is resolved through its scheme's code to that version's row (RFC 0002 §6): a
- * charge the pinned revision declared still lands on the scheme the run actually levies, rather
- * than silently feeding nothing. An id whose code the version does not carry is left alone, and
- * the run's `OPT_IN_UNKNOWN` guard names it.
- */
-export type OptInAliases = ReadonlyMap<string, string>;
-
-export function loadOptInAliases(options: {
-	readonly api: {
-		readonly db: {
-			readonly statutory_contributions: {
-				readonly findMany: PayrollReadApi['db']['statutory_contributions']['findMany'];
-			};
-		};
-		readonly reads?: ReadLog;
-	};
-	readonly configuration: Pick<Configuration, 'jurisdiction' | 'contributions'>;
-	readonly ids: readonly string[];
-}): Effect.Effect<OptInAliases> {
-	const currentIdByCode = new Map(
-		options.configuration.contributions.map((entry) => [entry.row.code, entry.row.id])
-	);
-	const currentIds = new Set(currentIdByCode.values());
-	const foreign = [...new Set(options.ids)].filter((id) => !currentIds.has(id));
-	if (foreign.length === 0) return Effect.succeed(new Map());
-	return Effect.map(
-		options.api.db.statutory_contributions.findMany({
-			where: { id: { in: foreign }, approval_id: { isNull: true } },
-			columns: { id: true, code: true },
-			limit: PAGE_LIMIT
-		}),
-		(rows) => {
-			options.api.reads?.assertComplete(rows, 'pinned scheme revisions');
-			const aliases = new Map<string, string>();
-			for (const row of rows) {
-				const current = currentIdByCode.get(row.code);
-				if (current != null && current !== row.id) aliases.set(row.id, current);
-			}
-			return aliases;
-		}
-	);
-}
-
-/** The same opt-ins with every pinned-revision id replaced by the run's own scheme row. */
-export function aliasedOptIns(
-	optIns: readonly StatutoryOptIn[],
-	aliases: OptInAliases
-): readonly StatutoryOptIn[] {
-	if (aliases.size === 0) return optIns;
-	return optIns.map((optIn) => {
-		const current = aliases.get(optIn.contribution_id);
-		return current == null ? optIn : { ...optIn, contribution_id: current };
-	});
-}
 export function prepareContributionInputs(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly employeeIds: readonly string[];
@@ -247,6 +194,59 @@ export function contributionYearToDate(options: {
 	return totals;
 }
 
+/** Whether the version's wages order covers this person (`wages.applies_when`; empty is everyone). */
+export function minimumWageCovers(
+	configuration: Pick<Configuration, 'jurisdiction'>,
+	person: PersonContext
+): boolean {
+	return isEligible(configuration.jurisdiction.wages?.applies_when ?? '', person);
+}
+
+/**
+ * A covered person contracted below the region's minimum wage. A warning, not a refusal: the
+ * payroll still pays what the contract says, and the operator reads who is underpaid against
+ * which order before paying.
+ */
+export function minimumWageIssues(options: {
+	readonly configuration: Configuration;
+	readonly bundles: readonly EmploymentBundle[];
+	readonly asOf: string;
+}): RunIssue[] {
+	const { configuration, asOf } = options;
+	const wage = regionalMinimumWage(configuration);
+	if (wage == null) return [];
+	const issues: RunIssue[] = [];
+	for (const bundle of options.bundles) {
+		if (bundle.employedDays == null || bundle.deferral != null) continue;
+		const term =
+			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
+			bundle.terms.at(-1);
+		if (term == null) continue;
+		const basic = decodeNumber((term.base_salary as { value?: unknown } | null)?.value ?? 0);
+		if (!(basic < wage)) continue;
+		const person = personContext({
+			employee: bundle.employee,
+			employment: { service_start: serviceStart(bundle.employment) },
+			terms: term,
+			children: bundle.children,
+			company: configuration.company,
+			asOf
+		});
+		if (!minimumWageCovers(configuration, person)) continue;
+		issues.push({
+			code: 'MINIMUM_WAGE_BELOW',
+			severity: 'WARNING',
+			message:
+				`${bundle.employment.employee_number} is contracted at ${basic} a month, below the ` +
+				`${configuration.company.region ?? ''} minimum wage of ${wage} the version states. ` +
+				'The run pays the contract; raise the terms or record why the wage stands.',
+			collection: 'employment_terms',
+			recordId: term.id
+		});
+	}
+	return issues;
+}
+
 /** The company region's minimum wage under the version in force, or null where none is stated. */
 function regionalMinimumWage(
 	configuration: Pick<Configuration, 'company' | 'jurisdiction'>
@@ -276,6 +276,17 @@ export function prepareContributionAssessment(options: {
 			rate_override: fact.status.kind === 'REGISTERED' ? fact.status.rate_override : null
 		});
 	}
+	const person = personContext({
+		employee: bundle.employee,
+		employment: { service_start: serviceStart(bundle.employment) },
+		terms:
+			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
+			bundle.terms.at(-1) ??
+			null,
+		children: bundle.children,
+		company: configuration.company,
+		asOf
+	});
 	return {
 		employment: bundle.employment,
 		window: bundle.window,
@@ -296,18 +307,9 @@ export function prepareContributionAssessment(options: {
 			headcount,
 			riskClass: configuration.company.risk_class,
 			projection,
-			person: personContext({
-				employee: bundle.employee,
-				employment: { service_start: serviceStart(bundle.employment) },
-				terms:
-					bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
-					bundle.terms.at(-1) ??
-					null,
-				children: bundle.children,
-				company: configuration.company,
-				asOf
-			}),
+			person,
 			minimumWage: regionalMinimumWage(configuration),
+			minimumWageApplies: minimumWageCovers(configuration, person),
 			// How this period sits in the month: a scheme assessed over the MONTH is charged once,
 			// in the period that owns the month's start, on the month's wage. The cadence is the
 			// employment's own, not the company's: a MONTHLY employment inside a SEMI_MONTHLY company

@@ -75,15 +75,9 @@ const SIX_DAY_WEEK = {
 
 const WORK = {
 	proration: { by: 'CALENDAR_DAYS' },
-	engine_lines: {
-		salary: { statutory_opt_ins: [] },
-		absence: { statutory_opt_ins: [] },
-		night: { statutory_opt_ins: [] }
-	},
-	rates: {
-		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
-		bands: []
-	},
+	ordinary_divisor_days: '26.0',
+	overtime_when: '',
+	bands: [],
 	limits: [],
 	breaks: [],
 	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
@@ -119,7 +113,6 @@ const component = (overrides) => ({
 	direction: 'ADD',
 	eligibility: '',
 	bands: [],
-	optIns: [],
 	...overrides
 });
 
@@ -146,7 +139,7 @@ const TRANSPORT = component({
 	id: '00000000-0000-4000-8000-00000000p008',
 	family: 'ALLOWANCE',
 	code: 'TRANSPORT',
-	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
+	bands: [{ when: '', amount: 'entry.amount', limit: null }],
 	definition: { source: 'ENTRY' }
 });
 
@@ -170,51 +163,39 @@ const COMPONENT_CATALOGUE = [BASIC, TRANSPORT];
 const OVERTIME_BANDS = [
 	{
 		label: '1.5',
-		line: 'OVERTIME',
 		when: 'day_type == "ORDINARY"',
-		take: 'hours_beyond_normal',
-		price: 'hours_beyond_normal * ordinary_hour * 1.5',
-		statutory_opt_ins: []
+		take_hours: 'hours_beyond_normal',
+		price_amount: 'hours_beyond_normal * ordinary_hour * 1.5'
 	},
 	{
 		label: '1.0',
-		line: 'OVERTIME',
 		when: 'day_type == "REST_DAY" && hours_from_start_fraction < 0.5',
-		take: 'normal_hours',
-		price: 'day_wage * 0.5',
-		statutory_opt_ins: []
+		take_hours: 'normal_hours',
+		price_amount: 'day_wage * 0.5'
 	},
 	{
 		label: '1.0',
-		line: 'OVERTIME',
 		when: 'day_type == "REST_DAY" && hours_from_start_fraction >= 0.5',
-		take: 'normal_hours',
-		price: 'day_wage * 1.0',
-		statutory_opt_ins: []
+		take_hours: 'normal_hours',
+		price_amount: 'day_wage * 1.0'
 	},
 	{
 		label: '2.0',
-		line: 'OVERTIME',
 		when: 'day_type == "REST_DAY"',
-		take: 'hours_beyond_normal',
-		price: 'hours_beyond_normal * ordinary_hour * 2.0',
-		statutory_opt_ins: []
+		take_hours: 'hours_beyond_normal',
+		price_amount: 'hours_beyond_normal * ordinary_hour * 2.0'
 	},
 	{
 		label: '2.0',
-		line: 'OVERTIME',
 		when: 'day_type == "PUBLIC_HOLIDAY"',
-		take: 'normal_hours',
-		price: 'day_wage * 2.0',
-		statutory_opt_ins: []
+		take_hours: 'normal_hours',
+		price_amount: 'day_wage * 2.0'
 	},
 	{
 		label: '3.0',
-		line: 'OVERTIME',
 		when: 'day_type == "PUBLIC_HOLIDAY"',
-		take: 'hours_beyond_normal',
-		price: 'hours_beyond_normal * ordinary_hour * 3.0',
-		statutory_opt_ins: []
+		take_hours: 'hours_beyond_normal',
+		price_amount: 'hours_beyond_normal * ordinary_hour * 3.0'
 	}
 ];
 
@@ -223,7 +204,7 @@ function workRules(bands = []) {
 		...WORK,
 		settings_id: 'jur-my',
 		jurisdiction_code: 'MY',
-		rates: { ...WORK.rates, bands }
+		bands
 	};
 }
 
@@ -232,8 +213,7 @@ function configuration(overrides = {}) {
 	const catalogueComponents = overrides.catalogueComponents ?? COMPONENT_CATALOGUE;
 	const work = {
 		...workRules(bands),
-		...overrides.work,
-		rates: { ...workRules(bands).rates, ...(overrides.work?.rates ?? {}) }
+		...overrides.work
 	};
 	return {
 		company: COMPANY,
@@ -319,7 +299,7 @@ function bundle(overrides = {}) {
 		statutoryFacts: [],
 		loans: [],
 		loanRepayments: [],
-		leave: { entries: [], catalogues: [], captures: [], balances: {}, deductionEligibility: {} },
+		leave: { entries: [], catalogues: [], captures: [], deductionEligibility: {} },
 		workDays: [],
 		serviceMonths: 57,
 		age: 34,
@@ -614,11 +594,9 @@ test('a SPECIAL holiday is its own day type, priced on the SPECIAL_HOLIDAY ladde
 		...OVERTIME_BANDS,
 		{
 			label: '1.3',
-			line: 'OVERTIME',
 			when: 'day_type == "SPECIAL_HOLIDAY"',
-			take: 'overtime_hours',
-			price: 'overtime_hours * ordinary_hour * 1.3',
-			statutory_opt_ins: []
+			take_hours: 'overtime_hours',
+			price_amount: 'overtime_hours * ordinary_hour * 1.3'
 		}
 	];
 	const worked = measure(

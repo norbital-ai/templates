@@ -58,12 +58,11 @@ function facts(): LeaveContext {
 				settings_id: id(6),
 				code: 'ANNUAL',
 				name: 'Annual leave',
-				is_statutory: false,
 				paid: true,
 				evidence: 'NONE',
 				destination: 'PAY',
 				direction: 'ADD',
-				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				eligibility: '',
 				entitlement: {
 					availability: 'UPFRONT',

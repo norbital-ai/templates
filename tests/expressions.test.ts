@@ -16,18 +16,18 @@ test('every site compiles expressions over its own context', () => {
 	const cases = [
 		['person', 'employment.service_months >= 12 && company.region == "I"', 'boolean'],
 		['person', 'children.under(7) >= 1', 'boolean'],
-		['entry', 'entry.days * rates.ordinary_day', 'number'],
+		['entry', 'entry.days * rates.ordinary_day', 'money'],
 		['entry', 'leave.days("ANNUAL_LEAVE") > 0 && entry.captures.remaining > 0', 'boolean'],
-		['entry', 'entry.amount * period.instalments', 'number'],
+		['entry', 'entry.amount * period.instalments', 'money'],
 		['work_day', 'total_work_hours > limits.daily_total', 'boolean'],
 		[
 			'work_day',
 			'(total_work_hours > limits.daily_total ? total_work_hours - limits.daily_total : 0.0) * ordinary_hour',
-			'number'
+			'money'
 		],
 		['work_day', 'day_type == "PUBLIC_HOLIDAY" && break_minutes < 30', 'boolean'],
 		['scheme', 'base > 5000 && age >= 60', 'boolean'],
-		['scheme', 'year_to_date.employee + produced.EPF.employee', 'number'],
+		['scheme', 'year_to_date.employee + produced.EPF.employee', 'money'],
 		['scheme', 'minimum_wage(region) > 0 && headcount > 10', 'boolean']
 	] as const;
 	for (const [site, expression, type] of cases)

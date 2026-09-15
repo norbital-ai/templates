@@ -362,12 +362,9 @@ export function assertPayRequestAdmissible(
 						const limit = band.limit as {
 							readonly period: 'CALENDAR_YEAR' | 'MONTH' | 'LIFETIME' | 'PER_EVENT';
 							readonly on_exceed: 'BLOCK' | 'ALLOW';
-							readonly amount: number | string;
+							readonly amount: string;
 						};
-						const limitAmount =
-							typeof limit.amount === 'number'
-								? limit.amount
-								: evaluateNumber(expressionEngine, limit.amount, context);
+						const limitAmount = evaluateNumber(expressionEngine, limit.amount, context);
 						const rows: LimitSibling[] = siblings.flatMap((row) => {
 							const prior = captured.get(String(row.id)) ?? [];
 							const common = {

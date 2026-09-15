@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
-import { settingsVersions } from './fixtures/statutory-world.ts';
+import { settingsVersions, contributionSchemes } from './fixtures/statutory-world.ts';
 
 const person = personContext({
 	employee: null,
@@ -155,13 +155,26 @@ test('Vietnam — a night overtime hour carries the 30% night premium and the 20
 	}
 });
 
+test('Philippines — night work on an overtime hour compounds the differential', () => {
+	// DOLE Handbook ch.5 §D: an overtime hour at night is 1.25 × 1.10 of the hourly rate, so the
+	// night add on top of the 125% overtime line is 12.5% of the ordinary hour; 10% on ordinary hours.
+	for (const version of settingsVersions('PH')) {
+		assert.deepEqual(version.work_rules.night_premium, {
+			from: '22:00',
+			to: '06:00',
+			ordinary_add: 10,
+			overtime_add: 12.5
+		});
+	}
+});
+
 test('Vietnam — from 1 July 2026 the overtime wage is outside personal income tax', () => {
 	// Law 109/2025/QH15 art.4(8): "Tiền lương làm việc ban đêm, làm thêm giờ" is exempt income —
 	// the whole overtime wage, where Law 04/2007 exempted only the part above the ordinary rate.
 	const [, before, after] = settingsVersions('VN');
-	const overtime = (version) =>
-		version.work_rules.rates.bands.filter((band) => band.line === 'OVERTIME');
+	const pit = (version) =>
+		contributionSchemes('VN').find((row) => row.settings_id === version.id && row.code === 'PIT');
 	assert.equal(after.effective_range.start.slice(0, 10), '2026-07-01');
-	for (const band of overtime(after)) assert.deepEqual(band.statutory_opt_ins, []);
-	for (const band of overtime(before)) assert.ok(band.statutory_opt_ins.length > 0);
+	assert.equal(pit(after).base.overtime, false);
+	assert.equal(pit(before).base.overtime, true);
 });

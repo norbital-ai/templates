@@ -4,7 +4,6 @@ import { sha256Text } from '@norbital-ai/std/reckon';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
 import { contributionRuleSchema } from '../datatypes/contribution_rules/+definition.js';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
-import { statutoryOptInValueSchema } from '../datatypes/work_rules/+definition.js';
 import { stableJson } from './jurisdiction_settings.js';
 
 /** One research URL that could not be read, with the page reader's reason. */
@@ -17,9 +16,9 @@ type UnreachableSource = Schema.Schema.Type<typeof unreachableSourceSchema>;
 
 /** One row the drift check found changed, and the page it stands on. */
 const statutoryProposalChangeSchema = Schema.Struct({
-	collection: Schema.Literals(['statutory_contributions', 'leave_catalogue', 'pay_component']),
+	collection: Schema.Literals(['statutory_contributions', 'leave_catalogue']),
 	code: Schema.NonEmptyString,
-	field: Schema.Literals(['rules', 'entitlement', 'statutory_opt_ins']),
+	field: Schema.Literals(['rules', 'entitlement']),
 	previous: Schema.Unknown,
 	proposed: Schema.Unknown,
 	source_url: Schema.NonEmptyString,
@@ -48,8 +47,7 @@ export type StatutoryProposal = Schema.Schema.Type<typeof statutoryProposalValue
  * Everything here is either pure or a bounded page read through the runtime's own reader. The
  * model is asked one question per lineage, with `read_official_page` as its only tool, and the
  * answer is decoded to `StatutoryFindingsSchema`: the official rule table of each scheme, the
- * official entitlement of each leave, the official opt-ins of each component, each
- * with the page and quote it stands on. `diffStatutoryFindings` then decides what changed; the
+ * official entitlement of each leave, each with the page and quote it stands on. `diffStatutoryFindings` then decides what changed; the
  * model never does.
  */
 
@@ -224,13 +222,6 @@ export const StatutoryFindingsSchema = Schema.Struct({
 			...evidence
 		})
 	),
-	pay_component: Schema.Array(
-		Schema.Struct({
-			code: Schema.NonEmptyString,
-			statutory_opt_ins: Schema.Array(statutoryOptInValueSchema),
-			...evidence
-		})
-	),
 	/** Observations that are not a row: a notice of a future change, a page that had no table. */
 	notes: Schema.Array(Schema.String.check(Schema.isMaxLength(600)))
 });
@@ -249,7 +240,6 @@ export type SealedStatutoryFacts = Readonly<{
 	leave_catalogue: ReadonlyArray<
 		Readonly<{ code: string; name: string; authority: string | null; entitlement: unknown }>
 	>;
-	pay_component: ReadonlyArray<Readonly<{ code: string; statutory_opt_ins: unknown }>>;
 }>;
 
 /** The condition a rule governs under is its identity; the money it awards is the change. */
@@ -353,26 +343,6 @@ export function diffStatutoryFindings(
 		if (page == null) continue;
 		changes.push(
 			change('leave_catalogue', 'entitlement', finding, page, type.entitlement, finding.entitlement)
-		);
-	}
-	for (const finding of findings.pay_component) {
-		const component = sealed.pay_component.find((row) => row.code === finding.code);
-		if (component == null) {
-			notes.push(`Component ${finding.code}: not a statutory component of this version`);
-			continue;
-		}
-		if (stableJson(component.statutory_opt_ins) === stableJson(finding.statutory_opt_ins)) continue;
-		const page = verified(finding, 'Component');
-		if (page == null) continue;
-		changes.push(
-			change(
-				'pay_component',
-				'statutory_opt_ins',
-				finding,
-				page,
-				component.statutory_opt_ins,
-				finding.statutory_opt_ins
-			)
 		);
 	}
 	return { changes, notes: [...notes, ...findings.notes] };

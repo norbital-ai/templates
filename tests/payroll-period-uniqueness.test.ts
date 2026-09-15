@@ -27,6 +27,21 @@ test('the next regular period may stand on an unsettled one, and cannot backfill
 	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2026-01-1' }], '2026-01-2'));
 });
 
+test('a skipped period is refused: the run must stand on the one before it', () => {
+	// The first run of a company may start anywhere; after that the lineage has no holes.
+	assert.doesNotThrow(() => assertPayrollPeriodAvailable([], '2026-04'));
+	assert.throws(
+		() => assertPayrollPeriodAvailable([{ period: '2026-01' }, { period: '2026-02' }], '2026-04'),
+		/2026-03 was never run/
+	);
+	assert.throws(
+		() => assertPayrollPeriodAvailable([{ period: '2026-01-2' }], '2026-02-2'),
+		/2026-02-1 was never run/
+	);
+	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2025-12-2' }], '2026-01-1'));
+	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2025-12' }], '2026-01'));
+});
+
 test('payroll creation accepts company and period without a run type', () => {
 	const input = { company_id: '00000000-0000-4000-8000-000000000001', period: '2026-01' };
 	const decode = Schema.decodeUnknownSync(hooks.input);

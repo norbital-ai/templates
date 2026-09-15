@@ -44,6 +44,7 @@ function law(code: Lineage, file: string): any[] {
 
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
 export const leaveCatalogue = (code: Lineage) => law(code, 'leave_catalogue');
+export const contributionSchemes = (code: Lineage) => law(code, 'statutory_contributions');
 
 export const COMPANY_ID = 'c0000000-0000-4000-8000-000000000001';
 const SHIFT_ID = 'c0000000-0000-4000-8000-0000000000d1';

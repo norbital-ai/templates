@@ -18,236 +18,52 @@
 				"by": "FIXED_DAYS",
 				"days": 21.75
 			},
-			"engine_lines": {
-				"salary": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "dc14c8f0-ddf3-5a91-9eb3-89eaa6977cd0",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "a423b464-8df4-5426-8c48-3941dcdfb301",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-							"effect": "INCLUDE"
-						}
-					]
+			"ordinary_divisor_days": "terms.payroll_group == \"MONTHLY\" ? 30.4167 : terms.ordinary_hours_per_week > 40 ? 26.0833 : 21.75",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"bands": [
+				{
+					"label": "OT-1.25X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.25"
 				},
-				"absence": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "a423b464-8df4-5426-8c48-3941dcdfb301",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-							"effect": "REDUCE"
-						}
-					]
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
 				},
-				"night": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-							"effect": "INCLUDE"
-						}
-					]
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.6X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
 				}
-			},
-			"rates": {
-				"ordinary": [
-					{
-						"when": "terms.payroll_group == \"MONTHLY\"",
-						"unit": "DAY",
-						"divisor": 30.4167
-					},
-					{
-						"when": "terms.ordinary_hours_per_week > 40",
-						"unit": "DAY",
-						"divisor": 26.0833
-					},
-					{
-						"when": "",
-						"unit": "DAY",
-						"divisor": 21.75
-					}
-				],
-				"bands": [
-					{
-						"label": "OT-1.25X",
-						"line": "OVERTIME",
-						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.25",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.3X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 1.3",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.69X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.69",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.6X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 2.6",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.3X",
-						"line": "OVERTIME",
-						"when": "day_type == \"SPECIAL_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 1.3",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.69X",
-						"line": "OVERTIME",
-						"when": "day_type == \"SPECIAL_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.69",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "f3469881-d554-5a44-a85c-18478d228217",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
-								"effect": "INCLUDE"
-							}
-						]
-					}
-				]
-			},
+			],
 			"limits": [
 				{
 					"key": "normal_day",
@@ -261,7 +77,7 @@
 			"breaks": [
 				{
 					"when": "true",
-					"owed_minutes": 60,
+					"owed_minutes": "60.0",
 					"counts_as_worked_time": false
 				}
 			],
@@ -269,20 +85,12 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST_OR_OFF"
 			},
-			"coverage": {
-				"wage_ceiling": null,
-				"ceiling_is_inclusive": null,
-				"wage_basis": null,
-				"category_basis": "WORK_CLASSIFICATION",
-				"exempt_categories": [],
-				"excluded_categories": ["MANAGERIAL"]
-			},
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
 				"to": "06:00",
 				"ordinary_add": 10,
-				"overtime_add": 10
+				"overtime_add": 12.5
 			},
 			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. NOT APPLIED: a regular holiday worked on a rest day is 260% for the first eight hours and 338% beyond (2.0 x 1.3), and a special (non-working) day worked on a rest day is 150%; `holiday_rest_precedence` picks one day type rather than compounding two, so this row pays the 200% and 130% legs only. NOT APPLIED: art.94(a) pay for an UNWORKED regular holiday (100% of the daily wage, subject to the day-before presence rule) and the 'no work, no pay' rule for an unworked special day — the regime expresses premiums for hours worked, not an entitlement for a day not worked. NOT APPLIED: the art.82 exclusions beyond MANAGERIAL — officers and members of the managerial staff, field personnel, family members dependent on the employer for support, domestic helpers, persons in the personal service of another and workers paid by results — `category_basis: WORK_CLASSIFICATION` names one classification per person and the bank has one such value for them. NOT APPLIED: art.85's 20-minute compensable meal period in the four listed cases, and the compensable 5-20 minute rest periods; `work_rules.breaks` carries the general 60-minute unpaid meal period, owed on any worked day (art.85 states no hours trigger)."
 		},
@@ -292,7 +100,8 @@
 			"tax_year_start_month": 1
 		},
 		"wages": {
-			"by_region": {}
+			"by_region": {},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -328,242 +137,58 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "PH",
-		"change_summary": "The base law: SSS 15% under RA 11199 with Circular 2024-006, SSS_EC ₱30, PhilHealth 5% between ₱10,000 and ₱100,000, HDMF 2%/2% on a ₱10,000 fund salary, the TRAIN withholding table, the Labor Code working-time rules and the statutory leave types. No later change of law moves a seeded value (RR 29-2025 and the wage orders touch unmodelled caps — see the lineage README).",
+		"change_summary": "No change of law. This version exists to carry the STATUTORY_ADJUSTMENT payment code the company records name from January 2026; every statutory row is a clone of the 2025-12-01 version. The next change of law (a 2027 wage order, an SSS or PhilHealth circular) is a new version from its own date.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
 				"days": 21.75
 			},
-			"engine_lines": {
-				"salary": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "be6660b4-fcaf-4cc5-a5da-301f66ef3e41",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-							"effect": "INCLUDE"
-						}
-					]
+			"ordinary_divisor_days": "terms.payroll_group == \"MONTHLY\" ? 30.4167 : terms.ordinary_hours_per_week > 40 ? 26.0833 : 21.75",
+			"overtime_when": "employment.classification != \"MANAGERIAL\"",
+			"bands": [
+				{
+					"label": "OT-1.25X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.25"
 				},
-				"absence": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-							"effect": "REDUCE"
-						}
-					]
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
 				},
-				"night": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-							"effect": "INCLUDE"
-						}
-					]
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-2.6X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.6"
+				},
+				{
+					"label": "OT-1.3X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 1.3"
+				},
+				{
+					"label": "OT-1.69X",
+					"when": "day_type == \"SPECIAL_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.69"
 				}
-			},
-			"rates": {
-				"ordinary": [
-					{
-						"when": "terms.payroll_group == \"MONTHLY\"",
-						"unit": "DAY",
-						"divisor": 30.4167
-					},
-					{
-						"when": "terms.ordinary_hours_per_week > 40",
-						"unit": "DAY",
-						"divisor": 26.0833
-					},
-					{
-						"when": "",
-						"unit": "DAY",
-						"divisor": 21.75
-					}
-				],
-				"bands": [
-					{
-						"label": "OT-1.25X",
-						"line": "OVERTIME",
-						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.25",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.3X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 1.3",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.69X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.69",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.6X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 2.6",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.3X",
-						"line": "OVERTIME",
-						"when": "day_type == \"SPECIAL_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 1.3",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-1.69X",
-						"line": "OVERTIME",
-						"when": "day_type == \"SPECIAL_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.69",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
-								"effect": "INCLUDE"
-							},
-							{
-								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
-								"effect": "INCLUDE"
-							}
-						]
-					}
-				]
-			},
+			],
 			"limits": [
 				{
 					"key": "normal_day",
@@ -577,7 +202,7 @@
 			"breaks": [
 				{
 					"when": "true",
-					"owed_minutes": 60,
+					"owed_minutes": "60.0",
 					"counts_as_worked_time": false
 				}
 			],
@@ -585,20 +210,12 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST_OR_OFF"
 			},
-			"coverage": {
-				"wage_ceiling": null,
-				"ceiling_is_inclusive": null,
-				"wage_basis": null,
-				"category_basis": "WORK_CLASSIFICATION",
-				"exempt_categories": [],
-				"excluded_categories": ["MANAGERIAL"]
-			},
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
 				"to": "06:00",
 				"ordinary_add": 10,
-				"overtime_add": 10
+				"overtime_add": 12.5
 			},
 			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. NOT APPLIED: a regular holiday worked on a rest day is 260% for the first eight hours and 338% beyond (2.0 x 1.3), and a special (non-working) day worked on a rest day is 150%; `holiday_rest_precedence` picks one day type rather than compounding two, so this row pays the 200% and 130% legs only. NOT APPLIED: art.94(a) pay for an UNWORKED regular holiday (100% of the daily wage, subject to the day-before presence rule) and the 'no work, no pay' rule for an unworked special day — the regime expresses premiums for hours worked, not an entitlement for a day not worked. NOT APPLIED: the art.82 exclusions beyond MANAGERIAL — officers and members of the managerial staff, field personnel, family members dependent on the employer for support, domestic helpers, persons in the personal service of another and workers paid by results — `category_basis: WORK_CLASSIFICATION` names one classification per person and the bank has one such value for them. NOT APPLIED: art.85's 20-minute compensable meal period in the four listed cases, and the compensable 5-20 minute rest periods; `work_rules.breaks` carries the general 60-minute unpaid meal period, owed on any worked day (art.85 states no hours trigger)."
 		},
@@ -608,7 +225,8 @@
 			"tax_year_start_month": 1
 		},
 		"wages": {
-			"by_region": {}
+			"by_region": {},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [

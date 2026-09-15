@@ -35,7 +35,6 @@ const INSTALMENT = 300;
 const scheme = (id: string, settingsId: string, code: string) => ({
 	id,
 	settings_id: settingsId,
-	is_statutory: true,
 	code,
 	name: `Public fixture ${code}`,
 	authority: 'Public fixture',
@@ -50,6 +49,8 @@ const scheme = (id: string, settingsId: string, code: string) => ({
 			employer: 'round_cent(base * 10.0 / 100.0)'
 		}
 	],
+	// Every work line, no catalogue row: a loan recovery feeds no base.
+	base: { salary: true, absence: true, overtime: true, night_premium: true, entries: [] },
 	approval_id: null
 });
 
@@ -95,26 +96,6 @@ function loanWorld(options: LoanWorldOptions = {}) {
 		scheme('bbbbbbbb-cccc-4ddd-8eee-ffffffff0009', NEW_SETTINGS_ID, 'PUB-NEW')
 	);
 
-	// The work lines' opt-ins ride the settings root (RFC 0001 §6): the first version knows
-	// PUB-OLD, the second adds PUB-NEW, and each body prices the lines it names.
-	const setWorkOptIns = (version: (typeof world.jurisdiction_settings)[number], ids: string[]) => {
-		const rules = version.work_rules as {
-			engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
-			rates: { bands: { statutory_opt_ins: unknown[] }[] };
-		};
-		const include = ids.map((id) => ({ contribution_id: id, effect: 'INCLUDE' }));
-		const reduce = ids.map((id) => ({ contribution_id: id, effect: 'REDUCE' }));
-		rules.engine_lines.salary.statutory_opt_ins = include;
-		rules.engine_lines.night.statutory_opt_ins = include;
-		rules.engine_lines.absence.statutory_opt_ins = reduce;
-		for (const band of rules.rates.bands) band.statutory_opt_ins = include;
-	};
-	setWorkOptIns(world.jurisdiction_settings[0]!, ['bbbbbbbb-cccc-4ddd-8eee-ffffffff0007']);
-	setWorkOptIns(world.jurisdiction_settings[1]!, [
-		'bbbbbbbb-cccc-4ddd-8eee-ffffffff0008',
-		'bbbbbbbb-cccc-4ddd-8eee-ffffffff0009'
-	]);
-
 	const agreed = {
 		id: AGREED_ROW_ID,
 		settings_id: JURISDICTION_ID,
@@ -126,8 +107,8 @@ function loanWorld(options: LoanWorldOptions = {}) {
 		recurring: false,
 		minimum_repayment: null,
 		loan_type: 'STAFF',
-		// The row predates PUB-NEW, so its bands name neither scheme — silence means no effect.
-		bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
+		// No scheme's base names the loan, so the recovery feeds no base — silence means no effect.
+		bands: [{ when: '', amount: 'entry.amount', limit: null }],
 		sequence: 70,
 		eligibility: options.eligibility ?? '',
 		approval_id: null
@@ -207,9 +188,8 @@ test('a loan agreed under an earlier revision is recovered, and a scheme sealed 
 	const baseOf = (code: string) =>
 		slip.statutory.find((line) => line.scheme_code === code)?.base_amount;
 	assert.ok(baseOf('PUB-OLD')! > 0, 'the wage itself is charged');
-	// The agreed row's bands opted into no scheme, and its bands are the ones that priced the
-	// recovery: a scheme sealed into a later version cannot be named by a row that predates it, so
-	// both schemes see the same silence and the two bases match.
+	// Neither scheme's base names the loan row, so the recovery feeds neither base and the two
+	// bases match.
 	assert.equal(baseOf('PUB-OLD'), baseOf('PUB-NEW'));
 });
 

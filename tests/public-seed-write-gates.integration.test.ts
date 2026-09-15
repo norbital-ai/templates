@@ -11,7 +11,6 @@ import {
 import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
-	STATUTORY_PUB_EPF_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
@@ -21,13 +20,13 @@ type Row = Readonly<Record<string, unknown>>;
 const MUTATE = 'collections.mutate';
 
 /**
- * The RFC 0002 §6 write contract, end to end through the same guest command the app uses: a
- * catalogue band may opt only into a scheme of its own settings version, and a scheme rule may
+ * The RFC 0003 §1.4 write contract, end to end through the same guest command the app uses: a
+ * scheme's base may name only catalogue rows of its own settings version, and a scheme rule may
  * name only a `produced.<code>` this version carries. Both refusals happen at the write; the
  * accepted control proves the gate is not simply refusing everything.
  */
 test(
-	'the write gates refuse a cross-version opt-in and an unknown producer, and accept the version’s own',
+	'the write gates refuse a base entry the version lacks and an unknown producer, and accept the version’s own',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS * 2 },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-write-gates');
@@ -65,51 +64,41 @@ test(
 				).id
 			);
 			const [draftScheme] = (await session.query(
-				'select id from statutory_contributions where settings_id = $1 and code = $2',
+				'select id, base from statutory_contributions where settings_id = $1 and code = $2',
 				[draftId, 'PUB-EPF']
-			)) as Row[];
+			)) as ReadonlyArray<{ readonly id: string; readonly base: Record<string, unknown> }>;
 			const [draftLeave] = (await session.query(
-				'select id, bands from leave_catalogue where settings_id = $1 and code = $2',
+				'select id from leave_catalogue where settings_id = $1 and code = $2',
 				[draftId, 'ANNUAL']
-			)) as ReadonlyArray<{
-				readonly id: string;
-				readonly bands: ReadonlyArray<Record<string, unknown>>;
-			}>;
+			)) as Row[];
 			assert.ok(draftScheme && draftLeave, 'the draft carries the scheme and catalogue row');
 
-			const withOptIn = (contribution_id: string) =>
-				draftLeave.bands.map((band, index) =>
-					index === 0
-						? { ...band, statutory_opt_ins: [{ contribution_id, effect: 'INCLUDE' }] }
-						: band
+			const withEntry = (code: string) => ({
+				...draftScheme.base,
+				entries: [{ family: 'LEAVE', code }]
+			});
+			const baseWrite = async (code: string) =>
+				command(
+					{
+						action: 'mutate',
+						collection: 'statutory_contributions',
+						rows: [{ action: 'update', values: { id: draftScheme.id, base: withEntry(code) } }]
+					},
+					[
+						{
+							row: { collection: 'statutory_contributions', recordId: draftScheme.id },
+							rowVersion: await rowVersion('statutory_contributions', draftScheme.id)
+						}
+					]
 				);
 
-			// The predecessor's scheme id is a real scheme — of another version. The write refuses it.
+			// A leave code this version does not carry. The write refuses it by name.
 			const foreign = asRecord(
-				(
-					await command(
-						{
-							action: 'mutate',
-							collection: 'leave_catalogue',
-							rows: [
-								{
-									action: 'update',
-									values: { id: draftLeave.id, bands: withOptIn(STATUTORY_PUB_EPF_ID) }
-								}
-							]
-						},
-						[
-							{
-								row: { collection: 'leave_catalogue', recordId: draftLeave.id },
-								rowVersion: await rowVersion('leave_catalogue', draftLeave.id)
-							}
-						]
-					)
-				).value,
-				'cross-version opt-in'
+				(await baseWrite('NOT_A_LEAVE_OF_THIS_VERSION')).value,
+				'unknown entry'
 			);
 			assert.equal(foreign.resolution, 'rejected', JSON.stringify(foreign));
-			assert.match(String(foreign.message ?? ''), /not part of its settings version/);
+			assert.match(String(foreign.message ?? ''), /not a row of its settings version/);
 
 			// A rule naming a producer this version does not carry is refused at the write, by name.
 			const ghost = asRecord(
@@ -125,7 +114,6 @@ test(
 									settings_id: draftId,
 									code: 'GHOST_DEP',
 									name: 'Ghost dependency',
-									is_statutory: false,
 									rules: [{ when: 'true', employee: 'produced.NOPE.employee', employer: '0.0' }]
 								}
 							}
@@ -137,30 +125,8 @@ test(
 			assert.equal(ghost.resolution, 'rejected', JSON.stringify(ghost));
 			assert.match(String(ghost.message ?? ''), /NOPE/);
 
-			// The draft's own scheme id is accepted, and the row comes back carrying it.
-			requireAccepted(
-				(
-					await command(
-						{
-							action: 'mutate',
-							collection: 'leave_catalogue',
-							rows: [
-								{
-									action: 'update',
-									values: { id: draftLeave.id, bands: withOptIn(String(draftScheme.id)) }
-								}
-							]
-						},
-						[
-							{
-								row: { collection: 'leave_catalogue', recordId: draftLeave.id },
-								rowVersion: await rowVersion('leave_catalogue', draftLeave.id)
-							}
-						]
-					)
-				).value,
-				'own-version opt-in'
-			);
+			// The draft's own leave row is accepted.
+			requireAccepted((await baseWrite('ANNUAL')).value, 'own-version entry');
 		} finally {
 			await session.stop();
 		}

@@ -2,7 +2,6 @@ import { defineAutomation, refuse, type AutomationApi } from '@norbital-ai/bolt/
 import { getErrorMessage } from '@norbital-ai/std';
 import { Cause, Clock, Effect, Exit, Schema } from 'effect';
 import { leaveEntitlementValueSchema } from '../datatypes/leave_entitlement/+definition.js';
-import { statutoryOptInSchema, type StatutoryOptIn } from '../datatypes/work_rules/+definition.js';
 import { settingsInForce } from '../lib/jurisdiction_settings.js';
 import { compileExpression } from '../lib/expressions/compile.js';
 import { compileEligibility } from '../collections/payroll_runs/lib/eligibility.js';
@@ -157,7 +156,7 @@ const describeCause = (cause: Cause.Cause<unknown>): string => {
 function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutoryFacts {
 	return {
 		contributions: tree.schemes
-			.filter((scheme) => scheme.is_statutory)
+			.filter((scheme) => String(scheme.authority ?? '').trim() !== '')
 			.map((scheme) => ({
 				code: scheme.code,
 				name: scheme.name,
@@ -165,45 +164,18 @@ function sealedStatutoryFacts(tree: SettingsVersionTree): SealedStatutoryFacts {
 				rules: scheme.rules
 			})),
 		leave_catalogue: tree.catalogueLeaves
-			.filter((type) => type.is_statutory)
+			.filter((type) => String(type.authority ?? '').trim() !== '')
 			.map((type) => ({
 				code: type.code,
 				name: type.name,
 				authority: type.authority,
 				entitlement: type.entitlement
-			})),
-		// Every catalogue in one list. Drift is about what the law says a component is charged, and
-		// the law does not care which table declares it: the catalogue row's bands carry the opt-ins.
-		pay_component: [
-			...tree.catalogueLeaves.filter((row) => row.is_statutory),
-			...tree.loanCatalogue,
-			...tree.claimCatalogue,
-			...tree.allowanceCatalogue,
-			...tree.paymentCatalogue
-		].map((component) => ({
-			code: component.code,
-			statutory_opt_ins: optInsOf(component.bands)
-		}))
+			}))
 	};
-}
-
-/** The distinct opt-ins a catalogue row's bands state, in first-seen order. */
-function optInsOf(bands: readonly { readonly statutory_opt_ins: readonly StatutoryOptIn[] }[]) {
-	const seen = new Set<string>();
-	const result: StatutoryOptIn[] = [];
-	for (const band of bands)
-		for (const optIn of band.statutory_opt_ins) {
-			const key = `${optIn.contribution_id}:${optIn.effect}`;
-			if (seen.has(key)) continue;
-			seen.add(key);
-			result.push(optIn);
-		}
-	return result;
 }
 
 const decodeRules = Schema.decodeUnknownSync(Schema.Array(ruleSchema));
 const decodeEntitlement = Schema.decodeUnknownSync(leaveEntitlementValueSchema);
-const decodeOptIns = Schema.decodeUnknownSync(Schema.Array(statutoryOptInSchema));
 
 /**
  * The draft write with the proposed rows in place of the cloned ones. The draft is born carrying
@@ -212,8 +184,7 @@ const decodeOptIns = Schema.decodeUnknownSync(Schema.Array(statutoryOptInSchema)
 export function applyProposedChanges(
 	write: SettingsDraftWrite,
 	changes: ReadonlyArray<StatutoryProposalChange>,
-	proposal: StatutoryProposal,
-	schemeIds: ReadonlyMap<string, string> = new Map()
+	proposal: StatutoryProposal
 ): SettingsDraftWrite {
 	const schemes = (write.contribution_settings ?? []).map((scheme) => {
 		const ruleChanges = changes.filter(
@@ -240,46 +211,6 @@ export function applyProposedChanges(
 		);
 		return change == null ? type : { ...type, entitlement: decodeEntitlement(change.proposed) };
 	});
-	// One rule, applied to each catalogue's own slice of the draft. `collection` on a change row is
-	// `pay_component`, because that is what a proposal is about — a pay component, not the table
-	// that happens to hold it. Opt-ins live on bands; a row with no bands gains one covering every
-	// entry so the proposed opt-ins have somewhere to sit. The scheme ids a proposal cites are the
-	// sealed version's; the draft's own ids are the clone's, so each reference is remapped.
-	const proposedOptIns = (code: unknown) => {
-		const change = changes.find((row) => row.collection === 'pay_component' && row.code === code);
-		if (change == null) return undefined;
-		return decodeOptIns(change.proposed).map((optIn) => ({
-			...optIn,
-			contribution_id: schemeIds.get(optIn.contribution_id) ?? optIn.contribution_id
-		}));
-	};
-	const applyOptIns = <T extends { readonly code?: unknown; readonly bands?: unknown }>(
-		rows: readonly T[]
-	): T[] =>
-		rows.map((component) => {
-			const proposed = proposedOptIns(component.code);
-			if (proposed == null) return component;
-			const bands = Array.isArray(component.bands) ? component.bands : [];
-			if (bands.length === 0)
-				return {
-					...component,
-					bands: [
-						{
-							when: '',
-							amount: 'entry.amount',
-							limit: null,
-							statutory_opt_ins: proposed
-						}
-					]
-				} as T;
-			return {
-				...component,
-				bands: bands.map((band: { readonly statutory_opt_ins?: unknown }) => ({
-					...band,
-					statutory_opt_ins: proposed
-				}))
-			} as T;
-		});
 	return {
 		...write,
 		// The draft records what it was proposed from; structured evidence rides the run result.
@@ -287,11 +218,7 @@ export function applyProposedChanges(
 			`Statutory drift: ${proposal.changes.length} change(s) proposed from ` +
 			`${proposal.source_version_id} on ${proposal.proposed_at}.`,
 		contribution_settings: schemes as SettingsDraftWrite['contribution_settings'],
-		leave_catalogue_settings: applyOptIns(write.leave_catalogue_settings ?? []),
-		loan_catalogue_settings: applyOptIns(write.loan_catalogue_settings ?? []),
-		claim_catalogue_settings: applyOptIns(write.claim_catalogue_settings ?? []),
-		allowance_catalogue_settings: applyOptIns(write.allowance_catalogue_settings ?? []),
-		payment_catalogue_settings: applyOptIns(write.payment_catalogue_settings ?? [])
+		leave_catalogue_settings: catalogueLeaves
 	};
 }
 
@@ -375,8 +302,7 @@ const researchLineage = (
 			[
 				...prefiltered.kept,
 				...findings.contributions.map((row) => row.source_url),
-				...findings.leave_catalogue.map((row) => row.source_url),
-				...findings.pay_component.map((row) => row.source_url)
+				...findings.leave_catalogue.map((row) => row.source_url)
 			],
 			officialUrl
 		);
@@ -425,7 +351,7 @@ const researchLineage = (
 		});
 		const created = yield* createSettingsDraft(api, tree, {
 			name: draft.name,
-			write: applyProposedChanges(draft.write, diff.changes, proposal, draft.schemeIds)
+			write: applyProposedChanges(draft.write, diff.changes, proposal)
 		});
 		return {
 			code,

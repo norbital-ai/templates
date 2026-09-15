@@ -58,15 +58,9 @@ function rosteredWorkDays(): PayrollWorld['work_days'] {
 
 const WORK_RULES = {
 	proration: { by: 'CALENDAR_DAYS' },
-	engine_lines: {
-		salary: { statutory_opt_ins: [] },
-		absence: { statutory_opt_ins: [] },
-		night: { statutory_opt_ins: [] }
-	},
-	rates: {
-		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
-		bands: []
-	},
+	ordinary_divisor_days: '26.0',
+	overtime_when: '',
+	bands: [],
 	limits: [
 		{
 			key: 'daily_total',
@@ -76,9 +70,8 @@ const WORK_RULES = {
 			unit: 'CLOCK_HOURS'
 		}
 	],
-	breaks: [{ when: 'consecutive_hours > 5.0', owed_minutes: 30, counts_as_worked_time: false }],
+	breaks: [{ when: 'consecutive_hours > 5.0', owed_minutes: '30.0', counts_as_worked_time: false }],
 	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
-	coverage: null,
 	holiday_rest_precedence: 'REST_DAY'
 };
 
@@ -173,7 +166,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				recurring: true,
 				prorates: false,
 				on_day: null,
-				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				approval_id: null
 			}
 		],
@@ -188,7 +181,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				evidence: 'NONE',
 				destination: 'PAY',
 				direction: 'ADD',
-				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }],
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				approval_id: null
 			}
 		],

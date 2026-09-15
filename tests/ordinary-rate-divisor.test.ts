@@ -26,7 +26,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
 	ordinaryDayWage,
-	resolveOrdinaryRate,
+	ordinaryDivisorDays,
 	type RateTerms
 } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
@@ -38,7 +38,7 @@ const PH_WORK = (
 			fileURLToPath(new URL('fixtures/statutory/PH/jurisdiction_settings.json', import.meta.url)),
 			'utf8'
 		)
-	)[0] as { work_rules: { rates: { ordinary: unknown } } }
+	)[0] as { work_rules: { ordinary_divisor_days: string } }
 ).work_rules;
 
 /**
@@ -74,6 +74,7 @@ const person = (hoursPerWeek: number, daysPerWeek: number, payrollGroup: string)
 		week: { ordinary_hours_per_week: hoursPerWeek, working_days_per_week: daysPerWeek },
 		children: [],
 		company: { region: 'CALABARZON' },
+		period: { working_days: 26 },
 		asOf: '2026-06-30'
 	} as never);
 
@@ -85,16 +86,12 @@ const terms = (hoursPerWeek: number, daysPerWeek: number, salary = 15_650): Rate
 });
 
 const dayWageOf = (hoursPerWeek: number, daysPerWeek: number, payrollGroup = 'BI-MONTHLY') => {
-	const rate = resolveOrdinaryRate({
-		rows: PH_WORK.rates.ordinary,
+	const divisor = ordinaryDivisorDays({
+		expression: PH_WORK.ordinary_divisor_days,
 		person: person(hoursPerWeek, daysPerWeek, payrollGroup),
-		workingDays: () => 26,
 		employeeNumber: 'OPSPH000'
 	});
-	return {
-		divisor: rate.divisor,
-		wage: ordinaryDayWage(terms(hoursPerWeek, daysPerWeek), PH_WORK, rate)
-	};
+	return { divisor, wage: ordinaryDayWage(terms(hoursPerWeek, daysPerWeek), divisor) };
 };
 
 test('a six-day Philippine week is priced over 313/12, chosen by the Work', () => {
@@ -117,8 +114,8 @@ test('a monthly-paid employee keeps 365/12, whatever their roster', () => {
 });
 
 test('the Work states every week shape it rosters, so no person falls through', () => {
-	// `resolveOrdinaryRate` refuses by name rather than pricing an hour at nothing, and the last
-	// row is normally everyone. This is the check that the Philippine seed keeps that last row.
-	assert.equal((PH_WORK.rates.ordinary.at(-1) as { when: string }).when, '');
+	// `ordinaryDivisorDays` refuses by name rather than pricing an hour at nothing, and the
+	// expression's final arm is everyone. This is the check that the Philippine seed keeps it.
+	assert.match(PH_WORK.ordinary_divisor_days, /: 21\.75$/);
 	assert.doesNotThrow(() => dayWageOf(0, 0, ''));
 });

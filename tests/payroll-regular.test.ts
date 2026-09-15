@@ -205,7 +205,6 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 				settings_id: world.jurisdiction_settings[0].id,
 				code: 'TEST_LEAVE',
 				name: 'Test leave',
-				is_statutory: false,
 				eligibility: '',
 				approval_id: null,
 				entitlement: {
@@ -219,7 +218,7 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 				evidence: 'NONE',
 				destination: paid ? 'DISPLAY' : 'PAY',
 				direction: paid ? null : 'SUBTRACT',
-				bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }]
+				bands: [{ when: '', amount: 'entry.amount', limit: null }]
 			});
 			world.leave_entries.push({
 				id: '00000000-0000-4000-8000-000000000002',
@@ -291,8 +290,7 @@ test('captured siblings still count against the annual request cap', async () =>
 		{
 			when: '',
 			amount: 'entry.amount',
-			limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 150 },
-			statutory_opt_ins: []
+			limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: '150.0' }
 		}
 	];
 	// The write door is where captured usage is counted: the pinned sibling's paid amount plus the

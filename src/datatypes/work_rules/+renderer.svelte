@@ -2,13 +2,13 @@
 	/**
 	 * One version's work rules (RFC 0001 §4–§6, §7), compact.
 	 *
-	 * Work is a producer, not a catalogue: it prices a day through ordered `rates.bands` (each
+	 * Work is a producer, not a catalogue: it prices a day through ordered `bands` (each
 	 * band consuming a slice and optionally funnelling the portion above a named limit to the
 	 * incentive line), states the `limits` schedules must respect and the `breaks` the law owes.
 	 * Every attribute whose value is a money decision is CEL over the `work_day` context; a CEL
 	 * cell carries the Fields popover and prints the same refusal the write hook would.
 	 *
-	 * The lists — ordinary rates, bands, limits, breaks — are matrices: one row each, one column
+	 * The lists — bands, limits, breaks — are matrices: one row each, one column
 	 * per fact, no card per row. The scalars share a compact labelled grid.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -21,21 +21,19 @@
 	import type { CollectionField } from '@norbital-ai/std/collection';
 	import { Schema } from 'effect';
 	import { watch } from 'runed';
-	import type { MoneyValue } from '@norbital-ai/std/finance';
 	import type { NightPremium } from '../../lib/payroll/work-rules-values.js';
 	import { workRulesValueSchema } from './+definition.js';
 	import ProrationBasisRenderer from '../proration_basis/+renderer.svelte';
-	import EngineLineOptIns from '../../lib/ui/engine-line-opt-ins.svelte';
 	import ExpressionCell from '../../lib/ui/expression-cell.svelte';
-	import OptInsCell from '../../lib/ui/statutory-opt-ins-cell.svelte';
-	import { numberFrom, numberOrExpression, splitList } from '../../lib/ui/renderer-input.js';
+	import ExpressionField from '../../lib/ui/expression-field.svelte';
+	import ExpressionFields from '../../lib/ui/expression-fields.svelte';
+	import type { ExpressionType } from '../../lib/expressions/contexts.js';
+	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import type { RendererProps } from './$types.js';
 
 	type WorkRules = Schema.Schema.Type<typeof workRulesValueSchema>;
-	type WorkRateBand = WorkRules['rates']['bands'][number];
 	type WorkLimit = WorkRules['limits'][number];
 	type WorkBreak = WorkRules['breaks'][number];
-	type Coverage = NonNullable<WorkRules['coverage']>;
 
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -50,7 +48,7 @@
 		kind: string,
 		extra: Partial<CollectionField> = {}
 	): CollectionField => ({ name, kind, nullable: true, ...extra });
-	const exprField = (name: string, site: 'work_day' | 'person', type: 'boolean' | 'number') =>
+	const exprField = (name: string, site: 'work_day' | 'person', type: ExpressionType) =>
 		fieldOf(name, 'text', { options: { site, type } });
 
 	const option = <T extends string>(values: readonly T[], label: (value: T) => string) =>
@@ -61,22 +59,12 @@
 	const restOptions = option(['REST', 'REST_OR_OFF'] as const, (value) =>
 		t(`renderer.work_rules.discharged.${value}` as TenantI18nKeys)
 	);
-	const wageBasisOptions = option(['STATUTORY_WAGES', 'BASE_SALARY'] as const, (value) =>
-		t(`renderer.work_rules.wage_basis.${value}` as TenantI18nKeys)
-	);
-	const categoryBasisOptions = option(
-		['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION'] as const,
-		(value) => t(`renderer.work_rules.category_basis.${value}` as TenantI18nKeys)
-	);
 
 	function emit(next: WorkRules): void {
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 	function edit(change: Partial<WorkRules>): void {
 		if (current != null) emit({ ...current, ...change });
-	}
-	function editCoverage(change: Partial<Coverage>): void {
-		if (current?.coverage != null) edit({ coverage: { ...current.coverage, ...change } });
 	}
 	function editNight(change: Partial<NightPremium>): void {
 		if (current?.night_premium != null)
@@ -88,89 +76,24 @@
 	function checkTo(value: string): boolean | null {
 		return value === 'STATED' ? null : value === 'YES';
 	}
-	function moneyValue(value: MoneyValue | null, patch: Partial<MoneyValue>): MoneyValue {
-		return { value: value?.value ?? 0, currency: value?.currency ?? '', ...patch };
-	}
-
-	/* ── Ordinary rates ───────────────────────────────────────────────────────────────────── */
-	type OrdinaryRow = { id: string; when: string; unit: 'DAY' | 'HOUR'; divisor: string };
-	const projectOrdinary = (rules: WorkRules | null): OrdinaryRow[] =>
-		(rules?.rates.ordinary ?? []).map((row, index) => ({
-			id: String(index),
-			when: row.when,
-			unit: row.unit,
-			divisor: String(row.divisor)
-		}));
-	let ordinaryRows = $state<OrdinaryRow[]>([]);
-	watch(
-		() => current,
-		(rules) => {
-			ordinaryRows = projectOrdinary(rules);
-		},
-		{ lazy: false }
-	);
-	const ordinaryColumns: MatrixColumn<OrdinaryRow>[] = [
-		{
-			key: 'when',
-			label: t('renderer.work_rules.when'),
-			field: exprField('when', 'person', 'boolean'),
-			renderer: ExpressionCell,
-			placeholder: 'terms.grade == "M1"',
-			width: 440
-		},
-		{
-			key: 'unit',
-			label: t('renderer.work_rules.ordinary_unit'),
-			field: fieldOf('unit', 'enum', { values: ['DAY', 'HOUR'] }),
-			width: 150
-		},
-		{
-			key: 'divisor',
-			label: t('renderer.work_rules.divisor'),
-			field: fieldOf('divisor', 'text'),
-			placeholder: '26',
-			width: 170
-		}
-	];
-	function commitOrdinary(rows: OrdinaryRow[]): void {
-		ordinaryRows = rows;
-		if (current == null) return;
-		edit({
-			rates: {
-				...current.rates,
-				ordinary: rows.map((row) => ({
-					when: row.when,
-					unit: row.unit,
-					divisor:
-						row.divisor.trim() === 'WORKING_DAYS' ? 'WORKING_DAYS' : numberFrom(row.divisor, 1)
-				}))
-			}
-		});
-	}
 
 	/* ── Day-pricing bands ─────────────────────────────────────────────────────────────────── */
 	type BandRow = {
 		id: string;
 		label: string;
-		line: string;
 		when: string;
-		take: string;
-		price: string;
-		funnel_above: string;
-		funnel_line: string;
-		statutory_opt_ins: WorkRateBand['statutory_opt_ins'];
+		take_hours: string;
+		price_amount: string;
+		funnel_above_hours: string;
 	};
 	const projectBands = (rules: WorkRules | null): BandRow[] =>
-		(rules?.rates.bands ?? []).map((band, index) => ({
+		(rules?.bands ?? []).map((band, index) => ({
 			id: String(index),
 			label: band.label,
-			line: band.line,
 			when: band.when,
-			take: band.take,
-			price: band.price,
-			funnel_above: band.funnel?.above ?? '',
-			funnel_line: band.funnel?.line ?? '',
-			statutory_opt_ins: [...band.statutory_opt_ins]
+			take_hours: band.take_hours,
+			price_amount: band.price_amount,
+			funnel_above_hours: band.funnel_above_hours ?? ''
 		}));
 	let bandRows = $state<BandRow[]>([]);
 	watch(
@@ -188,12 +111,6 @@
 			width: 90
 		},
 		{
-			key: 'line',
-			label: t('renderer.work_rules.line'),
-			field: fieldOf('line', 'text'),
-			width: 120
-		},
-		{
 			key: 'when',
 			label: t('renderer.work_rules.when'),
 			field: exprField('when', 'work_day', 'boolean'),
@@ -202,64 +119,43 @@
 			width: 280
 		},
 		{
-			key: 'take',
-			label: t('renderer.work_rules.take'),
-			field: exprField('take', 'work_day', 'number'),
+			key: 'take_hours',
+			label: t('renderer.work_rules.take_hours'),
+			field: exprField('take_hours', 'work_day', 'hours'),
 			renderer: ExpressionCell,
 			placeholder: 'hours_beyond_normal',
 			width: 180
 		},
 		{
-			key: 'price',
-			label: t('renderer.work_rules.price'),
-			field: exprField('price', 'work_day', 'number'),
+			key: 'price_amount',
+			label: t('renderer.work_rules.price_amount'),
+			field: exprField('price_amount', 'work_day', 'money'),
 			renderer: ExpressionCell,
-			placeholder: 'ordinary_hour * 1.5',
+			placeholder: 'hours * ordinary_hour * 1.5',
 			width: 210
 		},
 		{
-			key: 'funnel_above',
-			label: t('renderer.work_rules.funnel_above'),
-			field: exprField('funnel_above', 'work_day', 'number'),
+			key: 'funnel_above_hours',
+			label: t('renderer.work_rules.funnel_above_hours'),
+			field: exprField('funnel_above_hours', 'work_day', 'hours'),
 			renderer: ExpressionCell,
 			placeholder: 'limits.daily_total',
 			width: 190
-		},
-		{
-			key: 'funnel_line',
-			label: t('renderer.work_rules.funnel_line'),
-			field: fieldOf('funnel_line', 'text'),
-			placeholder: 'INCENTIVE',
-			width: 120
-		},
-		{
-			key: 'statutory_opt_ins',
-			label: t('component.statutory_opt_ins'),
-			field: fieldOf('statutory_opt_ins', 'json'),
-			renderer: OptInsCell,
-			width: 120
 		}
 	];
 	function commitBands(rows: BandRow[]): void {
 		bandRows = rows;
 		if (current == null) return;
 		edit({
-			rates: {
-				...current.rates,
-				bands: rows.map((row) => {
-					const base = {
-						label: row.label,
-						line: row.line,
-						when: row.when,
-						take: row.take,
-						price: row.price,
-						statutory_opt_ins: [...row.statutory_opt_ins]
-					};
-					return row.funnel_above.trim() !== '' || row.funnel_line.trim() !== ''
-						? { ...base, funnel: { above: row.funnel_above, line: row.funnel_line } }
-						: base;
-				})
-			}
+			bands: rows.map((row) => ({
+				label: row.label,
+				when: row.when,
+				take_hours: row.take_hours,
+				price_amount: row.price_amount,
+				...(row.funnel_above_hours.trim() === ''
+					? {}
+					: { funnel_above_hours: row.funnel_above_hours })
+			}))
 		});
 	}
 
@@ -347,7 +243,7 @@
 		(rules?.breaks ?? []).map((rule, index) => ({
 			id: String(index),
 			when: rule.when,
-			owed_minutes: String(rule.owed_minutes),
+			owed_minutes: rule.owed_minutes,
 			check: checkFrom(rule.counts_as_worked_time)
 		}));
 	let breakRows = $state<BreakRow[]>([]);
@@ -370,9 +266,9 @@
 		{
 			key: 'owed_minutes',
 			label: t('renderer.work_rules.owed_minutes'),
-			field: exprField('owed_minutes', 'work_day', 'number'),
+			field: exprField('owed_minutes', 'work_day', 'minutes'),
 			renderer: ExpressionCell,
-			placeholder: '30',
+			placeholder: '30.0',
 			width: 200
 		},
 		{
@@ -388,7 +284,7 @@
 		edit({
 			breaks: rows.map((row): WorkBreak => ({
 				when: row.when,
-				owed_minutes: numberOrExpression(row.owed_minutes),
+				owed_minutes: row.owed_minutes,
 				counts_as_worked_time: checkTo(row.check)
 			}))
 		});
@@ -464,40 +360,54 @@
 			</label>
 		</Grid>
 
-		<!-- Engine pay lines and their opt-ins, one (line, scheme, effect) matrix. -->
-		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.lines')}</span>
-			<p class="text-meta">{t('renderer.work_rules.lines_hint')}</p>
-			<EngineLineOptIns
-				value={current.engine_lines}
-				{disabled}
-				{readonly}
-				onValueChange={(engine_lines) => edit({ engine_lines })}
-			/>
-		</Stack>
-
-		<!-- Ordinary rate rows. -->
-		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary')}</span>
-			<p class="text-meta">{t('renderer.work_rules.ordinary_hint')}</p>
-			<MatrixRenderer
-				{disabled}
-				{readonly}
-				bind:rows={ordinaryRows}
-				columns={ordinaryColumns}
-				allowAddRows={!disabled}
-				bounded={false}
-				getRowId={(row) => String(row.id)}
-				addRowLabel={t('renderer.work_rules.add_ordinary')}
-				createRow={() => ({
-					id: String(ordinaryRows.length),
-					when: '',
-					unit: 'DAY' as const,
-					divisor: '26'
-				})}
-				onChange={commitOrdinary}
-			/>
-		</Stack>
+		<!-- The ordinary rate divisor and who the overtime ladder covers: expressions over the person. -->
+		<Grid gap="md" minimum="card">
+			<Stack gap="xs">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary')}</span>
+				<p class="text-meta">{t('renderer.work_rules.ordinary_hint')}</p>
+				<div class="flex items-start gap-1">
+					<ExpressionField
+						site="person"
+						type="days"
+						value={current.ordinary_divisor_days}
+						mode={readonly ? 'display' : 'edit'}
+						{disabled}
+						placeholder="26.0"
+						class="flex-1"
+						onValueChange={(ordinary_divisor_days) => edit({ ordinary_divisor_days })}
+					/>
+					<ExpressionFields
+						site="person"
+						expression={current.ordinary_divisor_days}
+						type="days"
+						inline
+					/>
+				</div>
+			</Stack>
+			<Stack gap="xs">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.overtime_when')}</span>
+				<p class="text-meta">{t('renderer.work_rules.overtime_when_hint')}</p>
+				<div class="flex items-start gap-1">
+					<ExpressionField
+						site="person"
+						type="boolean"
+						value={current.overtime_when}
+						mode={readonly ? 'display' : 'edit'}
+						{disabled}
+						empty={t('renderer.work_rules.overtime_when_empty')}
+						placeholder={'employment.classification != "MANAGERIAL"'}
+						class="flex-1"
+						onValueChange={(overtime_when) => edit({ overtime_when })}
+					/>
+					<ExpressionFields
+						site="person"
+						expression={current.overtime_when}
+						type="boolean"
+						inline
+					/>
+				</div>
+			</Stack>
+		</Grid>
 
 		<!-- Day-pricing bands. -->
 		<Stack gap="xs">
@@ -515,13 +425,10 @@
 				createRow={() => ({
 					id: String(bandRows.length),
 					label: '',
-					line: 'OVERTIME',
 					when: '',
-					take: '',
-					price: '',
-					funnel_above: '',
-					funnel_line: '',
-					statutory_opt_ins: []
+					take_hours: '',
+					price_amount: '',
+					funnel_above_hours: ''
 				})}
 				onChange={commitBands}
 			/>
@@ -569,136 +476,11 @@
 				createRow={() => ({
 					id: String(breakRows.length),
 					when: '',
-					owed_minutes: '30',
+					owed_minutes: '30.0',
 					check: 'STATED'
 				})}
 				onChange={commitBreaks}
 			/>
-		</Stack>
-
-		<!-- Coverage and the night premium: optional blocks, each one compact section. -->
-		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.coverage')}</span>
-			<p class="text-meta">{t('renderer.work_rules.coverage_hint')}</p>
-			{#if current.coverage == null}
-				<div class="flex items-center gap-2">
-					<span class="text-sm text-muted-foreground"
-						>{t('renderer.work_rules.coverage_not_stated')}</span
-					>
-					<Button
-						variant="outline"
-						size="sm"
-						{disabled}
-						onclick={() =>
-							edit({
-								coverage: {
-									wage_ceiling: null,
-									ceiling_is_inclusive: null,
-									wage_basis: null,
-									category_basis: 'STATUTORY_WORK_CATEGORY',
-									exempt_categories: [],
-									excluded_categories: []
-								}
-							})}
-					>
-						{t('renderer.work_rules.add_coverage')}
-					</Button>
-				</div>
-			{:else}
-				<Grid gap="sm" minimum="compact">
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.wage_ceiling')}</span>
-						<Input
-							type="number"
-							step="0.01"
-							value={current.coverage.wage_ceiling?.value ?? ''}
-							{disabled}
-							oninput={(event) =>
-								editCoverage({
-									wage_ceiling: moneyValue(current.coverage!.wage_ceiling, {
-										value: numberFrom(event.currentTarget.value, 0)
-									})
-								})}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('component.currency')}</span>
-						<Input
-							value={current.coverage.wage_ceiling?.currency ?? ''}
-							maxlength={3}
-							{disabled}
-							oninput={(event) =>
-								editCoverage({
-									wage_ceiling: moneyValue(current.coverage!.wage_ceiling, {
-										currency: event.currentTarget.value.toUpperCase()
-									})
-								})}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.wage_basis')}</span>
-						<Combobox
-							options={wageBasisOptions}
-							value={current.coverage.wage_basis}
-							{disabled}
-							searchable={false}
-							onValueChange={(wage_basis) => editCoverage({ wage_basis })}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">
-							{t('renderer.work_rules.ceiling_is_inclusive')}
-						</span>
-						<select
-							class="h-8 rounded-sm border border-input bg-background px-2 text-sm"
-							{disabled}
-							value={checkFrom(current.coverage.ceiling_is_inclusive)}
-							onchange={(event) =>
-								editCoverage({ ceiling_is_inclusive: checkTo(event.currentTarget.value) })}
-						>
-							<option value="STATED">{t('renderer.work_rules.worked_time.stated')}</option>
-							<option value="YES">{t('renderer.work_rules.worked_time.yes')}</option>
-							<option value="NO">{t('renderer.work_rules.worked_time.no')}</option>
-						</select>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.category_basis')}</span>
-						<Combobox
-							options={categoryBasisOptions}
-							value={current.coverage.category_basis}
-							{disabled}
-							searchable={false}
-							onValueChange={(category_basis) => {
-								if (category_basis) editCoverage({ category_basis });
-							}}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.exempt_categories')}</span>
-						<Input
-							value={current.coverage.exempt_categories.join(', ')}
-							{disabled}
-							oninput={(event) =>
-								editCoverage({ exempt_categories: splitList(event.currentTarget.value) })}
-						/>
-					</label>
-					<label class="flex flex-col gap-1 text-xs">
-						<span class="text-muted-foreground">{t('renderer.work_rules.excluded_categories')}</span
-						>
-						<Input
-							value={current.coverage.excluded_categories.join(', ')}
-							{disabled}
-							oninput={(event) =>
-								editCoverage({ excluded_categories: splitList(event.currentTarget.value) })}
-						/>
-					</label>
-				</Grid>
-				<div class="flex justify-end">
-					<Button variant="ghost" size="sm" {disabled} onclick={() => edit({ coverage: null })}>
-						{t('renderer.work_rules.remove_coverage')}
-					</Button>
-				</div>
-			{/if}
 		</Stack>
 
 		<Stack gap="xs">

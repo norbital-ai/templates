@@ -39,10 +39,8 @@ const component = (code, definition) => ({
 	output: code === 'INCENTIVE' ? 'INCENTIVE' : 'OVERTIME',
 	company_id: 'co-1',
 	code,
-	is_statutory: true,
 	destination: 'PAY',
 	direction: 'ADD',
-	optIns: [],
 	eligibility: '',
 	definition: definition ?? { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 });
@@ -50,13 +48,17 @@ const component = (code, definition) => ({
 const configuration = (catalogueComponents, bands = []) => ({
 	company: { id: 'co-1', name: 'Fixture Co' },
 	jurisdiction: { id: 'jur-1', code: 'MY' },
-	work: { proration: { by: 'CALENDAR_DAYS' }, rates: { ordinary: [], bands } },
+	work: {
+		proration: { by: 'CALENDAR_DAYS' },
+		ordinary_divisor_days: '26.0',
+		overtime_when: '',
+		bands
+	},
 	contributions: [EPF],
 	catalogueComponents,
 	limits: [],
 	breaks: [],
 	nightPremium: null,
-	overtimeCoverageRule: null,
 	shiftById: new Map(),
 	patternById: new Map(),
 	holidays: new Map(),
@@ -68,12 +70,10 @@ const configuration = (catalogueComponents, bands = []) => ({
 test('a work band needs a pay item of its own, and names the lines it emits', () => {
 	const band = {
 		label: '1.5',
-		line: 'OVERTIME',
 		when: 'worked_hours > normal_hours',
-		take: 'hours_beyond_normal',
-		price: 'hours_beyond_normal * ordinary_hour',
-		funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
-		statutory_opt_ins: []
+		take_hours: 'hours_beyond_normal',
+		price_amount: 'hours_beyond_normal * ordinary_hour',
+		funnel_above_hours: 'limits.daily_total'
 	};
 	const missing = validateConfiguration(configuration([], [band])).filter(
 		(issue) => issue.code === 'WORK_BAND_COMPONENT_MISSING'

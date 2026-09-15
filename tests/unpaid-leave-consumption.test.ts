@@ -8,12 +8,9 @@ const APRIL = { start: '2026-04-01', end: '2026-04-30' };
 const ATTENDANCE = { start: '2026-03-21', end: '2026-04-20' };
 const WORK = {
 	proration: { by: 'CALENDAR_DAYS' },
-	engine_lines: {
-		salary: { statutory_opt_ins: [] },
-		absence: { statutory_opt_ins: [] },
-		night: { statutory_opt_ins: [] }
-	},
-	rates: { ordinary: [{ when: '', unit: 'DAY', divisor: 26 }], bands: [] },
+	ordinary_divisor_days: '26.0',
+	overtime_when: '',
+	bands: [],
 	limits: [],
 	breaks: [],
 	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
@@ -27,7 +24,6 @@ const BASIC = {
 	code: 'BASIC',
 	destination: 'PAY',
 	direction: 'ADD',
-	is_statutory: false,
 	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 };
@@ -36,7 +32,6 @@ const NPL = {
 	settings_id: 'settings',
 	code: 'NPL',
 	name: 'Unpaid leave',
-	is_statutory: false,
 	eligibility: '',
 	evidence: 'NONE',
 	evidence_after_days: null,
@@ -44,7 +39,7 @@ const NPL = {
 	paid: false,
 	destination: 'PAY',
 	direction: 'SUBTRACT',
-	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }]
+	bands: [{ when: '', amount: 'entry.amount', limit: null }]
 };
 const TERM = {
 	id: 'terms-1',

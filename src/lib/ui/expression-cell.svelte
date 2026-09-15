@@ -9,14 +9,21 @@
 	 */
 	import type { MatrixCellRendererProps, MatrixRow } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Input } from '@norbital-ai/ui/input';
+	import { useI18n } from '@norbital-ai/ui/i18n';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import ExpressionFields from './expression-fields.svelte';
 	import type { ExpressionSite, ExpressionType } from '../expressions/contexts.js';
 
 	let { field, value, mode, disabled, placeholder, onValueChange }: MatrixCellRendererProps<TRow> =
 		$props();
 	const site = $derived((field.options?.site ?? 'work_day') as ExpressionSite);
-	const type = $derived((field.options?.type ?? 'number') as ExpressionType);
+	const type = $derived((field.options?.type ?? 'money') as ExpressionType);
 	const text = $derived(value == null ? '' : String(value));
+	const { t } = useI18n<TenantI18nKeys>();
+	/** One fixed-height line, so the contract rides the input's title. */
+	const contract = $derived(
+		`${t(`expression.returns.${type}` as TenantI18nKeys)} · ${t(`expression.site.${site}` as TenantI18nKeys)}`
+	);
 </script>
 
 {#if mode === 'display'}
@@ -30,6 +37,7 @@
 			value={text}
 			{disabled}
 			{placeholder}
+			title={contract}
 			oninput={(event) => onValueChange(event.currentTarget.value)}
 		/>
 		<ExpressionFields {site} expression={text} {type} inline />

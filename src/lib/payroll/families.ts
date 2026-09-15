@@ -52,7 +52,10 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	// period is measured to the exit date, because no later run will ever read those days.
 	const attendance = bundle.attendance;
 	const employed = bundle.employedDays;
-	const { allowanceWorkDayIds, allowanceWorkingDaysIn } = prepareAllowanceWork({ bundle });
+	const { allowanceWorkDayIds, allowanceWorkingDaysIn } = prepareAllowanceWork({
+		bundle,
+		configuration
+	});
 
 	if (employed == null) {
 		const currency = configuration.jurisdiction.payroll.currency;
@@ -490,6 +493,8 @@ export function prepareFamilyCatalogues(options: {
 	readonly companyId: string;
 	readonly windowStart: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
 	readonly windowEnd: import('../../collections/payroll_runs/lib/dates.js').IsoDate;
+	readonly shiftRows: Parameters<typeof prepareWorkCatalogue>[0]['shiftRows'];
+	readonly patternRows: Parameters<typeof prepareWorkCatalogue>[0]['patternRows'];
 }) {
 	return Effect.gen(function* () {
 		const catalogue = { api: options.api, settingsId: options.jurisdiction.id };
@@ -527,14 +532,25 @@ export function prepareFamilyCatalogues(options: {
 export function prepareFamilyObligations(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
-	readonly employmentIds: readonly string[];
+	readonly employments: readonly { readonly id: string }[];
 	readonly period: string;
 	readonly asOf: string;
 	readonly periodWindow: { readonly start: string; readonly end: string };
 }) {
 	return Effect.gen(function* () {
 		const [leaveByEmployment, money] = yield* Effect.all(
-			[prepareLeavePayroll(options), prepareMoneyInputs(options)],
+			[
+				prepareLeavePayroll({
+					api: options.api,
+					employments: options.employments,
+					versions: options.configuration.lineageVersions,
+					currency: options.configuration.jurisdiction.payroll.currency
+				}),
+				prepareMoneyInputs({
+					...options,
+					employmentIds: options.employments.map((row) => row.id)
+				})
+			],
 			{ concurrency: 'unbounded' }
 		);
 		return { leaveByEmployment, requestsByEmployment: money.requestsByEmployment };

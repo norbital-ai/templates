@@ -79,7 +79,10 @@ test('Singapore — the graduated $500-to-$750 CPF band is a monthly award on th
 
 test('Singapore — the SPR first- and second-year graduated ladders', () => {
 	// `employee.residency_months` counts from `employment_terms.residency_since` to the period end,
-	// 2026-01-31 here: 7 months, 12 months and 36 months respectively.
+	// 2026-01-31 here: 7 months, 13 months and 36 months respectively. The second year of SPR
+	// status begins on the first day of the month after the first anniversary (CPF Board), so a
+	// person whose anniversary fell in January is still in year one this January; thirteen
+	// completed months is the first month of year two.
 	const book = assessStatutory({
 		code: 'SG',
 		period: '2026-01',
@@ -96,7 +99,7 @@ test('Singapore — the SPR first- and second-year graduated ladders', () => {
 				wage: 3000,
 				age: 30,
 				citizenship: 'PERMANENT_RESIDENT',
-				residency_since: '2025-01-15'
+				residency_since: '2024-12-15'
 			},
 			{
 				key: 'SPR-Y3',
@@ -225,6 +228,30 @@ test('Singapore — the 1 April 2026 version moves no contribution at all', () =
 	expectStatutory(book, 'SG-3000-30', 'SDL', 0, 7.5);
 	expectStatutory(book, 'SG-10000-30', 'SDL', 0, 11.25);
 	expectStatutory(book, 'SG-10000-30', 'SINDA', 12, 0);
+});
+
+test('Singapore — the December 2025 version carries the 2025 CPF tables', () => {
+	// CPF Board, CPF Contribution Rate Table from 1 January 2025: above 55 to 60 at 32.5%
+	// (15.5% employer, 17% employee), above 60 to 65 at 23.5% (12% / 11.5%), ordinary-wage ceiling
+	// $7,400. Everything else is the January 2026 version's.
+	const book = assessStatutory({
+		code: 'SG',
+		period: '2025-12',
+		people: [
+			{ key: 'SG-3000-30', wage: 3000, age: 30, citizenship: 'CITIZEN' },
+			{ key: 'SG-3000-57', wage: 3000, age: 57, citizenship: 'CITIZEN' },
+			{ key: 'SG-3000-62', wage: 3000, age: 62, citizenship: 'CITIZEN' },
+			{ key: 'SG-10000-30', wage: 10_000, age: 30, citizenship: 'CITIZEN' }
+		]
+	});
+	// 37% of 3,000 = 1,110; employee 20% = 600; employer 510 — unchanged from 2026.
+	expectStatutory(book, 'SG-3000-30', 'CPF', 600, 510);
+	// 32.5% of 3,000 = 975; employee 17% = 510; employer 465 (34% / 18% from January 2026).
+	expectStatutory(book, 'SG-3000-57', 'CPF', 510, 465);
+	// 23.5% of 3,000 = 705; employee 11.5% = 345; employer 360 (25% / 12.5% from January 2026).
+	expectStatutory(book, 'SG-3000-62', 'CPF', 345, 360);
+	// The $7,400 ceiling: 37% of 7,400 = 2,738; employee 1,480; employer 1,258.
+	expectStatutory(book, 'SG-10000-30', 'CPF', 1480, 1258);
 });
 
 test('every sealed version of `SG` is priced by a golden here', () => {

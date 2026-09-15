@@ -1,22 +1,11 @@
 /**
  * The work-rule value shapes shared by `work_rules` and the pricing modules.
  *
- * These lived under a `statutory_regime` custom datatype that the RFC removed; nothing binds that
- * type any more, so the two schemas the engine still reads — the overtime coverage rule and the
- * night premium — live here beside the rules that own them.
+ * These lived under a `statutory_regime` custom datatype that the RFC removed; the night premium
+ * schema the engine still reads lives here beside the rules that own it.
  */
 
-import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { Schema } from 'effect';
-
-export const overtimeCoverageValueSchema = Schema.Struct({
-	wage_ceiling: Schema.NullOr(MoneyValueSchema),
-	ceiling_is_inclusive: Schema.NullOr(Schema.Boolean),
-	wage_basis: Schema.NullOr(Schema.Literals(['STATUTORY_WAGES', 'BASE_SALARY'])),
-	category_basis: Schema.Literals(['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION']),
-	exempt_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1))),
-	excluded_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1)))
-});
 
 /** The day types the work-day context prices. A SPECIAL holiday is its own type. */
 export const RULE_DAY_TYPES = [

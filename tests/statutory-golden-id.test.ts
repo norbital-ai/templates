@@ -100,16 +100,18 @@ test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 ver
 	expectStatutory(book, 'ID-15M', 'JP', 105_474, 210_948); // 1% and 2% of the ceiling
 	expectStatutory(book, 'ID-25M', 'JP', 105_474, 210_948);
 
-	// JKK, recomposed by PP 49/2023 Ps.16A for a worker registered in JKP: group II is 0.40%.
-	expectStatutory(book, 'ID-5M', 'JKK', 0, 20_000);
-	expectStatutory(book, 'ID-15M', 'JKK', 0, 60_000);
+	// JKK at the PP 44/2015 Ps.16(1) group rate — group II is 0.54% — which is what BPJS
+	// Ketenagakerjaan bills the employer; PP 37/2021 Ps.11 (PP 6/2025) funds JKP by recomposing
+	// 0.14% out of it, never as a second line.
+	expectStatutory(book, 'ID-5M', 'JKK', 0, 27_000);
+	expectStatutory(book, 'ID-15M', 'JKK', 0, 81_000);
 	// JKM 0.30%: PP 6/2025 art.11 ended the PP 49/2023 recomposition, so the full 0.30% is charged.
 	expectStatutory(book, 'ID-5M', 'JKM', 0, 15_000);
 	expectStatutory(book, 'ID-15M', 'JKM', 0, 45_000);
-	// JKP: only the 0.14% recomposed out of JKK is an employer charge (PP 49/2023 Ps.16A with
-	// PP 6/2025 art.11); the rest is the central government's and never reaches a payslip.
-	expectStatutory(book, 'ID-5M', 'JKP', 0, 7_000);
-	expectStatutory(book, 'ID-15M', 'JKP', 0, 21_000);
+	// JKP: 0.36% of the wage capped at Rp5,000,000 — 0.22% the central government's, 0.14%
+	// recomposed out of the JKK contribution above — so nothing further reaches the payslip.
+	expectStatutory(book, 'ID-5M', 'JKP', 0, 0);
+	expectStatutory(book, 'ID-15M', 'JKP', 0, 0);
 
 	// BPJS Kesehatan: 5% — 1% participant, 4% employer — on a salary FLOORED at the workplace's
 	// UMK/UMP and capped at Rp 12,000,000.
@@ -120,15 +122,12 @@ test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 ver
 	expectStatutory(book, 'ID-15M', 'KESEHATAN', 120_000, 480_000);
 });
 
-test('Indonesia — BPJS Kesehatan charges for a family member past the fifth', () => {
-	// Perpres 82/2018 art.30(4): the 1%/4% covers a household of five — the worker, a spouse and
-	// three children — and each member past that costs the WORKER a further 1%. The employer's 4%
-	// never moves, because it insures the employee and not their household.
-	//
-	// It was seeded as nothing at all, and was recorded as unreachable because `dependents_count`
-	// counts children. It counts children, but `spouse_status` says whether there is a spouse, so
-	// the household is known: worker + spouse + children.
-	const household = (children: number, spouse: string | null) =>
+test('Indonesia — BPJS Kesehatan covers the household of five; a further member is elected', () => {
+	// Perpres 82/2018 art.5(1): the 1%/4% covers the worker, a spouse and up to three children.
+	// art.5(3)–(4): a fourth child, a parent or a parent-in-law MAY be enrolled, and art.36 prices
+	// each at 1% of the wage, paid by the worker — an election on a mandate, so the household count
+	// never charges it by itself; the enrolment is a rate override on the registration.
+	const household = (children: number, spouse: string | null, rate?: number) =>
 		assessStatutory({
 			...idWorld('2026-01'),
 			region: 'Kabupaten Bekasi',
@@ -139,25 +138,37 @@ test('Indonesia — BPJS Kesehatan charges for a family member past the fifth', 
 					age: 35,
 					marital_status: spouse == null ? 'SINGLE' : 'MARRIED',
 					...(spouse == null ? {} : { spouse_status: spouse }),
-					children
+					children,
+					...(rate == null
+						? {}
+						: { registrations: { KESEHATAN: { kind: 'REGISTERED', rate_override: rate } } })
 				}
 			]
 		});
-	const employee = (children: number, spouse: string | null) =>
-		chargeOf(household(children, spouse), 'ID-FAMILY', 'KESEHATAN').employee;
+	const employee = (children: number, spouse: string | null, rate?: number) =>
+		chargeOf(household(children, spouse, rate), 'ID-FAMILY', 'KESEHATAN').employee;
 
-	// 1% of 8,000,000 is one share. The covered five cost exactly that.
-	assert.equal(employee(0, null), 80_000, 'a worker alone');
-	assert.equal(employee(3, 'WITHOUT_INCOME'), 80_000, 'worker, spouse and three children');
-	// A sixth and a seventh member cost one share each.
-	assert.equal(employee(4, 'WITHOUT_INCOME'), 160_000);
-	assert.equal(employee(5, 'WITH_INCOME'), 240_000, 'a spouse counts whether or not they earn');
+	// 1% of 8,000,000, whatever the household: a worker alone, a family of five, a family of seven.
+	assert.equal(employee(0, null), 80_000);
+	assert.equal(employee(3, 'WITHOUT_INCOME'), 80_000);
+	assert.equal(employee(5, 'WITH_INCOME'), 80_000);
+	// Two further members enrolled: 1% each on top, carried as a 3% override.
+	assert.equal(employee(5, 'WITH_INCOME', 3), 240_000);
 	// The employer's leg is unmoved throughout.
-	for (const [children, spouse] of [
-		[0, null],
-		[5, 'WITH_INCOME']
-	] as const)
-		assert.equal(chargeOf(household(children, spouse), 'ID-FAMILY', 'KESEHATAN').employer, 320_000);
+	assert.equal(
+		chargeOf(household(5, 'WITH_INCOME', 3), 'ID-FAMILY', 'KESEHATAN').employer,
+		320_000
+	);
+});
+
+test('Indonesia — an unrecorded PTKP status withholds as TK/0', () => {
+	// Category A (TK/0, TK/1, K/0) is the default: a person whose marital status is not recorded
+	// reads as TK/0, so the TER A ladder governs rather than no ladder at all.
+	const book = assessStatutoryUnvalidated({
+		...idWorld('2026-01'),
+		people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
+	});
+	expectStatutory(book, 'ID-BLANK-15M', 'PPH21', 900_000, 0);
 });
 
 test('Indonesia — the JP ceiling moves on 1 March 2026', () => {
@@ -230,9 +241,11 @@ test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025
 	expectStatutory(book, 'ID-5M', 'JHT', 100_000, 185_000);
 	expectStatutory(book, 'ID-15M', 'JP', 105_474, 210_948);
 	// JKK group II 0.40%, JKM 0.30% and the employer's 0.14% of JKP, all employer-borne.
-	expectStatutory(book, 'ID-5M', 'JKK', 0, 20_000);
+	expectStatutory(book, 'ID-5M', 'JKK', 0, 27_000);
 	expectStatutory(book, 'ID-5M', 'JKM', 0, 15_000);
-	expectStatutory(book, 'ID-5M', 'JKP', 0, 7_000);
+	// JKP: PP 37/2021 Ps.11 as amended by PP 6/2025 recomposes the employer's share from JKK,
+	// so the JKP line itself is 0/0 on this version too.
+	expectStatutory(book, 'ID-5M', 'JKP', 0, 0);
 	// PMK 168/2023 TER A: 5,000,000 is inside bracket 1 at 0.00%; 15,000,000 is in the
 	// 13,750,001–15,100,000 bracket at 6.00% → 900,000.
 	expectStatutory(book, 'ID-5M', 'PPH21', 0, 0);

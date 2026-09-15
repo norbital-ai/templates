@@ -5,7 +5,7 @@ import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expression
 /** The CEL break rule one settings version carries (RFC 0001 §5). */
 const workBreakLikeSchema = Schema.Struct({
 	when: Schema.String,
-	owed_minutes: Schema.Union([Schema.Number, Schema.String]),
+	owed_minutes: Schema.String,
 	counts_as_worked_time: Schema.NullOr(Schema.Boolean)
 });
 export type BreakRuleLike = Schema.Schema.Type<typeof workBreakLikeSchema>;
@@ -168,14 +168,11 @@ export function selectBreakRule(
 			continuous_attendance: facts.continuousAttendance
 		});
 		if (!matches) continue;
-		const owed =
-			typeof rule.owed_minutes === 'number'
-				? rule.owed_minutes
-				: evaluateNumber(expressionEngine, rule.owed_minutes, {
-						consecutive_hours: facts.consecutiveHours,
-						overtime_hours: facts.overtimeHours,
-						continuous_attendance: facts.continuousAttendance
-					});
+		const owed = evaluateNumber(expressionEngine, rule.owed_minutes, {
+			consecutive_hours: facts.consecutiveHours,
+			overtime_hours: facts.overtimeHours,
+			continuous_attendance: facts.continuousAttendance
+		});
 		return {
 			when: rule.when,
 			minimum_minutes: Number.isFinite(owed) ? owed : null,

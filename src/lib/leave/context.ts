@@ -100,12 +100,10 @@ export type LeaveContext = {
 		| 'name'
 		| 'eligibility'
 		| 'entitlement'
-		| 'is_statutory'
 		| 'destination'
 		| 'direction'
 		| 'evidence_after_days'
 		| 'paid'
-		| 'bands'
 	>[];
 	holidays: Pick<
 		WorkspaceRow<'jurisdiction_holidays'>,
@@ -307,12 +305,10 @@ export function readLeaveContext(
 					name: true,
 					eligibility: true,
 					entitlement: true,
-					is_statutory: true,
 					destination: true,
 					direction: true,
 					evidence_after_days: true,
-					paid: true,
-					bands: true
+					paid: true
 				},
 				limit: LIMIT
 			}),

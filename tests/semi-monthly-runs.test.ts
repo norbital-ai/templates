@@ -266,7 +266,6 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
 		settings_id: JURISDICTION_ID,
-		is_statutory: true,
 		code: 'PUB-TAX',
 		name: 'Public fixture withholding',
 		authority: 'Public fixture',
@@ -277,29 +276,22 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		approval_id: null,
 		rules: [{ when: 'true', employee: PUB_TAX_EMPLOYEE, employer: '0.0' }]
 	});
-	const workSchemeIds = ['PUB-EPF', 'PUB-TAX'].flatMap((code) => {
+	// Both schemes charge every work line and every money catalogue row (RFC 0003 §1).
+	for (const code of ['PUB-EPF', 'PUB-TAX']) {
 		const row = world.statutory_contributions.find((candidate) => candidate.code === code);
-		return row == null ? [] : [row.id as string];
-	});
-	for (const version of world.jurisdiction_settings) {
-		const rules = version.work_rules as {
-			engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
-			rates: { bands: { statutory_opt_ins: unknown[] }[] };
+		if (row == null) continue;
+		row.base = {
+			salary: true,
+			absence: true,
+			overtime: true,
+			night_premium: true,
+			entries: [
+				...world.claim_catalogue.map((item) => ({ family: 'CLAIM', code: item.code })),
+				...world.allowance_catalogue.map((item) => ({ family: 'ALLOWANCE', code: item.code })),
+				...world.payment_catalogue.map((item) => ({ family: 'PAYMENT', code: item.code })),
+				...world.loan_catalogue.map((item) => ({ family: 'LOAN', code: item.code }))
+			]
 		};
-		const include = workSchemeIds.map((id) => ({ contribution_id: id, effect: 'INCLUDE' }));
-		const reduce = workSchemeIds.map((id) => ({ contribution_id: id, effect: 'REDUCE' }));
-		rules.engine_lines.salary.statutory_opt_ins = include;
-		rules.engine_lines.night.statutory_opt_ins = include;
-		rules.engine_lines.absence.statutory_opt_ins = reduce;
-		for (const band of rules.rates.bands) band.statutory_opt_ins = include;
-		for (const catalogue of [
-			world.claim_catalogue,
-			world.allowance_catalogue,
-			world.payment_catalogue,
-			world.loan_catalogue
-		])
-			for (const component of catalogue)
-				for (const band of component.bands) band.statutory_opt_ins = include;
 	}
 
 	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB-TAX');

@@ -37,7 +37,6 @@ import {
 	type SettlementDestination,
 	type SettlementDirection
 } from './family.js';
-import { aliasedOptIns, loadOptInAliases, type OptInAliases } from './contribution.js';
 
 type MeasureRecoveryOptions = {
 	readonly bundle: EmploymentBundle;
@@ -202,7 +201,6 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 			input: { family: 'LOAN_REPAYMENT', id: repayment.id },
 			catalogueComponent: component,
 			bucket: settlementBucket(component.destination, component.direction),
-			optIns: component.optIns ?? [],
 			label: component.code,
 			amount,
 			quantity: null,
@@ -327,18 +325,7 @@ export function prepareLoanPayroll(options: {
 		);
 		options.api.reads.assertComplete(catalogueRows, 'agreed loan catalogue');
 		options.api.reads.assertComplete(repayments, 'loan repayments');
-		// A loan pins the catalogue revision it was agreed under; its opt-ins still charge the
-		// schemes of the version in force (RFC 0002 §6).
-		const aliases = yield* loadOptInAliases({
-			api: options.api,
-			configuration: options.configuration,
-			ids: catalogueRows.flatMap((row) =>
-				row.bands.flatMap((band) => band.statutory_opt_ins.map((optIn) => optIn.contribution_id))
-			)
-		});
-		const agreedById = new Map(
-			live(catalogueRows).map((row) => [row.id, loanComponent(row, aliases)])
-		);
+		const agreedById = new Map(live(catalogueRows).map((row) => [row.id, loanComponent(row)]));
 		const loans = rawLoans.map((loan): PreparedLoan => {
 			const catalogueComponent = agreedById.get(loan.loan_catalogue_id);
 			if (catalogueComponent == null)
@@ -367,20 +354,12 @@ export function prepareLoanCatalogue(options: {
 }
 
 /** One stored catalogue row as the engine's pay line; a loan recovery is never anything else. */
-const loanComponent = (
-	row: WorkspaceRow<'loan_catalogue'>,
-	aliases: OptInAliases = new Map()
-): LoanComponent => ({
+const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
 	...row,
 	family: 'LOAN' as const,
 	// The enum columns arrive as text at the database boundary; the model constrains them to the
 	// §9 vocabulary, so the engine restates it once here.
 	destination: row.destination as SettlementDestination,
 	direction: row.direction as SettlementDirection | null,
-	// A loan recovery is engine-priced; its bands can only carry opt-ins, so every one is kept.
-	optIns: aliasedOptIns(
-		row.bands.flatMap((band) => band.statutory_opt_ins),
-		aliases
-	),
 	definition: { source: 'ENTRY' as const }
 });

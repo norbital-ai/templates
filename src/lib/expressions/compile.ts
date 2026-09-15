@@ -18,6 +18,15 @@ import {
 
 const KEYWORDS = new Set(['true', 'false', 'null', 'in']);
 
+/** How a refusal names what the field returns. */
+const RETURNS: Readonly<Record<ExpressionType, string>> = {
+	boolean: 'a boolean',
+	money: 'a money amount',
+	hours: 'a number of hours',
+	minutes: 'a number of minutes',
+	days: 'a number of days'
+};
+
 /**
  * Compiled by the same environment the run evaluates with (`programFor`), so a function an
  * expression may call is callable in both and a stand-in list cannot drift from the real one.
@@ -113,7 +122,7 @@ export function compileExpression(options: {
 			: typeof value === 'number' || typeof value === 'bigint';
 	if (!ok)
 		return (
-			`The ${options.site} expression must produce ${options.type === 'boolean' ? 'a boolean' : 'a number'}; ` +
+			`The ${options.site} expression must produce ${RETURNS[options.type]}; ` +
 			`this one produces ${describe(value)}.`
 		);
 	return null;

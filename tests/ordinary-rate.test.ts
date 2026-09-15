@@ -6,85 +6,45 @@ import { accumulateBases } from '../src/collections/payroll_runs/lib/accumulate.
 import { COMPANY_ID, createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import {
-	ordinaryHourlyRate,
-	resolveOrdinaryRate
+	ordinaryDivisorDays,
+	ordinaryHourlyRate
 } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 
-type WorkRules = {
-	engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
-	rates: {
-		ordinary: { when: string; unit: 'DAY' | 'HOUR'; divisor: number | 'WORKING_DAYS' }[];
-		bands: { line: string; label: string; statutory_opt_ins: unknown[] }[];
-	};
-};
-
-const rulesOf = (world: ReturnType<typeof createPublicPayrollWorld>): WorkRules =>
-	world.jurisdiction_settings[0]!.work_rules as WorkRules;
-
-test('the ordinary rate is the first row whose predicate holds; WORKING_DAYS is the month’s working days', () => {
-	const rows = [
-		{ when: 'terms.basic_salary < 20000', unit: 'DAY', divisor: 'WORKING_DAYS' },
-		{ when: 'terms.grade == "M1"', unit: 'HOUR', divisor: 173 },
-		{ when: '', unit: 'DAY', divisor: 26 }
-	] as const;
-	const person = (terms: Record<string, unknown>) =>
+test('the ordinary rate divisor is one expression over the person; period.working_days is the month’s', () => {
+	const expression =
+		'terms.basic_salary < 20000.0 ? period.working_days : terms.grade == "M1" ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 26.0';
+	const person = (terms: Record<string, unknown>, workingDays = 22) =>
 		personContext({
 			employee: null,
 			employment: { service_start: '2024-01-01' },
 			terms,
+			week: { ordinary_hours_per_week: 48, working_days_per_week: 6 },
+			period: { working_days: workingDays },
 			asOf: '2026-03-31'
 		});
-	const workingDays = () => 22;
-	assert.deepEqual(
-		resolveOrdinaryRate({ rows, person: person({ base_salary: { value: 3451 } }), workingDays }),
-		{ per: 'DAY', divisor: 22 }
-	);
-	assert.deepEqual(
-		resolveOrdinaryRate({
-			rows,
-			person: person({ base_salary: { value: 30000 }, grade: 'M1' }),
-			workingDays
-		}),
-		{ per: 'HOUR', divisor: 173 }
-	);
-	assert.deepEqual(
-		resolveOrdinaryRate({ rows, person: person({ base_salary: { value: 30000 } }), workingDays }),
-		{ per: 'DAY', divisor: 26 }
-	);
-	// The resolved divisor is what prices an hour: 3,451 / 22 / 8.
+	const divisor = (terms: Record<string, unknown>, workingDays?: number) =>
+		ordinaryDivisorDays({ expression, person: person(terms, workingDays), employeeNumber: 'E1' });
+	assert.equal(divisor({ base_salary: { value: 3451 } }), 22);
+	// A statute stated in hours is hours over the contract's normal daily hours: 173 / 8.
+	assert.equal(divisor({ base_salary: { value: 30000 }, grade: 'M1' }), 21.625);
+	assert.equal(divisor({ base_salary: { value: 30000 } }), 26);
+	// The divisor is what prices an hour: 3,451 / 22 / 8.
 	const terms = {
 		base_salary: { value: 3451, currency: 'MYR' },
 		pay_frequency: 'MONTHLY',
 		ordinary_hours_per_week: 48,
 		working_days_per_week: 6
 	} as const;
-	assert.equal(
-		ordinaryHourlyRate(terms, { rates: { ordinary: rows } } as never, { per: 'DAY', divisor: 22 }),
-		19.61
+	assert.equal(ordinaryHourlyRate(terms, 22), 19.61);
+	// A month with no working days under a WORKING_DAYS divisor stops the run by name.
+	assert.throws(
+		() => divisor({ base_salary: { value: 3451 } }, 0),
+		/must be a positive number of days/
 	);
 	assert.throws(
-		() =>
-			resolveOrdinaryRate({
-				rows: rows.slice(0, 2),
-				person: person({ base_salary: { value: 30000 } }),
-				workingDays,
-				employeeNumber: 'E1'
-			}),
-		/No ordinary rate row covers E1/
-	);
-	assert.throws(
-		() =>
-			resolveOrdinaryRate({
-				rows,
-				person: person({ base_salary: { value: 3451 } }),
-				workingDays: () => 0
-			}),
-		/the month has none/
-	);
-	assert.throws(
-		() => resolveOrdinaryRate({ rows: [], person: person({}), workingDays }),
-		/no ordinary rate/
+		() => ordinaryDivisorDays({ expression: '', person: person({}) }),
+		/no ordinary rate divisor/
 	);
 });
 
@@ -104,7 +64,7 @@ test('Work uses the version’s own rules, and its pay items settle under them',
 	assert.ok(workItems.every((row) => !row.id.startsWith('engine:')));
 });
 
-test('Contribution consumes Work metadata: opt-ins include, silence excludes', async () => {
+test('Contribution reads the scheme’s declaration: salary adds, absence reduces, silence excludes', async () => {
 	const world = createPublicPayrollWorld();
 	world.statutory_contributions.push({
 		id: 'scheme',
@@ -114,11 +74,9 @@ test('Contribution consumes Work metadata: opt-ins include, silence excludes', a
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
-		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
+		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }],
+		base: { salary: true, absence: true, overtime: false, night_premium: false, entries: [] }
 	});
-	const rules = rulesOf(world);
-	rules.engine_lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
-	rules.engine_lines.absence.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'REDUCE' }];
 	const { configuration } = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 	);
@@ -126,13 +84,7 @@ test('Contribution consumes Work metadata: opt-ins include, silence excludes', a
 		.filter((row) => row.family === 'WORK')
 		.map((row) => ({
 			catalogueComponent: row,
-			bucket: 'EARNING',
-			optIns:
-				row.output === 'salary'
-					? rules.engine_lines.salary.statutory_opt_ins
-					: row.output === 'absence'
-						? rules.engine_lines.absence.statutory_opt_ins
-						: [],
+			bucket: row.output === 'absence' ? 'ABSENCE' : 'EARNING',
 			label: 'A label with no classification information',
 			amount: row.output === 'salary' ? 1000 : row.output === 'absence' ? 50 : 100
 		}));
@@ -150,10 +102,9 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
-		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }]
+		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }],
+		base: { salary: true, absence: false, overtime: false, night_premium: false, entries: [] }
 	});
-	const rules = rulesOf(world);
-	rules.engine_lines.salary.statutory_opt_ins = [{ contribution_id: 'scheme', effect: 'INCLUDE' }];
 	// Every rostered day punched over its shift: nothing is absent, so the line is never priced.
 	const variant = world.shift_definitions[0]!.variant as {
 		start_time: string;

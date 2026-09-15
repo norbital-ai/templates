@@ -15,9 +15,10 @@ export default defineModel(
 		settings_id: uuid().notNull(),
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }).notNull(),
-		/** The law names it (cited by `authority`); a company-rule scheme is the entity's own levy. */
-		is_statutory: boolean().notNull().default(true),
-		/** The section of law transcribed; the hook requires it when `is_statutory`. */
+		/**
+		 * The section of law transcribed. A scheme that cites one is statutory and the drift automation
+		 * watches it; a company-rule scheme is the entity's own levy and cites nothing.
+		 */
 		authority: text(),
 		/**
 		 * The span the scheme is assessed over. `MONTH` states that its rules are a monthly schedule —
@@ -42,11 +43,17 @@ export default defineModel(
 		 */
 		rules: custom('contribution_rules')
 			.notNull()
-			.default(sql`'[]'::jsonb`)
+			.default(sql`'[]'::jsonb`),
+		/** What this scheme charges: the work lines and catalogue rows in its base; see `datatypes/contribution_base`. */
+		base: custom('contribution_base')
+			.notNull()
+			.default(
+				sql`'{"salary":false,"absence":false,"overtime":false,"night_premium":false,"entries":[]}'::jsonb`
+			)
 	},
 	{
 		description:
-			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with the rules that select and price its charge. Sealed with its version. A rule that names `produced.<code>.employee|employer` depends on that scheme; there is no sequence and no relief junction. Source families declare the statutory opt-ins of their monetary outputs.',
+			'One statutory scheme of one jurisdiction settings version — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with the rules that select and price its charge. Sealed with its version. A rule that names `produced.<code>.employee|employer` depends on that scheme; there is no sequence and no relief junction. Each scheme declares the base it charges.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

@@ -1,13 +1,13 @@
 /** Work owns schedules, contracted wages, attendance, and the rates supplied to Leave. */
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import type { WorkspaceRow } from '$bolt/types.js';
 import { offsetMinutesFor } from '../timezone.js';
 import type { MoneyValue } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
 import type {
 	CatalogueComponent,
-	Configuration,
-	OvertimeCoverageRule
+	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
 import type { EmploymentBundle, GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 import {
@@ -20,10 +20,8 @@ import type { PayslipProration } from '../../datatypes/payslip_proration/+defini
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
 import {
 	classifyWageComparand,
-	decideOvertimeCoverage,
-	deriveStatutoryWages,
-	type WageBasis
-} from '../../collections/payroll_runs/lib/coverage.js';
+	deriveStatutoryWages
+} from '../../collections/payroll_runs/lib/statutory-wages.js';
 import {
 	dateKey,
 	daysBetween,
@@ -51,7 +49,7 @@ import {
 	absenceDayRate,
 	ordinaryDayWage,
 	ordinaryHourlyRate,
-	resolveOrdinaryRate,
+	ordinaryDivisorDays,
 	type RateTerms
 } from '../../collections/payroll_runs/lib/ordinary-rate.js';
 import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
@@ -61,7 +59,6 @@ import type { ScheduledDay } from '../../collections/payroll_runs/lib/schedule.j
 import { PAY_FREQUENCIES, type PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 import {
 	validateDailyOvertimeHoursLimit,
-	validateOptIns,
 	validateDailyWorkLimit,
 	validateOpenWorkDays,
 	validateOvertimeLimits,
@@ -97,6 +94,9 @@ export function prepareWorkCatalogue(options: {
 	readonly companyId: string;
 	readonly windowStart: IsoDate;
 	readonly windowEnd: IsoDate;
+	/** The company's roster vocabulary, read once by the configuration and handed down. */
+	readonly shiftRows: readonly WorkspaceRow<'shift_definitions'>[];
+	readonly patternRows: readonly WorkspaceRow<'shift_patterns'>[];
 }): Effect.Effect<
 	Pick<
 		Configuration,
@@ -105,35 +105,17 @@ export function prepareWorkCatalogue(options: {
 		| 'limits'
 		| 'breaks'
 		| 'nightPremium'
-		| 'overtimeCoverageRule'
 		| 'shiftById'
 		| 'patternById'
 	>
 > {
 	return Effect.gen(function* () {
-		const { jurisdiction, windowStart, windowEnd } = options;
-		const db = options.api.db;
-		const approved = { approval_id: { isNull: true } } as const;
-		const [shiftRows, patternRows] = yield* Effect.all(
-			[
-				db.shift_definitions.findMany({
-					where: { company_id: { eq: options.companyId }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.shift_patterns.findMany({
-					where: { company_id: { eq: options.companyId }, ...approved },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const { jurisdiction, windowStart, windowEnd, shiftRows, patternRows } = options;
 		const work: Configuration['work'] = {
 			...jurisdiction.work_rules,
 			settings_id: jurisdiction.id,
 			jurisdiction_code: jurisdiction.jurisdiction_code
 		};
-		options.api.reads.assertComplete(shiftRows, 'shift definitions');
-		options.api.reads.assertComplete(patternRows, 'shift patterns');
 		const shifts = live(shiftRows).filter((row) =>
 			overlapsRange(row.effective_range, windowStart, windowEnd)
 		);
@@ -143,7 +125,6 @@ export function prepareWorkCatalogue(options: {
 			limits: work.limits,
 			breaks: work.breaks,
 			nightPremium: work.night_premium ?? null,
-			overtimeCoverageRule: work.coverage,
 			shiftById: new Map(shifts.map((row) => [row.id, row])),
 			// A terms row still names its original pattern after that pattern's effective range ends.
 			patternById: new Map(live(patternRows).map((row) => [row.id, row]))
@@ -225,53 +206,6 @@ export function prepareWorkInputs(options: {
 			workHolidayEvidence: { inputs: workHolidayInputs, holidays: live(workHolidays) }
 		};
 	});
-}
-
-/** Everything `isStatutoryOvertimePayCovered` tests: the jurisdiction's rule and one employment's facts. */
-type StatutoryOvertimeCoverageOptions = {
-	readonly rule: OvertimeCoverageRule | null;
-	readonly jurisdictionCode: string;
-	readonly wages: Partial<Record<WageBasis, MoneyValue>>;
-	readonly statutoryWorkCategory: string | null;
-	readonly workClassification: string | null;
-	readonly employeeNumber: string;
-	/** The Work catalogue's citation, quoted when the rule cannot be applied. */
-	readonly authority?: string | null;
-};
-
-/**
- * Statutory OT / rest-day / holiday pay coverage, from the jurisdiction's own cited rule.
- *
- * The wage figures are passed in by basis, each filed under the basis it genuinely is. The caller
- * can produce both: `BASE_SALARY` from the employment terms, and `STATUTORY_WAGES` derived per
- * Employment Act 1955 s.2 as narrowed by First Schedule para 3 — basic plus every other cash
- * payment for work done, less overtime pay — from the components and their entries settling
- * in this run (see `deriveStatutoryWages`). A rule is only ever answered from the basis it names.
- */
-export function isStatutoryOvertimePayCovered(options: StatutoryOvertimeCoverageOptions): boolean {
-	const decision = decideOvertimeCoverage(options.rule, {
-		statutoryWorkCategory: options.statutoryWorkCategory,
-		workClassification: options.workClassification,
-		wages: options.wages
-	});
-	if (decision.outcome !== 'UNDETERMINED') return decision.outcome === 'COVERED';
-
-	// There is no warning tier left — every run issue fails the run — so an input the rule needs and
-	// the engine cannot supply stops payroll and names itself, rather than being quietly rounded to
-	// a boolean that decides someone's overtime.
-	const authority = options.authority ?? 'the effective coverage rule';
-	if (decision.reason === 'CEILING_CURRENCY_MISMATCH')
-		throw new Error(
-			`${options.employeeNumber}: the ${options.jurisdictionCode} overtime coverage ceiling is ` +
-				`stated in a different currency from their wages, so it cannot be applied. Authority: ${authority}.`
-		);
-	throw new Error(
-		`${options.employeeNumber}: the ${options.jurisdictionCode} overtime coverage rule tests ` +
-			`${decision.requiredBasis === 'STATUTORY_WAGES' ? 'statutory wages' : 'base salary'}, and this ` +
-			'run could not produce that figure for them. Record the statutory comparand required by ' +
-			'the effective coverage rule. ' +
-			`Authority: ${authority}.`
-	);
 }
 
 function termsIdentity(terms: EmploymentBundle['terms'][number]): string {
@@ -524,20 +458,20 @@ export function prepareWorkContext(
 		},
 		children: bundle.children,
 		company: configuration.company,
+		// The pay month's working days, so a divisor expression can name `period.working_days`.
+		period: { working_days: workingDaysIn(monthBounds(monthKey(options.salary.start))) },
 		asOf: options.salary.end
 	});
 
 	// The overtime hour is the jurisdiction's ordinary hourly rate and nothing a company chooses:
-	// the first ordinary-rate row that covers this person, a WORKING_DAYS divisor being the pay
-	// month's scheduled working days.
-	const ordinaryRate = resolveOrdinaryRate({
-		rows: configuration.work.rates.ordinary,
+	// the version's own divisor expression, evaluated over this person (RFC 0003 §2.1).
+	const divisorDays = ordinaryDivisorDays({
+		expression: configuration.work.ordinary_divisor_days,
 		person: subject,
-		workingDays: () => workingDaysIn(monthBounds(monthKey(options.salary.start))),
 		employeeNumber: bundle.employment.employee_number
 	});
-	const hourlyRate = ordinaryHourlyRate(rateTerms, configuration.work, ordinaryRate);
-	const dayWage = ordinaryDayWage(rateTerms, configuration.work, ordinaryRate);
+	const hourlyRate = ordinaryHourlyRate(rateTerms, divisorDays);
+	const dayWage = ordinaryDayWage(rateTerms, divisorDays);
 
 	const absenceRate = (charge: LeaveCharge): number => {
 		const term = bundle.termsHistory.find(
@@ -572,7 +506,6 @@ export function prepareWorkContext(
 		currency,
 		hourlyRate,
 		dayWage,
-		ordinaryRate,
 		complianceWindow,
 		schedule,
 		coverage,
@@ -659,17 +592,11 @@ export function calculateWorkAttendance(
 				amount: entryTotalByComponentId.get(component.id) ?? 0
 			}))
 	});
-	const paymentEligible = isStatutoryOvertimePayCovered({
-		rule: configuration.overtimeCoverageRule,
-		jurisdictionCode: countryOf(configuration.jurisdiction.code),
-		wages: {
-			BASE_SALARY: rateTerms.base_salary,
-			STATUTORY_WAGES: statutoryWages
-		},
-		statutoryWorkCategory: closingTerms.statutory_work_category,
-		workClassification: closingTerms.work_classification,
-		employeeNumber: bundle.employment.employee_number,
-		authority: configuration.work.authority
+	// Who the overtime ladder covers is the version's own predicate over the person, read with the
+	// statutory wage comparand this run derived (RFC 0003 §2.2).
+	const paymentEligible = isEligible(configuration.work.overtime_when, {
+		...subject,
+		terms: { ...subject.terms, statutory_wages: statutoryWages.value }
 	});
 	// The running month counter a band reads as `month_overtime_hours`: regulated OT so far this
 	// calendar month, including this day.
@@ -1065,7 +992,6 @@ function measureAbsence(options: {
 		input: { family: 'WORK_DAY' as const, id: day.id },
 		catalogueComponent: component,
 		bucket: settlementBucket(component.destination, component.direction),
-		optIns: component.optIns ?? [],
 		label: component.code,
 		amount: cents(options.dayWage * day.days),
 		quantity: day.days,
@@ -1107,7 +1033,6 @@ function measureNightPremium(options: {
 				input: { family: 'WORK_DAY' as const, id: day.id },
 				catalogueComponent: component,
 				bucket: settlementBucket(component.destination, component.direction),
-				optIns: component.optIns ?? [],
 				label: component.code,
 				amount,
 				quantity: day.ordinary + day.overtime,
@@ -1159,7 +1084,6 @@ function measureWorkBands(options: {
 				input: { family: 'WORK_DAY', id: row.workDayId },
 				catalogueComponent: component,
 				bucket: settlementBucket(component.destination, component.direction),
-				optIns: component.optIns ?? [],
 				label: row.label,
 				amount: cents(row.amount),
 				quantity: row.hours,
@@ -1244,18 +1168,12 @@ export function validateWorkResult(options: {
 }): RunIssue[] {
 	const { configuration, measured } = options;
 	const { bundle } = measured;
-	const issues: RunIssue[] = validateOptIns({
+	const issues: RunIssue[] = validateOvertimeLimits({
 		configuration,
-		adjustments: measured.adjustments
+		employeeNumber: bundle.employment.employee_number,
+		hoursByMonth: measured.calendarMonthOvertimeHours,
+		priorHoursByMonth: options.priorOvertimeHours ?? new Map()
 	});
-	issues.push(
-		...validateOvertimeLimits({
-			configuration,
-			employeeNumber: bundle.employment.employee_number,
-			hoursByMonth: measured.calendarMonthOvertimeHours,
-			priorHoursByMonth: options.priorOvertimeHours ?? new Map()
-		})
-	);
 	// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
 	// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
 	// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than

@@ -4,7 +4,6 @@ import type { Api } from '$bolt/types.js';
 import { readRange } from '../collections/payroll_runs/lib/effective.js';
 import { describeVersion } from './jurisdiction_settings.js';
 import { dateKey } from './iso-day.js';
-import type { StatutoryOptIn } from '../datatypes/work_rules/+definition.js';
 
 /**
  * A new version of a jurisdiction settings lineage: one version and every row under it, cloned
@@ -130,9 +129,8 @@ type SettingsDraftOptions = Readonly<{
  * The write that creates the draft, pure over the tree. The root carries no id: a submitted id is
  * read as an update of a stored row, and the runtime assigns the draft's own.
  *
- * Scheme rows keep their codes under new ids, so every `statutory_opt_ins` reference is remapped
- * to the clone's scheme id (RFC 0002 §6): an opt-in is a foreign key to a scheme *of this version*,
- * and a clone that kept the predecessor's ids would point at another version's rows.
+ * Scheme rows keep their codes under new ids. A scheme's base names catalogue rows by family and
+ * code (RFC 0003 §1), so the clone carries every declaration unchanged.
  */
 export function settingsDraftWrite(
 	tree: SettingsVersionTree,
@@ -152,33 +150,6 @@ export function settingsDraftWrite(
 	if (sourceStart !== '' && options.starts_on <= sourceStart)
 		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
 	const schemeIds = new Map(schemes.map((scheme) => [scheme.id, crypto.randomUUID()]));
-	const remapOptIns = (optIns: readonly StatutoryOptIn[] | undefined): readonly StatutoryOptIn[] =>
-		(optIns ?? []).map((optIn) => ({
-			...optIn,
-			contribution_id: schemeIds.get(optIn.contribution_id) ?? optIn.contribution_id
-		}));
-	const remapBands = <T extends { readonly statutory_opt_ins?: readonly StatutoryOptIn[] }>(
-		band: T
-	): T => ({ ...band, statutory_opt_ins: remapOptIns(band.statutory_opt_ins) });
-	type WorkRules = NonNullable<Row<'jurisdiction_settings'>['work_rules']>;
-	const remapWorkRules = (work: WorkRules): WorkRules => ({
-		...work,
-		engine_lines: {
-			salary: {
-				...work.engine_lines.salary,
-				statutory_opt_ins: remapOptIns(work.engine_lines.salary.statutory_opt_ins)
-			},
-			absence: {
-				...work.engine_lines.absence,
-				statutory_opt_ins: remapOptIns(work.engine_lines.absence.statutory_opt_ins)
-			},
-			night: {
-				...work.engine_lines.night,
-				statutory_opt_ins: remapOptIns(work.engine_lines.night.statutory_opt_ins)
-			}
-		},
-		rates: { ...work.rates, bands: work.rates.bands.map(remapBands) }
-	});
 	const {
 		id: _sourceId,
 		approval_id: _approval,
@@ -202,35 +173,30 @@ export function settingsDraftWrite(
 			void_reason: null,
 			cloned_from_id: source.id,
 			effective_range: { start: `${options.starts_on}T00:00:00.000Z`, end: null },
-			work_rules: root.work_rules == null ? root.work_rules : remapWorkRules(root.work_rules),
+			work_rules: root.work_rules,
 			contribution_settings: schemes.map((scheme) => ({
 				...cloneRow(scheme),
 				id: schemeIds.get(scheme.id)!
 			})),
 			leave_catalogue_settings: catalogueLeaves.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID(),
-				bands: row.bands.map(remapBands)
+				id: crypto.randomUUID()
 			})),
 			loan_catalogue_settings: loanCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID(),
-				bands: row.bands.map(remapBands)
+				id: crypto.randomUUID()
 			})),
 			claim_catalogue_settings: claimCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID(),
-				bands: row.bands.map(remapBands)
+				id: crypto.randomUUID()
 			})),
 			allowance_catalogue_settings: allowanceCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID(),
-				bands: row.bands.map(remapBands)
+				id: crypto.randomUUID()
 			})),
 			payment_catalogue_settings: paymentCatalogue.map((row) => ({
 				...cloneRow(row),
-				id: crypto.randomUUID(),
-				bands: row.bands.map(remapBands)
+				id: crypto.randomUUID()
 			}))
 		}
 	};

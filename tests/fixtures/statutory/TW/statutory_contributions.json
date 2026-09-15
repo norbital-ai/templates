@@ -4,7 +4,6 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "LI",
 		"name": "Labor Insurance (勞工保險)",
-		"is_statutory": true,
 		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -81,14 +80,77 @@
 				"employee": "1053.4",
 				"employer": "3686.9"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "3f6aa8f0-0283-5343-93a2-6bac34a32650",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"is_statutory": true,
 		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -165,14 +227,77 @@
 				"employee": "91.6",
 				"employer": "320.6"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "cdc65bc6-3366-59f9-8811-ee46f58f9afe",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"is_statutory": true,
 		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -484,14 +609,77 @@
 				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) < 3.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) : 3.0) : 0.0)) * (4854.63))",
 				"employer": "15146.45"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "ce4ea72b-be8c-5a1c-bd57-55afaad43a6d",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
-		"is_statutory": true,
 		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -703,14 +891,77 @@
 				"employee": "0.0",
 				"employer": "9000.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "dc52e928-2f62-525c-98dd-1014d6135b55",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
-		"is_statutory": true,
 		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the 114年 勞工職業災害保險投保薪資分級表 (勞動部 113-11-15 勞動保3字第1130087585號令, 22 grades 28,590–72,800, in force 2025-01-01) grades the wage; the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class. The 民國115年 分級表 is stated on the later version as GRADE_LADDER; the 民國114年 one is not sourced, so this version carries the ceiling alone and grades nothing.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -992,14 +1243,77 @@
 				"employee": "(((ladder(base, [28590.0, 28800.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) - 0.0 > 0.0 ? (ladder(base, [28590.0, 28800.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) - 0.0 : 0.0)) * 0.0 / 100.0",
 				"employer": "(ladder(base, [28590.0, 28800.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) * 0.19 / 100.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "93bbdc51-5c38-5be0-9dd1-ddc3fa948461",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "INCOME_TAX",
 		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
-		"is_statutory": true,
 		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1011,14 +1325,77 @@
 				"employee": "(round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0) <= 2000 ? 0.0 : round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0))",
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "bc105840-066b-5058-9bdf-07ae2d82eb55",
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "INCOME_TAX_NON_RESIDENT",
 		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
-		"is_statutory": true,
 		"authority": "所得稅法第88條與各類所得扣繳率標準第3條第2款 — 18% of the payment to a non-resident, reduced to 6% where the full month's salary does not exceed 1.5× the Executive-Yuan-approved basic wage (NT$42,885 for this version). 各類所得扣繳率標準第13條's NT$2,000 floor does not apply to a non-resident.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1035,14 +1412,77 @@
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 18.0 / 100.0)",
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "LI",
 		"name": "Labor Insurance (勞工保險)",
-		"is_statutory": true,
 		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — an 11.5% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 12.5% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1114,14 +1554,77 @@
 				"employee": "1053.4",
 				"employer": "3686.9"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "ee03ba5c-5716-58e1-b58c-aa505e96c7b2",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"is_statutory": true,
 		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1193,14 +1696,77 @@
 				"employee": "91.6",
 				"employer": "320.6"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "fad78d69-2b64-502e-8ab5-2959909c0e27",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"is_statutory": true,
 		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1507,14 +2073,77 @@
 				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) < 3.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) : 3.0) : 0.0)) * (4854.63))",
 				"employer": "15146.45"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "68031cb2-4c64-5edb-9e30-435b8c986287",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
-		"is_statutory": true,
 		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1721,14 +2350,77 @@
 				"employee": "0.0",
 				"employer": "9000.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "bd43ec7d-061c-5324-9528-29abf401a245",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
-		"is_statutory": true,
 		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2010,14 +2702,77 @@
 				"employee": "(((ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) - 0.0 > 0.0 ? (ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) - 0.0 : 0.0)) * 0.0 / 100.0",
 				"employer": "(ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) * 0.19 / 100.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "4d2125a2-5ac8-51d3-b67d-0df689445aed",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "INCOME_TAX",
 		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
-		"is_statutory": true,
 		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2029,14 +2784,77 @@
 				"employee": "(round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0) <= 2000 ? 0.0 : round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0))",
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "2b04ad64-2e23-563c-898c-085ef5a15e21",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "INCOME_TAX_NON_RESIDENT",
 		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
-		"is_statutory": true,
 		"authority": "所得稅法第88條與各類所得扣繳率標準第3條第2款 — 18% of the payment to a non-resident, reduced to 6% where the full month's salary does not exceed 1.5× the Executive-Yuan-approved basic wage (NT$44,250 for this version). 各類所得扣繳率標準第13條's NT$2,000 floor does not apply to a non-resident.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2053,14 +2871,77 @@
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 18.0 / 100.0)",
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "LI",
 		"name": "Labor Insurance (勞工保險)",
-		"is_statutory": true,
 		"authority": "勞工保險條例第13條、第15條第1款與勞工保險投保薪資分級表 — a 12% ordinary-risk premium borne 20% by the insured, 70% by the insured unit and 10% by the central government; the insured-salary grade table IS the band ladder below. From 1 January 2027 勞工保險條例第13條 steps the ordinary rate from 11.5% to 12%; the 116年 投保薪資分級表 will be re-issued from the 116年 minimum wage, so the ladder below still carries the 115年 grades. Employment insurance is collected on the same ladder as the separate EI scheme, and the two together are the 13% combined premium the Bureau of Labor Insurance publishes. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2132,14 +3013,77 @@
 				"employee": "1099.2",
 				"employer": "3847.2"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "EI",
 		"name": "Employment Insurance (就業保險)",
-		"is_statutory": true,
 		"authority": "就業保險法第8條、第40條與勞工保險條例第15條第1款 — a 1% employment-insurance premium on the same 投保薪資 ladder, borne 20% by the insured, 70% by the insured unit and 10% by the central government. 就業保險法第5條 limits cover to insured persons aged 15 to 65 who hold ROC nationality (or are a qualifying foreign spouse of a national), which is the age selector and the band predicate below. Cover ends at 65 (勞保條例第6條第1項 / 就業保險法第5條: 「年滿十五歲以上，六十五歲以下」), and that limit belongs on the SCHEME rather than on the bands. A band that simply has no row for an age refuses the whole run by name — so a single 65-year-old employee stopped every Taiwanese payroll — where a scheme the person is outside is skipped, producing no charge and no zero row. 職災保險 is deliberately unbounded: 災保法 covers a worker whatever their age, which is why it is a separate scheme.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2211,14 +3155,77 @@
 				"employee": "91.6",
 				"employer": "320.6"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "NHI",
 		"name": "National Health Insurance (全民健康保險)",
-		"is_statutory": true,
 		"authority": "全民健康保險法第18條、第27條第1款第2目與第29條，與全民健康保險投保金額分級表 — a 5.17% premium borne 30% by the insured, 60% by the insured unit and 10% by the government; the insured unit's amount is multiplied by 1 + 平均眷口數 (0.56 since 2024-01-01), so the employer leg below is 5.17% × 60% × 1.56. 第18條第2項: the insured person pays their own premium and that of their dependants, counted to a maximum of three — EMPLOYEE_PER_DEPENDANT:3. The insured unit's leg is unaffected, being already an average over the whole insured population.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2525,14 +3532,77 @@
 				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) < 3.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 0.0) : 3.0) : 0.0)) * (4854.63))",
 				"employer": "15146.45"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
-		"is_statutory": true,
 		"authority": "勞工退休金條例第14條第1項 — the employer shall contribute monthly to the worker's individual pension account no less than 6% of the worker's 月提繳工資, graded by the 勞工退休金月提繳分級表 (ceiling NT$150,000). The grade table IS the band ladder below.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -2739,14 +3809,77 @@
 				"employee": "0.0",
 				"employer": "9000.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "61a327dc-e757-5844-8647-13b1779763ef",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "OCC_INJURY",
 		"name": "Occupational Accident Insurance (勞工職業災害保險)",
-		"is_statutory": true,
 		"authority": "勞工職業災害保險及保護法第16條與第19條第1項 — the premium is 行業別災害費率 plus a single 0.07% commuting-accident rate and is borne wholly by the insured unit. Rates are the 勞工職業災害保險適用行業別及費率表 (勞動部 113-11-07 勞動保三字第1130085419號公告, in force 2025-01-01, next revision 2028-01-01); the band class is that table's 費率編號 1–55. 第17條: the premium is charged on the 職災保險月投保薪資, whose own ladder tops out at NT$72,800 — higher than 勞保's. A RISK_CLASS band carries only the class, so the ladder is stated as GRADE_LADDER — twenty-one grades from 29,500 to 72,800, 勞動部 114年11月17日 勞動保3字第1140090499號令, 自115年1月1日生效. That is the whole 分級表 in one statement: a wage under the first grade insures at the first, one over the last insures at the last, and everything between rounds up to its own grade.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -3028,14 +4161,77 @@
 				"employee": "(((ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) - 0.0 > 0.0 ? (ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) - 0.0 : 0.0)) * 0.0 / 100.0",
 				"employer": "(ladder(base, [29500.0, 30300.0, 31800.0, 33300.0, 34800.0, 36300.0, 38200.0, 40100.0, 42000.0, 43900.0, 45800.0, 48200.0, 50600.0, 53000.0, 55400.0, 57800.0, 60800.0, 63800.0, 66800.0, 69800.0, 72800.0])) * 0.19 / 100.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "INCOME_TAX",
 		"name": "Individual Income Tax withholding, resident 5% election (薪資所得扣繳)",
-		"is_statutory": true,
 		"authority": "所得稅法第88條與各類所得扣繳率標準第2條第1項 — for a resident the payer withholds either by the 薪資所得扣繳稅額表 or, at the taxpayer's election, 5% of the full month's payment; this scheme carries the 5% election. 各類所得扣繳率標準第13條: no withholding where the amount to be withheld does not exceed NT$2,000, which is the MIN_WITHHOLD rule below.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -3047,14 +4243,77 @@
 				"employee": "(round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0) <= 2000 ? 0.0 : round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0))",
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	},
 	{
 		"id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "INCOME_TAX_NON_RESIDENT",
 		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
-		"is_statutory": true,
 		"authority": "所得稅法第88條與各類所得扣繳率標準第3條第2款 — 18% of the payment to a non-resident, reduced to 6% where the full month's salary does not exceed 1.5× the Executive-Yuan-approved basic wage (NT$44,250 for this version). 各類所得扣繳率標準第13條's NT$2,000 floor does not apply to a non-resident.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -3071,6 +4330,70 @@
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 18.0 / 100.0)",
 				"employer": "round_cent((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PERSONAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "OCCUPATIONAL_INJURY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FAMILY_CARE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PARENTAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BREASTFEEDING_TIME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				}
+			]
+		}
 	}
 ]

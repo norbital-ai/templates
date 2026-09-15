@@ -27,58 +27,17 @@
 			"proration": {
 				"by": "CALENDAR_DAYS"
 			},
-			"engine_lines": {
-				"salary": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
-							"effect": "INCLUDE"
-						}
-					]
-				},
-				"absence": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
-							"effect": "REDUCE"
-						}
-					]
-				},
-				"night": {
-					"statutory_opt_ins": []
+			"ordinary_divisor_days": "26.0",
+			"overtime_when": "",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5",
+					"funnel_above_hours": "limits.daily_total"
 				}
-			},
-			"rates": {
-				"ordinary": [
-					{
-						"when": "",
-						"unit": "DAY",
-						"divisor": 26
-					}
-				],
-				"bands": [
-					{
-						"label": "OT-1.5X",
-						"line": "OVERTIME",
-						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.5",
-						"funnel": {
-							"above": "limits.daily_total",
-							"line": "INCENTIVE"
-						},
-						"statutory_opt_ins": []
-					}
-				]
-			},
+			],
 			"limits": [
 				{
 					"key": "daily_total",
@@ -100,7 +59,6 @@
 				"max_consecutive_work_days": 12,
 				"discharged_by": "REST_OR_OFF"
 			},
-			"coverage": null,
 			"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)",
 			"holiday_rest_precedence": "REST_DAY"
 		}

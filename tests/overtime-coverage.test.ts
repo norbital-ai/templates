@@ -3,187 +3,77 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	classifyWageComparand,
-	decideOvertimeCoverage,
 	deriveStatutoryWages
-} from '../src/collections/payroll_runs/lib/coverage.ts';
-import { isStatutoryOvertimePayCovered } from '../src/lib/payroll/work.ts';
+} from '../src/collections/payroll_runs/lib/statutory-wages.ts';
+import {
+	compileEligibility,
+	isEligible,
+	personContext
+} from '../src/collections/payroll_runs/lib/eligibility.ts';
 
 /**
- * The Malaysian rule as seeded from the seed bank: Employment Act 1955 First Schedule paragraph 1A, as
- * substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262].
+ * Who the overtime ladder covers is the version's own `overtime_when`, a boolean over the person
+ * (RFC 0003 §2.2). The Malaysian predicate below is the seed bank's: Employment Act 1955 First
+ * Schedule paragraph 1A, as substituted by the Employment (Amendment of First Schedule) Order 2022
+ * [P.U. (A) 262] — exclusion first, then the categories covered "irrespective of the amount of
+ * wages", then the ceiling. Paragraph 1A reads "the person whose wages **exceeds** four thousand
+ * ringgit a month", which is why RM4,000 exactly is covered.
  *
- * Every value asserted below is the statute's, not the engine's. Paragraph 1A reads "the person
- * whose wages **exceeds** four thousand ringgit a month", which is why RM4,000 exactly is covered.
+ * Every value asserted below is the statute's, not the engine's.
  */
-const MY_RULE = {
-	wage_ceiling: { value: 4000, currency: 'MYR' },
-	ceiling_is_inclusive: true,
-	wage_basis: 'STATUTORY_WAGES',
-	category_basis: 'STATUTORY_WORK_CATEGORY',
-	exempt_categories: ['MANUAL_LABOUR', 'MANUAL_LABOUR_SUPERVISOR', 'COMMERCIAL_VEHICLE_OPERATOR'],
-	excluded_categories: ['VESSEL_WORK']
-};
+const MY_WHEN =
+	'terms.statutory_work_category != "VESSEL_WORK" && (terms.statutory_work_category == "MANUAL_LABOUR" || terms.statutory_work_category == "MANUAL_LABOUR_SUPERVISOR" || terms.statutory_work_category == "COMMERCIAL_VEHICLE_OPERATOR" || terms.statutory_wages <= 4000.0)';
+/** Art.82: managerial employees are outside, and no wage figure is named. */
+const PH_WHEN = 'employment.classification != "MANAGERIAL"';
+const EXEMPT = ['MANUAL_LABOUR', 'MANUAL_LABOUR_SUPERVISOR', 'COMMERCIAL_VEHICLE_OPERATOR'];
 
-const wages = (value, currency = 'MYR') => ({ STATUTORY_WAGES: { value, currency } });
+const subject = (overrides = {}) =>
+	personContext({
+		employee: null,
+		employment: { service_start: '2024-01-01' },
+		terms: {
+			statutory_work_category: overrides.category ?? 'NON_MANUAL',
+			work_classification: overrides.classification ?? 'EA_COVERED'
+		},
+		statutoryWages: overrides.wages ?? 3000,
+		asOf: '2026-03-31'
+	});
+const covered = (when, overrides = {}) => isEligible(when, subject(overrides));
 
-const subject = (overrides = {}) => ({
-	statutoryWorkCategory: 'NON_MANUAL',
-	workClassification: 'EA_COVERED',
-	wages: wages(3000),
-	...overrides
+test('every seeded predicate compiles over the person, and an empty one covers everyone', () => {
+	assert.equal(compileEligibility(MY_WHEN), null);
+	assert.equal(compileEligibility(PH_WHEN), null);
+	assert.equal(compileEligibility(''), null);
+	// Absence of a restriction is the opposite of a restriction that excludes everyone.
+	assert.equal(covered('', { wages: 1_000_000_000, classification: 'MANAGERIAL' }), true);
 });
 
-test('no rule at all means universal coverage, not universal exclusion', () => {
-	// The literal this replaced answered "not covered" for every jurisdiction that was not Malaysia.
-	// Absence of a coverage restriction is the opposite of a restriction that excludes everyone.
-	const decision = decideOvertimeCoverage(null, subject({ wages: {} }));
-	assert.equal(decision.outcome, 'COVERED');
-	assert.equal(decision.reason, 'NO_RULE');
-});
-
-test('the ceiling is inclusive: wages exactly at RM4,000 are still covered', () => {
-	const decision = decideOvertimeCoverage(MY_RULE, subject({ wages: wages(4000) }));
-	assert.equal(decision.outcome, 'COVERED');
-	assert.equal(decision.reason, 'WITHIN_CEILING');
-});
-
-test('a cent above the ceiling is not covered', () => {
-	const decision = decideOvertimeCoverage(MY_RULE, subject({ wages: wages(4000.01) }));
-	assert.equal(decision.outcome, 'NOT_COVERED');
-	assert.equal(decision.reason, 'ABOVE_CEILING');
-});
-
-test('an exclusive ceiling excludes the boundary amount itself', () => {
-	const exclusive = { ...MY_RULE, ceiling_is_inclusive: false };
-	assert.equal(
-		decideOvertimeCoverage(exclusive, subject({ wages: wages(4000) })).outcome,
-		'NOT_COVERED'
-	);
-	assert.equal(
-		decideOvertimeCoverage(exclusive, subject({ wages: wages(3999.99) })).outcome,
-		'COVERED'
-	);
+test('the ceiling is inclusive: wages exactly at RM4,000 are covered, a cent above is not', () => {
+	assert.equal(covered(MY_WHEN, { wages: 4000 }), true);
+	assert.equal(covered(MY_WHEN, { wages: 4000.01 }), false);
 });
 
 test('an exempt category is covered however high the wage — First Schedule para 2', () => {
-	for (const category of MY_RULE.exempt_categories) {
-		const decision = decideOvertimeCoverage(
-			MY_RULE,
-			subject({ statutoryWorkCategory: category, wages: wages(50_000) })
-		);
-		assert.equal(decision.outcome, 'COVERED', category);
-		assert.equal(decision.reason, 'EXEMPT_CATEGORY', category);
-	}
+	for (const category of EXEMPT)
+		assert.equal(covered(MY_WHEN, { category, wages: 50_000 }), true, category);
 });
 
 test('an excluded category is not covered however low the wage', () => {
 	// Para 2(4) vessel work disapplies Part XII, which is where ss.60, 60A and 60D live, so the
 	// entire rest-day / hours-of-work / holiday ladder is out — wage is never reached.
-	const decision = decideOvertimeCoverage(
-		MY_RULE,
-		subject({ statutoryWorkCategory: 'VESSEL_WORK', wages: wages(1000) })
-	);
-	assert.equal(decision.outcome, 'NOT_COVERED');
-	assert.equal(decision.reason, 'EXCLUDED_CATEGORY');
+	assert.equal(covered(MY_WHEN, { category: 'VESSEL_WORK', wages: 1000 }), false);
 });
 
-test('exclusion outranks exemption when a category somehow appears in both', () => {
-	const contradictory = { ...MY_RULE, exempt_categories: ['VESSEL_WORK'] };
-	const decision = decideOvertimeCoverage(
-		contradictory,
-		subject({ statutoryWorkCategory: 'VESSEL_WORK' })
-	);
-	assert.equal(decision.outcome, 'NOT_COVERED');
-});
-
-test('a rule with no ceiling covers by category alone — the Philippine and Indonesian shape', () => {
-	const noCeiling = {
-		wage_ceiling: null,
-		ceiling_is_inclusive: null,
-		wage_basis: null,
-		category_basis: 'WORK_CLASSIFICATION',
-		exempt_categories: [],
-		excluded_categories: ['MANAGERIAL']
-	};
-	assert.equal(
-		decideOvertimeCoverage(noCeiling, subject({ workClassification: 'EA_COVERED', wages: {} }))
-			.reason,
-		'NO_WAGE_CEILING'
-	);
-	assert.equal(
-		decideOvertimeCoverage(noCeiling, subject({ workClassification: 'MANAGERIAL', wages: {} }))
-			.reason,
-		'EXCLUDED_CATEGORY'
-	);
-});
-
-test('the rule reads the column its category_basis names, not both', () => {
-	// The two vocabularies are not 1:1. A rule keyed on work_classification must not be satisfied by
-	// a statutory_work_category value that happens to share a spelling, or vice versa.
-	const byClassification = { ...MY_RULE, category_basis: 'WORK_CLASSIFICATION' };
-	const decision = decideOvertimeCoverage(
-		byClassification,
-		subject({
-			statutoryWorkCategory: 'MANUAL_LABOUR',
-			workClassification: 'EA_COVERED',
-			wages: wages(50_000)
-		})
-	);
-	assert.equal(decision.outcome, 'NOT_COVERED');
-	assert.equal(decision.reason, 'ABOVE_CEILING');
-});
-
-test('a missing wage basis is UNDETERMINED, never approximated from another column', () => {
-	// The engine holds base salary; the First Schedule para 3 test is on statutory wages. Comparing
-	// the one against the other moves the boundary and silently changes who is covered, so the
-	// answer is withheld and named instead.
-	const decision = decideOvertimeCoverage(
-		MY_RULE,
-		subject({ wages: { BASE_SALARY: { value: 3800, currency: 'MYR' } } })
-	);
-	assert.equal(decision.outcome, 'UNDETERMINED');
-	assert.equal(decision.reason, 'WAGE_BASIS_UNAVAILABLE');
-	assert.equal(decision.requiredBasis, 'STATUTORY_WAGES');
-});
-
-test('a category decision is still reached when the wage figure is unavailable', () => {
-	// Category is read before the ceiling, so an exempt or excluded person needs no wage at all.
-	assert.equal(
-		decideOvertimeCoverage(MY_RULE, subject({ statutoryWorkCategory: 'MANUAL_LABOUR', wages: {} }))
-			.outcome,
-		'COVERED'
-	);
-	assert.equal(
-		decideOvertimeCoverage(MY_RULE, subject({ statutoryWorkCategory: 'VESSEL_WORK', wages: {} }))
-			.outcome,
-		'NOT_COVERED'
-	);
-});
-
-test('a ceiling in another currency is UNDETERMINED rather than compared numerically', () => {
-	const decision = decideOvertimeCoverage(MY_RULE, subject({ wages: wages(3000, 'SGD') }));
-	assert.equal(decision.outcome, 'UNDETERMINED');
-	assert.equal(decision.reason, 'CEILING_CURRENCY_MISMATCH');
-});
-
-test('a ceiling seeded without a basis or an inclusivity is a loud fault, not a guess', () => {
-	assert.throws(
-		() => decideOvertimeCoverage({ ...MY_RULE, wage_basis: null }, subject()),
-		/names no wage basis/
-	);
-	assert.throws(
-		() => decideOvertimeCoverage({ ...MY_RULE, ceiling_is_inclusive: null }, subject()),
-		/whether the ceiling amount itself is covered/
-	);
+test('a predicate reads the column it names, not a look-alike in the other vocabulary', () => {
+	// The Philippine predicate is on work_classification: a statutory work category that happens to
+	// be exempt in Malaysia changes nothing here, and a manager is out whatever they earn.
+	assert.equal(covered(PH_WHEN, { category: 'MANUAL_LABOUR', classification: 'EA_COVERED' }), true);
+	assert.equal(covered(PH_WHEN, { classification: 'MANAGERIAL', wages: 200_000 }), false);
 });
 
 test('an unclassified person falls through to the wage test', () => {
-	const decision = decideOvertimeCoverage(
-		MY_RULE,
-		subject({ statutoryWorkCategory: null, wages: wages(3000) })
-	);
-	assert.equal(decision.outcome, 'COVERED');
-	assert.equal(decision.reason, 'WITHIN_CEILING');
+	assert.equal(covered(MY_WHEN, { category: '', wages: 3000 }), true);
+	assert.equal(covered(MY_WHEN, { category: '', wages: 5000 }), false);
 });
 
 // ── the comparand: s.2 wages, classified from the component model ────────────────────────────
@@ -202,7 +92,6 @@ test('the comparand classification is the statute read against what a component 
 	// ladder, so it is never in the set being classified and cannot enter the comparand to begin with.
 	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'SCHEDULE')), 'BASIC_WAGES');
 	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'CASH_FOR_WORK');
-	assert.equal(classifyWageComparand(component('PAY', 'ADD', 'ENTRY')), 'CASH_FOR_WORK');
 	assert.equal(classifyWageComparand(component('NET', 'ADD', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('NET', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('PAY', 'SUBTRACT', 'ENTRY')), 'NOT_WAGES');
@@ -211,8 +100,8 @@ test('the comparand classification is the statute read against what a component 
 });
 
 test('the comparand is basic plus cash-for-work — the basic+allowance case', () => {
-	// The live mispricing the old base-salary test carried: RM3,800 basic plus a RM500 fixed
-	// allowance is RM4,300 of para 3 wages, outside the ladder — while base salary alone said in.
+	// RM3,800 basic plus a RM500 fixed allowance is RM4,300 of para 3 wages, outside the ladder —
+	// while base salary alone would say in.
 	const comparand = deriveStatutoryWages({
 		baseSalary: { value: 3800, currency: 'MYR' },
 		payments: [
@@ -221,23 +110,14 @@ test('the comparand is basic plus cash-for-work — the basic+allowance case', (
 		]
 	});
 	assert.deepEqual(comparand, { value: 4300, currency: 'MYR' });
-
-	const decision = decideOvertimeCoverage(
-		MY_RULE,
-		subject({ wages: { STATUTORY_WAGES: comparand } })
-	);
-	assert.equal(decision.outcome, 'NOT_COVERED');
-	assert.equal(decision.reason, 'ABOVE_CEILING');
+	assert.equal(covered(MY_WHEN, { wages: comparand.value }), false);
 
 	// The same person with no allowance settling this run stays inside.
 	const bare = deriveStatutoryWages({
 		baseSalary: { value: 3800, currency: 'MYR' },
 		payments: [{ category: 'NOT_WAGES', amount: 700 }]
 	});
-	assert.equal(
-		decideOvertimeCoverage(MY_RULE, subject({ wages: { STATUTORY_WAGES: bare } })).outcome,
-		'COVERED'
-	);
+	assert.equal(covered(MY_WHEN, { wages: bare.value }), true);
 });
 
 test('a reversal on an allowance takes its amount back out of the comparand', () => {
@@ -249,149 +129,4 @@ test('a reversal on an allowance takes its amount back out of the comparand', ()
 		]
 	});
 	assert.equal(comparand.value, 3800);
-});
-
-// ── the run-level test: covered, refused, and why ────────────────────────────────────────────────
-
-const runCoverage = (overrides = {}) =>
-	isStatutoryOvertimePayCovered({
-		rule: MY_RULE,
-		jurisdictionCode: 'MY',
-		wages: {
-			BASE_SALARY: { value: 3000, currency: 'MYR' },
-			STATUTORY_WAGES: { value: 3000, currency: 'MYR' }
-		},
-		statutoryWorkCategory: 'NON_MANUAL',
-		workClassification: 'EA_COVERED',
-		employeeNumber: 'PUBEM0002',
-		authority: 'Employment Act 1955 First Schedule para 1A',
-		...overrides
-	});
-
-test('the run-level test decides from the derived comparand, inclusive at RM4,000', () => {
-	assert.equal(runCoverage(), true);
-	assert.equal(
-		runCoverage({
-			wages: {
-				BASE_SALARY: { value: 4000, currency: 'MYR' },
-				STATUTORY_WAGES: { value: 4000, currency: 'MYR' }
-			}
-		}),
-		true,
-		'wages exactly at the ceiling stay covered — para 1A bites on wages that EXCEED it'
-	);
-	assert.equal(
-		runCoverage({
-			wages: {
-				BASE_SALARY: { value: 3800, currency: 'MYR' },
-				STATUTORY_WAGES: { value: 4300, currency: 'MYR' }
-			}
-		}),
-		false,
-		'the allowance, not the base salary, decides the boundary'
-	);
-});
-
-test('a vessel worker is outside the ladder at a high wage too — para 2(4) disapplies Part XII', () => {
-	assert.equal(
-		runCoverage({
-			statutoryWorkCategory: 'VESSEL_WORK',
-			wages: {
-				BASE_SALARY: { value: 50000, currency: 'MYR' },
-				STATUTORY_WAGES: { value: 50000, currency: 'MYR' }
-			}
-		}),
-		false
-	);
-});
-
-test('a ceiling the run cannot compare fails the run and names the employee and the authority', () => {
-	// There is no warning tier: a ceiling stated in another currency is not approximated, and the
-	// refusal says whose run stopped, why, and under which authority.
-	assert.throws(
-		() =>
-			runCoverage({
-				rule: { ...MY_RULE, wage_ceiling: { value: 4000, currency: 'SGD' } }
-			}),
-		(error) => {
-			assert.match(error.message, /PUBEM0002/);
-			assert.match(error.message, /different currency/);
-			assert.match(error.message, /First Schedule para 1A/);
-			return true;
-		}
-	);
-});
-
-test('a rule whose wage figure the caller cannot supply fails the run naming the basis', () => {
-	assert.throws(
-		() => runCoverage({ wages: {} }),
-		(error) => {
-			assert.match(error.message, /PUBEM0002/);
-			assert.match(error.message, /statutory wages/);
-			assert.match(error.message, /effective coverage rule/);
-			return true;
-		}
-	);
-});
-
-// ── the Philippine and Indonesian shapes: no wage threshold at all ───────────────────────────────
-
-test('the Philippines excludes by category only — art.82 names no wage figure', () => {
-	const PH_RULE = {
-		wage_ceiling: null,
-		ceiling_is_inclusive: null,
-		wage_basis: null,
-		category_basis: 'WORK_CLASSIFICATION',
-		exempt_categories: [],
-		excluded_categories: ['MANAGERIAL']
-	};
-	// No wage was ever asked for: an empty wages map is enough to decide.
-	assert.equal(
-		decideOvertimeCoverage(PH_RULE, subject({ workClassification: 'EA_COVERED', wages: {} }))
-			.outcome,
-		'COVERED'
-	);
-	assert.equal(
-		decideOvertimeCoverage(PH_RULE, subject({ workClassification: 'MANAGERIAL', wages: {} }))
-			.reason,
-		'EXCLUDED_CATEGORY'
-	);
-	assert.equal(
-		decideOvertimeCoverage(
-			PH_RULE,
-			subject({ workClassification: 'MANAGERIAL', wages: wages(200000, 'PHP') })
-		).outcome,
-		'NOT_COVERED',
-		'a managerial employee is excluded whatever the wage'
-	);
-});
-
-test('Indonesia covers by job group, and the unencodable group keeps everyone covered', () => {
-	// PP 35/2021 Pasal 27(1): overtime wages are owed for work beyond the Pasal 21(2) hours. The
-	// single exception, Pasal 27(2), is by JOB GROUP — pemikir, perencana, pelaksana dan/atau
-	// pengendali jalannya Perusahaan — and is broader than any work_classification member, and
-	// conditional on being set out in the contract besides. The seeded row therefore carries no
-	// ceiling and no categories, and its authority records the exception it cannot express.
-	const ID_RULE = {
-		wage_ceiling: null,
-		ceiling_is_inclusive: null,
-		wage_basis: null,
-		category_basis: 'WORK_CLASSIFICATION',
-		exempt_categories: [],
-		excluded_categories: []
-	};
-	const decision = decideOvertimeCoverage(
-		ID_RULE,
-		subject({ workClassification: 'MANAGERIAL', wages: {} })
-	);
-	assert.equal(decision.outcome, 'COVERED');
-	assert.equal(decision.reason, 'NO_WAGE_CEILING');
-	// A wage is never the test: a figure supplied changes nothing.
-	assert.equal(
-		decideOvertimeCoverage(
-			ID_RULE,
-			subject({ workClassification: 'EA_COVERED', wages: wages(50000000, 'IDR') })
-		).outcome,
-		'COVERED'
-	);
 });

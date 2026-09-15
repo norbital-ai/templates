@@ -4,7 +4,6 @@
 		"settings_id": "22222222-2222-4222-8222-222222222222",
 		"code": "PUB-EPF",
 		"name": "Public fixture retirement fund",
-		"is_statutory": true,
 		"authority": "Public fixture — not a sealed statutory table.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -16,14 +15,45 @@
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)",
 				"employer": "round_cent((base) * 13.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION"
+				},
+				{
+					"family": "LEAVE",
+					"code": "NS"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "TRANSPORT"
+				},
+				{
+					"family": "CLAIM",
+					"code": "TRANSPORT_CLAIM"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "SEPARATION"
+				}
+			]
+		}
 	},
 	{
 		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
 		"settings_id": "22222222-2222-4222-8222-222222222222",
 		"code": "PUB-EPF-NC",
 		"name": "Public fixture non-citizen retirement fund",
-		"is_statutory": true,
 		"authority": "Public fixture — invented non-citizen scheme, not a sealed statutory table.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -35,6 +65,38 @@
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)",
 				"employer": "round_cent((base) * 5.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION"
+				},
+				{
+					"family": "LEAVE",
+					"code": "NS"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "TRANSPORT"
+				},
+				{
+					"family": "CLAIM",
+					"code": "TRANSPORT_CLAIM"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "SEPARATION"
+				}
+			]
+		}
 	}
 ]

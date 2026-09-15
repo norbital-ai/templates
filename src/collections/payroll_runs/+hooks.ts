@@ -183,10 +183,10 @@ export default {
 						if (facts == null)
 							refuse(`Payroll ${period} was not prepared. This is a bug, not a data fault.`);
 						const precheckStarted = Date.now();
-						const blocking = yield* payrollRunPrecheck({
-							api,
+						const blocking = payrollRunPrecheck({
 							configuration: facts.configuration,
-							window: facts.window
+							window: facts.window,
+							bundles: facts.gathered.bundles
 						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
 						const buildStarted = Date.now();

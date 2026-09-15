@@ -11,17 +11,7 @@
 			{
 				"when": "",
 				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
-						"effect": "INCLUDE"
-					}
-				]
+				"limit": null
 			}
 		],
 		"recurring": true,

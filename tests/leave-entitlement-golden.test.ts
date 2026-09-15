@@ -207,8 +207,8 @@ test('Philippines — service incentive leave and the special statutory leaves',
 // sealed versions, and the 1 April 2026 one exists for exactly one change: shared parental leave.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('Singapore — the service ladders and the family schemes, on all three sealed versions', () => {
-	for (const version of [0, 1, 2]) {
+test('Singapore — the service ladders and the family schemes, on all four sealed versions', () => {
+	for (const version of [0, 1, 2, 3]) {
 		// s.43(1): seven days in the first year, one more a year to fourteen — after three months.
 		// Seventy months is the "sixty or more" rung, twelve days, not the seventy-two-month thirteen.
 		assert.deepEqual(ladder('SG', version, 'ANNUAL_LEAVE'), [7, 9, 12]);
@@ -275,10 +275,11 @@ test('Singapore — the service ladders and the family schemes, on all three sea
 	const FATHER = { ...MARRIED_MALE, childAges: [0] } as const;
 	const UNMARRIED_MOTHER = { ...FEMALE, childAges: [0] } as const;
 	assert.deepEqual(ladder('SG', 0, 'SHARED_PARENTAL_LEAVE', FATHER), [42, 42, 42]);
-	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', FATHER), [70, 70, 70]);
+	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', FATHER), [42, 42, 42]);
 	assert.deepEqual(ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', FATHER), [70, 70, 70]);
-	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', UNMARRIED_MOTHER), [70, 70, 70]);
-	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', { ...MALE, childAges: [0] }), [
+	assert.deepEqual(ladder('SG', 3, 'SHARED_PARENTAL_LEAVE', FATHER), [70, 70, 70]);
+	assert.deepEqual(ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', UNMARRIED_MOTHER), [70, 70, 70]);
+	assert.deepEqual(ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', { ...MALE, childAges: [0] }), [
 		null,
 		null,
 		null
@@ -398,11 +399,19 @@ test('Taiwan — the §38 annual ladder and the 性平法 entitlements, on all t
 		assert.deepEqual(ladder('TW', version, 'PARENTAL_LEAVE'), [null, 730, 730]);
 		// 職災醫療期間 and 哺乳時間 are unmetered.
 		assert.deepEqual(ladder('TW', version, 'OCCUPATIONAL_INJURY_LEAVE'), [null, null, null]);
-		assert.deepEqual(ladder('TW', version, 'BREASTFEEDING_TIME', { ...FEMALE, childAges: [1] }), [
-			null,
-			null,
-			null
-		]);
+		// 性別平等工作法第18條 is gender-neutral: whichever parent nurses the child under two, and the
+		// time itself is unmetered, so the ladder reads null for either parent and the row's own
+		// predicate is the whole entitlement test.
+		for (const parent of [MALE, FEMALE])
+			assert.deepEqual(ladder('TW', version, 'BREASTFEEDING_TIME', { ...parent, childAges: [1] }), [
+				null,
+				null,
+				null
+			]);
+		for (const row of leaveCatalogue('TW').filter(
+			(candidate) => candidate.code === 'BREASTFEEDING_TIME'
+		))
+			assert.equal(row.eligibility, 'children.under(2) >= 1');
 	}
 });
 
