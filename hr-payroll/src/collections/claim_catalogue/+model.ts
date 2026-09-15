@@ -4,7 +4,7 @@ export default defineModel(
 	{
 		/** The jurisdiction settings version this row belongs to, sealed with it. */
 		settings_id: uuid().notNull(),
-		/** The catalogue's stable code, and the display name beside it (RFC 0001 §4). */
+		/** The catalogue's stable code, and the display name beside it. */
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }),
 		/**

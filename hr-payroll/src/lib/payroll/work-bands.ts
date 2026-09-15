@@ -1,5 +1,5 @@
 /**
- * The work band engine of RFC 0001 §6.
+ * The work band engine
  *
  * A work day is priced by the version's `bands`, in order. Each band whose `when` holds consumes
  * a slice of the day's worked hours (`take_hours`), priced by `price_amount` — a money expression

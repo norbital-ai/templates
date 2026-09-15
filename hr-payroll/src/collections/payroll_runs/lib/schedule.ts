@@ -202,7 +202,7 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		const holidayRow = options.configuration.holidays.get(date);
 		// A holiday scoped to staff who were off on the replaced date does not apply to someone
 		// whose roster had that date as WORK: the holiday itself was their day off, and the
-		// observed day is an ordinary working day for them (RFC 0001 §3).
+		// observed day is an ordinary working day for them.
 		const holiday =
 			holidayRow?.given_to === 'ONLY_IF_OFF_ON_REPLACED_DATE' &&
 			holidayRow.replaces != null &&

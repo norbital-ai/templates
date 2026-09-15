@@ -4,7 +4,7 @@
  * compiled by their own datatype schemas, so they are already refused by the time this runs.
  *
  * What every scheme's base must satisfy: each entry names a catalogue row of the scheme's own
- * settings version (RFC 0003 §1.4). Refused at the write, rather than at the run where the person
+ * settings version. Refused at the write, rather than at the run where the person
  * who typed it is long gone.
  */
 

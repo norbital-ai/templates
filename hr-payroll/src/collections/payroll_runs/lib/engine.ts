@@ -75,7 +75,7 @@ export const CALCULATION_VERSION = '2026-09-contract-payroll-families' as const;
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
 type PayrollRunGraph = {
 	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>['rows'];
-	/** How every charge was derived, stored whole on the run for the Flow screen (RFC 0002 §5). */
+	/** How every charge was derived, stored whole on the run for the Flow screen. */
 	readonly calculation_trace: ReturnType<typeof payrollRunGraph>['calculationTrace'];
 	/** What each payslip settled; the run's `after` hook stamps the sources with it. */
 	readonly captures: ReturnType<typeof payrollRunGraph>['captures'];

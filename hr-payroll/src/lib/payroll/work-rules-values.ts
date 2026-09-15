@@ -1,7 +1,7 @@
 /**
  * The work-rule value shapes shared by `work_rules` and the pricing modules.
  *
- * These lived under a `statutory_regime` custom datatype that the RFC removed; the night premium
+ * These lived under a `statutory_regime` custom datatype that was removed; the night premium
  * schema the engine still reads lives here beside the rules that own it.
  */
 

@@ -62,7 +62,7 @@ export default defineModel(
 			'The effective-dated pay, jurisdiction residency, classification and shift pattern of one employment contract. Schedule hours, workdays, rest days and off days derive from the named pattern.',
 		recordLabel: 'summary',
 		icon: 'lucide:file-signature',
-		// Plan 02 §7: employment =, effective range &&. One employment has exactly one set of terms
+		// Exclusion: employment =, effective range &&. One employment has exactly one set of terms
 		// on any date, so the engine's terms lookup returns at most one row structurally.
 		exclusions: [
 			{

@@ -192,7 +192,7 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
 /**
  * What deleting a payroll run takes down with it.
  *
- * A caller's cascade descends as the caller's (RFC 0003 §3.2): the `cascade(...)` edges from a run
+ * A caller's cascade descends as the caller's: the `cascade(...)` edges from a run
  * to its payslips are authorized against the deleting person's own delete grant on the collection,
  * exactly as a nested row they submitted would be. The run's hook releases the pins it wrote in the
  * same transaction, so nothing else needs a grant here: the sources are only ever re-pinned by the

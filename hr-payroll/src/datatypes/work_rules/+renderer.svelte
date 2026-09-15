@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * One version's work rules (RFC 0001 §4–§6, §7), compact.
+	 * One version's work rules, compact.
 	 *
 	 * Work is a producer, not a catalogue: it prices a day through ordered `bands` (each
 	 * band consuming a slice and optionally funnelling the portion above a named limit to the

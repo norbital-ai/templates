@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The calendar a scheduled catalogue row falls due on (RFC 0004 §2): every year on a month and
+	 * The calendar a scheduled catalogue row falls due on: every year on a month and
 	 * day, or every month on a day; who is owed it that day; the qualifying service; and whether a
 	 * leaver is owed the year's occurrence on separation.
 	 */

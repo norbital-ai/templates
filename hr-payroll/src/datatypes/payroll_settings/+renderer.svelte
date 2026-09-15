@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The payroll facts of one settings version (RFC 0001 §4): currency, the IANA zone its wall
+	 * The payroll facts of one settings version: currency, the IANA zone its wall
 	 * clock sits at, and the month its tax year opens. Machine facts, not prose: each is a real
 	 * field here so the drift automation and the engine read the same value the operator typed.
 	 * One compact row, three columns.

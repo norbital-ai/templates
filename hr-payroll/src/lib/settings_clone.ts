@@ -130,7 +130,7 @@ type SettingsDraftOptions = Readonly<{
  * read as an update of a stored row, and the runtime assigns the draft's own.
  *
  * Scheme rows keep their codes under new ids. A scheme's base names catalogue rows by family and
- * code (RFC 0003 §1), so the clone carries every declaration unchanged.
+ * code, so the clone carries every declaration unchanged.
  */
 export function settingsDraftWrite(
 	tree: SettingsVersionTree,

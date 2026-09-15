@@ -16,7 +16,7 @@ import {
 } from '../../collections/payroll_runs/lib/eligibility.js';
 
 /**
- * The leave type off-in-lieu days are recorded under (RFC 0001 §10). Its catalogue row is
+ * The leave type off-in-lieu days are recorded under. Its catalogue row is
  * `availability: UNLIMITED` with no bands, and HR records every movement by hand — an ADJUSTMENT
  * to grant, a TIME_OFF to take, a REVERSAL to return — so the computed entitlement is zero and
  * the approved entries are the whole balance.

@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { compileExpression } from '../../lib/expressions/compile.js';
 
 /**
- * Region → monthly minimum wage, in the version's currency (RFC 0001 §4). A company names its
+ * Region → monthly minimum wage, in the version's currency. A company names its
  * region; a scheme's `FLOOR:MINIMUM_WAGE` and `CAP:MINIMUM_WAGE_X:<n>` rules read the wage of that
  * region through `minimum_wage(region)`.
  */

@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The bands of one catalogue row (RFC 0001 §4, §9), as a matrix.
+	 * The bands of one catalogue row, as a matrix.
 	 *
 	 * A catalogue prices its entries through ordered bands over the entry context: the first band
 	 * whose `when` holds governs, its `amount` is the money the line settles, and its optional

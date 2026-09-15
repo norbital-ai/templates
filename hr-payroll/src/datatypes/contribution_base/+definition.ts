@@ -2,7 +2,7 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
 /**
- * What one statutory scheme charges (RFC 0003 §1).
+ * What one statutory scheme charges.
  *
  * The scheme declares its own wage base, the way its statute does: whether the contract salary,
  * an absence, the overtime classes and the night premium are in it, and which catalogue rows are.
@@ -20,7 +20,7 @@ export const contributionBaseEntrySchema = Schema.Struct({
 	family: Schema.Literals(BASE_ENTRY_FAMILIES),
 	code: Schema.String.check(Schema.isMinLength(1)),
 	/**
-	 * The first amount a tax year of this entry that is outside the base (RFC 0004 §3): NIRC
+	 * The first amount a tax year of this entry that is outside the base: NIRC
 	 * s.32(B)(7)(e)'s ₱90,000 on 13th-month pay in the withholding base. Null is no exemption.
 	 */
 	annual_exempt: Schema.optionalKey(Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0))))

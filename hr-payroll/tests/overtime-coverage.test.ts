@@ -13,7 +13,7 @@ import {
 
 /**
  * Who the overtime ladder covers is the version's own `overtime_when`, a boolean over the person
- * (RFC 0003 §2.2). The Malaysian predicate below is the seed bank's: Employment Act 1955 First
+ *. The Malaysian predicate below is the seed bank's: Employment Act 1955 First
  * Schedule paragraph 1A, as substituted by the Employment (Amendment of First Schedule) Order 2022
  * [P.U. (A) 262] — exclusion first, then the categories covered "irrespective of the amount of
  * wages", then the ceiling. Paragraph 1A reads "the person whose wages **exceeds** four thousand

@@ -1,5 +1,5 @@
 /**
- * A substitute holiday scoped to staff who were off on the replaced date (RFC 0001 §3).
+ * A substitute holiday scoped to staff who were off on the replaced date.
  *
  * When a public holiday falls on a non-working day for some staff, the observed replacement is
  * theirs alone: a person whose roster had the original date as WORK already took the holiday

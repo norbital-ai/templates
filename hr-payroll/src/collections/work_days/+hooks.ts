@@ -66,7 +66,7 @@ type SettingsVersionRow = {
 	/** Selected where the rest-day and break rules are judged; other readers never touch it. */
 	readonly work_rules?: {
 		readonly weekly_rest_rule: StatutoryWeeklyRestRule;
-		/** The hour ceilings the schedule gate refuses on (RFC 0001 §5). */
+		/** The hour ceilings the schedule gate refuses on. */
 		readonly limits?: WorkRules['limits'];
 		readonly authority?: string | null;
 		readonly breaks?: readonly {
@@ -243,7 +243,7 @@ export function assertRunHasRestDay(options: {
 		patternById,
 		codeKindById
 	} = options;
-	// The rule is always enforced: the weekly rest ceiling has no preference arm after RFC 0001, so
+	// The rule is always enforced: the weekly rest ceiling has no preference arm, so
 	// a stated breach refuses the write.
 	let runStart: string | null = null;
 	let runEnd: string | null = null;
@@ -559,7 +559,7 @@ function assertBatchConformsToPattern(
 			// a jurisdiction snapshot.
 			const version = settingsInForce(versions, settingsCode, firstChange.work_date);
 			if (version == null) continue;
-			// The hour ceilings are a schedule gate too (RFC 0001 §5.1): a pattern or roster whose
+			// The hour ceilings are a schedule gate too: a pattern or roster whose
 			// projection breaches any limit is refused here. Payroll still reports an attendance
 			// overrun and prices it; a plan the law forbids is never written.
 			const limits = version.work_rules?.limits ?? [];
@@ -632,7 +632,7 @@ function assertBatchConformsToPattern(
 				patternById,
 				codeKindById
 			});
-			// The break obligation is a schedule gate (RFC 0001 §5): a plan whose shift grants less
+			// The break obligation is a schedule gate: a plan whose shift grants less
 			// break than the rules owe is refused here, never priced around at payroll.
 			const breaks = version.work_rules?.breaks ?? [];
 			if (breaks.length > 0)

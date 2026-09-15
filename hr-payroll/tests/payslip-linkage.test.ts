@@ -125,7 +125,7 @@ const BASIC = component({
 });
 
 /**
- * The band labels the derived overtime lines carry (RFC 0001 §6): one line per OT class, its
+ * The band labels the derived overtime lines carry: one line per OT class, its
  * identity the pair (line, label). The six seeded ladder steps below produce these classes.
  */
 const OT_ORDINARY = '1.5';

@@ -299,7 +299,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			);
 		}
 
-		// What the version's scheduled payment rows owe in this run (RFC 0004 §2): one request per
+		// What the version's scheduled payment rows owe in this run: one request per
 		// occurrence inside each employment's own salary window, materialised as if keyed, unless a
 		// payslip has already pinned that occurrence.
 		const scheduled = options.configuration.catalogueComponents.filter(

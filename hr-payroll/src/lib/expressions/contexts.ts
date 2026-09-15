@@ -1,5 +1,5 @@
 /**
- * The expression contexts of RFC 0001 §7, as data.
+ * The expression contexts, as data.
  *
  * Every CEL a catalogue, band, scheme or schedule rule carries is compiled against exactly one
  * of these contexts. The catalogue is the single source of truth: the engine's builders assemble

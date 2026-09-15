@@ -1,5 +1,5 @@
 /**
- * The five CEL contexts of RFC 0001 §7: what each site exposes, and what it refuses.
+ * The five CEL contexts: what each site exposes, and what it refuses.
  *
  * The compiler runs at catalogue write time against the blank instance, so an unknown member,
  * an undeclared identifier, an unparseable expression or a wrong result type is refused before

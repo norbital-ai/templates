@@ -1,5 +1,5 @@
 /**
- * A catalogue band's entitlement ceiling, and what a candidate entry has left of it (RFC 0001 §9).
+ * A catalogue band's entitlement ceiling, and what a candidate entry has left of it.
  *
  * The limit is stated on the band that prices the entry (`limit`), and two callers need the same
  * answer at two different moments:

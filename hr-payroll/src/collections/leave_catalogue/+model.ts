@@ -9,12 +9,12 @@ import {
 } from '@norbital-ai/bolt/authoring';
 
 /**
- * One revision of a leave definition (RFC 0001 §4, §9).
+ * One revision of a leave definition.
  *
  * The shared catalogue spine: availability and entitlement are computed on demand, and
  * destination/direction say how a money line settles. An unpaid day is priced by the Work rules'
  * proration; which schemes it reduces and which charge an encashment is each scheme's own
- * declaration (RFC 0003). Leave adds its own facts: whether a day is paid and after how many days
+ * declaration. Leave adds its own facts: whether a day is paid and after how many days
  * evidence is owed.
  */
 export default defineModel(

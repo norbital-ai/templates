@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
  * Work supplies output metadata: a band emits lines, and each OT class needs a pay item of its own
- * (RFC 0001 §6, one line per OT class). The old per-scheme treatment map is gone — opt-ins live on
+ * (one line per OT class). The old per-scheme treatment map is gone — opt-ins live on
  * the band — so its ACCUMULATE refusal has nothing left to test.
  */
 import assert from 'node:assert/strict';

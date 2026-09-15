@@ -140,7 +140,8 @@ reviewed source for each entity.
 Acceptance tests use invented public fixtures under `tests/fixtures/seed/` and the isolated Bolt
 self-host. Confidential reconciliation inputs are not test fixtures. See
 [`docs/data.md`](docs/data.md), [`docs/architecture.md`](docs/architecture.md) and
-[`docs/leave.md`](docs/leave.md).
+[`docs/leave.md`](docs/leave.md). What the engine captures, what the law owes that it does not,
+and what landed when is [`docs/gap-tracker.md`](docs/gap-tracker.md).
 
 ```bash
 pnpm lint

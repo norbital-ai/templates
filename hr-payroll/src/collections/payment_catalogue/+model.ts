@@ -4,7 +4,7 @@ export default defineModel(
 	{
 		/** The jurisdiction settings version this row belongs to, sealed with it. */
 		settings_id: uuid().notNull(),
-		/** The catalogue's stable code, and the display name beside it (RFC 0001 §4). */
+		/** The catalogue's stable code, and the display name beside it. */
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }),
 		/**
@@ -23,7 +23,7 @@ export default defineModel(
 		/** Whether a request against this line must, may or need not attach proof. */
 		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
 		/**
-		 * Where this row's entries come from (RFC 0004 §2). ENTRY is a request somebody keyed;
+		 * Where this row's entries come from. ENTRY is a request somebody keyed;
 		 * SCHEDULE is an occurrence the run materialises itself on the row's calendar, priced by
 		 * the band over the year axis — a 13th month, a THR, an AWS nobody has to remember.
 		 */

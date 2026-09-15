@@ -238,7 +238,7 @@ test('only application locks become authored record metadata', () => {
 });
 
 /**
- * §2 of `docs/scheduling-leave-proposal.md`, which is the contract these cover:
+ * `docs/scheduling-leave-proposal.md` (locking), which is the contract these cover:
  * a record is governed by the claim held over it, and a day with no record by the window. A passed
  * date governs nothing on attendance; a paid window never governs an existing record at all.
  */
@@ -408,7 +408,7 @@ test('a create inside a paid window is refused: that day’s silence is already 
 });
 
 test('an unconsumed record inside a paid window stays editable and settles as arrears', () => {
-	// §2.3, the one open decision, decided. A punch keyed in after 2026-07 was paid: no payslip ever
+	// The one open locking decision, decided. A punch keyed in after 2026-07 was paid: no payslip ever
 	// took it, so nothing has been paid on it, so it may be corrected and priced in a later run.
 	// The board badges the day; the write path permits it.
 	const api = fakeHookApi({ runs: monthly });

@@ -1,5 +1,5 @@
 /**
- * The schedule-time limit gate of RFC 0001 §5.1 and §7.5.
+ * The schedule-time limit gate: the hour ceilings a plan is refused on.
  *
  * `work_rules.limits` are ceilings a plan may not breach: a day's normal, total and spread hours,
  * and a week, month, quarter or year of work and overtime. Payroll reports an overrun and still

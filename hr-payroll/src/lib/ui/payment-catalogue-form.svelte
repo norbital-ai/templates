@@ -3,7 +3,7 @@
 	 * The payment catalogue's own form.
 	 *
 	 * It shared `catalogue-form.svelte` with claims while the row was the same one. `source` and
-	 * `schedule` (RFC 0004 §2) ended that, the way the recurrence facts did for allowances: a form
+	 * `schedule` ended that, the way the recurrence facts did for allowances: a form
 	 * serving rows of different shapes can be typed against only their intersection.
 	 *
 	 * Segments are tabs, not stacked sections. `settings_id` is never a field on the Settings page:

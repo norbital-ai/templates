@@ -2,7 +2,7 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
 /**
- * How one run's statutory charges were derived (RFC 0002 §5, §7): one entry per payslip, one
+ * How one run's statutory charges were derived: one entry per payslip, one
  * scheme entry per charge, each naming the priced lines that fed its base, the producers it read,
  * the rule that governed and the two shares it wrote.
  *

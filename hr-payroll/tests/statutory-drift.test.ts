@@ -305,7 +305,7 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 });
 
 test('a cloned version carries every scheme’s base unchanged under the clone’s own id', () => {
-	// A base names catalogue rows by family and code (RFC 0003 §1), so nothing is remapped.
+	// A base names catalogue rows by family and code, so nothing is remapped.
 	const base = {
 		salary: true,
 		absence: true,

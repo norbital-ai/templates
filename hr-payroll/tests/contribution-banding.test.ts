@@ -1,5 +1,5 @@
 /**
- * How a statutory scheme's rules select and price a charge (RFC 0002).
+ * How a statutory scheme's rules select and price a charge.
  *
  * The engine has no modes: the first rule whose `when` holds governs, its `employee`/`employer`
  * expressions produce the money, and every piece of arithmetic that used to be typed — base
@@ -10,7 +10,7 @@
  *        exceeding X but not exceeding Y". A seeded rung is inclusive at its top (`base <= 4800.0`)
  *        and exclusive at its floor (`base > 3000.0`), so a wage exactly on a boundary belongs to
  *        the band that ends there.
- *   E24  a wage no band matches charges **nothing** (RFC 0002 §6), never the last rung.
+ *   E24  a wage no band matches charges **nothing**, never the last rung.
  *   E1   a progressive rung's `constant` is the **accumulated** charge on every band below it, not
  *        a flat addend. The annual helpers read a published ladder as data.
  */
@@ -169,7 +169,7 @@ test('a condition over the person is read exactly as written', () => {
 });
 
 test('a person a scheme does not cover charges zero, and a consumer reads zero', () => {
-	// Ineligibility is a rule (RFC 0002 §0): the condition sits on the rule, not on the scheme.
+	// Ineligibility is a rule: the condition sits on the rule, not on the scheme.
 	const fund = schemeOf(
 		'FUND',
 		LADDER.map((rule) => ({

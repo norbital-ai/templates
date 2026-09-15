@@ -1,5 +1,5 @@
 /**
- * Dependency edges between statutory schemes (RFC 0002).
+ * Dependency edges between statutory schemes.
  *
  * A rule names another scheme's result as `produced.<code>.employee` or
  * `produced.<code>.employer`. That mention is the whole dependency declaration: there is no

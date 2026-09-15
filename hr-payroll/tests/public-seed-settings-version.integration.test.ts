@@ -82,7 +82,7 @@ test(
 				JURISDICTION_ID
 			]);
 			const before = await childRows(session, JURISDICTION_ID);
-			// RFC 0001 moved the Work rules onto the version row itself, so the clone check reads
+			// The Work rules live on the version row itself, so the clone check reads
 			// the root rather than a child collection.
 			const [sourceSettings] = (await session.query(
 				'select work_rules from jurisdiction_settings where id = $1',
@@ -124,7 +124,7 @@ test(
 			for (const table of CHILDREN)
 				assert.deepEqual(codes(table, after[table]!), codes(table, before[table]!), table);
 
-			// A scheme's base names catalogue rows by family and code (RFC 0003 §1), so the clone
+			// A scheme's base names catalogue rows by family and code, so the clone
 			// carries every declaration and the version's own Work rules unchanged.
 			assert.deepEqual(
 				draft.work_rules,
@@ -286,7 +286,7 @@ test(
 				`insert into companies (id, settings_code, name, registration_number, pay_cutoff_day, pay_frequency, effective_range) values ($1, 'PUB', 'Public Sibling Co', 'PUB-CO-0003', 21, 'MONTHLY', $2)`,
 				[companyId, { start: '2020-01-01', end: null }]
 			);
-			// RFC 0001 scopes roster codes and named patterns to the company; the sibling entity gets
+			// Roster codes and named patterns are scoped and named patterns to the company; the sibling entity gets
 			// its own copies, with the pattern's cycle rewritten onto the new roster codes.
 			const sourceShifts = (await session.query(
 				'select * from shift_definitions where company_id = $1',

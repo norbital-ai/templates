@@ -164,7 +164,7 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 	// 5% × 28,590 = 1,429.50, below the threshold: nothing is withheld.
 	expectStatutory(book, 'TW-28590', 'INCOME_TAX', 0, 0);
 	// 5% × 40,000 = 2,000.00 exactly. §13's "不超過新臺幣二千元者，免予扣繳" includes equality, and
-	// under RFC 0002 the scheme's own rule says `<= 2000`, so the law's figure here is 0.
+	// the scheme's own rule says `<= 2000`, so the law's figure here is 0.
 	expectStatutory(book, 'TW-40000', 'INCOME_TAX', 0, 0);
 	// 5% × 60,000 = 3,000, above the threshold → withheld in full.
 	expectStatutory(book, 'TW-60000', 'INCOME_TAX', 3000, 0);

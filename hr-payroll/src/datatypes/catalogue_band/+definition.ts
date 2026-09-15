@@ -4,12 +4,12 @@ import { compileExpression } from '../../lib/expressions/compile.js';
 import { entitlementValueSchema } from '../entitlement/+definition.js';
 
 /**
- * One band of a catalogue row (RFC 0001 §4, §9).
+ * One band of a catalogue row.
  *
  * A catalogue prices its entries through ordered bands over the entry context: the first band whose
  * `when` holds governs. The band states the amount the line settles (`amount`) and the
  * entitlement ceiling (`limit`, nullable). A catalogue with no bands settles the entry's own
- * amount unchanged; which schemes charge the line is the scheme's own declaration (RFC 0003).
+ * amount unchanged; which schemes charge the line is the scheme's own declaration.
  *
  * Every expression is compiled against the `entry` context at write time, so a misspelt member or
  * a string where money belongs is refused before a payroll reads it.

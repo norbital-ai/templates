@@ -52,7 +52,7 @@ every engine-priced Work line states its `destination` (`PAY`, `NET`, `EMPLOYER`
 `direction` (`ADD`/`SUBTRACT`), which is the §9 table the settlement reads. Work is not a catalogue:
 its lines live on `settings.work_rules`, priced by `bands` in declaration order. Leave
 declares the metadata of its distinct monetary outputs. Contribution reads each scheme's own base
-declaration (RFC 0003 §1) rather than inspecting the activity that produced a line.
+declaration rather than inspecting the activity that produced a line.
 
 ## Catalogue revisions and holidays
 
@@ -461,7 +461,7 @@ while payroll only reports them.
 
 ### Overtime eligibility
 
-`work_rules.overtime_when` is one boolean over the person (RFC 0003 §2.2): who the overtime ladder
+`work_rules.overtime_when` is one boolean over the person: who the overtime ladder
 covers, empty being everyone. It reads the employment terms' own enums (`employment.classification`,
 `terms.statutory_work_category`) and `terms.statutory_wages`, the Employment Act s.2 comparand that
 `statutory-wages.ts` derives from contracted basic wages plus eligible cash-for-work entries —
@@ -473,7 +473,7 @@ allowance from other earnings.
 
 ## Contribution calculation and audit
 
-Each scheme declares its own base (RFC 0003 §1). `statutory_contributions.base` states whether
+Each scheme declares its own base. `statutory_contributions.base` states whether
 salary, absence, the overtime classes (the incentive funnel included) and the night premium are in
 it, and which catalogue rows of its version are (`entries`, by family and code). A line the
 declaration admits joins the base with the sign of its own landing — an earning, non-wage payment

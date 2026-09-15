@@ -1,6 +1,6 @@
 /**
  * The statutory wage comparand: what a wage ceiling in an overtime-eligibility predicate is
- * measured against, read in expressions as `terms.statutory_wages` (RFC 0003 §2.2).
+ * measured against, read in expressions as `terms.statutory_wages`.
  *
  * Nothing here is hard-coded to a jurisdiction; it classifies a pay component against the
  * statute's own definition of wages so that a version's `overtime_when` can compare the figure the

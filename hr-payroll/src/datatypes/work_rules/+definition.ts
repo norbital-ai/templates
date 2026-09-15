@@ -6,7 +6,7 @@ import type { ExpressionSite, ExpressionType } from '../../lib/expressions/conte
 import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
 
 /**
- * The work rules of one settings version (RFC 0001 §4–§6, RFC 0003 §2).
+ * The work rules of one settings version.
  *
  * Work is a line-item producer, not a catalogue family: these rules price schedule and
  * attendance into BASIC, the OVERTIME classes and INCENTIVE, and they state the ceilings that
@@ -83,7 +83,7 @@ const faultIn = (
 
 /**
  * Every expression a work-rules row carries is compiled at write time against the context it will
- * be evaluated in (RFC 0001 §7): bands and breaks over `work_day`, the divisor and the overtime
+ * be evaluated in: bands and breaks over `work_day`, the divisor and the overtime
  * predicate over `person`. A misspelt member or a string where hours belong is refused when the
  * version is written, not when a payroll prices the month it governs.
  */

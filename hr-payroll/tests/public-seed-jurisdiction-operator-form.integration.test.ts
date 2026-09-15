@@ -9,7 +9,7 @@ import {
 } from './helpers/public-seed-host.ts';
 
 /**
- * The operator-visible settings vocabulary after RFC 0001. The form module is gone; its field
+ * The operator-visible settings vocabulary. The form module is gone; its field
  * lists live here and are checked against the live manifest, which is what the form renders from.
  */
 const JURISDICTION_OPERATOR_HIDDEN_FIELDS = [

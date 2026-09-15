@@ -276,7 +276,7 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		approval_id: null,
 		rules: [{ when: 'true', employee: PUB_TAX_EMPLOYEE, employer: '0.0' }]
 	});
-	// Both schemes charge every work line and every money catalogue row (RFC 0003 §1).
+	// Both schemes charge every work line and every money catalogue row.
 	for (const code of ['PUB-EPF', 'PUB-TAX']) {
 		const row = world.statutory_contributions.find((candidate) => candidate.code === code);
 		if (row == null) continue;

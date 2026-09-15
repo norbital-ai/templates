@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * A named shift pattern of one entity, entity-owned like its holidays (RFC 0001 §11). The scope
+	 * A named shift pattern of one entity, entity-owned like its holidays. The scope
 	 * names the entity, so the form does not ask; opened without a scope the field returns.
 	 *
 	 * The day cycle is the row's substance, so it sits first and uses the width as a matrix of

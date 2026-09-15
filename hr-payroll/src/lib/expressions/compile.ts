@@ -1,5 +1,5 @@
 /**
- * Compile-time checks for every CEL the catalogues carry (RFC 0001 §7).
+ * Compile-time checks for every CEL the catalogues carry.
  *
  * One compiler serves all five sites: it refuses an expression that names a member the context
  * does not carry, that uses an identifier the context does not declare, that fails to parse or

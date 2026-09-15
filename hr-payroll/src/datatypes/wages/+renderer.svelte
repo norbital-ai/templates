@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Regional minimum wages of one settings version (RFC 0001 §4): one row per region, in the
+	 * Regional minimum wages of one settings version: one row per region, in the
 	 * version's currency. A company names its region and a scheme's floor or cap reads the wage
 	 * through `minimum_wage(region)`, so a region with no row refuses the run rather than guessing.
 	 */

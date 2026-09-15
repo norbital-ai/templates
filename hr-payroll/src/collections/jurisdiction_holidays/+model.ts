@@ -23,7 +23,7 @@ export default defineModel(
 		/** The statutory date when the observance moved, e.g. a Sunday holiday taken on Monday. */
 		replaces: instant({ precision: 'day' }),
 		/**
-		 * Who the day is for (RFC 0001 §3): everyone, or only the staff whose roster had the
+		 * Who the day is for: everyone, or only the staff whose roster had the
 		 * replaced date off — the rest already took the holiday itself and work this day.
 		 */
 		given_to: enums(['EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE']).notNull().default('EVERYONE'),

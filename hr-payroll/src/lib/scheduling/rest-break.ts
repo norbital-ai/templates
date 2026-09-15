@@ -2,7 +2,7 @@ import { Schema } from 'effect';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 
-/** The CEL break rule one settings version carries (RFC 0001 §5). */
+/** The CEL break rule one settings version carries. */
 const workBreakLikeSchema = Schema.Struct({
 	when: Schema.String,
 	owed_minutes: Schema.String,

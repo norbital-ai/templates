@@ -212,7 +212,7 @@ test('Philippines — the salary-based schemes are monthly schedules, not per-pe
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 13th month pay (P.D. 851; Revised Guidelines 1987; NIRC s.32(B)(7)(e)) — RFC 0004 S1.
+// 13th month pay (P.D. 851; Revised Guidelines 1987; NIRC s.32(B)(7)(e)) — gap tracker §4, landed 2026-09-16.
 //
 // The row is a SCHEDULE source: every 24 December, one twelfth of the basic salary earned in the
 // year, to rank-and-file with at least a month of service, and on separation to a leaver whose
