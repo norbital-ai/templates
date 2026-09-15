@@ -49,5 +49,8 @@ test('a year-9999 end is read as an open contract', () => {
 		readRange({ start: '2019-12-02T00:00:00.000Z', end: '9999-12-31T23:59:59.999Z' })?.end,
 		null
 	);
-	assert.equal(readRange({ start: '2019-12-02', end: '2026-02-10T15:59:59.999Z' })?.end, '2026-02-10T15:59:59.999Z');
+	assert.equal(
+		readRange({ start: '2019-12-02', end: '2026-02-10T15:59:59.999Z' })?.end,
+		'2026-02-10T15:59:59.999Z'
+	);
 });
