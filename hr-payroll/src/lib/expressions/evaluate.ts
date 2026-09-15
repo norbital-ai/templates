@@ -7,97 +7,125 @@
  * the plain context members.
  */
 
-import { createReckonEngine, type ComputationDefinition } from '@norbital-ai/std/reckon';
+import {
+	createEnvironment,
+	runComputation,
+	type ComputationDefinition,
+	type CustomOp,
+	type ReckonEnvironment
+} from '@norbital-ai/std/reckon';
 import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
 import { childUnder } from './child-under.js';
 
-/** The engine a run evaluates expressions with; see `compile.ts` for the compile-time twin. */
+/**
+ * What differs between two evaluations of the same expression: the region's minimum wage. It is
+ * bound per call, not per engine, so one compiled environment serves every employee and every run.
+ * Evaluation is synchronous, so the binding cannot interleave.
+ */
+export type ExpressionEngine = {
+	readonly minimumWage: (region: string) => number;
+};
+
+let bound: ExpressionEngine = { minimumWage: () => 0 };
+
+const op = (signature: string, handler: (...args: unknown[]) => unknown): CustomOp => ({
+	signature,
+	handler
+});
+
+const OPS: readonly CustomOp[] = [
+	op('minimum_wage(string): double', (region) => Number(bound.minimumWage(String(region)))),
+	op('bracket(dyn, dyn, dyn): double', (base, upTo, step) => {
+		const value = Number(base);
+		const size = Number(step);
+		return value <= Number(upTo) && size > 0 ? Math.ceil(value / size) * size : value;
+	}),
+	op('ladder(dyn, list<dyn>): double', (base, grades) => {
+		const value = Number(base);
+		const rungs = Array.isArray(grades) ? grades.map(Number) : [];
+		return rungs.find((grade) => value <= grade) ?? rungs.at(-1) ?? value;
+	}),
+	op('round_cent(dyn): double', (value) => roundMoney(Number(value), 'NEAREST_CENT')),
+	op('truncate_cent(dyn): double', (value) => roundMoney(Number(value), 'TRUNCATE_CENT')),
+	op('up_5_cents(dyn): double', (value) => roundMoney(Number(value), 'UP_5_CENTS')),
+	op('round_unit(dyn): double', (value) => roundMoney(Number(value), 'NEAREST_UNIT')),
+	op('floor_unit(dyn): double', (value) => roundMoney(Number(value), 'FLOOR_UNIT')),
+	op('up_to_unit(dyn): double', (value) => roundMoney(Number(value), 'UP_TO_UNIT')),
+	op('progressive(dyn, list<dyn>): double', (value, table) => {
+		const amount = Number(value);
+		const rungs = Array.isArray(table) ? table.map(Number) : [];
+		let charged = 0;
+		for (let index = 0; index + 2 < rungs.length; index += 3) {
+			const from = rungs[index]!;
+			if (from >= amount) break;
+			charged = rungs[index + 1]! + ((amount - from) * rungs[index + 2]!) / 100;
+		}
+		return charged;
+	}),
+	op('map.under(int): int', childUnder),
+	op('map.days(string): double', () => 0),
+	op('map.balance(string): double', () => 0)
+];
+
 export function runtimeExpressionEngine(
 	options: {
-		/** The version's minimum wage by region, for `minimum_wage(region)`. */
 		readonly minimumWage?: (region: string) => number;
 	} = {}
-) {
-	return (
-		createReckonEngine()
-			.registerFunction('minimum_wage', 'minimum_wage(string): double', (region) =>
-				options.minimumWage == null ? 0 : Number(options.minimumWage(String(region)))
-			)
-			// One rung of a wage-bracket ladder: while the wage is within `upTo`, round it up to the
-			// next `step`. A chain nests the calls; see `bracketBase` for why the step vanishes above
-			// the last rung rather than freezing the contribution.
-			.registerFunction('bracket', 'bracket(dyn, dyn, dyn): double', (base, upTo, step) => {
-				const value = Number(base);
-				const size = Number(step);
-				return value <= Number(upTo) && size > 0 ? Math.ceil(value / size) * size : value;
-			})
-			// A published grade table: the lowest grade that covers the wage, the highest when none
-			// does. `ladder(base, [500.0, 1000.0])`.
-			.registerFunction('ladder', 'ladder(dyn, list<dyn>): double', (base, grades) => {
-				const value = Number(base);
-				const rungs = Array.isArray(grades) ? grades.map(Number) : [];
-				return rungs.find((grade) => value <= grade) ?? rungs.at(-1) ?? value;
-			})
-			// Money rounding, the `rules.rounding` chain as callable functions. Every one delegates
-			// to `roundMoney`, so the epsilon that protects the engine's floats is shared.
-			.registerFunction('round_cent', 'round_cent(dyn): double', (value) =>
-				roundMoney(Number(value), 'NEAREST_CENT')
-			)
-			.registerFunction('truncate_cent', 'truncate_cent(dyn): double', (value) =>
-				roundMoney(Number(value), 'TRUNCATE_CENT')
-			)
-			.registerFunction('up_5_cents', 'up_5_cents(dyn): double', (value) =>
-				roundMoney(Number(value), 'UP_5_CENTS')
-			)
-			.registerFunction('round_unit', 'round_unit(dyn): double', (value) =>
-				roundMoney(Number(value), 'NEAREST_UNIT')
-			)
-			.registerFunction('floor_unit', 'floor_unit(dyn): double', (value) =>
-				roundMoney(Number(value), 'FLOOR_UNIT')
-			)
-			.registerFunction('up_to_unit', 'up_to_unit(dyn): double', (value) =>
-				roundMoney(Number(value), 'UP_TO_UNIT')
-			)
-			// A published progressive ladder inlined as data: `[from, amount, rate, …]` triples, in
-			// order. The last rung whose `from` is strictly below the value governs, exactly as its
-			// `base > from && base <= to` rule did; below the first rung the charge is zero.
-			.registerFunction('progressive', 'progressive(dyn, list<dyn>): double', (value, table) => {
-				const amount = Number(value);
-				const rungs = Array.isArray(table) ? table.map(Number) : [];
-				let charged = 0;
-				for (let index = 0; index + 2 < rungs.length; index += 3) {
-					const from = rungs[index]!;
-					if (from >= amount) break;
-					charged = rungs[index + 1]! + ((amount - from) * rungs[index + 2]!) / 100;
-				}
-				return charged;
-			})
-			// `children.under(n)`: the count of ages below `n`, the shape `PersonContext` carries.
-			.registerFunction('map.under', 'map.under(int): int', childUnder)
-			.registerFunction('map.days', 'map.days(string): double', () => 0)
-			.registerFunction('map.balance', 'map.balance(string): double', () => 0)
-	);
+): ExpressionEngine {
+	return { minimumWage: options.minimumWage ?? (() => 0) };
 }
 
-export type ExpressionEngine = ReturnType<typeof runtimeExpressionEngine>;
+/**
+ * One compiled environment per expression text. A payroll run evaluates the same few hundred
+ * catalogue expressions once per employee; rebuilding the CEL environment and hashing the
+ * definition on every call cost a company of ninety more CPU than the guest's whole budget, while
+ * the arithmetic itself was a rounding error. Catalogue text is finite; the cap only guards a
+ * pathological caller.
+ */
+const environments = new Map<string, ReckonEnvironment>();
+const ENVIRONMENT_CAP = 4_096;
 
-/** Evaluate one expression against a context; the caller validated it at write time. */
-function evaluateExpression(
-	engine: ExpressionEngine,
-	expression: string,
-	context: Record<string, unknown>
-): unknown {
+export function environmentFor(expression: string): ReckonEnvironment {
+	const cached = environments.get(expression);
+	if (cached !== undefined) return cached;
 	const definition: ComputationDefinition = {
 		id: 'expression',
 		tables: {},
 		exprs: { value: expression },
 		outputs: ['value']
 	};
-	return engine.runComputation<Record<string, unknown>, { value: unknown }>(definition, context)
-		.outputs.value;
+	const environment = createEnvironment(definition, [...OPS]);
+	if (environments.size >= ENVIRONMENT_CAP) environments.clear();
+	environments.set(expression, environment);
+	return environment;
 }
 
-/** The same, for the sites that require a number; refuses a non-finite result. */
+const DEFINITION: ComputationDefinition = {
+	id: 'expression',
+	tables: {},
+	exprs: {},
+	outputs: ['value']
+};
+
+function evaluateExpression(
+	engine: ExpressionEngine,
+	expression: string,
+	context: Record<string, unknown>
+): unknown {
+	const environment = environmentFor(expression);
+	const previous = bound;
+	bound = engine;
+	try {
+		return runComputation<Record<string, unknown>, { value: unknown }>(
+			DEFINITION,
+			context,
+			environment
+		).outputs.value;
+	} finally {
+		bound = previous;
+	}
+}
+
 export function evaluateNumber(
 	engine: ExpressionEngine,
 	expression: string,

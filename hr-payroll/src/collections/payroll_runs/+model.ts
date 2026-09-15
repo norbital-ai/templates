@@ -27,7 +27,13 @@ export default defineModel(
 		 */
 		calculation_trace: custom('payroll_trace')
 			.notNull()
-			.default(sql`'[]'::jsonb`)
+			.default(sql`'[]'::jsonb`),
+		/**
+		 * What the engine noticed but did not refuse — a day past the hours-of-work limit, an
+		 * instalment net pay could not carry — one sentence per line, frozen with the run so the
+		 * operator reads them where the run is, not in a host log.
+		 */
+		warnings: text().notNull().default('')
 	},
 	{
 		description:

@@ -12,7 +12,7 @@
  * employees it charges.
  */
 
-import { createEnvironment } from '@norbital-ai/std/reckon';
+import { environmentFor } from '../../../lib/expressions/evaluate.js';
 import type { ContributionRule } from './configuration.js';
 
 type AstNode = {
@@ -54,13 +54,8 @@ function walk(node: AstNode, mentions: string[]): void {
 function mentionsIn(expression: string, mentions: string[]): void {
 	let ast: unknown;
 	try {
-		const environment = createEnvironment({
-			id: 'expression:mentions',
-			tables: {},
-			exprs: { value: expression },
-			outputs: ['value']
-		});
-		ast = environment.compiled.get('value')?.ast;
+		// The same compiled environment the run evaluates with: parsed once, read here first.
+		ast = environmentFor(expression).compiled.get('value')?.ast;
 	} catch {
 		// A malformed expression is the compiler's to refuse; here it simply declares no edge.
 		return;

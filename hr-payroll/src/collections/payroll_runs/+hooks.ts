@@ -88,6 +88,7 @@ const buildGraph = (prepared: PreparedRun) =>
 			graph: {
 				...derivedColumns(prepared),
 				calculation_trace: built.calculation_trace,
+				warnings: built.warnings.join('\n'),
 				payslip_payroll_run: built.payslip_payroll_run
 			},
 			captures: built.captures

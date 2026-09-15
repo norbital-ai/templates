@@ -81,13 +81,15 @@ test('a CLOCK day limit is evaluated against the granted break', () => {
 	assert.equal(over[0]?.projected, 12);
 });
 
-test('a plan breaches normal and spread on the day it is written', () => {
+test('a plan breaches spread on the day it is written; hours past normal are overtime, not a breach', () => {
 	const breaches = breachOn([day('2026-02-02', 9.5, 60)], MY_LIMITS, ['2026-02-02']);
 	assert.deepEqual(
 		breaches.map((breach) => breach.key),
-		['normal_day', 'spread_day'],
-		'a nine-and-a-half-hour day is over eight normal hours and its spread over ten'
+		['spread_day'],
+		'a nine-and-a-half-hour day plans 1.5 overtime hours and its spread over ten'
 	);
+	// Nihon's real 08:30–18:00 shift: 8.5 paid hours against an eight-hour normal is lawful.
+	assert.deepEqual(breachOn([day('2026-02-02', 8.5, 60)], MY_LIMITS, ['2026-02-02']), []);
 });
 
 test('a week exactly at the ceiling passes; one more hour is refused', () => {

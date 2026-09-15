@@ -7,26 +7,38 @@
  */
 
 /** Minutes east of UTC `timezone` was at midday on `date` (a `YYYY-MM-DD` day). */
+// A formatter is expensive to build and a payroll asks the same zone for thousands of days.
+const formatters = new Map<string, Intl.DateTimeFormat>();
+const offsets = new Map<string, number>();
+
 export function offsetMinutesFor(timezone: string, date: string): number {
 	if (typeof timezone !== 'string' || timezone.trim() === '')
 		throw new TypeError(
 			'A jurisdiction timezone is required to price a day; an absent zone must not fall back ' +
 				'to the host clock.'
 		);
+	const key = `${timezone}\n${date}`;
+	const known = offsets.get(key);
+	if (known !== undefined) return known;
 	const at = new Date(`${date}T12:00:00.000Z`);
 	if (Number.isNaN(at.getTime())) throw new TypeError(`Not a calendar day: ${date}.`);
 	let parts: Intl.DateTimeFormatPart[];
 	try {
-		parts = new Intl.DateTimeFormat('en-US', {
-			timeZone: timezone,
-			hourCycle: 'h23',
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit',
-			hour: '2-digit',
-			minute: '2-digit',
-			second: '2-digit'
-		}).formatToParts(at);
+		let formatter = formatters.get(timezone);
+		if (formatter === undefined) {
+			formatter = new Intl.DateTimeFormat('en-US', {
+				timeZone: timezone,
+				hourCycle: 'h23',
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit'
+			});
+			formatters.set(timezone, formatter);
+		}
+		parts = formatter.formatToParts(at);
 	} catch (cause) {
 		throw new TypeError(`Not an IANA time zone: ${timezone}.`, { cause });
 	}
@@ -40,7 +52,10 @@ export function offsetMinutesFor(timezone: string, date: string): number {
 		part('minute'),
 		part('second')
 	);
-	return Math.round((asUtc - at.getTime()) / 60_000);
+	const offset = Math.round((asUtc - at.getTime()) / 60_000);
+	if (offsets.size >= 65_536) offsets.clear();
+	offsets.set(key, offset);
+	return offset;
 }
 
 /** Every IANA zone this runtime knows, for a picker. Stable order, no duplicates. */
