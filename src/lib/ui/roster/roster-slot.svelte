@@ -82,7 +82,9 @@
 			: fill.kind === 'CLOCKED'
 				? // Hours and the extra, not the punch window: `8:21p–8:30p +13%` does not fit sixty
 					// pixels, `9.5h +13%` does, and the window is in the tooltip and the day sheet.
-					`${(fill.workedMinutes / 60).toFixed(1).replace(/\.0$/, '')}h${extra}`
+					// Past ten hours the tenth goes too: `10.6h+21%` truncates to `10.6h+2…` and the
+					// extra is the point of the line.
+					`${(fill.workedMinutes / 60).toFixed(fill.workedMinutes < 600 ? 1 : 0).replace(/\.0$/, '')}h${extra}`
 				: fill.kind === 'OPEN'
 					? (punchTimeCue(day) ?? '')
 					: ''
