@@ -5,10 +5,10 @@ balances. Payroll consumes the family's prepared outputs and links every consume
 
 ## Records and ownership
 
-| Record            | Responsibility                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `leave_catalogue` | A stable leave code within a sealed settings revision: eligibility, the computed entitlement, whether a day is `paid`, the evidence threshold and the ordered bands that price an entry and carry its statutory opt-ins. An unpaid day is deducted under the leave's own code and an encashed day is paid under `${code}_ENCASHMENT`; both orders are constants in `lib/leave/pay-items.ts`. |
-| `leave_entries`   | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations; the entry carries the nullable `payslip_id` the run sets when it consumes it, and a per-period Leave slice materialises as its own per-period entry.                                                                          |
+| Record            | Responsibility                                                                                                                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `leave_catalogue` | A stable leave code within a sealed settings revision: eligibility, the computed entitlement, whether a day is `paid`, the evidence threshold and the ordered bands that price an entry                                                                                                                             |
+| `leave_entries`   | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations; the entry carries the nullable `payslip_id` the run sets when it consumes it, and a per-period Leave slice materialises as its own per-period entry. |
 
 `employment_id` identifies one contract with one legal entity. Entitlement, service bands, usage,
 reservations, carry and encashment remain within that contract. A rehire creates another contract
@@ -170,16 +170,16 @@ Carry-forward is always an explicit HR transaction. Calendar rollover and depart
 
 `lib/leave/payroll.ts` owns preparation, source selection, approved date coverage and calculation.
 The payroll engine receives prepared Leave data for each contract. Work supplies date-specific
-absence rates; Leave returns its frozen pay items for payroll settlement and the statutory opt-ins
-those items carry.
+absence rates; Leave returns its frozen pay items for payroll settlement; each scheme's base declaration
+says which of them it charges.
 
 - Paid time off supplies approved coverage and a zero-money link.
 - Unpaid time off supplies reductions for its exact linked dates, using Work's applicable rate and
-  the unpaid day's statutory opt-ins; the deduction covers whom the leave covers.
+  the schemes whose base admits an absence; the deduction covers whom the leave covers.
 - Encashment supplies the entered gross amount. An optional entered rate must reconcile to that
   amount; payroll does not derive or replace it from salary.
 - Carry and adjustments change quantities without directly creating payroll money.
-- A paid reversal negates the original linked amount, economic direction and statutory opt-ins. A
+- A paid reversal negates the original linked amount and economic direction. A
   draft link must first be deleted or settled before its source can be reversed.
 
 Standing links prevent the same dated slice or single monetary obligation being consumed twice.

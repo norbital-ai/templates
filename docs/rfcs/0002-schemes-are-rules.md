@@ -1,7 +1,7 @@
 # RFC 0002 — Schemes are rules
 
 - Status: Landed. The write-time gates, the AST mentions and the UI membership read were closed in
-  the 2026-09-14 pass recorded in the [RFC 0001 tracker](./0001-tracker.md).
+  the 2026-09-14 close-out pass.
 - Scope: `templates/hr-payroll` collection **attributes**, the Settings and Payroll screens, and
   `seed_bank/norbital_hr`
 - Keeps: the five catalogue families, their entries, work rules, and the RFC 0001 pipeline.

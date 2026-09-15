@@ -174,7 +174,7 @@ export function serviceStart(employment: { readonly effective_range: StoredRange
 	return employment.effective_range == null ? '' : dateKey(employment.effective_range.start);
 }
 
-/** The stint as the person contexts read it: first day, last day of work and why it ended (RFC 0005 §3). */
+/** The stint as the person contexts read it: first day, last day of work and why it ended (RFC 0005 §1.2). */
 export function stint(employment: {
 	readonly effective_range: StoredRange | null;
 	readonly exit_reason?: string | null;

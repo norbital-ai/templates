@@ -3,7 +3,6 @@
 - Status: Accepted; the scheme shapes in §8 (and the scheme lines in the model sketch) are
   superseded by [RFC 0002 — Schemes are rules](./0002-schemes-are-rules.md)
 - Scope: `templates/hr-payroll` (schema, engine, UI, seed shape) and `seed_bank/norbital_hr`
-- Tracker: `docs/rfcs/0001-tracker.md`
 
 > **Superseded in part.** RFC 0002 replaced the statutory scheme this RFC specified.
 > `statutory_contributions.eligibility`, `sequence`, the typed `statutory_rules` remainder and the

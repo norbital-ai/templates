@@ -17,7 +17,7 @@ export default defineModel(
 		 */
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
-		 * Why the stint ended (RFC 0005 §3). Every separation payment the law owes turns on it:
+		 * Why the stint ended (RFC 0005 §2.3). Every separation payment the law owes turns on it:
 		 * separation pay by cause, retirement pay, notice in lieu. Written with the departure and
 		 * correctable after; `employment.exit_reason` is how a catalogue band reads it.
 		 */
