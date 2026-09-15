@@ -96,6 +96,7 @@
 		type DayFacts,
 		type HolidayLike
 	} from './roster-month.js';
+	import RosterSlot from './roster-slot.svelte';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -295,45 +296,6 @@
 	}
 
 	/**
-	 * What the plan line says under the glyph.
-	 *
-	 * Leave and holidays get their own words rather than a code, because this reader is the person
-	 * whose leave it is: `ANNUAL` above `approved` is what they filed, and a holiday is named.
-	 */
-	function planDetail(day: DayFacts): string | null {
-		if (day.leaveCode != null) {
-			return day.halfDayLeave ? t('roster.half_day') : t('roster.leave_approved');
-		}
-		if (day.pendingLeave) return t('roster.pending_leave');
-		if (day.holidayName != null) return day.holidayName;
-		// A slice rather than `shiftTimeCue`: the dense board compresses `08:00–17:00` to `8a–5p`
-		// because it has 52px to spend, and this tile does not have to.
-		if (day.shiftStart != null && day.shiftEnd != null) {
-			return `${day.shiftStart.slice(0, 5)}–${day.shiftEnd.slice(0, 5)}`;
-		}
-		return null;
-	}
-
-	/** The evidence line, spelled out. `actualMark` still decides *which* of these it is. */
-	function actualLabel(day: DayFacts): string | null {
-		const mark = actualMark(day);
-		if (mark === '⧗') return t('roster.attendance_open');
-		if (mark === '!') return t('roster.absent');
-		if (mark === '✓') return null;
-		return null;
-	}
-
-	/** Which plan layer a tile stands on, so its outline says base or override like a board cell. */
-	function layerClass(day: DayFacts): string {
-		const layers = resolveCellLayers(day);
-		return cn(
-			layers.effective === 'BASE' && LAYER_PRESENTATION.base.className,
-			layers.effective === 'OVERRIDE' && LAYER_PRESENTATION.override.className,
-			layers.actual.kind === 'AWOL' && LAYER_PRESENTATION.awol.className
-		);
-	}
-
-	/**
 	 * Everything known about the day, in one string, for the hover text and the accessible name.
 	 *
 	 * `describeDay` composes the shared sentence — status, shift, leave, holiday, conflicts, the day's
@@ -400,38 +362,6 @@
 	What is left is the one thing a tile cannot spell out (its own fill), the one overlay that is a
 	property of the calendar rather than of the day, and the one mark that is genuinely a symbol.
 -->
-{#snippet legend()}
-	<Cluster gap="sm" class="text-xs leading-5 text-muted-foreground">
-		<Inline gap="xs">
-			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.base.className)}
-			></span>
-			<span>{t(LAYER_PRESENTATION.base.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.override.className)}
-			></span>
-			<span>{t(LAYER_PRESENTATION.override.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.awol.className)}
-			></span>
-			<span>{t(LAYER_PRESENTATION.awol.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class="inline-block size-2.5 rounded-sm bg-warning/25"></span>
-			<span>{t('roster.legend_attention')}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class="inline-block size-2.5 rounded-sm {HOLIDAY_PRESENTATION.headerClassName}"></span>
-			<span>{t(HOLIDAY_PRESENTATION.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class="inline-block w-3 text-center">↑</span>
-			<span>{t('roster.calendar_beyond_schedule')}</span>
-		</Inline>
-	</Cluster>
-{/snippet}
-
 <!--
 	── WHY THE MONTH IS A SCROLLPORT AND NOT A COLUMN OF WEEKS ────────────────────────────────────
 	This used to be a `Stack` whose middle child was a `div.overflow-x-auto` — bounded on x, unbounded
@@ -456,7 +386,7 @@
 	to say. The narrow-screen reader scrolls one week horizontally, or opens a day for the full
 	sentence — and the page body never scrolls sideways, because this region owns that overflow.
 -->
-<Cover gap="sm" top={chrome} bottom={legend} aria-busy={loading}>
+<Cover gap="sm" top={chrome} aria-busy={loading}>
 	{#if loading}
 		<span class="sr-only" role="status">{t('app.hr_employee.schedule_loading')}</span>
 	{/if}
@@ -501,8 +431,7 @@
 									gap="none"
 									class={cn(
 										'relative min-h-24 overflow-hidden rounded-md border text-left',
-										day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
-										day != null && layerClass(day),
+										day == null && 'bg-muted/20',
 										holiday != null && HOLIDAY_PRESENTATION.className,
 										date === today && 'ring-2 ring-brand ring-inset'
 									)}
@@ -523,11 +452,7 @@
 										></button>
 									{/if}
 
-									<Stack
-										gap="none"
-										grow
-										class="pointer-events-none relative z-0 py-1 pr-1.5 pl-2.5"
-									>
+									<Stack gap="none" grow class="pointer-events-none relative z-0 py-1 pr-1 pl-2">
 										<Inline align="baseline" justify="between" gap="xs">
 											<span class="text-sm font-semibold tabular-nums">
 												{decodeNumber(date.slice(8, 10))}
@@ -548,43 +473,11 @@
 										</Inline>
 
 										{#if day != null}
-											<!-- PLAN -->
-											<span class="truncate text-xs leading-4 font-medium">{planGlyph(day)}</span>
-											{#if planDetail(day) != null}
-												<span class="truncate text-micro leading-3 opacity-80"
-													>{planDetail(day)}</span
-												>
-											{/if}
-
-											<!-- ACTUAL -->
-											{@const punch = punchWindows.get(date)}
-											{#if punch?.first != null}
-												<span class="truncate text-micro leading-4 tabular-nums">{punch.first}</span
-												>
-												{#if punch.last != null}
-													<span class="truncate text-micro leading-3 tabular-nums">
-														↳ {punch.last}
-													</span>
-												{:else}
-													<!--
-													A first punch with no last one is a clock still running. Without this arm the tile
-													would print a lone start time and say nothing about it, which is the one attendance
-													state the table this screen replaces named outright in its `state` column.
-												-->
-													<span class="truncate text-micro leading-3">
-														{t('roster.attendance_open')}
-													</span>
-												{/if}
-											{:else if actualLabel(day) != null}
-												<span class="truncate text-micro leading-4">{actualLabel(day)}</span>
-											{/if}
-											{#if day.workedMinutes != null && day.workedMinutes > 0}
-												<span class="truncate text-micro leading-3 tabular-nums">
-													{formatDurationHours(day.workedMinutes, t)}{overshootMinutes(day) > 0
-														? ' ↑'
-														: ''}
-												</span>
-											{/if}
+											<RosterSlot
+												{day}
+												dense={false}
+												hours={(minutes) => formatDurationHours(minutes, t)}
+											/>
 
 											<!-- LOCK, when it is a rung the employee can be told something about -->
 											{#if rung === 'PENDING'}
