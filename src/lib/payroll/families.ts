@@ -458,6 +458,32 @@ import { prepareLeaveCatalogue, prepareLeavePayroll } from '../leave/payroll.js'
 import type { PayrollReadApi, ReadLog } from '../../collections/payroll_runs/lib/api.js';
 import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js';
 
+/**
+ * A version's catalogues, read once per invocation.
+ *
+ * A run picks its own configuration and one more for every earlier month a late allowance came
+ * from; a February run with December and January stragglers read the same sealed version's
+ * statutory rules — three megabytes of Third Schedule bands — three times, and decoding them was
+ * the single largest cost in the guest. The four version-only catalogues are keyed by the settings
+ * version id for the life of the `api` object, which is one invocation; the work catalogue stays
+ * per call because it reads the window's shifts and holidays.
+ */
+const runMoneyCatalogues = (catalogue: {
+	readonly api: PayrollReadApi & { readonly reads: ReadLog };
+	readonly settingsId: string;
+}) =>
+	Effect.all(
+		[
+			prepareMoneyCatalogues(catalogue),
+			prepareLoanCatalogue(catalogue),
+			prepareContributionCatalogue(catalogue),
+			prepareLeaveCatalogue(catalogue)
+		],
+		{ concurrency: 'unbounded' }
+	);
+type VersionCatalogues = Effect.Success<ReturnType<typeof runMoneyCatalogues>>;
+const versionCataloguesByApi = new WeakMap<object, Map<string, VersionCatalogues>>();
+
 export function prepareFamilyCatalogues(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly jurisdiction: Jurisdiction;
@@ -467,13 +493,22 @@ export function prepareFamilyCatalogues(options: {
 }) {
 	return Effect.gen(function* () {
 		const catalogue = { api: options.api, settingsId: options.jurisdiction.id };
-		const [work, money, loans, contributions, catalogueLeaves] = yield* Effect.all(
+		const cache =
+			versionCataloguesByApi.get(options.api) ??
+			(() => {
+				const fresh = new Map<string, VersionCatalogues>();
+				versionCataloguesByApi.set(options.api, fresh);
+				return fresh;
+			})();
+		const cached = cache.get(options.jurisdiction.id);
+		const [work, [money, loans, contributions, catalogueLeaves]] = yield* Effect.all(
 			[
 				prepareWorkCatalogue(options),
-				prepareMoneyCatalogues(catalogue),
-				prepareLoanCatalogue(catalogue),
-				prepareContributionCatalogue(catalogue),
-				prepareLeaveCatalogue(catalogue)
+				cached === undefined
+					? Effect.tap(runMoneyCatalogues(catalogue), (loaded) =>
+							Effect.sync(() => cache.set(options.jurisdiction.id, loaded))
+						)
+					: Effect.succeed(cached)
 			],
 			{ concurrency: 'unbounded' }
 		);

@@ -12,7 +12,7 @@
  * employees it charges.
  */
 
-import { environmentFor } from '../../../lib/expressions/evaluate.js';
+import { programFor } from '../../../lib/expressions/evaluate.js';
 import type { ContributionRule } from './configuration.js';
 
 type AstNode = {
@@ -55,7 +55,7 @@ function mentionsIn(expression: string, mentions: string[]): void {
 	let ast: unknown;
 	try {
 		// The same compiled environment the run evaluates with: parsed once, read here first.
-		ast = environmentFor(expression).compiled.get('value')?.ast;
+		ast = programFor(expression).ast;
 	} catch {
 		// A malformed expression is the compiler's to refuse; here it simply declares no edge.
 		return;
