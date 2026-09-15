@@ -147,3 +147,38 @@ test('a month that met the floor raises nothing at all', () => {
 		'no shortfall, no issue'
 	);
 });
+
+test('a leaver with instalments beyond the final payslip is warned about, once per loan', async () => {
+	const world = leaverOwing('STAFF');
+	world.loans[0].reference = 'Hari Raya';
+	for (const [sequence, due] of [
+		[2, '2026-03-15'],
+		[3, '2026-04-15']
+	])
+		world.loan_repayments.push({
+			id: `repayment-${sequence}`,
+			loan_id: 'loan',
+			employment_id: EMPLOYMENT_ID,
+			due_date: due,
+			amount_due: 100,
+			sequence,
+			approval_id: null
+		});
+	const built = await build(world, '2026-02');
+	const warning = built.warnings.filter((line) => line.startsWith('LOAN_OUTSTANDING_AT_EXIT'));
+	assert.equal(warning.length, 1);
+	assert.match(warning[0], /3 instalment\(s\) totalling 300 still outstanding under Hari Raya/);
+	assert.equal(
+		built.payslip_payroll_run[0].adjustments.filter((row) => row.family === 'LOAN_REPAYMENT')
+			.length,
+		1,
+		'the final payslip still recovers exactly one instalment'
+	);
+	assert.equal(
+		(await build(leaverOwing('STAFF'), '2026-02')).warnings.some((line) =>
+			line.startsWith('LOAN_OUTSTANDING_AT_EXIT')
+		),
+		false,
+		'a single last instalment the final payslip takes is not outstanding'
+	);
+});

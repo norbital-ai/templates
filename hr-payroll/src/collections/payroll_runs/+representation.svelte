@@ -28,11 +28,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm, submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import {
-		CollectionTable,
-		type CollectionTableRowActionContext
-	} from '@norbital-ai/ui/collection-table';
-	import { Button } from '@norbital-ai/ui/button';
+	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import * as Popover from '@norbital-ai/ui/popover';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { toast } from 'svelte-sonner';
 	import { Combobox } from '@norbital-ai/ui/combobox';
@@ -252,41 +249,25 @@
 		Effect.sync(() =>
 			toast.error(t('component.payslip_action_failed'), { description: getErrorMessage(cause) })
 		);
+	/**
+	 * Status moves are bulk operations over the rows a person selected, like holiday publication:
+	 * hold keeps reviewed slips out of every bank file, release returns them to draft, and paid is
+	 * terminal (the day money left is the run's own pay date), so a selection holding a paid slip
+	 * disables all three rather than silently skipping it. The writes themselves sit in the
+	 * table's `bulkPipelines` markup: an onsite write belongs in its handler, not a named helper.
+	 */
+	const statusRows = (
+		rows: readonly PayrollRunPayslipRow[],
+		status: 'DRAFT' | 'ON_HOLD' | 'PAID'
+	) =>
+		rows.map((row) => ({
+			id: row.id,
+			status,
+			...(status === 'PAID' ? { paid_at: record?.pay_date ?? undefined } : {})
+		}));
+	const paidSelected = (rows: readonly PayrollRunPayslipRow[]) =>
+		rows.some((row) => row.status === 'PAID') ? t('component.paid_is_terminal') : null;
 </script>
-
-{#snippet slipAction({ row }: CollectionTableRowActionContext<PayrollRunPayslipRow>)}
-	{#if row.status !== 'PAID'}
-		{@const held = row.status === 'ON_HOLD'}
-		<!-- Hold keeps a reviewed slip out of every bank file; release returns it to draft. -->
-		<Button
-			variant="outline"
-			size="sm"
-			onclick={() =>
-				Effect.runFork(
-					submitCollectionMutation(() =>
-						client.db.payslips.mutate([{ id: row.id, status: held ? 'DRAFT' : 'ON_HOLD' }])
-					).pipe(Effect.catch(slipActionFailed))
-				)}
-		>
-			{held ? t('component.release') : t('component.hold')}
-		</Button>
-		<!-- Paid is terminal; the day money left is the run's own pay date. -->
-		<Button
-			variant="outline"
-			size="sm"
-			onclick={() =>
-				Effect.runFork(
-					submitCollectionMutation(() =>
-						client.db.payslips.mutate([
-							{ id: row.id, status: 'PAID', paid_at: record?.pay_date ?? undefined }
-						])
-					).pipe(Effect.catch(slipActionFailed))
-				)}
-		>
-			{t('payroll.mark_paid')}
-		</Button>
-	{/if}
-{/snippet}
 
 <RecordShell
 	subtitle={record
@@ -338,19 +319,26 @@
 				</p>
 			{/if}
 			{#if warnings.length > 0}
-				<details
-					class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
-					data-run-warnings
-				>
-					<summary class="cursor-pointer font-medium">
+				<Popover.Root>
+					<Popover.Trigger
+						type="button"
+						class="w-fit rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-sm font-medium hover:bg-amber-500/15"
+						data-run-warnings
+					>
 						{t('component.run_warnings', { count: warnings.length })}
-					</summary>
-					<ul class="mt-2 list-disc space-y-1 pl-5">
-						{#each warnings as warning (warning)}
-							<li>{warning}</li>
-						{/each}
-					</ul>
-				</details>
+					</Popover.Trigger>
+					<Popover.Content
+						align="start"
+						sideOffset={6}
+						class="max-h-[min(28rem,calc(100dvh-6rem))] w-[44rem] max-w-[90vw] overflow-auto p-3 text-sm"
+					>
+						<ul class="list-disc space-y-1 pl-5">
+							{#each warnings as warning (warning)}
+								<li>{warning}</li>
+							{/each}
+						</ul>
+					</Popover.Content>
+				</Popover.Root>
 			{/if}
 
 			<Stack as="section" gap="sm" aria-label={t('component.payslips')}>
@@ -366,7 +354,44 @@
 					description={t('component.payslips_description')}
 					features={{ create: false }}
 					query={payslipsTableQuery}
-					rowActions={[slipAction]}
+					bulkPipelines={[
+						{
+							id: 'payslips-hold',
+							label: t('component.hold'),
+							description: t('component.hold_selected_description'),
+							icon: 'lucide:pause',
+							requiresSelection: true,
+							getDisabledReason: paidSelected,
+							run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
+								submitCollectionMutation(() =>
+									client.db.payslips.mutate(statusRows(selectedRows, 'ON_HOLD'))
+								).pipe(Effect.catch(slipActionFailed))
+						},
+						{
+							id: 'payslips-release',
+							label: t('component.release'),
+							description: t('component.release_selected_description'),
+							icon: 'lucide:play',
+							requiresSelection: true,
+							getDisabledReason: paidSelected,
+							run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
+								submitCollectionMutation(() =>
+									client.db.payslips.mutate(statusRows(selectedRows, 'DRAFT'))
+								).pipe(Effect.catch(slipActionFailed))
+						},
+						{
+							id: 'payslips-paid',
+							label: t('payroll.mark_paid'),
+							description: t('component.mark_paid_selected_description'),
+							icon: 'lucide:banknote',
+							requiresSelection: true,
+							getDisabledReason: paidSelected,
+							run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
+								submitCollectionMutation(() =>
+									client.db.payslips.mutate(statusRows(selectedRows, 'PAID'))
+								).pipe(Effect.catch(slipActionFailed))
+						}
+					]}
 				>
 					{#snippet columns({ Column })}
 						<Column

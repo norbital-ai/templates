@@ -120,6 +120,31 @@ export function validateLoanRecoveries(options: {
 		for (const loan of bundle.loans)
 			if (owed.has(loan.id) && loanRecoveryComponent(loan, currentByCode) == null)
 				issues.push(loanComponentMissingIssue(bundle.employment.employee_number, loan));
+		// A final payslip recovers at most one instalment per agreement (whole, never a sweep), so
+		// every other outstanding instalment leaves with the person. Said once per loan, as a
+		// warning: what to do with the balance is the operator's call, not the run's.
+		if (isFinalPayslip(bundle))
+			for (const loan of bundle.loans) {
+				const remaining = bundle.loanRepayments.filter(
+					(repayment) => repayment.loan_id === loan.id && repayment.payslip_id == null
+				);
+				if (remaining.length <= 1) continue;
+				const balance = remaining.reduce(
+					(sum, repayment) => sum + cents(decodeNumber(repayment.amount_due)),
+					0
+				);
+				issues.push({
+					code: 'LOAN_OUTSTANDING_AT_EXIT',
+					severity: 'WARNING',
+					message:
+						`${bundle.employment.employee_number} leaves this period with ${remaining.length} ` +
+						`instalment(s) totalling ${cents(balance)} still outstanding under ` +
+						`${loan.reference ?? loan.id}; this final payslip recovers at most one. ` +
+						'Settle the balance outside payroll or record it as written off.',
+					collection: 'loans',
+					recordId: loan.id
+				});
+			}
 	}
 	return issues;
 }
