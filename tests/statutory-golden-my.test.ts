@@ -299,6 +299,45 @@ test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and a
 	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
 });
 
+test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, then hundreds', () => {
+	// KWSP Third Schedule Part A: rows are RM10 wide to RM20, RM20 wide to RM5,000, RM100 wide to
+	// RM20,000. Each row charges the rate on its own ceiling, so RM970 is "960.01 – 980.00" →
+	// 108 / 128, RM15 is "10.01 – 20.00" → 3 / 3. A composition of three `bracket()` calls
+	// re-rounded 980 to 1,000 and 20 to 100; the rounding is one ladder, not a chain.
+	const book = assessStatutory({
+		code: 'MY',
+		period: '2026-01',
+		people: [
+			{ key: 'MY-15', wage: 15, age: 40, citizenship: 'CITIZEN' },
+			{ key: 'MY-970', wage: 970, age: 40, citizenship: 'CITIZEN' },
+			{ key: 'MY-1748', wage: 1748, age: 40, citizenship: 'CITIZEN' },
+			{ key: 'MY-1748-60', wage: 1748, age: 60, citizenship: 'CITIZEN' },
+			{ key: 'MY-PR-970-61', wage: 970, age: 61, citizenship: 'PERMANENT_RESIDENT' },
+			// The cent above a published ceiling belongs to the next row, never to no row.
+			{ key: 'MY-5000.01', wage: 5000.01, age: 40, citizenship: 'CITIZEN' },
+			{ key: 'MY-6000.01', wage: 6000.01, age: 40, citizenship: 'CITIZEN' },
+			{ key: 'MY-20000.01', wage: 20_000.01, age: 40, citizenship: 'CITIZEN' }
+		]
+	});
+	expectStatutory(book, 'MY-15', 'EPF', 3, 3);
+	expectStatutory(book, 'MY-970', 'EPF', 108, 128);
+	// "1,740.01 – 1,760.00": 11% and 13% of 1,760 → 193.60 → 194, 228.80 → 229.
+	expectStatutory(book, 'MY-1748', 'EPF', 194, 229);
+	// Part E at sixty: employee nil, employer 4% of 1,760 = 70.40 → 71.
+	expectStatutory(book, 'MY-1748-60', 'EPF', 0, 71);
+	// Part C for a permanent resident of sixty-one: 5.5% / 6.5% of 980 → 53.90 → 54, 63.70 → 64.
+	expectStatutory(book, 'MY-PR-970-61', 'EPF_PR', 54, 64);
+	// Act 4 "exceeding RM5,000 but not exceeding RM5,100" → 25.25 / 88.35; EIS 10.10 / 10.10.
+	expectStatutory(book, 'MY-5000.01', 'SOCSO', 25.25, 88.35);
+	expectStatutory(book, 'MY-5000.01', 'EIS', 10.1, 10.1);
+	// Above the RM6,000 ceiling: the open row.
+	expectStatutory(book, 'MY-6000.01', 'SOCSO', 29.75, 104.15);
+	expectStatutory(book, 'MY-6000.01', 'EIS', 11.9, 11.9);
+	// Third Schedule closing words, "wages exceed RM20,000": 11% and 12% of the wage itself,
+	// rounded up to the ringgit each.
+	expectStatutory(book, 'MY-20000.01', 'EPF', 2201, 2401);
+});
+
 test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced

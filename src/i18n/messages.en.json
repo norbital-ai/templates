@@ -830,6 +830,8 @@
 	"renderer.proration_basis.days": "Days",
 	"renderer.proration_basis.select_basis": "Select a basis",
 	"renderer.sources.add_url": "Add source",
+	"renderer.sources.instructions": "How the research agent should navigate these sites",
+	"renderer.sources.instructions_hint": "Which site holds which table, the path shapes that carry it, and which official documents the reader cannot open and where the same figures stand in HTML.",
 	"renderer.sources.empty": "No sources recorded.",
 	"renderer.sources.url": "URL",
 	"renderer.statutory_fact_status.select_status": "Select a status",

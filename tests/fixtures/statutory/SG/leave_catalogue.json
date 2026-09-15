@@ -312,7 +312,7 @@
 		"name": "Paternity leave",
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
-		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3",
+		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -651,7 +651,7 @@
 		"name": "Shared parental leave",
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 6 weeks (42 calendar days) for children born, or with a Formal Intent to Adopt, from 1 April 2025 to 31 March 2026, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (3 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, for which a settings-version boundary is the wrong axis.",
-		"eligibility": "employment.service_months >= 3",
+		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1077,7 +1077,7 @@
 		"name": "Paternity leave",
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
-		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3",
+		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1416,7 +1416,7 @@
 		"name": "Shared parental leave",
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
-		"eligibility": "employment.service_months >= 3",
+		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1842,7 +1842,7 @@
 		"name": "Paternity leave",
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
-		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3",
+		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2181,7 +2181,7 @@
 		"name": "Shared parental leave",
 		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
-		"eligibility": "employment.service_months >= 3",
+		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",

@@ -12,6 +12,7 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
+		"change_summary": "December 2025 law: SI 8%/17.5% and HI 1.5%/3% on the 20 × 2,340,000 = 46,800,000 cap; unemployment insurance 1%/1% on 20 regional minimum wages (Region I 4,960,000); the 2% union fee; and the seven-rung PIT scale with the Resolution 954/2020 deductions of 132,000,000 and 52,800,000.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
@@ -190,7 +191,7 @@
 				"from": "22:00",
 				"to": "06:00",
 				"ordinary_add": 30,
-				"overtime_add": 20
+				"overtime_add": 50
 			},
 			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
 		},
@@ -209,10 +210,11 @@
 		},
 		"sources": {
 			"urls": [
-				"https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Nghi-dinh-74-2024-ND-CP-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-529840.aspx",
-				"https://luatvietnam.vn/bao-hiem/muc-tham-chieu-la-gi-muc-luong-tham-chieu-moi-nhat-563-102601-article.html",
-				"https://hethongphapluat.com/bo-luat-lao-dong-2019/dieu-113"
-			]
+				"https://vanban.chinhphu.vn/?pageid=27160&docid=210536",
+				"https://vanban.chinhphu.vn/?docid=198540&pageid=27160",
+				"https://baochinhphu.vn/tang-luong-co-so-len-muc-234-trieu-dong-thang-tu-01-7-2024-102240701113637498.htm"
+			],
+			"instructions": "vanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403)."
 		}
 	},
 	{
@@ -228,6 +230,7 @@
 			"end": "2026-07-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
+		"change_summary": "From the 2026 tax period: the five-rung PIT table of Law 109/2025 (art.29(2)) with Resolution 110/2025’s 186,000,000/74,400,000 deductions; Decree 293/2025 raises regional minimum wages 7.2%; Law 74/2025 replaces the Law on Employment.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
@@ -406,7 +409,7 @@
 				"from": "22:00",
 				"to": "06:00",
 				"ordinary_add": 30,
-				"overtime_add": 20
+				"overtime_add": 50
 			},
 			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
 		},
@@ -425,11 +428,13 @@
 		},
 		"sources": {
 			"urls": [
+				"https://vanban.chinhphu.vn/?docid=215832&pageid=27160",
 				"https://baochinhphu.vn/tang-luong-toi-thieu-vung-tu-1-1-2026-102251110175033018.htm",
-				"https://thuvienphapluat.vn/phap-luat-doanh-nghiep/bai-viet/cap-nhat-muc-luong-toi-thieu-vung-2026-chinh-thuc-theo-nghi-dinh-293-2025-nd-cp-15934.html",
 				"https://xaydungchinhsach.chinhphu.vn/nghi-quyet-110-2025-ubtvqh15-dieu-chinh-muc-giam-tru-gia-canh-cua-thue-thu-nhap-ca-nhan-119251110101313787.htm",
-				"https://nhansu.vn/phap-luat-lao-dong/toan-van-luat-viec-lam-2025-luat-so-74-2025-qh15-35795.html"
-			]
+				"https://vanban.chinhphu.vn/?docid=214560&pageid=27160",
+				"https://vanban.chinhphu.vn/?classid=1&docid=216495&pageid=27160"
+			],
+			"instructions": "vanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403)."
 		}
 	},
 	{
@@ -445,6 +450,7 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "VN",
+		"change_summary": "Decree 161/2026 raises the reference level to 2,530,000, so the SI/HI/union-fee cap becomes 50,600,000; Decree 253/2026 implements the PIT law, including the overtime and night-pay exemption (Law 109/2025 art.4(8): the whole overtime wage, so the OVERTIME bands carry no PIT opt-in); the Law on Population 113/2025 gives a second child 7 months’ maternity and 10 days’ paternity; Nghị quyết 28/2026 adds 24 November as a paid holiday.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
@@ -517,12 +523,7 @@
 						"when": "day_type == \"ORDINARY\"",
 						"take": "hours_beyond_normal",
 						"price": "hours_beyond_normal * ordinary_hour * 1.5",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-								"effect": "INCLUDE"
-							}
-						]
+						"statutory_opt_ins": []
 					},
 					{
 						"label": "OT-2.0X",
@@ -530,12 +531,7 @@
 						"when": "day_type == \"REST_DAY\"",
 						"take": "normal_hours",
 						"price": "normal_hours * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-								"effect": "INCLUDE"
-							}
-						]
+						"statutory_opt_ins": []
 					},
 					{
 						"label": "OT-3.0X",
@@ -543,12 +539,7 @@
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "normal_hours",
 						"price": "normal_hours * ordinary_hour * 3.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-								"effect": "INCLUDE"
-							}
-						]
+						"statutory_opt_ins": []
 					},
 					{
 						"label": "OT-2.0X",
@@ -556,12 +547,7 @@
 						"when": "day_type == \"REST_DAY\"",
 						"take": "hours_beyond_normal",
 						"price": "hours_beyond_normal * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-								"effect": "INCLUDE"
-							}
-						]
+						"statutory_opt_ins": []
 					},
 					{
 						"label": "OT-3.0X",
@@ -569,12 +555,7 @@
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
 						"take": "hours_beyond_normal",
 						"price": "hours_beyond_normal * ordinary_hour * 3.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-								"effect": "INCLUDE"
-							}
-						]
+						"statutory_opt_ins": []
 					}
 				]
 			},
@@ -623,7 +604,7 @@
 				"from": "22:00",
 				"to": "06:00",
 				"ordinary_add": 30,
-				"overtime_add": 20
+				"overtime_add": 50
 			},
 			"authority": "Labour Code 2019 art.98(1)(a) — overtime pay on a normal working day shall be at least 150% of the wage per unit of the work performed during normal working hours; Bộ luật Lao động 2019 (Luật số 45/2019/QH14, thông qua 20/11/2019) có hiệu lực thi hành từ ngày 01/01/2021 (Điều 220(1))"
 		},
@@ -642,8 +623,8 @@
 		},
 		"sources": {
 			"urls": [
-				"https://xaydungchinhsach.chinhphu.vn/",
-				"https://vanban.chinhphu.vn/",
+				"https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/luat109-2025.pdf",
+				"https://vanban.chinhphu.vn/?classid=1&docid=216495&pageid=27160",
 				"https://vanban.chinhphu.vn/?docid=218107&pageid=27160",
 				"https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=26585&CateID=168",
 				"https://xaydungchinhsach.chinhphu.vn/chi-tiet-bieu-thue-thu-nhap-ca-nhan-luy-tien-tung-phan-119260327091407544.htm",
@@ -651,7 +632,8 @@
 				"https://vanban.chinhphu.vn/?docid=217500&pageid=27160",
 				"https://vanban.chinhphu.vn/?classid=1&docid=216497&orggroupid=1&pageid=27160",
 				"https://vanban.chinhphu.vn/?classid=1&docid=218008&orggroupid=1&pageid=27160"
-			]
+			],
+			"instructions": "vanban.chinhphu.vn — the Government document database. /?pageid=27160&docid=<id> is an instrument page (number, dates, effective date) and links its text at datafiles.chinhphu.vn/cpp/files/vbpq/<yyyy>/<mm>/<file>.pdf. Many texts are scanned gazette copies with no text layer (Law 109/2025, 6.5 MB) — the reader cannot read those; cite the instrument page for dates and take the wording from a government portal below. Known ids: 198540 Bộ luật Lao động 45/2019, 210536 NĐ 74/2024, 215832 NĐ 293/2025, 214560 Luật Việc làm 74/2025, 216495 Luật Thuế TNCN 109/2025, 218107 NĐ 161/2026, 218684 NĐ 253/2026, 217500 NĐ 105/2026, 216497 Luật Dân số 113/2025, 218008 NQ 28/2026.\ncongbao.chinhphu.vn — the Official Gazette (Công báo): search by số ký hiệu; the issue PDF is the gazette copy.\nxaydungchinhsach.chinhphu.vn and baochinhphu.vn — the Government portals: full-text articles quoting the instrument (tables of the PIT scale, minimum wages, holiday notices) in HTML; official, and the readable text where the gazette copy is a scan.\nbaohiemxahoi.gov.vn — Vietnam Social Security: /tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?ItemID=<n>&CateID=168 announces the reference level, floors and caps.\nnief.mof.gov.vn — the Ministry of Finance institute; summaries of tax law. luatvietnam.vn, thuvienphapluat.vn and hethongphapluat are commercial and corroboration only (thuvienphapluat answers 403)."
 		}
 	}
 ]

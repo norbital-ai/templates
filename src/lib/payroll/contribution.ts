@@ -309,11 +309,13 @@ export function prepareContributionAssessment(options: {
 			}),
 			minimumWage: regionalMinimumWage(configuration),
 			// How this period sits in the month: a scheme assessed over the MONTH is charged once,
-			// in the period that owns the month's start, on the month's wage.
-			assessment: {
-				periodsPerMonth: configuration.company.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
-				periodIndex: bundle.window.period.endsWith('-2') ? 2 : 1
-			}
+			// in the period that owns the month's start, on the month's wage. The cadence is the
+			// employment's own, not the company's: a MONTHLY employment inside a SEMI_MONTHLY company
+			// is paid once, in the `-2` run, and that one instalment is its whole month.
+			assessment:
+				bundle.window.payFrequency === 'SEMI_MONTHLY'
+					? { periodsPerMonth: 2, periodIndex: bundle.window.period.endsWith('-2') ? 2 : 1 }
+					: { periodsPerMonth: 1, periodIndex: 1 }
 		}
 	};
 }

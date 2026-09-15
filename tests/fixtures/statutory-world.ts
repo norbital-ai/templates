@@ -78,14 +78,21 @@ export type Person = {
 	readonly registrations?: Readonly<
 		Record<string, { kind: string; rate_override?: number | null }>
 	>;
+	/** The cadence the contract is paid on; `MONTHLY` unless stated. */
+	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY';
 };
 
 export type WorldOptions = {
 	readonly code: Lineage;
 	/** The company's own `settings_code`; defaults to the lineage's own code. */
 	readonly settingsCode?: string;
-	/** `YYYY-MM`. The window is [21st of the previous month, 20th of this one]. */
+	/**
+	 * `YYYY-MM`. The window is [21st of the previous month, 20th of this one]. A `SEMI_MONTHLY`
+	 * company runs halves, `YYYY-MM-1` / `YYYY-MM-2`.
+	 */
 	readonly period: string;
+	/** The company's calendar; `MONTHLY` unless stated. */
+	readonly payFrequency?: 'MONTHLY' | 'SEMI_MONTHLY';
 	readonly people: readonly Person[];
 	/** VN and ID band their minimum wage by region; `companies.region` picks it. */
 	readonly region?: string | null;
@@ -168,7 +175,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		id: `b0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		employment_id: employmentIds[index]!,
 		base_salary: { value: person.wage, currency: versions[0]!.payroll.currency },
-		pay_frequency: 'MONTHLY',
+		pay_frequency: person.pay_frequency ?? 'MONTHLY',
 		work_classification: 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
 		employment_type: 'PERMANENT',
@@ -214,7 +221,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				name: `${code} fixture`,
 				registration_number: `${code}-0001`,
 				pay_cutoff_day: 21,
-				pay_frequency: 'MONTHLY',
+				pay_frequency: options.payFrequency ?? 'MONTHLY',
 				region: options.region ?? null,
 				risk_class: options.riskClass ?? null,
 				effective_range: RANGE,

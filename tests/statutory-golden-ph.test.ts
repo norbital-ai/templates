@@ -95,6 +95,89 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	expectStatutory(book, 'PH-40000', 'WTAX', 2618.4, 0);
 });
 
+test('Philippines — the December 2025 version prices the same schedules', () => {
+	// The bank cuts a second version on 2026-01-01 that adds a payment code and moves no statutory
+	// value: every schedule below is the one the 2026-01 golden prices.
+	const book = assessStatutory({ code: 'PH', period: '2025-12', people: PH_PEOPLE });
+	expectStatutory(book, 'PH-30000', 'SSS', 1500, 3000);
+	expectStatutory(book, 'PH-30000', 'SSS_EC', 0, 30);
+	expectStatutory(book, 'PH-30000', 'PHIC', 750, 750);
+	expectStatutory(book, 'PH-30000', 'HDMF', 200, 200);
+	expectStatutory(book, 'PH-4000', 'SSS', 250, 500);
+	expectStatutory(book, 'PH-40000', 'SSS', 1750, 3500);
+});
+
+test('Philippines — a wage on an SSS bracket floor insures at that bracket, never at nothing', () => {
+	// Circular 2024-006 names each bracket by its floor: "5,250 – 5,749.99 → MSC 5,500". A ladder
+	// whose lower bound was the floor plus one centavo left the floor itself outside every rule,
+	// and a wage of exactly ₱5,250.00 drew no SSS row at all. The rule is "exceeding the previous
+	// ceiling", so the floor belongs to its own bracket, and the cent above a ceiling too.
+	const book = assessStatutory({
+		code: 'PH',
+		period: '2026-01',
+		people: [
+			{ key: 'PH-5250', wage: 5250 },
+			{ key: 'PH-14750', wage: 14_750 },
+			{ key: 'PH-30250', wage: 30_250 },
+			{ key: 'PH-10000.01', wage: 10_000.01 },
+			{ key: 'PH-1500.01', wage: 1500.01 }
+		]
+	});
+	expectStatutory(book, 'PH-5250', 'SSS', 275, 550);
+	// 14,750 is the floor of MSC 15,000, where EC steps from ₱10 to ₱30.
+	expectStatutory(book, 'PH-14750', 'SSS', 750, 1500);
+	expectStatutory(book, 'PH-14750', 'SSS_EC', 0, 30);
+	expectStatutory(book, 'PH-30250', 'SSS', 1525, 3050);
+	// PhilHealth "10,000.01 to 99,999.99" and Pag-IBIG "over ₱1,500": the first centavo over the
+	// floor is charged on the higher row.
+	expectStatutory(book, 'PH-10000.01', 'PHIC', 250, 250);
+	expectStatutory(book, 'PH-10000.01', 'HDMF', 200, 200);
+	expectStatutory(book, 'PH-1500.01', 'HDMF', 30, 30);
+});
+
+test('Philippines — a semi-monthly company: the monthly schemes once a month, Annex E by column', () => {
+	// Omni Plus pays twice a month. A MONTHLY contract inside that company is paid once, in the
+	// second half, and that one payslip is its whole month: SSS, EC, PhilHealth and Pag-IBIG are
+	// charged in full there (the engine used to read the company's cadence and charge nothing).
+	const monthly = assessStatutory({
+		code: 'PH',
+		period: '2026-02-2',
+		payFrequency: 'SEMI_MONTHLY',
+		people: [{ key: 'PH-M-43000', wage: 43_000 }]
+	});
+	expectStatutory(monthly, 'PH-M-43000', 'SSS', 1750, 3500);
+	expectStatutory(monthly, 'PH-M-43000', 'SSS_EC', 0, 30);
+	expectStatutory(monthly, 'PH-M-43000', 'PHIC', 1075, 1075);
+	expectStatutory(monthly, 'PH-M-43000', 'HDMF', 200, 200);
+	// Annex E MONTHLY column on 43,000 − 3,025 = 39,975: 1,875 + 20% × (39,975 − 33,333).
+	expectStatutory(monthly, 'PH-M-43000', 'WTAX', 3203.4, 0);
+
+	// A SEMI_MONTHLY contract on ₱30,000 a month: the monthly schemes are charged once, in the
+	// first half, on the month's wage; withholding reads the SEMI-MONTHLY column of Annex E
+	// (₱10,417 / 16,667 / 33,333 …) on each half's own relieved base.
+	const person = { key: 'PH-S-30000', wage: 30_000, pay_frequency: 'SEMI_MONTHLY' as const };
+	const first = assessStatutory({
+		code: 'PH',
+		period: '2026-02-1',
+		payFrequency: 'SEMI_MONTHLY',
+		people: [person]
+	});
+	expectStatutory(first, 'PH-S-30000', 'SSS', 1500, 3000);
+	expectStatutory(first, 'PH-S-30000', 'PHIC', 750, 750);
+	expectStatutory(first, 'PH-S-30000', 'HDMF', 200, 200);
+	// 15,000 − 2,450 = 12,550, in the ₱10,417–16,666 rung: 15% × (12,550 − 10,417) = 319.95.
+	expectStatutory(first, 'PH-S-30000', 'WTAX', 319.95, 0);
+	const second = assessStatutory({
+		code: 'PH',
+		period: '2026-02-2',
+		payFrequency: 'SEMI_MONTHLY',
+		people: [person]
+	});
+	// Nothing monthly is charged twice; the half's 15,000 carries no relief: 15% × (15,000 − 10,417).
+	expectStatutory(second, 'PH-S-30000', 'SSS', 0, 0);
+	expectStatutory(second, 'PH-S-30000', 'WTAX', 687.45, 0);
+});
+
 test('every sealed version of `PH` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced

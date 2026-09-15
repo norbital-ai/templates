@@ -171,6 +171,11 @@ for (const lineage of ['MY', 'MY-nihon'] as const)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('Philippines — service incentive leave and the special statutory leaves', () => {
+	// The 2026-01-01 version changes no leave law: the same ladder on both sealed versions.
+	for (const version of [0, 1]) {
+		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE'), [0, 5, 5]);
+		assert.deepEqual(ladder('PH', version, 'PATERNITY_LEAVE', MARRIED_MALE), [7, 7, 7]);
+	}
 	// art.95: five days after one year. Below that no band matches at all, which the engine reports
 	// as nought days rather than as an absent entitlement.
 	assert.deepEqual(ladder('PH', 0, 'ANNUAL_LEAVE'), [0, 5, 5]);
@@ -211,8 +216,11 @@ test('Singapore — the service ladders and the family schemes, on all three sea
 		assert.deepEqual(ladder('SG', version, 'SICK_LEAVE'), [5, 14, 14]);
 		// s.89(1)(b): fifteen hospitalisation days at three months rising to sixty at six.
 		assert.deepEqual(ladder('SG', version, 'HOSPITALIZATION_LEAVE'), [15, 60, 60]);
-		// CDCSA: four weeks of paternity leave, three months' service, a male employee.
-		assert.deepEqual(ladder('SG', version, 'PATERNITY_LEAVE', MALE), [28, 28, 28]);
+		// CDCSA: four weeks of paternity leave, three months' service, a married father of a child;
+		// an unmarried man, or one with no child, is outside the scheme.
+		const FATHER = { ...MARRIED_MALE, childAges: [0] } as const;
+		assert.deepEqual(ladder('SG', version, 'PATERNITY_LEAVE', FATHER), [28, 28, 28]);
+		assert.deepEqual(ladder('SG', version, 'PATERNITY_LEAVE', MALE), [null, null, null]);
 		// Sixteen weeks for the mother of a citizen child; the twelve-week Employment Act fallback
 		// otherwise. The row is female-only.
 		assert.deepEqual(
@@ -262,9 +270,19 @@ test('Singapore — the service ladders and the family schemes, on all three sea
 		]);
 	}
 	// The whole point of the 1 April 2026 version: shared parental leave goes from six weeks to ten.
-	assert.deepEqual(ladder('SG', 0, 'SHARED_PARENTAL_LEAVE'), [42, 42, 42]);
-	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE'), [70, 70, 70]);
-	assert.deepEqual(ladder('SG', 2, 'SHARED_PARENTAL_LEAVE'), [70, 70, 70]);
+	// A married father qualifies; a mother qualifies whatever her marital status (MSF); an
+	// unmarried father does not.
+	const FATHER = { ...MARRIED_MALE, childAges: [0] } as const;
+	const UNMARRIED_MOTHER = { ...FEMALE, childAges: [0] } as const;
+	assert.deepEqual(ladder('SG', 0, 'SHARED_PARENTAL_LEAVE', FATHER), [42, 42, 42]);
+	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', FATHER), [70, 70, 70]);
+	assert.deepEqual(ladder('SG', 2, 'SHARED_PARENTAL_LEAVE', FATHER), [70, 70, 70]);
+	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', UNMARRIED_MOTHER), [70, 70, 70]);
+	assert.deepEqual(ladder('SG', 1, 'SHARED_PARENTAL_LEAVE', { ...MALE, childAges: [0] }), [
+		null,
+		null,
+		null
+	]);
 });
 
 test('Singapore — extended childcare leave, for a parent whose youngest child is seven or over', () => {
@@ -355,8 +373,9 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 // ladder is identical on both, only the insured-salary grade tables move on 1 January 2026.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('Taiwan — the §38 annual ladder and the 性平法 entitlements, on both sealed versions', () => {
-	for (const version of [0, 1]) {
+test('Taiwan — the §38 annual ladder and the 性平法 entitlements, on all three sealed versions', () => {
+	// The 1 January 2027 version moves the labour-insurance rate alone; its leave rows are clones.
+	for (const version of [0, 1, 2]) {
 		// 第38條: nothing under six months, three days at six, seven at one year, ten at two, then
 		// fourteen at three and fifteen at five. Thirty months is the two-year rung, seventy the
 		// five-year one.

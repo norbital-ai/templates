@@ -17,7 +17,7 @@
 				"employer": "round_cent((base) * 17.5 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
 				"employee": "round_cent(3744000.0)",
 				"employer": "round_cent(8190000.0)"
 			}
@@ -41,7 +41,7 @@
 				"employer": "round_cent((base) * 3.0 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
 				"employee": "round_cent(702000.0)",
 				"employer": "round_cent(1404000.0)"
 			}
@@ -84,7 +84,7 @@
 				"employer": "round_cent((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
 				"employee": "round_cent(0.0)",
 				"employer": "round_cent(936000.0)"
 			}
@@ -127,7 +127,7 @@
 				"employer": "round_cent((base) * 17.5 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
 				"employee": "round_cent(3744000.0)",
 				"employer": "round_cent(8190000.0)"
 			}
@@ -151,7 +151,7 @@
 				"employer": "round_cent((base) * 3.0 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
 				"employee": "round_cent(702000.0)",
 				"employer": "round_cent(1404000.0)"
 			}
@@ -194,7 +194,7 @@
 				"employer": "round_cent((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
 				"employee": "round_cent(0.0)",
 				"employer": "round_cent(936000.0)"
 			}
@@ -206,7 +206,7 @@
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
 		"is_statutory": true,
-		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions raised to 186,000,000 a year for the taxpayer and 74,400,000 a dependant by Resolution 110/2025/UBTVQH15 of 17 October 2025, applied from the 2026 tax period.",
+		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions of Resolution 110/2025/UBTVQH15 read into art.10. Law 04/2007's seven-rung scale governed December 2025 only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -214,7 +214,7 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
 				"employer": "round_cent(0.0)"
 			}
 		]
@@ -237,7 +237,7 @@
 				"employer": "round_cent((base) * 17.5 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
 				"employee": "round_cent(4048000.0)",
 				"employer": "round_cent(8855000.0)"
 			}
@@ -261,7 +261,7 @@
 				"employer": "round_cent((base) * 3.0 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
 				"employee": "round_cent(759000.0)",
 				"employer": "round_cent(1518000.0)"
 			}
@@ -304,7 +304,7 @@
 				"employer": "round_cent((base) * 2.0 / 100.0)"
 			},
 			{
-				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.01",
+				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
 				"employee": "round_cent(0.0)",
 				"employer": "round_cent(1012000.0)"
 			}
@@ -316,7 +316,7 @@
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
 		"is_statutory": true,
-		"authority": "Law on Personal Income Tax 109/2025/QH15 arts.10 and 22, in force 1 July 2026 and applied to salary income from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions written into the statute.",
+		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions written into art.10. Decree 253/2026/NĐ-CP art.70 adjusts any 1 January–30 June 2026 withholding already made under the old scale in the 2026 annual finalisation.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,

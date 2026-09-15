@@ -9,9 +9,10 @@
 		"cloned_from_id": null,
 		"effective_range": {
 			"start": "2025-12-01T00:00:00.000Z",
-			"end": "9999-12-31T00:00:00.000Z"
+			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "PH",
+		"change_summary": "The base law: SSS 15% under RA 11199 with Circular 2024-006, SSS_EC ₱30, PhilHealth 5% between ₱10,000 and ₱100,000, HDMF 2%/2% on a ₱10,000 fund salary, the TRAIN withholding table, the Labor Code working-time rules and the statutory leave types. No later change of law moves a seeded value (RR 29-2025 and the wage orders touch unmodelled caps — see the lineage README).",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -301,17 +302,333 @@
 				"https://www.philhealth.gov.ph/advisories/2026/",
 				"https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf",
 				"https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf",
-				"https://naro.law.upd.edu.ph/bulletins?section=56",
 				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
 				"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf",
 				"https://nwpc.dole.gov.ph/",
 				"https://nwpc.dole.gov.ph/ncr/",
 				"https://nwpc.dole.gov.ph/region-iva/",
 				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
-				"https://lawphil.net/executive/proc/proc2025/proc_1006_2025.html",
-				"https://lawphil.net/executive/proc/proc2026/proc_1189_2026.html",
-				"https://lawphil.net/executive/proc/proc2026/proc_1264_2026.html"
-			]
+				"https://www.officialgazette.gov.ph/2025/09/03/proclamation-no-1006-s-2025/",
+				"https://www.officialgazette.gov.ph/2026/03/12/proclamation-no-1189-s-2026/",
+				"https://www.officialgazette.gov.ph/2026/05/21/proclamation-no-1264-s-2026/"
+			],
+			"instructions": "officialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). /partners/employers/ContributionTable_v2.pdf is the premium table.\npagibigfund.gov.ph — Circular 460 at /document/pdf/circulars/provident/Circular No. 460 - Guidelines on the Pag-IBIG Fund… (1.9 MB, text): the 1%/2% tiers and the ₱10,000 fund salary cap.\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette."
+		}
+	},
+	{
+		"id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "PH",
+		"name": "Philippines",
+		"sealed_at": "2026-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"effective_range": {
+			"start": "2026-01-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"jurisdiction_code": "PH",
+		"change_summary": "The base law: SSS 15% under RA 11199 with Circular 2024-006, SSS_EC ₱30, PhilHealth 5% between ₱10,000 and ₱100,000, HDMF 2%/2% on a ₱10,000 fund salary, the TRAIN withholding table, the Labor Code working-time rules and the statutory leave types. No later change of law moves a seeded value (RR 29-2025 and the wage orders touch unmodelled caps — see the lineage README).",
+		"work_rules": {
+			"proration": {
+				"by": "FIXED_DAYS",
+				"days": 21.75
+			},
+			"engine_lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "be6660b4-fcaf-4cc5-a5da-301f66ef3e41",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+							"effect": "INCLUDE"
+						}
+					]
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "terms.payroll_group == \"MONTHLY\"",
+						"unit": "DAY",
+						"divisor": 30.4167
+					},
+					{
+						"when": "terms.ordinary_hours_per_week > 40",
+						"unit": "DAY",
+						"divisor": 26.0833
+					},
+					{
+						"when": "",
+						"unit": "DAY",
+						"divisor": 21.75
+					}
+				],
+				"bands": [
+					{
+						"label": "OT-1.25X",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.25",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.3X",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 1.3",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.69X",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.69",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-2.0X",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 2.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-2.6X",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 2.6",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.3X",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "normal_hours * ordinary_hour * 1.3",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.69X",
+						"line": "OVERTIME",
+						"when": "day_type == \"SPECIAL_HOLIDAY\"",
+						"take": "hours_beyond_normal",
+						"price": "hours_beyond_normal * ordinary_hour * 1.69",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "normal_day",
+					"period": "DAY",
+					"measure": "NORMAL_HOURS",
+					"max_hours": 8,
+					"unit": "WORKED_HOURS",
+					"authority": "Labor Code of the Philippines art.83"
+				}
+			],
+			"breaks": [
+				{
+					"when": "true",
+					"owed_minutes": 60,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST_OR_OFF"
+			},
+			"coverage": {
+				"wage_ceiling": null,
+				"ceiling_is_inclusive": null,
+				"wage_basis": null,
+				"category_basis": "WORK_CLASSIFICATION",
+				"exempt_categories": [],
+				"excluded_categories": ["MANAGERIAL"]
+			},
+			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
+			"night_premium": {
+				"from": "22:00",
+				"to": "06:00",
+				"ordinary_add": 10,
+				"overtime_add": 10
+			},
+			"authority": "Labor Code of the Philippines (P.D. 442, as amended) Book III: art.82 (coverage), art.83 (eight-hour day), art.85 (meal period), art.86 (night shift differential), art.87 (overtime), art.91 (weekly rest day), art.93 (rest-day premium) and art.94 (holiday pay), with Proclamation No. 1006, s.2025 for the 2026 regular holidays and special (non-working) days. NOT APPLIED: a regular holiday worked on a rest day is 260% for the first eight hours and 338% beyond (2.0 x 1.3), and a special (non-working) day worked on a rest day is 150%; `holiday_rest_precedence` picks one day type rather than compounding two, so this row pays the 200% and 130% legs only. NOT APPLIED: art.94(a) pay for an UNWORKED regular holiday (100% of the daily wage, subject to the day-before presence rule) and the 'no work, no pay' rule for an unworked special day — the regime expresses premiums for hours worked, not an entitlement for a day not worked. NOT APPLIED: the art.82 exclusions beyond MANAGERIAL — officers and members of the managerial staff, field personnel, family members dependent on the employer for support, domestic helpers, persons in the personal service of another and workers paid by results — `category_basis: WORK_CLASSIFICATION` names one classification per person and the bank has one such value for them. NOT APPLIED: art.85's 20-minute compensable meal period in the four listed cases, and the compensable 5-20 minute rest periods; `work_rules.breaks` carries the general 60-minute unpaid meal period, owed on any worked day (art.85 states no hours trigger)."
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {}
+		},
+		"sources": {
+			"urls": [
+				"https://www.sss.gov.ph/pay-contribution/",
+				"https://www.sss.gov.ph/sss-circulars/",
+				"https://www.philhealth.gov.ph/advisories/",
+				"https://www.philhealth.gov.ph/advisories/2026/",
+				"https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf",
+				"https://www.philhealth.gov.ph/advisories/2026/PA2026-0042.pdf",
+				"https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf",
+				"https://nwpc.dole.gov.ph/",
+				"https://nwpc.dole.gov.ph/ncr/",
+				"https://nwpc.dole.gov.ph/region-iva/",
+				"https://nwpc.dole.gov.ph/bwc-handbook-workers-statutory-monetary-benefits/",
+				"https://www.officialgazette.gov.ph/2025/09/03/proclamation-no-1006-s-2025/",
+				"https://www.officialgazette.gov.ph/2026/03/12/proclamation-no-1189-s-2026/",
+				"https://www.officialgazette.gov.ph/2026/05/21/proclamation-no-1264-s-2026/"
+			],
+			"instructions": "officialgazette.gov.ph — the Official Gazette: Republic Acts, proclamations, executive orders. A proclamation is /<yyyy>/<mm>/<dd>/proclamation-no-<n>-s-<year>/ (HTML, full text); /section/proclamations/ lists the newest first; /nationwide-holidays/<year>/ is the holiday calendar. lawphil.net mirrors the same texts and is corroboration only.\nsss.gov.ph — /pay-contribution/ carries the contribution schedule (the 2025 table PDF under /wp-content/uploads/ is 6.3 MB, over the reader limit: read the HTML page); /sss-circulars/ lists circulars by year.\nphilhealth.gov.ph — /advisories/<year>/ lists advisories; each is /advisories/<year>/PA<year>-<nnnn>.pdf (small, text). /partners/employers/ContributionTable_v2.pdf is the premium table.\npagibigfund.gov.ph — Circular 460 at /document/pdf/circulars/provident/Circular No. 460 - Guidelines on the Pag-IBIG Fund… (1.9 MB, text): the 1%/2% tiers and the ₱10,000 fund salary cap.\nbir.gov.ph — bir-cdn.bir.gov.ph/local/pdf/Annex E RR 11-2018.pdf is the withholding table (monthly and semi-monthly columns, 0.3 MB); revenue regulation digests are under bir-cdn.bir.gov.ph/BIR/pdf/.\nnwpc.dole.gov.ph — regional wage orders: /ncr/, /region-iva/ (and the other regions); /bwc-handbook-workers-statutory-monetary-benefits/ is the DOLE Handbook (factors, premiums, 13th month).\npco.gov.ph answers 403 to the reader; use the Gazette."
 		}
 	}
 ]

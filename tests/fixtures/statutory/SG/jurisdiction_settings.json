@@ -12,6 +12,7 @@
 			"end": "2026-04-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "SG",
+		"change_summary": "CPF rates in force from 1 January 2026 (senior workers above 55–60 at 34%, above 60–65 at 25%), the SGD 8,000 Ordinary Wage ceiling, SDL, the four self-help group schedules, the Employment Act Part 4 regime, and Shared Parental Leave at 6 weeks for children born or with a Formal Intent to Adopt from 1 April 2025 to 31 March 2026.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
@@ -122,7 +123,7 @@
 					{
 						"label": "OT-1.0X",
 						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction < 0.5",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 						"take": "normal_hours / 2.0",
 						"price": "day_wage * 1.0",
 						"statutory_opt_ins": [
@@ -155,7 +156,7 @@
 					{
 						"label": "OT-2.0X",
 						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction >= 0.5",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 						"take": "normal_hours / 2.0",
 						"price": "day_wage * 2.0",
 						"statutory_opt_ins": [
@@ -341,7 +342,18 @@
 			"by_region": {}
 		},
 		"sources": {
-			"urls": []
+			"urls": [
+				"https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPFcontributionratesfrom1Jan2026.pdf",
+				"https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay",
+				"https://www.cpf.gov.sg/service/article/what-is-the-ordinary-wage-ow-ceiling",
+				"https://www.cpf.gov.sg/service/article/what-is-the-additional-wage-aw-ceiling",
+				"https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy",
+				"https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups",
+				"https://www.mom.gov.sg/employment-practices/hours-of-work-overtime-and-rest-days",
+				"https://www.mom.gov.sg/employment-practices/public-holidays",
+				"https://www.mom.gov.sg/employment-practices/leave/shared-parental-leave"
+			],
+			"instructions": "sso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
 		}
 	},
 	{
@@ -357,6 +369,7 @@
 			"end": "2027-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "SG",
+		"change_summary": "Shared Parental Leave rises to 10 weeks for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception. No CPF, SDL, SHG or Part 4 figure moves on that date.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
@@ -467,7 +480,7 @@
 					{
 						"label": "OT-1.0X",
 						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction < 0.5",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 						"take": "normal_hours / 2.0",
 						"price": "day_wage * 1.0",
 						"statutory_opt_ins": [
@@ -500,7 +513,7 @@
 					{
 						"label": "OT-2.0X",
 						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction >= 0.5",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 						"take": "normal_hours / 2.0",
 						"price": "day_wage * 2.0",
 						"statutory_opt_ins": [
@@ -698,7 +711,8 @@
 				"https://ask.gov.sg/msf/questions/cls1lenly0295jzsgceq144x9",
 				"https://www.cpf.gov.sg/employer/infohub/news/cpf-related-announcements/new-contribution-rates",
 				"https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/jan2027cpfcontributionrates.pdf"
-			]
+			],
+			"instructions": "sso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
 		}
 	},
 	{
@@ -714,6 +728,7 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "SG",
+		"change_summary": "The senior-worker CPF step on 1 January 2027: above 55–60 to a 35.5% total (employer 16.5%, employee 19%, ceiling amounts 1,320/1,520, graduated coefficient 0.57) and above 60–65 to 26% (13%/13%, 1,040/1,040, 0.39). Every other ladder, SDL, the SHG funds and all leave definitions are unchanged.",
 		"work_rules": {
 			"proration": {
 				"by": "WORKING_DAYS"
@@ -824,7 +839,7 @@
 					{
 						"label": "OT-1.0X",
 						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction < 0.5",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 						"take": "normal_hours / 2.0",
 						"price": "day_wage * 1.0",
 						"statutory_opt_ins": [
@@ -857,7 +872,7 @@
 					{
 						"label": "OT-2.0X",
 						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction >= 0.5",
+						"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 						"take": "normal_hours / 2.0",
 						"price": "day_wage * 2.0",
 						"statutory_opt_ins": [
@@ -1055,7 +1070,8 @@
 				"https://ask.gov.sg/msf/questions/cls1lenly0295jzsgceq144x9",
 				"https://www.cpf.gov.sg/employer/infohub/news/cpf-related-announcements/new-contribution-rates",
 				"https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/jan2027cpfcontributionrates.pdf"
-			]
+			],
+			"instructions": "sso.agc.gov.sg — Singapore Statutes Online: every Act and subsidiary legislation, HTML. /Act/EmA1968 is the Employment Act; add ?ProvIds=P14- for Part 4 (ss.35–53: rest days, hours, overtime), ?ProvIds=P19- for Part 9 (sick leave), ?ProvIds=P110- for Part 10 (public holidays); a #pr37- fragment lands on one section. /Act/CPFA1953 is the CPF Act, /Act/CDCSA2001 the Child Development Co-Savings Act.\ncpf.gov.sg — CPF Board. /employer/employer-obligations/how-much-cpf-contributions-to-pay links the rate tables; the tables are PDFs under /content/dam/web/employer/employer-obligations/documents/ (CPFcontributionratesfrom1Jan2026.pdf, jan2027cpfcontributionrates.pdf; 0.2 MB, text) with Tables 1–5 by citizenship year and age. /employer/infohub/news/cpf-related-announcements/new-contribution-rates announces a step. /employer/employer-obligations/skills-development-levy is SDL; /employer/employer-obligations/contributions-to-self-help-groups the CDAC/ECF/MBMF/SINDA tables.\nmom.gov.sg — /employment-practices/hours-of-work-overtime-and-rest-days (44 h, 1.5×, 72 h, $4,500/$2,600), /employment-practices/public-holidays (the gazetted list per year), /employment-practices/leave/<scheme>, /employment-practices/salary/monthly-and-daily-salary.\nprofamilyleave.msf.gov.sg — /schemes/<maternity-leave|paternity-leave|shared-parental-leave|childcare-leave|unpaid-infant-care-leave|adoption-leave>: the entitlement, its commencement date and eligibility.\nmuis.gov.sg — the MBMF contribution table by wage tier."
 		}
 	}
 ]

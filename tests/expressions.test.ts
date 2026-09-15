@@ -100,11 +100,17 @@ test('the runtime closures compute what the seeds name', () => {
 	assert.equal(run('bracket(base, 5000.0, 100.0)', { base: 3395.34 }), 3400);
 	assert.equal(run('bracket(base, 5000.0, 100.0)', { base: 5000 }), 5000);
 	assert.equal(run('bracket(base, 5000.0, 100.0)', { base: 5000.01 }), 5000.01);
-	// A chain nests: EPF brackets under 20,000 in twenties, then everything in hundreds.
-	assert.equal(
-		run('bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0)', { base: 3395.34 }),
-		3400
-	);
+	// The EPF Third Schedule rounds in tens to RM20, twenties to RM5,000 and hundreds to RM20,000.
+	// That is a ladder of brackets chosen by the wage, never a composition: nesting
+	// `bracket(bracket(base, 5000, 20), 20000, 100)` re-rounds 980 to 1,000 and lands one row high.
+	const epf =
+		'base <= 20.0 ? bracket(base, 20.0, 10.0) : (base <= 5000.0 ? bracket(base, 5000.0, 20.0) : bracket(base, 20000.0, 100.0))';
+	assert.equal(run(epf, { base: 15 }), 20);
+	assert.equal(run(epf, { base: 970 }), 980);
+	assert.equal(run(epf, { base: 3395.34 }), 3400);
+	assert.equal(run(epf, { base: 5000.01 }), 5100);
+	assert.equal(run(epf, { base: 20000.01 }), 20000.01);
+	assert.equal(run('bracket(bracket(base, 5000.0, 20.0), 20000.0, 100.0)', { base: 970 }), 1000);
 	assert.equal(run('ladder(base, [1000.0, 5000.0, 10000.0])', { base: 3200 }), 5000);
 	assert.equal(run('ladder(base, [1000.0, 5000.0, 10000.0])', { base: 12000 }), 10000);
 	assert.equal(run('minimum_wage(region) * 0.5', { region: 'I' }), 850);

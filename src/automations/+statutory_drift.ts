@@ -26,6 +26,7 @@ import {
 	type StatutoryProposal,
 	type StatutoryProposalChange
 } from '../lib/statutory_research.js';
+import { prefilterStatutorySources, researchOrigins } from '../lib/statutory_sources.js';
 import { todayKey } from '../lib/ui/calendar.js';
 
 /**
@@ -316,13 +317,32 @@ const researchLineage = (
 				notes: []
 			};
 		const sealed = sealedStatutoryFacts(tree);
-		const officialUrl = officialUrlFor(researchUrls);
-		const named = new Set(researchUrls).size;
+		// The agent reads declarations: the version's URLs on the jurisdiction's canonical sites,
+		// canonical-site order first, and may follow links on any canonical origin. A listed URL
+		// off those sites is corroboration at most and is left out of the prompt, with the reason in
+		// the run's notes. The operator's `sources.instructions` says how to move around each site.
+		const jurisdiction = String(tree.source.jurisdiction_code);
+		const prefiltered = prefilterStatutorySources(jurisdiction, researchUrls);
+		const officialUrl = officialUrlFor(researchOrigins(jurisdiction, researchUrls));
+		const named = prefiltered.kept.length;
+		if (named === 0)
+			return {
+				code,
+				status: 'no_sources' as const,
+				version_id: versionId,
+				draft_id: null,
+				changes: 0,
+				change_details: [],
+				sources: NO_SOURCES,
+				notes: prefiltered.dropped.map((item) => `${item.url} was not opened: ${item.reason}.`)
+			};
+		const instructions = tree.source.sources?.instructions?.trim() ?? '';
 		const system = [
 			`Today is ${today}. You are the statutory drift research agent for lineage ${code}: ${tree.source.name}, the jurisdiction settings version in force.`,
 			'Check whether the official sources still state the sealed values below, and report only the differences. Decide yourself which sources to open and whether to follow a link further; a listed source may have moved, been superseded, or stopped carrying the table, so judge its standing rather than assuming it. Fewer, authoritative, up-to-date sources settle a lineage; open as many as you need.',
-			'Current sources — call browser_navigate with one of these URLs, or with a link a page you opened carries, then browser_read_page to read what is open:',
-			JSON.stringify([...new Set(researchUrls)]),
+			'Current sources, in order of standing — call browser_navigate with one of these URLs, or with a link on the same sites, then browser_read_page to read what is open:',
+			JSON.stringify(prefiltered.kept),
+			...(instructions.length > 0 ? ['How to navigate these sites:', instructions] : []),
 			'Current sealed statutory state:',
 			JSON.stringify(sealed)
 		].join('\n');
@@ -353,7 +373,7 @@ const researchLineage = (
 		const { pages, unreachable } = yield* verifyStatutorySources(
 			api,
 			[
-				...researchUrls,
+				...prefiltered.kept,
 				...findings.contributions.map((row) => row.source_url),
 				...findings.leave_catalogue.map((row) => row.source_url),
 				...findings.pay_component.map((row) => row.source_url)
@@ -361,7 +381,10 @@ const researchLineage = (
 			officialUrl
 		);
 		const sources: SourcesRead = { named, read: pages.length, unreachable };
-		const sourcesNote = describeSourcesRead(named, unreachable);
+		const sourcesNote = [
+			describeSourcesRead(named, unreachable),
+			...prefiltered.dropped.map((item) => `${item.url} was not opened: ${item.reason}.`)
+		].join(' ');
 		if (pages.length === 0)
 			return {
 				code,
