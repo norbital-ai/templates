@@ -5,7 +5,7 @@ activity and calculation rules. Payroll combines monetary results, applies Contr
 one result graph. Catalogue content is the policy; there is no separate policy object for each
 business action.
 
-This document describes the implemented family source boundary. The combined contract and Adhoc
+This document describes the implemented family source boundary. The combined contract and Payment
 changes are verified locally by artifact sync, generated migrations, type checks, full-suite checks
 and browser acceptance. No deployment status is implied.
 
@@ -42,7 +42,7 @@ inferred from nationality or a shared employee-profile value.
 | Leave        | `leave_catalogue`                              | Contract history and `leave_entries`                                            | Paid/unpaid absence coverage, reductions, entered encashment                                 |
 | Claim        | `claim_catalogue`                              | `claim_requests`                                                                | Reimbursements                                                                               |
 | Allowance    | `allowance_catalogue`                          | `allowance_requests`                                                            | One-off or recurring allowances                                                              |
-| Adhoc        | `payment_catalogue`                            | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections; the family keeps its storage names |
+| Payment      | `payment_catalogue`                            | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections; the family keeps its storage names |
 | Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                   | Recovery deductions                                                                          |
 | Contribution | `statutory_contributions` (with their `rules`) | Person statutory facts and source-family results                                | Employee deductions and employer costs                                                       |
 
@@ -127,9 +127,9 @@ flowchart TD
     Contracts --> Prepare[Prepare family inputs for each contract]
     Prepare --> Work[Work: resolve schedule]
     Work --> Leave[Leave: charges and absence coverage]
-    Leave --> Calculate[Calculate Work, Leave, Claim, Allowance, Adhoc and Loan]
+    Leave --> Calculate[Calculate Work, Leave, Claim, Allowance, Payment and Loan]
     Calculate --> Results[Amounts, destination, direction and frozen entry evidence]
-    Results --> Contribution[Contribution: bases from opt-ins, rules and YTD]
+    Results --> Contribution[Contribution: each scheme’s declared base, rules and YTD]
     Contribution --> Settle[Gross, deductions, net and employer cost]
     Results --> Settle
     Settle --> Commit[Atomically write run, contract payslips and entry links]
@@ -156,7 +156,7 @@ The family processing boundary has four responsibilities:
 | `calculateFamilies`           | Coordinate source-family calculations in dependency order                          |
 | `calculateFamilyAssessments`  | Validate family inputs/results and assess grouped Contribution                     |
 
-The owners are `lib/payroll/work.ts` for Work, `money.ts` for the shared Claim/Allowance/Adhoc
+The owners are `lib/payroll/work.ts` for Work, `money.ts` for the shared Claim/Allowance/Payment
 implementation, `loan.ts` for Loan, `contribution.ts` for Contribution and `lib/leave/payroll.ts`
 for Leave. The family modules own their source/catalogue reads and definition dispatch. The
 coordinator preserves cross-family ordering and the Work/Leave dependency without creating another
@@ -315,7 +315,7 @@ denominator. Withholding projections account for both the number and size of rem
 
 Salary covers the intersection of service dates and effective terms. A late joiner whose first
 attendance window has closed can be deferred; the next run derives the skipped contractual wages
-without creating a manual Adhoc entry. Attendance remains in its own window and is not paid twice.
+without creating a manual Payment entry. Attendance remains in its own window and is not paid twice.
 The final service period extends attendance to the departure date and prorates wages through that
 date. A contract that both starts and ends in the period is settled rather than deferred beyond its
 end. Outstanding manual payments remain attached to an ended contract without restarting salary,
@@ -330,7 +330,7 @@ For example, a contract ending 30 June has six days of computed final entitlemen
 HR enters a Leave `ENCASHMENT` for the remaining two days, an agreed rate of 100 and gross amount of 200. Leave validates the available quantity and arithmetic. Approval consumes those two days and
 makes the entered amount due; payroll does not calculate a resignation-specific price.
 
-A separate approved separation payment belongs to Adhoc. An outstanding expense belongs to Claim;
+A separate approved separation payment belongs to Payment. An outstanding expense belongs to Claim;
 contracted wages belong to Work; repayment belongs to Loan. A shared supporting reference can group
 the package without creating a duplicate lump sum. HR determines its completeness. A later regular
 payroll settles unlinked obligations against the original contract, even after a rehire.
@@ -530,7 +530,7 @@ the original output and contract. Paid configuration, links and output remain un
 family catalogue revision ──→ frozen run configuration
 contract + approved entry ──→ entry payslip_id ──→ payslip adjustment
 contract and effective terms ────────────────→ payslip base/proration
-source-family amounts + opt-ins ────────────→ contribution results
+source-family amounts + base declarations ────────────→ contribution results
 ```
 
 The run retains actual configuration values, applicable holiday snapshots and calculation version.
@@ -541,7 +541,7 @@ draft links.
 ## Applications and authoring boundaries
 
 Controller uses a shared entity selection. People holds profiles, contracts, terms, statutory facts
-and departures. Events has Work, Leave, Claim, Allowance, Adhoc and Loan pages. Settings → Catalog
+and departures. Events has Work, Leave, Claim, Allowance, Payment and Loan pages. Settings → Catalog
 holds family definitions, including Contribution; the entity's Holidays tab owns import, review and
 publication. Employee Events presents the same family navigation scoped to the selected contract.
 

@@ -80,15 +80,15 @@ Departure is the contract's own `exit_date`, `exit_reason` and `exit_note`, reco
 immutable afterwards. It preserves the signed contract and does not generate any payment. A missing
 departure reason remains unresolved.
 
-| Family       | Source inputs                                                                                                                                                                    | Preservation requirement                                                                            |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Work         | Work rules on the settings version (ordinary rate, bands with their opt-ins and funnel, limits, breaks, one citation), effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
-| Leave        | Leave catalogue and manual `leave_entries`                                                                                                                                       | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
-| Claim        | Claim catalogue and approved claims                                                                                                                                              | Preserve entered amount, original dates, receipts, band entitlements and the entry's pay link       |
-| Allowance    | Allowance catalogue and approved awards or recurring assignments                                                                                                                 | Preserve recurrence, amount and the original eligibility window                                     |
-| Payment      | Payment catalogue and approved one-off payments or deductions                                                                                                                    | Preserve source and catalogue IDs, entered amount, effective date, reason and receipt               |
-| Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                                                                  | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
-| Contribution | Scheme catalogues, rules and contract facts                                                                                                                                      | Preserve effective applicability and the explicit opt-ins declared by source-family outputs         |
+| Family       | Source inputs                                                                                                                                                        | Preservation requirement                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Work         | Work rules on the settings version (ordinary rate, bands with their funnel, limits, breaks, one citation), effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
+| Leave        | Leave catalogue and manual `leave_entries`                                                                                                                           | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
+| Claim        | Claim catalogue and approved claims                                                                                                                                  | Preserve entered amount, original dates, receipts, band entitlements and the entry's pay link       |
+| Allowance    | Allowance catalogue and approved awards or recurring assignments                                                                                                     | Preserve recurrence, amount and the original eligibility window                                     |
+| Payment      | Payment catalogue and approved one-off payments or deductions                                                                                                        | Preserve source and catalogue IDs, entered amount, effective date, reason and receipt               |
+| Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                                                      | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
+| Contribution | Scheme catalogues, rules and contract facts                                                                                                                          | Preserve effective applicability and each scheme's declared base over the source-family outputs     |
 
 Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
 claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and
@@ -98,7 +98,7 @@ predicate holds for the person today, so an ineligible type is not offered rathe
 hook refuses it anyway on the event date. A receipt (`evidence_file`) is a column on all three
 money families and is required when the catalogue row's `evidence` says so. A leave row grants days
 the same way: its entitlement bands are `{eligibility, days}` rows read top-down, `paid` says
-whether a day earns, and the row's bands carry the opt-ins an unpaid or encashed day settles with.
+whether a day earns, and each scheme's base declaration says whether an unpaid or encashed day enters it.
 Encashment and carry-forward remain manual Leave categories. No annual account rows, accrual
 scheduler, automatic departure payments or automatic carry-forward policies are seeded.
 
