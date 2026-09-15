@@ -54,7 +54,10 @@ const catalogueRowOf = (
 		case 'CLAIM':
 			return api.db.claim_catalogue.findFirst({ where, columns });
 		case 'ALLOWANCE':
-			return api.db.allowance_catalogue.findFirst({ where, columns });
+			return api.db.allowance_catalogue.findFirst({
+				where,
+				columns: { ...columns, recurring: true }
+			});
 		case 'PAYMENT':
 			return api.db.payment_catalogue.findFirst({ where, columns });
 	}
@@ -279,6 +282,17 @@ export function assertPayRequestAdmissible(
 			if (component.evidence === 'REQUIRED' && candidate.evidence_file == null)
 				refuse(
 					`Component ${component.code} requires evidence for its ${guard.noun}s. Attach a receipt.`
+				);
+			// A standing window on a one-off component would price as a single request over its first
+			// month and pay nothing after; the catalogue says whether the component recurs.
+			if (
+				guard.family === 'ALLOWANCE' &&
+				(candidate.recurrence as { kind?: string } | null)?.kind === 'RECURRING' &&
+				'recurring' in component &&
+				component.recurring === false
+			)
+				refuse(
+					`Component ${component.code} is a one-off allowance and cannot carry a recurring window. Enter one request per period, or use a recurring component.`
 				);
 
 			const eventDate = guard.eventDate(candidate);

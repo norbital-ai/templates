@@ -19,7 +19,14 @@ const api = {
 		}
 	}
 };
-const catalogue = { id: 'catalogue', settings_id: 'sealed', code: 'TRAVEL' };
+// A loan row must also recover (NET/SUBTRACT); the other families ignore the two columns.
+const catalogue = {
+	id: 'catalogue',
+	settings_id: 'sealed',
+	code: 'TRAVEL',
+	destination: 'NET',
+	direction: 'SUBTRACT'
+};
 const sealed = /is sealed, so it cannot be created, changed or deleted/;
 
 for (const [family, hooks] of [

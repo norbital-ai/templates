@@ -569,6 +569,10 @@ function assertBatchConformsToPattern(
 					limits
 				);
 				if (window != null) {
+					// The write under judgement is not stored yet: its own dates read from the change,
+					// not from the row it replaces, or a day moved to rest would be refused for the
+					// hours it no longer plans.
+					const ownByDate = new Map(own.map((change) => [change.work_date, change]));
 					const planByDate = new Map<string, SchedulePlanDay>();
 					for (let date = window.start; date <= window.end; date = addDays(date, 1)) {
 						const term = termsByEmployment
@@ -587,7 +591,9 @@ function assertBatchConformsToPattern(
 								projectedId = null;
 							}
 						}
-						const explicitId = storedByKey.get(`${employmentId}:${date}`);
+						const explicitId = ownByDate.has(date)
+							? ownByDate.get(date)?.shift_definition_id
+							: storedByKey.get(`${employmentId}:${date}`);
 						planByDate.set(
 							date,
 							plannedDay({

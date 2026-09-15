@@ -402,9 +402,11 @@ export function rosteredWorkCodeMaps(
 	codes: readonly { readonly id: string; readonly variant: RosterCodeVariant }[]
 ): {
 	readonly workCodeIds: ReadonlySet<string>;
+	readonly offCodeIds: ReadonlySet<string>;
 	readonly paidMinutesByCode: ReadonlyMap<string, number>;
 } {
 	const workCodeIds = new Set<string>();
+	const offCodeIds = new Set<string>();
 	const paidMinutesByCode = new Map<string, number>();
 	for (const code of codes) {
 		let kind: 'WORK' | 'REST' | 'OFF';
@@ -413,12 +415,13 @@ export function rosteredWorkCodeMaps(
 		} catch {
 			continue;
 		}
+		if (kind === 'OFF') offCodeIds.add(code.id);
 		if (kind !== 'WORK') continue;
 		workCodeIds.add(code.id);
 		const window = workWindow(code.variant);
 		if (window != null) paidMinutesByCode.set(code.id, window.paid_minutes);
 	}
-	return { workCodeIds, paidMinutesByCode };
+	return { workCodeIds, offCodeIds, paidMinutesByCode };
 }
 
 /**
@@ -485,9 +488,12 @@ export function validateRosteredExpectations(options: {
 		readonly window?: { readonly start: string; readonly end: string };
 	}[];
 	readonly workCodeIds: ReadonlySet<string>;
+	/** Holiday and company-off codes: a day the schedule cannot use, so the guarantee does not count it. */
+	readonly offCodeIds?: ReadonlySet<string>;
 	readonly paidMinutesByCode: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
+	const offCodeIds = options.offCodeIds ?? new Set<string>();
 	const datesOf = (window: { readonly start: string; readonly end: string }): string[] => {
 		const dates: string[] = [];
 		for (
@@ -556,7 +562,10 @@ export function validateRosteredExpectations(options: {
 		for (const term of touching) {
 			const expectation = expectationOf(term);
 			if (expectation == null) continue;
-			const activeDates = windowDates.filter((date) => coversDate(term.effective_range, date));
+			const activeDates = windowDates.filter(
+				(date) =>
+					coversDate(term.effective_range, date) && !offCodeIds.has(explicitByDate.get(date) ?? '')
+			);
 			if (activeDates.length === 0) continue;
 			const referenceDays = expectation.period === 'WEEK' ? 7 : windowDates.length;
 			const fraction = activeDates.length / referenceDays;
@@ -570,9 +579,16 @@ export function validateRosteredExpectations(options: {
 				0
 			);
 			if (expectation.kind === 'GUARANTEED_SCHEDULE') {
-				const expectedDays = Math.ceil(decodeNumber(expectation.required_work_days) * fraction);
-				const expectedMinutes = Math.ceil(
-					decodeNumber(expectation.required_paid_minutes) * fraction
+				// A guarantee owes whole days: 6 a week over 39 days is 33.4, and the roster meets it
+				// with 33. Rounding up refused a leaver's real six-day roster for a day nobody owed;
+				// the minutes owed are those whole days' share, not the fraction's.
+				const requiredDays = decodeNumber(expectation.required_work_days);
+				const requiredMinutes = decodeNumber(expectation.required_paid_minutes);
+				const expectedDays = Math.floor(requiredDays * fraction);
+				const expectedMinutes = Math.floor(
+					requiredDays > 0
+						? (requiredMinutes * expectedDays) / requiredDays
+						: requiredMinutes * fraction
 				);
 				if (actualMinutes < expectedMinutes || actualDays < expectedDays) {
 					issues.push({

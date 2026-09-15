@@ -27,8 +27,14 @@
 	import { Effect, Result } from 'effect';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { CollectionForm, submitCollectionMutation } from '@norbital-ai/ui/collection-form';
+	import {
+		CollectionTable,
+		type CollectionTableRowActionContext
+	} from '@norbital-ai/ui/collection-table';
+	import { Button } from '@norbital-ai/ui/button';
+	import { getErrorMessage } from '@norbital-ai/std';
+	import { toast } from 'svelte-sonner';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
@@ -235,7 +241,46 @@
 				})
 	);
 	const heldCount = $derived(heldCountQuery?.current ?? 0);
+
+	const slipActionFailed = (cause: unknown) =>
+		Effect.sync(() =>
+			toast.error(t('component.payslip_action_failed'), { description: getErrorMessage(cause) })
+		);
 </script>
+
+{#snippet slipAction({ row }: CollectionTableRowActionContext<PayrollRunPayslipRow>)}
+	{#if row.status !== 'PAID'}
+		{@const held = row.status === 'ON_HOLD'}
+		<!-- Hold keeps a reviewed slip out of every bank file; release returns it to draft. -->
+		<Button
+			variant="outline"
+			size="sm"
+			onclick={() =>
+				Effect.runFork(
+					submitCollectionMutation(() =>
+						client.db.payslips.mutate([{ id: row.id, status: held ? 'DRAFT' : 'ON_HOLD' }])
+					).pipe(Effect.catch(slipActionFailed))
+				)}
+		>
+			{held ? t('component.release') : t('component.hold')}
+		</Button>
+		<!-- Paid is terminal; the day money left is the run's own pay date. -->
+		<Button
+			variant="outline"
+			size="sm"
+			onclick={() =>
+				Effect.runFork(
+					submitCollectionMutation(() =>
+						client.db.payslips.mutate([
+							{ id: row.id, status: 'PAID', paid_at: record?.pay_date ?? undefined }
+						])
+					).pipe(Effect.catch(slipActionFailed))
+				)}
+		>
+			{t('payroll.mark_paid')}
+		</Button>
+	{/if}
+{/snippet}
 
 <RecordShell
 	subtitle={record
@@ -300,6 +345,7 @@
 					description={t('component.payslips_description')}
 					features={{ create: false }}
 					query={payslipsTableQuery}
+					rowActions={[slipAction]}
 				>
 					{#snippet columns({ Column })}
 						<Column

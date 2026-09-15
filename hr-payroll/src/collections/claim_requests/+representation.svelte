@@ -30,8 +30,13 @@
 	const scopedEmploymentId = $derived(createScope?.employmentId?.());
 	const scopedCompanyId = $derived(createScope?.companyId());
 	const scopedSettingsCode = $derived(createScope?.settingsCode());
+	// A create starts with the claw-back switch at No: the column defaults to false, but a form
+	// value the person never touched is undefined, and the form reads undefined as required.
 	const formValues = $derived(
-		record ?? (scopedEmploymentId ? { employment_id: scopedEmploymentId } : undefined)
+		record ?? {
+			as_adjustment_entry: false,
+			...(scopedEmploymentId ? { employment_id: scopedEmploymentId } : {})
+		}
 	);
 
 	/**
