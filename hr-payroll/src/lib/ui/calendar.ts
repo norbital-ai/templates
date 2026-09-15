@@ -145,11 +145,6 @@ export function shiftDayKey(day: string, days: number): string {
 	return addDays(day, Math.trunc(days));
 }
 
-/** `YYYY-MM` of a UTC calendar day (string key or live `date()` column value). */
-export function monthKey(date: string | Date): string {
-	return formatDateISO(date).slice(0, 7);
-}
-
 /** `YYYY-MM` offset by whole months. */
 export function shiftMonthKey(period: string, months: number): string {
 	return shiftPeriod(period, months);
@@ -214,7 +209,7 @@ export function daysBetweenKeys(from: string, to: string): number {
 
 /** The `YYYY-MM` periods spanning `count` months, ending `ahead` months after the current month. */
 export function periodWindow(count: number, ahead: number): string[] {
-	const current = monthKey(todayKey());
+	const current = todayKey().slice(0, 7);
 	return Array.from({ length: count }, (_value, index) =>
 		shiftMonthKey(current, ahead - count + 1 + index)
 	);

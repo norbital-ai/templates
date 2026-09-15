@@ -43,6 +43,7 @@ import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+de
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import { personDayMutations } from './lib/person-day-mutations.js';
 import type { Api, Pipelines, WorkspaceRow } from './$types.js';
+import { clockMinutes } from '../../lib/scheduling/roster-code.js';
 
 const QUERY_LIMIT = 20_000;
 const PH_TOKENS = new Set(['PH', 'PUBLIC_HOLIDAY']);
@@ -413,11 +414,6 @@ function assertValidTimeZone(timeZone: string): Effect.Effect<void, never, never
 			)
 		)
 	);
-}
-
-function clockMinutes(value: string): number {
-	const [hours, minutes] = value.split(':').map(Number) as [number, number];
-	return hours * 60 + minutes;
 }
 
 /** An equal or earlier wall-clock close is the following calendar day. */

@@ -21,9 +21,11 @@ const workWindowSchema = Schema.Struct({
 });
 export type WorkWindow = Schema.Schema.Type<typeof workWindowSchema>;
 
+/** Minutes since midnight of a `HH:mm[:ss]` wall-clock time; anything else is refused. */
 export function clockMinutes(value: string): number {
-	const [hours, minutes] = value.split(':').map(Number);
-	return hours * 60 + minutes;
+	const match = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(value);
+	if (match == null) throw new Error(`"${value}" is not a wall-clock time.`);
+	return Number(match[1]) * 60 + Number(match[2]);
 }
 
 /**

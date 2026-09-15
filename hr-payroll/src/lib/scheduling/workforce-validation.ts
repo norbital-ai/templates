@@ -2,6 +2,7 @@
 
 import { Schema } from 'effect';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { clockMinutes } from './roster-code.js';
 
 const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
 type Designation = Schema.Schema.Type<typeof designationSchema>;
@@ -20,12 +21,6 @@ const validationDaySchema = Schema.Struct({
 	shift: Schema.NullOr(validationShiftSchema)
 });
 export type ValidationDay = Schema.Schema.Type<typeof validationDaySchema>;
-
-function clockMinutes(value: string): number {
-	const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
-	if (match == null) throw new Error(`Not an HH:mm clock time: "${value}".`);
-	return decodeNumber(match[1]) * 60 + decodeNumber(match[2]);
-}
 
 const workShiftOverlapSchema = Schema.Struct({
 	employment_id: Schema.String,

@@ -38,7 +38,6 @@
 		PAYROLL_TIME_ZONE,
 		daysBetweenKeys,
 		inForceTodayFilter,
-		monthKey,
 		monthWorkDateInstantBounds,
 		payDateFor,
 		shiftMonthKey,
@@ -250,8 +249,8 @@
 	/** The next pay date: the last day of this month, or of next month once it has passed. */
 	const nextPayDate = $derived.by(() => {
 		if (!company) return null;
-		const thisMonth = payDateFor(monthKey(today));
-		return thisMonth >= today ? thisMonth : payDateFor(shiftMonthKey(monthKey(today), 1));
+		const thisMonth = payDateFor(today.slice(0, 7));
+		return thisMonth >= today ? thisMonth : payDateFor(shiftMonthKey(today.slice(0, 7), 1));
 	});
 	const daysToPayday = $derived(
 		nextPayDate ? Math.max(0, daysBetweenKeys(today, nextPayDate)) : null
@@ -279,7 +278,7 @@
 	 * could never light was removed instead of being left dark.
 	 * ────────────────────────────────────────────────────────────────────────────────────────────── */
 
-	let scheduleMonth = $state(monthKey(todayKey()));
+	let scheduleMonth = $state(todayKey().slice(0, 7));
 	const scheduleMonthStart = $derived(`${scheduleMonth}-01`);
 	const scheduleMonthEnd = $derived(
 		formatDateISO(
