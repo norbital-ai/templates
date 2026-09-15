@@ -83,6 +83,7 @@
 		type LockRung
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
+	import RosterSlot from './roster-slot.svelte';
 	import { sourceLockReason, type SettlementClaim } from '../../scheduling/lock.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -416,140 +417,6 @@
 	}
 </script>
 
-{#snippet legend()}
-	<Cluster gap="sm" shrink={false} class="text-xs leading-5 text-muted-foreground">
-		<!--
-			The armed-swap announcement. A live region rather than a toast: it describes a mode the
-			board is currently in, and it has to stay on screen for as long as that mode lasts. It
-			sits in the legend row because that row is already the board's explanatory strip, and
-			because `Cover` gives it a place that does not steal height from the scrollport.
-		-->
-		{#if swapSource != null}
-			<Inline gap="xs" aria-live="polite" class="font-medium text-brand">
-				<IconWrapper name="lucide:arrow-left-right" class="size-3" />
-				<span>
-					{t('roster.swap_armed', {
-						person: swapPerson?.number ?? swapSource.employmentId,
-						date: swapSource.date
-					})}
-				</span>
-				<button type="button" class="underline" onclick={() => (swapSource = null)}>
-					{t('roster.swap_cancel')}
-				</button>
-			</Inline>
-		{:else if swappable}
-			<Inline gap="xs">
-				<IconWrapper name="lucide:arrow-left-right" class="size-3" />
-				<span>{t('roster.swap_hint')}</span>
-			</Inline>
-		{/if}
-		<!--
-			THE KEY: the three layers first, then the hues the board spends.
-
-			The layers are named by shape, because that is how the cells carry them: a dashed outline
-			is the base the pattern projects, a solid outline with a corner mark is a roster override,
-			and a bar is the clock. Colour is left to alarm (a running clock, and AWOL) and to
-			ownership (the holiday column and the payroll rail). See the colour-budget note in
-			`roster-month.ts`.
-		-->
-		<Inline gap="xs">
-			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.base.className)}
-			></span>
-			<span>{t(LAYER_PRESENTATION.base.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span
-				class={cn(
-					'relative inline-block size-2.5 rounded-sm',
-					LAYER_PRESENTATION.override.className
-				)}
-			>
-				<span class="absolute right-px bottom-px size-1 rounded-[1px] bg-foreground/70"></span>
-			</span>
-			<span>{t(LAYER_PRESENTATION.override.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class="inline-block h-1 w-3 rounded-full bg-success"></span>
-			<span>{t(LAYER_PRESENTATION.clocked.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.awol.className)}
-			></span>
-			<span>{t(LAYER_PRESENTATION.awol.labelKey)}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class="inline-block size-2.5 rounded-sm bg-warning/25"></span>
-			<span>{t('roster.legend_attention')}</span>
-		</Inline>
-		<Inline gap="xs">
-			<span class={cn('inline-block size-2.5 rounded-sm', HOLIDAY_PRESENTATION.headerClassName)}
-			></span>
-			<span>{t('roster.holiday_from_calendar', { label: t(HOLIDAY_PRESENTATION.labelKey) })}</span>
-		</Inline>
-		<!--
-			The lock ladder collapses to ONE entry. Its four rungs are still four distinct rails on the
-			cells — that is what the ladder is for — but a reader does not need three swatches to learn
-			that a rail means payroll: the padlock says a day refuses a write, and the day sheet's LOCK
-			panel names the run and what would release it. The rungs are listed in the marks key below.
-		-->
-		<Inline gap="xs">
-			<span class="inline-block h-2.5 w-1 rounded-sm bg-brand"></span>
-			<span aria-hidden="true">🔒</span>
-			<span>{t('roster.legend_locked')}</span>
-		</Inline>
-		{#if cutoff != null}
-			<Inline gap="xs">
-				<IconWrapper name="lucide:scissors" class="size-3" />
-				<span>{t('roster.cutoff_range', { start: cutoff.start, end: cutoff.end })}</span>
-			</Inline>
-		{/if}
-		<!--
-			The glyph key, collapsed by default. `R`, `O`, `L` and a shift code are mnemonic enough that
-			most readers never open it, which is the test a key should pass; it is here for the handful
-			that are not (`⧗`, `⚑`) and for a first visit.
-		-->
-		<button
-			type="button"
-			class="underline underline-offset-2"
-			aria-expanded={marksOpen}
-			onclick={() => (marksOpen = !marksOpen)}
-		>
-			<Inline as="span" gap="xs" align="center">
-				<IconWrapper
-					name={marksOpen ? 'lucide:chevron-down' : 'lucide:chevron-right'}
-					class="size-3"
-				/>
-				{t('roster.legend_marks')}
-			</Inline>
-		</button>
-	</Cluster>
-	{#if marksOpen}
-		<Cluster gap="sm" shrink={false} class="pt-1 text-xs leading-5 text-muted-foreground">
-			{#each DAY_MARK_KEY as entry (entry.mark)}
-				<Inline gap="xs">
-					<span class="inline-block w-4 text-center font-medium text-foreground">{entry.mark}</span>
-					<span>{t(entry.labelKey)}</span>
-				</Inline>
-			{/each}
-			{#each lockRungs as rung (rung)}
-				{#if LOCK_RAIL_PRESENTATION[rung].railClassName !== ''}
-					<Inline gap="xs">
-						<span
-							class={cn(
-								'inline-block h-3 w-1 rounded-sm',
-								rung === 'IN_DRAFT_RUN' && 'bg-brand/40',
-								rung === 'CONSUMED' && 'bg-brand/70',
-								rung === 'PAID' && 'bg-brand'
-							)}
-						></span>
-						<span>{t(LOCK_RAIL_PRESENTATION[rung].labelKey)}</span>
-					</Inline>
-				{/if}
-			{/each}
-		</Cluster>
-	{/if}
-{/snippet}
-
 {#snippet boardHeader()}
 	<!-- The header viewport clips; the rows below remain the one scroll owner on both axes. -->
 	<div
@@ -636,7 +503,7 @@
 		{t('roster.no_employments')}
 	</p>
 {:else}
-	<Cover as="div" gap="sm" bottom={legend} aria-busy={loading}>
+	<Cover as="div" gap="sm" aria-busy={loading}>
 		{#if loading}
 			<span class="sr-only" role="status">{t('app.scheduling.loading_month', { month })}</span>
 		{/if}
@@ -736,17 +603,8 @@
 														data-roster-cell={`${personIndex}:${dayIndex}`}
 														draggable={swappable && cellEditable}
 														class={cn(
-															'relative grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-															day == null
-																? 'bg-muted/20'
-																: STATUS_PRESENTATION[day.status].className,
-															// The plan layer, on shape: a dashed outline for the pattern's base, a
-															// solid one for a roster override. Literal variants in LAYER_PRESENTATION.
-															layers?.effective === 'BASE' && LAYER_PRESENTATION.base.className,
-															layers?.effective === 'OVERRIDE' &&
-																LAYER_PRESENTATION.override.className,
-															// AWOL is the one destructive fill, and it outranks the layer's own ink.
-															layers?.actual.kind === 'AWOL' && LAYER_PRESENTATION.awol.className,
+															'relative block h-9 w-full min-w-12 rounded-sm p-0 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+															day == null && 'bg-muted/20',
 															// The lock rail: a channel of its own, drawn as an inset left border so it
 															// composes with the status fill and the holiday tint instead of replacing
 															// either. Every class is a literal variant in LOCK_RAIL_PRESENTATION.
@@ -759,11 +617,6 @@
 															// survive Tailwind's source scan.
 															armed && 'ring-2 ring-brand ring-offset-2',
 															swapTarget && 'ring-2 ring-brand/50',
-															// Planned extra work is the `OT` glyph and a heavier weight, not a
-															// colour. It used to borrow the warning hue, which now means "somebody
-															// must act on this day" — and a shift the roster deliberately planned
-															// over a rest day is the opposite of a fault.
-															day?.plannedOT === true && 'font-semibold',
 															quietPast(day) && 'opacity-70'
 														)}
 														onclick={() => {
@@ -841,36 +694,7 @@
 																{LOCK_RAIL_PRESENTATION[rung].padlock}
 															</span>
 														{/if}
-														{#if layers?.override != null}
-															<!-- The override mark: a second channel beside the solid outline. -->
-															<span
-																class={LAYER_PRESENTATION.override.markClassName}
-																aria-hidden="true"
-																title={t(LAYER_PRESENTATION.override.labelKey)}
-															></span>
-														{/if}
-														{#if layers?.actual.kind === 'CLOCKED'}
-															<!-- The punch bar: the clock layer, drawn under the code. -->
-															<span
-																class={LAYER_PRESENTATION.clocked.barClassName}
-																aria-hidden="true"
-															></span>
-														{/if}
-														<span class="block truncate text-xs leading-4">
-															{day == null ? '' : planGlyph(day)}
-														</span>
-														<span
-															class={cn(
-																'block truncate text-[0.625rem] leading-3',
-																layers == null || layers.actual.kind === 'NONE'
-																	? 'text-muted-foreground/70'
-																	: layers.actual.kind === 'AWOL'
-																		? 'text-destructive'
-																		: 'text-foreground'
-															)}
-														>
-															{day == null || layers == null ? '' : cellCue(day, layers)}
-														</span>
+														<RosterSlot {day} dense />
 													</button>
 												{/snippet}
 												{#snippet content()}

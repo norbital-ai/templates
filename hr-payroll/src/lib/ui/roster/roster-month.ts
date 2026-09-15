@@ -1571,3 +1571,112 @@ function summarizeRosterMonth(facts: ReadonlyMap<string, DayFacts>): Map<DayStat
 	}
 	return counts;
 }
+
+/**
+ * ── THE SLOT ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * One person-day is one slot, on both surfaces, and a slot is in exactly one of these states. The
+ * cell no longer explains itself with a legend: the state is the fill, the code is the text, and
+ * what the clock did is a bar that fills the slot to the length of the shift and spills past it
+ * as the extra — so a long day is read as a proportion of the day it was planned against, not as
+ * a symbol somebody has to look up.
+ */
+export type SlotState =
+	| 'EMPTY'
+	| 'UNROSTERED'
+	| 'REST'
+	| 'OFF'
+	| 'LEAVE'
+	| 'HALF_LEAVE'
+	| 'PENDING_LEAVE'
+	| 'WORK'
+	| 'EXTRA_WORK';
+
+export function slotState(day: DayFacts | undefined): SlotState {
+	if (day == null || day.status === 'BEFORE_START' || day.status === 'EXITED') return 'EMPTY';
+	if (day.leaveCode != null) return day.halfDayLeave ? 'HALF_LEAVE' : 'LEAVE';
+	if (day.pendingLeave) return 'PENDING_LEAVE';
+	if (day.plannedOT) return 'EXTRA_WORK';
+	switch (day.status) {
+		case 'REST':
+			return 'REST';
+		case 'OFF':
+			return 'OFF';
+		case 'UNROSTERED':
+			return 'UNROSTERED';
+		default:
+			return 'WORK';
+	}
+}
+
+/**
+ * The code a slot prints: the rostered shift, or the one letter the state is known by.
+ *
+ * `dense` is the board's 60px cell: leave is `L` / `½` there, because a leave catalogue code
+ * (`HOSPITALISATION`) truncates to noise at that width and the code is in the tooltip and the
+ * day sheet. The calendar tile has the room and prints the code itself.
+ */
+export function slotCode(day: DayFacts | undefined, dense = true): string {
+	const state = slotState(day);
+	if (day == null || state === 'EMPTY') return '';
+	if (state === 'LEAVE') return dense ? 'L' : (day.leaveCode ?? 'L');
+	if (state === 'HALF_LEAVE') return dense ? '½' : `½ ${day.leaveCode ?? ''}`.trim();
+	if (state === 'PENDING_LEAVE') return 'l';
+	if (state === 'REST') return 'R';
+	if (state === 'OFF') return 'O';
+	if (state === 'UNROSTERED') return '·';
+	return (
+		day.overrideCode ?? day.baseCode ?? day.assignmentCode ?? (state === 'EXTRA_WORK' ? 'OT' : '')
+	);
+}
+
+/**
+ * How the clock filled the slot.
+ *
+ * `ratio` is worked ÷ planned, capped at one: the bar's length inside the slot. `extra` is the
+ * part past the plan as a fraction of the plan — a 9-hour clock on an 8-hour shift is `0.125`,
+ * shown as `+13%` — and it is the same measure the day sheet calls "beyond schedule". A day with
+ * attendance and no plan has nothing to be measured against: its bar is full and its label is the
+ * hours. An open clock has no length yet; it is drawn indeterminate. AWOL is the destructive fill.
+ */
+type SlotFill =
+	| { readonly kind: 'NONE' }
+	| { readonly kind: 'OPEN'; readonly since: string }
+	| { readonly kind: 'AWOL' }
+	| {
+			readonly kind: 'CLOCKED';
+			readonly ratio: number;
+			readonly extra: number;
+			readonly short: boolean;
+			readonly workedMinutes: number;
+			readonly plannedMinutes: number | null;
+			readonly first: string;
+			readonly last: string;
+	  };
+
+export function slotFill(day: DayFacts | undefined): SlotFill {
+	if (day == null || day.attendanceState == null) return { kind: 'NONE' };
+	if (day.attendanceState === 'OPEN') return { kind: 'OPEN', since: day.punchWindow?.first ?? '' };
+	if (day.workedIntervalCount === 0)
+		return day.status === 'ABSENT' ? { kind: 'AWOL' } : { kind: 'NONE' };
+	const worked = day.workedMinutes ?? 0;
+	const planned = scheduledMinutes(day);
+	const ratio = planned == null || planned <= 0 ? 1 : Math.min(1, worked / planned);
+	const extra = planned == null || planned <= 0 ? 0 : Math.max(0, (worked - planned) / planned);
+	return {
+		kind: 'CLOCKED',
+		ratio,
+		extra,
+		// Short by more than a rounding: ten minutes under an eight-hour shift is not a short day.
+		short: planned != null && planned > 0 && planned - worked > 30,
+		workedMinutes: worked,
+		plannedMinutes: planned,
+		first: day.punchWindow?.first ?? '',
+		last: day.punchWindow?.last ?? ''
+	};
+}
+
+/** `+13%` for a clock that ran past its shift; empty otherwise. */
+export function extraLabel(fill: SlotFill): string {
+	return fill.kind === 'CLOCKED' && fill.extra > 0.005 ? `+${Math.round(fill.extra * 100)}%` : '';
+}
