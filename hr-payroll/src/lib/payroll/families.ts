@@ -7,6 +7,8 @@ import type {
 import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 import {
 	inclusiveDays,
+	completedMonths,
+	addDays,
 	monthDays,
 	monthKey,
 	periodMonth,
@@ -15,7 +17,12 @@ import {
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { personContext } from '../../collections/payroll_runs/lib/eligibility.js';
-import { type PayCadence, type PayFrequency } from '../../collections/payroll_runs/lib/period.js';
+import {
+	closesTaxYear,
+	taxYearBounds,
+	type PayCadence,
+	type PayFrequency
+} from '../../collections/payroll_runs/lib/period.js';
 import { calculateLeavePayroll } from '../leave/payroll.js';
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
@@ -24,6 +31,7 @@ import type { PayslipProration } from '../../datatypes/payslip_proration/+defini
 import type {
 	MeasuredEmployment,
 	MeasureEmploymentOptions,
+	YearContext,
 	MeasuredBase,
 	MeasuredAdjustment
 } from './family.js';
@@ -36,7 +44,8 @@ import {
 	prepareMoneySteps,
 	type PayRequest,
 	type PayRequestFamily,
-	type PreparedPayRequest
+	type PreparedPayRequest,
+	type MaterialisedMoney
 } from './money.js';
 import { prepareWorkContext, calculateWorkAttendance, prepareWorkSteps, termsAt } from './work.js';
 import { measureLoanRecoveries, validateLoanRecoveries } from './loan.js';
@@ -101,6 +110,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		for (const step of prepareMoneySteps({
 			bundle,
 			configuration,
+			year: () => yearContextOf({ bundle, configuration, options, componentAmounts }),
 			salary: options.salary,
 			employed: { start: finalDate, end: finalDate },
 			contracted: { start: finalDate, end: finalDate },
@@ -153,9 +163,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				},
 				leave: leave.captures,
 				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
-				materialised: requests.flatMap((request) =>
-					request.materialised == null ? [] : [request.materialised]
-				)
+				materialised: materialisedRows(requests, adjustments)
 			},
 			arrears: null,
 			componentAmounts,
@@ -285,6 +293,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	const stepOptions = {
 		bundle,
 		configuration,
+		year: () => yearContextOf({ bundle, configuration, options, componentAmounts }),
 		salary: options.salary,
 		employed: wageDays,
 		contracted: employed,
@@ -371,9 +380,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leave: measuredLeave.captures,
 			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
-			materialised: periodEntries.flatMap((entry) =>
-				entry.materialised == null ? [] : [entry.materialised]
-			)
+			materialised: materialisedRows(periodEntries, adjustments)
 		},
 		arrears,
 		notes,
@@ -411,6 +418,7 @@ function measureArrears(
 	if (owed == null || componentCatalogueId == null) return null;
 	const measured = calculateFamilies({
 		deferredWagesOnly: true,
+		yearEarned: new Map(),
 		bundle: {
 			...options.bundle,
 			// One list now, plan and punch on the same row, so one filter covers both halves.
@@ -607,10 +615,95 @@ export function prepareFamilyHistory(
 		const consumedEntries = yield* prepareMoneyConsumption(scope);
 		return {
 			yearToDate: contributionYearToDate(options),
+			yearEarned: earnedYearToDate(options),
 			priorOvertimeHours: priorOvertimeHours(options),
 			consumedEntries
 		};
 	});
+}
+
+/**
+ * The per-period rows this run materialised, carrying what it priced them at. A scheduled payment
+ * is raised at nothing and priced by its band; the row a person later reads shows the figure the
+ * payslip paid, and one priced at nothing is not raised at all.
+ */
+function materialisedRows(
+	entries: readonly PreparedPayRequest[],
+	adjustments: readonly MeasuredAdjustment[]
+): MaterialisedMoney[] {
+	return entries.flatMap((entry) => {
+		const row = entry.materialised;
+		if (row == null) return [];
+		if (row.collection !== 'payment_requests') return [row];
+		// An adjustment names its source, which for a materialised row is the catalogue row itself.
+		const amount = adjustments
+			.filter((line) => line.input.id === row.sourceId && line.input.family === 'PAYMENT')
+			.reduce((sum, line) => sum + Math.abs(line.amount), 0);
+		return amount > 0 ? [{ ...row, values: { ...row.values, amount: cents(amount) } }] : [];
+	});
+}
+
+/**
+ * What each employee's earlier paid payslips earned this tax year, by component code: the base
+ * lines and every earning or non-wage payment adjustment (RFC 0004 §3). The year axis a scheduled
+ * payment's amount and a base entry's annual exemption read.
+ */
+function earnedYearToDate(options: {
+	readonly payslips: readonly WorkspaceRow<'payslips'>[];
+	readonly inTaxYear: ReadonlySet<string>;
+	readonly employmentToEmployee: ReadonlyMap<string, string>;
+}): Map<string, Map<string, number>> {
+	const earned = new Map<string, Map<string, number>>();
+	for (const payslip of options.payslips) {
+		if (!options.inTaxYear.has(payslip.payroll_run_id)) continue;
+		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
+		if (employeeId == null) continue;
+		const byCode = earned.get(employeeId) ?? new Map<string, number>();
+		for (const line of payslip.base)
+			byCode.set(
+				line.component_code,
+				(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
+			);
+		for (const line of payslip.adjustments)
+			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT')
+				byCode.set(
+					line.component_code,
+					(byCode.get(line.component_code) ?? 0) + decodeNumber(line.amount)
+				);
+		earned.set(employeeId, byCode);
+	}
+	return earned;
+}
+
+/** The year axis of one employment in one run; `earned` reads this run's own lines as they land. */
+function yearContextOf(input: {
+	readonly bundle: EmploymentBundle;
+	readonly configuration: Configuration;
+	readonly options: Pick<MeasureEmploymentOptions, 'period' | 'salary' | 'yearEarned'>;
+	readonly componentAmounts: ReadonlyMap<string, number>;
+}): YearContext {
+	const { bundle, configuration, options, componentAmounts } = input;
+	const startMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
+	const bounds = taxYearBounds(options.period, startMonth);
+	const dates = employmentDates(bundle.employment);
+	const from = dates.hire > bounds.start ? dates.hire : bounds.start;
+	const through =
+		dates.exit != null && dates.exit < options.salary.end ? dates.exit : options.salary.end;
+	const employed = through >= from;
+	return {
+		start: bounds.start,
+		end: bounds.end,
+		months_employed: employed ? completedMonths(from, addDays(through, 1)) : 0,
+		days_employed: employed ? inclusiveDays(from, through) : 0,
+		last_of_year:
+			closesTaxYear(options.period, startMonth) ||
+			(dates.exit != null && dates.exit <= options.salary.end),
+		earned: Object.fromEntries(
+			[...new Set(['BASIC', ...options.yearEarned.keys(), ...componentAmounts.keys()])].map(
+				(code) => [code, (options.yearEarned.get(code) ?? 0) + (componentAmounts.get(code) ?? 0)]
+			)
+		)
+	};
 }
 
 /**
@@ -757,6 +850,7 @@ export function calculateFamilyAssessments(options: {
 		readonly measured: ReturnType<typeof calculateFamilies>;
 		readonly termsThrough: string;
 		readonly projection: ReturnType<typeof payProjection>;
+		readonly yearEarned: ReadonlyMap<string, number>;
 	}> = [];
 	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
 
@@ -778,6 +872,7 @@ export function calculateFamilyAssessments(options: {
 		// payslip stands for, so twenty-four half-month payslips project the same annual income as
 		// twelve monthly ones.
 		const projection = payProjection(period, taxYearStartMonth, bundle.window);
+		const yearEarned = gathered.yearEarned.get(bundle.employment.employee_id) ?? new Map();
 		const measured = calculateFamilies({
 			bundle,
 			configuration,
@@ -785,7 +880,8 @@ export function calculateFamilyAssessments(options: {
 			salary: bundle.window.salary,
 			periodsRemaining: projection.payslipsRemaining,
 			headcount: gathered.headcount,
-			consumedEntries: gathered.consumedEntries
+			consumedEntries: gathered.consumedEntries,
+			yearEarned
 		});
 
 		// What the family measurements said about requests they read and paid nothing for. Warnings:
@@ -802,6 +898,7 @@ export function calculateFamilyAssessments(options: {
 		measuredRuns.push({
 			measured,
 			projection,
+			yearEarned,
 			// These are committed calculation dates, not the future horizon of an entitlement or tax projection.
 			termsThrough: [
 				[
@@ -832,14 +929,15 @@ export function calculateFamilyAssessments(options: {
 	// Every measured run is judged before any is accumulated, so a blocker names every person it
 	// concerns and an undecided cell is reported as the issue it is rather than thrown from the grid.
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
-	const measuredContracts = measuredRuns.map(({ projection, ...run }) => ({
+	const measuredContracts = measuredRuns.map(({ projection, yearEarned, ...run }) => ({
 		...run,
 		...prepareContributionAssessment({
 			measured: run.measured,
 			configuration,
 			projection,
 			yearToDate: gathered.yearToDate,
-			headcount: gathered.headcount
+			headcount: gathered.headcount,
+			yearEarned
 		})
 	}));
 

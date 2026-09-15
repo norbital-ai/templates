@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** One payment component. The form is `lib/ui/catalogue-form.svelte`, shared by the three money catalogues. */
 	import type { RepresentationProps } from './$types.js';
-	import CatalogueForm from '../../lib/ui/catalogue-form.svelte';
+	import PaymentCatalogueForm from '../../lib/ui/payment-catalogue-form.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 </script>
@@ -13,4 +13,4 @@
 	/>
 </svelte:head>
 
-<CatalogueForm collection="payment_catalogue" {record} {close} />
+<PaymentCatalogueForm {record} {close} />

@@ -321,6 +321,23 @@ export function defaultPayPeriod(
 	return dayOfMonth(eventDate) <= cutoffDay ? month : shiftPeriod(month, 1);
 }
 
+/** First and last day of the tax year a run period sits in. */
+export function taxYearBounds(
+	period: string,
+	taxYearStartMonth: number
+): { readonly start: IsoDate; readonly end: IsoDate } {
+	const first = taxYearFirstPeriod(period, taxYearStartMonth);
+	return { start: monthBounds(first).start, end: monthBounds(shiftPeriod(first, 11)).end };
+}
+
+/** Whether this period closes its tax year: the last month of it, and its second half where halves exist. */
+export function closesTaxYear(period: string, taxYearStartMonth: number): boolean {
+	if (periodHalf(period) === 1) return false;
+	return (
+		taxYearOf(shiftPeriod(period, 1), taxYearStartMonth) !== taxYearOf(period, taxYearStartMonth)
+	);
+}
+
 /** Calendar months left in the tax year, this one included. */
 function monthsRemaining(period: string, taxYearStartMonth: number): number {
 	const month = decodeNumber(periodMonth(period).slice(5, 7));

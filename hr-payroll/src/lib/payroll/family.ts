@@ -1,4 +1,5 @@
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
+import type { CatalogueSchedule } from '../../datatypes/catalogue_schedule/+definition.js';
 
 /** Where a line settles (RFC 0001 §9). `EMPLOYER` and `DISPLAY` carry no direction. */
 export type SettlementDestination = 'PAY' | 'NET' | 'EMPLOYER' | 'DISPLAY';
@@ -45,6 +46,9 @@ export type FamilyPayItem = {
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
+	/** Where a payment row's entries come from (RFC 0004 §2); keyed unless it says SCHEDULE. */
+	readonly source?: 'ENTRY' | 'SCHEDULE';
+	readonly schedule?: CatalogueSchedule | null;
 };
 
 import type {
@@ -221,6 +225,8 @@ export type MeasureEmploymentOptions = {
 	readonly headcount: number;
 	/** `component_entry_id` → what earlier PAID runs already took from it. See `gather.ts`. */
 	readonly consumedEntries: ReadonlyMap<string, number>;
+	/** component code → what earlier PAID payslips of this employee earned this tax year. */
+	readonly yearEarned: ReadonlyMap<string, number>;
 	/** Calculate a deferred period's wages without settling manual money again. */
 	readonly deferredWagesOnly?: boolean;
 };
@@ -233,10 +239,27 @@ export type Measurement = {
 };
 
 /** The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does. */
+/**
+ * The year axis every entry expression reads (RFC 0004 §3): the tax year the period sits in, how
+ * much of it this employment covers, what has been earned in it so far by component code — prior
+ * paid payslips plus this run's own lines as they are measured — and whether this period closes it.
+ */
+export type YearContext = {
+	readonly start: string;
+	readonly end: string;
+	readonly months_employed: number;
+	readonly days_employed: number;
+	readonly last_of_year: boolean;
+	/** Component code → the amount, prior paid payslips plus this run's own lines; `BASIC` always. */
+	readonly earned: Readonly<Record<string, number>>;
+};
+
 export type MeasureComponentOptions = {
 	readonly component: CatalogueComponent;
 	readonly bundle: EmploymentBundle;
 	readonly configuration: Configuration;
+	/** Read at pricing time, so `earned` carries the lines this run has already measured. */
+	readonly year: () => YearContext;
 	readonly salary: PayRange;
 	readonly employed: PayRange;
 	readonly contracted: PayRange;

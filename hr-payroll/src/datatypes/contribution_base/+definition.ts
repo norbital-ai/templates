@@ -18,7 +18,12 @@ export type BaseEntryFamily = (typeof BASE_ENTRY_FAMILIES)[number];
 
 export const contributionBaseEntrySchema = Schema.Struct({
 	family: Schema.Literals(BASE_ENTRY_FAMILIES),
-	code: Schema.String.check(Schema.isMinLength(1))
+	code: Schema.String.check(Schema.isMinLength(1)),
+	/**
+	 * The first amount a tax year of this entry that is outside the base (RFC 0004 §3): NIRC
+	 * s.32(B)(7)(e)'s ₱90,000 on 13th-month pay in the withholding base. Null is no exemption.
+	 */
+	annual_exempt: Schema.optionalKey(Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0))))
 });
 
 export const contributionBaseValueSchema = Schema.Struct({

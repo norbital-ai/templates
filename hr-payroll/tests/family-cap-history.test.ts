@@ -212,6 +212,8 @@ test('paid captured amounts, including zero, replace source estimates without ch
 		world.payslips.push({
 			id: 'paid-slip',
 			employment_id: EMPLOYMENT_ID,
+			base: [],
+			adjustments: [],
 			payroll_run_id: 'paid-run',
 			// Paid, because history is the slip's own payment rather than the run's summary.
 			paid_at: '2026-01-31',

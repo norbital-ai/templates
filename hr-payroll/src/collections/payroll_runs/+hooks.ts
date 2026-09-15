@@ -203,13 +203,13 @@ export default {
 						// The per-period rows materialised from standing sources: created with the run,
 						// pinned to the payslip they priced, deleted with it. The id is the runtime's.
 						const rows = built.captures.flatMap((capture) => capture.materialised);
-						if (rows.length > 0)
-							yield* api.db.allowance_requests.mutate(
-								rows.map((row) => ({
-									...row.values,
-									payslip_id: row.payslipId
-								})) as never
-							);
+						for (const collection of ['allowance_requests', 'payment_requests'] as const) {
+							const own = rows.filter((row) => row.collection === collection);
+							if (own.length > 0)
+								yield* api.db[collection].mutate(
+									own.map((row) => ({ ...row.values, payslip_id: row.payslipId })) as never
+								);
+						}
 						return {
 							...input,
 							...built.graph

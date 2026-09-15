@@ -45,6 +45,16 @@ import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/mone
 import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
 import {
+	pinnedScheduleKeys,
+	scheduleKey,
+	scheduleOccurrences,
+	scheduledPaymentRequests,
+	separationOf
+} from '../../../lib/payroll/money.js';
+import { childrenOn } from '../../../lib/employment-contract.js';
+import { personContext } from './eligibility.js';
+import { coversDate } from './effective.js';
+import {
 	hasLeavePayment,
 	withLeaveDeductionEligibility,
 	type PreparedLeavePayroll
@@ -149,6 +159,8 @@ export type GatheredRun = {
 	};
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
+	/** employee id → component code → what earlier PAID payslips earned this tax year. */
+	readonly yearEarned: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** employee id → calendar month → regulated overtime hours earlier PAID payslips settled. */
 	readonly priorOvertimeHours: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/**
@@ -187,7 +199,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		options.api.reads.assertComplete(employmentRows, 'employments');
 
 		const begun = employmentRows.filter((row) => employmentDates(row).hire <= salary.end);
-		const { leaveByEmployment: gatheredLeave, requestsByEmployment } =
+		const { leaveByEmployment: gatheredLeave, requestsByEmployment: requestsByEmploymentGathered } =
 			yield* prepareFamilyObligations({
 				api: options.api,
 				configuration: options.configuration,
@@ -203,7 +215,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// employment selected while it runs, so the derived row must not select an ended contract
 		// that the allowance no longer covers.
 		const hasOutstandingRequest = (employmentId: string) =>
-			(requestsByEmployment.get(employmentId) ?? []).some(
+			(requestsByEmploymentGathered.get(employmentId) ?? []).some(
 				(request) => !request.recurring && request.materialised == null && !request.captured
 			);
 		const candidates = begun.filter(
@@ -286,6 +298,60 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			);
 		}
 
+		// What the version's scheduled payment rows owe in this run (RFC 0004 §2): one request per
+		// occurrence inside each employment's own salary window, materialised as if keyed, unless a
+		// payslip has already pinned that occurrence.
+		const scheduled = options.configuration.catalogueComponents.filter(
+			(component) => component.family === 'PAYMENT' && component.source === 'SCHEDULE'
+		);
+		const requestsByEmployment = new Map(
+			[...requestsByEmploymentGathered].map(([id, rows]) => [id, [...rows]])
+		);
+		if (scheduled.length > 0) {
+			const candidateKeys = candidates.flatMap((row) => {
+				const cadence = cadenceByEmployment.get(row.id);
+				if (cadence == null) return [];
+				const dates = employmentDates(row);
+				return scheduled.flatMap((component) => {
+					const schedule = component.schedule!;
+					const keys = scheduleOccurrences(schedule, cadence.window.salary).map((date) =>
+						scheduleKey(component.id, row.id, date)
+					);
+					if (schedule.on_separation && dates.exit != null)
+						keys.push(scheduleKey(component.id, row.id, separationOf(dates.exit)));
+					return keys;
+				});
+			});
+			const pinned = yield* pinnedScheduleKeys(options.api, [...new Set(candidateKeys)]);
+			for (const row of candidates) {
+				const cadence = cadenceByEmployment.get(row.id);
+				const employee = employeeById.get(row.employee_id);
+				if (cadence == null || employee == null) continue;
+				const dates = employmentDates(row);
+				const terms = termsByEmployment.get(row.id) ?? [];
+				const owed = scheduledPaymentRequests({
+					components: scheduled,
+					employment: row,
+					hire: dates.hire,
+					exit: dates.exit,
+					window: cadence.window.salary,
+					period,
+					pinned,
+					person: (asOf) =>
+						personContext({
+							employee,
+							employment: { service_start: dates.hire },
+							terms: terms.find((term) => coversDate(term.effective_range, asOf)) ?? null,
+							children: childrenOn(employee.children ?? [], asOf),
+							company,
+							asOf
+						})
+				});
+				if (owed.length > 0)
+					requestsByEmployment.set(row.id, [...(requestsByEmployment.get(row.id) ?? []), ...owed]);
+			}
+		}
+
 		const employments = candidates.filter((row) => {
 			const settlement = settlementByEmployment.get(row.id);
 			const cadence = cadenceByEmployment.get(row.id);
@@ -333,6 +399,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				headcount,
 				workHolidayEvidence: { inputs: [], holidays: [] },
 				yearToDate: new Map(),
+				yearEarned: new Map(),
 				priorOvertimeHours: new Map(),
 				consumedEntries: new Map()
 			};
@@ -472,6 +539,7 @@ type GatherPriorSettlementOptions = {
 
 type PriorSettlement = {
 	readonly yearToDate: Map<string, { employee: number; employer: number; base: number }>;
+	readonly yearEarned: Map<string, Map<string, number>>;
 	readonly priorOvertimeHours: Map<string, Map<string, number>>;
 	readonly consumedEntries: Map<string, number>;
 };
@@ -523,6 +591,7 @@ function gatherPriorSettlement(
 		const consumedEntries = new Map<string, number>();
 		const empty = {
 			yearToDate: totals,
+			yearEarned: new Map<string, Map<string, number>>(),
 			priorOvertimeHours: new Map<string, Map<string, number>>(),
 			consumedEntries
 		};

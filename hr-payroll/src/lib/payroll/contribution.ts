@@ -263,6 +263,8 @@ export function prepareContributionAssessment(options: {
 	readonly projection: ContractAssessment['calculation']['projection'];
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 	readonly headcount: number;
+	/** component code → what this employee's earlier paid payslips earned this tax year. */
+	readonly yearEarned: ReadonlyMap<string, number>;
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
 	const { bundle } = measured;
@@ -294,7 +296,8 @@ export function prepareContributionAssessment(options: {
 			bases: accumulateBases({
 				configuration,
 				items: [...measured.base, ...measured.adjustments],
-				employeeNumber: bundle.employment.employee_number
+				employeeNumber: bundle.employment.employee_number,
+				yearEarned: options.yearEarned
 			}),
 			facts,
 			yearToDate: (code) =>

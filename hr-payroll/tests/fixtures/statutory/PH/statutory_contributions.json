@@ -843,7 +843,8 @@
 				},
 				{
 					"family": "PAYMENT",
-					"code": "THIRTEENTH_MONTH_PAY"
+					"code": "THIRTEENTH_MONTH_PAY",
+					"annual_exempt": 90000
 				},
 				{
 					"family": "PAYMENT",
@@ -1700,7 +1701,8 @@
 				},
 				{
 					"family": "PAYMENT",
-					"code": "THIRTEENTH_MONTH_PAY"
+					"code": "THIRTEENTH_MONTH_PAY",
+					"annual_exempt": 90000
 				},
 				{
 					"family": "PAYMENT",

@@ -14,12 +14,18 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { Effect } from 'effect';
 import {
 	assessStatutory,
+	createStatutoryWorld,
 	expectStatutory,
 	expectStatutoryBase,
-	assertEveryVersionPriced
+	assertEveryVersionPriced,
+	COMPANY_ID
 } from './fixtures/statutory-world.ts';
+import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { scheduleOccurrences } from '../src/lib/payroll/money.ts';
 
 const PH_PEOPLE = [
 	{ key: 'PH-4000', wage: 4000, age: 25 },
@@ -203,4 +209,104 @@ test('Philippines — the salary-based schemes are monthly schedules, not per-pe
 		);
 	}
 	assert.notEqual(schemes.find((row) => row.code === 'WTAX')?.assessment_period, 'MONTH');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 13th month pay (P.D. 851; Revised Guidelines 1987; NIRC s.32(B)(7)(e)) — RFC 0004 S1.
+//
+// The row is a SCHEDULE source: every 24 December, one twelfth of the basic salary earned in the
+// year, to rank-and-file with at least a month of service, and on separation to a leaver whose
+// year closes before the day. The ₱90,000 exclusion is the WTAX base entry's `annual_exempt`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function payslipsOf(options: Parameters<typeof createStatutoryWorld>[0]) {
+	const world = createStatutoryWorld(options);
+	const prepared = Effect.runSync(
+		gatherPayrollRun({
+			api: memoryPayrollApi(world),
+			companyId: COMPANY_ID,
+			period: options.period
+		})
+	);
+	const built = buildPayrollRun(prepared);
+	const slips = built.payslip_payroll_run;
+	return (key: string) => {
+		const employment = world.employments.find((row) => row.employee_number === key)!;
+		const slip = slips.find((row) => String(row.employment_id) === employment.id)!;
+		const thirteenth = slip.adjustments.filter(
+			(row) => row.component_code === 'THIRTEENTH_MONTH_PAY'
+		);
+		const wtax = slip.statutory.find((row) => row.scheme_code === 'WTAX')!;
+		// The request row the run materialises for the occurrence, priced at what the payslip paid.
+		const materialised = built.captures
+			.filter((capture) => capture.payslipId === slip.id)
+			.flatMap((capture) => capture.materialised)
+			.map((row) => [row.collection, row.values.amount, row.values.schedule_key]);
+		return { thirteenth, wtaxBase: wtax.base_amount, materialised };
+	};
+}
+
+test('Philippines — 13th month pay is raised by the December schedule, a twelfth of the year’s basic', () => {
+	const slip = payslipsOf({
+		code: 'PH',
+		period: '2026-12',
+		people: [
+			{ key: 'PH-30000', wage: 30_000 },
+			// A twelfth above ₱90,000: the excess alone enters the withholding base.
+			{ key: 'PH-1200000', wage: 1_200_000 },
+			// Under a month of service on the day.
+			{ key: 'PH-JOINER', wage: 30_000, hire_date: '2026-12-10' },
+			// Managerial employees are outside P.D. 851.
+			{ key: 'PH-MANAGER', wage: 30_000, work_classification: 'MANAGERIAL' }
+		]
+	});
+	// No earlier payslip in the fixture year, so the year's basic is December's own salary.
+	assert.deepEqual(
+		slip('PH-30000').thirteenth.map((row) => [row.bucket, row.amount]),
+		[['NON_WAGE_PAYMENT', 2500]]
+	);
+	assert.equal(slip('PH-30000').wtaxBase, 30_000);
+	assert.deepEqual(
+		slip('PH-1200000').thirteenth.map((row) => row.amount),
+		[100_000]
+	);
+	assert.equal(slip('PH-1200000').wtaxBase, 1_210_000);
+	assert.deepEqual(slip('PH-JOINER').thirteenth, []);
+	assert.deepEqual(slip('PH-MANAGER').thirteenth, []);
+});
+
+test('Philippines — a leaver is paid the 13th month on separation; the rest wait for December', () => {
+	const slip = payslipsOf({
+		code: 'PH',
+		period: '2026-03',
+		people: [
+			{ key: 'PH-30000', wage: 30_000 },
+			{ key: 'PH-LEAVER', wage: 30_000, exit_date: '2026-03-31' }
+		]
+	});
+	assert.deepEqual(slip('PH-30000').thirteenth, []);
+	assert.deepEqual(
+		slip('PH-LEAVER').thirteenth.map((row) => row.amount),
+		[2500]
+	);
+});
+
+test('schedule occurrences clamp the day to the month and honour the window', () => {
+	const year = {
+		every: 'YEAR',
+		month: 2,
+		day: 30,
+		when: '',
+		from_service_months: 0,
+		on_separation: false
+	} as const;
+	assert.deepEqual(scheduleOccurrences(year, { start: '2026-01-01', end: '2026-12-31' }), [
+		'2026-02-28'
+	]);
+	assert.deepEqual(scheduleOccurrences(year, { start: '2026-03-01', end: '2026-12-31' }), []);
+	const month = { ...year, every: 'MONTH', month: null, day: 31 } as const;
+	assert.deepEqual(scheduleOccurrences(month, { start: '2026-04-01', end: '2026-05-31' }), [
+		'2026-04-30',
+		'2026-05-31'
+	]);
 });

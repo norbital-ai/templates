@@ -176,7 +176,8 @@ function measure(overrides = {}) {
 		salary: MARCH,
 		periodsRemaining: 10,
 		headcount: 1,
-		consumedEntries: new Map()
+		consumedEntries: new Map(),
+		yearEarned: new Map()
 	});
 }
 

@@ -38,8 +38,8 @@ export const LINEAGES = readdirSync(resolve(here, 'statutory'), { withFileTypes:
 
 export type Lineage = 'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID';
 
-function law(code: Lineage, file: string): any[] {
-	return readLawFile(resolve(here, 'statutory', code, file));
+function law(code: Lineage, file: string, options?: { optional: true }): any[] {
+	return readLawFile(resolve(here, 'statutory', code, file), options);
 }
 
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
@@ -74,7 +74,11 @@ export type Person = {
 	readonly children?: number;
 	readonly grade?: string;
 	readonly statutory_work_category?: string;
+	/** `employment.classification`; `EA_COVERED` unless stated. */
+	readonly work_classification?: string;
 	readonly hire_date?: string;
+	/** The last employed day; the fixture closes the employment and its terms on it. */
+	readonly exit_date?: string;
 	/** Per-scheme registration: a code mapped to `NOT_REGISTERED`, or to a flat rate override. */
 	readonly registrations?: Readonly<
 		Record<string, { kind: string; rate_override?: number | null }>
@@ -168,7 +172,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		company_id: COMPANY_ID,
 		employee_number: person.key,
 		bank: null,
-		effective_range: { start: person.hire_date ?? '2015-01-01', end: null },
+		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
 		approval_id: null
 	}));
 
@@ -177,7 +181,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employment_id: employmentIds[index]!,
 		base_salary: { value: person.wage, currency: versions[0]!.payroll.currency },
 		pay_frequency: person.pay_frequency ?? 'MONTHLY',
-		work_classification: 'EA_COVERED',
+		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
 		employment_type: 'PERMANENT',
 		residency_status: person.citizenship ?? null,
@@ -187,7 +191,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		grade: person.grade ?? null,
 		payroll_group: null,
 		shift_pattern_id: PATTERN_ID,
-		effective_range: { start: person.hire_date ?? '2015-01-01', end: null },
+		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
 		approval_id: null
 	}));
 
@@ -234,7 +238,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		loan_catalogue: [],
 		claim_catalogue: [],
 		allowance_catalogue: [],
-		payment_catalogue: [],
+		payment_catalogue: law(code, 'payment_catalogue', { optional: true }),
 		shift_definitions: [
 			{
 				id: SHIFT_ID,

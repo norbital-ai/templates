@@ -1,19 +1,13 @@
 <script lang="ts">
 	/**
-	 * The one form behind the two money catalogues: claims and payments. One row shape in two
-	 * tables, so the family is the table rather than a column and the form takes only the
-	 * collection name.
+	 * The payment catalogue's own form.
 	 *
-	 * The loan and allowance catalogues used to be here too, as the same row plus extras.
-	 * `loan_type`/`minimum_repayment` and the recurrence facts ended that: a form serving rows of
-	 * different shapes can be typed against only their intersection. They have their own forms.
+	 * It shared `catalogue-form.svelte` with claims while the row was the same one. `source` and
+	 * `schedule` (RFC 0004 §2) ended that, the way the recurrence facts did for allowances: a form
+	 * serving rows of different shapes can be typed against only their intersection.
 	 *
-	 * Segments are tabs, not stacked sections: one panel is on screen at a time, its segment name is
-	 * the tab label, and its fields spread across the sheet instead of down it. The dialog chrome
-	 * already names the record, so the form adds no heading of its own.
-	 *
-	 * `settings_id` is never a field on the Settings page: the page names the version and the form
-	 * prefills and hides it. Opened without that scope it keeps a plain version picker.
+	 * Segments are tabs, not stacked sections. `settings_id` is never a field on the Settings page:
+	 * the page names the version and the form prefills and hides it.
 	 */
 	import { client } from '../workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -28,13 +22,9 @@
 	import { hrCreateScope } from './create-scope.js';
 	import { settingsVersionSealed } from './settings-sealed.svelte.js';
 
-	type Collection = 'claim_catalogue';
-	let {
-		collection,
-		record,
-		close
-	}: { collection: Collection; record: WorkspaceRow<Collection> | null; close: () => void } =
-		$props();
+	type Collection = 'payment_catalogue';
+	let { record, close }: { record: WorkspaceRow<Collection> | null; close: () => void } = $props();
+	const collection: Collection = 'payment_catalogue';
 	const { t } = useI18n<TenantI18nKeys>();
 	const createScope = hrCreateScope();
 	const settingsId = $derived(createScope?.settingsId?.());
@@ -125,6 +115,18 @@
 			{#snippet limits()}
 				<Stack gap="sm">
 					<p class="text-meta">{t('component.catalogue_section_limits_hint')}</p>
+					<Grid gap="md" minimum="card">
+						<Field
+							name="source"
+							label={t('component.source')}
+							description={t('component.source_hint')}
+						/>
+						{#if form.values().source === 'SCHEDULE'}
+							<Column span="all"><Field name="schedule" label={t('component.schedule')} /></Column>
+						{:else}
+							<Field name="schedule" hidden />
+						{/if}
+					</Grid>
 					<Grid gap="md" minimum="card">
 						<Field name="evidence" label={t('component.evidence')} />
 						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
