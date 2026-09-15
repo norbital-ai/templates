@@ -9,19 +9,8 @@
 
 	Planned and actual are shown in the same cell on purpose. Kept apart they are two screens nobody
 	cross-references, which is how a rostered shift with nobody clocked onto it survives until payroll.
-
-	── THE THREE LAYERS ───────────────────────────────────────────────────────────────────────────
-	A cell paints what `resolveCellLayers` says it carries, on shape rather than colour:
-
-	    BASE       the day the employment's named shift pattern projects. Muted code inside a dashed
-	               outline, and the code only: a projection, not a decision anybody took.
-	    OVERRIDE   a `work_days` row's assignment. Solid text, a corner mark, the shift window under
-	               the code; the tooltip names where it came from (imported, ad hoc) and what base it
-	               replaced.
-	    CLOCK      the row's time entries. A bar under the code and the punch window for a closed day,
-	               `⧗` for a clock still running, and AWOL in the destructive colour for a reviewed
-	               row with nothing worked on a work day. No row, or a row with no attendance, draws
-	               nothing here: payroll takes the plan as worked.
+	The cell is `roster-slot.svelte`: one state, one fill, the same drawing the employee's calendar
+	uses; the tooltip carries where the plan came from and what the clock said in words.
 
 	── SCROLL ────────────────────────────────────────────────────────────────────────────────────────
 	The board is a scrollport, built the way `CollectionTable` builds one: a `Cover` whose middle row
@@ -61,7 +50,6 @@
 		CONFLICT_PRESENTATION,
 		DAY_MARK_KEY,
 		HOLIDAY_PRESENTATION,
-		LAYER_PRESENTATION,
 		LOCK_RAIL_PRESENTATION,
 		STATUS_PRESENTATION,
 		describeClockLayer,
@@ -73,11 +61,6 @@
 		lockRungSourceLock,
 		monthDays,
 		personDayKey,
-		planGlyph,
-		punchTimeCue,
-		resolveCellLayers,
-		shiftTimeCue,
-		type CellLayers,
 		type DayFacts,
 		type HolidayLike,
 		type LockRung
@@ -366,19 +349,6 @@
 	}
 
 	/**
-	 * The second line of a cell, by layer: the punch window when the clock says something, the
-	 * shift window on an override, and nothing at all on a base day, which is the code only.
-	 */
-	function cellCue(day: DayFacts, layers: CellLayers): string {
-		if (layers.actual.kind === 'AWOL') return t('roster.absent');
-		if (layers.actual.kind === 'CLOCKED' || layers.actual.kind === 'OPEN') {
-			return punchTimeCue(day) ?? '';
-		}
-		if (layers.override != null) return shiftTimeCue(day) ?? '';
-		return '';
-	}
-
-	/**
 	 * Everything else worth saying about a day, as one line.
 	 *
 	 * This used to end with `component.lock_date_passed` on every past day that was not settled,
@@ -545,7 +515,6 @@
 									</th>
 									{#each days as date, dayIndex (date)}
 										{@const day = facts.get(personDayKey(person.id, date))}
-										{@const layers = day == null ? null : resolveCellLayers(day)}
 										{@const rung = rungOf(day)}
 										<!--
 									`day.past !== true` used to be a fourth condition here, and deleting it is
