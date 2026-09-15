@@ -1,4 +1,4 @@
-import { childrenOn, serviceStart } from '../employment-contract.js';
+import { childrenOn, serviceStart, stint } from '../employment-contract.js';
 import {
 	PAGE_LIMIT,
 	type PayrollReadApi,
@@ -228,7 +228,7 @@ export function withLeaveDeductionEligibility(
 				catalogue.eligibility,
 				personContext({
 					employee: options.employee,
-					employment: { service_start: serviceStart(options.employment) },
+					employment: stint(options.employment),
 					terms: term,
 					asOf: charge.date,
 					children: childrenOn(options.employee.children ?? [], charge.date),

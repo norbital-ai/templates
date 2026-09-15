@@ -22,13 +22,18 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Effect } from 'effect';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
 	chargeOf,
+	createStatutoryWorld,
 	expectStatutory,
-	assertEveryVersionPriced
+	assertEveryVersionPriced,
+	COMPANY_ID
 } from './fixtures/statutory-world.ts';
+import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
 
 const ID_PEOPLE = [
 	// Exactly the Kabupaten Bekasi UMK 2026: what five of the bank's sixteen contracts are paid.
@@ -206,8 +211,9 @@ test('Indonesia — PPh 21 monthly withholding on the TER A and TER C ladders', 
 });
 
 test('Indonesia — the rupiah above a TER bracket, or a BPJS ceiling, is charged on the next row', () => {
+	// April, not March: the March run carries THR (below), and this test prices the wage alone.
 	const book = assessStatutoryUnvalidated({
-		...idWorld('2026-03'),
+		...idWorld('2026-04'),
 		people: [
 			{ key: 'ID-5400000.01', wage: 5_400_000.01, marital_status: 'SINGLE' },
 			{ key: 'ID-11086300.01', wage: 11_086_300.01, marital_status: 'SINGLE' },
@@ -257,4 +263,94 @@ test('every sealed version of `ID` is priced by a golden here', () => {
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
 	// by nothing and stays green.
 	assertEveryVersionPriced('ID');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THR (Permenaker 6/2016) — RFC 0005 §1.2, the first row of the obligation model.
+//
+// Due seven days before the religious holiday (Idul Fitri 2026-03-20 → 13 March): one month's wage
+// after twelve months of continuous service, pro rata by completed months from one month, and
+// "one month's wage" is the basic wage plus the fixed allowances (art. 3(2)). THR is income for
+// PPh 21 and outside every BPJS base.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const HOUSE_ALLOWANCE_ID = 'a1a1a1a1-0000-4000-8000-000000000001';
+
+test('Indonesia — THR is a twelfth of the monthly wage per completed month, whole after a year', () => {
+	const world = createStatutoryWorld({
+		...idWorld('2026-03'),
+		people: [
+			{ key: 'ID-24M', wage: 10_000_000 },
+			// Six completed months on 13 March 2026.
+			{ key: 'ID-6M', wage: 12_000_000, hire_date: '2025-09-13' },
+			// Under a month of service on the day.
+			{ key: 'ID-NEW', wage: 12_000_000, hire_date: '2026-02-20' },
+			// A standing house allowance is part of the wage THR is measured on.
+			{ key: 'ID-FIXED', wage: 20_000_000 }
+		]
+	});
+	// The version in force in March 2026 (2026-03-01 → open).
+	const version = 'f5282c8e-2224-4714-afb7-7314a5bfe37d';
+	world.allowance_catalogue.push({
+		id: HOUSE_ALLOWANCE_ID,
+		settings_id: version,
+		code: 'HOUSE_ALLOWANCE',
+		name: 'House allowance',
+		eligibility: '',
+		evidence: 'NONE',
+		destination: 'PAY',
+		direction: 'ADD',
+		recurring: true,
+		prorates: false,
+		on_day: null,
+		bands: [{ when: '', amount: 'entry.amount', limit: null }],
+		approval_id: null
+	});
+	const fixed = world.employments.find((row) => row.employee_number === 'ID-FIXED')!;
+	world.allowance_requests.push({
+		id: 'a1a1a1a1-0000-4000-8000-000000000002',
+		employment_id: fixed.id,
+		catalogue_id: HOUSE_ALLOWANCE_ID,
+		amount: 5_000_000,
+		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null },
+		evidence_file: null,
+		as_adjustment_entry: false,
+		derived_from_id: null,
+		payslip_id: null,
+		approval_id: null
+	});
+	const prepared = Effect.runSync(
+		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-03' })
+	);
+	const built = buildPayrollRun(prepared);
+	const slips = built.payslip_payroll_run;
+	const slip = (key: string) => {
+		const employment = world.employments.find((row) => row.employee_number === key)!;
+		const row = slips.find((candidate) => String(candidate.employment_id) === employment.id)!;
+		const thr = row.adjustments
+			.filter((line) => line.component_code === 'THR')
+			.map((line) => line.amount);
+		const base = (code: string) =>
+			row.statutory.find((charge) => charge.scheme_code === code)!.base_amount;
+		return { thr, base };
+	};
+	assert.deepEqual(slip('ID-24M').thr, [10_000_000]);
+	assert.deepEqual(slip('ID-6M').thr, [6_000_000]);
+	assert.deepEqual(slip('ID-NEW').thr, []);
+	assert.deepEqual(slip('ID-FIXED').thr, [25_000_000]);
+	// PPh 21 is on gross, THR included; the BPJS bases are the wage alone.
+	assert.equal(slip('ID-24M').base('PPH21'), 20_000_000);
+	assert.equal(slip('ID-24M').base('JHT'), 10_000_000);
+	assert.equal(slip('ID-FIXED').base('PPH21'), 50_000_000);
+	// The open-ended standing allowance is paid as a March slice; the source row itself is never
+	// pinned, so April cuts its own slice (a pinned source paid January alone on the host).
+	const fixedSlip = slips.find((row) => String(row.employment_id) === fixed.id)!;
+	const capture = built.captures.find((row) => row.payslipId === fixedSlip.id)!;
+	assert.deepEqual(capture.allowances, []);
+	assert.deepEqual(
+		capture.materialised
+			.filter((row) => row.collection === 'allowance_requests')
+			.map((row) => [row.values.amount, row.values.recurrence]),
+		[[5_000_000, { kind: 'RECURRING', from: '2026-03-01', to: '2026-03-31' }]]
+	);
 });

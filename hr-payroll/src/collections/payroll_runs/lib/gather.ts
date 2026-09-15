@@ -45,13 +45,14 @@ import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/mone
 import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
 import {
+	fixedAllowancesOn,
 	pinnedScheduleKeys,
 	scheduleKey,
 	scheduleOccurrences,
 	scheduledPaymentRequests,
 	separationOf
 } from '../../../lib/payroll/money.js';
-import { childrenOn } from '../../../lib/employment-contract.js';
+import { childrenOn, stint } from '../../../lib/employment-contract.js';
 import { personContext } from './eligibility.js';
 import { coversDate } from './effective.js';
 import {
@@ -317,7 +318,9 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					const keys = scheduleOccurrences(schedule, cadence.window.salary).map((date) =>
 						scheduleKey(component.id, row.id, date)
 					);
-					if (schedule.on_separation && dates.exit != null)
+					if (dates.exit != null && schedule.every === 'SEPARATION')
+						keys.push(scheduleKey(component.id, row.id, dates.exit));
+					if (dates.exit != null && schedule.on_separation && schedule.every === 'YEAR')
 						keys.push(scheduleKey(component.id, row.id, separationOf(dates.exit)));
 					return keys;
 				});
@@ -340,7 +343,8 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					person: (asOf) =>
 						personContext({
 							employee,
-							employment: { service_start: dates.hire },
+							employment: stint(row),
+							fixedAllowances: fixedAllowancesOn(requestsByEmployment.get(row.id) ?? [], asOf),
 							terms: terms.find((term) => coversDate(term.effective_range, asOf)) ?? null,
 							children: childrenOn(employee.children ?? [], asOf),
 							company,

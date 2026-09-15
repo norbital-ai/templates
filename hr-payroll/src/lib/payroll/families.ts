@@ -26,7 +26,7 @@ import {
 import { calculateLeavePayroll } from '../leave/payroll.js';
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
-import { serviceStart } from '../employment-contract.js';
+import { stint } from '../employment-contract.js';
 import type { PayslipProration } from '../../datatypes/payslip_proration/+definition.js';
 import type {
 	MeasuredEmployment,
@@ -101,7 +101,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const adjustments: MeasuredAdjustment[] = [...leave.adjustments];
 		const subject = personContext({
 			employee: bundle.employee,
-			employment: { service_start: serviceStart(bundle.employment) },
+			employment: stint(bundle.employment),
+			fixedAllowances: fixedAllowancesOn(bundle.payRequests, finalDate),
 			terms: finalTerms,
 			children: bundle.children,
 			company: configuration.company,
@@ -458,7 +459,12 @@ import { Effect } from 'effect';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 import { prepareWorkCatalogue, prepareWorkInputs } from './work.js';
 import { workPayItems } from './work-lines.js';
-import { prepareMoneyCatalogues, prepareMoneyInputs, prepareMoneyConsumption } from './money.js';
+import {
+	fixedAllowancesOn,
+	prepareMoneyCatalogues,
+	prepareMoneyInputs,
+	prepareMoneyConsumption
+} from './money.js';
 import { prepareLoanCatalogue, prepareLoanPayroll } from './loan.js';
 import {
 	prepareContributionCatalogue,

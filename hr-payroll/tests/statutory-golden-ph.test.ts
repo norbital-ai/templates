@@ -25,7 +25,7 @@ import {
 } from './fixtures/statutory-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { scheduleOccurrences } from '../src/lib/payroll/money.ts';
+import { scheduleOccurrences, scheduledPaymentRequests } from '../src/lib/payroll/money.ts';
 
 const PH_PEOPLE = [
 	{ key: 'PH-4000', wage: 4000, age: 25 },
@@ -309,4 +309,36 @@ test('schedule occurrences clamp the day to the month and honour the window', ()
 		'2026-04-30',
 		'2026-05-31'
 	]);
+});
+
+test('a separation row falls due on the exit date, once, and only inside the window that holds it', () => {
+	const row = {
+		id: 'row',
+		code: 'SEPARATION_PAY',
+		family: 'PAYMENT',
+		source: 'SCHEDULE',
+		schedule: {
+			every: 'SEPARATION',
+			month: null,
+			day: 1,
+			when: '',
+			from_service_months: 0,
+			on_separation: false
+		}
+	} as never;
+	const owed = (exit: string | null, pinned: string[] = []) =>
+		scheduledPaymentRequests({
+			components: [row],
+			employment: { id: 'emp', effective_range: null },
+			hire: '2020-01-01',
+			exit,
+			window: { start: '2026-03-01', end: '2026-03-31' },
+			period: '2026-03',
+			person: () => ({}) as never,
+			pinned: new Set(pinned)
+		}).map((request) => [request.event_date, request.materialised?.values.schedule_key]);
+	assert.deepEqual(owed('2026-03-14'), [['2026-03-14', 'row:emp:2026-03-14']]);
+	assert.deepEqual(owed('2026-04-01'), []);
+	assert.deepEqual(owed(null), []);
+	assert.deepEqual(owed('2026-03-14', ['row:emp:2026-03-14']), []);
 });

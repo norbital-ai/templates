@@ -248,7 +248,7 @@ the current grammar already carries it and the README was stale; `S1..S5` is the
 | ID      | cuti bersama offset                                                                                | F     | `consumes`                                                                                    | S5      |
 | ID      | 75% overtime base                                                                                  | C     | `ordinary_divisor_days` reads `year.earned`, or a `proration` expression                      | S3      |
 | ID      | art. 26(2) carve-out                                                                               | G     | `limits[].when`                                                                               | now     |
-| ID      | THR (allowance row)                                                                                | A     | SCHEDULE                                                                                      | S2      |
+| ID      | THR                                                                                                | A     | SCHEDULE payment row (landed 2026-09-16, RFC 0005 §6.1)                                       | S1      |
 | ID      | JP ceiling 2027                                                                                    | —     | future version                                                                                | seed    |
 
 Cause-G rows are README corrections, not engine work: the notes were written against the band

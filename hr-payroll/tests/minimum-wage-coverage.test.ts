@@ -101,6 +101,7 @@ test('a covered person under the wage is a warning on the run; an intern is not'
 		employedDays: { start: '2026-01-01', end: '2026-01-31' },
 		deferral: null,
 		terms: [],
+		payRequests: [],
 		termsHistory: [
 			{
 				id: `t-${number}`,

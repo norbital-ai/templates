@@ -109,7 +109,8 @@ export default {
 						const changed = Object.entries(input)
 							.filter(differs)
 							.map(([key]) => key);
-						const onlyComments = changed.length > 0 && changed.every((key) => key === 'comments');
+						const departureNote = (key: string) => key === 'comments' || key === 'exit_reason';
+						const onlyComments = changed.length > 0 && changed.every(departureNote);
 						if (readRange(existing.effective_range)?.end != null) {
 							// A closed contract never reopens; a rehire is a new contract.
 							if (changed.includes('effective_range'))
@@ -121,7 +122,7 @@ export default {
 						// An open contract closes its range (departure) and keeps comments freely;
 						// anything else must clear the seal first.
 						const onlyCloseAndComments = changed.every(
-							(key) => key === 'comments' || key === 'effective_range'
+							(key) => departureNote(key) || key === 'effective_range'
 						);
 						if (!onlyCloseAndComments && changed.length > 0)
 							yield* assertContractUnreferenced(api, existing.id);

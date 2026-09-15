@@ -33,13 +33,15 @@
 					month: String(current.month ?? ''),
 					day: String(current.day)
 				})
-			: t('renderer.catalogue_schedule.summary_month', { day: String(current.day) })}
+			: current.every === 'MONTH'
+				? t('renderer.catalogue_schedule.summary_month', { day: String(current.day) })
+				: t('renderer.catalogue_schedule.summary_separation')}
 		{#if current.from_service_months > 0}
 			· {t('renderer.catalogue_schedule.after_service', {
 				months: String(current.from_service_months)
 			})}
 		{/if}
-		{#if current.on_separation}
+		{#if current.on_separation && current.every === 'YEAR'}
 			· {t('renderer.catalogue_schedule.on_separation')}
 		{/if}
 		{#if current.when.trim() !== ''}
@@ -62,6 +64,7 @@
 				>
 					<option value="YEAR">{t('renderer.catalogue_schedule.every_year')}</option>
 					<option value="MONTH">{t('renderer.catalogue_schedule.every_month')}</option>
+					<option value="SEPARATION">{t('renderer.catalogue_schedule.every_separation')}</option>
 				</select>
 			</label>
 			{#if current.every === 'YEAR'}
@@ -79,19 +82,21 @@
 					/>
 				</label>
 			{/if}
-			<label class="flex flex-col gap-1 text-sm">
-				<span>{t('renderer.catalogue_schedule.day')}</span>
-				<input
-					class="rounded border px-2 py-1"
-					type="number"
-					min="1"
-					max="31"
-					{disabled}
-					value={current.day}
-					onchange={(event) =>
-						emit({ day: number((event.currentTarget as HTMLInputElement).value, 1) })}
-				/>
-			</label>
+			{#if current.every !== 'SEPARATION'}
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{t('renderer.catalogue_schedule.day')}</span>
+					<input
+						class="rounded border px-2 py-1"
+						type="number"
+						min="1"
+						max="31"
+						{disabled}
+						value={current.day}
+						onchange={(event) =>
+							emit({ day: number((event.currentTarget as HTMLInputElement).value, 1) })}
+					/>
+				</label>
+			{/if}
 			<label class="flex flex-col gap-1 text-sm">
 				<span>{t('renderer.catalogue_schedule.from_service_months')}</span>
 				<input
@@ -106,16 +111,18 @@
 						})}
 				/>
 			</label>
-			<label class="flex items-center gap-2 text-sm">
-				<input
-					type="checkbox"
-					{disabled}
-					checked={current.on_separation}
-					onchange={(event) =>
-						emit({ on_separation: (event.currentTarget as HTMLInputElement).checked })}
-				/>
-				<span>{t('renderer.catalogue_schedule.on_separation')}</span>
-			</label>
+			{#if current.every === 'YEAR'}
+				<label class="flex items-center gap-2 text-sm">
+					<input
+						type="checkbox"
+						{disabled}
+						checked={current.on_separation}
+						onchange={(event) =>
+							emit({ on_separation: (event.currentTarget as HTMLInputElement).checked })}
+					/>
+					<span>{t('renderer.catalogue_schedule.on_separation')}</span>
+				</label>
+			{/if}
 		</Grid>
 		<Stack gap="xs">
 			<span class="text-sm font-semibold">{t('renderer.catalogue_schedule.when')}</span>

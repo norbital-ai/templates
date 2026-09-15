@@ -42,7 +42,7 @@ import {
 	shiftPeriod
 } from '../../collections/payroll_runs/lib/dates.js';
 import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
-import { serviceStart } from '../employment-contract.js';
+import { stint } from '../employment-contract.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
 import { settlementBucket } from './family.js';
@@ -420,7 +420,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const subjectOn = (source: PayRequest): PersonContext =>
 			personContext({
 				employee: options.bundle.employee,
-				employment: { service_start: serviceStart(options.bundle.employment) },
+				employment: stint(options.bundle.employment),
+				fixedAllowances: fixedAllowancesOn(options.bundle.payRequests, source.event_date),
 				// A post-departure obligation reads the final terms of its own contract: an event
 				// after the exit is still priced against the last terms that covered the service.
 				terms: payRequestTerms(
@@ -923,7 +924,9 @@ function windowCovered(
 	salary: { readonly start: string; readonly end: string }
 ): boolean {
 	if (window == null) return true;
-	return window.start >= salary.start && (window.end == null || window.end <= salary.end);
+	// An open-ended standing window is never a single period's: the run cuts a slice and leaves the
+	// source unpinned for the next period.
+	return window.start >= salary.start && window.end != null && window.end <= salary.end;
 }
 
 /** The slice of a standing window this period covers, clamped to both ends. */
@@ -1243,6 +1246,7 @@ export function scheduleOccurrences(
 	schedule: CatalogueSchedule,
 	window: { readonly start: IsoDate; readonly end: IsoDate }
 ): IsoDate[] {
+	if (schedule.every === 'SEPARATION') return [];
 	const startYear = decodeNumber(window.start.slice(0, 4));
 	const endYear = decodeNumber(window.end.slice(0, 4));
 	const hits: IsoDate[] = [];
@@ -1254,6 +1258,28 @@ export function scheduleOccurrences(
 		}
 	}
 	return hits;
+}
+
+/**
+ * The standing PAY allowances in force for one employment on a day, summed: what a statute means by
+ * "one month's wage" when it names the fixed allowances (ID THR and pesangon, Permenaker 6/2016
+ * art. 3(2)). A one-off is not standing, and a deduction is not wage.
+ */
+export function fixedAllowancesOn(requests: readonly PreparedPayRequest[], asOf: IsoDate): number {
+	return requests
+		.filter(
+			(request) =>
+				request.family === 'ALLOWANCE' &&
+				// Standing: the recurring source itself, or the per-period slice the run cut from it.
+				(request.recurring || request.materialised != null) &&
+				request.sign === 1 &&
+				request.window != null &&
+				request.window.start <= asOf &&
+				(request.window.end == null || asOf <= request.window.end) &&
+				request.catalogueComponent.destination === 'PAY' &&
+				request.catalogueComponent.direction === 'ADD'
+		)
+		.reduce((sum, request) => sum + Math.abs(decodeNumber(request.amount)), 0);
 }
 
 /** The pin of one occurrence for one employment: the row, the person, and the day or the year's separation. */
@@ -1292,23 +1318,18 @@ export function scheduledPaymentRequests(options: {
 			date,
 			key: scheduleKey(component.id, options.employment.id, date)
 		}));
+		const exit = options.exit;
+		const leaving = exit != null && exit >= options.window.start && exit <= options.window.end;
+		// A separation row falls due on the exit date itself.
+		if (leaving && schedule.every === 'SEPARATION')
+			occurrences.push({ date: exit, key: scheduleKey(component.id, options.employment.id, exit) });
 		// A leaver whose final period closes before the year's day is owed it on separation.
-		if (
-			schedule.on_separation &&
-			schedule.every === 'YEAR' &&
-			options.exit != null &&
-			options.exit >= options.window.start &&
-			options.exit <= options.window.end
-		) {
-			const own = monthDay(
-				decodeNumber(options.exit.slice(0, 4)),
-				schedule.month! - 1,
-				schedule.day
-			);
-			if (own > options.exit)
+		if (leaving && schedule.on_separation && schedule.every === 'YEAR') {
+			const own = monthDay(decodeNumber(exit.slice(0, 4)), schedule.month! - 1, schedule.day);
+			if (own > exit)
 				occurrences.push({
-					date: options.exit,
-					key: scheduleKey(component.id, options.employment.id, separationOf(options.exit))
+					date: exit,
+					key: scheduleKey(component.id, options.employment.id, separationOf(exit))
 				});
 		}
 		for (const occurrence of occurrences) {

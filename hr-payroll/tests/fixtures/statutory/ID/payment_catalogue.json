@@ -667,5 +667,83 @@
 				"limit": null
 			}
 		]
+	},
+	{
+		"id": "ce794b05-99c8-58fd-8bcf-c0a8a504cb7d",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "THR",
+		"name": "Tunjangan Hari Raya",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"source": "SCHEDULE",
+		"schedule": {
+			"every": "YEAR",
+			"month": 3,
+			"day": 13,
+			"when": "",
+			"from_service_months": 1,
+			"on_separation": false
+		},
+		"bands": [
+			{
+				"when": "",
+				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "340e4184-3665-5bb3-bf86-dc561afbf4cb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "THR",
+		"name": "Tunjangan Hari Raya",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"source": "SCHEDULE",
+		"schedule": {
+			"every": "YEAR",
+			"month": 3,
+			"day": 13,
+			"when": "",
+			"from_service_months": 1,
+			"on_separation": false
+		},
+		"bands": [
+			{
+				"when": "",
+				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "e3418d4c-5961-5c2d-a770-c602c3ee4130",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "THR",
+		"name": "Tunjangan Hari Raya",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"source": "SCHEDULE",
+		"schedule": {
+			"every": "YEAR",
+			"month": 3,
+			"day": 13,
+			"when": "",
+			"from_service_months": 1,
+			"on_separation": false
+		},
+		"bands": [
+			{
+				"when": "",
+				"amount": "person.terms.monthly_wage * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": null
+			}
+		]
 	}
 ]
