@@ -1,7 +1,7 @@
 /**
  * Step 7 — SETTLE.
  *
- * Four numbers, derived entirely from the bucket each priced line settles in (§9) and the
+ * Four numbers, derived entirely from the bucket each priced line settles in and the
  * statutory charges. Nothing here reads a component code.
  *
  * ```

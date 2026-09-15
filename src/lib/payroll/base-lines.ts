@@ -6,7 +6,7 @@ import type {
 /**
  * The lines one scheme's base admits, as the calculation-flow graph lists them: the four work
  * lines by flag, then every catalogue row the declaration names. One pure read of the
- * declaration, so the graph and the engine agree by construction (RFC 0003 §1).
+ * declaration, so the graph and the engine agree by construction.
  */
 type BaseLine = {
 	readonly code: string;

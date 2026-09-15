@@ -263,7 +263,7 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 		// Running a draft again states the run's complete set of payslips from the `before` hook
 		// and the omitted ones go with it. That graph is the workspace's own work, so the policy
 		// holds no write on the result: `payroll_runs.mutate.existing` is the whole of "run again".
-		// Deleting a run is different: its cascade descends as the deleting person (RFC 0003 §3.2),
+		// Deleting a run is different: its cascade descends as the deleting person,
 		// so the payslips a run owns carry delete, and only delete.
 		for (const collection of ['payslips']) {
 			assert.equal(may(policy, collection, 'mutate.new'), false, `${nameOf(policy)} ${collection}`);

@@ -37,7 +37,7 @@ type SettingsVersionRow = {
 
 /**
  * A pattern write is a schedule write: its cycle is the base every employment on it projects, and
- * a cycle that breaches a jurisdiction's hour ceilings must never become that base (RFC 0001 §5.1).
+ * a cycle that breaches a jurisdiction's hour ceilings must never become that base.
  *
  * The gate projects the full repeating cycle over one year from the pattern's effective start —
  * every period a limit names: day, week, month, quarter and year — and refuses the first breach

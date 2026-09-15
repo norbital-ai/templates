@@ -1024,7 +1024,7 @@
 												: t('roster.day_sheet_lock_open'))}
 									</p>
 									<!--
-						SCOPED OUT — the `AMENDMENT` provenance arm for a published month (§2.4 of the proposal).
+						SCOPED OUT — the `AMENDMENT` provenance arm for a published month (`docs/scheduling-leave-proposal.md`, amendments).
 						A single-cell write in a published month is refused whole today, and that stays true:
 						opening a narrow amendment path needs a new `work_days.planned_origin` enum arm and a
 						migration, and the decision has not been taken. When it is, this panel is where the

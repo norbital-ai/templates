@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * The Fields affordance: every member one expression site may read, rendered from
-	 * `EXPRESSION_CONTEXTS` (RFC 0001 §7).
+	 * `EXPRESSION_CONTEXTS`.
 	 *
 	 * The catalogue is the single source of truth — the compiler checks a written expression
 	 * against it and this list shows the same object, so it can never document a member the

@@ -220,8 +220,8 @@ type SourceLockFacts = Schema.Schema.Type<typeof sourceLockFactsSchema>;
  * offers a correction event instead. Attendance is the opposite shape entirely: a punch is *always*
  * recorded about a day that has passed — yesterday's clock-in, last week's missed swipe, a whole
  * month backfilled from a turnstile export. Freezing on a passed date there greys out every row a
- * controller has any reason to touch, which is the defect §2.2 of
- * `docs/scheduling-leave-proposal.md` names.
+ * controller has any reason to touch, which is the defect
+ * `docs/scheduling-leave-proposal.md` names under locking.
  *
  * The shape is a named policy rather than a boolean, and the two arms carry different fields, for
  * one reason: a call site must not be able to read as ambiguous. `datePassed: 'IS_NOT_A_LOCK'`

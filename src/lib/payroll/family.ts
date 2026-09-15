@@ -1,7 +1,7 @@
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
 import type { CatalogueSchedule } from '../../datatypes/catalogue_schedule/+definition.js';
 
-/** Where a line settles (RFC 0001 §9). `EMPLOYER` and `DISPLAY` carry no direction. */
+/** Where a line settles. `EMPLOYER` and `DISPLAY` carry no direction. */
 export type SettlementDestination = 'PAY' | 'NET' | 'EMPLOYER' | 'DISPLAY';
 export type SettlementDirection = 'ADD' | 'SUBTRACT';
 
@@ -10,7 +10,7 @@ export type SettlementBucket =
 	'EARNING' | 'ABSENCE' | 'DEDUCTION' | 'NON_WAGE_PAYMENT' | 'EMPLOYER_COST' | 'INFORMATION';
 
 /**
- * The §9 table: destination × direction → the bucket the line lands in.
+ * The landing table: destination × direction → the bucket the line lands in.
  *
  * One function, because settle, report, graph and export all ask the same question of a catalogue
  * row's policy, and a second copy of this switch is how ABSENCE starts settling as an earning.
@@ -46,7 +46,7 @@ export type FamilyPayItem = {
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
-	/** Where a payment row's entries come from (RFC 0004 §2); keyed unless it says SCHEDULE. */
+	/** Where a payment row's entries come from; keyed unless it says SCHEDULE. */
 	readonly source?: 'ENTRY' | 'SCHEDULE';
 	readonly schedule?: CatalogueSchedule | null;
 };
@@ -88,7 +88,7 @@ export type PricedItem = {
 	 */
 	readonly catalogueComponent: FamilyPayItem;
 	/**
-	 * The bucket the amount settles in (§9), carried rather than read back off the component,
+	 * The bucket the amount settles in, carried rather than read back off the component,
 	 * because derived overtime has none to read it from. It is always an `EARNING`.
 	 */
 	readonly bucket: SettlementBucket;
@@ -240,7 +240,7 @@ export type Measurement = {
 
 /** The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does. */
 /**
- * The year axis every entry expression reads (RFC 0004 §3): the tax year the period sits in, how
+ * The year axis every entry expression reads: the tax year the period sits in, how
  * much of it this employment covers, what has been earned in it so far by component code — prior
  * paid payslips plus this run's own lines as they are measured — and whether this period closes it.
  */

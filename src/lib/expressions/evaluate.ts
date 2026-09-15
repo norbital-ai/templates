@@ -1,5 +1,5 @@
 /**
- * Run-time evaluation for the expression sites of RFC 0001 §7.
+ * Run-time evaluation for the expression sites
  *
  * `compile.ts` checks an expression at catalogue write time against a blank context; this module
  * builds the engine that evaluates it against the real one. The closures give a seed expression

@@ -2,7 +2,7 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
 /**
- * The payroll facts of one jurisdiction settings version (RFC 0001 §4): the currency wages are
+ * The payroll facts of one jurisdiction settings version: the currency wages are
  * stated in, the IANA zone the jurisdiction's wall clock sits at, and the month its tax year opens.
  */
 export const payrollSettingsValueSchema = Schema.Struct({

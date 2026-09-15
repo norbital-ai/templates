@@ -7,7 +7,7 @@
  * it is not a company setting, and why the overtime rate is this rate and not a company-chosen
  * alternative.
  *
- * The divisor is one expression over the person, in days per month (RFC 0003 §2.1): a plain
+ * The divisor is one expression over the person, in days per month: a plain
  * figure, the month's own `period.working_days`, or a ternary over the week shape — the Philippine
  * day factor is 261 annual days for a five-day week and 313 for a six-day one, which is
  * employee-level law and cannot be a company-wide divisor. A statute stated in hours is written as

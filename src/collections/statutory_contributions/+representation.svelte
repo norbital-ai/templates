@@ -4,7 +4,7 @@
 	 * RM0 to RM5,000" is meaningless without the EPF/SOCSO/EIS scheme whose ladder it is a rung of,
 	 * so the rules are the scheme's own `rules` column; the datatype compiles every expression
 	 * against the scheme context when the row is written. The scheme declares which lines are in
-	 * its base (RFC 0003 §1); a rule that names `produced.<code>` is the only dependency.
+	 * its base; a rule that names `produced.<code>` is the only dependency.
 	 *
 	 * `settings_id` is never a field on the Settings page: the page names the version and the form
 	 * prefills and hides it. Opened without that scope it keeps a plain version picker.

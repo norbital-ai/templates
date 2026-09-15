@@ -1,10 +1,10 @@
 /**
- * The pay items Work produces, built from `work_rules` (RFC 0001 §6).
+ * The pay items Work produces, built from `work_rules`.
  *
  * BASIC, ABSENCE and the NIGHT premium are engine-priced lines; the overtime classes and the
  * incentive come from `bands`, one component per (line, label) so each class settles as its
  * own payslip line and the funnel keeps the band's award. Which schemes charge each line is the
- * scheme's own declaration (RFC 0003 §1); nothing here names one.
+ * scheme's own declaration; nothing here names one.
  */
 
 import type { CatalogueComponent } from '../../collections/payroll_runs/lib/configuration.js';

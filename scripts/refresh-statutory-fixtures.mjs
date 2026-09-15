@@ -51,7 +51,7 @@ const FILES = [
 	'statutory_contributions.json',
 	'leave_catalogue.json'
 ];
-/** Carried when the lineage has one: a scheduled payment row (RFC 0004) is law the goldens price. */
+/** Carried when the lineage has one: a scheduled payment row is law the goldens price. */
 const OPTIONAL_FILES = ['payment_catalogue.json'];
 
 for (const code of LINEAGES) {

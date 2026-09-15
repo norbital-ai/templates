@@ -1,5 +1,5 @@
 /**
- * The work band engine (RFC 0001 §6): a band prices its slice, and the slice above the named
+ * The work band engine: a band prices its slice, and the slice above the named
  * limit funnels to the incentive line at the band's own award.
  */
 

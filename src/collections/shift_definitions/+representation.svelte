@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * A roster code of one entity, entity-owned like its holidays (RFC 0001 §11). The scope names
+	 * A roster code of one entity, entity-owned like its holidays. The scope names
 	 * the entity, so the form does not ask; opened without a scope the field returns.
 	 *
 	 * The variant is the row's substance, so it sits first and uses the width: kind, clock window

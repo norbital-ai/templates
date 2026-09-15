@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { compileExpression } from '../../lib/expressions/compile.js';
 
 /**
- * When a catalogue row whose `source` is SCHEDULE falls due (RFC 0004 §2).
+ * When a catalogue row whose `source` is SCHEDULE falls due.
  *
  * One occurrence per calendar hit per employment: a 13th month every 24 December, a THR on the
  * version's own date, a company AWS every December. The run whose salary window holds the day
@@ -12,7 +12,7 @@ import { compileExpression } from '../../lib/expressions/compile.js';
  * everyone. `from_service_months` is the qualifying service on the day. `on_separation` owes the
  * year's occurrence, on the exit date, to a leaver whose final period closes before the day.
  * `every: SEPARATION` has no calendar: the occurrence is the exit date itself, once per stint —
- * termination pay, retirement pay, notice in lieu, leave commutation (RFC 0005 §1.3).
+ * termination pay, retirement pay, notice in lieu, leave commutation.
  */
 export const catalogueScheduleValueSchema = Schema.Struct({
 	every: Schema.Literals(['YEAR', 'MONTH', 'SEPARATION']),

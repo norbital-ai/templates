@@ -9,8 +9,8 @@ import type { Hooks } from './$types.js';
 /**
  * Every rule of a stored scheme, checked one by one: the expression compiles against the scheme
  * context, a `produced.<code>` mention names a scheme of the same version, and the mentions do not
- * close a loop. The whole dependency graph is rebuilt with the incoming row in place (RFC 0002
- * §0.4/§6), so the refusal happens where the rule is written, not where the payroll is built.
+ * close a loop. The whole dependency graph is rebuilt with the incoming row in place, so
+ * the refusal happens where the rule is written, not where the payroll is built.
  */
 function rulesFault(
 	rules: readonly { readonly when: string; readonly employee: string; readonly employer: string }[]

@@ -1,6 +1,6 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * Scheme dependency edges (RFC 0002 §0.4): the mentions are read from the compiled CEL AST, an
+ * Scheme dependency edges: the mentions are read from the compiled CEL AST, an
  * unknown producer refuses by name, and a loop refuses with the path that closes it.
  */
 import assert from 'node:assert/strict';

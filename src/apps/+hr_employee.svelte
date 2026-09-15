@@ -304,7 +304,7 @@
 	 * A punch the reader reported themselves carries `approval_id` until a manager settles it, and
 	 * it is invisible to every approved-only query — including the one that feeds `buildRosterMonth`.
 	 * Filtering here would hide the employee's own submission from the employee, which is precisely
-	 * the state §8.2 calls the most important one on this screen.
+	 * the most important state on this screen.
 	 *
 	 * The plan and the punch were two queries and are one, because they are one row. What the split
 	 * used to do — approved rows become facts, pending ones become the PENDING rung — is done by

@@ -446,7 +446,7 @@ export function calculateLeavePayroll(options: {
 				settings_id: item.settings_id,
 				code: item.code,
 				// The enum columns arrive as text at the database boundary; the model constrains them
-				// to the §9 vocabulary.
+				// to the landing vocabulary.
 				destination: catalogue.destination as SettlementDestination,
 				direction: catalogue.direction as SettlementDirection | null,
 				bands: [],

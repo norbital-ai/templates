@@ -358,7 +358,7 @@ const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
 	...row,
 	family: 'LOAN' as const,
 	// The enum columns arrive as text at the database boundary; the model constrains them to the
-	// §9 vocabulary, so the engine restates it once here.
+	// landing vocabulary, so the engine restates it once here.
 	destination: row.destination as SettlementDestination,
 	direction: row.direction as SettlementDirection | null,
 	definition: { source: 'ENTRY' as const }

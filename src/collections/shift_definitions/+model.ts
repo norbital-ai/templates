@@ -2,7 +2,7 @@ import { custom, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
-		/** The entity the vocabulary belongs to, like its holidays (RFC 0001 §11). */
+		/** The entity the vocabulary belongs to, like its holidays. */
 		company_id: uuid().notNull(),
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }).notNull(),

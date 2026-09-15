@@ -13,7 +13,7 @@
  *    per week shape — `ordinary_rate` is already a predicate list — not a reason for the engine to
  *    know about the Philippines.
  *  - `=== 'TW'` credited a day in lieu by the hour rather than by the day (勞基法 §32-1). Off-in-lieu
- *    is fully manual now (RFC 0001): leave entered as an ordinary entry, no compensation column, so
+ *    is fully manual now: leave entered as an ordinary entry, no compensation column, so
  *    there is no branch left to keep and no `lieu_unit` grammar to carry.
  *
  * `countryOf` itself stays: naming the jurisdiction inside a refusal is how an operator finds out

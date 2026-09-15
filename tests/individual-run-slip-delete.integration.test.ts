@@ -89,7 +89,7 @@ test(
 /**
  * The operator sequence: build the run, discard the draft, and rebuild the same period.
  *
- * RFC 0001 removed the `withheld` create input — a run covers everyone eligible, and holding one
+ * There is no `withheld` create input — a run covers everyone eligible, and holding one
  * person's pay is a payslip state (`ON_HOLD`), not a population choice. What this still proves is
  * that a deleted draft frees the period and nothing it consumed stays locked.
  */

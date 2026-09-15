@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The official pages one settings version was transcribed from (RFC 0001 §4). Sources are
+	 * The official pages one settings version was transcribed from. Sources are
 	 * inlined, not a collection: they evidence the version they belong to, and the statutory drift
 	 * automation reads them monthly. One URL per row, as a matrix.
 	 */

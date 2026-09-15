@@ -68,7 +68,7 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		],
 		approval_id: null
 	});
-	// PUB-EPF charges the work lines and every money catalogue row of the version (RFC 0003 §1).
+	// PUB-EPF charges the work lines and every money catalogue row of the version.
 	const pubEpf = world.statutory_contributions.find((row) => row.code === 'PUB-EPF');
 	if (pubEpf != null)
 		pubEpf.base = {

@@ -353,7 +353,7 @@
 	 *
 	 * This used to end with `component.lock_date_passed` on every past day that was not settled,
 	 * which said a day was locked for having gone by. That was never true of attendance and is the
-	 * exact false refusal §2 of `docs/scheduling-leave-proposal.md` set out to remove — a past
+	 * exact false refusal `docs/scheduling-leave-proposal.md` set out to remove — a past
 	 * day is the *normal* day to be correcting a punch on. The lock line now comes from the ladder,
 	 * which answers the same question from the payroll runs rather than from the calendar.
 	 */
@@ -517,8 +517,8 @@
 										{@const day = facts.get(personDayKey(person.id, date))}
 										{@const rung = rungOf(day)}
 										<!--
-									`day.past !== true` used to be a fourth condition here, and deleting it is
-									§2's correctness fix. A day that has already happened is the *normal* day to
+									`day.past !== true` used to be a fourth condition here, and deleting it was
+									a correctness fix. A day that has already happened is the *normal* day to
 									be editing attendance on — a punch is keyed in after the shift, not before it
 									— and freezing every past cell made the board useless for the one job it was
 									being asked to do. What locks a day is a payroll run's claim over it, which

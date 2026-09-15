@@ -20,7 +20,7 @@ type Row = Readonly<Record<string, unknown>>;
 const MUTATE = 'collections.mutate';
 
 /**
- * The RFC 0003 §1.4 write contract, end to end through the same guest command the app uses: a
+ * The write contract, end to end through the same guest command the app uses: a
  * scheme's base may name only catalogue rows of its own settings version, and a scheme rule may
  * name only a `produced.<code>` this version carries. Both refusals happen at the write; the
  * accepted control proves the gate is not simply refusing everything.

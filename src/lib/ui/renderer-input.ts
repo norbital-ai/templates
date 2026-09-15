@@ -10,8 +10,8 @@
  * eight of them as identical bodies.
  *
  * `selectKind` stays inlined in each renderer: it closes over that file's `current`, `emit` and
- * `defaultFor`, so sharing it would mean threading three callbacks through a generic — §2's
- * "thinner than a real component, keep it inlined".
+ * `defaultFor`, so sharing it would mean threading three callbacks through a generic; thinner
+ * than a real component, so it stays inlined.
  */
 
 import { decodeNumber } from '@norbital-ai/std/json';

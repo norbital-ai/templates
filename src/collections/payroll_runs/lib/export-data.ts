@@ -283,7 +283,7 @@ export function loadRunExports(
 			] as const)
 				for (const row of rows.filter((row) => row.settings_id === run.settings_id)) {
 					// The enum columns arrive as text at the database boundary; the models constrain
-					// them to the §9 vocabulary.
+					// them to the landing vocabulary.
 					const destination = row.destination as SettlementDestination;
 					const direction = row.direction as SettlementDirection | null;
 					componentByCode.set(row.code, {

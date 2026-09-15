@@ -182,7 +182,7 @@ export function pickConfiguration(
 		});
 		const { contributions } = familyConfiguration;
 		// The catalogue rows carry `destination` and `direction` as text at the database boundary,
-		// where the models constrain them to the §9 vocabulary. The engine restates the spine once,
+		// where the models constrain them to the landing vocabulary. The engine restates the spine once,
 		// here, so every consumer prices a catalogue component rather than a raw row.
 		const catalogueComponents =
 			familyConfiguration.catalogueComponents as readonly CatalogueComponent[];

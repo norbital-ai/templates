@@ -58,7 +58,7 @@ test(
 					{ start: '2020-01-01', end: null }
 				]
 			);
-			// RFC 0001 scopes roster codes and named patterns to the company; the second entity gets
+			// Roster codes and named patterns are scoped and named patterns to the company; the second entity gets
 			// its own copies, with the pattern's cycle rewritten onto the new roster codes.
 			const sourceShifts = (await session.query(
 				'select * from shift_definitions where company_id = $1',

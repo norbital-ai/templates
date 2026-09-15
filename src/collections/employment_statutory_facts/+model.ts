@@ -36,7 +36,7 @@ export default defineModel(
 			'Where one person stands with one statutory scheme — registered with a reference number, or not registered with a reason. An absent row means registered with nothing captured.',
 		recordLabel: 'summary',
 		icon: 'lucide:badge-check',
-		// Plan 02 §7: employee =, contribution =, effective range && — the same **inclusive**
+		// Exclusion: employee =, contribution =, effective range && — the same **inclusive**
 		// `[]` reading the engine's `coversDate` applies to a fact, and the same conversion
 		// `employment_terms` makes beside it. A raw `bolt_daterange` is half-open, which would let
 		// a successor begin on its predecessor's last day and leave two standings on that day.

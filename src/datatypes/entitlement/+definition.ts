@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { compileExpression } from '../../lib/expressions/compile.js';
 
 /**
- * The entitlement ceiling of one catalogue band (RFC 0001 §4, §9).
+ * The entitlement ceiling of one catalogue band.
  *
  * The band's `when` already decides who it covers, so the ceiling states only how much and over
  * what window. A person the band covers has this entitlement per period; usage is judged against

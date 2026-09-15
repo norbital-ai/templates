@@ -464,7 +464,7 @@ export function prepareWorkContext(
 	});
 
 	// The overtime hour is the jurisdiction's ordinary hourly rate and nothing a company chooses:
-	// the version's own divisor expression, evaluated over this person (RFC 0003 §2.1).
+	// the version's own divisor expression, evaluated over this person.
 	const divisorDays = ordinaryDivisorDays({
 		expression: configuration.work.ordinary_divisor_days,
 		person: subject,
@@ -593,7 +593,7 @@ export function calculateWorkAttendance(
 			}))
 	});
 	// Who the overtime ladder covers is the version's own predicate over the person, read with the
-	// statutory wage comparand this run derived (RFC 0003 §2.2).
+	// statutory wage comparand this run derived.
 	const paymentEligible = isEligible(configuration.work.overtime_when, {
 		...subject,
 		terms: { ...subject.terms, statutory_wages: statutoryWages.value }
@@ -1044,7 +1044,7 @@ function measureNightPremium(options: {
 }
 
 /**
- * Work bands, priced from the clocks and the version's own rules (RFC 0001 §6).
+ * Work bands, priced from the clocks and the version's own rules.
  *
  * Each day's facts go to `priceWorkDay`; every row it returns is one payslip line, one row per
  * (work day × band × class), settled under the component whose output is `line:label`. The funnel

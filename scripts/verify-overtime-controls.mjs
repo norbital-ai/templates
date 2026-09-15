@@ -1,10 +1,10 @@
 /**
  * Overtime controls: hours become money, and the statutory ceiling funnels instead of dropping.
  *
- * The pre-RFC engine classified a day into retained and excess hours (`classifyOvertimeByCalendarMonth`)
- * and then priced the retained slice (`priceDay`). RFC 0001 removed both: overtime hours are derived
+ * The earlier engine classified a day into retained and excess hours (`classifyOvertimeByCalendarMonth`)
+ * and then priced the retained slice (`priceDay`). Both are gone: overtime hours are derived
  * from the clocks (`deriveDailyOvertime`) and priced by the version's `bands`, where the slice
- * above a named limit funnels to the INCENTIVE line at the band's own award (RFC 0001 §6). These
+ * above a named limit funnels to the INCENTIVE line at the band's own award. These
  * checks exercise those two halves against the migrated source.
  */
 import assert from 'node:assert/strict';

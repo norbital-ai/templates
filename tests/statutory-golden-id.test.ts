@@ -266,7 +266,7 @@ test('every sealed version of `ID` is priced by a golden here', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THR (Permenaker 6/2016) — RFC 0005 §1.2, the first row of the obligation model.
+// THR (Permenaker 6/2016) — gap tracker §4, landed 2026-09-16.
 //
 // Due seven days before the religious holiday (Idul Fitri 2026-03-20 → 13 March): one month's wage
 // after twelve months of continuous service, pro rata by completed months from one month, and

@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The rules of one statutory scheme (RFC 0002) as a matrix: each row is one rule — the condition
+	 * The rules of one statutory scheme as a matrix: each row is one rule — the condition
 	 * it governs under and the employee and employer money it charges. Rules are read in order; the
 	 * first whose `when` holds governs. Every expression compiles live against the scheme context.
 	 */

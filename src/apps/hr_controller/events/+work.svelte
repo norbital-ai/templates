@@ -858,7 +858,7 @@
 	const swapEnabled = $derived(matrixMutationReady);
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
-	 * ATTENDANCE IMPORT — §5. Built already; it was only reachable from the wrong screen.
+	 * ATTENDANCE IMPORT. Built already; it was only reachable from the wrong screen.
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
 	/**

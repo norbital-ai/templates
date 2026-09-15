@@ -651,7 +651,7 @@ function materialisedRows(
 
 /**
  * What each employee's earlier paid payslips earned this tax year, by component code: the base
- * lines and every earning or non-wage payment adjustment (RFC 0004 §3). The year axis a scheduled
+ * lines and every earning or non-wage payment adjustment. The year axis a scheduled
  * payment's amount and a base entry's annual exemption read.
  */
 function earnedYearToDate(options: {

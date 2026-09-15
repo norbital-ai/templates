@@ -134,7 +134,7 @@ export default {
 								refuse(`The minimum wage of region ${region} must be a positive amount.`);
 						if (row.sealed_at == null) return input;
 						// A sealing version's schemes each charge something, and every catalogue row a base
-						// names is a row of this version (RFC 0003 §1.4).
+						// names is a row of this version.
 						if (existing != null && existing.sealed_at == null) {
 							const schemes = yield* api.db.statutory_contributions.findMany({
 								where: { settings_id: { eq: existing.id }, approval_id: { isNull: true } },

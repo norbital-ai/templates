@@ -1,11 +1,11 @@
 /**
- * Selecting a rule of a statutory contribution (RFC 0002).
+ * Selecting a rule of a statutory contribution.
  *
  * Rules are expressions, read in declaration order: the first whose `when` holds governs. That is
  * exactly how a statute writes its table — "wages exceeding X but not exceeding Y" — so the seeded
  * order is the published order and no ceiling arithmetic stands between the law and the number.
  *
- * A rules list no member of which holds charges nothing (RFC 0002 §6): a ladder that covers nobody
+ * A rules list no member of which holds charges nothing: a ladder that covers nobody
  * pays nobody, and the golden suites are the guard against a mis-transcribed table.
  */
 

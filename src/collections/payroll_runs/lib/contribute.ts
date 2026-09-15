@@ -1,5 +1,5 @@
 /**
- * Step 6 — CONTRIBUTE (RFC 0002).
+ * Step 6 — CONTRIBUTE.
  *
  * A scheme's rules are its whole arithmetic. The engine assembles the base from the lines that
  * opted into the scheme, picks the first rule whose `when` holds, evaluates that rule's `employee`
@@ -165,7 +165,7 @@ function reliefReads(options: {
 	return reads;
 }
 
-/** The scheme context (RFC 0002 §0) one scheme's expressions are evaluated against. */
+/** The scheme context one scheme's expressions are evaluated against. */
 function schemeContext(options: {
 	readonly input: ContributeInput;
 	readonly entry: ContributionBase;

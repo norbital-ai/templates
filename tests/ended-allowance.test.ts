@@ -171,7 +171,7 @@ test('late working-day Allowance uses historical Work, shifts and holidays and s
 		'actual historical roster inputs are captured'
 	);
 	const input = { company_id: COMPANY_ID, period: '2026-02' };
-	// The RFC create hook stamps the source's `payslip_id`; capture the world before it does, so the
+	// The create hook stamps the source's `payslip_id`; capture the world before it does, so the
 	// rebuild below still sees the one-off due.
 	const changed = structuredClone(world);
 	const created = await Effect.runPromise(

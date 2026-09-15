@@ -3,11 +3,11 @@ import { Schema } from 'effect';
 import { compileExpression } from '../../lib/expressions/compile.js';
 
 /**
- * The rules of one statutory scheme (RFC 0002): an ordered ladder of expressions.
+ * The rules of one statutory scheme: an ordered ladder of expressions.
  *
  * Each rule states the condition it governs under (`when`, CEL over the scheme context), and the
  * employee and employer money it charges there. The engine walks the rules in declaration order and
- * the first whose `when` holds governs; a rule no wage matches charges nothing (RFC 0002 §6), so a
+ * the first whose `when` holds governs; a rule no wage matches charges nothing, so a
  * ladder that covers nobody stops the golden suites rather than quietly reusing the last rung.
  *
  * A percentage award is `base * 11.0 / 100.0`; a fixed award is the published figure; a progressive

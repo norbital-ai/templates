@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
  * Every scheme fixture's `base.entries` names a catalogue row of the scheme's own settings
- * version (RFC 0003 §1.4), and every version's schemes admit something. A seed converter that
+ * version, and every version's schemes admit something. A seed converter that
  * stamped one version's codes into another's, or left a scheme charging nothing, is caught here
  * rather than by a payroll that silently admits no line.
  */

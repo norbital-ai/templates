@@ -1,6 +1,6 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * Cross-period capture after RFC 0001: a time-off entry settles whole in one period, and a loan
+ * Cross-period capture: a time-off entry settles whole in one period, and a loan
  * repayment is recovered whole by exactly one payslip — the next due row on the next run. This file
  * drives gather + the create hook in memory, then proves the migrated public-seed guest persists
  * both across two payroll periods.
@@ -74,7 +74,7 @@ function persistPayslip(world, options) {
 		period: options.period,
 		approval_id: null
 	});
-	// The RFC run's own write already pinned every source it consumed in the world; persisting the
+	// The run's own write already pinned every source it consumed in the world; persisting the
 	// slip is what makes it read as history, because consumption is summed from slip adjustments.
 	world.payslips.push({
 		...payslip,
@@ -109,7 +109,7 @@ async function withLeaveEntries(world) {
 			end: '2026-02-02'
 		})
 	);
-	// RFC 0001 settles a time-off entry whole in the period that contains all of its days, so a
+	// A time-off entry settles whole in the period that contains all of its days, so a
 	// span across the cutoff is two entries, one per period — exactly what the old junction sliced.
 	for (const [id, start, end] of [
 		[LEAVE_REQUEST_ID, '2026-01-19', '2026-01-20'],
@@ -247,7 +247,7 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-cross-period-capture');
 		try {
-			// RFC 0001 settles a time-off entry whole in one period, so the span is two entries.
+			// A time-off entry settles whole in one period, so the span is two entries.
 			const januaryLeaveId = crypto.randomUUID();
 			const februaryLeaveId = crypto.randomUUID();
 			for (const [id, start, end, reference] of [

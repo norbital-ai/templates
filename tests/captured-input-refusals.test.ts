@@ -1,7 +1,7 @@
 /**
  * Captured sources refuse changes; uncaptured sources remain writable.
  *
- * The junction collections are gone (RFC 0001 decision 3): the lock is the source row's own
+ * The junction collections are gone: the lock is the source row's own
  * nullable `payslip_id`. Four families carry it — the claim, allowance and payment requests and the
  * loan repayments — and each family's update and delete hook consults the same `settledClaim`
  * decision. The engine writes the pin; every operator path refuses to disturb it, and an

@@ -1,5 +1,5 @@
 /**
- * The `work_rules` shape (RFC 0001 §4–§6): a Nihon-shaped rule set parses, malformed rules are
+ * The `work_rules` shape: a Nihon-shaped rule set parses, malformed rules are
  * refused.
  */
 
@@ -95,7 +95,7 @@ test('malformed rules are refused', () => {
 		{ ...nihon, bands: [{ ...nihon.bands[0], when: '' }] },
 		{ ...nihon, holiday_rest_precedence: 'NONE' },
 		// CEL is compiled at write: a misspelt member or the wrong result type is refused here,
-		// not when a payroll prices the month the version governs (RFC 0001 §7, acceptance 1).
+		// not when a payroll prices the month the version governs (acceptance 1).
 		{ ...nihon, bands: [{ ...nihon.bands[0], when: 'day_typo == "ORDINARY"' }] },
 		{
 			...nihon,

@@ -335,7 +335,7 @@ test(
 			assert.equal(draft.code, 'PUB');
 			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
 			assert.equal(draft.id, lineages[0]!.draft_id);
-			// RFC 0001 dropped the settings research-notes column; the run result carries the
+			// The settings research-notes column is gone; the run result carries the
 			// structured evidence and the draft carries the summary of what it was proposed from.
 			assert.match(String(draft.change_summary), /Statutory drift: 1 change\(s\) proposed from/);
 			assert.match(String(draft.change_summary), new RegExp(JURISDICTION_ID));

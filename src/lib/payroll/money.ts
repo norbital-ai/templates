@@ -1,4 +1,4 @@
-/** Normalized money inputs supplied by Claim, Allowance and Payment (RFC 0001 §9, §11 step 3). */
+/** Normalized money inputs supplied by Claim, Allowance and Payment. */
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
 import type { AllowanceRecurrence } from '../../datatypes/allowance_recurrence/+definition.js';
 import type {
@@ -277,7 +277,7 @@ export function requestIsDue(
 }
 
 /**
- * The `entry` CEL context of RFC 0001 §7.2, as values.
+ * The `entry` CEL context, as values.
  *
  * The builder supplies what the run knows about the entry being priced; a catalogue band's `when`
  * and `amount` are evaluated here, and the same blank instance compiled the expression at write.
@@ -944,7 +944,7 @@ function windowSlice(
  * Build the requests the run prices.
  *
  * A single-period request is priced as itself. A standing allowance whose window reaches past this
- * period materialises **one per-period row** (RFC 0001 decision 3): the row is created with the
+ * period materialises **one per-period row**: the row is created with the
  * run, linked to the payslip it priced, and deleted with that payslip, so the source is due again
  * next period.
  */
@@ -1239,7 +1239,7 @@ export function prepareMoneyConsumption(options: {
 }
 
 /**
- * The occurrences of a scheduled payment row inside one window (RFC 0004 §2): every calendar hit
+ * The occurrences of a scheduled payment row inside one window: every calendar hit
  * of `every`/`month`/`day` between the window's days, the day clamped to the month's length.
  */
 export function scheduleOccurrences(

@@ -1,13 +1,13 @@
 /**
  * Step 5 — ACCUMULATE.
  *
- * Each scheme declares its own wage base (RFC 0003 §1): whether salary, absence, overtime and
+ * Each scheme declares its own wage base: whether salary, absence, overtime and
  * the night premium are in it, and which catalogue rows are. Every measured amount the
  * declaration admits joins that scheme's base with the sign of its own landing — an earning adds,
  * an absence or a deduction subtracts. A line the declaration does not admit feeds nothing.
  *
  * Each line that fed a base is kept beside it, so the run's calculation trace can name the source
- * of every figure without re-reading the payslip (RFC 0002 §5).
+ * of every figure without re-reading the payslip.
  */
 
 import { type Configuration, type ContributionConfig } from './configuration.js';
@@ -37,7 +37,7 @@ type BaseDeclaration = ContributionConfig['row']['base'];
 
 /**
  * Whether one scheme's declaration admits one priced line, and the annual exemption its entry
- * states (RFC 0004 §3): the first `annual_exempt` a tax year of that entry stays outside the base.
+ * states: the first `annual_exempt` a tax year of that entry stays outside the base.
  */
 function baseAdmits(
 	base: BaseDeclaration,

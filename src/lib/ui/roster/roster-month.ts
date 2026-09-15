@@ -312,7 +312,7 @@ const holidayLikeSchema = Schema.Struct({
 	date: calendarInstantSchema,
 	name: Schema.String,
 	/**
-	 * The facts the per-person `given_to` rule needs (RFC 0001 §10). A SUBSTITUTE holiday scoped
+	 * The facts the per-person `given_to` rule needs. A SUBSTITUTE holiday scoped
 	 * to `ONLY_IF_OFF_ON_REPLACED_DATE` is not a holiday for a person whose roster had the
 	 * replaced date as WORK; the board applies the same check `resolveSchedule` does.
 	 */
