@@ -465,7 +465,7 @@ import type { PayrollWindow } from '../../collections/payroll_runs/lib/period.js
  * from; a February run with December and January stragglers read the same sealed version's
  * statutory rules — three megabytes of Third Schedule bands — three times, and decoding them was
  * the single largest cost in the guest. The four version-only catalogues are keyed by the settings
- * version id for the life of the `api` object, which is one invocation; the work catalogue stays
+ * version id for the life of the runtime `db` object, which is one invocation; the work catalogue stays
  * per call because it reads the window's shifts and holidays.
  */
 const runMoneyCatalogues = (catalogue: {
@@ -493,11 +493,13 @@ export function prepareFamilyCatalogues(options: {
 }) {
 	return Effect.gen(function* () {
 		const catalogue = { api: options.api, settingsId: options.jurisdiction.id };
+		// Keyed by the runtime's own `db`, which every read-log wrapper spreads unchanged; the
+		// wrappers themselves are a fresh object per phase.
 		const cache =
-			versionCataloguesByApi.get(options.api) ??
+			versionCataloguesByApi.get(options.api.db) ??
 			(() => {
 				const fresh = new Map<string, VersionCatalogues>();
-				versionCataloguesByApi.set(options.api, fresh);
+				versionCataloguesByApi.set(options.api.db, fresh);
 				return fresh;
 			})();
 		const cached = cache.get(options.jurisdiction.id);
