@@ -138,18 +138,12 @@ export function prepareContributionCatalogue(options: {
 }) {
 	return Effect.gen(function* () {
 		const approved = { approval_id: { isNull: true } } as const;
-		const readStarted = Date.now();
 		const rows = yield* options.api.db.statutory_contributions.findMany({
 			where: { settings_id: { eq: options.settingsId }, ...approved },
 			limit: PAGE_LIMIT
 		});
-		const readDone = Date.now();
 		options.api.reads.assertComplete(rows, 'statutory contributions');
-		const ordered = orderSchemes(live(rows).map((row) => ({ row, rules: row.rules })));
-		yield* Effect.log(
-			`[payroll-timing] statutory read=${readDone - readStarted}ms order=${Date.now() - readDone}ms rows=${rows.length} bands=${ordered.reduce((n, e) => n + e.rules.length, 0)}`
-		);
-		return ordered;
+		return orderSchemes(live(rows).map((row) => ({ row, rules: row.rules })));
 	});
 }
 
