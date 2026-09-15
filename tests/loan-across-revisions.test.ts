@@ -153,6 +153,8 @@ function loanWorld(options: LoanWorldOptions = {}) {
 			id: 'payslip-2026-01',
 			payroll_run_id: 'run-2026-01',
 			employment_id: EMPLOYMENT_ID,
+			base: [],
+			adjustments: [],
 			status: 'PAID',
 			paid_at: '2026-01-31',
 			statutory: [],

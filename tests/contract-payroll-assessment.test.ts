@@ -126,6 +126,8 @@ test('a half-paid earlier run still contributes the slips that were paid', async
 		id: 'january-paid',
 		payroll_run_id: 'january',
 		employment_id: EMPLOYMENT_ID,
+		base: [],
+		adjustments: [],
 		paid_at: '2026-01-31',
 		statutory: [
 			{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
@@ -135,6 +137,8 @@ test('a half-paid earlier run still contributes the slips that were paid', async
 		id: 'january-held',
 		payroll_run_id: 'january',
 		employment_id: 'colleague-contract',
+		base: [],
+		adjustments: [],
 		paid_at: null,
 		statutory: [
 			{ scheme_code: 'PUB-FIXED', employee_amount: 99, employer_amount: 99, base_amount: 9999 }
@@ -170,6 +174,8 @@ test('rehire gathers prior paid YTD across old contracts while excluding another
 			payroll_run_id: id,
 			paid_at,
 			employment_id: company === COMPANY_ID ? EMPLOYMENT_ID : 'other-entity-contract',
+			base: [],
+			adjustments: [],
 			statutory: [
 				{ scheme_code: 'PUB-FIXED', employee_amount: 30, employer_amount: 60, base_amount: 1000 }
 			]

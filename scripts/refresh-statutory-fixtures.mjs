@@ -51,6 +51,8 @@ const FILES = [
 	'statutory_contributions.json',
 	'leave_catalogue.json'
 ];
+/** Carried when the lineage has one: a scheduled payment row (RFC 0004) is law the goldens price. */
+const OPTIONAL_FILES = ['payment_catalogue.json'];
 
 for (const code of LINEAGES) {
 	const source = resolve(bank, code);
@@ -60,9 +62,10 @@ for (const code of LINEAGES) {
 	}
 	const target = resolve(template, 'tests/fixtures/statutory', code);
 	mkdirSync(target, { recursive: true });
-	for (const file of FILES) {
+	for (const file of [...FILES, ...OPTIONAL_FILES]) {
 		const from = resolve(source, file);
 		if (!existsSync(from)) {
+			if (OPTIONAL_FILES.includes(file)) continue;
 			console.error(`${code} has no ${file}.`);
 			process.exit(1);
 		}

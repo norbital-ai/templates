@@ -81,6 +81,8 @@ function persistPayslip(world, options) {
 		id: payslip.id,
 		payroll_run_id: options.runId,
 		employment_id: EMPLOYMENT_ID,
+		base: [],
+		adjustments: [],
 		paid_at: options.paid === true ? `${options.period}-28` : null,
 		approval_id: null
 	});

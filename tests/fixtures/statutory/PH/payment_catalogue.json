@@ -1,0 +1,230 @@
+[
+	{
+		"id": "6b6588c5-d847-465b-b0c3-70a8c8ccf6c1",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "leave_encashment",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"source": "SCHEDULE",
+		"schedule": {
+			"every": "YEAR",
+			"month": 12,
+			"day": 24,
+			"when": "employment.classification != \"MANAGERIAL\"",
+			"from_service_months": 1,
+			"on_separation": true
+		}
+	},
+	{
+		"id": "ac52185b-ae2a-4e9e-96df-cc58a884ebeb",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "position",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "b6e77071-c53f-4a36-93e7-214d1265564b",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "PRIOR_YEAR_TAX_DUE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "36862769-9267-4713-89bd-feb71225ac76",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "COMPANY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "1560faf3-26ba-468f-a4d0-b2a6fccfcf65",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "BACKPAY_OT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "d7e67d83-e853-4c73-b41f-c3897a5b650f",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "STATUTORY_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "0169c98e-cbcb-5418-b513-bbb0f041b412",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "leave_encashment",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "0d49f8dc-70b5-578c-930e-d370e8e686ec",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "THIRTEENTH_MONTH_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "year.earned.BASIC / 12.0",
+				"limit": null
+			}
+		],
+		"name": "13th month pay",
+		"source": "SCHEDULE",
+		"schedule": {
+			"every": "YEAR",
+			"month": 12,
+			"day": 24,
+			"when": "employment.classification != \"MANAGERIAL\"",
+			"from_service_months": 1,
+			"on_separation": true
+		}
+	},
+	{
+		"id": "336bf95e-1c46-5e5e-8f40-633b24dcc321",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "position",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "60e32179-5e86-5aad-a5dc-73fcc94e5c38",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "PRIOR_YEAR_TAX_DUE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "a3119efb-0392-5a59-9a68-c01275dcb324",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "COMPANY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "aedef594-80d5-5f4b-a8ab-900f0973cf68",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "BACKPAY_OT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	}
+]

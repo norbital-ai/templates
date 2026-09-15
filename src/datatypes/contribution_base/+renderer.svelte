@@ -70,6 +70,20 @@
 		const rest = base.entries.filter((entry) => !(entry.family === family && entry.code === code));
 		emit({ ...base, entries: checked ? [...rest, { family, code }] : rest });
 	}
+	const exemptOf = (family: BaseEntryFamily, code: string) =>
+		base.entries.find((entry) => entry.family === family && entry.code === code)?.annual_exempt ??
+		null;
+	function setExempt(family: BaseEntryFamily, code: string, raw: string): void {
+		const amount = Number(raw);
+		emit({
+			...base,
+			entries: base.entries.map((entry) =>
+				entry.family === family && entry.code === code
+					? { ...entry, annual_exempt: Number.isFinite(amount) && amount > 0 ? amount : null }
+					: entry
+			)
+		});
+	}
 </script>
 
 <div class="flex w-full flex-col gap-3 text-sm">
@@ -104,6 +118,18 @@
 						/>
 						<span class="font-mono text-xs">{row.code}</span>
 						<span class="text-meta truncate">{row.name ?? ''}</span>
+						{#if listed(group.family, row.code)}
+							<input
+								class="ml-auto w-28 rounded border px-2 py-0.5 text-xs"
+								type="number"
+								min="0"
+								{disabled}
+								placeholder={t('renderer.contribution_base.annual_exempt')}
+								title={t('renderer.contribution_base.annual_exempt')}
+								value={exemptOf(group.family, row.code) ?? ''}
+								onchange={(event) => setExempt(group.family, row.code, event.currentTarget.value)}
+							/>
+						{/if}
 					</label>
 				{/each}
 			</div>

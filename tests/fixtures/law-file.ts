@@ -22,8 +22,9 @@ export function lawFileExists(pathWithoutExtension: string): boolean {
 }
 
 /** Parse `<path>.json`, or `<path>.json.gz` when the plain file is absent. */
-export function readLawFile(pathWithoutExtension: string): any {
+export function readLawFile(pathWithoutExtension: string, options?: { optional: true }): any {
 	const plain = `${pathWithoutExtension}.json`;
 	if (existsSync(plain)) return JSON.parse(readFileSync(plain, 'utf8'));
+	if (options?.optional && !existsSync(`${plain}.gz`)) return [];
 	return JSON.parse(gunzipSync(readFileSync(`${plain}.gz`)).toString('utf8'));
 }

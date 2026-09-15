@@ -1020,5 +1020,21 @@
 	"roster.weekday_sun": "周日",
 	"roster.weekday_thu": "周四",
 	"roster.weekday_tue": "周二",
-	"roster.weekday_wed": "周三"
+	"roster.weekday_wed": "周三",
+	"renderer.catalogue_schedule.every": "到期周期",
+	"renderer.catalogue_schedule.every_year": "每年",
+	"renderer.catalogue_schedule.every_month": "每月",
+	"renderer.catalogue_schedule.month": "月份（1–12）",
+	"renderer.catalogue_schedule.day": "日期（1–31，超出按月末）",
+	"renderer.catalogue_schedule.from_service_months": "服务月数门槛",
+	"renderer.catalogue_schedule.on_separation": "离职时结算当年应得",
+	"renderer.catalogue_schedule.when": "适用对象",
+	"renderer.catalogue_schedule.when_empty": "所有人",
+	"renderer.catalogue_schedule.summary_year": "每年 {month}/{day}",
+	"renderer.catalogue_schedule.summary_month": "每月 {day} 日",
+	"renderer.catalogue_schedule.after_service": "服务满 {months} 个月后",
+	"component.source": "条目来源",
+	"component.source_hint": "手工：由人逐笔录入。排程：薪资运行按下方日历自动生成一次，并由档位表达式按年度口径计价（year.earned.BASIC、year.months_employed 等）。",
+	"component.schedule": "排程",
+	"renderer.contribution_base.annual_exempt": "年度豁免额"
 }

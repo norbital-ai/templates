@@ -149,10 +149,29 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'period.end', description: 'Pay period end' },
 		{ path: 'period.index', description: 'Which instalment of the month this period is' },
 		{ path: 'period.instalments', description: 'Instalments the month is paid in' },
+		{
+			path: 'period.last_of_year',
+			description: 'This period closes the tax year, or is a leaver’s last'
+		},
+		{ path: 'year.start', description: 'First day of the tax year' },
+		{ path: 'year.end', description: 'Last day of the tax year' },
+		{
+			path: 'year.months_employed',
+			description: 'Completed months of this employment in the tax year, through the period end'
+		},
+		{
+			path: 'year.days_employed',
+			description: 'Days of this employment in the tax year, through the period end'
+		},
+		{
+			path: 'year.earned.<code>',
+			description:
+				'Earned under a component code this tax year: prior paid payslips plus this period’s own lines'
+		},
 		{ path: 'leave.days(code)', description: 'Charged days of one leave code in the window' }
 	],
 	bare: [],
-	open: ['limits'],
+	open: ['limits', 'year'],
 	blank: {
 		person: personBlank(),
 		entry: {
@@ -169,7 +188,8 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		},
 		rates: { ordinary_day: 0, ordinary_hour: 0 },
 		limits: structuredClone(LIMITS_BLANK),
-		period: { key: '', start: '', end: '', index: 1, instalments: 1 },
+		period: { key: '', start: '', end: '', index: 1, instalments: 1, last_of_year: false },
+		year: { start: '', end: '', months_employed: 0, days_employed: 0, earned: { BASIC: 0 } },
 		leave: {}
 	}
 };

@@ -5,7 +5,13 @@ import type {
 	CatalogueComponent,
 	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
-import { requiredDateKey, type IsoDate } from '../../collections/payroll_runs/lib/dates.js';
+import {
+	completedMonths,
+	monthDay,
+	requiredDateKey,
+	type IsoDate
+} from '../../collections/payroll_runs/lib/dates.js';
+import type { CatalogueSchedule } from '../../datatypes/catalogue_schedule/+definition.js';
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
@@ -40,7 +46,13 @@ import { serviceStart } from '../employment-contract.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
 import { settlementBucket } from './family.js';
-import type { Measurement, MeasureComponentOptions, PayRange, FamilyStep } from './family.js';
+import type {
+	Measurement,
+	MeasureComponentOptions,
+	PayRange,
+	FamilyStep,
+	YearContext
+} from './family.js';
 
 type ClaimRequest =
 	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'claim_requests'>;
@@ -281,8 +293,10 @@ export function entryContext(options: {
 	readonly ordinaryHour: number;
 	readonly limits: Readonly<Record<string, number>>;
 	readonly captures: { readonly paidToDate: number; readonly remaining: number };
+	readonly year?: () => YearContext;
 }): Record<string, unknown> {
 	const { entry } = options;
+	const year = options.year?.();
 	return {
 		person: options.subject,
 		entry: {
@@ -310,8 +324,19 @@ export function entryContext(options: {
 			start: options.periodStart,
 			end: options.periodEnd,
 			index: options.instalments > 1 ? 1 : 1,
-			instalments: options.instalments
+			instalments: options.instalments,
+			last_of_year: year?.last_of_year ?? false
 		},
+		year:
+			year == null
+				? { start: '', end: '', months_employed: 0, days_employed: 0, earned: {} }
+				: {
+						start: year.start,
+						end: year.end,
+						months_employed: year.months_employed,
+						days_employed: year.days_employed,
+						earned: year.earned
+					},
 		leave: {}
 	};
 }
@@ -434,6 +459,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const context = entryContext({
 			entry,
 			subject,
+			year: options.year,
 			period: options.period,
 			periodStart: options.salary.start,
 			periodEnd: options.salary.end,
@@ -950,6 +976,7 @@ function buildRequests(options: {
 		materialised.push({
 			id,
 			sourceId: row.id,
+			collection: 'allowance_requests',
 			values: {
 				employment_id: row.employment_id,
 				catalogue_id: row.catalogue_id,
@@ -983,6 +1010,8 @@ function buildRequests(options: {
 export type MaterialisedMoney = {
 	readonly id: string;
 	readonly sourceId: string;
+	/** The table the run creates the row in when the payslip is written. */
+	readonly collection: 'allowance_requests' | 'payment_requests';
 	readonly values: Readonly<Record<string, unknown>>;
 };
 
@@ -1017,7 +1046,12 @@ export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 					where: { ...inBegun, derived_from_id: { isNull: true } },
 					limit: PAGE_LIMIT
 				}),
-				db.payment_requests.findMany({ where: inBegun, limit: PAGE_LIMIT })
+				// A scheduled occurrence is materialised by the run that owns it; a released one is an
+				// orphan of a deleted draft, and a keyed request never carries a schedule key.
+				db.payment_requests.findMany({
+					where: { ...inBegun, schedule_key: { isNull: true } },
+					limit: PAGE_LIMIT
+				})
 			],
 			{ concurrency: 'unbounded' }
 		);
@@ -1199,4 +1233,145 @@ export function prepareMoneyConsumption(options: {
 			}
 		return consumedEntries;
 	});
+}
+
+/**
+ * The occurrences of a scheduled payment row inside one window (RFC 0004 §2): every calendar hit
+ * of `every`/`month`/`day` between the window's days, the day clamped to the month's length.
+ */
+export function scheduleOccurrences(
+	schedule: CatalogueSchedule,
+	window: { readonly start: IsoDate; readonly end: IsoDate }
+): IsoDate[] {
+	const startYear = decodeNumber(window.start.slice(0, 4));
+	const endYear = decodeNumber(window.end.slice(0, 4));
+	const hits: IsoDate[] = [];
+	for (let year = startYear; year <= endYear; year += 1) {
+		const months = schedule.every === 'YEAR' ? [schedule.month! - 1] : [...Array(12).keys()];
+		for (const monthIndex of months) {
+			const date = monthDay(year, monthIndex, schedule.day);
+			if (date >= window.start && date <= window.end) hits.push(date);
+		}
+	}
+	return hits;
+}
+
+/** The pin of one occurrence for one employment: the row, the person, and the day or the year's separation. */
+export const scheduleKey = (catalogueId: string, employmentId: string, occurrence: string) =>
+	`${catalogueId}:${employmentId}:${occurrence}`;
+/** The separation occurrence of the year a leaver exits in. */
+export const separationOf = (exit: IsoDate) => `${exit.slice(0, 4)}:separation`;
+
+/**
+ * The requests a scheduled payment row owes one employment in one run, materialised as the rows a
+ * person would otherwise have keyed: one per occurrence inside the employment's own salary window,
+ * and, where the row says so, the year's occurrence on the exit date of a leaver whose final period
+ * closes before the day. An occurrence a payslip already pinned — this year's, in a draft or paid
+ * run — is never raised again; `pinned` names those keys.
+ */
+export function scheduledPaymentRequests(options: {
+	readonly components: readonly CatalogueComponent[];
+	readonly employment: { readonly id: string; readonly effective_range: unknown };
+	readonly hire: IsoDate;
+	readonly exit: IsoDate | null;
+	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
+	readonly period: string;
+	readonly person: (asOf: IsoDate) => PersonContext;
+	readonly pinned: ReadonlySet<string>;
+}): PreparedPayRequest[] {
+	const requests: PreparedPayRequest[] = [];
+	for (const component of options.components) {
+		if (
+			component.family !== 'PAYMENT' ||
+			component.source !== 'SCHEDULE' ||
+			component.schedule == null
+		)
+			continue;
+		const schedule = component.schedule;
+		const occurrences = scheduleOccurrences(schedule, options.window).map((date) => ({
+			date,
+			key: scheduleKey(component.id, options.employment.id, date)
+		}));
+		// A leaver whose final period closes before the year's day is owed it on separation.
+		if (
+			schedule.on_separation &&
+			schedule.every === 'YEAR' &&
+			options.exit != null &&
+			options.exit >= options.window.start &&
+			options.exit <= options.window.end
+		) {
+			const own = monthDay(
+				decodeNumber(options.exit.slice(0, 4)),
+				schedule.month! - 1,
+				schedule.day
+			);
+			if (own > options.exit)
+				occurrences.push({
+					date: options.exit,
+					key: scheduleKey(component.id, options.employment.id, separationOf(options.exit))
+				});
+		}
+		for (const occurrence of occurrences) {
+			if (options.pinned.has(occurrence.key)) continue;
+			if (occurrence.date < options.hire) continue;
+			if (completedMonths(options.hire, occurrence.date) < schedule.from_service_months) continue;
+			if (!isEligible(schedule.when, options.person(occurrence.date))) continue;
+			const id = crypto.randomUUID();
+			requests.push({
+				id,
+				family: 'PAYMENT',
+				employment_id: options.employment.id,
+				catalogue_id: component.id,
+				amount: 0,
+				approval_id: null,
+				pay_period: options.period,
+				event_date: occurrence.date,
+				sign: 1,
+				window: null,
+				prorates: false,
+				depletes: false,
+				recurring: false,
+				on_day: null,
+				captured: false,
+				captures: [],
+				catalogueComponent: component,
+				materialised: {
+					id,
+					sourceId: component.id,
+					collection: 'payment_requests',
+					values: {
+						employment_id: options.employment.id,
+						catalogue_id: component.id,
+						amount: 0,
+						effective_on: `${occurrence.date}T00:00:00.000Z`,
+						reason: `Scheduled by the settings version: ${component.code} on ${occurrence.date}`,
+						evidence_file: null,
+						as_adjustment_entry: false,
+						pay_period: options.period,
+						schedule_key: occurrence.key
+					}
+				}
+			});
+		}
+	}
+	return requests;
+}
+
+/** The schedule keys among `keys` that a payslip has already pinned, in any run, draft or paid. */
+export function pinnedScheduleKeys(
+	api: PayrollReadApi & { readonly reads: ReadLog },
+	keys: readonly string[]
+): Effect.Effect<ReadonlySet<string>> {
+	if (keys.length === 0) return Effect.succeed(new Set());
+	return Effect.map(
+		api.db.payment_requests.findMany({
+			where: { schedule_key: { in: [...keys] }, payslip_id: { isNotNull: true } },
+			columns: { schedule_key: true },
+			limit: PAGE_LIMIT
+		}),
+		(rows) => {
+			api.reads.assertComplete(rows, 'pinned scheduled payments');
+			return new Set(rows.flatMap((row) => (row.schedule_key == null ? [] : [row.schedule_key])));
+		}
+	);
 }

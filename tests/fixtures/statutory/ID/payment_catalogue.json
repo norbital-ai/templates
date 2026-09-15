@@ -1,0 +1,671 @@
+[
+	{
+		"id": "d326b479-ae16-4f6c-ba8f-e13d66ae2126",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "CLAWBACK_OVERTIME",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "82bcce6e-7fc4-495e-9b99-10da7cfd983d",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PPH21_BONUS_THR",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "4b2a1d8c-be9d-428a-abb3-b25b4c1b5a36",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PPH21",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "507dbd44-3e80-456c-8cfb-349f9e106677",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "BACK_PAY_SALARY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "95102dca-231e-4881-a846-1156ed32fecb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "b0e2cf0d-ba65-4d4f-97bb-1128929942cd",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "STAFF_LOAN",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "aba2f4a5-c474-42f1-afe7-87848ec2ceac",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "da1a2235-06f1-46fd-897f-dde0c94021a6",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "SPECIAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "cf721e46-4c65-4f86-8037-ac975e1358ec",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "6bd47b6c-0819-404e-a830-b52048b80021",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "PPH21_PRIOR_PERIOD_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "e4286d03-8917-4003-bb8c-9c75ac61e201",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "7a0678a8-c8c7-4a64-bb3e-efa71ff1c1bb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "RETROACTIVE_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "8683dc63-2ff3-4681-8f0d-a5efbe676a9c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "TAX_INCENTIVE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "e669a4a7-5cca-4651-bcf0-770548d160df",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "CLAWBACK_OVERTIME",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ff761c1e-8609-4126-b9a9-719c6e509d21",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PPH21_BONUS_THR",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "588e899f-adb1-49d7-bef3-74c995bf3b64",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PPH21",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "5ce7cac6-b07f-4726-b27f-b7303d25eb58",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "BACK_PAY_SALARY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ff1cacdc-a5cd-44b7-98f7-7e5143d17cb1",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ff9b5cc0-b316-46b3-8ac3-c9d0ef83b371",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "STAFF_LOAN",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "e6f62eae-0f22-45aa-a2ef-653e3fbf5d44",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "5b47d1b1-b1b5-4c04-87db-47805c7080cc",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "SPECIAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "77b85334-5cbc-4148-95b3-d4f763a273f3",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "8a2da5f4-5726-4050-9042-b0e7c47b0b43",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "PPH21_PRIOR_PERIOD_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "6c5ae1ea-e3f0-49da-81c5-d0ef2464399e",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "16b158f9-c464-457e-adc5-dc1712ca17be",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "RETROACTIVE_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "60abc022-7617-42b1-bd7b-e835873671e4",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "TAX_INCENTIVE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "49b0ff00-7f1d-4418-ad37-962fab829e01",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "CLAWBACK_OVERTIME",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "97d8ae3c-535a-472c-961d-71b5fbd59efb",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PPH21_BONUS_THR",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "42d2f7cc-cfc0-4f5d-a2a9-b74b00a39a27",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PPH21",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "8c06178a-bb1e-4105-a8e7-5aa2c41511fd",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "BACK_PAY_SALARY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "7c95c0d1-7cfe-4bf0-ba90-d315bcae2953",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "5a0b8855-ecba-4431-a7c3-5b8a4aa508da",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "STAFF_LOAN",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ce017c3d-7859-4966-aa11-f4521f655391",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "3bcb7e73-42de-4be6-8293-b4a81c7b46fa",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "SPECIAL_ALLOWANCE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "de91f937-0590-49f7-81cb-b816b6326ba4",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "DEDUCTION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "edcadfe0-9834-48f6-8952-fca746fa52ed",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "PPH21_PRIOR_PERIOD_ADJUSTMENT",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "abd8f66a-9a80-4e72-8694-0d739d92e09b",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c17bcb1b-4016-4db0-ae32-efe31962c8bc",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "RETROACTIVE_PAY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "96b6dfd9-799b-4ceb-aabd-998ba99fb886",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "TAX_INCENTIVE",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "c1c29931-0148-47f0-9b10-884469777322",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "COMPENSATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "62f8706d-ee7b-4d8a-b38f-7d38bab45362",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "COMPENSATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "24bc77bc-7de0-4c80-857a-b65dfddf53b1",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "COMPENSATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	}
+]
