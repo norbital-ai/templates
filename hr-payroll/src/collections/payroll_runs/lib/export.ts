@@ -30,7 +30,6 @@ const SECTION_COLOURS: Record<string, string> = {
 	'Post-gross payments & deductions': 'FFE0F7FA',
 	Net: 'FFE3F2FD',
 	Statutory: 'FFFFEBEE',
-	'Totals & bases': 'FFF3E5F5',
 	Attendance: 'FFFFF3E0',
 	Other: 'FFF5F5F5'
 };
@@ -113,6 +112,9 @@ function humanHeader(outputId: string): string {
 	// A catalogue column is headed by its own code, verbatim. Title-casing it would invent a second
 	// name for a component that already has one, and the reconciliation is done against the code.
 	if (CATALOGUE_CODE.test(outputId)) return outputId;
+	// A per-band overtime column: `OVERTIME:OT-1.5X` reads as `OT 1.5X`, its funnel as `OT INCENTIVE 1.5X`.
+	const band = /^(OVERTIME|INCENTIVE):OT-(.+)$/.exec(outputId);
+	if (band !== null) return band[1] === 'INCENTIVE' ? `OT INCENTIVE ${band[2]}` : `OT ${band[2]}`;
 	return (
 		HUMAN_HEADERS[outputId] ??
 		outputId

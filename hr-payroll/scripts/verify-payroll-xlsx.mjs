@@ -449,8 +449,7 @@ Effect.runPromise(
 					'Statutory',
 					'Deductions',
 					'Payments',
-					'Net',
-					'Totals & bases'
+					'Net'
 				],
 				'the listing’s section order is the reader’s order'
 			);
@@ -487,11 +486,9 @@ Effect.runPromise(
 			assert.equal(at(6, 'socsoEmployee'), 18.75);
 			assert.equal(at(6, 'socsoEmployer'), 65.65);
 			assert.equal(at(6, 'eisEmployee'), 7.5);
-			assert.equal(at(6, 'totalEpf'), 816);
-			assert.equal(at(6, 'totalSocso'), 84.4);
-			assert.equal(at(6, 'totalEis'), 15);
-			assert.equal(at(6, 'epfGross'), 3395.34);
-			assert.equal(at(6, 'socsoGross'), 3760.78);
+			// No totals-and-bases block: those were a second sum of the columns already on the row.
+			assert.equal(VENDOR_COLUMNS.indexOf('totalEpf'), -1);
+			assert.equal(VENDOR_COLUMNS.indexOf('epfGross'), -1);
 
 			// ── row 7: the joiner, whose money reaches different columns from the same shapes ─────────────
 			assert.equal(at(7, 'eid'), 'PUBEM0400');
@@ -565,12 +562,7 @@ Effect.runPromise(
 				'cpfEmployee',
 				'cpfEmployer',
 				'sdlEmployer',
-				'netPay',
-				'totalCpf',
-				'cpfGross',
-				'sdlGross',
-				'totalDeductions',
-				'employerCost'
+				'netPay'
 			]);
 			// The band sits above the headers, and column A stays blank so a row walker can tell a band
 			// from a payslip by the absence of an employee number.
@@ -592,12 +584,7 @@ Effect.runPromise(
 				1060,
 				901,
 				13.25,
-				4240,
-				1961,
-				5300,
-				5300,
-				1060,
-				914.25
+				4240
 			]);
 
 			// ── and an empty period still writes a real archive, as it always did ─────────────────────────

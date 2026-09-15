@@ -381,12 +381,11 @@ Effect.runPromise(
 			assert.equal(typeof PAYSLIPS[0].adjustments[0].statutory_rule_key, 'string');
 			assert.equal(patterned.lines[2].calculationSource, 'DERIVED_OVERTIME');
 
-			// The workbook's columns are the catalogue's: each overtime arm reports under the Work
-			// component it settled on. The day-type hour buckets are no longer populated by a loaded
-			// export — the stored adjustment does not carry a day type any more.
+			// The workbook's overtime columns are one per band and line: each arm reports under the
+			// Work component it settled on, keyed by the band label the engine froze on the adjustment.
 			const [row] = workbookRows([patterned]);
-			assert.equal(row.OVERTIME, 132.73, 'statutory overtime settles on the OVERTIME component');
-			assert.equal(row.INCENTIVE, 33.18, 'funneled overtime settles on the INCENTIVE component');
+			assert.equal(row['OVERTIME:2.0'], 132.73, 'statutory overtime settles on its OVERTIME band');
+			assert.equal(row['INCENTIVE:2.0'], 33.18, 'funneled overtime settles on its INCENTIVE band');
 
 			// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
 			const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;
