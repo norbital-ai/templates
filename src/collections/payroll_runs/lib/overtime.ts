@@ -69,6 +69,7 @@ import { requiredDateKey, type IsoDate } from './dates.js';
 import { floorHalfHour } from './rounding.js';
 import { type DayType, type ScheduledDay } from './schedule.js';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { clockMinutes } from '../../../lib/scheduling/roster-code.js';
 
 /**
  * The wall-clock frame attendance is recorded in, in minutes east of UTC.
@@ -116,14 +117,6 @@ const WorkDayLikeSchema = Schema.Struct({
 	break_minutes: Schema.Number
 });
 export type WorkDayLike = Schema.Schema.Type<typeof WorkDayLikeSchema>;
-
-/** Minutes since midnight of a `HH:MM[:SS]` wall-clock time. */
-export function clockMinutes(value: string): number {
-	const [hours, minutes] = value.split(':').map(Number);
-	if (!Number.isFinite(hours) || !Number.isFinite(minutes))
-		throw new Error(`"${value}" is not a wall-clock time.`);
-	return hours! * 60 + minutes!;
-}
 
 function instant(value: string): number {
 	return Date.parse(value);

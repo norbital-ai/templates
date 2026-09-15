@@ -35,7 +35,6 @@
 	} from '../../../collections/work_days/lib/import-workbook.js';
 	import {
 		PAYROLL_TIME_ZONE,
-		monthKey,
 		monthWorkDateInstantBounds,
 		shiftDayKey,
 		shiftMonthKey,
@@ -99,7 +98,7 @@
 		companyId: () => selectedCompanyId ?? undefined,
 		settingsCode: () => selectedCompany?.settings_code ?? undefined
 	});
-	let month = $state<string>(monthKey(todayKey()));
+	let month = $state<string>(todayKey().slice(0, 7));
 	/**
 	 * The day sheet's subject. Nothing else: the drawer owns its editors and its write, and the
 	 * app holds only which cell is open.
