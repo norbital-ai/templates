@@ -75,7 +75,6 @@
 						{/if}
 						<Field name="code" label={t('component.code')} />
 						<Field name="name" label={t('component.name')} />
-						<Field name="is_statutory" label={t('component.is_statutory')} />
 						<Field name="authority" label={t('component.authority')} />
 					</Grid>
 				</Stack>
@@ -109,21 +108,12 @@
 				</Stack>
 			{/snippet}
 
-			{#snippet pricing()}
-				<Stack gap="sm">
-					<p class="text-meta">{t('component.leave_section_pricing_hint')}</p>
-					<Grid gap="md" minimum="card">
-						<Field name="evidence" label={t('component.evidence')} />
-						<Column span="all"><Field name="bands" label={t('component.rate_bands')} /></Column>
-					</Grid>
-				</Stack>
-			{/snippet}
-
 			{#snippet pay()}
 				<Stack gap="sm">
 					<p class="text-meta">{t('component.leave_section_pay_hint')}</p>
 					<Grid gap="md" minimum="card">
 						<Field name="paid" label={t('component.paid')} />
+						<Field name="evidence" label={t('component.evidence')} />
 						<Field
 							name="evidence_after_days"
 							label={t('component.certificate_required_after_days')}
@@ -169,12 +159,6 @@
 						label: t('component.leave_section_entitlement'),
 						icon: 'lucide:calendar-days',
 						content: entitlement
-					},
-					{
-						name: 'pricing',
-						label: t('component.leave_section_pricing'),
-						icon: 'lucide:shield',
-						content: pricing
 					},
 					{
 						name: 'pay',

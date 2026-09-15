@@ -135,7 +135,6 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 			settings_id: JURISDICTION_ID,
 			code: 'PUB-NEW',
 			name: 'A scheme nobody may add',
-			is_statutory: true,
 			authority: 'Public fixture',
 			assessment_period: 'PAY_PERIOD',
 			employee_share_annual_cap: null,

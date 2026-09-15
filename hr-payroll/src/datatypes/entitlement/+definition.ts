@@ -9,8 +9,8 @@ import { compileExpression } from '../../lib/expressions/compile.js';
  * what window. A person the band covers has this entitlement per period; usage is judged against
  * every other entry of the same catalogue that settled in the same window.
  *
- * `amount` is a figure or an expression over the entry context, so a ceiling that is a formula
- * (`minimum_wage(region) * 12.0`) is still one compiled rule.
+ * `amount` is money over the entry context, so a ceiling that is a formula
+ * (`minimum_wage(region) * 12.0`) is one compiled rule and a plain figure is a valid expression.
  */
 export const entitlementValueSchema = Schema.Struct({
 	period: Schema.Literals(['CALENDAR_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']),
@@ -19,11 +19,8 @@ export const entitlementValueSchema = Schema.Struct({
 	 * `ALLOW` reports it without refusing: the ceiling is a statement, not a gate.
 	 */
 	on_exceed: Schema.Literals(['BLOCK', 'ALLOW']),
-	/** A figure, or a CEL expression over the entry context producing one. */
-	amount: Schema.Union([
-		Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-		Schema.String.check(Schema.isMinLength(1))
-	])
+	/** Money over the entry context. */
+	amount: Schema.String.check(Schema.isMinLength(1))
 });
 
 export type Entitlement = Schema.Schema.Type<typeof entitlementValueSchema>;
@@ -32,9 +29,8 @@ export const entitlementSchema = Schema.toStandardSchemaV1(entitlementValueSchem
 	parseOptions: { onExcessProperty: 'error' }
 }).check(
 	Schema.makeFilter((entitlement) => {
-		if (typeof entitlement.amount !== 'string') return true;
 		return (
-			compileExpression({ expression: entitlement.amount, site: 'entry', type: 'number' }) ?? true
+			compileExpression({ expression: entitlement.amount, site: 'entry', type: 'money' }) ?? true
 		);
 	})
 );

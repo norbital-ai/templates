@@ -4,13 +4,17 @@
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
-		"is_statutory": true,
-		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_cent(2340000.0 * 8.0 / 100.0)",
+				"employer": "round_cent(2340000.0 * 17.5 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
@@ -21,20 +25,31 @@
 				"employee": "round_cent(3744000.0)",
 				"employer": "round_cent(8190000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
-		"is_statutory": true,
-		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000).",
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_cent(2340000.0 * 1.5 / 100.0)",
+				"employer": "round_cent(2340000.0 * 3.0 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
@@ -45,14 +60,20 @@
 				"employee": "round_cent(702000.0)",
 				"employer": "round_cent(1404000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
-		"is_statutory": true,
 		"authority": "Law on Employment 38/2013/QH13 art.57 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 74/2024/NĐ-CP, Region I 4,960,000). The scheme covers Vietnamese employees; a foreign employee is outside it.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -64,20 +85,31 @@
 				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
-		"is_statutory": true,
-		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000).",
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_cent(2340000.0 * 0.0 / 100.0)",
+				"employer": "round_cent(2340000.0 * 2.0 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
@@ -88,14 +120,20 @@
 				"employee": "round_cent(0.0)",
 				"employer": "round_cent(936000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"is_statutory": true,
 		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions of 132,000,000 a year for the taxpayer and 52,800,000 a dependant under Resolution 954/2020/UBTVQH14.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -104,23 +142,79 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
 				"employer": "round_cent(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE_UNPAID"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FOREIGN_NATIONAL_LEAVE"
+				}
+			]
+		}
 	},
 	{
 		"id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
-		"is_statutory": true,
-		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_cent(2340000.0 * 8.0 / 100.0)",
+				"employer": "round_cent(2340000.0 * 17.5 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
@@ -131,20 +225,31 @@
 				"employee": "round_cent(3744000.0)",
 				"employer": "round_cent(8190000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
-		"is_statutory": true,
-		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000).",
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_cent(2340000.0 * 1.5 / 100.0)",
+				"employer": "round_cent(2340000.0 * 3.0 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
@@ -155,14 +260,20 @@
 				"employee": "round_cent(702000.0)",
 				"employer": "round_cent(1404000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "92d096bf-8260-5adb-a7f9-6073199855d9",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
-		"is_statutory": true,
 		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33, in force 1 January 2026 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP). The scheme covers Vietnamese employees; a foreign employee is outside it.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -174,20 +285,31 @@
 				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
-		"is_statutory": true,
-		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000).",
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2340000.0",
+				"employee": "round_cent(2340000.0 * 0.0 / 100.0)",
+				"employer": "round_cent(2340000.0 * 2.0 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
@@ -198,14 +320,20 @@
 				"employee": "round_cent(0.0)",
 				"employer": "round_cent(936000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"is_statutory": true,
 		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions of Resolution 110/2025/UBTVQH15 read into art.10. Law 04/2007's seven-rung scale governed December 2025 only.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -214,23 +342,79 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
 				"employer": "round_cent(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE_UNPAID"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FOREIGN_NATIONAL_LEAVE"
+				}
+			]
+		}
 	},
 	{
 		"id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
-		"is_statutory": true,
-		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4.",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.33 and art.34 — 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). The employer 17.5% is 3% sickness and maternity, 14% retirement and survivorship, and 0.5% occupational accident and disease under the Law on Occupational Safety and Hygiene 84/2015/QH13 art.44 with Decree 58/2020/NĐ-CP art.4. Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2530000.0",
+				"employee": "round_cent(2530000.0 * 8.0 / 100.0)",
+				"employer": "round_cent(2530000.0 * 17.5 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
@@ -241,20 +425,31 @@
 				"employee": "round_cent(4048000.0)",
 				"employer": "round_cent(8855000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
-		"is_statutory": true,
-		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (50,600,000).",
+		"authority": "Law on Health Insurance 25/2008/QH12 art.13 as amended by Law 51/2024/QH15, in force 1 July 2025, with Decree 146/2018/NĐ-CP — 4.5% of the salary, split 1.5% employee and 3% employer, on the same 20 times reference level ceiling as social insurance (50,600,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2530000.0",
+				"employee": "round_cent(2530000.0 * 1.5 / 100.0)",
+				"employer": "round_cent(2530000.0 * 3.0 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
@@ -265,14 +460,20 @@
 				"employee": "round_cent(759000.0)",
 				"employer": "round_cent(1518000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "fe8a9888-288e-5254-be22-d94bbec833d3",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
-		"is_statutory": true,
 		"authority": "Law on Employment 74/2025/QH15 arts.31 to 33 — 1% of the employee's monthly wage and 1% of the employer's monthly wage fund, on a wage capped at 20 times the regional minimum wage (Decree 293/2025/NĐ-CP, unchanged on 1 July 2026). The scheme covers Vietnamese employees; a foreign employee is outside it.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -284,20 +485,31 @@
 				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "11743132-ee52-510a-81a4-4daffc29f555",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
-		"is_statutory": true,
-		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000).",
+		"authority": "Law on Trade Unions 50/2024/QH15 art.29, in force 1 July 2025 — an employer levy of 2% of the social-insurance salary fund, payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000). Floor: Luật BHXH 41/2024/QH15 Điều 31(1)(đ) — tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ on this version).",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "base > 0.0 && base < 2530000.0",
+				"employee": "round_cent(2530000.0 * 0.0 / 100.0)",
+				"employer": "round_cent(2530000.0 * 2.0 / 100.0)"
+			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
 				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
@@ -308,14 +520,20 @@
 				"employee": "round_cent(0.0)",
 				"employer": "round_cent(1012000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "9657382b-d498-561e-b7b4-6015d946ae93",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"is_statutory": true,
 		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions written into art.10. Decree 253/2026/NĐ-CP art.70 adjusts any 1 January–30 June 2026 withholding already made under the old scale in the 2026 annual finalisation.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -324,9 +542,61 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - (produced.SI.employee + produced.HI.employee + produced.UI.employee) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
+				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
 				"employer": "round_cent(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "SICK_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE_UNPAID"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "FOREIGN_NATIONAL_LEAVE"
+				}
+			]
+		}
 	}
 ]

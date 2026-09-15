@@ -124,50 +124,18 @@ test(
 			for (const table of CHILDREN)
 				assert.deepEqual(codes(table, after[table]!), codes(table, before[table]!), table);
 
-			// Scheme rows keep their codes under new ids, so every opt-in — in the version's own Work
-			// rules and in each cloned catalogue band — points at the clone's scheme, never the
-			// predecessor's (RFC 0002 §6).
-			const sourceCodeById = new Map(
-				before.statutory_contributions!.map((row) => [String(row.id), String(row.code)])
-			);
-			const cloneSchemeIdByCode = new Map(
-				after.statutory_contributions!.map((row) => [String(row.code), String(row.id)])
-			);
-			const remapOptIns = (value: unknown): unknown => {
-				if (Array.isArray(value)) return value.map(remapOptIns);
-				if (value != null && typeof value === 'object')
-					return Object.fromEntries(
-						Object.entries(value).map(([key, inner]) => [
-							key,
-							key === 'contribution_id' && typeof inner === 'string'
-								? (cloneSchemeIdByCode.get(sourceCodeById.get(inner) ?? '') ?? inner)
-								: remapOptIns(inner)
-						])
-					);
-				return value;
-			};
+			// A scheme's base names catalogue rows by family and code (RFC 0003 §1), so the clone
+			// carries every declaration and the version's own Work rules unchanged.
 			assert.deepEqual(
 				draft.work_rules,
-				remapOptIns(sourceSettings.work_rules),
-				'the version’s own Work rules survive cloning with the clone’s scheme ids'
+				sourceSettings.work_rules,
+				'the Work rules survive cloning'
 			);
-			const cloneSchemeIds = new Set(after.statutory_contributions!.map((row) => row.id));
-			for (const table of CHILDREN) {
-				if (table === 'statutory_contributions') continue;
-				for (const row of after[table]!) {
-					const bands = Array.isArray(row.bands) ? row.bands : [];
-					for (const band of bands)
-						for (const optIn of (
-							band as {
-								readonly statutory_opt_ins?: ReadonlyArray<{ readonly contribution_id: string }>;
-							}
-						).statutory_opt_ins ?? [])
-							assert.ok(
-								cloneSchemeIds.has(optIn.contribution_id),
-								`${table}: an opt-in points at the clone’s scheme`
-							);
-				}
-			}
+			const baseByCode = new Map(
+				before.statutory_contributions!.map((row) => [String(row.code), row.base])
+			);
+			for (const row of after.statutory_contributions!)
+				assert.deepEqual(row.base, baseByCode.get(String(row.code)), `${row.code}: base unchanged`);
 			// The clone is a draft: its rows are editable while the sealed original's are not.
 			const [clonedAnnual] = after.leave_catalogue!.filter((row) => row.code === 'ANNUAL');
 			assert.ok(clonedAnnual);

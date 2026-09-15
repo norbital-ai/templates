@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { refuseUnlessDraftOnBoth } from '../../lib/settings_seal.js';
+import { refuseUnknownBaseEntries } from '../../lib/catalogue_rules.js';
 import { compileExpression } from '../../lib/expressions/compile.js';
 import { orderSchemes, producedMentions } from '../payroll_runs/lib/mentions.js';
 import type { Hooks } from './$types.js';
@@ -20,13 +21,13 @@ function rulesFault(
 		const employee = compileExpression({
 			expression: rule.employee,
 			site: 'scheme',
-			type: 'number'
+			type: 'money'
 		});
 		if (employee != null) return `Rule ${index + 1} employee: ${employee}`;
 		const employer = compileExpression({
 			expression: rule.employer,
 			site: 'scheme',
-			type: 'number'
+			type: 'money'
 		});
 		if (employer != null) return `Rule ${index + 1} employer: ${employer}`;
 	}
@@ -50,7 +51,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal. Requires a citation on a statutory scheme; compiles every rule expression; refuses a `produced.<code>` mention the version does not carry and a mention that closes a dependency loop.',
+					'Refuses any write on a scheme whose jurisdiction settings version is sealed; schemes of a draft may be prepared and edited until the seal. Compiles every rule expression; refuses a base entry naming a catalogue row the version does not carry; refuses a `produced.<code>` mention the version does not carry and a mention that closes a dependency loop.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
@@ -60,13 +61,18 @@ export default {
 							input.settings_id,
 							`Scheme ${String(row.code ?? '')}`
 						);
-						if (row.is_statutory === true && String(row.authority ?? '').trim() === '')
-							refuse('A statutory scheme cites the section of law it transcribes.');
 						const rules = row.rules ?? [];
 						const fault = rulesFault(rules);
 						if (fault != null) refuse(fault);
 						const settingsId = row.settings_id;
 						if (settingsId == null || settingsId === '') return input;
+						if (row.base != null)
+							yield* refuseUnknownBaseEntries(
+								api,
+								settingsId,
+								row.base,
+								`Scheme ${String(row.code ?? '')}`
+							);
 						const stored = yield* api.db.statutory_contributions.findMany({
 							where: {
 								settings_id: { eq: String(settingsId) },

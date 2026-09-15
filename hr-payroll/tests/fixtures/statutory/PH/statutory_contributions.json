@@ -4,7 +4,6 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SSS",
 		"name": "Social Security System",
-		"is_statutory": true,
 		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -321,14 +320,113 @@
 				"employee": "round_cent(1750.0)",
 				"employer": "round_cent(3500.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": true,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "EMERGENCY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "COMPASSIONATE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ABSENCE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "leave_encashment"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACKPAY_OT"
+				}
+			]
+		}
 	},
 	{
 		"id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SSS_EC",
 		"name": "Employees Compensation Programme premium",
-		"is_statutory": true,
 		"authority": "Presidential Decree 626 as amended, Art.183 of the Labor Code — employer-only EC premium keyed to the SSS monthly salary credit",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -350,14 +448,113 @@
 				"employee": "0.0",
 				"employer": "30.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": true,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "EMERGENCY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "COMPASSIONATE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ABSENCE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "leave_encashment"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACKPAY_OT"
+				}
+			]
+		}
 	},
 	{
 		"id": "be6660b4-fcaf-4cc5-a5da-301f66ef3e41",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "PHIC",
 		"name": "PhilHealth",
-		"is_statutory": true,
 		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 — 5% premium, floor PHP 10,000, ceiling PHP 100,000. NOT APPLIED: PhilHealth is a SINGLE 5% premium that is then split, not two independent 2.5% shares. The published split is premium = round(base * 5%, NEAREST_CENT); employee = floor(premium * 50) / 100; employer = premium - employee. The engine computes each share independently, which diverges by one cent at every half-cent premium (e.g. basic 11,653.50 -> premium 582.675). No token names that split. Report §4.5. Also NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -384,14 +581,25 @@
 				"employee": "round_cent(2500.0)",
 				"employer": "round_cent(2500.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": false,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				}
+			]
+		}
 	},
 	{
 		"id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "HDMF",
 		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
-		"is_statutory": true,
 		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -413,14 +621,65 @@
 				"employee": "round_cent(200.0)",
 				"employer": "round_cent(200.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				}
+			]
+		}
 	},
 	{
 		"id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "WTAX",
 		"name": "Withholding Tax on Compensation",
-		"is_statutory": true,
 		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. NOT APPLIED: the NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay and other benefits — it is a per-year running allowance against a class of pay, and nothing in the grammar expresses one (report §6.3). The SEMI-MONTHLY column (₱10,417 / 16,667 / 33,333 / 83,333 / 333,333; ₱937.50 / 4,270.70 / 16,770.70 / 91,770.70) governs a base paid in two instalments (`period.instalments == 2`); the MONTHLY column everything else.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -487,14 +746,121 @@
 				"employee": "round_cent((183541.8) + ((((base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee) > 0.0 ? (base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee) : 0.0)) - 666667.0) * 35.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": true,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "EMERGENCY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "COMPASSIONATE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ABSENCE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "bonus"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "leave_encashment"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "THIRTEENTH_MONTH_PAY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACKPAY_OT"
+				}
+			]
+		}
 	},
 	{
 		"id": "f3469881-d554-5a44-a85c-18478d228217",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SSS",
 		"name": "Social Security System",
-		"is_statutory": true,
 		"authority": "Republic Act 11199 (Social Security Act of 2018) s.4(a)(9) and s.18, with the SSS Schedule of Contributions",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -811,14 +1177,113 @@
 				"employee": "round_cent(1750.0)",
 				"employer": "round_cent(3500.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": true,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "EMERGENCY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "COMPASSIONATE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ABSENCE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "leave_encashment"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACKPAY_OT"
+				}
+			]
+		}
 	},
 	{
 		"id": "1216f1e0-2edb-5e2f-bf0c-514e33f2d2ac",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SSS_EC",
 		"name": "Employees Compensation Programme premium",
-		"is_statutory": true,
 		"authority": "Presidential Decree 626 as amended, Art.183 of the Labor Code — employer-only EC premium keyed to the SSS monthly salary credit",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -840,14 +1305,113 @@
 				"employee": "0.0",
 				"employer": "30.0"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": true,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "EMERGENCY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "COMPASSIONATE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ABSENCE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "leave_encashment"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACKPAY_OT"
+				}
+			]
+		}
 	},
 	{
 		"id": "dc14c8f0-ddf3-5a91-9eb3-89eaa6977cd0",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "PHIC",
 		"name": "PhilHealth",
-		"is_statutory": true,
 		"authority": "Republic Act 11223 (Universal Health Care Act) s.10 with PhilHealth Circular 2019-0009 — 5% premium, floor PHP 10,000, ceiling PHP 100,000. NOT APPLIED: PhilHealth is a SINGLE 5% premium that is then split, not two independent 2.5% shares. The published split is premium = round(base * 5%, NEAREST_CENT); employee = floor(premium * 50) / 100; employer = premium - employee. The engine computes each share independently, which diverges by one cent at every half-cent premium (e.g. basic 11,653.50 -> premium 582.675). No token names that split. Report §4.5. Also NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -874,14 +1438,25 @@
 				"employee": "round_cent(2500.0)",
 				"employer": "round_cent(2500.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": false,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				}
+			]
+		}
 	},
 	{
 		"id": "a423b464-8df4-5426-8c48-3941dcdfb301",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "HDMF",
 		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
-		"is_statutory": true,
 		"authority": "Republic Act 9679 s.7 with HDMF Circular 460 — 1%/2% employee, 2% employer, monthly compensation ceiling PHP 10,000. NOT APPLIED: the base is the CONTRACTUAL basic salary, unprorated; the engine accumulates the measured BASIC_SALARY line, which is prorated for a partial month.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
@@ -903,14 +1478,65 @@
 				"employee": "round_cent(200.0)",
 				"employer": "round_cent(200.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				}
+			]
+		}
 	},
 	{
 		"id": "5d1752ac-3a06-575a-9ffa-572a5e7f7f08",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "WTAX",
 		"name": "Withholding Tax on Compensation",
-		"is_statutory": true,
 		"authority": "NIRC 1997 s.79 with s.24(A)(2)(a) as amended by RA 10963 (TRAIN), Revenue Regulations 11-2018 — revised withholding tax table effective 1 January 2023. NOT APPLIED: the NIRC s.32(B)(7)(e) PHP 90,000 exemption for 13th-month pay and other benefits — it is a per-year running allowance against a class of pay, and nothing in the grammar expresses one (report §6.3). The SEMI-MONTHLY column (₱10,417 / 16,667 / 33,333 / 83,333 / 333,333; ₱937.50 / 4,270.70 / 16,770.70 / 91,770.70) governs a base paid in two instalments (`period.instalments == 2`); the MONTHLY column everything else.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -977,6 +1603,114 @@
 				"employee": "round_cent((183541.8) + ((((base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee) > 0.0 ? (base) - (produced.SSS.employee + produced.PHIC.employee + produced.HDMF.employee) : 0.0)) - 666667.0) * 35.0 / 100.0)",
 				"employer": "round_cent(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": true,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "EMERGENCY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "COMPASSIONATE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "HOSPITALIZATION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ABSENCE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "leader"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "meal"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "bonus"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "transport"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_BASIC"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BACKPAY_DUTY_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "corporate_duty_allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "allowance"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "communication"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "duty_allowance"
+				},
+				{
+					"family": "CLAIM",
+					"code": "NO_PAY_LEAVE_ADJUSTMENT"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "leave_encashment"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "THIRTEENTH_MONTH_PAY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "position"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACKPAY_OT"
+				}
+			]
+		}
 	}
 ]

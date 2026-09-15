@@ -47,7 +47,6 @@ export type ComponentDefinition =
 export type CatalogueComponent = FamilyPayItem & { readonly definition: ComponentDefinition };
 export type WorkLimit = Work['limits'][number];
 type WorkBreak = Work['breaks'][number];
-export type OvertimeCoverageRule = Work['coverage'];
 export type NightPremium = NonNullable<Work['night_premium']>;
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 type ShiftPattern = WorkspaceRow<'shift_patterns'>;
@@ -76,12 +75,6 @@ export type Configuration = {
 	readonly breaks: readonly WorkBreak[];
 	/** The regime's night window and premiums, or null where it states none. Hashed with the regime. */
 	readonly nightPremium: NightPremium | null;
-	/**
-	 * Who the ladder covers, or null where the jurisdiction restricts coverage in no way.
-	 *
-	 * Null is a real answer and is not the same as "nobody is covered" — see `coverage.ts`.
-	 */
-	readonly overtimeCoverageRule: OvertimeCoverageRule | null;
 	readonly shiftById: ReadonlyMap<string, ShiftDefinition>;
 	/**
 	 * The company's named shift patterns, keyed by id. `employment_terms.shift_pattern_id` is
@@ -93,6 +86,8 @@ export type Configuration = {
 	readonly holidaySnapshots: readonly HolidaySnapshot[];
 	readonly holidayInputs: readonly PreparedHolidayInput[];
 	readonly catalogueLeaves: readonly CatalogueLeave[];
+	/** Every live version of the company's lineage, for the readers that cite older revisions. */
+	readonly lineageVersions: readonly Jurisdiction[];
 	readonly hash: string;
 };
 
@@ -158,12 +153,32 @@ export function pickConfiguration(
 					`${code} version whose effective range covers the period.`
 			);
 
+		// The company's roster codes and named patterns: what every scheduled day is priced from.
+		// Loaded across the whole attendance window because a shift may be revised inside it (the
+		// same reading `resolveWindow` gives holidays), and read once for the work catalogue too.
+		const [shiftRows, patternRows] = yield* Effect.all(
+			[
+				db.shift_definitions.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.shift_patterns.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		options.api.reads.assertComplete(shiftRows, 'shift definitions');
+		options.api.reads.assertComplete(patternRows, 'shift patterns');
 		const familyConfiguration = yield* prepareFamilyCatalogues({
 			api: options.api,
 			jurisdiction,
 			companyId: company.id,
 			windowStart,
-			windowEnd
+			windowEnd,
+			shiftRows: live(shiftRows),
+			patternRows: live(patternRows)
 		});
 		const { contributions } = familyConfiguration;
 		// The catalogue rows carry `destination` and `direction` as text at the database boundary,
@@ -181,19 +196,6 @@ export function pickConfiguration(
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(holidayRows, 'published holidays');
-		// The company's roster codes and named patterns: what every scheduled day is priced from.
-		// Loaded across the whole attendance window because a shift may be revised inside it (the
-		// same reading `resolveWindow` gives holidays).
-		const shiftRows = yield* db.shift_definitions.findMany({
-			where: { company_id: { eq: company.id }, ...approved },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(shiftRows, 'shift definitions');
-		const patternRows = yield* db.shift_patterns.findMany({
-			where: { company_id: { eq: company.id }, ...approved },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(patternRows, 'shift patterns');
 		const resolvedCalendar = resolveHolidayInputs(
 			live(holidayRows),
 			company.id,
@@ -203,6 +205,7 @@ export function pickConfiguration(
 		const configuration = {
 			company,
 			jurisdiction,
+			lineageVersions: live(versionRows),
 			...familyConfiguration,
 			catalogueComponents,
 			shiftById: new Map(live(shiftRows).map((row) => [row.id, row])),
@@ -235,7 +238,7 @@ export function configurationSnapshot(
 		jurisdiction: configuration.jurisdiction.id,
 		work_rules: configuration.work,
 		proration: configuration.work.proration,
-		ordinary_rate: configuration.work.rates.ordinary,
+		ordinary_rate: configuration.work.ordinary_divisor_days,
 		tax_year_start_month: configuration.jurisdiction.payroll.tax_year_start_month,
 		// The whole calendar: a company that moves its cutoff or starts paying twice a month
 		// produces different payslips for the same month, so the hash has to move with it.
@@ -255,8 +258,8 @@ export function configurationSnapshot(
 			// it in JavaScript — three or four times a run — cost more than the payroll itself.
 			rules: [entry.row.id, entry.row.row_version]
 		})),
-		// The catalogue's bands are configuration: an amount, a limit or an opt-in moving is a
-		// different charge even when the same code pays it.
+		// The catalogue's bands are configuration: an amount or a limit moving is a different charge
+		// even when the same code pays it. A scheme's base rides its row version above.
 		component_catalogue: configuration.catalogueComponents
 			.map((row) => [
 				row.code,
@@ -282,7 +285,7 @@ export function configurationSnapshot(
 			observation: configuration.holidays.get(date) ?? null
 		})),
 		leave_catalogue: configuration.catalogueLeaves
-			.map((row) => [row.code, row.entitlement, row.paid, row.bands])
+			.map((row) => [row.code, row.entitlement, row.paid])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// Codes are configuration because their polymorphic variant decides whether a scheduled day
 		// is work, protected rest or another off day, and a WORK code owns its clock window.

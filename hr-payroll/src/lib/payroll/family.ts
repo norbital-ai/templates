@@ -1,4 +1,3 @@
-import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
 
 /** Where a line settles (RFC 0001 §9). `EMPLOYER` and `DISPLAY` carry no direction. */
@@ -39,15 +38,11 @@ export type FamilyPayItem = {
 	readonly settings_id: string;
 	readonly code: string;
 	readonly name?: string | null;
-	/** Work and Leave items only: the money catalogues carry no statutory flag. */
-	readonly is_statutory?: boolean;
 	/** How the line settles: destination × direction is its bucket. */
 	readonly destination: SettlementDestination;
 	readonly direction: SettlementDirection | null;
 	/** The ordered bands a catalogue prices its entries with; empty for engine-priced Work lines. */
 	readonly bands: readonly CatalogueBand[];
-	/** Engine-priced lines state their opt-ins on the component; catalogues carry them on bands. */
-	readonly optIns?: readonly StatutoryOptIn[];
 	readonly eligibility: string;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
 };
@@ -93,8 +88,6 @@ export type PricedItem = {
 	 * because derived overtime has none to read it from. It is always an `EARNING`.
 	 */
 	readonly bucket: SettlementBucket;
-	/** The schemes the priced band opted into; ACCUMULATE reads these and nothing else. */
-	readonly optIns: readonly StatutoryOptIn[];
 	/** What to call this in an engine message — a component code, or the rule key that priced it. */
 	readonly label: string;
 	/** Signed within its economic direction; a reversal negates the original amount. */
@@ -123,9 +116,6 @@ export function baseLine(
 	return {
 		catalogueComponent,
 		bucket,
-		// A base line carries the component's own opt-ins: ACCUMULATE reads them and nothing else,
-		// so dropping them here silently charges no scheme on the contracted wage.
-		optIns: catalogueComponent.optIns ?? [],
 		label: catalogueComponent.code,
 		amount,
 		entry: { component_code: catalogueComponent.code, amount }

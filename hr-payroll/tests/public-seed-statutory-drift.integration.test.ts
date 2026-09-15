@@ -258,8 +258,8 @@ test(
 				[PUB2_ID, PUB2_URL, { start: '2020-01-01', end: null }, JURISDICTION_ID]
 			);
 			await session.query(
-				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, assessment_period, employee_share_annual_cap, shared_cap_group, project_relief_annually, rules)
-				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'PAY_PERIOD', null, null, false, $3)`,
+				`insert into statutory_contributions (id, settings_id, code, name, authority, assessment_period, employee_share_annual_cap, shared_cap_group, project_relief_annually, rules)
+				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', 'Public fixture', 'PAY_PERIOD', null, null, false, $3)`,
 				[PUB2_SCHEME_ID, PUB2_ID, [pub2Rule]]
 			);
 			const sealedBefore = await session.query(

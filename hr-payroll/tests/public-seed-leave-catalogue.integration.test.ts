@@ -23,19 +23,15 @@ test(
 		const session = await startPublicSeedHost('hr-leave-catalogue');
 		try {
 			const catalogue = await session.query(
-				'select code, is_statutory, authority from leave_catalogue where settings_id = $1 order by code',
+				'select code, authority from leave_catalogue where settings_id = $1 order by code',
 				[JURISDICTION_ID]
 			);
 			assert.deepEqual(
-				catalogue.map((row) => [
-					row.code,
-					row.is_statutory,
-					String(row.authority ?? '').length > 0
-				]),
+				catalogue.map((row) => [row.code, String(row.authority ?? '').length > 0]),
 				[
-					['ANNUAL', true, true],
-					['HOSPITALIZATION', true, true],
-					['NS', true, true]
+					['ANNUAL', true],
+					['HOSPITALIZATION', true],
+					['NS', true]
 				]
 			);
 			const entriesBefore = await session.query('select * from leave_entries order by id');

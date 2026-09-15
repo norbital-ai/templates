@@ -4,28 +4,10 @@
 		"settings_id": "22222222-2222-4222-8222-222222222222",
 		"code": "ANNUAL",
 		"name": "Annual leave",
-		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
 		"destination": "PAY",
 		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		],
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -44,28 +26,10 @@
 		"settings_id": "22222222-2222-4222-8222-222222222222",
 		"code": "HOSPITALIZATION",
 		"name": "Hospitalization leave",
-		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
 		"destination": "PAY",
 		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		],
 		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -84,28 +48,10 @@
 		"settings_id": "22222222-2222-4222-8222-222222222222",
 		"code": "NS",
 		"name": "National service leave",
-		"is_statutory": true,
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
 		"destination": "PAY",
 		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		],
 		"paid": true,
 		"evidence_after_days": 0,
 		"entitlement": {

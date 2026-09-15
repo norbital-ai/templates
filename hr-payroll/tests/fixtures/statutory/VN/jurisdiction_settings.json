@@ -17,135 +17,40 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
-			"engine_lines": {
-				"salary": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "eab7025d-ebed-5f30-a701-afff66ed9d46",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-							"effect": "INCLUDE"
-						}
-					]
+			"ordinary_divisor_days": "period.working_days",
+			"overtime_when": "",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
 				},
-				"absence": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "eab7025d-ebed-5f30-a701-afff66ed9d46",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-							"effect": "REDUCE"
-						}
-					]
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
 				},
-				"night": {
-					"statutory_opt_ins": []
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
 				}
-			},
-			"rates": {
-				"ordinary": [
-					{
-						"when": "",
-						"unit": "DAY",
-						"divisor": "WORKING_DAYS"
-					}
-				],
-				"bands": [
-					{
-						"label": "OT-1.5X",
-						"line": "OVERTIME",
-						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.5",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-3.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 3.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-3.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 3.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
-								"effect": "INCLUDE"
-							}
-						]
-					}
-				]
-			},
+			],
 			"limits": [
 				{
 					"key": "daily_ot",
@@ -172,12 +77,12 @@
 			"breaks": [
 				{
 					"when": "consecutive_hours > 6.0",
-					"owed_minutes": 30,
+					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				},
 				{
 					"when": "consecutive_hours > 6.0 && continuous_attendance",
-					"owed_minutes": 30,
+					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				}
 			],
@@ -185,7 +90,6 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST"
 			},
-			"coverage": null,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -206,7 +110,8 @@
 				"II": 4410000,
 				"III": 3860000,
 				"IV": 3450000
-			}
+			},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -235,135 +140,40 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
-			"engine_lines": {
-				"salary": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "92d096bf-8260-5adb-a7f9-6073199855d9",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-							"effect": "INCLUDE"
-						}
-					]
+			"ordinary_divisor_days": "period.working_days",
+			"overtime_when": "",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
 				},
-				"absence": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "92d096bf-8260-5adb-a7f9-6073199855d9",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-							"effect": "REDUCE"
-						}
-					]
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
 				},
-				"night": {
-					"statutory_opt_ins": []
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
 				}
-			},
-			"rates": {
-				"ordinary": [
-					{
-						"when": "",
-						"unit": "DAY",
-						"divisor": "WORKING_DAYS"
-					}
-				],
-				"bands": [
-					{
-						"label": "OT-1.5X",
-						"line": "OVERTIME",
-						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.5",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-3.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 3.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 2.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-								"effect": "INCLUDE"
-							}
-						]
-					},
-					{
-						"label": "OT-3.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 3.0",
-						"statutory_opt_ins": [
-							{
-								"contribution_id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
-								"effect": "INCLUDE"
-							}
-						]
-					}
-				]
-			},
+			],
 			"limits": [
 				{
 					"key": "daily_ot",
@@ -390,12 +200,12 @@
 			"breaks": [
 				{
 					"when": "consecutive_hours > 6.0",
-					"owed_minutes": 30,
+					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				},
 				{
 					"when": "consecutive_hours > 6.0 && continuous_attendance",
-					"owed_minutes": 30,
+					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				}
 			],
@@ -403,7 +213,6 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST"
 			},
-			"coverage": null,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -424,7 +233,8 @@
 				"II": 4730000,
 				"III": 4140000,
 				"IV": 3700000
-			}
+			},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -455,110 +265,40 @@
 			"proration": {
 				"by": "WORKING_DAYS"
 			},
-			"engine_lines": {
-				"salary": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "fe8a9888-288e-5254-be22-d94bbec833d3",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "11743132-ee52-510a-81a4-4daffc29f555",
-							"effect": "INCLUDE"
-						},
-						{
-							"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-							"effect": "INCLUDE"
-						}
-					]
+			"ordinary_divisor_days": "period.working_days",
+			"overtime_when": "",
+			"bands": [
+				{
+					"label": "OT-1.5X",
+					"when": "day_type == \"ORDINARY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.5"
 				},
-				"absence": {
-					"statutory_opt_ins": [
-						{
-							"contribution_id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "fe8a9888-288e-5254-be22-d94bbec833d3",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "11743132-ee52-510a-81a4-4daffc29f555",
-							"effect": "REDUCE"
-						},
-						{
-							"contribution_id": "9657382b-d498-561e-b7b4-6015d946ae93",
-							"effect": "REDUCE"
-						}
-					]
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 2.0"
 				},
-				"night": {
-					"statutory_opt_ins": []
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "hours * ordinary_hour * 3.0"
+				},
+				{
+					"label": "OT-2.0X",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 2.0"
+				},
+				{
+					"label": "OT-3.0X",
+					"when": "day_type == \"PUBLIC_HOLIDAY\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 3.0"
 				}
-			},
-			"rates": {
-				"ordinary": [
-					{
-						"when": "",
-						"unit": "DAY",
-						"divisor": "WORKING_DAYS"
-					}
-				],
-				"bands": [
-					{
-						"label": "OT-1.5X",
-						"line": "OVERTIME",
-						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.5",
-						"statutory_opt_ins": []
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 2.0",
-						"statutory_opt_ins": []
-					},
-					{
-						"label": "OT-3.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "normal_hours",
-						"price": "normal_hours * ordinary_hour * 3.0",
-						"statutory_opt_ins": []
-					},
-					{
-						"label": "OT-2.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 2.0",
-						"statutory_opt_ins": []
-					},
-					{
-						"label": "OT-3.0X",
-						"line": "OVERTIME",
-						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 3.0",
-						"statutory_opt_ins": []
-					}
-				]
-			},
+			],
 			"limits": [
 				{
 					"key": "daily_ot",
@@ -585,12 +325,12 @@
 			"breaks": [
 				{
 					"when": "consecutive_hours > 6.0",
-					"owed_minutes": 30,
+					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				},
 				{
 					"when": "consecutive_hours > 6.0 && continuous_attendance",
-					"owed_minutes": 30,
+					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				}
 			],
@@ -598,7 +338,6 @@
 				"max_consecutive_work_days": 6,
 				"discharged_by": "REST"
 			},
-			"coverage": null,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -619,7 +358,8 @@
 				"II": 4730000,
 				"III": 4140000,
 				"IV": 3700000
-			}
+			},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [

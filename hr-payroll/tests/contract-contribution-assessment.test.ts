@@ -31,7 +31,6 @@ function scheme(
 			code,
 			name: code,
 			settings_id: 'settings',
-			is_statutory: true,
 			authority: 'Invented regression fixture',
 			assessment_period: 'PAY_PERIOD',
 			employee_share_annual_cap: pool.employee_share_annual_cap ?? null,

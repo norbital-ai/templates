@@ -64,29 +64,24 @@ test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version'
 test('Vietnam — monthly PIT withholding on the 1 January 2026 scale', () => {
 	const book = assessStatutory({ code: 'VN', period: '2026-01', people: VN_PEOPLE, region: 'I' });
 
-	// PROJECT: a January monthly payslip annualises to twelve months of gross. RELIEVE: the
-	// 186,000,000 personal deduction (Resolution 110/2025, annual, in full) plus the insurance
-	// actually paid so far — January alone, unprojected (E9). SCALE the five-rung annual ladder,
-	// SPREAD over the 12 payslips.
+	// Circular 111/2013 art.25 withholds on the monthly table; the seeded scale is the five-bracket
+	// table of Law 109/2025 (≤10M at 5%, >10–30M at 10%, >30–60M at 20%, >60–100M at 30%, >100M at
+	// 35%), annualised. PROJECT annualises the wage and the insurance relief alike, RELIEVE the
+	// 186,000,000 personal deduction (Resolution 110/2025), SCALE and SPREAD over twelve payslips —
+	// which lands on the month's own table figure.
 	//
-	// VN-20M: 240,000,000 − 186,000,000 − 2,100,000 (1,600,000 + 300,000 + 200,000) = 51,900,000,
-	// in the 0–60,000,000 rung at 5% → 2,595,000 → /12 = 216,250. The month's own table gives
-	// 20,000,000 − 2,100,000 − 15,500,000 = 2,400,000 × 5% = 120,000.
-	expectStatutory(book, 'VN-20M', 'PIT', 216_250, 0);
-	// Law 109/2025 art.29(2) applies the five-rung scale to the whole 2026 tax period (5% to
-	// 120,000,000; 10% to 360,000,000; 20% to 720,000,000; 30% to 1,200,000,000; 35% above), so a
-	// period-by-period engine with no year-end true-up runs it from January.
-	// VN-46.8M: 561,600,000 − 186,000,000 − 4,914,000 = 370,686,000, in the 360,000,000–
-	// 720,000,000 rung at 20% over the cumulative 30,000,000: 30,000,000 + 10,686,000 × 20% =
-	// 32,137,200 → /12 = 2,678,100.
-	expectStatutory(book, 'VN-46.8M', 'PIT', 2_678_100, 0);
-	// VN-60M: 720,000,000 − 186,000,000 − 5,046,000 = 528,954,000, in the same rung:
-	// 30,000,000 + 168,954,000 × 20% = 63,790,800 → /12 = 5,315,900.
-	expectStatutory(book, 'VN-60M', 'PIT', 5_315_900, 0);
-	// A foreign employee runs the same resident scale — the seed carries no non-resident PIT
-	// branch — minus the UI they are outside: 240,000,000 − 186,000,000 − 1,900,000 = 52,100,000
-	// → 5% = 2,605,000 → /12 = 217,083.333 → 217,083.33.
-	expectStatutory(book, 'VN-FOREIGN', 'PIT', 217_083.33, 0);
+	// VN-20M: 20,000,000 − 2,100,000 (1,600,000 + 300,000 + 200,000) − 15,500,000 = 2,400,000 at
+	// 5% = 120,000.
+	expectStatutory(book, 'VN-20M', 'PIT', 120_000, 0);
+	// VN-46.8M: 46,800,000 − 4,914,000 − 15,500,000 = 26,386,000: 500,000 + 16,386,000 × 10% =
+	// 2,138,600.
+	expectStatutory(book, 'VN-46.8M', 'PIT', 2_138_600, 0);
+	// VN-60M: 60,000,000 − 5,046,000 − 15,500,000 = 39,454,000: 500,000 + 2,000,000 + 9,454,000 ×
+	// 20% = 4,390,800.
+	expectStatutory(book, 'VN-60M', 'PIT', 4_390_800, 0);
+	// A foreign employee runs the same resident scale minus the UI they are outside:
+	// 20,000,000 − 1,900,000 − 15,500,000 = 2,600,000 at 5% = 130,000.
+	expectStatutory(book, 'VN-FOREIGN', 'PIT', 130_000, 0);
 });
 
 test('Vietnam — the 1 July 2026 version raises the ceiling and replaces the PIT scale', () => {
@@ -101,20 +96,14 @@ test('Vietnam — the 1 July 2026 version raises the ceiling and replaces the PI
 	expectStatutory(book, 'VN-60M', 'UI', 600_000, 600_000);
 
 	// PIT Law 109/2025/QH15, five brackets from 1 July 2026: monthly ≤10M at 5%, >10–30M at 10%,
-	// >30–60M at 20%, >60–100M at 30%, >100M at 35%, seeded annualised. PROJECT from a standalone
-	// July run covers July–December only — six payslips, no year-to-date — against the full
-	// annual personal relief, plus July's insurance alone.
-	// VN-20M: 120,000,000 − 186,000,000 − 2,100,000 < 0 → nothing withheld. The month's own table
-	// gives (20,000,000 − 2,100,000 − 15,500,000) = 2,400,000 in the ≤10M rung at 5% = 120,000.
+	// >30–60M at 20%, >60–100M at 30%, >100M at 35%, seeded annualised. A standalone July run has
+	// no year-to-date, so PROJECT covers July–December only — six payslips against the full annual
+	// personal relief (E9). These pin the engine's figures; the month's own table gives 120,000 for
+	// VN-20M, 2,138,600 for VN-46.8M and 4,390,800 for VN-60M. A mid-year joiner with no history is
+	// the one population this residue reaches; a run with year-to-date lands on the table.
 	expectStatutory(book, 'VN-20M', 'PIT', 0, 0);
-	// VN-46.8M: 280,800,000 − 186,000,000 − 4,914,000 = 89,886,000, in the 0–120,000,000 rung at
-	// 5% → 4,494,300 → /6 = 749,050.
-	expectStatutory(book, 'VN-46.8M', 'PIT', 749_050, 0);
-	// VN-60M: 360,000,000 − 186,000,000 − 5,407,000 = 168,593,000, in the 120,000,000–360,000,000
-	// rung at 10% over the cumulative 6,000,000: 6,000,000 + 48,593,000 × 10% = 10,859,300 →
-	// /6 = 1,809,883.333 → 1,809,883.33. The month's own table gives 39,093,000 in the >30–60M
-	// rung at 20% over the cumulative 2,500,000: 2,500,000 + 9,093,000 × 20% = 4,318,600.
-	expectStatutory(book, 'VN-60M', 'PIT', 1_809_883.33, 0);
+	expectStatutory(book, 'VN-46.8M', 'PIT', 544_300, 0);
+	expectStatutory(book, 'VN-60M', 'PIT', 1_359_300, 0);
 });
 
 test('Vietnam — the December 2025 version, and the regional cap that moves off it', () => {

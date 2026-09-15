@@ -12,6 +12,7 @@
 	import { Schema } from 'effect';
 	import { wagesValueSchema } from './+definition.js';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
+	import ExpressionField from '../../lib/ui/expression-field.svelte';
 	import type { RendererProps } from './$types.js';
 
 	type Wages = Schema.Schema.Type<typeof wagesValueSchema>;
@@ -52,7 +53,9 @@
 		}
 	];
 
-	function commit(next: WageRow[]): void {
+	const appliesWhen = $derived(wages?.applies_when ?? '');
+
+	function commit(next: WageRow[], applies = appliesWhen): void {
 		rows = next;
 		if (props.mode !== 'edit') return;
 		props.onValueChange({
@@ -60,7 +63,8 @@
 				next
 					.filter((row) => row.region.trim() !== '')
 					.map((row) => [row.region.trim(), numberFrom(String(row.amount), 0)])
-			)
+			),
+			applies_when: applies
 		} satisfies Wages);
 	}
 </script>
@@ -80,4 +84,18 @@
 	{#if rows.length === 0}
 		<p class="text-meta">{t('renderer.minimum_wage.empty')}</p>
 	{/if}
+	<div class="flex flex-col gap-1">
+		<span class="text-sm font-semibold">{t('renderer.minimum_wage.applies_when')}</span>
+		<p class="text-meta">{t('renderer.minimum_wage.applies_when_hint')}</p>
+		<ExpressionField
+			site="person"
+			type="boolean"
+			value={appliesWhen}
+			mode={readonly ? 'display' : 'edit'}
+			{disabled}
+			empty={t('renderer.minimum_wage.applies_when_empty')}
+			placeholder={'employment.type != "INTERN"'}
+			onValueChange={(next) => commit(rows, next)}
+		/>
+	</div>
 </div>

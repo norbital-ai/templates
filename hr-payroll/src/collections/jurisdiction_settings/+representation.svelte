@@ -204,7 +204,6 @@
 				{#snippet columns({ Column: TableColumn })}
 					<TableColumn name="code" card="title" />
 					<TableColumn name="name" card="subtitle" />
-					<TableColumn name="is_statutory" label={t('component.is_statutory')} card="badge" />
 					<TableColumn name="authority" />
 					<TableColumn name="assessment_period" />
 				{/snippet}

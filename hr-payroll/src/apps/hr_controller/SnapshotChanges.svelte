@@ -89,26 +89,9 @@
 			if (query.current === undefined && query.loading) return true;
 		return false;
 	});
-	/**
-	 * Scheme ids as codes. Both versions' rows are already in the diff queries, so an opt-in that
-	 * was remapped to the new version's row (new id, same code) reads as unchanged instead of two
-	 * raw UUIDs.
-	 */
-	const contributionCodeById = $derived.by(() => {
-		const map = new Map<string, string>();
-		const rows = (diffQueries?.statutory_contributions?.current ?? []) as readonly {
-			readonly id?: unknown;
-			readonly code?: unknown;
-		}[];
-		for (const row of rows)
-			if (row.id != null && row.code != null) map.set(String(row.id), String(row.code));
-		return map;
-	});
-	const contributionCodeOf = (contributionId: string): string | null =>
-		contributionCodeById.get(contributionId) ?? null;
 	const rootChanges = $derived(
 		comparing && baseVersion != null && compareVersion != null
-			? diffSettingsRoot(baseVersion, compareVersion, contributionCodeOf)
+			? diffSettingsRoot(baseVersion, compareVersion)
 			: ([] as readonly LeafChange[])
 	);
 	const collectionDiffs = $derived.by<CollectionDiff[]>(() => {
@@ -122,7 +105,7 @@
 			const previous = rows.filter((row) => settingsIdOf(row) === baseVersion.id);
 			const proposed = rows.filter((row) => settingsIdOf(row) === compareVersion.id);
 			if (previous.length === 0 && proposed.length === 0) continue;
-			const diff = diffCollection(collection, previous, proposed, contributionCodeOf);
+			const diff = diffCollection(collection, previous, proposed);
 			if (diff != null) result.push(diff);
 		}
 		return result;

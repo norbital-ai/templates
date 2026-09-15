@@ -1,14 +1,15 @@
 /**
  * The pay items Work produces, built from `work_rules` (RFC 0001 §6).
  *
- * BASIC, ABSENCE and the NIGHT premium are engine-priced lines with their opt-ins on
- * `work_rules.engine_lines`; the overtime classes and the incentive come from `rates.bands`, one component
- * per (line, label) so each class settles as its own payslip line and the funnel inherits the
- * band's award and statutory opt-ins.
+ * BASIC, ABSENCE and the NIGHT premium are engine-priced lines; the overtime classes and the
+ * incentive come from `bands`, one component per (line, label) so each class settles as its
+ * own payslip line and the funnel keeps the band's award. Which schemes charge each line is the
+ * scheme's own declaration (RFC 0003 §1); nothing here names one.
  */
 
 import type { CatalogueComponent } from '../../collections/payroll_runs/lib/configuration.js';
-import type { StatutoryOptIn, WorkRules } from '../../datatypes/work_rules/+definition.js';
+import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
+import { INCENTIVE_LINE, OVERTIME_LINE } from './work-bands.js';
 
 const WORK_LINE_CODES = {
 	salary: 'BASIC',
@@ -22,7 +23,6 @@ function item(options: {
 	readonly output: string;
 	readonly absence?: boolean;
 	readonly definition: CatalogueComponent['definition'];
-	readonly optIns: readonly StatutoryOptIn[];
 }): CatalogueComponent {
 	return {
 		id: `${options.settingsId}:${options.output}`,
@@ -33,11 +33,9 @@ function item(options: {
 		output: options.output,
 		eligibility: '',
 		family: 'WORK',
-		is_statutory: options.code !== WORK_LINE_CODES.salary,
 		destination: 'PAY',
 		direction: options.absence === true ? 'SUBTRACT' : 'ADD',
 		bands: [],
-		optIns: options.optIns,
 		definition: options.definition
 	};
 }
@@ -55,27 +53,24 @@ export function workPayItems(
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.salary,
 			output: 'salary',
-			definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
-			optIns: work.engine_lines.salary.statutory_opt_ins
+			definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 		}),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.absence,
 			output: 'absence',
 			absence: true,
-			definition: { source: 'ABSENCE', unit: 'MONEY' },
-			optIns: work.engine_lines.absence.statutory_opt_ins
+			definition: { source: 'ABSENCE', unit: 'MONEY' }
 		}),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.night,
 			output: 'night',
-			definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' },
-			optIns: work.engine_lines.night.statutory_opt_ins
+			definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 		})
 	];
 	const seen = new Set(items.map((row) => row.output));
-	const add = (line: string, label: string, optIns: readonly StatutoryOptIn[]) => {
+	const add = (line: string, label: string) => {
 		const output = `${line}:${label}`;
 		if (seen.has(output)) return;
 		seen.add(output);
@@ -84,15 +79,13 @@ export function workPayItems(
 				settingsId: work.settings_id,
 				code: line,
 				output,
-				absence: line === WORK_LINE_CODES.absence,
-				definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' },
-				optIns
+				definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 			})
 		);
 	};
-	work.rates.bands.forEach((band, index) => {
-		add(band.line, band.label, band.statutory_opt_ins);
-		if (band.funnel != null) add(band.funnel.line, band.label, band.statutory_opt_ins);
-	});
+	for (const band of work.bands) {
+		add(OVERTIME_LINE, band.label);
+		if (band.funnel_above_hours != null) add(INCENTIVE_LINE, band.label);
+	}
 	return items;
 }

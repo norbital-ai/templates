@@ -1,5 +1,4 @@
 /** Normalized money inputs supplied by Claim, Allowance and Payment (RFC 0001 §9, §11 step 3). */
-import type { StatutoryOptIn } from '../../datatypes/work_rules/+definition.js';
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
 import type { AllowanceRecurrence } from '../../datatypes/allowance_recurrence/+definition.js';
 import type {
@@ -41,7 +40,6 @@ import { serviceStart } from '../employment-contract.js';
 import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
 import { settlementBucket } from './family.js';
-import { aliasedOptIns, loadOptInAliases } from './contribution.js';
 import type { Measurement, MeasureComponentOptions, PayRange, FamilyStep } from './family.js';
 
 type ClaimRequest =
@@ -338,9 +336,8 @@ function selectBand(
 	return null;
 }
 
-/** The band's amount: a figure, or the expression evaluated over the entry context. */
+/** The band's amount: its money expression evaluated over the entry context. */
 function bandAmount(band: CatalogueBand, context: Record<string, unknown>): number {
-	if (typeof band.amount === 'number') return band.amount;
 	return evaluateNumber(expressionEngine, band.amount, context);
 }
 
@@ -375,10 +372,11 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 						options.employed
 					);
 		const sourceMonth = lateOneOff ? monthKey(window.start) : null;
+		// A due one-off always has its source month prepared. A sibling read for a ceiling can be
+		// dated in a month this run never prepared — a later month's award counted against an
+		// annual cap — and is valued under this run's own law rather than stopping the payroll.
 		const allowanceConfiguration =
 			sourceMonth == null ? null : options.bundle.allowanceConfigurations?.get(sourceMonth);
-		if (sourceMonth != null && !allowanceConfiguration)
-			throw new Error('A one-off Allowance has no prepared source-month configuration.');
 		return source.prorates
 			? prorationFraction({
 					// The basis is the source month's law, not today's: the entry was earned then.
@@ -463,10 +461,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		const reimbursable = cents(raw * fraction);
 		let payable = reimbursable;
 		if (band?.limit != null) {
-			const limitAmount =
-				typeof band.limit.amount === 'number'
-					? band.limit.amount
-					: evaluateNumber(expressionEngine, band.limit.amount, context);
+			const limitAmount = evaluateNumber(expressionEngine, band.limit.amount, context);
 			// The ceiling spans catalogue revisions of one code: a request agreed under an earlier
 			// revision still consumes it. Compare by code, not id, for the same reason the hook's
 			// `catalogueRevisionsOf` reads the whole lineage.
@@ -545,7 +540,6 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					},
 					catalogueComponent: options.component,
 					bucket,
-					optIns: band?.statutory_opt_ins ?? [],
 					label: options.component.code,
 					amount,
 					quantity: null,
@@ -559,13 +553,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 	return measureEntry(options.entry);
 }
 
-export function prepareAllowanceWork(options: Pick<MeasureComponentOptions, 'bundle'>) {
+export function prepareAllowanceWork(
+	options: Pick<MeasureComponentOptions, 'bundle' | 'configuration'>
+) {
 	const { bundle } = options;
 	const allowanceWorkDayIds = new Set<string>();
 	const allowanceSchedules = new Map<string, Map<IsoDate, ScheduledDay>>();
 	const allowanceWorkingDaysIn = (sourceMonth: string, window: PayRange): number => {
-		const source = bundle.allowanceConfigurations?.get(sourceMonth);
-		if (!source) throw new Error('A one-off Allowance has no prepared source-month configuration.');
+		// Same fallback as `entryFraction`: a month nobody prepared is a ceiling sibling's month.
+		const source = bundle.allowanceConfigurations?.get(sourceMonth) ?? options.configuration;
 		let schedule = allowanceSchedules.get(sourceMonth);
 		if (!schedule) {
 			const sourceWindow = monthBounds(sourceMonth);
@@ -1112,33 +1108,22 @@ function prepareRequestCatalogues(
 			})),
 			...payments.map((row) => ({ ...row, family: 'PAYMENT' as const, definition: entryOf() }))
 		] as unknown as CatalogueComponent[];
-		const settings = yield* options.api.db.jurisdiction_settings.findMany({
-			where: { id: { in: [...new Set(components.map((row) => row.settings_id))] }, ...approved },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(settings, 'source catalogue settings');
-		const settingsById = new Map(settings.map((row) => [row.id, row]));
-		// A request may pin a catalogue revision sealed under an earlier version; its opt-ins still
-		// charge the schemes of the version in force (RFC 0002 §6).
-		const aliases = yield* loadOptInAliases({
-			api: options.api,
-			configuration: options.configuration,
-			ids: components.flatMap((row) =>
-				row.bands.flatMap((band) => band.statutory_opt_ins.map((optIn) => optIn.contribution_id))
-			)
-		});
-		const byId = new Map(
-			components.map((row) => [
-				row.id,
-				{
-					...row,
-					bands: row.bands.map((band) => ({
-						...band,
-						statutory_opt_ins: aliasedOptIns(band.statutory_opt_ins, aliases)
-					}))
-				}
-			])
+		// The lineage's versions are already in hand; only a component from outside it is read.
+		const settingsById = new Map(
+			options.configuration.lineageVersions.map((row) => [row.id, row] as const)
 		);
+		const unknownVersionIds = [
+			...new Set(components.map((row) => row.settings_id).filter((id) => !settingsById.has(id)))
+		];
+		if (unknownVersionIds.length > 0) {
+			const settings = yield* options.api.db.jurisdiction_settings.findMany({
+				where: { id: { in: unknownVersionIds }, ...approved },
+				limit: PAGE_LIMIT
+			});
+			options.api.reads.assertComplete(settings, 'source catalogue settings');
+			for (const row of settings) settingsById.set(row.id, row);
+		}
+		const byId = new Map(components.map((row) => [row.id, row]));
 		for (const request of requests) {
 			const component = byId.get(request.catalogue_id);
 			const version = component == null ? undefined : settingsById.get(component.settings_id);

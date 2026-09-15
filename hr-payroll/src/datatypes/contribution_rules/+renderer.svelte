@@ -12,6 +12,7 @@
 	import { contributionRuleSchema } from './+definition.js';
 	import { Result, Schema } from 'effect';
 	import ExpressionCell from '../../lib/ui/expression-cell.svelte';
+	import type { ExpressionType } from '../../lib/expressions/contexts.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	type RuleRow = { id: string; when: string; employee: string; employer: string };
@@ -30,7 +31,7 @@
 		kind: string,
 		extra: Partial<CollectionField> = {}
 	): CollectionField => ({ name, kind, nullable: false, ...extra });
-	const schemeExpr = (name: string, type: 'boolean' | 'number') =>
+	const schemeExpr = (name: string, type: ExpressionType) =>
 		fieldOf(name, 'text', { options: { site: 'scheme', type } });
 
 	let projected = $state<RuleRow[]>([]);
@@ -59,7 +60,7 @@
 		{
 			key: 'employee',
 			label: t('component.rule_employee'),
-			field: schemeExpr('employee', 'number'),
+			field: schemeExpr('employee', 'money'),
 			renderer: ExpressionCell,
 			placeholder: 'base * 11.0 / 100.0',
 			width: 280
@@ -67,7 +68,7 @@
 		{
 			key: 'employer',
 			label: t('component.rule_employer'),
-			field: schemeExpr('employer', 'number'),
+			field: schemeExpr('employer', 'money'),
 			renderer: ExpressionCell,
 			placeholder: 'base * 13.0 / 100.0',
 			width: 280

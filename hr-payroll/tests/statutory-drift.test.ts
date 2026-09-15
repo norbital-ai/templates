@@ -42,8 +42,7 @@ const sealed = {
 				bands: [{ eligibility: '', days: 8 }]
 			}
 		}
-	],
-	pay_component: [{ code: 'OVERTIME', statutory_opt_ins: [] }]
+	]
 };
 const quote = 'the employee contribution rate is 12% of wages';
 
@@ -53,7 +52,6 @@ test('a changed rule table standing on a quote from a retrieved page is one chan
 		{
 			contributions: [{ code: 'EPF', rules: [rule('12.0')], source_url: page.url, quote }],
 			leave_catalogue: [],
-			pay_component: [],
 			notes: []
 		},
 		[page]
@@ -92,7 +90,6 @@ test('an unchanged table, in any key or rule order, is no change', () => {
 					quote
 				}
 			],
-			pay_component: [{ code: 'OVERTIME', statutory_opt_ins: [], source_url: page.url, quote }],
 			notes: ['A revision is announced for 2028.']
 		},
 		[page]
@@ -121,7 +118,6 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 				{ code: 'SOCSO', rules: [rule('1.0')], source_url: page.url, quote }
 			],
 			leave_catalogue: [],
-			pay_component: [],
 			notes: []
 		},
 		[page]
@@ -146,7 +142,6 @@ test('the proposed rules replace the cloned ones in the draft write', () => {
 		],
 		payment_catalogue_settings: [{ id: 'p1', code: 'SEPARATION', bands: [] }]
 	};
-	const optionIn = [{ contribution_id: OPT_IN_ID, effect: 'INCLUDE' }];
 	const proposal = {
 		proposed_by: 'statutory_drift',
 		run_id: 'run',
@@ -163,43 +158,20 @@ test('the proposed rules replace the cloned ones in the draft write', () => {
 				quote,
 				retrieved_at: page.retrieved_at,
 				sha256: page.sha256
-			},
-			{
-				collection: 'pay_component',
-				code: 'SEPARATION',
-				field: 'statutory_opt_ins',
-				previous: [],
-				proposed: optionIn,
-				source_url: page.url,
-				quote,
-				retrieved_at: page.retrieved_at,
-				sha256: page.sha256
 			}
 		],
 		notes: [],
 		unreachable: []
 	};
-	const revised = applyProposedChanges(
-		write,
-		proposal.changes,
-		proposal,
-		new Map([[OPT_IN_ID, 'clone-id']])
-	);
+	const revised = applyProposedChanges(write, proposal.changes, proposal);
 	assert.equal(
 		revised.change_summary,
-		'Statutory drift: 2 change(s) proposed from v1 on 2026-09-07T00:00:00.000Z.'
+		'Statutory drift: 1 change(s) proposed from v1 on 2026-09-07T00:00:00.000Z.'
 	);
 	assert.deepEqual(revised.contribution_settings[0].rules, [rule('12.0')]);
 	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
 	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
-	assert.deepEqual(revised.payment_catalogue_settings[0].bands, [
-		{
-			when: '',
-			amount: 'entry.amount',
-			limit: null,
-			statutory_opt_ins: [{ contribution_id: 'clone-id', effect: 'INCLUDE' }]
-		}
-	]);
+	assert.deepEqual(revised.payment_catalogue_settings, write.payment_catalogue_settings);
 });
 
 test('a changed rate preserves and targets its rule ladder', () => {
@@ -215,7 +187,6 @@ test('a changed rate preserves and targets its rule ladder', () => {
 		{
 			contributions: [{ code: 'EPF', rules: [proposed], source_url: page.url, quote }],
 			leave_catalogue: [],
-			pay_component: [],
 			notes: []
 		},
 		[page]
@@ -333,33 +304,27 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 	assert.match(read.unreachable[0].reason, /browser challenge/);
 });
 
-test('a cloned version remaps every opt-in to the clone’s own scheme id', () => {
+test('a cloned version carries every scheme’s base unchanged under the clone’s own id', () => {
+	// A base names catalogue rows by family and code (RFC 0003 §1), so nothing is remapped.
+	const base = {
+		salary: true,
+		absence: true,
+		overtime: false,
+		night_premium: false,
+		entries: [{ family: 'LEAVE', code: 'ANNUAL' }]
+	};
 	const source = {
 		id: 'source',
 		code: 'SG',
 		name: 'Singapore',
 		effective_range: { start: '2026-01-01T00:00:00.000Z', end: null },
-		work_rules: {
-			proration: 'NONE',
-			engine_lines: {
-				salary: { statutory_opt_ins: [{ contribution_id: OPT_IN_ID, effect: 'INCLUDE' }] },
-				absence: { statutory_opt_ins: [] },
-				night: { statutory_opt_ins: [] }
-			},
-			rates: { ordinary: [], bands: [] }
-		}
+		work_rules: { proration: 'NONE', ordinary_divisor_days: '26.0', overtime_when: '', bands: [] }
 	};
 	const { write, schemeIds } = settingsDraftWrite(
 		{
 			source,
-			schemes: [{ id: OPT_IN_ID, code: 'CPF', rules: [rule('11.0')] }],
-			catalogueLeaves: [
-				{
-					id: 'l1',
-					code: 'ANNUAL',
-					bands: [{ statutory_opt_ins: [{ contribution_id: OPT_IN_ID, effect: 'REDUCE' }] }]
-				}
-			],
+			schemes: [{ id: OPT_IN_ID, code: 'CPF', rules: [rule('11.0')], base }],
+			catalogueLeaves: [{ id: 'l1', code: 'ANNUAL' }],
 			loanCatalogue: [],
 			claimCatalogue: [],
 			allowanceCatalogue: [],
@@ -370,11 +335,9 @@ test('a cloned version remaps every opt-in to the clone’s own scheme id', () =
 	const cloneId = schemeIds.get(OPT_IN_ID);
 	assert.notEqual(cloneId, OPT_IN_ID);
 	assert.equal(write.contribution_settings[0].id, cloneId);
-	assert.equal(
-		write.leave_catalogue_settings[0].bands[0].statutory_opt_ins[0].contribution_id,
-		cloneId
-	);
-	assert.equal(write.work_rules.engine_lines.salary.statutory_opt_ins[0].contribution_id, cloneId);
+	assert.deepEqual(write.contribution_settings[0].base, base);
+	assert.deepEqual(write.leave_catalogue_settings[0].code, 'ANNUAL');
+	assert.deepEqual(write.work_rules, source.work_rules);
 });
 
 test('research opens declarations: canonical sites in order, a news site is dropped by name', () => {

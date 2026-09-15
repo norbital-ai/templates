@@ -188,8 +188,8 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 		'db.loan_catalogue.findMany'
 	]);
 	assert.match(changes, /settings_id = \{ in: \[baseVersion\.id, compareVersion\.id\] \}/);
-	assert.match(changes, /diffCollection\(collection, previous, proposed,/);
-	assert.match(changes, /diffSettingsRoot\(\s*baseVersion,\s*compareVersion,/);
+	assert.match(changes, /diffCollection\(collection, previous, proposed\)/);
+	assert.match(changes, /diffSettingsRoot\(\s*baseVersion,\s*compareVersion\s*\)/);
 	assert.match(changes, /snapshotId\(code, versions, offset\)/, 'snapshots are CODE_INDEX');
 });
 

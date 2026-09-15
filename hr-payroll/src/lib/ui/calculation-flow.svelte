@@ -2,9 +2,9 @@
 	/**
 	 * How the payslip's line items are produced, deterministically and for the whole version.
 	 *
-	 * A scheme's base is the signed sum of every line that opted into it (a catalogue band, a work
-	 * band, or one of the engine-priced work lines); its rules then turn that base into employee and
-	 * employer shares. A rule that names `produced.<code>` is a dependency, so the engine computes
+	 * A scheme's base is the signed sum of every line its declaration admits (the work lines by
+	 * flag, the catalogue rows it names); its rules then turn that base into employee and employer
+	 * shares. A rule that names `produced.<code>` is a dependency, so the engine computes
 	 * schemes in dependency order — the order below, with cycle-free code order as the floor.
 	 */
 	import { client } from '../workspace-client.js';
@@ -13,7 +13,7 @@
 	import { Stack } from '@norbital-ai/ui/layout';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { orderSchemes, producedMentions } from '../../collections/payroll_runs/lib/mentions.js';
-	import { optInLines } from '../payroll/opt-in-lines.js';
+	import { baseLines as linesOfBase } from '../payroll/base-lines.js';
 
 	let { version }: { readonly version: WorkspaceRow<'jurisdiction_settings'> } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -21,7 +21,7 @@
 	const approved = { approval_id: { isNull: true } } as const;
 	const catalogueQuery = () => ({
 		where: { settings_id: { eq: versionId }, ...approved },
-		columns: { id: true, code: true, bands: true },
+		columns: { id: true, code: true, direction: true },
 		limit: 500
 	});
 	const leave = $derived(client.db.leave_catalogue.findMany(catalogueQuery())?.current ?? []);
@@ -34,14 +34,17 @@
 	const schemesQuery = $derived(
 		client.db.statutory_contributions.findMany({
 			where: { settings_id: { eq: versionId }, ...approved },
-			columns: { id: true, code: true, name: true, rules: true },
+			columns: { id: true, code: true, name: true, rules: true, base: true },
 			orderBy: { code: 'asc' },
 			limit: 500
 		})
 	);
 
-	const lines = $derived(
-		optInLines({
+	const baseLinesOf = (contributionId: string) => {
+		const scheme = (schemesQuery?.current ?? []).find((row) => row.id === contributionId);
+		if (scheme == null) return [];
+		return linesOfBase({
+			base: scheme.base,
 			catalogues: [
 				['LEAVE', leave],
 				['LOAN', loan],
@@ -49,20 +52,13 @@
 				['ALLOWANCE', allowance],
 				['PAYMENT', payment]
 			],
-			work: version.work_rules,
-			engineLineLabels: {
+			workLabels: {
 				salary: t('renderer.work_rules.line_salary'),
 				absence: t('renderer.work_rules.line_absence'),
+				overtime: t('renderer.work_rules.line_overtime'),
 				night: t('renderer.work_rules.line_night')
 			}
-		})
-	);
-	const baseLinesOf = (contributionId: string) => {
-		const seen = new Map<string, { code: string; effect: 'INCLUDE' | 'REDUCE' }>();
-		for (const line of lines)
-			if (line.contribution_id === contributionId && !seen.has(`${line.code}:${line.effect}`))
-				seen.set(`${line.code}:${line.effect}`, { code: line.code, effect: line.effect });
-		return [...seen.values()];
+		});
 	};
 	/**
 	 * Dependency order, computed from the rules themselves: `produced.<code>` mentions order the

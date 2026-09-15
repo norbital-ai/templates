@@ -66,11 +66,11 @@ test(
 			// `ANNUAL_LEAVE` the owner saw in their picker.
 			await session.query(
 				`insert into leave_catalogue
-				   (id, settings_id, code, name, is_statutory, authority, eligibility,
-				    destination, direction, bands, evidence, paid, evidence_after_days,
+				   (id, settings_id, code, name, authority, eligibility,
+				    destination, direction, evidence, paid, evidence_after_days,
 				    entitlement, approval_id, created_at, updated_at)
-				 select $1, $2, code, name, is_statutory, authority, eligibility,
-				        destination, direction, bands, evidence, paid, evidence_after_days,
+				 select $1, $2, code, name, authority, eligibility,
+				        destination, direction, evidence, paid, evidence_after_days,
 				        entitlement, null, created_at, updated_at
 				   from leave_catalogue where code = 'ANNUAL' and settings_id = $3`,
 				[OLD_ANNUAL_ID, OLD_VERSION_ID, JURISDICTION_ID]

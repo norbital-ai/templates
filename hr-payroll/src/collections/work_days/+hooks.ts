@@ -71,7 +71,7 @@ type SettingsVersionRow = {
 		readonly authority?: string | null;
 		readonly breaks?: readonly {
 			readonly when: string;
-			readonly owed_minutes: number | string;
+			readonly owed_minutes: string;
 			readonly counts_as_worked_time: boolean | null;
 		}[];
 	} | null;

@@ -22,8 +22,7 @@ const capBands = (amount = 1000, eligibility = '') => [
 	{
 		when: eligibility === '' ? '' : `person.${eligibility}`,
 		amount: 'entry.amount',
-		limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount },
-		statutory_opt_ins: []
+		limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: `${amount}.0` }
 	}
 ];
 
@@ -134,8 +133,7 @@ test('two bands that differ by grade: the tier is read off the terms in force on
 			{
 				when: 'person.terms.grade == "G3"',
 				amount: 'entry.amount',
-				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: 2000 },
-				statutory_opt_ins: []
+				limit: { period: 'CALENDAR_YEAR', on_exceed: 'BLOCK', amount: '2000.0' }
 			},
 			...capBands()
 		];

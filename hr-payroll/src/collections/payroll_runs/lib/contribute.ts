@@ -77,6 +77,8 @@ type ContributeInput = {
 	readonly person: PersonContext;
 	/** The company region's minimum wage, or null where the version states none for it. */
 	readonly minimumWage: number | null;
+	/** Whether the version's wages order covers this person; `wage_floor` is 0 when it does not. */
+	readonly minimumWageApplies?: boolean;
 };
 
 /** Everything one scheme produced, so the schemes that read it can find it. */
@@ -85,13 +87,13 @@ type Produced = {
 	readonly employer: number;
 };
 
-/** Whether any rule names the regional minimum wage, so a version without one stops the run. */
+/** Whether any rule reads the regional minimum wage or its floor, so a version without one stops the run. */
 function mentionsMinimumWage(
 	rules: readonly { when: string; employee: string; employer: string }[]
 ) {
 	return rules.some((rule) =>
-		[rule.when, rule.employee, rule.employer].some((expression) =>
-			expression.includes('minimum_wage(')
+		[rule.when, rule.employee, rule.employer].some(
+			(expression) => expression.includes('minimum_wage(') || expression.includes('wage_floor')
 		)
 	);
 }
@@ -190,6 +192,7 @@ function schemeContext(options: {
 			future_equivalents: input.projection.futurePayslipEquivalents
 		},
 		region: input.person.company.region,
+		wage_floor: input.minimumWageApplies === false ? 0 : (input.minimumWage ?? 0),
 		headcount: input.headcount,
 		age: input.age ?? 0,
 		risk_class: input.riskClass ?? '',

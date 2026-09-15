@@ -49,7 +49,14 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 				citizenship: 'PERMANENT_RESIDENT',
 				registrations: MY_LOCAL
 			},
-			{ key: 'MY-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+			{ key: 'MY-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN },
+			{
+				key: 'MY-FOREIGN-75',
+				wage: 5001,
+				age: 75,
+				citizenship: 'FOREIGNER',
+				registrations: MY_FOREIGN
+			}
 		]
 	});
 
@@ -75,6 +82,8 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the 2025-12-01 law', () => {
 	// Part F — a non-citizen, 2% each on the wage as it stands, no bracket table and no ceiling.
 	// 2% × 5,001 = 100.02, rounded up to the next ringgit = 101, each side.
 	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+	// KWSP: a non-citizen contributes below the age of 75; at 75 Part F stops.
+	expectStatutory(book, 'MY-FOREIGN-75', 'EPF_NON_CITIZEN', 0, 0);
 
 	// SOCSO, Act 4 Third Schedule. First Category (employment injury + invalidity) below 60;
 	// Second Category (injury only, employer alone) at 60 and above. RM6,000 wage ceiling.

@@ -4,7 +4,7 @@
 	 *
 	 * A catalogue prices its entries through ordered bands over the entry context: the first band
 	 * whose `when` holds governs, its `amount` is the money the line settles, and its optional
-	 * ceiling (`limit`) bounds the entitlement. Each band states the statutory schemes it opts into.
+	 * ceiling (`limit`) bounds the entitlement.
 	 * A catalogue with no bands settles the entry's own amount unchanged.
 	 *
 	 * One row per band, one column per fact. The ceiling's three columns are optional: filling any
@@ -18,9 +18,8 @@
 	import { watch } from 'runed';
 	import type { CatalogueBand } from './+definition.js';
 	import type { Entitlement } from '../entitlement/+definition.js';
-	import StatutoryOptInsCell from '../../lib/ui/statutory-opt-ins-cell.svelte';
 	import ExpressionCell from '../../lib/ui/expression-cell.svelte';
-	import { numberOrExpression } from '../../lib/ui/renderer-input.js';
+	import type { ExpressionType } from '../../lib/expressions/contexts.js';
 	import type { RendererProps } from './$types.js';
 
 	type BandRow = {
@@ -30,7 +29,6 @@
 		limit_period: string;
 		limit_exceed: string;
 		limit_amount: string;
-		statutory_opt_ins: CatalogueBand['statutory_opt_ins'];
 	};
 
 	let props: RendererProps = $props();
@@ -47,8 +45,7 @@
 			amount: text(band.amount),
 			limit_period: band.limit?.period ?? '',
 			limit_exceed: band.limit?.on_exceed ?? '',
-			limit_amount: band.limit == null ? '' : text(band.limit.amount),
-			statutory_opt_ins: [...band.statutory_opt_ins]
+			limit_amount: band.limit == null ? '' : text(band.limit.amount)
 		}));
 	let rows = $state<BandRow[]>([]);
 	watch(
@@ -64,7 +61,7 @@
 		kind: string,
 		extra: Partial<CollectionField> = {}
 	): CollectionField => ({ name, kind, nullable: true, ...extra });
-	const entryExpr = (name: string, type: 'boolean' | 'number') =>
+	const entryExpr = (name: string, type: ExpressionType) =>
 		fieldOf(name, 'text', { options: { site: 'entry', type } });
 	const columns: MatrixColumn<BandRow>[] = [
 		{
@@ -78,7 +75,7 @@
 		{
 			key: 'amount',
 			label: t('renderer.catalogue_band.amount'),
-			field: entryExpr('amount', 'number'),
+			field: entryExpr('amount', 'money'),
 			renderer: ExpressionCell,
 			placeholder: 'entry.amount',
 			width: 240
@@ -100,17 +97,10 @@
 		{
 			key: 'limit_amount',
 			label: t('renderer.catalogue_band.limit_amount'),
-			field: entryExpr('limit_amount', 'number'),
+			field: entryExpr('limit_amount', 'money'),
 			renderer: ExpressionCell,
 			placeholder: '0.0',
 			width: 240
-		},
-		{
-			key: 'statutory_opt_ins',
-			label: t('component.statutory_opt_ins'),
-			field: fieldOf('statutory_opt_ins', 'json'),
-			renderer: StatutoryOptInsCell,
-			width: 130
 		}
 	];
 
@@ -123,7 +113,7 @@
 		return {
 			period: (row.limit_period.trim() || 'CALENDAR_YEAR') as Entitlement['period'],
 			on_exceed: (row.limit_exceed.trim() || 'BLOCK') as Entitlement['on_exceed'],
-			amount: row.limit_amount.trim() === '' ? 0 : numberOrExpression(row.limit_amount)
+			amount: row.limit_amount.trim() === '' ? '0.0' : row.limit_amount
 		};
 	}
 	function commit(next: BandRow[]): void {
@@ -132,9 +122,8 @@
 		props.onValueChange(
 			next.map((row): CatalogueBand => ({
 				when: row.when,
-				amount: numberOrExpression(row.amount),
-				limit: buildLimit(row),
-				statutory_opt_ins: [...row.statutory_opt_ins]
+				amount: row.amount,
+				limit: buildLimit(row)
 			}))
 		);
 	}
@@ -157,8 +146,7 @@
 			amount: '',
 			limit_period: '',
 			limit_exceed: '',
-			limit_amount: '',
-			statutory_opt_ins: []
+			limit_amount: ''
 		})}
 		onChange={commit}
 	/>

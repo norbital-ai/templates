@@ -4,7 +4,6 @@
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
-		"is_statutory": true,
 		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -16,14 +15,20 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "a42ee1d4-776e-4b2e-943c-6e240e132645",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
-		"is_statutory": true,
 		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. NOT MODELLED HERE: JP covers Indonesian nationals only. The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -40,15 +45,21 @@
 				"employee": "round_unit(105474.0)",
 				"employer": "round_unit(210948.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "5e3ac325-b154-42a9-9fc1-6d6c28f36fff",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
-		"is_statutory": true,
-		"authority": "PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
+		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -57,36 +68,42 @@
 			{
 				"when": "risk_class == \"I\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.1 / 100.0)"
+				"employer": "round_unit((base) * 0.24 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"II\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.4 / 100.0)"
+				"employer": "round_unit((base) * 0.54 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"III\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.75 / 100.0)"
+				"employer": "round_unit((base) * 0.89 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"IV\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 1.13 / 100.0)"
+				"employer": "round_unit((base) * 1.27 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"V\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 1.6 / 100.0)"
+				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "4dcef5fc-93b3-4a01-b2f8-385e4a58f122",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
-		"is_statutory": true,
 		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -98,39 +115,51 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "4bf3843b-8734-408a-9735-6cd35bcede91",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
-		"is_statutory": true,
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0 && ((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) <= 12000000.0",
-				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) < 20.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) : 20.0) : 0.0)) * (round_unit(((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)))",
-				"employer": "round_unit(((base < minimum_wage(region) ? minimum_wage(region) : base)) * 4.0 / 100.0)"
+				"when": "((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) > 0.0 && ((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) <= 12000000.0",
+				"employee": "(rate_override > 0.0 ? round_unit(((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) * rate_override / 100.0) : round_unit(((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) * 1.0 / 100.0))",
+				"employer": "round_unit(((base < wage_floor ? wage_floor : base)) * 4.0 / 100.0)"
 			},
 			{
-				"when": "((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) > 12000000.0",
-				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) < 20.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) : 20.0) : 0.0)) * (round_unit(120000.0)))",
+				"when": "((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) > 12000000.0",
+				"employee": "(rate_override > 0.0 ? round_unit(12000000.0 * rate_override / 100.0) : round_unit(120000.0))",
 				"employer": "round_unit(480000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "302ab052-abe0-4266-bcd0-aacb86d23c84",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
-		"is_statutory": true,
-		"authority": "PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -139,16 +168,22 @@
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.14 / 100.0)"
+				"employer": "round_unit(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "fb0622a5-f14f-4fdd-af63-58465f7cc528",
 		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
-		"is_statutory": true,
 		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) are charged as their own schemes and are not read as a relief on this scheme’s base (see the lineage README). NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -156,222 +191,222 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5650000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5650000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5950000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5950000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6300000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6300000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.75 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 7500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 7500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 7500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 8550000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 7500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 8550000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 8550000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 9650000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 8550000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 9650000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.75 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 9650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 9650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10350000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10350000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10350000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10700000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10350000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10700000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10700000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10700000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 3.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11600000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11600000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 3.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 12500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 12500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 4.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 12500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 13750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 12500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 13750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 13750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 15100000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 13750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 15100000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 6.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 15100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 16950000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 15100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 16950000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 7.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 16950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 19750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 16950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 19750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 19750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24150000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 19750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24150000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 9.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24150000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26450000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24150000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26450000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 10.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26450000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26450000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 12.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 13.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 35400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 35400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 14.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 35400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 39100000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 35400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 39100000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 15.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 39100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 43850000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 39100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 43850000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 16.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 43850000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 47800000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 43850000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 47800000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 17.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 47800000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 51400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 47800000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 51400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 18.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 51400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 56300000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 51400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 56300000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 19.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 56300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 62200000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 56300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 62200000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 20.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 62200000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 68600000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 62200000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 68600000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 21.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 68600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 77500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 68600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 77500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 22.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 77500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 89000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 77500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 89000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 23.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 89000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 103000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 89000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 103000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 24.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 103000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 125000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 103000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 125000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 25.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 125000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 157000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 125000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 157000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 26.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 157000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 206000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 157000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 206000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 27.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 206000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 337000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 206000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 337000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 28.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 337000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 454000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 337000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 454000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 29.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 454000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 550000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 454000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 550000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 30.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 550000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 695000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 550000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 695000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 31.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 695000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 910000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 695000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 910000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 32.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 910000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 1400000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 910000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 1400000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 33.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 1400000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 1400000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 34.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
@@ -780,14 +815,125 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 34.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "JOINT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "WORK_FROM_HOME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_CIRCUMCISION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_BAPTISM_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_HOUSEHOLD_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MISCARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BONUS_THR"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "LEAVE_ENCASHMENT"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "HOUSE_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "CAR_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "MEDICAL_ALLOWANCE"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "CLAWBACK_OVERTIME"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACK_PAY_SALARY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "SPECIAL_ALLOWANCE"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "RETROACTIVE_PAY"
+				}
+			]
+		}
 	},
 	{
 		"id": "1fc84b08-22b6-4d48-a2c4-e909eb29c62d",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
-		"is_statutory": true,
 		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -799,14 +945,20 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "5d9cfe95-6ca8-4e8f-84a3-3113b8adba36",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
-		"is_statutory": true,
 		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. NOT MODELLED HERE: JP covers Indonesian nationals only. The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -823,15 +975,21 @@
 				"employee": "round_unit(105474.0)",
 				"employer": "round_unit(210948.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "ed8a3f29-c3c9-4dd0-b151-504d3902920e",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
-		"is_statutory": true,
-		"authority": "PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
+		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -840,36 +998,42 @@
 			{
 				"when": "risk_class == \"I\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.1 / 100.0)"
+				"employer": "round_unit((base) * 0.24 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"II\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.4 / 100.0)"
+				"employer": "round_unit((base) * 0.54 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"III\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.75 / 100.0)"
+				"employer": "round_unit((base) * 0.89 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"IV\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 1.13 / 100.0)"
+				"employer": "round_unit((base) * 1.27 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"V\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 1.6 / 100.0)"
+				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "5cdd1702-5407-4fe3-a29a-5cd8c5b7da20",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
-		"is_statutory": true,
 		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -881,39 +1045,51 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "b662790f-0fee-4d21-8373-7b318a5d8ddd",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
-		"is_statutory": true,
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0 && ((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) <= 12000000.0",
-				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) < 20.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) : 20.0) : 0.0)) * (round_unit(((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)))",
-				"employer": "round_unit(((base < minimum_wage(region) ? minimum_wage(region) : base)) * 4.0 / 100.0)"
+				"when": "((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) > 0.0 && ((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) <= 12000000.0",
+				"employee": "(rate_override > 0.0 ? round_unit(((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) * rate_override / 100.0) : round_unit(((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) * 1.0 / 100.0))",
+				"employer": "round_unit(((base < wage_floor ? wage_floor : base)) * 4.0 / 100.0)"
 			},
 			{
-				"when": "((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) > 12000000.0",
-				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) < 20.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) : 20.0) : 0.0)) * (round_unit(120000.0)))",
+				"when": "((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) > 12000000.0",
+				"employee": "(rate_override > 0.0 ? round_unit(12000000.0 * rate_override / 100.0) : round_unit(120000.0))",
 				"employer": "round_unit(480000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "395ef462-7094-451a-902f-573ee961bec8",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
-		"is_statutory": true,
-		"authority": "PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -922,16 +1098,22 @@
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.14 / 100.0)"
+				"employer": "round_unit(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "e1890a8c-bd0b-4480-8cb3-f5b05dea2547",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
-		"is_statutory": true,
 		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) are charged as their own schemes and are not read as a relief on this scheme’s base (see the lineage README). NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -939,222 +1121,222 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5650000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5650000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5950000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5950000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6300000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6300000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.75 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 7500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 7500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 7500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 8550000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 7500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 8550000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 8550000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 9650000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 8550000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 9650000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.75 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 9650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 9650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10350000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10350000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10350000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10700000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10350000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10700000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10700000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10700000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 3.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11600000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11600000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 3.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 12500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 12500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 4.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 12500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 13750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 12500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 13750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 13750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 15100000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 13750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 15100000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 6.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 15100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 16950000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 15100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 16950000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 7.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 16950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 19750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 16950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 19750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 19750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24150000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 19750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24150000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 9.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24150000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26450000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24150000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26450000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 10.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26450000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26450000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 12.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 13.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 35400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 35400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 14.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 35400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 39100000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 35400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 39100000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 15.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 39100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 43850000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 39100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 43850000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 16.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 43850000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 47800000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 43850000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 47800000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 17.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 47800000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 51400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 47800000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 51400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 18.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 51400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 56300000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 51400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 56300000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 19.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 56300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 62200000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 56300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 62200000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 20.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 62200000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 68600000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 62200000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 68600000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 21.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 68600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 77500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 68600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 77500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 22.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 77500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 89000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 77500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 89000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 23.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 89000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 103000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 89000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 103000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 24.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 103000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 125000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 103000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 125000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 25.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 125000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 157000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 125000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 157000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 26.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 157000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 206000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 157000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 206000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 27.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 206000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 337000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 206000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 337000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 28.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 337000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 454000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 337000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 454000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 29.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 454000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 550000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 454000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 550000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 30.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 550000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 695000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 550000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 695000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 31.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 695000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 910000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 695000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 910000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 32.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 910000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 1400000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 910000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 1400000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 33.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 1400000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 1400000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 34.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
@@ -1563,14 +1745,125 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 34.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "JOINT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "WORK_FROM_HOME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_CIRCUMCISION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_BAPTISM_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_HOUSEHOLD_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MISCARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BONUS_THR"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "LEAVE_ENCASHMENT"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "HOUSE_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "CAR_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "MEDICAL_ALLOWANCE"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "CLAWBACK_OVERTIME"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACK_PAY_SALARY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "SPECIAL_ALLOWANCE"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "RETROACTIVE_PAY"
+				}
+			]
+		}
 	},
 	{
 		"id": "e8af2b2c-4f82-409f-a794-f817c435054b",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JHT",
 		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
-		"is_statutory": true,
 		"authority": "PP 46/2015 art.16 — 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer. SOURCE: `JAN 2026 (LOCAL)!AO5` = 2% (employee) and `!AR5` = 3.7% (employer); `!AE5` prints the combined 5.7%. NO CEILING: the highest-paid local employee, basic 22,380,750, is charged `AO17` 447,615 = 2% of the FULL wage, and the one foreign employee at 62,000,000 is charged `AK6` 1,240,000 = 2% of the full wage. Both would be clamped if any ceiling applied, and neither is.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1582,14 +1875,20 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "9ec48d51-b81c-44d2-9ef1-e063da9ace27",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
-		"is_statutory": true,
 		"authority": "PP 45/2015 art.28 — 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.29). The ceiling is 11,086,300 from 1 March 2026 (SE BPJS Ketenagakerjaan No. B/1226/022026 of 25 February 2026, the art.29(3) uplift by 2025 GDP growth of 5.11%). SOURCE: `JAN 2026 (LOCAL)!AN5` = 1% (employee) and `!AQ5` = 2% (employer); `!AF5` prints the combined 3%. The ceiling and its March step are read off the one employee it binds — see ID_BPJS_CEILINGS_OBSERVED. NOT MODELLED HERE: JP covers Indonesian nationals only. The one foreign employee is charged 0 in both `AJ6` and `AM6` on every (FOREIGN) sheet while still paying JHT, JKK, JKM and Kesehatan. Nationality is not a `rate_selector` axis; it belongs on employment_statutory_facts — see ID_JP_FOREIGN_EXCLUSION.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1606,15 +1905,21 @@
 				"employee": "round_unit(110863.0)",
 				"employer": "round_unit(221726.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "87c1513c-2c16-41a0-8812-d611049699a3",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKK",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
-		"is_statutory": true,
-		"authority": "PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
+		"authority": "PP 44/2015 Pasal 16(1): JKK by risk group — I 0.24%, II 0.54%, III 0.89%, IV 1.27%, V 1.74% of the wage, employer-borne. PP 37/2021 Pasal 11 as amended by PP 6/2025 funds JKP by recomposing 0.14% out of this rate; the employer is billed the full JKK rate and no separate JKP line (BPJS Ketenagakerjaan billing, and the seeded company's own listing). PP 44/2015 art.16(1) — an employer-only premium banded by the employer's registered work-risk group, in five groups from sangat rendah to sangat tinggi. PP 49/2023 art.16A, in force 6 October 2023, recomposes every rate by 0.14 percentage points into JKP for a wage earner required and registered in the JKP programme, giving 0.10 / 0.40 / 0.75 / 1.13 / 1.60; the art.16(1) rates 0.24 / 0.54 / 0.89 / 1.27 / 1.74 survive only for the art.16A(3) population, which this version does not model. SOURCE: `JAN 2026 (LOCAL)!AS5` = 0.89% and `!AC5` = 0.24% — the art.16(1) rates for class III (sedang) and class I (sangat rendah). The actuals follow 0.89% — Sutoyo `AS8` 65,670 = 0.89% x 7,378,688 exactly, and the foreign employee `AO6` 551,800 = 0.89% x 62,000,000 exactly, at two wages three orders of magnitude apart — so the workbook's risk group is class III, not the class IV the company record states. See ID_JKK_RISK_CLASS_CONFLICT. NO CEILING: the premium is charged on the full 22,380,750 and on the full 62,000,000.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1623,36 +1928,42 @@
 			{
 				"when": "risk_class == \"I\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.1 / 100.0)"
+				"employer": "round_unit((base) * 0.24 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"II\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.4 / 100.0)"
+				"employer": "round_unit((base) * 0.54 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"III\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.75 / 100.0)"
+				"employer": "round_unit((base) * 0.89 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"IV\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 1.13 / 100.0)"
+				"employer": "round_unit((base) * 1.27 / 100.0)"
 			},
 			{
 				"when": "risk_class == \"V\"",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 1.6 / 100.0)"
+				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "b99d43b9-7822-47bb-b1e5-ac3d3ca588b7",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKM",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
-		"is_statutory": true,
 		"authority": "PP 44/2015 art.18(1) — an employer-only premium of 0.30% of the monthly wage. PP 49/2023 art.18A recomposed 0.10 points of it into JKP from 6 October 2023, but PP 6/2025 art.11, in force 7 February 2025, ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the rate is 0.30% again. art.34 is the JKM benefit schedule, not the rate. SOURCE: `JAN 2026 (LOCAL)!AT5` = 0.3%, corroborated by `!AD5` = 0.3% in the summary block. NO CEILING: `AT17` 67,142 = 0.3% x 22,380,750 and the foreign employee `AP6` 186,000 = 0.3% x 62,000,000, both on the full wage.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1664,39 +1975,51 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "3e3ec43c-5568-464b-a4f2-9f86abae362c",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "KESEHATAN",
 		"name": "BPJS Kesehatan (health insurance)",
-		"is_statutory": true,
-		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.30(4) charges a further 1% per family member beyond the fifth. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.30(4): a further 1% of wage for each family member beyond the fifth — the covered five being the worker, a spouse and three children — borne by the worker. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
+		"authority": "Perpres 82/2018 art.30 as amended — 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (Perpres 59/2024 art.32(1) and (2) — the third amendment, in force 8 May 2024 — restating the ceiling and floor; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). The floor art.32(2) states is the workplace UMK, with the UMP only as the art.32(3) fallback; this seed carries the UMP, which is the weaker guard — see NOT APPLIED. SOURCE: `JAN 2026 (LOCAL)!AP5` = 1% (employee) and `!AU5` = 4% (employer); `!AG5` prints the combined 5%. The 12,000,000 ceiling is read off two employees — see ID_BPJS_CEILINGS_OBSERVED. The art.30(2) FLOOR is carried by `FLOOR:MINIMUM_WAGE` against this version's `minimum_wages` map, which `company.region` keys; the source is silent on it, the lowest basic salary anywhere in the workbook being 5,938,885, so no row in the source is floored. NOT MODELLED HERE: Perpres 82/2018 art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. One employee pays exactly 2% in every month; a dependant count is not a `rate_selector` axis. See ID_KESEHATAN_EXTRA_FAMILY_MEMBERS. art.5(3)–(4) and art.36: a further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the wage each, paid by the worker; carried as a rate override on the registration, never charged from the household count. EMPLOYEE_PER_DEPENDANT:20:4 charges one more employee share per head past those four; the regulation states no ceiling, so 20 is a nominal one no household reaches.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0 && ((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) <= 12000000.0",
-				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) < 20.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) : 20.0) : 0.0)) * (round_unit(((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)))",
-				"employer": "round_unit(((base < minimum_wage(region) ? minimum_wage(region) : base)) * 4.0 / 100.0)"
+				"when": "((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) > 0.0 && ((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) <= 12000000.0",
+				"employee": "(rate_override > 0.0 ? round_unit(((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) * rate_override / 100.0) : round_unit(((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) * 1.0 / 100.0))",
+				"employer": "round_unit(((base < wage_floor ? wage_floor : base)) * 4.0 / 100.0)"
 			},
 			{
-				"when": "((((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base < minimum_wage(region) ? minimum_wage(region) : base)) - 0.0 : 0.0)) > 12000000.0",
-				"employee": "round_cent((1.0 + ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) > 0.0 ? ((1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) < 20.0 ? (1.0 + (person.employee.spouse_status != \"NONE\" ? 1.0 : 0.0) + person.employee.dependents_count - 1.0 - 4.0) : 20.0) : 0.0)) * (round_unit(120000.0)))",
+				"when": "((((base < wage_floor ? wage_floor : base)) - 0.0 > 0.0 ? ((base < wage_floor ? wage_floor : base)) - 0.0 : 0.0)) > 12000000.0",
+				"employee": "(rate_override > 0.0 ? round_unit(12000000.0 * rate_override / 100.0) : round_unit(120000.0))",
 				"employer": "round_unit(480000.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "0fc605d2-87b0-45ea-b38f-2fba83233ad8",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
-		"is_statutory": true,
-		"authority": "PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
+		"authority": "PP 37/2021 Pasal 11 as amended by PP 6/2025: the JKP contribution is 0.36% of the wage capped at Rp5,000,000 (Pasal 11(7)–(8)), of which 0.22% is the central government's and 0.14% is recomposed out of the JKK contribution the employer already pays; nothing is charged on a payslip beyond JKK. PP 37/2021 art.43 as amended by PP 6/2025 art.11, in force 7 February 2025 — 0.36% of the monthly wage, of which 0.22% is borne by the Central Government and 0.14% comes from recomposing JKK (PP 49/2023 art.16A). Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage, the same total the source workbook's 0.89 + 0.30 charges; only the composition of the payslip lines moves. NOT MODELLED HERE: JKP is open to Indonesian nationals under 54 whose employer is not in contribution arrears. Neither nationality nor JKP registration is a `rate_selector` axis; both belong on employment_statutory_facts.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1705,16 +2028,22 @@
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_unit((base) * 0.14 / 100.0)"
+				"employer": "round_unit(0.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": false,
+			"night_premium": false,
+			"entries": []
+		}
 	},
 	{
 		"id": "976bf1e5-0549-4621-ba46-4cfb6810a1c9",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
-		"is_statutory": true,
 		"authority": "PP 58/2023 and PMK 168/2023, in force 1 January 2024 — for every tax period but the last, a permanent employee's withholding is the monthly average effective rate (tarif efektif rata-rata, TER) for the employee's PTKP category applied to monthly gross. Category A is PTKP TK/0 (54,000,000) and TK/1 & K/0 (58,500,000), 44 brackets; category B is TK/2 & K/1 (63,000,000) and TK/3 & K/2 (67,500,000), 40 brackets; category C is K/3 (72,000,000), 41 brackets — all transcribed from the PMK 168/2023 Lampiran. Employee JHT (2%) and JP (1%) are charged as their own schemes and are not read as a relief on this scheme’s base (see the lineage README). NOT MODELLED HERE: the last tax period trues the year up to the annual UU PPh art.17(1)(a) progression after biaya jabatan and PTKP, and employer-borne JKK, JKM and the 4% Kesehatan are additions to taxable gross — see the lineage README.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
@@ -1722,222 +2051,222 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5650000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5650000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5950000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 5950000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6300000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 5950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6300000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.75 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 6750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 7500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 6750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 7500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 7500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 8550000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 7500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 8550000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 8550000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 9650000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 8550000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 9650000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.75 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 9650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 9650000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10350000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10350000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.25 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10350000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10700000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10350000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 10700000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 2.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10700000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 10700000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 3.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11600000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 11600000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 3.5 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 12500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 11600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 12500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 4.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 12500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 13750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 12500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 13750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 13750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 15100000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 13750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 15100000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 6.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 15100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 16950000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 15100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 16950000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 7.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 16950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 19750000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 16950000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 19750000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 19750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24150000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 19750000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 24150000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 9.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24150000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26450000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 24150000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 26450000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 10.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26450000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 26450000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 28000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30050000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 28000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 30050000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 12.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 30050000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 32400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 13.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 35400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 32400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 35400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 14.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 35400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 39100000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 35400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 39100000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 15.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 39100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 43850000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 39100000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 43850000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 16.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 43850000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 47800000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 43850000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 47800000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 17.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 47800000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 51400000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 47800000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 51400000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 18.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 51400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 56300000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 51400000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 56300000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 19.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 56300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 62200000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 56300000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 62200000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 20.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 62200000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 68600000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 62200000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 68600000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 21.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 68600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 77500000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 68600000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 77500000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 22.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 77500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 89000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 77500000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 89000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 23.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 89000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 103000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 89000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 103000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 24.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 103000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 125000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 103000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 125000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 25.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 125000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 157000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 125000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 157000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 26.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 157000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 206000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 157000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 206000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 27.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 206000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 337000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 206000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 337000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 28.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 337000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 454000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 337000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 454000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 29.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 454000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 550000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 454000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 550000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 30.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 550000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 695000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 550000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 695000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 31.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 695000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 910000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 695000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 910000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 32.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 910000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 1400000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 910000000.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 1400000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 33.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
 			{
-				"when": "((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count <= 1 || person.employee.marital_status == \"MARRIED\" && person.children.count == 0) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 1400000000.0)",
+				"when": "!((person.employee.marital_status == \"SINGLE\" || person.employee.marital_status == \"DIVORCED\") && person.children.count >= 2 || person.employee.marital_status == \"MARRIED\" && person.children.count >= 1 && person.children.count <= 2) && !(person.employee.marital_status == \"MARRIED\" && person.children.count >= 3) && ((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 1400000000.0)",
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 34.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			},
@@ -2346,6 +2675,118 @@
 				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 34.0 / 100.0)",
 				"employer": "round_unit((base) * 0.0 / 100.0)"
 			}
-		]
+		],
+		"base": {
+			"salary": true,
+			"absence": true,
+			"overtime": true,
+			"night_premium": false,
+			"entries": [
+				{
+					"family": "LEAVE",
+					"code": "JOINT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "WORK_FROM_HOME"
+				},
+				{
+					"family": "LEAVE",
+					"code": "ANNUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "UNPAID_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MEDICAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_MARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_CIRCUMCISION_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "CHILD_BAPTISM_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "BEREAVEMENT_HOUSEHOLD_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MENSTRUAL_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "MISCARRIAGE_LEAVE"
+				},
+				{
+					"family": "LEAVE",
+					"code": "PUBLIC_HOLIDAY_IN_LIEU"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "BONUS_THR"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "LEAVE_ENCASHMENT"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "HOUSE_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "CAR_ALLOWANCE"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "MEDICAL_ALLOWANCE"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "CLAWBACK_OVERTIME"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "BACK_PAY_SALARY"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "SPECIAL_ALLOWANCE"
+				},
+				{
+					"family": "PAYMENT",
+					"code": "RETROACTIVE_PAY"
+				}
+			]
+		}
 	}
 ]

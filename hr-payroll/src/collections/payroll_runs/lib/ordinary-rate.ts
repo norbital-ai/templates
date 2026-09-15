@@ -1,35 +1,39 @@
 /**
  * The ordinary rate of pay, and one day's wages.
  *
- * The divisor is statutory and lives on `work_rules.rates.ordinary` — Malaysia's 26 is EA s.60I,
- * Indonesia's 173 is PP 35/2021, Singapore's 190.67 is 12 × monthly ÷ (52 × 44). A company using
- * 30 where the statute says 26 underpays every overtime hour by 15%, which is why it is not a
- * company setting, and why the overtime rate is this rate and not a company-chosen alternative.
+ * The divisor is statutory and lives on `work_rules.ordinary_divisor_days` — Malaysia's 26 is EA
+ * s.60I, Indonesia's 173 hours is PP 35/2021, Singapore's 190.67 hours is 12 × monthly ÷ (52 × 44).
+ * A company using 30 where the statute says 26 underpays every overtime hour by 15%, which is why
+ * it is not a company setting, and why the overtime rate is this rate and not a company-chosen
+ * alternative.
+ *
+ * The divisor is one expression over the person, in days per month (RFC 0003 §2.1): a plain
+ * figure, the month's own `period.working_days`, or a ternary over the week shape — the Philippine
+ * day factor is 261 annual days for a five-day week and 313 for a six-day one, which is
+ * employee-level law and cannot be a company-wide divisor. A statute stated in hours is written as
+ * hours over the contract's normal daily hours, so both rates below derive from one figure.
  *
  * Two details matter for parity:
  *
  * - the numerator is the **unprorated** contract salary, so a mid-month joiner's overtime is priced
  *   at their full-month rate, not their part-month pay (decision E4);
- * - the rate is rounded to cents **before** it is multiplied by hours, never after.
+ * - each rate is rounded to cents **before** it is multiplied by hours, never after.
  *
  * Normal hours in an overtime-rate day are the employment's contractual weekly hours divided by
  * its contractual working days. That is the employee's normal day; a payroll-system convention
  * cannot replace it with a different schedule.
- *
- * `work_rules.rates.ordinary` is rows read top-down; `resolveOrdinaryRate` picks the first
- * whose predicate holds for the person and settles a `WORKING_DAYS` divisor from the month's
- * scheduled working days. Every pricing function below takes that resolved rate.
  */
 
 import { Schema } from 'effect';
 import type { Work } from './configuration.js';
-import { isEligible, type PersonContext } from './eligibility.js';
+import type { PersonContext } from './eligibility.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 import { monthDays } from './dates.js';
 import { cents } from './rounding.js';
 import { normalDailyHours } from './schedule.js';
+import { evaluateNumber, expressionEngine } from '../../../lib/expressions/evaluate.js';
 
 const payFrequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
 const RateTermsSchema = Schema.Struct({
@@ -40,56 +44,31 @@ const RateTermsSchema = Schema.Struct({
 });
 export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
 
-/** One ordinary-rate row with its divisor settled to a number. */
-type ResolvedOrdinaryRate = { readonly per: 'DAY' | 'HOUR'; readonly divisor: number };
-
 /**
- * The first row whose predicate holds for the person. `WORKING_DAYS` asks the caller for the
- * month's scheduled working days; a person no row covers, or a month with no working days under
- * that divisor, stops the run by name rather than pricing an hour at nothing.
+ * The version's divisor for this person, in days per month. A divisor that is not a positive
+ * number stops the run by name rather than pricing an hour at nothing or at infinity.
  */
-export function resolveOrdinaryRate(options: {
-	readonly rows: Work['rates']['ordinary'] | null | undefined;
+export function ordinaryDivisorDays(options: {
+	readonly expression: string;
 	readonly person: PersonContext;
-	readonly workingDays: () => number;
 	readonly employeeNumber?: string;
-}): ResolvedOrdinaryRate {
-	const rows = options.rows ?? [];
-	if (rows.length === 0) throw new Error('The work states no ordinary rate.');
-	const row = rows.find((candidate) => isEligible(candidate.when, options.person));
+}): number {
 	const who = options.employeeNumber ?? 'this person';
-	if (row == null)
-		throw new Error(`No ordinary rate row covers ${who}; the last row is normally everyone.`);
-	if (row.divisor === 'WORKING_DAYS') {
-		const days = options.workingDays();
-		if (!(days > 0))
-			throw new Error(
-				`The ordinary rate of ${who} divides by the month's working days, and the month has none.`
-			);
-		return { per: row.unit, divisor: days };
-	}
-	return { per: row.unit, divisor: decodeNumber(row.divisor) };
+	const expression = options.expression.trim();
+	if (expression === '') throw new Error('The work states no ordinary rate divisor.');
+	const divisor = evaluateNumber(
+		expressionEngine,
+		expression,
+		options.person as unknown as Record<string, unknown>
+	);
+	if (!(divisor > 0))
+		throw new Error(
+			`The ordinary rate divisor of ${who} evaluated to ${divisor}; ` +
+				'work_rules.ordinary_divisor_days must be a positive number of days.'
+		);
+	return divisor;
 }
 
-/**
- * The divisor comes from the rate row the Work's own predicates chose, and from nowhere else.
- *
- * This used to be a function, and inside it a branch on the jurisdiction: the Philippines uses 261
- * annual days for a five-day week and 313 for a six-day one, and the engine substituted the six-day
- * factor when the employee's week exceeded forty hours. That is employee-level law and cannot be a
- * company-wide divisor — which is a reason for the *Work* to state a row per week shape, not a
- * reason for the engine to know about the Philippines. `ordinary_rate` is a predicate list and
- * `terms.ordinary_hours_per_week` is a member of the grammar, so the seed says it:
- *
- * ```
- * terms.payroll_group == "MONTHLY"        30.4167   paid for all 365 days
- * terms.ordinary_hours_per_week > 40      26.0833   313 / 12, the six-day factor
- * (everyone)                              21.75     261 / 12, the five-day factor
- * ```
- *
- * The ordering carries the rule the branch used to: a monthly-paid employee keeps 365/12 whatever
- * their roster, because the 261-against-313 question is a daily-paid one.
- */
 /**
  * The monthly-equivalent contract wage.
  *
@@ -119,42 +98,27 @@ function monthlyBaseSalary(terms: RateTerms): number {
 }
 
 /** Pay for one ordinary hour, rounded to cents before any multiplication. */
-export function ordinaryHourlyRate(
-	terms: RateTerms,
-	work: Work,
-	rate: ResolvedOrdinaryRate
-): number {
+export function ordinaryHourlyRate(terms: RateTerms, divisorDays: number): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
 	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'DAILY')
 		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
-	const divisor = rate.divisor;
-	if (!(divisor > 0)) throw new Error('work_rules.rates.ordinary.divisor must be positive.');
-	const monthly = monthlyBaseSalary(terms);
-	return rate.per === 'HOUR'
-		? cents(monthly / divisor)
-		: cents(monthly / divisor / normalDailyHours(terms));
+	if (!(divisorDays > 0)) throw new Error('work_rules.ordinary_divisor_days must be positive.');
+	return cents(monthlyBaseSalary(terms) / divisorDays / normalDailyHours(terms));
 }
 
 /**
- * One day's wages — what a `DAY_WAGE_MULTIPLE` overtime award multiplies.
- *
- * On a days-per-month basis this is the divisor itself; on an hours-per-month basis there is no day
- * in the statute at all, so a day is the contracted daily hours priced at the hourly rate
+ * One day's wages — what a `day_wage` award multiplies: the monthly wage over the divisor
  * (decision E28).
  */
-export function ordinaryDayWage(terms: RateTerms, work: Work, rate: ResolvedOrdinaryRate): number {
+export function ordinaryDayWage(terms: RateTerms, divisorDays: number): number {
 	// A DAILY contract states its day wage; an HOURLY one states it per hour, so a day is the
-	// contracted daily hours priced at that rate. Monthly staff read the divisor as before.
+	// contracted daily hours priced at that rate. Monthly staff read the divisor.
 	if (terms.pay_frequency === 'DAILY') return cents(decodeNumber(terms.base_salary.value));
 	if (terms.pay_frequency === 'HOURLY')
 		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
-	const divisor = rate.divisor;
-	const monthly = monthlyBaseSalary(terms);
-	return rate.per === 'HOUR'
-		? cents((monthly * normalDailyHours(terms)) / divisor)
-		: cents(monthly / divisor);
+	return cents(monthlyBaseSalary(terms) / divisorDays);
 }
 
 /** One day of withheld pay: the contract terms and the work's proration divisor over a period. */

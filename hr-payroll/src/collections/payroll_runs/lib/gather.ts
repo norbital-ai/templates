@@ -44,7 +44,11 @@ import {
 import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/money.js';
 import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
-import { hasLeavePayment, type PreparedLeavePayroll } from '../../../lib/leave/payroll.js';
+import {
+	hasLeavePayment,
+	withLeaveDeductionEligibility,
+	type PreparedLeavePayroll
+} from '../../../lib/leave/payroll.js';
 import {
 	cadenceWindow,
 	employmentPayFrequency,
@@ -183,14 +187,15 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		options.api.reads.assertComplete(employmentRows, 'employments');
 
 		const begun = employmentRows.filter((row) => employmentDates(row).hire <= salary.end);
-		const { leaveByEmployment, requestsByEmployment } = yield* prepareFamilyObligations({
-			api: options.api,
-			configuration: options.configuration,
-			employmentIds: begun.map((row) => row.id),
-			period,
-			asOf: salary.end,
-			periodWindow: { start: salary.start, end: salary.end }
-		});
+		const { leaveByEmployment: gatheredLeave, requestsByEmployment } =
+			yield* prepareFamilyObligations({
+				api: options.api,
+				configuration: options.configuration,
+				employments: begun,
+				period,
+				asOf: salary.end,
+				periodWindow: { start: salary.start, end: salary.end }
+			});
 		const touching = begun.filter((row) =>
 			overlapsRange(row.effective_range, salary.start, salary.end)
 		);
@@ -204,7 +209,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const candidates = begun.filter(
 			(row) =>
 				touching.includes(row) ||
-				hasLeavePayment(leaveByEmployment.get(row.id)!, salary.end) ||
+				hasLeavePayment(gatheredLeave.get(row.id)!, salary.end) ||
 				hasOutstandingRequest(row.id)
 		);
 		// Terms are read first, because the cadence decides the window each employment is settled
@@ -214,16 +219,51 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// A cadence the company cannot pay falls back to the run's own window, so the bundle exists
 		// for `validatePayCalendar` to refuse by name rather than throwing here.
 		const touchingIds = candidates.map((row) => row.id);
-		const termRows =
-			touchingIds.length === 0
-				? []
-				: yield* db.employment_terms.findMany({
-						where: { employment_id: { in: touchingIds }, ...approved },
-						limit: PAGE_LIMIT
-					});
+		// Terms and people in one round: both are needed for every candidate, by the cadence
+		// resolution here and by the leave verdicts below, so neither is read again later.
+		const [termRows, employeeRows] = yield* Effect.all(
+			[
+				touchingIds.length === 0
+					? Effect.succeed([])
+					: db.employment_terms.findMany({
+							where: { employment_id: { in: touchingIds }, ...approved },
+							limit: PAGE_LIMIT
+						}),
+				touchingIds.length === 0
+					? Effect.succeed([])
+					: db.employees.findMany({
+							where: {
+								id: { in: [...new Set(candidates.map((row) => row.employee_id))] },
+								...approved
+							},
+							limit: PAGE_LIMIT
+						})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		options.api.reads.assertComplete(termRows, 'employment terms');
+		options.api.reads.assertComplete(employeeRows, 'employees');
 		const termsByEmployment = Map.groupBy(live(termRows), (row) => row.employment_id);
+		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
 		const company = options.configuration.company;
+		const leaveByEmployment = new Map(
+			candidates.flatMap((row) => {
+				const employee = employeeById.get(row.employee_id);
+				const gathered = gatheredLeave.get(row.id);
+				if (employee == null || gathered == null) return [];
+				return [
+					[
+						row.id,
+						withLeaveDeductionEligibility(gathered, {
+							employment: row,
+							employee,
+							company,
+							terms: termsByEmployment.get(row.id) ?? []
+						})
+					] as const
+				];
+			})
+		);
 		const cadenceByEmployment = new Map<
 			string,
 			{ readonly window: PayrollWindow; readonly payFrequency: PayFrequency }
@@ -267,7 +307,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				settlement != null &&
 				(settlement.runs ||
 					settlement.deferral != null ||
-					hasLeavePayment(leaveByEmployment.get(row.id)!, salary.end) ||
+					hasLeavePayment(gatheredLeave.get(row.id)!, salary.end) ||
 					dueRequest)
 			);
 		});
@@ -334,13 +374,6 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			window,
 			complianceSpan
 		});
-		const employeeRows = yield* db.employees.findMany({
-			where: { id: { in: employeeIds }, ...approved },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(employeeRows, 'employees');
-		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
-
 		const bundles: EmploymentBundle[] = [];
 		for (const employment of employments) {
 			const employee = employeeById.get(employment.employee_id);

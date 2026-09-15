@@ -3,7 +3,8 @@ import { Effect } from 'effect';
 import { readRange, type StoredRange } from '../payroll_runs/lib/effective.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { describeVersion, halfOpenOverlap, stableJson } from '../../lib/jurisdiction_settings.js';
-import { optInsOfBands, refuseUnknownOptIns } from '../../lib/catalogue_rules.js';
+import { baseAdmitsNothing } from '../../datatypes/contribution_base/+definition.js';
+import { refuseUnknownBaseEntries } from '../../lib/catalogue_rules.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 /** The two columns a sealed version may still take: the void, once. */
@@ -131,23 +132,26 @@ export default {
 						for (const [region, wage] of Object.entries(row.wages?.by_region ?? {}))
 							if (!(Number(wage) > 0))
 								refuse(`The minimum wage of region ${region} must be a positive amount.`);
-						// Every work line's opt-in names a scheme of this version (RFC 0002 §6). On an
-						// update the version's schemes are already stored; a create carries none yet.
-						if (existing != null && row.work_rules != null)
-							yield* refuseUnknownOptIns(
-								api,
-								existing.id,
-								[
-									...optInsOfBands(row.work_rules.rates?.bands),
-									...optInsOfBands([
-										row.work_rules.engine_lines?.salary,
-										row.work_rules.engine_lines?.absence,
-										row.work_rules.engine_lines?.night
-									])
-								],
-								describeVersion(existing)
-							);
 						if (row.sealed_at == null) return input;
+						// A sealing version's schemes each charge something, and every catalogue row a base
+						// names is a row of this version (RFC 0003 §1.4).
+						if (existing != null && existing.sealed_at == null) {
+							const schemes = yield* api.db.statutory_contributions.findMany({
+								where: { settings_id: { eq: existing.id }, approval_id: { isNull: true } },
+								columns: { code: true, base: true },
+								limit: 500
+							});
+							for (const scheme of schemes) {
+								if (baseAdmitsNothing(scheme.base))
+									refuse(`Scheme ${scheme.code} charges nothing: its base admits no line.`);
+								yield* refuseUnknownBaseEntries(
+									api,
+									existing.id,
+									scheme.base,
+									`Scheme ${scheme.code}`
+								);
+							}
+						}
 						// Sealing. The database exclusion holds the overlap too; the sentence is why it
 						// happens here, and the batch is read so a predecessor ended in the same write counts.
 						const range = readRange(row.effective_range);

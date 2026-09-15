@@ -51,6 +51,10 @@ export type PersonContext = {
 	readonly terms: {
 		readonly basic_salary: number;
 		readonly workman: boolean;
+		/** The statutory work category itself, for an overtime predicate that names one. */
+		readonly statutory_work_category: string;
+		/** Basic plus every other cash payment for work settling in the run; 0 outside payroll. */
+		readonly statutory_wages: number;
 		readonly department: string;
 		readonly payroll_group: string;
 		readonly grade: string;
@@ -73,6 +77,8 @@ export type PersonContext = {
 	readonly company: {
 		readonly region: string;
 	};
+	/** The pay month, where a rate divisor turns on it; zero outside payroll. */
+	readonly period: { readonly working_days: number };
 };
 
 type PersonInput = {
@@ -109,6 +115,10 @@ type PersonInput = {
 	} | null;
 	/** The employing entity; `company.region` picks its minimum wage. Absent reads as no region. */
 	readonly company?: { readonly region?: string | null } | null;
+	/** The statutory wage comparand this run derived, where one is known. */
+	readonly statutoryWages?: number | null;
+	/** The pay month's scheduled working days, where a run knows them. */
+	readonly period?: { readonly working_days?: number | null } | null;
 	readonly children?: ReadonlyArray<{ readonly child_birthdate: string }>;
 	/** The rule date: service, age and children are measured on it. */
 	readonly asOf: string;
@@ -151,6 +161,8 @@ export function personContext(input: PersonInput): PersonContext {
 		terms: {
 			basic_salary: salary == null ? 0 : decodeNumber(salary.value),
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
+			statutory_work_category: input.terms?.statutory_work_category ?? '',
+			statutory_wages: decodeNumber(input.statutoryWages ?? 0),
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
 			grade: input.terms?.grade ?? '',
@@ -158,7 +170,8 @@ export function personContext(input: PersonInput): PersonContext {
 			working_days_per_week: input.week?.working_days_per_week ?? 0
 		},
 		children: { count: ages.length, ages },
-		company: { region: input.company?.region ?? '' }
+		company: { region: input.company?.region ?? '' },
+		period: { working_days: decodeNumber(input.period?.working_days ?? 0) }
 	};
 }
 

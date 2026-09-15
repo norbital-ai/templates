@@ -1,10 +1,9 @@
 [
 	{
-		"id": "0c7bfbc6-a385-52bb-9925-dbc4320046b4",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "070e40f2-76da-5688-b4e5-ce41745a4855",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.43(1)",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -48,53 +47,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "10000000-0000-5000-8000-000000000001",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "6ccc5fa6-941e-59f7-b45a-c2c725a8d8cc",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -123,53 +82,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "10000000-0000-5000-8000-000000000002",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "9f3c38ae-b848-518d-93d5-fcbb95f286de",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -198,53 +117,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "10000000-0000-5000-8000-000000000003",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "70185ff7-27b7-5d3b-8d00-041d07531e8f",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
 		"paid": true,
@@ -264,53 +143,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "10000000-0000-5000-8000-000000000004",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "9116d81b-0424-5450-b1b2-5ce7691cb02d",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
 		"paid": true,
@@ -326,53 +165,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "10000000-0000-5000-8000-000000000005",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "84163388-6728-5f36-b951-cc42ba8f0e10",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
 		"paid": true,
@@ -392,53 +191,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "23608f60-9728-59c2-aaf1-e24935cfd8f9",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "cd589777-2c2a-53b0-be79-d6bdc8a29ead",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "EXTENDED_CHILDCARE_LEAVE",
 		"name": "Extended childcare leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
 		"paid": true,
@@ -454,53 +213,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "f3596de2-37b0-5863-b1a8-01bfad68d840",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "08c24bdc-386b-5a9a-bdf1-57d405133fe5",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
 		"paid": false,
@@ -516,78 +235,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "REDUCE"
-					}
-				]
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "c85c5d86-f46f-5f07-856d-93a45b95485a",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "143fb2b8-7d4a-5eca-a9c8-914b77073925",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "ADOPTION_LEAVE",
 		"name": "Adoption leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
 		"paid": true,
@@ -603,53 +257,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
-		"id": "10000000-0000-5000-8000-000000000006",
-		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"id": "4eb7df56-50d8-5b69-8ad0-b34123e09488",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "SHARED_PARENTAL_LEAVE",
 		"name": "Shared parental leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 6 weeks (42 calendar days) for children born, or with a Formal Intent to Adopt, from 1 April 2025 to 31 March 2026, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (3 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, for which a settings-version boundary is the wrong axis.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
 		"paid": true,
@@ -665,53 +279,330 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
+	},
+	{
+		"id": "be0af4f5-cb18-5329-a294-677f9b3fabe5",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
+		"code": "NS_LEAVE",
+		"name": "National service leave",
+		"authority": "Enlistment Act 1970 s.13 and s.31",
+		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "9a72f91f-246f-5dc1-9ef7-a8c2c05c08b9",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "0c7bfbc6-a385-52bb-9925-dbc4320046b4",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"authority": "Employment Act 1968 s.43(1)",
+		"eligibility": "employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "CALENDAR_MONTHS",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 84",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 72",
+					"days": 13
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 12
+				},
+				{
+					"eligibility": "employment.service_months >= 48",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.service_months >= 36",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 9
+				},
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 8
+				},
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000001",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "SICK_LEAVE",
+		"name": "Outpatient sick leave",
+		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
+		"eligibility": "employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 5",
+					"days": 11
+				},
+				{
+					"eligibility": "employment.service_months >= 4",
+					"days": 8
+				},
+				{
+					"eligibility": "employment.service_months >= 3",
+					"days": 5
+				}
+			]
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000002",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalization leave",
+		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
+		"eligibility": "employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 60
+				},
+				{
+					"eligibility": "employment.service_months >= 5",
+					"days": 45
+				},
+				{
+					"eligibility": "employment.service_months >= 4",
+					"days": 30
+				},
+				{
+					"eligibility": "employment.service_months >= 3",
+					"days": 15
+				}
+			]
+		},
+		"evidence_after_days": 0,
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000003",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
+		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employee.citizenship == \"CITIZEN\"",
+					"days": 112
+				},
+				{
+					"eligibility": "",
+					"days": 84
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000004",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
+		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 28
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000005",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
+		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employee.citizenship == \"CITIZEN\"",
+					"days": 6
+				},
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "23608f60-9728-59c2-aaf1-e24935cfd8f9",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "EXTENDED_CHILDCARE_LEAVE",
+		"name": "Extended childcare leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
+		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 2
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "f3596de2-37b0-5863-b1a8-01bfad68d840",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "UNPAID_INFANT_CARE_LEAVE",
+		"name": "Unpaid infant care leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
+		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
+		"paid": false,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 12
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "c85c5d86-f46f-5f07-856d-93a45b95485a",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "ADOPTION_LEAVE",
+		"name": "Adoption leave",
+		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
+		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 84
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "10000000-0000-5000-8000-000000000006",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "SHARED_PARENTAL_LEAVE",
+		"name": "Shared parental leave",
+		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 6 weeks (42 calendar days) for children born, or with a Formal Intent to Adopt, from 1 April 2025 to 31 March 2026, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (3 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, for which a settings-version boundary is the wrong axis.",
+		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 42
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD"
 	},
 	{
 		"id": "10000000-0000-5000-8000-00000000c002",
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "NS_LEAVE",
 		"name": "National service leave",
-		"is_statutory": true,
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
 		"paid": true,
@@ -723,53 +614,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "a81594a4-c1d0-5687-b856-251606580acb",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.43(1)",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -813,53 +664,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "03d19534-7b2c-55ea-aeeb-65b88f4b6730",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -888,53 +699,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "3cd03ef6-a0b5-5273-bf5e-3e810e64b1b3",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -963,53 +734,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "f6099a36-5453-5e07-bfbd-af4f54e4bac0",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
 		"paid": true,
@@ -1029,53 +760,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "59a5566c-78ad-5b30-9b8b-5831c8581a86",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
 		"paid": true,
@@ -1091,53 +782,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "b9687ba0-26d9-5885-a553-ca5bf2109e97",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
 		"paid": true,
@@ -1157,53 +808,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "05b56ffa-a6ee-583d-8e0d-8a86b742b654",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "EXTENDED_CHILDCARE_LEAVE",
 		"name": "Extended childcare leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
 		"paid": true,
@@ -1219,53 +830,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "4f6530ae-100a-5279-8713-1d50fd0eabcc",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
 		"paid": false,
@@ -1281,78 +852,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "REDUCE"
-					}
-				]
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "19bb0ed0-3638-54e6-a0b4-425c2923f63d",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "ADOPTION_LEAVE",
 		"name": "Adoption leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
 		"paid": true,
@@ -1368,53 +874,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "edfd424d-160d-546f-9196-729a8f302299",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "SHARED_PARENTAL_LEAVE",
 		"name": "Shared parental leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
 		"paid": true,
@@ -1430,53 +896,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "10000000-0000-5000-8000-00000000c001",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "NS_LEAVE",
 		"name": "National service leave",
-		"is_statutory": true,
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
 		"paid": true,
@@ -1488,53 +914,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "30539746-7100-5290-9aec-b1d7b13ac6f2",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.43(1)",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -1578,53 +964,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "b8e829b8-67a9-5d54-875e-27d743e135c2",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -1653,53 +999,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "738b33a7-6198-5ca3-b095-8e2d1544031e",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
-		"is_statutory": true,
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
 		"paid": true,
@@ -1728,53 +1034,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "ffefa2fe-8d48-550e-89d7-af98ef3e9e9e",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
 		"paid": true,
@@ -1794,53 +1060,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "afe9f68f-dd1b-5649-abf5-e08dc4ac078b",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
 		"paid": true,
@@ -1856,53 +1082,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "c2302c70-2290-5f94-8cb1-cbd994171010",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
 		"paid": true,
@@ -1922,53 +1108,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "c9fb22f3-4217-5335-a7a8-4989b914b4d6",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "EXTENDED_CHILDCARE_LEAVE",
 		"name": "Extended childcare leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
 		"paid": true,
@@ -1984,53 +1130,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "583b7fbe-37a5-5add-aa76-4de3c606d4b0",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
 		"paid": false,
@@ -2046,78 +1152,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "REDUCE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "REDUCE"
-					}
-				]
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "d1db595c-7af9-5e97-9f23-214d3520d666",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "ADOPTION_LEAVE",
 		"name": "Adoption leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
 		"paid": true,
@@ -2133,53 +1174,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "b4bfdcbd-108d-5413-bd8d-95d5007750ce",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "SHARED_PARENTAL_LEAVE",
 		"name": "Shared parental leave",
-		"is_statutory": true,
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
 		"paid": true,
@@ -2195,53 +1196,13 @@
 			]
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "c61e12a0-1b49-5b0a-aab1-cdc4815da996",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "NS_LEAVE",
 		"name": "National service leave",
-		"is_statutory": true,
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
 		"paid": true,
@@ -2253,53 +1214,13 @@
 		},
 		"evidence_after_days": 0,
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "2818c45e-2a0e-42c8-bb41-c137226065a3",
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
-		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
 		"paid": true,
@@ -2310,53 +1231,13 @@
 			"bands": []
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "26e38797-f78a-542a-9680-a4eca8250ae4",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f5c201f6-86ca-539a-a42d-68199dd30707",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "819493dd-505d-5218-8f69-c16015567382",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "dc421988-2cd0-510f-8547-2a58673ceef8",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "d5a4e159-4902-5663-a600-785cabd858f2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "68db6f80-0d98-538c-bc4f-feae62ba59d5",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "f0838770-9076-40b6-9426-c592ea87953a",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
-		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
 		"paid": true,
@@ -2367,53 +1248,13 @@
 			"bands": []
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "a0c8f383-0f84-535b-b40d-c16c819edbda",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "f895b16d-1a6e-5dfb-bbb6-fd4276bdbb82",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "793a3803-2de4-5c63-abbd-e4ab4ec4df34",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a8ae0fb1-28a0-53f6-ba24-178c1c4e3293",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "1f6fc45a-7bdb-57ca-b84e-bb9a698d80e2",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "a7711287-e393-55d8-aead-42e0ac85a1a4",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	},
 	{
 		"id": "6690f990-eace-4639-a28e-b729cb1cf598",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
-		"is_statutory": false,
 		"authority": null,
 		"eligibility": "",
 		"paid": true,
@@ -2424,45 +1265,6 @@
 			"bands": []
 		},
 		"destination": "PAY",
-		"direction": "ADD",
-		"bands": [
-			{
-				"when": "entry.amount == 0.0",
-				"amount": "0.0",
-				"limit": null,
-				"statutory_opt_ins": []
-			},
-			{
-				"when": "entry.amount > 0.0",
-				"amount": "entry.amount",
-				"limit": null,
-				"statutory_opt_ins": [
-					{
-						"contribution_id": "49b40b71-c358-5776-855b-3a4fa141b992",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "4098edd0-a91d-59df-b135-ed84268d3d2d",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "16dd32f5-2a82-51a7-9a13-e48d633de9cb",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "92c999d2-316a-5418-961b-db2f62d51dbc",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "00bc5a5b-d84b-509a-89fe-274d125dc9af",
-						"effect": "INCLUDE"
-					},
-					{
-						"contribution_id": "021ff5c7-0c92-5359-8447-4418062601e2",
-						"effect": "INCLUDE"
-					}
-				]
-			}
-		]
+		"direction": "ADD"
 	}
 ]

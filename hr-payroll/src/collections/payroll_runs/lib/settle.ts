@@ -61,6 +61,8 @@ export function settle(options: {
 	readonly base: readonly MeasuredBase[];
 	readonly adjustments: readonly MeasuredAdjustment[];
 	readonly charges: readonly ContributionCharge[];
+	/** Who is being settled, for the refusal that names them. */
+	readonly employeeNumber?: string;
 }): Settlement {
 	const statutoryEmployee = options.charges.reduce((total, charge) => total + charge.employee, 0);
 	const statutoryEmployer = options.charges.reduce((total, charge) => total + charge.employer, 0);
@@ -105,7 +107,12 @@ export function settle(options: {
 
 	if (net < 0)
 		refuse(
-			'Payroll net pay is negative. Resolve the approved recovery before calculating this period.'
+			`Payroll net pay is negative${options.employeeNumber == null ? '' : ` for ${options.employeeNumber}`} ` +
+				`(gross ${gross}, statutory ${cents(statutoryEmployee)}, other deductions ${cents(otherDeductions)}, payments ${cents(payments)}; ` +
+				[...base, ...adjustments]
+					.map((item) => `${item.label} ${item.bucket} ${item.amount}`)
+					.join(', ') +
+				'). Resolve the approved recovery before calculating this period.'
 		);
 
 	return {

@@ -192,25 +192,17 @@ const WORK = {
 	settings_id: RUN.settings_id,
 	jurisdiction_code: 'TEST-JUR',
 	proration: { by: 'CALENDAR_DAYS' },
-	engine_lines: {
-		salary: { statutory_opt_ins: [] },
-		absence: { statutory_opt_ins: [] },
-		night: { statutory_opt_ins: [] }
-	},
-	rates: {
-		ordinary: [],
-		bands: [
-			{
-				label: '2.0',
-				line: 'OVERTIME',
-				when: 'day_type == "REST_DAY"',
-				take: 'hours_beyond_normal',
-				price: 'hours_beyond_normal * ordinary_hour * 2.0',
-				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
-				statutory_opt_ins: []
-			}
-		]
-	},
+	ordinary_divisor_days: '26',
+	overtime_when: '',
+	bands: [
+		{
+			label: '2.0',
+			when: 'day_type == "REST_DAY"',
+			take_hours: 'hours_beyond_normal',
+			price_amount: 'hours * ordinary_hour * 2.0',
+			funnel_above_hours: 'limits.daily_total'
+		}
+	],
 	limits: [
 		{
 			key: 'daily_total',
@@ -222,7 +214,6 @@ const WORK = {
 	],
 	breaks: [],
 	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
-	coverage: null,
 	holiday_rest_precedence: 'REST_DAY'
 };
 const FINAL_PAYMENT = {
@@ -234,7 +225,7 @@ const FINAL_PAYMENT = {
 	evidence: 'NONE',
 	destination: 'PAY',
 	direction: 'ADD',
-	bands: [{ when: '', amount: 'entry.amount', limit: null, statutory_opt_ins: [] }]
+	bands: [{ when: '', amount: 'entry.amount', limit: null }]
 };
 
 const PAYSLIPS = [

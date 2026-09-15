@@ -18,12 +18,12 @@
  */
 
 import { decodeNumber } from '@norbital-ai/std/json';
+import { INCENTIVE_LINE, OVERTIME_LINE } from '../../../lib/payroll/work-bands.js';
 
 import { Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import { orderSchemes } from './mentions.js';
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
-import type { StatutoryOptIn } from '../../../datatypes/work_rules/+definition.js';
 import { dateKey, requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
@@ -48,39 +48,6 @@ export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 	return issues.filter((issue) => issue.severity !== 'WARNING');
 }
 
-/**
- * A priced line may only opt into schemes this settings version actually levies.
- *
- * There used to be an undecided-cell grid here: absence and night were refused by name when a run
- * priced one without an opt-in. The opt-in list is the whole answer now — silence is no effect —
- * so the fault that remains is the opposite: an opt-in naming a contribution the version does not
- * carry, which ACCUMULATE silently ignores and no screen would show. The write refuses it first
- * (`catalogue_rules.ts`); this is the run's guard behind that, over every family.
- */
-export function validateOptIns(options: {
-	readonly configuration: Configuration;
-	readonly adjustments: readonly {
-		readonly catalogueComponent: FamilyPayItem;
-		readonly optIns: readonly StatutoryOptIn[];
-	}[];
-}): RunIssue[] {
-	const levied = new Set(options.configuration.contributions.map((entry) => entry.row.id));
-	const issues: RunIssue[] = [];
-	for (const row of options.adjustments) {
-		for (const optIn of row.optIns)
-			if (!levied.has(optIn.contribution_id))
-				issues.push({
-					code: 'OPT_IN_UNKNOWN',
-					message:
-						`${row.catalogueComponent.code} opts into a statutory scheme this settings version ` +
-						'does not levy. Remove the opt-in or add the scheme to the version in force.',
-					collection: 'jurisdiction_settings',
-					recordId: options.configuration.jurisdiction.id
-				});
-	}
-	return issues;
-}
-
 /** Configuration checks. None of them read a person. */
 export function validateConfiguration(configuration: Configuration): RunIssue[] {
 	const issues: RunIssue[] = [];
@@ -99,8 +66,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 
 	// Every rate band must settle under a pay item of its own (line:label), or the run has no
 	// component to price the hours it produces.
-	for (const band of configuration.work.rates.bands) {
-		const outputs = [band.line, ...(band.funnel == null ? [] : [band.funnel.line])];
+	for (const band of configuration.work.bands) {
+		const outputs = [OVERTIME_LINE, ...(band.funnel_above_hours == null ? [] : [INCENTIVE_LINE])];
 		for (const line of outputs)
 			if (
 				!configuration.catalogueComponents.some(

@@ -40,11 +40,6 @@ const limits = (): WorkRules['limits'] => [
 
 const base = {
 	proration: { by: 'CALENDAR_DAYS' as const },
-	engine_lines: {
-		salary: { statutory_opt_ins: [] },
-		absence: { statutory_opt_ins: [] },
-		night: { statutory_opt_ins: [] }
-	},
 	limits: limits(),
 	breaks: [],
 	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' as const },
@@ -53,46 +48,38 @@ const base = {
 
 const nihon: WorkRules = {
 	...base,
-	rates: {
-		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
-		bands: [
-			{
-				label: '1.5',
-				line: 'OVERTIME',
-				when: 'day_type == "ORDINARY"',
-				take: 'hours_beyond_normal',
-				price: 'hours_beyond_normal * ordinary_hour * 1.5',
-				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
-				statutory_opt_ins: []
-			}
-		]
-	}
+	ordinary_divisor_days: '26.0',
+	overtime_when: '',
+	bands: [
+		{
+			label: '1.5',
+			when: 'day_type == "ORDINARY"',
+			take_hours: 'hours_beyond_normal',
+			price_amount: 'hours_beyond_normal * ordinary_hour * 1.5',
+			funnel_above_hours: 'limits.daily_total'
+		}
+	]
 };
 
 const philippines: WorkRules = {
 	...base,
-	rates: {
-		ordinary: [{ when: '', unit: 'DAY', divisor: 21.75 }],
-		bands: [
-			{
-				label: '2.0',
-				line: 'OVERTIME',
-				when: 'day_type == "PUBLIC_HOLIDAY"',
-				take: 'normal_hours',
-				price: 'normal_hours * day_wage * 2.0',
-				statutory_opt_ins: []
-			},
-			{
-				label: '3.0',
-				line: 'OVERTIME',
-				when: 'day_type == "PUBLIC_HOLIDAY"',
-				take: 'hours_beyond_normal',
-				price: 'hours_beyond_normal * ordinary_hour * 3.0',
-				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
-				statutory_opt_ins: []
-			}
-		]
-	}
+	ordinary_divisor_days: '21.75',
+	overtime_when: '',
+	bands: [
+		{
+			label: '2.0',
+			when: 'day_type == "PUBLIC_HOLIDAY"',
+			take_hours: 'normal_hours',
+			price_amount: 'normal_hours * day_wage * 2.0'
+		},
+		{
+			label: '3.0',
+			when: 'day_type == "PUBLIC_HOLIDAY"',
+			take_hours: 'hours_beyond_normal',
+			price_amount: 'hours_beyond_normal * ordinary_hour * 3.0',
+			funnel_above_hours: 'limits.daily_total'
+		}
+	]
 };
 
 const day = (overrides: Partial<WorkBandDay>): WorkBandDay => ({

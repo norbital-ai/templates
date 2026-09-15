@@ -43,7 +43,6 @@ function rehireWorld() {
 		code: 'PUB-FIXED',
 		name: 'Invented fixed assessment',
 		authority: 'Public regression fixture',
-		is_statutory: true,
 		assessment_period: 'PAY_PERIOD',
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
@@ -51,27 +50,17 @@ function rehireWorld() {
 		rules: [{ when: 'base >= 0.0', employee: 'round_cent(30.01)', employer: 'round_cent(60.01)' }],
 		approval_id: null
 	});
-	const pubFixedId =
-		(world.statutory_contributions.find((row) => row.code === 'PUB-FIXED')?.id as
-			string | undefined) ?? '';
-	for (const catalogue of [world.allowance_catalogue, world.payment_catalogue])
-		for (const component of catalogue)
-			for (const band of component.bands)
-				band.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
-	for (const version of world.jurisdiction_settings) {
-		const rules = version.work_rules as {
-			engine_lines: Record<'salary' | 'absence' | 'night', { statutory_opt_ins: unknown[] }>;
-			rates: { bands: { statutory_opt_ins: unknown[] }[] };
-		};
-		rules.engine_lines.salary.statutory_opt_ins = [
-			{ contribution_id: pubFixedId, effect: 'INCLUDE' }
-		];
-		rules.engine_lines.absence.statutory_opt_ins = [
-			{ contribution_id: pubFixedId, effect: 'REDUCE' }
-		];
-		for (const band of rules.rates.bands)
-			band.statutory_opt_ins = [{ contribution_id: pubFixedId, effect: 'INCLUDE' }];
-	}
+	const pubFixed = world.statutory_contributions.find((row) => row.code === 'PUB-FIXED')!;
+	pubFixed.base = {
+		salary: true,
+		absence: true,
+		overtime: true,
+		night_premium: false,
+		entries: [
+			...world.allowance_catalogue.map((row) => ({ family: 'ALLOWANCE', code: row.code })),
+			...world.payment_catalogue.map((row) => ({ family: 'PAYMENT', code: row.code }))
+		]
+	};
 	return world;
 }
 

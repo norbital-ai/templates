@@ -7,17 +7,13 @@
  * make that fact usable, not to resolve ambiguity that cannot arise.
  */
 
-import { Option, Schema } from 'effect';
+import { Schema } from 'effect';
 import type { IsoDate } from './dates.js';
 
 import { dateKey as rangeBoundDay } from '../../../lib/iso-day.js';
 
 /** A `custom('instant_range', { precision: 'day' })` column as the engine reads it; `end` of `null` is open-ended. */
-const StoredRangeSchema = Schema.Struct({
-	start: Schema.String,
-	end: Schema.NullOr(Schema.String)
-});
-export type StoredRange = Schema.Schema.Type<typeof StoredRangeSchema>;
+export type StoredRange = { readonly start: string; readonly end: string | null };
 
 /** Decode one stored range: anything that is not a legal pair of strings is `null`, never an error. */
 export function readRange(value: unknown): StoredRange | null {
@@ -42,8 +38,14 @@ export function readRange(value: unknown): StoredRange | null {
 const rangeCache = new WeakMap<object, StoredRange | null>();
 
 function decodeRange(value: unknown): StoredRange | null {
-	const parsed = Option.getOrNull(Schema.decodeUnknownOption(StoredRangeSchema)(value));
-	if (parsed == null || parsed.start === '') return null;
+	// A structural check, not a Schema decode: a run reads tens of thousands of ranges and the
+	// Effect parser was a fifth of its CPU. The shape is `{ start: string, end: string | null }`.
+	if (typeof value !== 'object' || value === null) return null;
+	const raw = value as { start?: unknown; end?: unknown };
+	if (typeof raw.start !== 'string' || (raw.end != null && typeof raw.end !== 'string'))
+		return null;
+	const parsed = { start: raw.start, end: raw.end ?? null };
+	if (parsed.start === '') return null;
 	// The seed bank and the people forms store an open contract as an end in year 9999; the engine
 	// reads that as open, so a current contract can still be closed and never shows as departed.
 	const end = parsed.end === '' || parsed.end?.startsWith('9999') ? null : parsed.end;

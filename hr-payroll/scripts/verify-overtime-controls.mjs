@@ -3,7 +3,7 @@
  *
  * The pre-RFC engine classified a day into retained and excess hours (`classifyOvertimeByCalendarMonth`)
  * and then priced the retained slice (`priceDay`). RFC 0001 removed both: overtime hours are derived
- * from the clocks (`deriveDailyOvertime`) and priced by the version's `rates.bands`, where the slice
+ * from the clocks (`deriveDailyOvertime`) and priced by the version's `bands`, where the slice
  * above a named limit funnels to the INCENTIVE line at the band's own award (RFC 0001 §6). These
  * checks exercise those two halves against the migrated source.
  */
@@ -58,34 +58,24 @@ const scheduled = (overrides = {}) => ({
 
 const workRules = () => ({
 	proration: { by: 'CALENDAR_DAYS' },
-	engine_lines: {
-		salary: { statutory_opt_ins: [] },
-		absence: { statutory_opt_ins: [] },
-		night: { statutory_opt_ins: [] }
-	},
-	rates: {
-		ordinary: [{ when: '', unit: 'DAY', divisor: 26 }],
-		bands: [
-			{
-				label: '1.5',
-				line: 'OVERTIME',
-				when: 'day_type == "ORDINARY"',
-				take: 'hours_beyond_normal',
-				price: 'hours_beyond_normal * ordinary_hour * 1.5',
-				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
-				statutory_opt_ins: []
-			},
-			{
-				label: '3.0',
-				line: 'OVERTIME',
-				when: 'day_type == "PUBLIC_HOLIDAY"',
-				take: 'hours_beyond_normal',
-				price: 'hours_beyond_normal * ordinary_hour * 3.0',
-				funnel: { above: 'limits.daily_total', line: 'INCENTIVE' },
-				statutory_opt_ins: []
-			}
-		]
-	},
+	ordinary_divisor_days: '26',
+	overtime_when: '',
+	bands: [
+		{
+			label: '1.5',
+			when: 'day_type == "ORDINARY"',
+			take_hours: 'hours_beyond_normal',
+			price_amount: 'hours * ordinary_hour * 1.5',
+			funnel_above_hours: 'limits.daily_total'
+		},
+		{
+			label: '3.0',
+			when: 'day_type == "PUBLIC_HOLIDAY"',
+			take_hours: 'hours_beyond_normal',
+			price_amount: 'hours * ordinary_hour * 3.0',
+			funnel_above_hours: 'limits.daily_total'
+		}
+	],
 	limits: [
 		{
 			key: 'daily_total',
@@ -97,7 +87,6 @@ const workRules = () => ({
 	],
 	breaks: [],
 	weekly_rest_rule: { max_consecutive_work_days: 6, discharged_by: 'REST' },
-	coverage: null,
 	holiday_rest_precedence: 'REST_DAY'
 });
 

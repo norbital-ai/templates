@@ -438,6 +438,19 @@ export function assertPayrollPeriodAvailable(
 		refuse(
 			`Payroll ${later.period} already exists. Record corrections in the next payroll period.`
 		);
+	const previous = previousPeriod(period);
+	if (runs.length > 0 && !runs.some((run) => run.period === previous))
+		refuse(
+			`Payroll ${previous} was never run. Run it first, or ${period} would leave its wages, attendance and entries unconsumed.`
+		);
+}
+
+/** The period a run of `period` stands on, in the same grammar: the prior month, or the prior half. */
+export function previousPeriod(period: string): string {
+	const half = periodHalf(period);
+	if (half === 2) return `${periodMonth(period)}-1`;
+	const month = shiftPeriod(periodMonth(period), -1);
+	return half === 1 ? `${month}-2` : month;
 }
 
 /**
