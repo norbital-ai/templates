@@ -12,6 +12,7 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TW",
+		"change_summary": "民國114年 tables: minimum wage 28,590, 12 勞保 grades to 45,800, 59 健保 grades to 313,000, 勞退 grade 24 = 28,590 → 1,715.40; LI 11.5% + EI 1%, NHI 5.17%, the 職災 industry table in force 2025-01-01, and the non-resident 6% breakpoint at 42,885.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -98,8 +99,8 @@
 						"label": "OT-1.3333333333333333X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.3333333333333333",
+						"take": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
+						"price": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0) * ordinary_hour * 1.3333333333333333",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
@@ -135,8 +136,8 @@
 						"label": "OT-1.6666666666666667X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.6666666666666667",
+						"take": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
+						"price": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
@@ -172,8 +173,8 @@
 						"label": "OT-1.3333333333333333X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.3333333333333333",
+						"take": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
+						"price": "(overtime_hours < 2.0 ? overtime_hours : 2.0) * ordinary_hour * 1.3333333333333333",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
@@ -209,8 +210,8 @@
 						"label": "OT-1.6666666666666667X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.6666666666666667",
+						"take": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0)",
+						"price": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
@@ -283,8 +284,8 @@
 						"label": "OT-1.3333333333333333X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.3333333333333333",
+						"take": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
+						"price": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0) * ordinary_hour * 1.3333333333333333",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
@@ -320,8 +321,8 @@
 						"label": "OT-1.6666666666666667X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.6666666666666667",
+						"take": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
+						"price": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "3b0f82d2-e5db-500b-99fe-d58dac6fc691",
@@ -403,12 +404,13 @@
 		},
 		"sources": {
 			"urls": [
-				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
+				"https://www.mol.gov.tw/1607/1632/1640/76053/",
 				"https://www.bli.gov.tw/Files/24801",
 				"https://www.bli.gov.tw/Files/24831",
 				"https://data.gov.tw/dataset/20251",
 				"https://www.dot.gov.tw/singlehtml/ch26?cntId=f55dca4144f54f7195a5ddfce4c08fbe"
-			]
+			],
+			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
 		}
 	},
 	{
@@ -421,9 +423,10 @@
 		"cloned_from_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"effective_range": {
 			"start": "2026-01-01T00:00:00.000Z",
-			"end": "9999-12-31T00:00:00.000Z"
+			"end": "2027-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "TW",
+		"change_summary": "民國115年 tables from the 29,500 minimum wage: 11 勞保 grades, 58 健保 grades, 勞退 grade 25 = 29,500 → 1,770, the non-resident 6% breakpoint at 44,250; the 2025-12-09 勞工請假規則 amendment and 育嬰留職停薪 day-unit flexibility; foreign professionals enter 勞退新制.",
 		"work_rules": {
 			"proration": {
 				"by": "CALENDAR_DAYS"
@@ -510,8 +513,8 @@
 						"label": "OT-1.3333333333333333X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.3333333333333333",
+						"take": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
+						"price": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0) * ordinary_hour * 1.3333333333333333",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
@@ -547,8 +550,8 @@
 						"label": "OT-1.6666666666666667X",
 						"line": "OVERTIME",
 						"when": "day_type == \"ORDINARY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.6666666666666667",
+						"take": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
+						"price": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
@@ -584,8 +587,8 @@
 						"label": "OT-1.3333333333333333X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.3333333333333333",
+						"take": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
+						"price": "(overtime_hours < 2.0 ? overtime_hours : 2.0) * ordinary_hour * 1.3333333333333333",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
@@ -621,8 +624,8 @@
 						"label": "OT-1.6666666666666667X",
 						"line": "OVERTIME",
 						"when": "day_type == \"REST_DAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.6666666666666667",
+						"take": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0)",
+						"price": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
@@ -695,8 +698,8 @@
 						"label": "OT-1.3333333333333333X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.3333333333333333",
+						"take": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
+						"price": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0) * ordinary_hour * 1.3333333333333333",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
@@ -732,8 +735,8 @@
 						"label": "OT-1.6666666666666667X",
 						"line": "OVERTIME",
 						"when": "day_type == \"PUBLIC_HOLIDAY\"",
-						"take": "hours_beyond_normal",
-						"price": "hours_beyond_normal * ordinary_hour * 1.6666666666666667",
+						"take": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
+						"price": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
 						"statutory_opt_ins": [
 							{
 								"contribution_id": "c7e0e5b3-6cf3-54b7-98ba-1e83d4901f57",
@@ -829,7 +832,431 @@
 				"https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=13",
 				"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
 				"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
-			]
+			],
+			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
+		}
+	},
+	{
+		"id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "TW",
+		"name": "Taiwan — 1 January 2027",
+		"sealed_at": "2027-01-01T00:00:00.000Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"effective_range": {
+			"start": "2027-01-01T00:00:00.000Z",
+			"end": "9999-12-31T00:00:00.000Z"
+		},
+		"jurisdiction_code": "TW",
+		"change_summary": "勞保條例 §13’s 2027 step: the ordinary rate rises from 11.5% to 12% (13% combined with 就業保險) on the 115年 ladder; the 116年 grade tables await the 116年 minimum wage. The 116年 holiday calendar is transcribed.",
+		"work_rules": {
+			"proration": {
+				"by": "CALENDAR_DAYS"
+			},
+			"engine_lines": {
+				"salary": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+							"effect": "INCLUDE"
+						},
+						{
+							"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+							"effect": "INCLUDE"
+						}
+					]
+				},
+				"absence": {
+					"statutory_opt_ins": [
+						{
+							"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+							"effect": "REDUCE"
+						},
+						{
+							"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+							"effect": "REDUCE"
+						}
+					]
+				},
+				"night": {
+					"statutory_opt_ins": []
+				}
+			},
+			"rates": {
+				"ordinary": [
+					{
+						"when": "",
+						"unit": "DAY",
+						"divisor": 30
+					}
+				],
+				"bands": [
+					{
+						"label": "OT-1.3333333333333333X",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
+						"price": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0) * ordinary_hour * 1.3333333333333333",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.6666666666666667X",
+						"line": "OVERTIME",
+						"when": "day_type == \"ORDINARY\"",
+						"take": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
+						"price": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.3333333333333333X",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "(overtime_hours < 2.0 ? overtime_hours : 2.0)",
+						"price": "(overtime_hours < 2.0 ? overtime_hours : 2.0) * ordinary_hour * 1.3333333333333333",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.6666666666666667X",
+						"line": "OVERTIME",
+						"when": "day_type == \"REST_DAY\"",
+						"take": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0)",
+						"price": "(overtime_hours > 2.0 ? overtime_hours - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.0X",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "normal_hours",
+						"price": "day_wage * 1.0",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.3333333333333333X",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0)",
+						"price": "(hours_beyond_normal < 2.0 ? hours_beyond_normal : 2.0) * ordinary_hour * 1.3333333333333333",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					},
+					{
+						"label": "OT-1.6666666666666667X",
+						"line": "OVERTIME",
+						"when": "day_type == \"PUBLIC_HOLIDAY\"",
+						"take": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0)",
+						"price": "(hours_beyond_normal > 2.0 ? hours_beyond_normal - 2.0 : 0.0) * ordinary_hour * 1.6666666666666667",
+						"statutory_opt_ins": [
+							{
+								"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+								"effect": "INCLUDE"
+							},
+							{
+								"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+								"effect": "INCLUDE"
+							}
+						]
+					}
+				]
+			},
+			"limits": [
+				{
+					"key": "daily_total",
+					"period": "DAY",
+					"measure": "TOTAL_WORK_HOURS",
+					"max_hours": 12,
+					"unit": "CLOCK_HOURS"
+				},
+				{
+					"key": "monthly_ot",
+					"period": "MONTH",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 46,
+					"unit": "WORKED_HOURS"
+				},
+				{
+					"key": "quarterly_ot",
+					"period": "QUARTER",
+					"measure": "OVERTIME_HOURS",
+					"max_hours": 138,
+					"unit": "WORKED_HOURS"
+				}
+			],
+			"breaks": [
+				{
+					"when": "consecutive_hours > 4.0",
+					"owed_minutes": 30,
+					"counts_as_worked_time": false
+				}
+			],
+			"weekly_rest_rule": {
+				"max_consecutive_work_days": 6,
+				"discharged_by": "REST"
+			},
+			"coverage": null,
+			"holiday_rest_precedence": "SUBSTITUTE",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday."
+		},
+		"payroll": {
+			"currency": "TWD",
+			"timezone": "Asia/Taipei",
+			"tax_year_start_month": 1
+		},
+		"wages": {
+			"by_region": {}
+		},
+		"sources": {
+			"urls": [
+				"https://www.mol.gov.tw/1607/1632/1633/",
+				"https://www.mol.gov.tw/1607/1632/1633/84947/post",
+				"https://www.bli.gov.tw/0011588.html",
+				"https://www.bli.gov.tw/0106148.html",
+				"https://www.bli.gov.tw/0014162.htm",
+				"https://www.bli.gov.tw/Files/25664",
+				"https://www.bli.gov.tw/Files/25709",
+				"https://data.gov.tw/dataset/20251",
+				"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G",
+				"https://law-out.mof.gov.tw/LawContent.aspx?id=FL005962",
+				"https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=N0030006",
+				"https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=13",
+				"https://www.dgpa.gov.tw/information?uid=41&pid=12573",
+				"https://www.dgpa.gov.tw/information?uid=30&pid=12982"
+			],
+			"instructions": "law.moj.gov.tw — 全國法規資料庫: every law and regulation, HTML. /LawClass/LawAll.aspx?pcode=<code> is the full text; /LawClass/LawSingle.aspx?pcode=<code>&flno=<article> one article; /LawClass/LawHistory.aspx?pcode=<code> the amendment dates. Codes: 勞動基準法 N0030001, 勞工請假規則 N0030006, 性別平等工作法 N0030014, 勞工退休金條例 N0030020, 勞工保險條例 N0050001, 就業保險法 N0050021, 勞工職業災害保險及保護法 N0050028, 全民健康保險法 L0060001.\nlaw-out.mof.gov.tw — 各類所得扣繳率標準: /LawContent.aspx?id=FL005962 (§2 the 5% election, §3 non-resident 18%/6%, §13 the NT$2,000 exemption).\nbli.gov.tw — 勞保局 tables, each a small text PDF at /Files/<n>: 勞保投保薪資分級表 (115年 25659, 114年 24801), 勞退月提繳分級表 (25709), 職災投保薪資分級表 (25664, 114年 24804), 職災 月負擔金額表 (25669), 勞保+就保 分擔金額表 (25697). /0011588.html indexes the current 分級表; /0014162.html is the 勞保費率 history (the §13 two-yearly step).\nnhi.gov.tw — 健保. info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-B1000A-00G returns the 投保金額分級表 as JSON; /ch/cp-19418-…html is the 負擔金額表(三), /ch/cp-19421-…html the rate and 平均眷口數.\nmol.gov.tw — 勞動部 announcements: /1607/1632/1633/ the 基本工資 notices (the 116年 wage lands here), /1607/1632/1640/ the 勞保費率 notices.\ndot.gov.tw — 薪資所得扣繳稅額表 for the year: /singlehtml/ch26?cntId=<id> (the 扣除額 announcement) and /download/<id> (the table).\ndgpa.gov.tw — 辦公日曆表: /information?uid=41&pid=<id> per year; the CSV is /FileConversion?filename=dgpa/files/<yyyymm>/<uuid>.csv&nfix=&name=<year>.csv (also data.gov.tw/dataset/14718)."
 		}
 	}
 ]

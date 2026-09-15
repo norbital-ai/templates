@@ -163,12 +163,9 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 	//
 	// 5% × 28,590 = 1,429.50, below the threshold: nothing is withheld.
 	expectStatutory(book, 'TW-28590', 'INCOME_TAX', 0, 0);
-	// 5% × 40,000 = 2,000.00 exactly. §13's "does not exceed" includes equality and the law
-	// exempts this payment too, but `MIN_WITHHOLD` is one token with one meaning across the bank —
-	// "withhold nothing when the amount falls BELOW this" — and that is the reading Malaysia's own
-	// RM10 minimum MTD needs (P.U.(A) 123/2021: less than RM10 is not deducted). The seam is a
-	// grammar residue at a single point, not an engine fault: the law's figure here is 0.
-	expectStatutory(book, 'TW-40000', 'INCOME_TAX', 2000, 0);
+	// 5% × 40,000 = 2,000.00 exactly. §13's "不超過新臺幣二千元者，免予扣繳" includes equality, and
+	// under RFC 0002 the scheme's own rule says `<= 2000`, so the law's figure here is 0.
+	expectStatutory(book, 'TW-40000', 'INCOME_TAX', 0, 0);
 	// 5% × 60,000 = 3,000, above the threshold → withheld in full.
 	expectStatutory(book, 'TW-60000', 'INCOME_TAX', 3000, 0);
 });
@@ -239,10 +236,58 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 	expectStatutory(book, 'TW-NR-42886', 'INCOME_TAX_NON_RESIDENT', 7719.48, 0);
 	// 就業保險法 §5 keeps employment insurance to ROC nationals on this version too.
 	expectStatutorySkipped(book, 'TW-NR-42885', 'EI');
-	// 職災 charges on the un-graded wage on THIS version only: the 民國115年 分級表 is stated on the
-	// later one (勞動部 114年11月17日 勞動保3字第1140090499號令), and 民國114年 has its own table
-	// which this seed does not carry — see `TW/README.md` NOT APPLIED #5. 0.25% × 42,885 = 107.2125.
-	expectStatutory(book, 'TW-NR-42885', 'OCC_INJURY', 0, 107.2125);
+	// 職災 charges on the 民國114年 投保薪資 grade (勞動部 113-11-15 勞動保3字第1130087585號令,
+	// 22 grades 28,590–72,800): 42,885 insures at the 43,900 grade → 0.25% × 43,900 = 109.75.
+	expectStatutory(book, 'TW-NR-42885', 'OCC_INJURY', 0, 109.75);
+});
+
+test('Taiwan — the dollar above a grade insures at the next grade', () => {
+	// 分級表 rows are "29,501 元至 30,300 元 → 30,300": the first cent past a grade is the next
+	// grade for every insurance, and a non-resident a cent over 1.5 × the basic wage is at 18%.
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2026-01',
+		riskClass: '1',
+		people: [
+			{ key: 'TW-29500.01', wage: 29_500.01, citizenship: 'CITIZEN' },
+			{ key: 'TW-NR-44250.01', wage: 44_250.01, citizenship: 'FOREIGNER' }
+		]
+	});
+	// Grade 30,300 × 11.5% = 3,484.50 → 696.90 / 2,439.15; × 1% = 303 → 60.60 / 212.10.
+	expectStatutory(book, 'TW-29500.01', 'LI', 696.9, 2439.15);
+	expectStatutory(book, 'TW-29500.01', 'EI', 60.6, 212.1);
+	// NHI 30,300 × 5.17% = 1,566.51 → 469.95 / 1,466.26; pension 6% = 1,818.
+	expectStatutory(book, 'TW-29500.01', 'NHI', 469.95, 1466.26);
+	expectStatutory(book, 'TW-29500.01', 'LABOR_PENSION', 0, 1818);
+	// 18% × 44,250.01 = 7,965.00.
+	expectStatutory(book, 'TW-NR-44250.01', 'INCOME_TAX_NON_RESIDENT', 7965, 0);
+});
+
+test('Taiwan — the 1 January 2027 version steps labour insurance to 12%', () => {
+	// 勞保條例 §13(2): from the year the ordinary rate reaches 10% it rises 0.5% every two years
+	// to 13% — 11.5% in 民國114年, 12% in 民國116年 — unless the fund can pay twenty years of
+	// benefits. Every other scheme, and the 民國115年 grade tables, carry over unchanged until the
+	// 116年 minimum wage publishes.
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2027-01',
+		riskClass: '1',
+		people: [
+			{ key: 'TW-28590', wage: 28_590, citizenship: 'CITIZEN' },
+			{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' },
+			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' }
+		]
+	});
+	// 29,500 × 12% = 3,540 → 708.00 / 2,478.00 (was 678.50 / 2,374.75 at 11.5%).
+	expectStatutory(book, 'TW-28590', 'LI', 708, 2478);
+	// 40,100 × 12% = 4,812 → 962.40 / 3,368.40.
+	expectStatutory(book, 'TW-40000', 'LI', 962.4, 3368.4);
+	// The 45,800 ceiling grade × 12% = 5,496 → 1,099.20 / 3,847.20.
+	expectStatutory(book, 'TW-60000', 'LI', 1099.2, 3847.2);
+	// Employment insurance, health insurance and the pension grade do not move.
+	expectStatutory(book, 'TW-28590', 'EI', 59, 206.5);
+	expectStatutory(book, 'TW-40000', 'NHI', 621.95, 1940.48);
+	expectStatutory(book, 'TW-40000', 'LABOR_PENSION', 0, 2406);
 });
 
 test('every sealed version of `TW` is priced by a golden here', () => {

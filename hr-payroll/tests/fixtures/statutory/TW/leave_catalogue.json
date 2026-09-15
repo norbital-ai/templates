@@ -2018,5 +2018,1015 @@
 				]
 			}
 		]
+	},
+	{
+		"id": "61709f1e-ae6d-573e-868d-2f44b5010f84",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (特別休假)",
+		"is_statutory": true,
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 288",
+					"days": 30
+				},
+				{
+					"eligibility": "employment.service_months >= 276",
+					"days": 29
+				},
+				{
+					"eligibility": "employment.service_months >= 264",
+					"days": 28
+				},
+				{
+					"eligibility": "employment.service_months >= 252",
+					"days": 27
+				},
+				{
+					"eligibility": "employment.service_months >= 240",
+					"days": 26
+				},
+				{
+					"eligibility": "employment.service_months >= 228",
+					"days": 25
+				},
+				{
+					"eligibility": "employment.service_months >= 216",
+					"days": 24
+				},
+				{
+					"eligibility": "employment.service_months >= 204",
+					"days": 23
+				},
+				{
+					"eligibility": "employment.service_months >= 192",
+					"days": 22
+				},
+				{
+					"eligibility": "employment.service_months >= 180",
+					"days": 21
+				},
+				{
+					"eligibility": "employment.service_months >= 168",
+					"days": 20
+				},
+				{
+					"eligibility": "employment.service_months >= 156",
+					"days": 19
+				},
+				{
+					"eligibility": "employment.service_months >= 144",
+					"days": 18
+				},
+				{
+					"eligibility": "employment.service_months >= 132",
+					"days": 17
+				},
+				{
+					"eligibility": "employment.service_months >= 120",
+					"days": 16
+				},
+				{
+					"eligibility": "employment.service_months >= 60",
+					"days": 15
+				},
+				{
+					"eligibility": "employment.service_months >= 36",
+					"days": 14
+				},
+				{
+					"eligibility": "employment.service_months >= 24",
+					"days": 10
+				},
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 7
+				},
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 3
+				},
+				{
+					"eligibility": "",
+					"days": 0
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "2e8e5194-82fc-5b4b-b181-dd85edacfacb",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "SICK_LEAVE",
+		"name": "Ordinary injury or sickness leave (普通傷病假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 30
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "bd212789-1381-52de-8f02-070a237377e6",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "PERSONAL_LEAVE",
+		"name": "Personal leave (事假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第7條 — not more than 14 days a year, unpaid; from 2026-01-01 it may be taken by the hour where it is used to care for a family member.",
+		"eligibility": "",
+		"paid": false,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 14
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "0b85f046-2728-59f8-a40b-fe0836519e73",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (婚假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第2條 — 8 days on full wages.",
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "5356a9a6-c8ce-563e-ae1a-a92ed88afc50",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (喪假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 8
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "e4159bd4-c366-5abe-8b30-631c154ea733",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "OCCUPATIONAL_INJURY_LEAVE",
+		"name": "Occupational injury leave (公傷病假)",
+		"is_statutory": true,
+		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額.",
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "24a76fe9-f541-59b3-9a8a-04b23765770f",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (產假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 56
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "278e44a0-e7cf-5d40-adcf-ae41a30ac0d8",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance.",
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "edac0448-546d-5072-9555-66214db3f11a",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "PRENATAL_CHECKUP_LEAVE",
+		"name": "Prenatal check-up leave (產檢假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第15條第4項 — 7 days on full wages.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "4cf74103-ae9d-5f64-8120-c2969c55b319",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave (生理假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "MONTHLY",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 1
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "a0c1f56e-0dfd-5027-bb78-3f3eee02112f",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "FAMILY_CARE_LEAVE",
+		"name": "Family care leave (家庭照顧假)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
+		"eligibility": "",
+		"paid": false,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "77641e3c-1200-5003-a97d-21fa0f476ed1",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "PARENTAL_LEAVE",
+		"name": "Parental leave without pay (育嬰留職停薪)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple.",
+		"eligibility": "employment.service_months >= 6",
+		"paid": false,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 730
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "92397cef-111b-5bfe-9816-6c630ab29dce",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "BREASTFEEDING_TIME",
+		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
+		"is_statutory": true,
+		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time.",
+		"eligibility": "employee.gender == \"FEMALE\" && children.under(2) >= 1",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "a7b89929-df39-5ba5-9825-69e8cf9b5e24",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "c34512fa-7054-59e3-8d37-9e5ca6033821",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "19c3b6e7-fe10-5aa6-b315-47593dbc75d6",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "488eaea7-39b8-5c8a-a43a-70fed244362c",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "72b2ab60-6a03-52de-9f3e-7f6c466728e2",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "61a327dc-e757-5844-8647-13b1779763ef",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "028b0d49-136c-5259-bb8b-b952bc17eed8",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "f77095ca-9a93-592d-b9c0-594ac10d4d3b",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
 	}
 ]

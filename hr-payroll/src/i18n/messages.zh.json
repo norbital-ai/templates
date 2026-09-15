@@ -830,6 +830,8 @@
 	"renderer.proration_basis.days": "天数",
 	"renderer.proration_basis.select_basis": "选择计算基准",
 	"renderer.sources.add_url": "添加来源",
+	"renderer.sources.instructions": "研究代理应如何浏览这些网站",
+	"renderer.sources.instructions_hint": "各网站承载哪些表格、路径格式，以及阅读器无法打开的官方文件及其 HTML 替代页面。",
 	"renderer.sources.empty": "尚未记录来源。",
 	"renderer.sources.url": "链接",
 	"renderer.statutory_fact_status.select_status": "选择状态",

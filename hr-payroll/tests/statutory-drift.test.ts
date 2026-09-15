@@ -15,6 +15,8 @@ import {
 } from '../src/lib/statutory_research.ts';
 import { applyProposedChanges, firstOfNextMonth } from '../src/automations/+statutory_drift.ts';
 import { settingsDraftWrite } from '../src/lib/settings_clone.ts';
+import { prefilterStatutorySources, researchOrigins } from '../src/lib/statutory_sources.ts';
+import { LINEAGES, settingsVersions } from './fixtures/statutory-world.ts';
 
 const page = {
 	url: 'https://statutory.example.org/rates',
@@ -373,4 +375,43 @@ test('a cloned version remaps every opt-in to the clone’s own scheme id', () =
 		cloneId
 	);
 	assert.equal(write.work_rules.engine_lines.salary.statutory_opt_ins[0].contribution_id, cloneId);
+});
+
+test('research opens declarations: canonical sites in order, a news site is dropped by name', () => {
+	const { kept, dropped } = prefilterStatutorySources('PH', [
+		'https://www.sss.gov.ph/pay-contribution/',
+		'https://www.philstar.com/headlines/2026/09/11/holidays-2027',
+		'https://www.officialgazette.gov.ph/2025/09/03/proclamation-no-1006-s-2025/',
+		'https://www.sss.gov.ph/pay-contribution/'
+	]);
+	assert.deepEqual(kept, [
+		'https://www.officialgazette.gov.ph/2025/09/03/proclamation-no-1006-s-2025/',
+		'https://www.sss.gov.ph/pay-contribution/'
+	]);
+	assert.equal(dropped.length, 1);
+	assert.match(dropped[0]!.reason, /philstar\.com is not a canonical PH source/);
+	// A jurisdiction the registry does not know keeps the operator's list as it stands.
+	assert.deepEqual(prefilterStatutorySources('XX', ['https://example.org/law']).kept, [
+		'https://example.org/law'
+	]);
+	// The agent may follow links on any canonical origin, listed or not.
+	assert.ok(researchOrigins('PH', []).includes('https://www.officialgazette.gov.ph'));
+});
+
+test('every seeded version lists only canonical sources, and says how to navigate them', () => {
+	for (const lineage of LINEAGES) {
+		for (const version of settingsVersions(lineage)) {
+			const sources = version.sources as { urls: string[]; instructions?: string };
+			const { kept, dropped } = prefilterStatutorySources(
+				String(version.jurisdiction_code),
+				sources.urls
+			);
+			assert.deepEqual(dropped, [], `${lineage} ${String(version.name)} lists an off-canon source`);
+			assert.ok(kept.length > 0, `${lineage} ${String(version.name)} lists no source`);
+			assert.ok(
+				(sources.instructions ?? '').length > 200,
+				`${lineage} ${String(version.name)} carries no navigation instructions`
+			);
+		}
+	}
 });

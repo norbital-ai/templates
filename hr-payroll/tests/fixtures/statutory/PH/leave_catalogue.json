@@ -1,5 +1,538 @@
 [
 	{
+		"id": "64062bd9-226b-4e8f-b8bd-fb83f74d19b0",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "3aa03c48-f319-4440-b642-247d0fe6301d",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"is_statutory": true,
+		"authority": "Republic Act 9262 (Anti-Violence Against Women and Their Children Act of 2004) sec. 43",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 10
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": []
+	},
+	{
+		"id": "38dc7a00-2fad-42b8-b105-72d846c4650c",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 2,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "a566e845-4766-46c1-ab11-9d1326c944b5",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"is_statutory": true,
+		"authority": "Republic Act 8187 sec. 3",
+		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 7
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ba41f8a7-c2af-4c44-8719-3ddbe2657211",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"is_statutory": true,
+		"authority": "Republic Act 9710 (Magna Carta of Women) sec. 18 with DOLE Department Order 112-A s.2012",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 60
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": []
+	},
+	{
+		"id": "9d3004c1-4685-416c-a2ca-37c77e605824",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "048ef321-d99f-4e42-9ca6-38bd0c468853",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"is_statutory": true,
+		"authority": "Labor Code of the Philippines (P.D. 442, as amended) art.95",
+		"eligibility": "employment.classification != \"MANAGERIAL\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 12",
+					"days": 5
+				}
+			]
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "96cfc0d8-dc2e-4889-a370-6ed5d46ea956",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "e021a674-6ff5-4420-9265-85ef288eb6c1",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"is_statutory": true,
+		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3",
+		"eligibility": "employee.gender == \"FEMALE\"",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employee.solo_parent",
+					"days": 120
+				},
+				{
+					"eligibility": "",
+					"days": 105
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "5c865f5f-010b-40e0-956f-e1605386b80f",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalisation leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "0ccb0440-e45c-4d18-ab7b-f0f9c4a3ff31",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": false,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "d7a77774-802b-42c8-9884-7a28e419f138",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"is_statutory": true,
+		"authority": "Republic Act 8972 (Solo Parents' Welfare Act) sec. 8 as amended by Republic Act 11861 (Expanded Solo Parents Welfare Act)",
+		"eligibility": "employee.solo_parent",
+		"paid": true,
+		"entitlement": {
+			"availability": "UPFRONT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "employment.service_months >= 6",
+					"days": 7
+				}
+			]
+		},
+		"evidence_after_days": 1,
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": []
+	},
+	{
+		"id": "6c4dfeaa-e449-4057-a5cd-1f7292c23777",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"is_statutory": false,
+		"authority": null,
+		"eligibility": "",
+		"paid": false,
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "entry.amount == 0.0",
+				"amount": "0.0",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "651cfc48-7d50-469c-a308-cbe5d64cda64",
+						"effect": "REDUCE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "REDUCE"
+					}
+				]
+			},
+			{
+				"when": "entry.amount > 0.0",
+				"amount": "entry.amount",
+				"limit": null,
+				"statutory_opt_ins": [
+					{
+						"contribution_id": "42eca564-5218-4c2e-b9cf-07b988716861",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "00ca59ff-b17f-46e9-8b04-8915aad246e1",
+						"effect": "INCLUDE"
+					},
+					{
+						"contribution_id": "a8335fdd-d20b-486b-bade-86f37f3cc6d8",
+						"effect": "INCLUDE"
+					}
+				]
+			}
+		]
+	},
+	{
 		"id": "11a978e4-285a-52a4-9ffa-3b6a8eec3256",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",

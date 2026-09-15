@@ -155,6 +155,26 @@ test('Singapore — SDL and the self-help group funds', () => {
 	expectStatutorySkipped(book, 'SG-3000-30', 'CDAC');
 });
 
+test('Singapore — a foreigner is outside CPF, and the cent above a ceiling is inside it', () => {
+	const book = assessStatutory({
+		code: 'SG',
+		period: '2026-05',
+		people: [
+			{ key: 'SG-F-3000', wage: 3000, age: 30, citizenship: 'FOREIGNER' },
+			{ key: 'SG-750.01', wage: 750.01, age: 30, citizenship: 'CITIZEN' },
+			{ key: 'SG-8000.01', wage: 8000.01, age: 30, citizenship: 'CITIZEN' }
+		]
+	});
+	// CPF Act: contributions are for Singapore citizens and permanent residents. A work-pass
+	// holder draws no CPF row at all; the Skills Development Levy is still due on their wage.
+	expectStatutorySkipped(book, 'SG-F-3000', 'CPF');
+	expectStatutory(book, 'SG-F-3000', 'SDL', 0, 7.5);
+	// "Exceeding $750": the full 37% on $750.01 → total 277.50 → 278; employee 20% → 150, employer 128.
+	expectStatutory(book, 'SG-750.01', 'CPF', 150, 128);
+	// Above the $8,000 ordinary-wage ceiling the charge is the ceiling's: 1,600 / 1,360.
+	expectStatutory(book, 'SG-8000.01', 'CPF', 1600, 1360);
+});
+
 test('Singapore — the 1 January 2027 senior-worker CPF increase (second version)', () => {
 	const book = assessStatutory({
 		code: 'SG',

@@ -194,6 +194,23 @@ test('Indonesia — PPh 21 monthly withholding on the TER A and TER C ladders', 
 	expectStatutory(book, 'ID-C-25M', 'PPH21', 2_250_000, 0);
 });
 
+test('Indonesia — the rupiah above a TER bracket, or a BPJS ceiling, is charged on the next row', () => {
+	const book = assessStatutoryUnvalidated({
+		...idWorld('2026-03'),
+		people: [
+			{ key: 'ID-5400000.01', wage: 5_400_000.01, marital_status: 'SINGLE' },
+			{ key: 'ID-11086300.01', wage: 11_086_300.01, marital_status: 'SINGLE' },
+			{ key: 'ID-12000000.01', wage: 12_000_000.01, marital_status: 'SINGLE' }
+		]
+	});
+	// TER A "5,400,001 – 5,650,000 → 0.25%": 0.25% × 5,400,000.01 = 13,500.00.
+	expectStatutory(book, 'ID-5400000.01', 'PPH21', 13_500, 0);
+	// JP above the 11,086,300 ceiling charges on the ceiling: 110,863 / 221,726.
+	expectStatutory(book, 'ID-11086300.01', 'JP', 110_863, 221_726);
+	// Kesehatan above the Rp12,000,000 cap: 120,000 / 480,000.
+	expectStatutory(book, 'ID-12000000.01', 'KESEHATAN', 120_000, 480_000);
+});
+
 test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025 UMP', () => {
 	// The first sealed version runs 1 December 2025 to 1 January 2026. Every BPJS rate is the same
 	// as on the later two; what moves on 1 January is the regional minimum wage the BPJS Kesehatan
