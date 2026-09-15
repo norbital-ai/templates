@@ -389,7 +389,7 @@ const peopleByContext = new WeakMap<
 	LeaveContext,
 	Map<string, Map<string, { readonly person: PersonContext; readonly key: string }>>
 >();
-const personCache = (context: LeaveContext, employmentId: string) => {
+const personCache = (context: LeaveContext, factsKey: string) => {
 	const byEmployment =
 		peopleByContext.get(context) ??
 		(() => {
@@ -400,8 +400,8 @@ const personCache = (context: LeaveContext, employmentId: string) => {
 			peopleByContext.set(context, fresh);
 			return fresh;
 		})();
-	const cache = byEmployment.get(employmentId) ?? new Map();
-	byEmployment.set(employmentId, cache);
+	const cache = byEmployment.get(factsKey) ?? new Map();
+	byEmployment.set(factsKey, cache);
 	return cache;
 };
 const verdictsByContext = new WeakMap<LeaveContext, Map<string, boolean>>();
@@ -457,7 +457,9 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 	 * entitlement projects eligibility over every day of its window, and a company of ninety with
 	 * ten leave types asked for the same person three hundred thousand times a run.
 	 */
-	const people = personCache(context, employmentId);
+	// Keyed by the facts themselves: a context is mutated in place by callers that amend terms or
+	// a person between queries, so identity alone would serve a stale reading.
+	const people = personCache(context, JSON.stringify([employee, terms, company.id, hire, exit]));
 	const personOn = (date: string): PersonContext => {
 		const known = people.get(date);
 		if (known !== undefined) return known.person;
@@ -487,7 +489,7 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 		let eligible = false;
 		if (active && catalogue != null) {
 			personOn(date);
-			const verdictKey = `${catalogue.id}\u0000${people.get(date)!.key}`;
+			const verdictKey = `${catalogue.eligibility}\u0000${people.get(date)!.key}`;
 			const verdict = verdicts.get(verdictKey);
 			if (verdict !== undefined) eligible = verdict;
 			else {
