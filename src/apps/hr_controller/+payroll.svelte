@@ -338,7 +338,15 @@
 			>
 				{#snippet columns({ Column })}
 					<Column name="period" label={t('app.payroll.period')} card="title" />
-					<Column name="pay_date" label={t('app.payroll.pay_date')} />
+					<Column
+						name="pay_date"
+						label={t('app.payroll.pay_date')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: { pay_date: unknown } }) =>
+								formatCalendarInstant(row.pay_date)
+						}}
+					/>
 					<Column
 						name="calculation_version"
 						label={t('app.payroll.paid')}

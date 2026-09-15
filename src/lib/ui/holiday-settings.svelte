@@ -5,6 +5,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
+	import { formatCalendarInstant } from './display-formatters.js';
 	import { Cluster, Cover } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import { setContext } from 'svelte';
@@ -202,10 +204,26 @@
 		]}
 	>
 		{#snippet columns({ Column })}
-			<Column name="date" label={t('component.observed_on')} card="title" />
+			<!-- Holiday days are payroll-zone midnights; the default day renderer reads them in UTC, a day early. -->
+			<Column
+				name="date"
+				label={t('component.observed_on')}
+				card="title"
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }: { row: { date: unknown } }) => formatCalendarInstant(row.date)
+				}}
+			/>
 			<Column name="name" label={t('component.holiday')} card="subtitle" />
 			<Column name="kind" label={t('holiday_calendar.kind')} />
-			<Column name="replaces" label={t('holiday_calendar.replaces')} />
+			<Column
+				name="replaces"
+				label={t('holiday_calendar.replaces')}
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }: { row: { replaces: unknown } }) => formatCalendarInstant(row.replaces)
+				}}
+			/>
 			<Column name="published_at" label={t('holiday_calendar.published_at')} card="badge" />
 		{/snippet}
 	</CollectionTable>
