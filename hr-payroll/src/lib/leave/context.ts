@@ -384,6 +384,33 @@ export function readLeaveContext(
 	});
 }
 
+/** Per-context caches shared by every leave type of an employment (see `personOn`). */
+const peopleByContext = new WeakMap<
+	LeaveContext,
+	Map<string, Map<string, { readonly person: PersonContext; readonly key: string }>>
+>();
+const personCache = (context: LeaveContext, employmentId: string) => {
+	const byEmployment =
+		peopleByContext.get(context) ??
+		(() => {
+			const fresh = new Map<
+				string,
+				Map<string, { readonly person: PersonContext; readonly key: string }>
+			>();
+			peopleByContext.set(context, fresh);
+			return fresh;
+		})();
+	const cache = byEmployment.get(employmentId) ?? new Map();
+	byEmployment.set(employmentId, cache);
+	return cache;
+};
+const verdictsByContext = new WeakMap<LeaveContext, Map<string, boolean>>();
+const eligibilityCache = (context: LeaveContext) => {
+	const cache = verdictsByContext.get(context) ?? new Map<string, boolean>();
+	verdictsByContext.set(context, cache);
+	return cache;
+};
+
 /** Resolve a stable leave code against the sealed catalogue and person facts effective on each date. */
 export function leaveRules(context: LeaveContext, employmentId: string, catalogueId: string) {
 	const employment = context.employments.find((row) => row.id === employmentId);
@@ -423,9 +450,18 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 		}
 		return row;
 	};
-	/** The person as a predicate sees them on one date: the terms in force that day, or none. */
-	const personOn = (date: string): PersonContext =>
-		personContext({
+	/**
+	 * The person as a predicate sees them on one date: the terms in force that day, or none.
+	 *
+	 * Built once per employment and date for the whole context, not once per leave type: an
+	 * entitlement projects eligibility over every day of its window, and a company of ninety with
+	 * ten leave types asked for the same person three hundred thousand times a run.
+	 */
+	const people = personCache(context, employmentId);
+	const personOn = (date: string): PersonContext => {
+		const known = people.get(date);
+		if (known !== undefined) return known.person;
+		const person = personContext({
 			employee,
 			employment: { service_start: hire },
 			terms: terms.find((row) => coversDate(row.effective_range, date)) ?? null,
@@ -433,7 +469,13 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 			company,
 			asOf: date
 		});
+		people.set(date, { person, key: JSON.stringify(person) });
+		return person;
+	};
 	const eligibility = new Map<string, boolean>();
+	// A rule's verdict depends on the person's facts, not the calendar: two dates on which the
+	// person reads the same are one evaluation. A year has a dozen distinct readings, not 365.
+	const verdicts = eligibilityCache(context);
 	const eligibleOn = (date: string): boolean => {
 		const known = eligibility.get(date);
 		if (known !== undefined) return known;
@@ -442,8 +484,17 @@ export function leaveRules(context: LeaveContext, employmentId: string, catalogu
 		// activity dates still resolve through catalogueOn/settingsOn and refuse missing evidence.
 		const catalogue = catalogueAt(date);
 		const active = date >= hire && (exit == null || date <= exit) && term != null;
-		const eligible =
-			active && catalogue != null && isEligible(catalogue.eligibility, personOn(date));
+		let eligible = false;
+		if (active && catalogue != null) {
+			personOn(date);
+			const verdictKey = `${catalogue.id}\u0000${people.get(date)!.key}`;
+			const verdict = verdicts.get(verdictKey);
+			if (verdict !== undefined) eligible = verdict;
+			else {
+				eligible = isEligible(catalogue.eligibility, personOn(date));
+				verdicts.set(verdictKey, eligible);
+			}
+		}
 		eligibility.set(date, eligible);
 		return eligible;
 	};
