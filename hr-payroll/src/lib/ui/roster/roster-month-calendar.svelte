@@ -3,8 +3,8 @@
 
 	This is the second renderer over `buildRosterMonth`, not a second derivation. The controller's
 	board and this calendar read the *same* `DayFacts` map — `buildRosterMonth` already takes
-	`employments[]`, and one person is simply the n = 1 case — so `STATUS_PRESENTATION`,
-	`HOLIDAY_PRESENTATION`, `planGlyph`, `actualMark` and `describeDay` are imported and used
+	`employments[]`, and one person is simply the n = 1 case — so `HOLIDAY_PRESENTATION` and
+	`describeDay` are imported and used
 	verbatim. A day that is amber for the controller is amber for the employee, and an employee who
 	asks "why does HR think I was absent on the 5th" is looking at the same fact the controller is
 	looking at, drawn larger. Forking any of that here would produce two answers to one question,
@@ -17,27 +17,8 @@
 	answer. A punch on its own is only half a day.
 
 	── THE BASE IS READ-ONLY; A ROSTER ROW IS WHERE A PUNCH GOES ────────────────────────────────
-	A tile with no `work_days` row behind it is the BASE: the day the employment's named shift
-	pattern projects, drawn muted inside a dashed outline exactly as the board draws it. Payroll takes
-	such a day as worked to plan, so there is nothing for the employee to punch against, and the
-	report button is not offered there (`employeeMissingPunchReportable` needs `workDayId`). A tile
-	with a row is an OVERRIDE and carries the clock: punch in and out, the running-clock mark, or the
-	AWOL face in the destructive colour when the row was reviewed empty on a work day.
-
-	── THE THREE BANDS ────────────────────────────────────────────────────────────────────────────
-	A tile carries the same three bands as a board cell, with room to spell them out instead of
-	glyphing them:
-
-	    ┌─ 5 ─────┐
-	    │ A       │  plan   — planGlyph + the scheduled window, or the leave / holiday that owns it
-	    │ 08–17   │
-	    │ ⚠ no    │  actual — actualMark spelled out, the punch window, and the hours worked
-	    │   punch │
-	    │ [report]│
-	    └─────────┘
-	     ▲
-	     └ lock — a left rail, one channel, three rungs. It is a rail rather than a fill because the
-	       fill is already spent on STATUS_PRESENTATION and the holiday overlay tints the tile.
+	A tile is `roster-slot.svelte` with room to spell itself out — the same state and the same fill
+	bar the controller's board draws, plus the date, the shift window, the punches and the hours.
 
 	── THE LOCK LADDER HERE IS THE RECORD AXIS ONLY, AND THAT IS THE POINT ────────────────────────
 	The board draws two axes. `day.lock` is a `DayLock`: window arithmetic over `payroll_runs`, about
@@ -84,15 +65,10 @@
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
 	import {
 		HOLIDAY_PRESENTATION,
-		LAYER_PRESENTATION,
-		STATUS_PRESENTATION,
-		actualMark,
 		beyondScheduleMinutes,
 		describeDay,
 		monthDays,
 		personDayKey,
-		planGlyph,
-		resolveCellLayers,
 		type DayFacts,
 		type HolidayLike
 	} from './roster-month.js';
@@ -216,9 +192,6 @@
 	 * drawn here, as the `↑` the legend names; a short day is not a fault worth a mark of its own on
 	 * a month view, and the day sheet is one click away for the whole sentence.
 	 */
-	function overshootMinutes(day: DayFacts): number {
-		return Math.max(0, beyondScheduleMinutes(day) ?? 0);
-	}
 
 	const monthDaysForPerson = $derived(
 		days.flatMap((date) => {
@@ -228,9 +201,6 @@
 	);
 	const workedMinutesTotal = $derived(
 		monthDaysForPerson.reduce((total, day) => total + (day.workedMinutes ?? 0), 0)
-	);
-	const beyondScheduleTotal = $derived(
-		monthDaysForPerson.reduce((total, day) => total + overshootMinutes(day), 0)
 	);
 
 	/**
@@ -323,11 +293,6 @@
 				<span>
 					{t('roster.calendar_worked_total', {
 						hours: formatDurationHours(workedMinutesTotal, t)
-					})}
-				</span>
-				<span>
-					{t('roster.calendar_beyond_total', {
-						hours: formatDurationHours(beyondScheduleTotal, t)
 					})}
 				</span>
 			</Inline>

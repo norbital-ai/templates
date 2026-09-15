@@ -1269,33 +1269,6 @@ function statusGlyph(day: DayFacts): string {
 }
 
 /**
- * The plan line of a cell: what the roster says the day is, before anything happened.
- *
- * Planned extra work (a WORK day over a rest, off or holiday baseline) reads as `OT` so it is
- * visible at a glance; pending leave reads as `l` so nobody mistakes it for a taken day.
- */
-export function planGlyph(day: DayFacts): string {
-	if (day.status === 'BEFORE_START') return '—';
-	if (day.status === 'EXITED') return '×';
-	if (day.pendingLeave) return 'l';
-	if (day.plannedOT) return 'OT';
-	return statusGlyph(day);
-}
-
-/**
- * The evidence line of a cell: what actually happened, one mark.
- *
- * This is the observation axis, so it can always disagree with the plan — that disagreement is
- * the product, not an error. A blank mark means there is nothing to say yet.
- */
-export function actualMark(day: DayFacts): string {
-	if (day.attendanceState === 'OPEN') return '⧗';
-	if (day.clockedIn) return '✓';
-	if (day.status === 'ABSENT') return '!';
-	return '·';
-}
-
-/**
  * How a derived conflict reads.
  *
  * Both kinds share the one destructive hue on purpose. They used to be amber and red, which made
@@ -1436,7 +1409,7 @@ const cellLayersSchema = Schema.Struct({
 	/** Which plan layer the day is measured against. */
 	effective: Schema.Literals(['BASE', 'OVERRIDE', 'NONE'])
 });
-export type CellLayers = Schema.Schema.Type<typeof cellLayersSchema>;
+type CellLayers = Schema.Schema.Type<typeof cellLayersSchema>;
 
 /** Which of the three layers a person-day carries, and which plan layer is in force. */
 export function resolveCellLayers(day: DayFacts): CellLayers {
@@ -1469,38 +1442,6 @@ export function resolveCellLayers(day: DayFacts): CellLayers {
 		effective: override != null ? 'OVERRIDE' : base != null ? 'BASE' : 'NONE'
 	};
 }
-
-/**
- * How each layer is drawn, on SHAPE rather than colour: the base is a muted code inside a dashed
- * outline, an override is solid text with a corner mark, and time entries are a bar under the
- * code. The legend on both surfaces reads this table, so a swatch cannot drift from a cell.
- */
-export const LAYER_PRESENTATION: {
-	readonly base: { readonly labelKey: TenantI18nKeys; readonly className: string };
-	readonly override: {
-		readonly labelKey: TenantI18nKeys;
-		readonly className: string;
-		readonly markClassName: string;
-	};
-	readonly clocked: { readonly labelKey: TenantI18nKeys; readonly barClassName: string };
-	readonly awol: { readonly labelKey: TenantI18nKeys; readonly className: string };
-} = {
-	base: {
-		labelKey: 'roster.layer_base',
-		className:
-			'text-muted-foreground outline-1 outline-dashed outline-offset-[-2px] outline-muted-foreground/50'
-	},
-	override: {
-		labelKey: 'roster.layer_override',
-		className: 'text-foreground outline-1 outline-offset-[-2px] outline-foreground/40',
-		markClassName: 'absolute right-0.5 bottom-0.5 size-1.5 rounded-[1px] bg-foreground/70'
-	},
-	clocked: {
-		labelKey: 'roster.layer_clocked',
-		barClassName: 'absolute inset-x-1.5 bottom-0.5 h-0.5 rounded-full bg-success'
-	},
-	awol: { labelKey: 'roster.absent', className: STATUS_PRESENTATION.ABSENT.className }
-};
 
 /** The plan line, layer first: which layer the code came from, then the code and its window. */
 export function describePlanLayer(day: DayFacts, t: Translator): string {
