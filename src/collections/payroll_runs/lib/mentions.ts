@@ -52,6 +52,10 @@ function walk(node: AstNode, mentions: string[]): void {
 
 /** The codes one expression mentions, appended to `mentions` in first-seen order. */
 function mentionsIn(expression: string, mentions: string[]): void {
+	// No `produced.` in the text, no mention in the tree: a band ladder is tens of thousands of
+	// expressions that name no scheme, and parsing each to prove it cost more than the payroll.
+	// The text test only skips; whatever it lets through is still judged by the AST.
+	if (!expression.includes('produced.')) return;
 	let ast: unknown;
 	try {
 		// The same compiled environment the run evaluates with: parsed once, read here first.
