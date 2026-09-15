@@ -34,14 +34,17 @@ type CaptureFamily = {
 };
 
 export function captureWriters(api: CaptureApi): readonly CaptureFamily[] {
-	const pin = (collection: CollectionWriter, ids: readonly string[], payslipId: string) =>
-		ids.length === 0
-			? Effect.void
-			: collection.mutate(ids.map((id) => ({ id, payslip_id: payslipId })));
+	// One write per family for the whole run, not one per payslip: a company of ninety pinned
+	// 2,500 work days through ninety nested mutates, each running the collection's prepare hook
+	// again, and that alone was most of the guest's compute budget.
 	const pins =
 		(collection: CollectionWriter, select: (capture: PayslipCaptures) => readonly string[]) =>
-		(captures: readonly PayslipCaptures[]) =>
-			Effect.forEach(captures, (capture) => pin(collection, select(capture), capture.payslipId));
+		(captures: readonly PayslipCaptures[]) => {
+			const rows = captures.flatMap((capture) =>
+				select(capture).map((id) => ({ id, payslip_id: capture.payslipId }))
+			);
+			return rows.length === 0 ? Effect.void : collection.mutate(rows);
+		};
 	return [
 		{ pin: pins(api.db.work_days, (capture) => capture.workDays) },
 		{ pin: pins(api.db.claim_requests, (capture) => capture.claims) },

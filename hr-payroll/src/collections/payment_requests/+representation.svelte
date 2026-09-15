@@ -50,13 +50,9 @@
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 	/** A payroll capture freezes the row: the shell header carries the lock, the chrome the sentence. */
-	const locked = $derived(recordMetadata.length > 0);
 </script>
 
-<RecordShell
-	icon={locked ? 'lucide:lock-keyhole' : undefined}
-	badge={locked ? t('recordMetadata.readOnly') : undefined}
->
+<RecordShell>
 	<CollectionForm
 		{client}
 		notice="header"
