@@ -27,6 +27,8 @@ import { Schema } from 'effect';
 const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
 	componentName: Schema.String,
+	/** The frozen label: for a derived overtime row, the band it was priced on (`OT-1.5X`). */
+	label: Schema.optionalKey(Schema.String),
 	bucket: Schema.String,
 	/** The input family that caused the line: BASE for the contracted amount, else the payslip adjustment's. */
 	family: Schema.String,
@@ -144,6 +146,8 @@ const SECTION_LAYOUT: readonly {
 	readonly outputIds?: readonly string[];
 	/** The settled lines whose codes are written under this heading, in code order. */
 	readonly lines?: LineMatch;
+	/** The column a matched line is written to; the component code unless the section says otherwise. */
+	readonly columnId?: (line: ReportLine) => string;
 }[] = [
 	{ name: 'Basic', unit: 'MONEY', lines: (line) => line.family === 'BASE' },
 	{
@@ -154,7 +158,11 @@ const SECTION_LAYOUT: readonly {
 	{
 		name: 'Overtime',
 		unit: 'MONEY',
-		lines: (line) => line.bucket === 'EARNING' && line.family === 'WORK_DAY'
+		lines: (line) => line.bucket === 'EARNING' && line.family === 'WORK_DAY',
+		// A clerk reads overtime by its multiple — 1.5x, 2x, 3x and the incentive past the ceiling
+		// at each — so a derived overtime row is a column per band, not one lump under its code.
+		columnId: (line) =>
+			line.label === undefined || line.label === '' ? line.componentCode : `${line.componentCode}:${line.label}`
 	},
 	{ name: 'Absence', unit: 'MONEY', lines: (line) => line.bucket === 'ABSENCE' },
 	{
@@ -169,12 +177,6 @@ const SECTION_LAYOUT: readonly {
 	{ name: 'Deductions', unit: 'MONEY', lines: (line) => line.bucket === 'DEDUCTION' },
 	{ name: 'Payments', unit: 'MONEY', lines: (line) => line.bucket === 'NON_WAGE_PAYMENT' },
 	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
-	{
-		name: 'Totals & bases',
-		unit: 'MONEY',
-		statutoryRoles: ['total', 'base'],
-		outputIds: ['totalDeductions', 'employerCost']
-	},
 	{ name: 'Employer costs', unit: 'MONEY', lines: (line) => line.bucket === 'EMPLOYER_COST' },
 	{ name: 'Information', unit: 'MONEY', lines: (line) => line.bucket === 'INFORMATION' }
 ];
@@ -242,33 +244,29 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
 	for (const [code, charged] of payslip.contributions) {
 		if (charged.employee !== 0) add(statutoryColumn(code, 'employee'), charged.employee);
 		if (charged.employer !== 0) add(statutoryColumn(code, 'employer'), charged.employer);
-		if (charged.employee !== 0 && charged.employer !== 0)
-			add(statutoryColumn(code, 'total'), charged.employee + charged.employer);
-		if (charged.base !== 0) {
-			// A base column shared by a scheme's variants selects rather than sums: an employment is in
-			// exactly one of them, and the non-enrolled variant's assessed base is zero or its own.
-			const base = statutoryColumn(code, 'base');
-			outputs[base] = Math.max(outputs[base] ?? 0, charged.base);
-		}
 	}
 	return outputs;
 }
 
 /** One payslip as the catalogue-driven matrix sees it. */
+/** The column a settled line is written to: the section that claims it decides, else its code. */
+const columnIdOf = (line: ReportLine): string =>
+	SECTION_LAYOUT.find((section) => section.lines?.(line))?.columnId?.(line) ?? line.componentCode;
 function workbookRow(payslip: ReportPayslip): Record<string, number> {
 	const columns: Record<string, number> = {};
 	// One column per catalogue component the payslip actually settled, labelled by its code. Two
 	// lines under one code — two overtime bands, a claim raised twice — are one column and one sum,
 	// which is what "one column per catalogue item" means.
-	for (const line of payslip.lines)
-		columns[line.componentCode] = (columns[line.componentCode] ?? 0) + line.amount;
+	for (const line of payslip.lines) {
+		const id = columnIdOf(line);
+		columns[id] = (columns[id] ?? 0) + line.amount;
+	}
 	return {
 		...columns,
-		// The agreed totals, and nothing else lumped: gross, net, the two totals and the statutory
-		// block, which is already one column per scheme.
+		// Gross, net and the statutory block, which is one column per scheme and share. The
+		// deduction total, employer cost and the statutory totals and bases are not written: a clerk
+		// reconciles the sheet against the lines, and those were a second sum of the same columns.
 		grossEarnings: payslip.gross,
-		totalDeductions: payslip.totalDeductions,
-		employerCost: payslip.employerCost,
 		netPay: payslip.net,
 		...statutoryOutputs(payslip)
 	};
@@ -324,7 +322,7 @@ export function outputGroups(
 						),
 						...(section.outputIds ?? [])
 					].filter((id) => present.has(id))
-				: [...new Set(lines.filter(match).map((line) => line.componentCode))]
+				: [...new Set(lines.filter(match).map(section.columnId ?? columnIdOf))]
 						.toSorted()
 						// A code is one column: the first section that claims it keeps it.
 						.filter((id) => present.has(id) && !claimed.has(id));

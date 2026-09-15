@@ -429,6 +429,7 @@ export function loadRunExports(
 							row.bucket
 						).map((line) => ({
 							...line,
+							label: row.label,
 							// Recovery of a loan repayment is the one adjustment a workbook reports
 							// separately, and the input family is what says so.
 							isLoanInstalment: row.family === 'LOAN_REPAYMENT'

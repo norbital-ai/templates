@@ -97,14 +97,14 @@ test('sections read in the clerk’s order: basic, allowances, overtime, absence
 			'Gross',
 			'Deductions',
 			'Payments',
-			'Net',
-			'Totals & bases'
+			'Net'
 		]
 	);
 	assert.deepEqual(section('Basic').outputIds, ['BASIC']);
 	// Within a section, code order: the inferred catalogue order.
 	assert.deepEqual(section('Allowances').outputIds, ['MEAL', 'PHONE', 'TRANSPORT']);
 	assert.deepEqual(section('Overtime').outputIds, ['OVERTIME']);
+	assert.equal(section('Totals & bases'), undefined, 'the deduction total, employer cost and statutory totals are not columns');
 });
 
 test('a component is filed under the bucket it settled as', () => {
@@ -135,4 +135,22 @@ test('two lines under one code are one column and one sum', () => {
 		outputGroups(twice, workbookRows(twice)).find((group) => group.name === 'Overtime').outputIds,
 		['OVERTIME']
 	);
+});
+
+test('overtime is one column per band, and the funnel past the ceiling one per band beside it', () => {
+	const banded = [
+		payslip('E9', [
+			line({ componentCode: 'BASIC', calculationSource: 'SCHEDULE', amount: 3000 }),
+			line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 120, label: 'OT-1.5X' }),
+			line({ componentCode: 'OVERTIME', calculationSource: 'OVERTIME', amount: 80, label: 'OT-2.0X' }),
+			line({ componentCode: 'INCENTIVE', calculationSource: 'OVERTIME', amount: 30, label: 'OT-1.5X' })
+		])
+	];
+	const rows = workbookRows(banded);
+	const overtime = outputGroups(banded, rows).find((group) => group.name === 'Overtime');
+	assert.deepEqual(overtime.outputIds, ['INCENTIVE:OT-1.5X', 'OVERTIME:OT-1.5X', 'OVERTIME:OT-2.0X']);
+	assert.equal(rows[0]['OVERTIME:OT-1.5X'], 120);
+	assert.equal(rows[0]['OVERTIME:OT-2.0X'], 80);
+	assert.equal(rows[0]['INCENTIVE:OT-1.5X'], 30);
+	assert.equal('OVERTIME' in rows[0], false, 'no lump column beside the bands');
 });
