@@ -249,7 +249,11 @@ export function configurationSnapshot(
 			employee_share_annual_cap: entry.row.employee_share_annual_cap ?? null,
 			shared_cap_group: entry.row.shared_cap_group ?? null,
 			project_relief_annually: entry.row.project_relief_annually,
-			rules: entry.rules.map((band) => [band.when, band.employee, band.employer])
+			// The rules by identity, not by text: a scheme row is immutable once its version is
+			// sealed and a draft edit moves its row version, so `[id, row_version]` names the same
+			// law the text does. The text of a Third Schedule is hundreds of kilobytes, and hashing
+			// it in JavaScript — three or four times a run — cost more than the payroll itself.
+			rules: [entry.row.id, entry.row.row_version]
 		})),
 		// The catalogue's bands are configuration: an amount, a limit or an opt-in moving is a
 		// different charge even when the same code pays it.
