@@ -1020,5 +1020,21 @@
 	"roster.weekday_sun": "Sun",
 	"roster.weekday_thu": "Thu",
 	"roster.weekday_tue": "Tue",
-	"roster.weekday_wed": "Wed"
+	"roster.weekday_wed": "Wed",
+	"renderer.catalogue_schedule.every": "Falls due",
+	"renderer.catalogue_schedule.every_year": "Every year",
+	"renderer.catalogue_schedule.every_month": "Every month",
+	"renderer.catalogue_schedule.month": "Month (1–12)",
+	"renderer.catalogue_schedule.day": "Day (1–31, clamped to the month)",
+	"renderer.catalogue_schedule.from_service_months": "Qualifying service, months",
+	"renderer.catalogue_schedule.on_separation": "Owed on separation",
+	"renderer.catalogue_schedule.when": "Who is owed it",
+	"renderer.catalogue_schedule.when_empty": "Everyone",
+	"renderer.catalogue_schedule.summary_year": "Every year on {month}/{day}",
+	"renderer.catalogue_schedule.summary_month": "Every month on day {day}",
+	"renderer.catalogue_schedule.after_service": "after {months} months",
+	"component.source": "Entries come from",
+	"component.source_hint": "Keyed: somebody records each payment. Scheduled: the run materialises an occurrence on the calendar below and the band prices it over the year axis (year.earned.BASIC, year.months_employed …).",
+	"component.schedule": "Schedule",
+	"renderer.contribution_base.annual_exempt": "Exempt per year"
 }
