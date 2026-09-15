@@ -17,9 +17,6 @@ importers:
       '@norbital-ai/bolt':
         specifier: 0.0.39
         version: 0.0.39(@electric-sql/pglite@0.5.8)(@norbital-ai/doctor@0.0.39)(@types/node@26.4.1)(effect@4.0.0-rc.111)(jiti@2.7.0)(pg@8.23.0)(svelte@5.57.0)(vitest@4.1.11(@types/node@26.4.1)(happy-dom@20.11.6)(vite@8.2.2(@types/node@26.4.1)(jiti@2.7.0)(yaml@2.9.0)))(yaml@2.9.0)(zod@4.5.4)
-      '@norbital-ai/bolt-protocol':
-        specifier: 0.0.39
-        version: 0.0.39(effect@4.0.0-rc.111)
       '@norbital-ai/std':
         specifier: 0.0.39
         version: 0.0.39(effect@4.0.0-rc.111)
@@ -51,6 +48,9 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2(@types/node@26.4.1)(jiti@2.7.0)(yaml@2.9.0)
     devDependencies:
+      '@norbital-ai/bolt-protocol':
+        specifier: 0.0.39
+        version: 0.0.39(effect@4.0.0-rc.111)
       '@norbital-ai/bolt-server':
         specifier: 0.0.39
         version: 0.0.39(effect@4.0.0-rc.111)
