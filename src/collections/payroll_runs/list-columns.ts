@@ -15,5 +15,6 @@ export const PAYROLL_RUN_LIST_COLUMNS = {
 	attendance_to: true,
 	created_at: true,
 	updated_at: true,
-	row_version: true
+	row_version: true,
+	warnings: true
 } as const;

@@ -232,6 +232,12 @@
 		payslipCount == null || payslipCount === 0 ? 0 : Math.round((paidCount / payslipCount) * 100)
 	);
 	const emptyDraft = $derived(record != null && payslipCount === 0);
+	/** What the engine noticed but did not refuse, one sentence per line, frozen with the run. */
+	const warnings = $derived(
+		typeof record?.warnings === 'string' && record.warnings !== ''
+			? record.warnings.split('\n')
+			: []
+	);
 	/** A held slip is reviewed but deliberately kept out of every bank file until it is released. */
 	const heldCountQuery = $derived(
 		record == null
@@ -330,6 +336,21 @@
 				<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
 					{t('component.draft_built_nothing')}
 				</p>
+			{/if}
+			{#if warnings.length > 0}
+				<details
+					class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+					data-run-warnings
+				>
+					<summary class="cursor-pointer font-medium">
+						{t('component.run_warnings', { count: warnings.length })}
+					</summary>
+					<ul class="mt-2 list-disc space-y-1 pl-5">
+						{#each warnings as warning (warning)}
+							<li>{warning}</li>
+						{/each}
+					</ul>
+				</details>
 			{/if}
 
 			<Stack as="section" gap="sm" aria-label={t('component.payslips')}>

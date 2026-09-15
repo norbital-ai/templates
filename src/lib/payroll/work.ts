@@ -1261,13 +1261,19 @@ export function validateWorkResult(options: {
 	// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
 	// inheriting one from a statute that does not govern it.
 	// Daily ceilings are reported from the named limits; the schedule gate is where they refuse.
+	// The schedule is measured over whole calendar months, but a day is reported in the one run
+	// whose attendance window pays it — otherwise the next run flags the same day again.
+	const { attendance } = bundle;
+	const ownDays = measured.overtimeDays.filter(
+		(day) => day.date >= attendance.start && day.date <= attendance.end
+	);
 	for (const limit of configuration.limits) {
 		if (limit.period !== 'DAY') continue;
 		if (limit.measure === 'TOTAL_WORK_HOURS')
 			issues.push(
 				...validateDailyWorkLimit({
 					employeeNumber: bundle.employment.employee_number,
-					days: measured.overtimeDays,
+					days: ownDays,
 					maxWorkHours: limit.max_hours,
 					unit: limit.unit
 				})
@@ -1276,7 +1282,7 @@ export function validateWorkResult(options: {
 			issues.push(
 				...validateDailyOvertimeHoursLimit({
 					employeeNumber: bundle.employment.employee_number,
-					days: measured.overtimeDays,
+					days: ownDays,
 					maxOvertimeHours: limit.max_hours
 				})
 			);

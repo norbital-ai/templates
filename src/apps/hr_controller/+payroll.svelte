@@ -348,6 +348,17 @@
 						}}
 					/>
 					<Column
+						name="warnings"
+						label={t('app.payroll.warnings')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: { warnings: unknown } }) =>
+								typeof row.warnings === 'string' && row.warnings !== ''
+									? String(row.warnings.split('\n').length)
+									: '—'
+						}}
+					/>
+					<Column
 						name="calculation_version"
 						label={t('app.payroll.paid')}
 						renderer={FormattedValueRenderer}

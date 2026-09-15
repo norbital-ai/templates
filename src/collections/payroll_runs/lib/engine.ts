@@ -283,6 +283,6 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		),
 		warnings: issues
 			.filter((issue) => issue.severity === 'WARNING')
-			.map((issue) => describeIssues([issue], 'warn'))
+			.map((issue) => `${issue.code}: ${issue.message}`)
 	};
 }

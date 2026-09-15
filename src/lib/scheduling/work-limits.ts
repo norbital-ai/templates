@@ -243,6 +243,10 @@ export function projectedLimitBreaches(options: {
 		};
 		for (const limit of limits) {
 			if (limit.measure === 'OVERTIME_HOURS' && normal == null) continue;
+			// The normal-hours ceiling is the threshold, not a wall: hours a day plans beyond it are
+			// overtime, priced by the conversion the version states (Malaysia's flows to incentive).
+			// It splits the day for the overtime ceilings above and refuses nothing by itself.
+			if (limit.measure === 'NORMAL_HOURS') continue;
 			const value = read(limit);
 			const maximum = evaluated[limit.key] ?? limit.max_hours;
 			if (!(value > maximum)) continue;
