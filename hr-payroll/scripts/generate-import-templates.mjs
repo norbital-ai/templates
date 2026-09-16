@@ -1,5 +1,6 @@
 /**
- * The three import templates operators are issued, written to `~/Desktop`.
+ * The two import templates operators are issued, written to `~/Desktop`: the scheduling workbook
+ * (Roster and Time entries sheets) and the holidays workbook.
  *
  * The sheets mirror exactly what the reader in `src/collections/work_days/lib` accepts as the
  * designed layout — both of them, because both sheets describe the same person-day: one entity × one month,
@@ -56,15 +57,10 @@ const HOLIDAY_README = [
 	'A day the entity already has is skipped, never duplicated or overwritten. Imported holidays arrive unpublished;',
 	'publish each one on the entity’s Holidays tab. Only published holidays are used by rosters, leave and payroll.'
 ];
-const ROSTER_TEMPLATE_PATH = path.join(
+const SCHEDULING_TEMPLATE_PATH = path.join(
 	os.homedir(),
 	'Desktop',
-	'norbital-roster-import-template.xlsx'
-);
-const TIME_TEMPLATE_PATH = path.join(
-	os.homedir(),
-	'Desktop',
-	'norbital-time-entries-import-template.xlsx'
+	'norbital-scheduling-import-template.xlsx'
 );
 
 const SAMPLE_MONTH = '2026-05';
@@ -99,34 +95,30 @@ const TIME_ENTRY_SAMPLE_ROWS = [
 	gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' }, SAMPLE_MONTH)
 ];
 
-const ROSTER_SETTINGS_ROWS = [
-	['Setting', 'Value'],
-	['legal_entity', SAMPLE_LEGAL_ENTITY],
-	['month', SAMPLE_MONTH],
-	[],
-	['', 'The employing legal entity as named on file, or its registration number.'],
-	['', 'A payroll month as YYYY-MM. Day columns 1–31 are days of this month.']
-];
-
-const TIME_SETTINGS_ROWS = [
+const SETTINGS_ROWS = [
 	['Setting', 'Value'],
 	['legal_entity', SAMPLE_LEGAL_ENTITY],
 	['month', SAMPLE_MONTH],
 	['timezone', SAMPLE_TIMEZONE],
 	[],
+	['', 'The employing legal entity as named on file, or its registration number.'],
+	['', 'A payroll month as YYYY-MM. Day columns 1–31 are days of this month.'],
 	['', 'An IANA timezone name. Asia/Kuala_Lumpur, Asia/Manila, Asia/Jakarta, Asia/Singapore.']
 ];
 
-const ROSTER_README = [
-	'Roster import — planned assignment (one legal entity, one month)',
+const SCHEDULING_README = [
+	'Scheduling import — one legal entity, one month, two sheets',
 	'',
-	'One person per row and one calendar day per column, on the "Roster" sheet. Do not rename the',
-	'sheet or the column headers. Set legal_entity and month once, on the "Settings" sheet.',
+	'"Roster" is the planned assignment: who is scheduled where. "Time entries" is what actually',
+	'happened on the clock. Both sheets have one person per row and one calendar day per column.',
+	'Do not rename the sheets or the column headers. Set legal_entity, month and timezone once, on',
+	'the "Settings" sheet.',
 	'',
-	'A roster is a work ASSIGNMENT — who is scheduled where. It is not attendance. Use the time-entries',
-	'template for what actually happened on the clock. Importing one does not populate the other.',
+	'The file is the state of the month it names. Import it once with both sheets filled; import it',
+	'again and the month becomes what the file now says. A day the file no longer names is removed.',
+	'A file that carries only one of the two sheets replaces only that half and leaves the other alone.',
 	'',
-	'Three rules that change what people get paid',
+	'Roster — three rules that change what people get paid',
 	'',
 	'• A filled cell is an explicit assignment to that roster code on that day. A blank cell is an',
 	'  absent assignment — it is not inferred as a rest day. REST, OFF and the reserved token PH must',
@@ -138,59 +130,35 @@ const ROSTER_README = [
 	"• PH is checked against the legal entity's holiday calendar and is not stored as a person-day",
 	'  fact. Configure the holiday first; a PH cell on a day that is not observed refuses the file.',
 	'',
-	'What is refused',
-	'',
-	'The whole file is refused, not individual rows, and the offending cells are named: unknown',
-	'employee or roster code, a day outside the Settings month,',
-	'duplicates inside the file, and days already on file.',
-	'',
-	'Accepted values',
-	'',
-	'employee_number   as seeded on the employment, e.g. PUBEM0002',
-	'day columns       1–31 (or YYYY-MM-DD) for the Settings month',
-	'cell              an existing roster code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 ·',
-	'                  PM2030 · PM2230 · REST · OFF — or PH on an observed holiday',
-	'',
-	'A long-form sheet with employee_number, work_date and shift_code still imports, and may also',
-	'carry assignment_code (the token your source schedule shows). It is stored on the assignment;',
-	'the schedule itself always comes from shift_code. The month grid has no column for it. These',
-	'files are the ones operators are issued.',
-	'',
-	'The sample rows below are illustrative. Delete them and paste your own.'
-];
-
-const TIME_README = [
-	'Time entries import — actual attendance (one legal entity, one month)',
-	'',
-	'One person per row and one calendar day per column, on the "Time entries" sheet. Do not rename',
-	'the sheet or the column headers.',
-	'',
-	'Set legal_entity, month and timezone once, on the "Settings" sheet. Every clock time in this file',
-	'is read as local wall time in that zone and converted to a real instant. We do not use a fixed',
-	'UTC offset, so daylight saving and historical changes are handled correctly.',
-	'',
-	'Three rules worth knowing',
+	'Time entries — three rules worth knowing',
 	'',
 	'• A cell is a punch range. HH:mm-HH:mm is a closed day; HH:mm alone is still open; a blank cell',
 	'  is no punch. An overnight shift needs no special marker — a clock_out at or before clock_in is',
-	'  treated as the next calendar day.',
+	'  treated as the next calendar day. Every clock time is local wall time in the Settings timezone.',
 	'',
 	'• A cell carries punches only — breaks, overtime and the open/closed state are derived from them.',
 	'  The issued grid has no break_minutes column. A long-form sheet may still carry break_minutes',
-	'  (minutes, not hours); the UI label in hours does not change the workbook column name.',
+	'  (minutes, not hours).',
 	'',
 	'• A leave day is NOT a time entry. Leave lives in its own record so it can be approved and audited;',
 	'  do not add punchless cells to stand in for it.',
 	'',
+	'What is refused',
+	'',
+	'The whole file is refused, not individual rows, and the offending cells are named: unknown',
+	'employee or roster code, a day outside the Settings month, duplicates inside the file, and days',
+	'a paid payroll run has already taken into account.',
+	'',
 	'Accepted values',
 	'',
 	'employee_number   as seeded on the employment, e.g. PUBEM0002',
 	'day columns       1–31 (or YYYY-MM-DD) for the Settings month',
-	'cell              HH:mm-HH:mm, 24-hour, local to the timezone on the Settings sheet — or HH:mm',
-	'                  when the close has not landed yet',
+	'Roster cell       an existing roster code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 ·',
+	'                  PM2030 · PM2230 · REST · OFF — or PH on an observed holiday',
+	'Time entries cell HH:mm-HH:mm, 24-hour — or HH:mm when the close has not landed yet',
 	'',
-	'A long-form sheet with employee_number, work_date, clock_in and clock_out still imports. These',
-	'files are the ones operators are issued.',
+	'Long-form sheets still import: Roster with employee_number, work_date, shift_code (and optionally',
+	'assignment_code); Time entries with employee_number, work_date, clock_in, clock_out.',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
 ];
@@ -261,33 +229,18 @@ function cellOf(workbook, sheetName, rowNumber, header) {
 	return String(sheet?.getRow(rowNumber).getCell(column).value ?? '').trim();
 }
 
-const rosterWorkbook = newWorkbook();
-addReadmeSheet(rosterWorkbook, ROSTER_README);
+const schedulingWorkbook = newWorkbook();
+addReadmeSheet(schedulingWorkbook, SCHEDULING_README);
+addTableSheet(schedulingWorkbook, 'Settings', [22, 42], SETTINGS_ROWS[0], SETTINGS_ROWS.slice(1));
 addTableSheet(
-	rosterWorkbook,
-	'Settings',
-	[22, 42],
-	ROSTER_SETTINGS_ROWS[0],
-	ROSTER_SETTINGS_ROWS.slice(1)
-);
-addTableSheet(
-	rosterWorkbook,
+	schedulingWorkbook,
 	'Roster',
 	[18, ...DAY_HEADERS.map(() => 10)],
 	GRID_HEADERS,
 	ROSTER_SAMPLE_ROWS
 );
-const timeWorkbook = newWorkbook();
-addReadmeSheet(timeWorkbook, TIME_README);
 addTableSheet(
-	timeWorkbook,
-	'Settings',
-	[22, 42],
-	TIME_SETTINGS_ROWS[0],
-	TIME_SETTINGS_ROWS.slice(1)
-);
-addTableSheet(
-	timeWorkbook,
+	schedulingWorkbook,
 	'Time entries',
 	[18, ...DAY_HEADERS.map(() => 14)],
 	GRID_HEADERS,
@@ -313,51 +266,33 @@ Effect.runPromise(
 		assert.equal(cellOf(holidaysShipped, SAMPLE_LEGAL_ENTITY, 2, 'date'), '2027-01-01');
 		console.log(`${HOLIDAYS_TEMPLATE_PATH}`);
 		console.log(`  sheets: Read me first, ${SAMPLE_LEGAL_ENTITY}`);
-		const rosterShipped = yield* writeWorkbook(rosterWorkbook, ROSTER_TEMPLATE_PATH);
+		const shipped = yield* writeWorkbook(schedulingWorkbook, SCHEDULING_TEMPLATE_PATH);
 		assert.deepEqual(
-			[...rosterShipped.worksheets.map((sheet) => sheet.name)],
-			['Read me first', 'Settings', 'Roster']
+			[...shipped.worksheets.map((sheet) => sheet.name)],
+			['Read me first', 'Settings', 'Roster', 'Time entries']
 		);
-		assert.deepEqual(headersOf(rosterShipped, 'Roster'), GRID_HEADERS);
+		assert.deepEqual(headersOf(shipped, 'Roster'), GRID_HEADERS);
+		assert.deepEqual(headersOf(shipped, 'Time entries'), GRID_HEADERS);
 		assert.deepEqual(
-			[...settingMap(rosterShipped)],
-			[
-				['legal_entity', SAMPLE_LEGAL_ENTITY],
-				['month', SAMPLE_MONTH]
-			]
-		);
-		assert.equal(cellOf(rosterShipped, 'Roster', 2, '1'), '7.5AM');
-		assert.equal(cellOf(rosterShipped, 'Roster', 2, '3'), 'REST');
-		assert.equal(cellOf(rosterShipped, 'Roster', 3, '6'), 'OFF');
-
-		const timeShipped = yield* writeWorkbook(timeWorkbook, TIME_TEMPLATE_PATH);
-		assert.deepEqual(
-			[...timeShipped.worksheets.map((sheet) => sheet.name)],
-			['Read me first', 'Settings', 'Time entries']
-		);
-		assert.deepEqual(headersOf(timeShipped, 'Time entries'), GRID_HEADERS);
-		assert.deepEqual(
-			[...settingMap(timeShipped)],
+			[...settingMap(shipped)],
 			[
 				['legal_entity', SAMPLE_LEGAL_ENTITY],
 				['month', SAMPLE_MONTH],
 				['timezone', SAMPLE_TIMEZONE]
 			]
 		);
-		assert.equal(cellOf(timeShipped, 'Time entries', 2, '4'), '08:16-17:10');
-		assert.equal(cellOf(timeShipped, 'Time entries', 3, '6'), '20:31');
+		assert.equal(cellOf(shipped, 'Roster', 2, '1'), '7.5AM');
+		assert.equal(cellOf(shipped, 'Roster', 2, '3'), 'REST');
+		assert.equal(cellOf(shipped, 'Roster', 3, '6'), 'OFF');
+		assert.equal(cellOf(shipped, 'Time entries', 2, '4'), '08:16-17:10');
+		assert.equal(cellOf(shipped, 'Time entries', 3, '6'), '20:31');
 		assert.ok(
-			!headersOf(timeShipped, 'Time entries').includes('break_minutes'),
+			!headersOf(shipped, 'Time entries').includes('break_minutes'),
 			'the issued month grid has no break_minutes column — that name belongs to long-form sheets only'
 		);
 
-		console.log(`${ROSTER_TEMPLATE_PATH}`);
-		console.log(`  sheets: Read me first, Settings, Roster`);
-		console.log(`  Roster header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
-		console.log(`${TIME_TEMPLATE_PATH}`);
-		console.log(`  sheets: Read me first, Settings, Time entries`);
-		console.log(
-			`  Time entries header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`
-		);
+		console.log(`${SCHEDULING_TEMPLATE_PATH}`);
+		console.log(`  sheets: Read me first, Settings, Roster, Time entries`);
+		console.log(`  grid header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
 	})
 );
