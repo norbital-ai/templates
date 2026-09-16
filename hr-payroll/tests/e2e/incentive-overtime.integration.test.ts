@@ -67,10 +67,7 @@ it(
 					employment_id: EMPLOYMENT_ID,
 					work_date: '2026-02-03',
 					// Instants are UTC: 07:30 to 21:30 in Kuala Lumpur on 3 February.
-					worked_intervals: [
-						{ start: '2026-02-02T23:30:00.000Z', end: '2026-02-03T13:30:00.000Z' }
-					],
-					break_minutes: 60
+					worked_intervals: [{ start: '2026-02-02T23:30:00.000Z', end: '2026-02-03T13:30:00.000Z' }]
 				},
 				founder
 			);
@@ -81,12 +78,12 @@ it(
 				`the founder lands the punch: ${JSON.stringify(day)}`
 			);
 			const stored = (await session.query(
-				'select shift_definition_id, planned_origin from work_days where id = $1',
+				'select shift_definition_id from work_days where id = $1',
 				[workDayId]
-			)) as ReadonlyArray<{ shift_definition_id: string | null; planned_origin: string | null }>;
+			)) as ReadonlyArray<{ shift_definition_id: string | null }>;
 			assert.deepEqual(
 				stored,
-				[{ shift_definition_id: null, planned_origin: null }],
+				[{ shift_definition_id: null }],
 				'a punch is evidence on the base day, not a roster override'
 			);
 

@@ -129,10 +129,10 @@ closures and personal roster labels do not establish observed holidays. Imported
 provenance and arrive unpublished; the bank's own observed rows carry their own `published_at`, and an
 unpublished holiday is not observed anywhere.
 
-A Work day classified as a holiday pins it (`work_days.holiday_id`), each Leave charge carries the
-`holiday_id` that excluded its day when one did, and a run captures the holidays it read
-(`payroll_runs.holidays`); a paid run freezes that snapshot. A later publication cannot change a date a
-pinned work day or a paid run classified.
+A Work day never links a holiday: the calendar is overlaid on the date when the day is read. Each Leave
+charge carries the `holiday_id` that excluded its day when one did, and a run captures the holidays it
+read (`payroll_runs.holidays`); a paid run freezes that snapshot. A later publication cannot change a
+date a paid run classified.
 
 ## Monetary inputs and cutoff dates
 

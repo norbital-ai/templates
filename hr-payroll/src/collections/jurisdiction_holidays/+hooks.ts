@@ -34,7 +34,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'A holiday needs a jurisdiction, a valid day and a name; retracting one (unpublish, or moving its day or entity) is refused while a payroll run captured it or a work day pins it — otherwise the pinning days are re-saved and re-classified.',
+					'A holiday needs a jurisdiction, a valid day and a name; retracting one (unpublish, or moving its day or entity) is refused while a payroll run captured it.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
@@ -65,25 +65,6 @@ export default {
 							date,
 							unpublishing ? 'be unpublished' : 'move its day or entity'
 						);
-						const pins = yield* api.db.work_days.findMany({
-							where: { holiday_id: { eq: existing.id } },
-							columns: { id: true },
-							limit: QUERY_LIMIT
-						});
-						if (pins.length >= QUERY_LIMIT)
-							refuse('Too many work days pin this holiday to release it safely.');
-						if (movingIdentity && pins.length > 0)
-							refuse(
-								`Holiday ${date} is pinned by ${pins.length} work day(s): its day and ` +
-									`jurisdiction are what those pins point at. Add a new holiday instead.`
-							);
-						// The release is explicit, not re-derived: this retraction is not yet written, so
-						// a day re-reading the calendar would still find the holiday published and keep
-						// its pin. `holiday_id` is in no grant mask, so only a hook can say this. The
-						// re-save reverses any lieu credit the day minted, and is refused only for a
-						// credit already taken.
-						if (pins.length > 0)
-							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id, holiday_id: null })));
 						return input;
 					})
 			}
@@ -92,8 +73,7 @@ export default {
 	delete: {
 		perRecord: {
 			before: {
-				description:
-					'A holiday a payroll run captured cannot be deleted; one a work day pins is released by re-saving those days first.',
+				description: 'A holiday a payroll run captured cannot be deleted.',
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
 						const runs = (yield* api.db.payroll_runs.findMany({
@@ -103,16 +83,6 @@ export default {
 						if (runs.length >= QUERY_LIMIT)
 							refuse('Too many payroll runs to verify the holiday freeze safely.');
 						refuseIfCaptured(capturing(runs, existing.id), dateKey(existing.date), 'be deleted');
-						const pins = yield* api.db.work_days.findMany({
-							where: { holiday_id: { eq: existing.id } },
-							columns: { id: true },
-							limit: QUERY_LIMIT
-						});
-						if (pins.length >= QUERY_LIMIT)
-							refuse('Too many work days pin this holiday to release it safely.');
-						// Released before the row goes, or the delete meets the pins' foreign key.
-						if (pins.length > 0)
-							yield* api.db.work_days.mutate(pins.map((pin) => ({ id: pin.id, holiday_id: null })));
 					})
 			}
 		}

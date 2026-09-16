@@ -18,22 +18,15 @@ import workDayHooks from '../src/collections/work_days/+hooks.ts';
 
 const WORK = 'shift-work';
 const REST = 'shift-rest';
-const holidayInput = {
-	jurisdiction_code: 'TEST-JUR',
-	date: '2026-03-10',
-	holiday_id: 'holiday-2026-03-10'
-};
 
 const api = {
 	db: {
-		jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 		leave_entries: { findMany: () => Effect.succeed([]) },
 		payroll_runs: { findMany: () => Effect.succeed([]) }
 	}
 };
 
 const prepared = {
-	holidayByDay: new Map([['emp-1:2026-03-10', holidayInput]]),
 	companyByEmployment: new Map([['emp-1', 'co-1']]),
 	windowsByCompany: new Map(),
 	leaveByEmployment: new Map(),
@@ -50,10 +43,7 @@ const stored = (over = {}) => ({
 	employment_id: 'emp-1',
 	work_date: '2026-03-10',
 	shift_definition_id: WORK,
-	assignment_code: null,
-	planned_origin: 'PATTERN',
 	worked_intervals: null,
-	break_minutes: 0,
 	approval_id: null,
 	...over
 });
@@ -76,7 +66,7 @@ test('only a real change to a plan column counts as one', () => {
 	const existing = stored();
 	assert.deepEqual(planChanges({}, existing), [], 'a write that mentions nothing changes nothing');
 	assert.deepEqual(
-		planChanges({ worked_intervals: PUNCHED, break_minutes: 30 }, existing),
+		planChanges({ worked_intervals: PUNCHED }, existing),
 		[],
 		'the attendance half is not the plan half'
 	);
@@ -93,11 +83,6 @@ test('only a real change to a plan column counts as one', () => {
 	assert.deepEqual(
 		planChanges({ shift_definition_id: null }, stored({ shift_definition_id: undefined })),
 		[]
-	);
-	assert.deepEqual(planChanges({ assignment_code: null }, existing), []);
-	assert.deepEqual(
-		planChanges({ planned_origin: 'MANUAL', assignment_code: 'A' }, existing).toSorted(),
-		['assignment_code', 'planned_origin']
 	);
 });
 
@@ -126,22 +111,17 @@ test('the same day with no attendance shifts freely', () => {
 
 /**
  * The negative control, and the reason the check reads the *stored* intervals rather than the
- * incoming ones. A kiosk punch writes `worked_intervals` and `break_minutes` and never touches the
- * plan; if the rule read the candidate it would refuse the first punch of every rostered day.
+ * incoming ones. A kiosk punch writes `worked_intervals` and never touches the plan; if the rule
+ * read the candidate it would refuse the first punch of every rostered day.
  */
 test('recording attendance is never a plan change, and correcting it stays possible', () => {
-	for (const [existing, break_minutes] of [
-		[stored(), 30],
-		[stored({ worked_intervals: PUNCHED }), 45]
+	const corrected = [{ start: '2026-03-10T01:00:00.000Z', end: '2026-03-10T09:30:00.000Z' }];
+	for (const [existing, worked_intervals] of [
+		[stored(), PUNCHED],
+		[stored({ worked_intervals: PUNCHED }), corrected]
 	]) {
-		const result = write({ worked_intervals: PUNCHED, break_minutes }, existing);
-		assert.deepEqual(result.worked_intervals, PUNCHED);
-		assert.equal(result.break_minutes, break_minutes);
-		assert.equal(
-			result.holiday_id,
-			holidayInput.holiday_id,
-			'attendance corrections retain the pinned holiday'
-		);
+		const result = write({ worked_intervals }, existing);
+		assert.deepEqual(result.worked_intervals, worked_intervals);
 	}
 });
 
@@ -159,27 +139,24 @@ test('a day with no plan at all cannot be given one after the fact', () => {
 	);
 });
 
-test('an import overrides the plan under recorded attendance: the file is the period of record', () => {
-	// The one writer the freeze admits, by provenance: a roster import restates the period, so a
-	// day it moves under a punch is a decision the operator took, not a silent re-price.
+test('a write that restates the attendance beside the new plan is the whole day, and lands', () => {
+	// The one writer the freeze admits: an import states the month as a set, plan and clock on one
+	// row, so a day it moves under a punch is not re-pricing punches behind anyone's back — the
+	// punches are its own. Whether the intervals it carries are the same ones is not the point.
 	const result = write(
-		{ shift_definition_id: REST, planned_origin: 'IMPORT' },
+		{ shift_definition_id: REST, worked_intervals: PUNCHED },
 		stored({ worked_intervals: PUNCHED })
 	);
 	assert.equal(result.shift_definition_id, REST);
-	// A cleared plan carries the same provenance: the import decided the day has no assignment.
+	// A cleared plan beside the attendance lands the same way.
 	const cleared = write(
-		{ shift_definition_id: null, assignment_code: null, planned_origin: 'IMPORT' },
+		{ shift_definition_id: null, worked_intervals: PUNCHED },
 		stored({ worked_intervals: PUNCHED })
 	);
 	assert.equal(cleared.shift_definition_id, null);
-	// The board's own writes stay frozen.
+	// A plan change alone stays frozen.
 	assert.throws(
-		() =>
-			write(
-				{ shift_definition_id: REST, planned_origin: 'MANUAL' },
-				stored({ worked_intervals: PUNCHED })
-			),
+		() => write({ shift_definition_id: REST }, stored({ worked_intervals: PUNCHED })),
 		/is locked/
 	);
 });

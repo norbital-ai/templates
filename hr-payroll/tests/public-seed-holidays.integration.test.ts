@@ -14,14 +14,14 @@ import {
 } from './helpers/public-seed-host.ts';
 
 /**
- * The holiday rule, end to end on the public seed: published means used, unpublished means not
- * there, and the freeze is derived from what points at the row. A work day's pin holds the day and
- * jurisdiction it points at; it does not hold the publication — no payroll run captured this
- * holiday, so unpublishing is allowed and re-saves the pinning day, which re-classifies as an
- * ordinary day. `holiday-lieu.test.ts` asserts the other half: a captured holiday refuses.
+ * The holiday rule, end to end on the public seed: a holiday is a property of the entity's
+ * calendar, overlaid on a date when a day is read. A work day stores nothing about it — there is
+ * no column to pin with — so work days on the date hold nothing still: the holiday moves,
+ * unpublishes and goes while no payroll run has captured it. `holiday-lieu.test.ts` asserts the
+ * other half: a captured holiday refuses.
  */
 test(
-	'a published holiday is what a work day pins, and the pin holds its identity',
+	'a holiday is overlaid by date: work days pin nothing and never hold a holiday still',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-holidays');
@@ -59,6 +59,18 @@ test(
 				'holiday'
 			);
 		try {
+			// The negative, checked against a positive from the same query: the plan column is
+			// there, the pin column is not.
+			const columns = (await session.query(
+				`select column_name from information_schema.columns
+				 where table_name = 'work_days' and column_name in ('holiday_id', 'shift_definition_id')`
+			)) as ReadonlyArray<{ readonly column_name: string }>;
+			assert.deepEqual(
+				columns.map((row) => row.column_name),
+				['shift_definition_id'],
+				'a work day has no holiday column'
+			);
+
 			const draftId = crypto.randomUUID();
 			const holiday = {
 				company_id: '11111111-1111-4111-8111-111111111111',
@@ -71,31 +83,20 @@ test(
 			);
 			assert.equal((await stored(draftId)).published_at, null, 'a new holiday is unpublished');
 
-			// Unpublished: a work day on the date is an ordinary day and pins nothing.
-			const ordinaryDayId = crypto.randomUUID();
+			// A work day on the date lands whether or not the holiday is published: it is a day.
+			const dayId = crypto.randomUUID();
 			requireAccepted(
 				(
 					await write('work_days', {
-						id: ordinaryDayId,
+						id: dayId,
 						employment_id: EMPLOYMENT_ID,
 						work_date: holiday.date,
-						worked_intervals: [],
-						break_minutes: 0
+						worked_intervals: []
 					})
 				).value,
-				'work day before publication'
-			);
-			assert.equal(
-				asRecord(
-					(
-						await session.query('select holiday_id from work_days where id = $1', [ordinaryDayId])
-					)[0],
-					'ordinary day'
-				).holiday_id,
-				null
+				'work day on the holiday date'
 			);
 
-			// Published: the same date on another day pins the holiday.
 			requireAccepted(
 				(
 					await write(
@@ -114,80 +115,21 @@ test(
 				duplicate.resolution === 'rejected' || duplicate.resolution === 'quarantined',
 				`one row per jurisdiction and day: ${JSON.stringify(duplicate)}`
 			);
-			// A published holiday on another day: the same employment's work day on it pins it.
-			const publishedId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await write('jurisdiction_holidays', {
-						id: publishedId,
-						company_id: '11111111-1111-4111-8111-111111111111',
-						date: '2026-02-04',
-						name: 'Festival, day two',
-						published_at: '2026-01-01T00:00:00Z'
-					})
-				).value,
-				'add a published holiday'
-			);
-			const holidayDayId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await write('work_days', {
-						id: holidayDayId,
-						employment_id: EMPLOYMENT_ID,
-						work_date: '2026-02-04',
-						worked_intervals: [],
-						break_minutes: 0
-					})
-				).value,
-				'work day after publication'
-			);
-			assert.equal(
-				asRecord(
-					(
-						await session.query('select holiday_id from work_days where id = $1', [holidayDayId])
-					)[0],
-					'holiday day'
-				).holiday_id,
-				publishedId,
-				'the day pins the published holiday'
-			);
-			// Frozen by reference: the day and the jurisdiction are what the pin points at.
+
+			// Nothing points at the published holiday but the calendar date itself, so with a work
+			// day sitting on it the row still moves, is renamed, unpublishes, and goes.
 			for (const change of [
 				{ date: '2026-02-05' },
-				{ company_id: '22222222-2222-4222-8222-222222222222' }
+				{ date: holiday.date },
+				{ name: 'Renamed' },
+				{ published_at: null }
 			]) {
-				const refused = asRecord(
-					(await write('jurisdiction_holidays', { id: publishedId, ...change }, true)).value,
-					'move a pinned holiday'
+				requireAccepted(
+					(await write('jurisdiction_holidays', { id: draftId, ...change }, true)).value,
+					`change ${JSON.stringify(change)} with a work day on the date`
 				);
-				assert.equal(refused.resolution, 'rejected', JSON.stringify(change));
-				assert.match(String(refused.message ?? refused.error), /pinned by 1 work day/);
 			}
-			// A name is not what a pin points at, so it still changes.
-			requireAccepted(
-				(await write('jurisdiction_holidays', { id: publishedId, name: 'Renamed' }, true)).value,
-				'rename a pinned holiday'
-			);
-
-			// No payroll run captured it, so the publication is not frozen: unpublishing re-saves the
-			// pinning day, which re-classifies as an ordinary day and releases the holiday.
-			requireAccepted(
-				(await write('jurisdiction_holidays', { id: publishedId, published_at: null }, true)).value,
-				'unpublish a pinned holiday'
-			);
-			assert.equal(
-				asRecord(
-					(
-						await session.query('select holiday_id from work_days where id = $1', [holidayDayId])
-					)[0],
-					'holiday day after retraction'
-				).holiday_id,
-				null,
-				'the pin goes with the publication that earned it'
-			);
-
-			// Nothing points at it any more, so it can go.
-			const current = await stored(publishedId);
+			const current = await stored(draftId);
 			requireAccepted(
 				(
 					await postGuestCommand(
@@ -195,10 +137,10 @@ test(
 						'collections.mutate',
 						mutationPush(
 							session.schemaFingerprint,
-							{ action: 'delete', collection: 'jurisdiction_holidays', ids: [publishedId] },
+							{ action: 'delete', collection: 'jurisdiction_holidays', ids: [draftId] },
 							[
 								{
-									row: { collection: 'jurisdiction_holidays', recordId: publishedId },
+									row: { collection: 'jurisdiction_holidays', recordId: draftId },
 									rowVersion: Number(current.row_version)
 								}
 							]
@@ -206,18 +148,20 @@ test(
 						headers
 					)
 				).value,
-				'delete a released holiday'
+				'delete a holiday a work day sits on'
 			);
-			// The earlier ordinary day keeps what it was: the pin, not the publication, is the day's truth.
-			assert.equal(
-				asRecord(
-					(
-						await session.query('select holiday_id from work_days where id = $1', [ordinaryDayId])
-					)[0],
-					'ordinary day after publication'
-				).holiday_id,
-				null
+			// The day is exactly what it was: nothing on it changed hands with the calendar.
+			const day = asRecord(
+				(
+					await session.query(
+						'select employment_id, worked_intervals from work_days where id = $1',
+						[dayId]
+					)
+				)[0],
+				'work day after the holiday went'
 			);
+			assert.equal(day.employment_id, EMPLOYMENT_ID);
+			assert.deepEqual(day.worked_intervals, []);
 		} finally {
 			await session.stop();
 		}

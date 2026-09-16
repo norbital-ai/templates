@@ -79,7 +79,6 @@ function loanWorld(options: LoanWorldOptions = {}) {
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
-		day.break_minutes = 60;
 	}
 
 	const oldSettings = world.jurisdiction_settings[0];

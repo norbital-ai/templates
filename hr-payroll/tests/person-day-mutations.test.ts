@@ -20,7 +20,7 @@ test('returns one mixed mutation list and keeps full person-day identity on upda
 				{
 					employment_id: 'employment-2',
 					work_date: '2026-05-05',
-					values: { shift_definition_id: 'day-shift', planned_origin: 'IMPORT' }
+					values: { shift_definition_id: 'day-shift' }
 				}
 			],
 			keyOf
@@ -35,8 +35,7 @@ test('returns one mixed mutation list and keeps full person-day identity on upda
 			{
 				employment_id: 'employment-2',
 				work_date: '2026-05-05',
-				shift_definition_id: 'day-shift',
-				planned_origin: 'IMPORT'
+				shift_definition_id: 'day-shift'
 			}
 		]
 	);

@@ -29,15 +29,13 @@ test('realistic month board benchmarks database, payload, and client matrix as b
 			employment_id text not null,
 			work_date text not null,
 			shift_definition_id text,
-			planned_origin text,
-			worked_intervals text,
-			break_minutes integer
+			worked_intervals text
 		);
 		create index work_days_employment_date on work_days (employment_id, work_date);
 		create index work_days_date on work_days (work_date);
 	`);
 	const insertEmployment = database.prepare('insert into employments values (?, ?, ?, ?)');
-	const insertWorkDay = database.prepare('insert into work_days values (?, ?, ?, ?, ?, ?, ?)');
+	const insertWorkDay = database.prepare('insert into work_days values (?, ?, ?, ?, ?)');
 	database.exec('begin');
 	for (let employee = 0; employee < EMPLOYEE_COUNT; employee += 1) {
 		const employmentId = `employment-${String(employee).padStart(4, '0')}`;
@@ -49,7 +47,6 @@ test('realistic month board benchmarks database, payload, and client matrix as b
 				employmentId,
 				date,
 				'code-day',
-				'IMPORT',
 				attended
 					? JSON.stringify([
 							{
@@ -57,8 +54,7 @@ test('realistic month board benchmarks database, payload, and client matrix as b
 								end: `${date}T09:00:00.000Z`
 							}
 						])
-					: null,
-				attended ? 60 : null
+					: null
 			);
 		}
 	}

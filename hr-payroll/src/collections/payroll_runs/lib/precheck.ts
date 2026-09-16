@@ -104,10 +104,10 @@ export function payrollRunPrecheck(options: {
 				issues.push({
 					code: 'ROSTER_INCOMPLETE',
 					message:
-						`${bundle.employment.employee_number}'s roster of record for ${roster.start} to ` +
-						`${roster.end} names no shift on ${missing.length} day(s): ` +
+						`${bundle.employment.employee_number}'s roster of record for ${roster.start.slice(0, 7)} ` +
+						`names no shift on ${missing.length} day(s) inside this cycle: ` +
 						`${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ', …' : ''}. A roster ` +
-						'covers every day of the payroll cycle; import the whole cycle or remove the roster.',
+						'covers every employed day of its month; import the whole month or remove the roster.',
 					collection: 'rosters'
 				});
 		}

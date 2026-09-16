@@ -2,20 +2,22 @@
 /**
  * What a work day will and will not accept as a record of the clock.
  *
- * `assertWorkedIntervals` holds four rules, and none of its refusal sentences appeared in any
- * test. They are the rules that keep overtime honest: the engine unions and subtracts these
- * intervals to decide payable time, so an overlapping pair pays a minute twice, a break longer
- * than the work it is deducted from pays negative time, and an open interval that is not the last
- * one makes "still on the clock" ambiguous.
+ * `assertWorkedIntervals` holds three rules, the ones that keep overtime honest: the engine
+ * unions these intervals to decide payable time, so an overlapping pair pays a minute twice, and
+ * an open interval that is not the last one makes "still on the clock" ambiguous.
  *
  * Each rule is also driven with the write it must NOT refuse, because a validator that refuses
  * everything reads exactly like one that works — and one of these has a genuine zero case the
- * day sheet depends on: a day reviewed and found empty is `[]` with no break, and must land.
+ * day sheet depends on: a day reviewed and found empty is `[]`, and must land.
+ *
+ * There is no stored break to validate. The break is derived from the shift's granted minutes
+ * less the gaps the punches already show (`derivedBreakMinutes`), which is asserted last.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import workDayHooks from '../src/collections/work_days/+hooks.ts';
+import { derivedBreakMinutes } from '../src/lib/scheduling/rest-break.ts';
 
 const api = {
 	db: {
@@ -26,6 +28,7 @@ const api = {
 		},
 		employment_terms: { findMany: () => Effect.succeed([]) },
 		work_days: { findMany: () => Effect.succeed([]) },
+		rosters: { findMany: () => Effect.succeed([]) },
 		shift_definitions: { findMany: () => Effect.succeed([]) },
 		shift_patterns: { findMany: () => Effect.succeed([]) },
 		// A complete jurisdiction calendar is required even when this fixture has no holidays or
@@ -45,7 +48,6 @@ const api = {
 					}
 				])
 		},
-		jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 		payroll_runs: { findMany: () => Effect.succeed([]) },
 		leave_entries: { findMany: () => Effect.succeed([]) }
 	}
@@ -59,7 +61,6 @@ const write = (overrides) => {
 		work_date: '2026-07-01',
 		shift_definition_id: null,
 		worked_intervals: [{ start: at('01:00'), end: at('09:00') }],
-		break_minutes: 60,
 		...overrides
 	};
 	const prepared = Effect.runSync(workDayHooks.mutate.prepare({ inputs: [input], api }));
@@ -85,8 +86,7 @@ test('overlapping intervals are refused, so no minute can be paid twice', () => 
 			worked_intervals: [
 				{ start: at('01:00'), end: at('09:00') },
 				{ start: at('09:00'), end: at('12:00') }
-			],
-			break_minutes: 0
+			]
 		})
 	);
 });
@@ -123,47 +123,35 @@ test('an interval must end after it starts', () => {
 	);
 });
 
-test('an unpaid break is a non-negative whole number of minutes', () => {
-	assert.throws(
-		() => write({ break_minutes: -1 }),
-		/Unpaid break must be a non-negative whole number of minutes/
-	);
-	assert.throws(
-		() => write({ break_minutes: 30.5 }),
-		/Unpaid break must be a non-negative whole number of minutes/
-	);
-	assert.doesNotThrow(() => write({ break_minutes: 0 }));
-});
-
-test('a break cannot be as long as the work it is deducted from', () => {
-	// Eight hours clocked, eight hours of break: the day would be worth nothing but the arithmetic
-	// says so by subtraction rather than by refusal, which is how a negative payable day appears.
-	assert.throws(
-		() => write({ break_minutes: 480 }),
-		/Unpaid break must be shorter than the recorded worked time/
-	);
-	assert.throws(() => write({ break_minutes: 481 }), /shorter than the recorded worked time/);
-	assert.doesNotThrow(() => write({ break_minutes: 479 }));
-});
-
-test('a day reviewed and found empty is a legal statement, and a break on nothing is not', () => {
+test('a day reviewed and found empty is a legal statement', () => {
 	// `[]` is not `null`: one says the day was read and produced no work, the other that no
 	// attendance was recorded at all. The day sheet's "reviewed, nothing worked" action writes the
-	// first, and `unpaidBreak > 0` in the rule above is what keeps that write legal.
-	const reviewed = write({ worked_intervals: [], break_minutes: 0 });
+	// first; both land, and the row carries nothing but the clock it was given.
+	const reviewed = write({ worked_intervals: [] });
 	assert.deepEqual(reviewed.worked_intervals, []);
-	assert.equal(reviewed.holiday_id, null);
 	assert.equal(reviewed.employment_id, 'emp-1');
-	assert.doesNotThrow(() => write({ worked_intervals: null, break_minutes: 0 }));
-	assert.throws(
-		() => write({ worked_intervals: [], break_minutes: 30 }),
-		/Unpaid break must be shorter than the recorded worked time/
-	);
+	assert.doesNotThrow(() => write({ worked_intervals: null }));
 });
 
-test('an open clock suspends the break rule rather than refusing the punch-in', () => {
-	// The day is still being worked, so there is no recorded worked time to compare a break with.
-	assert.doesNotThrow(() =>
-		write({ worked_intervals: [{ start: at('01:00'), end: null }], break_minutes: 60 })
+test('the break is derived: the shift grants it, and a gap between punches already took it', () => {
+	const one = [{ start: at('01:00'), end: at('09:00') }];
+	const split = [
+		{ start: at('01:00'), end: at('04:00') },
+		{ start: at('05:00'), end: at('09:00') }
+	];
+	assert.equal(derivedBreakMinutes(one, 60), 60, 'one interval takes the whole granted break off');
+	assert.equal(
+		derivedBreakMinutes(split, 60),
+		0,
+		'an hour’s gap on an hour’s grant takes nothing more'
+	);
+	assert.equal(derivedBreakMinutes(split, 90), 30, 'only the grant the gap did not cover remains');
+	assert.equal(derivedBreakMinutes(one, 0), 0, 'a shift granting no break derives none');
+	assert.equal(derivedBreakMinutes(null, 60), 0, 'no punch, no break');
+	assert.equal(derivedBreakMinutes([], 60), 0, 'a day read and found empty has no break either');
+	assert.equal(
+		derivedBreakMinutes([{ start: at('01:00'), end: null }], 60),
+		60,
+		'an open interval is not a gap; the grant still applies'
 	);
 });

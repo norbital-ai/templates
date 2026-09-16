@@ -11,7 +11,7 @@ export type HolidayRow = Pick<
 >;
 
 /** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
-export function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
+function holidaySnapshot(row: HolidayRow): HolidaySnapshot {
 	return {
 		id: row.id,
 		company_id: row.company_id,

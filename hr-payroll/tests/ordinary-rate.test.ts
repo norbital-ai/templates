@@ -109,7 +109,6 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 	const variant = world.shift_definitions[0]!.variant as {
 		start_time: string;
 		end_time: string;
-		break_minutes: number;
 	};
 	for (const row of world.work_days) {
 		row.worked_intervals = [
@@ -118,7 +117,6 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 				end: `${row.work_date}T${variant.end_time}:00+08:00`
 			}
 		];
-		row.break_minutes = variant.break_minutes;
 	}
 	const build = async () =>
 		buildPayrollRun(
@@ -130,7 +128,6 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 
 	const day = world.work_days.find((row) => row.work_date === '2026-01-05')!;
 	day.worked_intervals = [];
-	day.break_minutes = 0;
 	// The absence prices under a scheme the rules never named, which is an exemption, not a refusal.
 	assert.equal((await build()).payslip_payroll_run.length, 1);
 });

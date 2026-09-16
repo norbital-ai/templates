@@ -37,7 +37,7 @@ test('a settlement-only batch prepares nothing and reads nothing', async () => {
 		workDayHooks.mutate.prepare({ inputs, api: { db: api } })
 	);
 	assert.deepEqual(reads, []);
-	assert.equal(prepared.holidayByDay.size, 0);
+	assert.equal(prepared.companyByEmployment.size, 0);
 	// The per-record handler takes the same early return, untouched by the empty preparation.
 	const out = await Effect.runPromise(
 		workDayHooks.mutate.perRecord.before.handler({

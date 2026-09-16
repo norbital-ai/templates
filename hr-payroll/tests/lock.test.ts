@@ -332,6 +332,7 @@ function fakeHookApi({ runs = [], captures = [], payslips = monthlySlips } = {})
 			},
 			employment_terms: { findMany: () => Effect.succeed([]) },
 			work_days: { findMany: () => Effect.succeed([]) },
+			rosters: { findMany: () => Effect.succeed([]) },
 			shift_definitions: { findMany: () => Effect.succeed([]) },
 			shift_patterns: { findMany: () => Effect.succeed([]) },
 			// A published, reviewed-empty calendar supplies the jurisdiction input independently of
@@ -351,7 +352,6 @@ function fakeHookApi({ runs = [], captures = [], payslips = monthlySlips } = {})
 						}
 					])
 			},
-			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// The lock is the payslip's; the windows above are only where to look.
 			payslips: { findMany: () => Effect.succeed(payslips) },
@@ -368,9 +368,11 @@ const punch = (overrides = {}) => ({
 	work_date: '2026-07-01',
 	approval_id: null,
 	worked_intervals: [{ start: '2026-07-01T00:16:00Z', end: '2026-07-01T09:10:00Z' }],
-	break_minutes: 60,
 	...overrides
 });
+
+/** The same day's clock, corrected by a few minutes: the ordinary attendance edit. */
+const CORRECTED = [{ start: '2026-07-01T00:16:00Z', end: '2026-07-01T09:15:00Z' }];
 
 /** Run the unified mutation hook exactly as the runtime does: prepare once, then decide one row. */
 function runMutateBefore({ changes, existing, api }) {
@@ -382,7 +384,6 @@ function runMutateBefore({ changes, existing, api }) {
 					work_date: existing.work_date,
 					shift_definition_id: existing.shift_definition_id ?? null,
 					worked_intervals: existing.worked_intervals,
-					break_minutes: existing.break_minutes,
 					...changes,
 					id: existing.id
 				};
@@ -413,7 +414,9 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// The board badges the day; the write path permits it.
 	const api = fakeHookApi({ runs: monthly });
 	const existing = punch();
-	assert.doesNotThrow(() => runMutateBefore({ changes: { break_minutes: 30 }, existing, api }));
+	assert.doesNotThrow(() =>
+		runMutateBefore({ changes: { worked_intervals: CORRECTED }, existing, api })
+	);
 	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
 	// record appearing on that day. Two answers, because two questions.
 	assert.deepEqual(lockStateForDate(payrollWindows(monthly, monthlySlips), '2026-07-01', 'emp-1'), {
@@ -426,7 +429,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	assert.throws(
 		() =>
 			runMutateBefore({
-				changes: { break_minutes: 30 },
+				changes: { worked_intervals: CORRECTED },
 				existing: settled,
 				api: fakeHookApi({ runs: monthly })
 			}),

@@ -55,7 +55,7 @@ type WorkedIntervalLike = Schema.Schema.Type<typeof workedIntervalLikeSchema>;
 
 const restBreakInputSchema = Schema.Struct({
 	intervals: Schema.optional(Schema.NullOr(Schema.Array(workedIntervalLikeSchema))),
-	/** The flat `work_days.break_minutes` column: how long a break was, never when it was owed. */
+	/** How long the day's break was (see `derivedBreakMinutes`), never when it was owed. */
 	breakMinutes: Schema.optional(Schema.NullOr(Schema.Number)),
 	/** The version's CEL obligations, absent on every lineage that declares none. */
 	breaks: Schema.optional(Schema.NullOr(Schema.Array(workBreakLikeSchema))),
@@ -238,4 +238,28 @@ export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment 
 		shortfallMinutes:
 			requiredMinutes === null || open ? null : Math.max(0, requiredMinutes - takenMinutes)
 	};
+}
+
+/**
+ * The break a day took, derived: the shift grants a break, and whatever of it is already visible
+ * as a gap between the day's punches is not deducted twice. One interval takes the whole granted
+ * break off; two intervals an hour apart on a shift granting an hour take nothing further off.
+ * A day with no shift, or no punches, has no break to derive.
+ */
+export function derivedBreakMinutes(
+	intervals: readonly WorkedIntervalLike[] | null | undefined,
+	grantedMinutes: number | null | undefined
+): number {
+	if (intervals == null || intervals.length === 0) return 0;
+	const closed = intervals
+		.flatMap((interval) => {
+			const start = Date.parse(interval.start);
+			const end = interval.end == null ? Number.NaN : Date.parse(interval.end);
+			return Number.isFinite(start) && Number.isFinite(end) && end > start ? [{ start, end }] : [];
+		})
+		.toSorted((left, right) => left.start - right.start);
+	let gapMinutes = 0;
+	for (let index = 1; index < closed.length; index += 1)
+		gapMinutes += Math.max(0, closed[index]!.start - closed[index - 1]!.end) / 60_000;
+	return Math.max(0, Math.round(Math.max(0, grantedMinutes ?? 0) - gapMinutes));
 }

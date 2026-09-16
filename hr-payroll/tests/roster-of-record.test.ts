@@ -138,68 +138,24 @@ test('days with no roster at all are the pattern’s business, not the roster ch
 	assert.deepEqual(rosterIssues(rosteredWeek(['2026-03-05']), []), []);
 });
 
-const rosterApi = {
-	db: {
-		companies: {
-			findMany: () =>
-				Effect.succeed([
-					{ id: 'monthly', pay_frequency: 'MONTHLY', pay_cutoff_day: 21 },
-					{ id: 'halves', pay_frequency: 'SEMI_MONTHLY', pay_cutoff_day: 15 }
-				])
-		}
-	}
-};
-const createRoster = async (input) => {
-	const prepared = await Effect.runPromise(
-		rosterHooks.mutate.prepare({ inputs: [input], api: rosterApi })
+const rosterBefore = (input, existing = undefined) =>
+	Effect.runPromise(
+		rosterHooks.mutate.perRecord.before.handler({ input, existing, api: { db: {} } })
 	);
-	return Effect.runPromise(
-		rosterHooks.mutate.perRecord.before.handler({
-			input,
-			existing: undefined,
-			prepared,
-			api: rosterApi
-		})
-	);
-};
 
-test('a roster resolves its cycle from the entity cutoff: 21st to 20th at a monthly entity', async () => {
-	const out = await createRoster({
+test('a roster is one employment over one calendar month, and nothing else is stored', async () => {
+	assert.deepEqual(await rosterBefore({ employment_id: 'e', period: '2026-01' }), {
 		employment_id: 'e',
-		company_id: 'monthly',
-		period: '2026-01',
-		origin: 'IMPORT'
+		period: '2026-01'
 	});
-	assert.deepEqual(out.range, {
-		start: '2025-12-21T00:00:00.000Z',
-		end: '2026-01-20T00:00:00.000Z'
-	});
+	await assert.rejects(rosterBefore({ employment_id: 'e', period: '2026-03-2' }), /YYYY-MM/);
+	await assert.rejects(rosterBefore({ employment_id: 'e' }), /calendar month/);
 });
 
-test('a semi-monthly roster is one half, and a monthly one is not', async () => {
-	const half = await createRoster({
-		employment_id: 'e',
-		company_id: 'halves',
-		period: '2026-03-2',
-		origin: 'IMPORT'
-	});
-	assert.deepEqual(half.range, {
-		start: '2026-03-16T00:00:00.000Z',
-		end: '2026-03-31T00:00:00.000Z'
-	});
-	await assert.rejects(
-		createRoster({ employment_id: 'e', company_id: 'halves', period: '2026-03', origin: 'IMPORT' }),
-		/pays by the half/
-	);
-	await assert.rejects(
-		createRoster({
-			employment_id: 'e',
-			company_id: 'monthly',
-			period: '2026-03-1',
-			origin: 'IMPORT'
-		}),
-		/pays monthly/
-	);
+test('a roster stays on the employment and month it was created for', async () => {
+	const existing = { id: 'r', employment_id: 'e', period: '2026-01' };
+	await assert.rejects(rosterBefore({ id: 'r', period: '2026-02' }, existing), /roster of/);
+	await assert.rejects(rosterBefore({ id: 'r', employment_id: 'f' }, existing), /roster of/);
 });
 
 test('a shift pattern cycle is whole weeks', async () => {

@@ -8,15 +8,9 @@
  * out of it. Those two facts are now the arguments to `readSheet` below, and everything else is
  * said once.
  *
- * The two payloads stay two payloads, because they genuinely carry different header facts:
- *
- *     Roster       the legal entity and month the plan belongs to
- *     Attendance   the zone its clock cells are in (`timezone`)
- *
- * The Settings sheet states both halves of the roster header; there is no draft roster to attach
- * the plan to. Neither fact means anything to the other sheet, so they are two
- * arms of the pipeline's input union rather than one shape with two holes in it. `sheet` tags them,
- * so the pipeline dispatches on a literal rather than on which fields happen to be present.
+ * One payload: the legal entity, month and timezone from the Settings sheet, the Roster sheet as
+ * the plan and the Time entries sheet as the attendance. A sheet the file does not carry is
+ * absent from the payload, which is how the pipeline knows to leave that half alone.
  *
  * The issued template for both is one legal entity × one month: a person down the side and a
  * calendar day across the top. A long-form sheet still imports, including the files operators
@@ -44,12 +38,11 @@ import { readWorkbookSettings, SETTINGS_SHEET_NAME } from '../../../lib/workbook
 const ROSTER_SHEET_NAME = 'Roster';
 const ATTENDANCE_SHEET_NAME = 'Time entries';
 
-/** `shift_code` is a real company roster code, or the reserved import token PH. */
+/** `shift_code` is one of the entity's roster codes: a shift, REST or OFF. */
 const rosterImportRowSchema = Schema.Struct({
 	employee_number: Schema.String,
 	work_date: Schema.String,
-	shift_code: Schema.String,
-	assignment_code: Schema.optional(Schema.String)
+	shift_code: Schema.String
 });
 type RosterImportRow = Schema.Schema.Type<typeof rosterImportRowSchema>;
 
@@ -57,27 +50,18 @@ const attendanceImportRowSchema = Schema.Struct({
 	employee_number: Schema.String,
 	work_date: Schema.String,
 	clock_in: Schema.optional(Schema.String),
-	clock_out: Schema.optional(Schema.String),
-	break_minutes: Schema.optional(Schema.Number)
+	clock_out: Schema.optional(Schema.String)
 });
 type AttendanceImportRow = Schema.Schema.Type<typeof attendanceImportRowSchema>;
 
-const rosterImportPayloadSchema = Schema.Struct({
-	sheet: Schema.Literal('ROSTER'),
-	legal_entity: Schema.optional(Schema.String),
-	month: Schema.optional(Schema.String),
-	rows: Schema.Array(rosterImportRowSchema)
-});
-type RosterImportPayload = Schema.Schema.Type<typeof rosterImportPayloadSchema>;
-
-const attendanceImportPayloadSchema = Schema.Struct({
-	sheet: Schema.Literal('ATTENDANCE'),
-	timezone: Schema.String,
-	legal_entity: Schema.optional(Schema.String),
-	month: Schema.optional(Schema.String),
-	rows: Schema.Array(attendanceImportRowSchema)
-});
-type AttendanceImportPayload = Schema.Schema.Type<typeof attendanceImportPayloadSchema>;
+/** The whole workbook. A sheet the file does not carry is absent; an empty sheet is `[]`. */
+type SchedulingImportPayload = {
+	readonly legal_entity: string;
+	readonly month: string;
+	readonly timezone?: string;
+	readonly roster?: readonly RosterImportRow[];
+	readonly attendance?: readonly AttendanceImportRow[];
+};
 
 function identifyPersonDay(reader: RowReader): string {
 	return identifyRowByColumns(reader, ['employee_number', 'work_date']);
@@ -100,6 +84,13 @@ function readSheet<TRow>(
 	}
 ): readonly TRow[] {
 	const settings = readWorkbookSettings(grids);
+	// A sheet with its header row and nothing under it is a statement, not a mistake: nothing is
+	// planned, or nothing was worked, for the month.
+	const cells = grids.get(sheetName) ?? [];
+	const filled = cells.filter((row) =>
+		row.some((cell) => cell != null && String(cell).trim() !== '')
+	);
+	if (filled.length === 1) return [];
 	const table = readSheetTable(grids, sheetName, ['employee_number']);
 	if (isLongFormImportHeaders(table.headers)) {
 		return options.longForm(readSheetTable(grids, sheetName, options.longFormColumns));
@@ -122,8 +113,7 @@ function longFormRosterRows(table: SheetTable): readonly RosterImportRow[] {
 	const parsed = readRows(table, identifyPersonDay, (reader) => ({
 		employee_number: reader.requiredText('employee_number') ?? '',
 		work_date: reader.calendarDate('work_date') ?? '',
-		shift_code: reader.text('shift_code'),
-		assignment_code: reader.text('assignment_code')
+		shift_code: reader.text('shift_code')
 	}));
 	return parsed.flatMap((row): RosterImportRow[] =>
 		row.shift_code == null
@@ -132,8 +122,7 @@ function longFormRosterRows(table: SheetTable): readonly RosterImportRow[] {
 					{
 						employee_number: row.employee_number,
 						work_date: row.work_date,
-						shift_code: row.shift_code,
-						assignment_code: row.assignment_code
+						shift_code: row.shift_code
 					}
 				]
 	);
@@ -152,85 +141,63 @@ function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow
 		employee_number: reader.requiredText('employee_number') ?? '',
 		work_date: reader.calendarDate('work_date') ?? '',
 		clock_in: reader.clockTime('clock_in'),
-		clock_out: reader.clockTime('clock_out'),
-		break_minutes: reader.wholeNumber('break_minutes')
+		clock_out: reader.clockTime('clock_out')
 	}));
 }
 
-/** The planned half of the workbook, against the legal entity and month it states. */
-export function rosterImportPayload(grids: WorkbookGrids): RosterImportPayload {
-	const settings = readWorkbookSettings(grids);
-	const rows = readSheet<RosterImportRow>(grids, ROSTER_SHEET_NAME, {
-		longFormColumns: ['employee_number', 'work_date', 'shift_code'],
-		longForm: longFormRosterRows,
-		monthGrid: expandRosterMonthGrid
-	});
-	if (rows.length === 0) {
-		throw new WorkbookImportError('This file has no roster assignments to import.');
-	}
-	return {
-		sheet: 'ROSTER',
-		legal_entity: settings.legal_entity,
-		month: settings.month,
-		rows
-	};
-}
-
 /**
- * The actual half of the workbook, and the file's declared timezone.
+ * The whole scheduling workbook: one legal entity and one month from the Settings sheet, the
+ * Roster sheet as the plan and the Time entries sheet as the attendance. A sheet the file does
+ * not carry stays absent, so the pipeline leaves that half of every day alone; a sheet it carries
+ * empty is the statement that nothing is planned, or nothing was worked.
  *
- * Clock cells stay local wall-clock text here. The file states its own zone once, on the `Settings`
- * sheet, and the pipeline resolves both together into UTC instants — so a punch is converted where
- * the zone is known rather than in the browser that happened to open the file. There is no fallback
- * to the browser's own zone: a punch imported into the wrong zone is off by hours and still looks
- * like a plausible day's work, so a file that does not say which zone it means is refused rather
- * than guessed at.
+ * Clock cells stay local wall-clock text here. The file states its own zone once, on `Settings`,
+ * and the pipeline resolves both together into UTC instants — a punch imported into the wrong
+ * zone is off by hours and still looks like a plausible day's work, so a file with punches and no
+ * zone is refused by the pipeline rather than guessed at.
  */
-export function attendanceImportPayload(grids: WorkbookGrids): AttendanceImportPayload {
+export function schedulingImportPayload(grids: WorkbookGrids): SchedulingImportPayload {
 	const settings = readWorkbookSettings(grids);
-	const timezone = settings.timezone;
-	if (timezone == null || timezone === '') {
-		throw new WorkbookImportError(
-			'This file does not say which timezone its clock times are in, so they cannot be imported.',
-			[
-				`Add a "${SETTINGS_SHEET_NAME}" sheet with a "timezone" row, as the import template has.`,
-				'Use an IANA name that identifies the place — Asia/Kuala_Lumpur, not a fixed UTC offset.'
-			]
-		);
-	}
-	const rows = readSheet<AttendanceImportRow>(grids, ATTENDANCE_SHEET_NAME, {
-		longFormColumns: ['employee_number', 'work_date'],
-		longForm: longFormAttendanceRows,
-		monthGrid: expandTimeMonthGrid
-	});
-	if (rows.length === 0) {
-		throw new WorkbookImportError('This file has no attendance to import.');
-	}
-	return {
-		sheet: 'ATTENDANCE',
-		timezone,
-		legal_entity: settings.legal_entity,
-		month: settings.month,
-		rows
-	};
-}
-
-/**
- * The whole scheduling workbook, whichever sheets it carries: both together load as one state
- * of the period, a lone Roster or Time entries sheet loads its own half, as before.
- */
-export function schedulingImportPayload(grids: WorkbookGrids) {
 	const hasRoster = grids.has(ROSTER_SHEET_NAME);
 	const hasAttendance = grids.has(ATTENDANCE_SHEET_NAME);
-	if (hasRoster && hasAttendance) {
-		const { sheet: _roster, ...roster } = rosterImportPayload(grids);
-		const { sheet: _attendance, ...attendance } = attendanceImportPayload(grids);
-		return { sheet: 'WORKBOOK' as const, roster, attendance };
-	}
-	if (hasRoster) return rosterImportPayload(grids);
-	if (hasAttendance) return attendanceImportPayload(grids);
-	throw new WorkbookImportError(
-		`This file has neither a "${ROSTER_SHEET_NAME}" nor a "${ATTENDANCE_SHEET_NAME}" sheet.`,
-		['Start from the scheduling workbook template, which carries both.']
-	);
+	if (!hasRoster && !hasAttendance)
+		throw new WorkbookImportError(
+			`This file has neither a "${ROSTER_SHEET_NAME}" nor a "${ATTENDANCE_SHEET_NAME}" sheet.`,
+			['Start from the scheduling workbook template, which carries both.']
+		);
+	if (settings.legal_entity == null || settings.legal_entity === '')
+		throw new WorkbookImportError('This file does not say which legal entity it is for.', [
+			`Add a "legal_entity" row to the "${SETTINGS_SHEET_NAME}" sheet, as the template has.`
+		]);
+	if (settings.month == null || settings.month === '')
+		throw new WorkbookImportError('This file does not say which month it is for.', [
+			`Add a "month" row (YYYY-MM) to the "${SETTINGS_SHEET_NAME}" sheet, as the template has.`
+		]);
+	const roster = hasRoster
+		? readSheet<RosterImportRow>(grids, ROSTER_SHEET_NAME, {
+				longFormColumns: ['employee_number', 'work_date', 'shift_code'],
+				longForm: longFormRosterRows,
+				monthGrid: expandRosterMonthGrid
+			})
+		: undefined;
+	const attendance = hasAttendance
+		? readSheet<AttendanceImportRow>(grids, ATTENDANCE_SHEET_NAME, {
+				longFormColumns: ['employee_number', 'work_date'],
+				longForm: longFormAttendanceRows,
+				monthGrid: expandTimeMonthGrid
+			})
+		: undefined;
+	if ((roster?.length ?? 0) === 0 && (attendance?.length ?? 0) === 0)
+		throw new WorkbookImportError('This file has nothing to import.', [
+			'Fill the Roster sheet, the Time entries sheet, or both.'
+		]);
+	return {
+		legal_entity: settings.legal_entity,
+		month: settings.month,
+		...(settings.timezone == null || settings.timezone === ''
+			? {}
+			: { timezone: settings.timezone }),
+		...(roster === undefined ? {} : { roster }),
+		...(attendance === undefined ? {} : { attendance })
+	};
 }

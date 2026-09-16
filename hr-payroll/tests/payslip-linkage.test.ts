@@ -253,14 +253,28 @@ function configuration(overrides = {}) {
 	};
 }
 
-/** Clocks are recorded at UTC+8, which is what the `+08:00` instants on a work day hold. */
-const clock = (date, from, to) => ({
-	id: `day-${date}`,
-	work_date: date,
-	shift_definition_id: null,
-	worked_intervals: [{ start: `${date}T${from}:00.000+08:00`, end: `${date}T${to}:00.000+08:00` }],
-	break_minutes: 60
-});
+/**
+ * Clocks are recorded at UTC+8, which is what the `+08:00` instants on a work day hold. The hour's
+ * lunch is a gap between two punches, never a stored figure: the engine derives the break from the
+ * shift's grant less that gap, so a rest day (no grant) and a working day (an hour granted, an hour
+ * already taken) both price the hours actually clocked.
+ */
+const clock = (date, from, to) => {
+	const plus = (time, minutes) => {
+		const [hours, mins] = time.split(':').map(Number);
+		const total = hours * 60 + mins + minutes;
+		return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+	};
+	return {
+		id: `day-${date}`,
+		work_date: date,
+		shift_definition_id: null,
+		worked_intervals: [
+			{ start: `${date}T${from}:00.000+08:00`, end: `${date}T${plus(from, 90)}:00.000+08:00` },
+			{ start: `${date}T${plus(from, 150)}:00.000+08:00`, end: `${date}T${to}:00.000+08:00` }
+		]
+	};
+};
 
 const terms = (overrides = {}) => ({
 	id: 'terms-1',
@@ -730,8 +744,7 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 					...clock('2026-03-10', '20:00', '23:59'),
 					worked_intervals: [
 						{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
-					],
-					break_minutes: 0
+					]
 				}
 			]
 		},

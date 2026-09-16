@@ -265,13 +265,9 @@ test('manual encashment and carry consume their actual source valuation, while c
 	);
 });
 
-test('a Work day is classified afresh when it moves, or when its pinned holiday was retracted', () => {
+test('a Work day carries no holiday: moving it, editing it and deleting it touch no calendar', () => {
 	const date = '2026-02-05';
 	const prepared = {
-		holidayByDay: new Map([
-			[`${id(1)}:${date}`, { jurisdiction_code: 'TEST', date, holiday_id: id(20) }],
-			[`${id(1)}:2026-01-05`, { jurisdiction_code: 'TEST', date: '2026-01-05', holiday_id: id(21) }]
-		]),
 		companyByEmployment: new Map(),
 		windowsByCompany: new Map(),
 		leaveByEmployment: new Map(),
@@ -285,7 +281,7 @@ test('a Work day is classified afresh when it moves, or when its pinned holiday 
 	const workApi = {
 		db: {
 			employments: { findFirst: () => Effect.succeed({ company_id: id(3) }) },
-			jurisdiction_holidays: { findMany: () => Effect.succeed([]), mutate: () => Effect.void },
+			// No `jurisdiction_holidays` here: a hook that still read or wrote the calendar would throw.
 			payroll_runs: { findMany: () => Effect.succeed([]) },
 			// No runs, so no payslips: the lock reads the slips inside a window, not the window.
 			payslips: { findMany: () => Effect.succeed([]) },
@@ -298,8 +294,6 @@ test('a Work day is classified afresh when it moves, or when its pinned holiday 
 		work_date: '2026-01-05',
 		shift_definition_id: null,
 		worked_intervals: null,
-		break_minutes: 0,
-		holiday_id: id(19),
 		approval_id: null
 	};
 	const write = (input: Record<string, unknown>) =>
@@ -311,14 +305,10 @@ test('a Work day is classified afresh when it moves, or when its pinned holiday 
 				api: workApi
 			} as never)
 		);
-	assert.equal(write({ work_date: date }).holiday_id, id(20));
-	// P11: the pin is evidence, not a stamp. A day that stands keeps it only while the same date
-	// still publishes the same holiday — one row per jurisdiction and day, so a different id here
-	// means the pinned row was retracted and this one is what the day is now.
-	assert.equal(write({ break_minutes: 15 }).holiday_id, id(21));
-	// The retracting hook releases the days it pins explicitly, because its own retraction is not
-	// written yet and the calendar would still read as published.
-	assert.equal(write({ holiday_id: null }).holiday_id, null);
+	// The write passes through as the row it was given: the holiday on a date is the calendar's
+	// to say when the day is read, never a column the hook stamps or releases.
+	assert.deepEqual(write({ work_date: date }), { work_date: date });
+	assert.deepEqual(write({ worked_intervals: [] }), { worked_intervals: [] });
 	assert.doesNotThrow(() =>
 		Effect.runSync(workHooks.delete.perRecord.before.handler({ existing, api: workApi } as never))
 	);

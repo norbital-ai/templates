@@ -36,6 +36,7 @@ import { formatDateISO } from '@norbital-ai/std/date';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 import { attendanceBoundary, workedMinutes } from '../../attendance.js';
+import { derivedBreakMinutes } from '../../scheduling/rest-break.js';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
@@ -148,10 +149,6 @@ const dayFactsSchema = Schema.Struct({
 	shiftStart: Schema.NullOr(Schema.String),
 	shiftEnd: Schema.NullOr(Schema.String),
 	shiftBreakMinutes: Schema.NullOr(Schema.Number),
-	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
-	assignmentCode: Schema.NullOr(Schema.String),
-	/** Where the plan came from, or null when the day carries no explicit plan. */
-	plannedOrigin: Schema.NullOr(Schema.Literals(['IMPORT', 'MANUAL'])),
 	/** Overlaid from the published `jurisdiction_holidays`, never stored on the entry. */
 	holidayName: Schema.NullOr(Schema.String),
 	leaveCode: Schema.NullOr(Schema.String),
@@ -181,10 +178,13 @@ const dayFactsSchema = Schema.Struct({
 	 * could differ by a write.
 	 */
 	workDayId: Schema.NullOr(Schema.String),
-	/** The unpaid break the day records, in whole minutes. `null` when no attendance was recorded. */
+	/**
+	 * The unpaid break the day took, derived (`derivedBreakMinutes`): the shift's granted break less
+	 * the gaps already visible between the punches. `null` when no attendance was recorded.
+	 */
 	breakMinutes: Schema.NullOr(Schema.Number),
 	/**
-	 * Worked minutes net of the unpaid break, or `null` when a punch is still open.
+	 * Worked minutes net of the derived break, or `null` while a punch is still open.
 	 *
 	 * `null` is the honest answer to an open clock rather than a running total: nobody knows how long
 	 * the day was until it is closed, and a partial figure on the board would read as a short day.
@@ -258,8 +258,6 @@ const workDayLikeSchema = Schema.Struct({
 	employment_id: Schema.String,
 	work_date: calendarInstantSchema,
 	shift_definition_id: Schema.optional(Schema.NullOr(Schema.String)),
-	assignment_code: Schema.optional(Schema.NullOr(Schema.String)),
-	planned_origin: Schema.optional(Schema.NullOr(Schema.String)),
 	worked_intervals: Schema.optional(
 		Schema.NullOr(
 			Schema.Array(
@@ -269,17 +267,9 @@ const workDayLikeSchema = Schema.Struct({
 				})
 			)
 		)
-	),
-	break_minutes: Schema.optional(Schema.NullOr(Schema.Number))
+	)
 });
 type WorkDayLike = Schema.Schema.Type<typeof workDayLikeSchema>;
-
-const PLANNED_ORIGINS = ['IMPORT', 'MANUAL'] as const;
-type PlannedOrigin = (typeof PLANNED_ORIGINS)[number];
-
-function plannedOriginOf(value: string | null | undefined): PlannedOrigin | null {
-	return PLANNED_ORIGINS.find((origin) => origin === value) ?? null;
-}
 
 /**
  * The stored intervals as the attendance helpers take them, or `null` when none were recorded.
@@ -616,6 +606,7 @@ function factsForDate(
 			: employmentEnd != null && date > employmentEnd
 				? ('EXITED' as const)
 				: ('ACTIVE' as const);
+	const breakTaken = recorded == null ? null : derivedBreakMinutes(recorded, window?.break_minutes);
 	const holiday = indexes.holidayByDate.get(date) ?? null;
 	const holidayName =
 		holiday != null && holidayAppliesTo(holiday, options, indexes, employmentId)
@@ -643,8 +634,6 @@ function factsForDate(
 		shiftStart: employmentState === 'ACTIVE' ? (window?.start_time ?? null) : null,
 		shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
 		shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
-		assignmentCode: workDay?.assignment_code ?? null,
-		plannedOrigin: plannedOriginOf(workDay?.planned_origin),
 		holidayName,
 		leaveCode: leave?.code ?? null,
 		halfDayLeave: leave?.halfDay ?? false,
@@ -669,11 +658,11 @@ function factsForDate(
 						last: lastPunch == null ? null : punchClock(lastPunch, dayStartMs)
 					},
 		workDayId: workDay?.id ?? null,
-		breakMinutes: recorded == null ? null : (workDay?.break_minutes ?? 0),
+		breakMinutes: breakTaken,
 		// `workedMinutes` returns null for an open interval by itself, which is exactly the
 		// contract this field states — so an open punch reaches the day sheet as "not known
 		// yet" rather than as a number nobody should act on.
-		workedMinutes: recorded == null ? null : workedMinutes(recorded, workDay?.break_minutes),
+		workedMinutes: recorded == null ? null : workedMinutes(recorded, breakTaken),
 		withinCutoff:
 			options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
 		lock: options.locks.get(dayLockKey(employmentId, date)) ?? { kind: 'NONE' },
@@ -1079,8 +1068,7 @@ const attendanceDraftProblemSchema = Schema.Literals([
 	'NO_INTERVALS',
 	'OUT_OF_ORDER',
 	'OPEN_NOT_LAST',
-	'ENDS_BEFORE_IT_STARTS',
-	'BREAK_NOT_SHORTER_THAN_WORK'
+	'ENDS_BEFORE_IT_STARTS'
 ]);
 type AttendanceDraftProblem = Schema.Schema.Type<typeof attendanceDraftProblemSchema>;
 
@@ -1089,21 +1077,8 @@ const attendanceDraftAssessmentSchema = Schema.Struct({
 	/** Minutes across every interval that has both ends. Fractional if the data carries seconds. */
 	closedMinutes: Schema.Number,
 	hasOpenInterval: Schema.Boolean,
-	/**
-	 * The largest unpaid break these intervals can carry, or `null` when they can carry none.
-	 *
-	 * The hook refuses `unpaidBreak >= closedMinutes` — greater *or equal*, so a break exactly as
-	 * long as the day is refused too, and the ceiling is the largest whole minute strictly below the
-	 * worked total. `null` on an open day means "not yet decided" rather than "zero": nobody knows
-	 * how long an unfinished day is, and the hook does not ask.
-	 */
-	maxBreakMinutes: Schema.NullOr(Schema.Number),
-	/** The break after clamping, which is the value a save would actually send. */
+	/** The break the day takes, derived from the punches and the shift's granted break. */
 	breakMinutes: Schema.Number,
-	/** True when the requested break was reduced to fit. The sheet must SAY so, never do it quietly. */
-	breakClamped: Schema.Boolean,
-	/** The requested break, kept so the UI can report what it was before the clamp. */
-	requestedBreakMinutes: Schema.Number,
 	/** Net worked minutes, or null while a punch is open — the same contract `DayFacts` states. */
 	workedMinutes: Schema.NullOr(Schema.Number),
 	problem: Schema.NullOr(attendanceDraftProblemSchema)
@@ -1113,20 +1088,12 @@ type AttendanceDraftAssessment = Schema.Schema.Type<typeof attendanceDraftAssess
 /**
  * Assess an in-progress attendance edit against the rules the write path enforces.
  *
- * The clamp exists because of a defect found in the seed bank: four rows carried a 60-minute break
- * against nineteen to forty-one minutes of recorded attendance, which is exactly the shape a naive
- * editor produces — it shortens or stamps an interval and leaves `break_minutes` at the roster
- * code's scheduled hour. The hook then refuses the save with a sentence about unpaid breaks that
- * says nothing about the punch the operator was actually editing.
- *
- * So the ceiling is computed here, from the same numbers, and the caller is handed both the clamped
- * value and the fact that it clamped. It is deliberately NOT applied silently: a break that
- * collapses from sixty minutes to twelve is a statement about the day, and an operator who cannot
- * see it happen cannot tell that the punch, not the break, is the thing that is wrong.
+ * Nothing about the break is typed: it is `derivedBreakMinutes` of the draft's punches against the
+ * shift's granted break, which is the same arithmetic payroll reads the stored day with.
  */
 export function assessAttendanceDraft(
 	intervals: readonly IntervalDraft[],
-	requestedBreakMinutes: number
+	grantedBreakMinutes: number | null | undefined
 ): AttendanceDraftAssessment {
 	let problem: AttendanceDraftProblem | null = null;
 	let previousEnd = Number.NEGATIVE_INFINITY;
@@ -1150,40 +1117,11 @@ export function assessAttendanceDraft(
 
 	if (problem == null && intervals.length === 0) problem = 'NO_INTERVALS';
 
-	/**
-	 * The ceiling, matching `unpaidBreak >= closedMinutes` exactly.
-	 *
-	 * An integer total of N minutes admits at most N−1; a fractional one admits its floor, which is
-	 * already strictly below it — so a half-minute day admits a break of zero, and nothing longer.
-	 *
-	 * `ceiling < 0` therefore means a day of exactly ZERO closed minutes, where even a zero break is
-	 * not strictly shorter and the row is unsaveable however it is set. That is what
-	 * `BREAK_NOT_SHORTER_THAN_WORK` reports, and it is a defensive arm rather than a reachable one
-	 * today: reaching zero closed minutes needs an interval that does not end after it starts, which
-	 * `ENDS_BEFORE_IT_STARTS` has already claimed by the time this runs.
-	 */
-	const ceiling = Number.isInteger(closedMinutes) ? closedMinutes - 1 : Math.floor(closedMinutes);
-	const maxBreakMinutes = hasOpenInterval ? null : ceiling < 0 ? null : ceiling;
-
-	const requested = Math.max(0, Math.trunc(requestedBreakMinutes));
-	const breakMinutes =
-		maxBreakMinutes == null
-			? hasOpenInterval
-				? requested
-				: 0
-			: Math.min(requested, maxBreakMinutes);
-	const breakClamped = breakMinutes !== requested;
-	if (problem == null && !hasOpenInterval && maxBreakMinutes == null && intervals.length > 0) {
-		problem = 'BREAK_NOT_SHORTER_THAN_WORK';
-	}
-
+	const breakMinutes = derivedBreakMinutes(intervals, grantedBreakMinutes);
 	return {
 		closedMinutes,
 		hasOpenInterval,
-		maxBreakMinutes,
 		breakMinutes,
-		breakClamped,
-		requestedBreakMinutes: requested,
 		workedMinutes: hasOpenInterval ? null : Math.max(0, closedMinutes - breakMinutes),
 		problem
 	};
@@ -1194,8 +1132,7 @@ export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, Tenant
 	NO_INTERVALS: 'roster.day_sheet_problem_no_intervals',
 	OUT_OF_ORDER: 'roster.day_sheet_problem_out_of_order',
 	OPEN_NOT_LAST: 'roster.day_sheet_problem_open_not_last',
-	ENDS_BEFORE_IT_STARTS: 'roster.day_sheet_problem_ends_before_start',
-	BREAK_NOT_SHORTER_THAN_WORK: 'roster.day_sheet_problem_break_too_long'
+	ENDS_BEFORE_IT_STARTS: 'roster.day_sheet_problem_ends_before_start'
 };
 
 /**
@@ -1345,7 +1282,6 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 		day.status === 'BEFORE_START' || day.status === 'EXITED'
 			? t(STATUS_PRESENTATION[day.status].labelKey)
 			: describePlanLayer(day, t),
-		day.assignmentCode == null ? null : t('roster.assignment_code', { code: day.assignmentCode }),
 		day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
 		day.leaveCode == null
 			? null
@@ -1390,8 +1326,7 @@ const cellLayersSchema = Schema.Struct({
 	override: Schema.NullOr(
 		Schema.Struct({
 			code: Schema.String,
-			kind: designationSchema,
-			origin: Schema.NullOr(Schema.Literals(['IMPORT', 'MANUAL']))
+			kind: designationSchema
 		})
 	),
 	/**
@@ -1425,7 +1360,7 @@ export function resolveCellLayers(day: DayFacts): CellLayers {
 			: null;
 	const override =
 		active && day.overrideCode != null && day.overrideKind != null
-			? { code: day.overrideCode, kind: day.overrideKind, origin: day.plannedOrigin }
+			? { code: day.overrideCode, kind: day.overrideKind }
 			: null;
 	const actual: CellLayers['actual'] =
 		day.attendanceState == null
@@ -1461,12 +1396,7 @@ export function describePlanLayer(day: DayFacts, t: Translator): string {
 				});
 	const code = (value: string) => t('roster.shift_code', { code: value });
 	if (layers.override != null) {
-		const origin =
-			layers.override.origin === 'IMPORT'
-				? t('roster.layer_override_imported')
-				: layers.override.origin === 'MANUAL'
-					? t('roster.layer_override_manual')
-					: t('roster.layer_override');
+		const origin = t('roster.layer_override');
 		const over =
 			layers.base == null
 				? origin
@@ -1571,9 +1501,7 @@ export function slotCode(day: DayFacts | undefined, dense = true): string {
 	if (state === 'REST') return 'R';
 	if (state === 'OFF') return 'O';
 	if (state === 'UNROSTERED') return '·';
-	return (
-		day.overrideCode ?? day.baseCode ?? day.assignmentCode ?? (state === 'EXTRA_WORK' ? 'OT' : '')
-	);
+	return day.overrideCode ?? day.baseCode ?? (state === 'EXTRA_WORK' ? 'OT' : '');
 }
 
 /**

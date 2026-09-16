@@ -453,7 +453,7 @@ export function refuseIfCaptured(
  *
  * It reads the stored intervals, never the incoming ones: the question is whether attendance was
  * already on this day before this write, not whether the write brings some. That is what lets the
- * kiosk keep punching — a punch writes `worked_intervals` and `break_minutes` and never touches the
+ * kiosk keep punching — a punch writes `worked_intervals` and never touches the
  * plan — and what lets HR correct a punch on a planned day.
  *
  * `null` is "no attendance was recorded"; `[]` is "the day was reviewed and produced nothing",
@@ -462,7 +462,7 @@ export function refuseIfCaptured(
 export const attendanceRecorded = (intervals: unknown): boolean => Array.isArray(intervals);
 
 /** The plan columns, which are exactly the ones attendance freezes. */
-const PLAN_COLUMNS = ['shift_definition_id', 'assignment_code', 'planned_origin'] as const;
+const PLAN_COLUMNS = ['shift_definition_id'] as const;
 
 /**
  * Which plan columns this write would change, given what the row already holds. Empty means the

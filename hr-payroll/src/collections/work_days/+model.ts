@@ -1,12 +1,4 @@
-import {
-	custom,
-	defineModel,
-	enums,
-	instant,
-	integer,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * One person-day: what was PLANNED for it, and what ACTUALLY happened on it.
@@ -28,62 +20,24 @@ import {
  * The actual side is present when `worked_intervals` is non-NULL; an empty array is different, and
  * explicitly records AWOL.
  *
- * There is no `PUBLIC_HOLIDAY` roster code. A holiday is a property of the calendar, not of one
- * person's day. The write captures its published jurisdiction calendar as immutable input evidence.
- * A holiday stays frozen while this pin or a payroll run's snapshot references it.
+ * There is no `PUBLIC_HOLIDAY` roster code and no link to a holiday row. A holiday is a property
+ * of the entity's calendar, overlaid on the date when the day is read; a payroll run snapshots the
+ * calendar it priced against.
  */
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		work_date: instant({ precision: 'day' }).notNull(),
-
-		// ── planned ──────────────────────────────────────────────────────────────────────────────
-		/** The assigned roster code (WORK, REST or OFF). NULL means the day carries no plan. */
+		/** The plan: a shift window, OFF or REST. Null is a day with no plan. */
 		shift_definition_id: uuid(),
-		/**
-		 * The roster token shown to the operator in the source schedule, for example `AMRES` or
-		 * `OFF/S`. Provenance only; schedule meaning always comes from the referenced roster code.
-		 */
-		assignment_code: text(),
-		/**
-		 * Where the plan came from. `IMPORT` lands from a workbook, and `MANUAL` is written on the
-		 * board (an ad hoc assignment, planned overtime or a swap). A plan's meaning never depends
-		 * on this — it is provenance and a board filter, nothing more.
-		 */
-		planned_origin: enums(['IMPORT', 'MANUAL']),
-
-		// ── actual ───────────────────────────────────────────────────────────────────────────────
-		/**
-		 * The worked intervals. NULL means no attendance was recorded for this day at all; an empty
-		 * array explicitly records AWOL. With NULL, payroll assumes the scheduled hours without overtime.
-		 */
+		/** The attendance: what was actually worked. Null is no punch; `[]` is a day read and found empty. */
 		worked_intervals: custom('instant_range', { multiple: true }),
-		/**
-		 * The unpaid break, in whole minutes.
-		 *
-		 * Minutes are the stored unit because they are exact - every break a rota actually uses is a
-		 * whole number of them, and the overtime engine, the payroll export and the customer's
-		 * workbook all measure in them. The operator enters and reads hours; that is presentation,
-		 * and it never reinterprets what is stored.
-		 */
-		break_minutes: integer().notNull().default(0),
-		/**
-		 * The published holiday this day was classified as; null is a day that was no holiday when
-		 * written. Payroll reads the pin back, so a later publication or edit cannot retroactively
-		 * change what this day was. The pin stands while the same date still publishes the same
-		 * holiday, and the holiday hook releases it explicitly as it retracts the row — this field
-		 * is in no grant mask, so a hook is the only writer that can say so.
-		 */
-		holiday_id: uuid(),
-		/**
-		 * The payslip that settled this row. Set by the payroll engine when a run captures the row,
-		 * cleared when the draft run is deleted; while set, the row is frozen.
-		 */
+		/** Set once a payslip has taken the day into account: the day is sealed. */
 		payslip_id: uuid()
 	},
 	{
 		description:
-			'One person-day, carrying the planned assignment and the actual attendance side by side. Either side may be absent. Schedule variance, premium work and overtime are derived from the two together with the jurisdiction calendar and the effective statutory rules.',
+			'One person-day: the planned shift and the actual attendance side by side. Either may be absent. Holidays are overlaid from the entity’s published calendar by date, breaks are the gaps between the day’s intervals, and premium work and overtime are derived from plan, attendance, calendar and the statutory rules in force.',
 		recordLabel: 'work_date',
 		icon: 'lucide:calendar-clock',
 		indexes: [

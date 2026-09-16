@@ -115,10 +115,7 @@ export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 	employment_id: true,
 	work_date: true,
 	shift_definition_id: true,
-	assignment_code: true,
-	planned_origin: true,
-	worked_intervals: true,
-	break_minutes: true
+	worked_intervals: true
 });
 
 /**
@@ -129,8 +126,7 @@ export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 export const MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 	employment_id: true,
 	work_date: true,
-	shift_definition_id: true,
-	assignment_code: true
+	shift_definition_id: true
 });
 
 /**

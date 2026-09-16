@@ -7,7 +7,6 @@ import { addDays, monthBounds } from '../../lib/period.js';
 import { countryOf, settingsInForce } from '../../lib/jurisdiction_settings.js';
 import { leaveWindowOf } from '../../lib/leave/entitlement.js';
 import { floorHalfHour } from '../payroll_runs/lib/rounding.js';
-import { prepareHolidayInputs, type PreparedHolidayInput } from '../../lib/holiday-inputs.js';
 import type { WorkRules } from '../../datatypes/work_rules/+definition.js';
 
 type StatutoryWeeklyRestRule = WorkRules['weekly_rest_rule'];
@@ -124,8 +123,8 @@ type SettingsVersionRow = {
  * Extra work is not rostered: the person punches in, and overtime is derived. A contract change
  * is a new `employment_terms` row.
  *
- * Patterned employments only: a rostered employment has no pattern day, and its guaranteed or
- * capped load is validated at payroll precheck over the pay window, where the money is.
+ * Patterned employments only, and only months with no roster of record: a rostered month is the
+ * schedule, the pattern is not its baseline, and its completeness is judged at payroll precheck.
  */
 type PlanChange = {
 	readonly employment_id: string;
@@ -491,7 +490,16 @@ function assertBatchConformsToPattern(
 			bucket.push(change);
 			changesByGroup.set(key, bucket);
 		}
+		// A month with a roster of record is not measured against the pattern: the roster is the
+		// schedule. The statutory gates below still judge it.
+		const rosteredRows = yield* api.db.rosters.findMany({
+			where: { employment_id: { in: employmentIds }, period: { in: months } },
+			columns: { employment_id: true, period: true },
+			limit: QUERY_LIMIT
+		});
+		const rostered = new Set(rosteredRows.map((row) => `${row.employment_id}:${row.period}`));
 		for (const [key, group] of changesByGroup) {
+			if (rostered.has(key)) continue;
 			const separator = key.lastIndexOf(':');
 			const employmentId = key.slice(0, separator);
 			const month = key.slice(separator + 1);
@@ -790,12 +798,10 @@ function assertWorkedIntervals(
 	// NULL is a work day with no attendance recorded — a plan and nothing else — and there is nothing
 	// to validate about it. `[]` is a day that WAS read and produced no work, which the rules below
 	// accept as the settled statement it is.
-	value: readonly WorkedInterval[] | null | undefined,
-	breakMinutes: number | null | undefined
+	value: readonly WorkedInterval[] | null | undefined
 ): void {
 	if (value == null) return;
 	let previousEnd = Number.NEGATIVE_INFINITY;
-	let closedMinutes = 0;
 	for (const [index, interval] of value.entries()) {
 		const startedAt = Date.parse(interval.start);
 		const endedAt = interval.end == null ? null : Date.parse(interval.end);
@@ -812,22 +818,7 @@ function assertWorkedIntervals(
 		if (endedAt <= startedAt) {
 			refuse('Each worked interval must end after it starts, including work across midnight.');
 		}
-		closedMinutes += (endedAt - startedAt) / 60_000;
 		previousEnd = endedAt;
-	}
-
-	const unpaidBreak = decodeNumber(breakMinutes ?? 0);
-	if (!Number.isInteger(unpaidBreak) || unpaidBreak < 0) {
-		refuse('Unpaid break must be a non-negative whole number of minutes.');
-	}
-	const hasOpenInterval = value.some((interval) => interval.end == null);
-	// `unpaidBreak > 0` is load-bearing, not a shortcut past the zero case. A reviewed-empty day is
-	// `[]` with no break: no interval, so `closedMinutes` is 0, and `0 >= 0` refused the one write
-	// the day sheet's "reviewed, nothing worked" action exists to make — the day could be cleared to
-	// NULL or filled with punches, but never stated as read-and-empty. Deducting a *positive* break
-	// from nothing is still the contradiction this rule is for, and is still refused.
-	if (!hasOpenInterval && unpaidBreak > 0 && unpaidBreak >= closedMinutes) {
-		refuse('Unpaid break must be shorter than the recorded worked time.');
 	}
 }
 
@@ -835,11 +826,10 @@ function assertWorkedIntervals(
  * One person-day, and the two halves that land on it.
  *
  * `time_entries` and `roster_entries` were the same row read twice, so their hooks were the same
- * refusals written twice. This is both, once. The plan half is `shift_definition_id`,
- * `assignment_code` and `planned_origin`; the actual half is `worked_intervals` and
- * `break_minutes`. Either may be absent — `shift_definition_id` non-NULL is the presence test for a
- * plan, and `worked_intervals` NULL means no attendance was recorded, which is a different fact from
- * `[]`, the day that was read and produced nothing.
+ * refusals written twice. This is both, once. The plan half is `shift_definition_id`; the actual
+ * half is `worked_intervals`. Either may be absent — `shift_definition_id` non-NULL is the presence
+ * test for a plan, and `worked_intervals` NULL means no attendance was recorded, which is a
+ * different fact from `[]`, the day that was read and produced nothing.
  *
  * The overlap rule survives the merge and is not made redundant by `unique(employment_id,
  * work_date)`. That index stops two rows on the same day; the rule stops two work windows occupying
@@ -848,7 +838,6 @@ function assertWorkedIntervals(
  */
 /** What `prepare` hands every record: the batch's reads, done once. */
 type Prepared = {
-	readonly holidayByDay: ReadonlyMap<string, PreparedHolidayInput>;
 	readonly companyByEmployment: ReadonlyMap<string, string | null>;
 	readonly windowsByCompany: ReadonlyMap<string, readonly PayrollWindow[]>;
 	readonly leaveByEmployment: ReadonlyMap<string, readonly LeaveRequestLike[]>;
@@ -860,7 +849,6 @@ type Prepared = {
 
 /** What a settlement-only batch prepares: nothing, because its per-record handler asks for nothing. */
 const SETTLEMENT_PREPARED: Prepared = {
-	holidayByDay: new Map(),
 	companyByEmployment: new Map(),
 	windowsByCompany: new Map(),
 	leaveByEmployment: new Map(),
@@ -1030,17 +1018,7 @@ export default {
 					employments.map((employment) => [employment.id, employment.company_id])
 				);
 				const companyById = new Map(companies.map((company) => [company.id, company]));
-				/**
-				 * Holiday scope is the **entity**, and the settings version is only consulted for the
-				 * regime beside it.
-				 *
-				 * These three maps have to be keyed alike or the failure is silent: two entities in one
-				 * country sharing a jurisdiction bucket would each be classified against the other's
-				 * calendar and produce a perfectly plausible wrong answer. Keyed by company id they
-				 * cannot collide, and a scope with no prepared input still refuses loudly below.
-				 */
-				const scopeByDay = new Map<string, string>();
-				const datesByCompany = new Map<string, string[]>();
+				// Every touched day has a governing jurisdiction, or the write is refused up front.
 				for (const coordinate of coordinates) {
 					const company = companyById.get(companyByEmployment.get(coordinate.employment_id) ?? '');
 					const version = company
@@ -1050,25 +1028,8 @@ export default {
 						refuse(
 							`No governing jurisdiction is configured for the workday on ${coordinate.work_date}.`
 						);
-					scopeByDay.set(`${coordinate.employment_id}:${coordinate.work_date}`, company.id);
-					const dates = datesByCompany.get(company.id) ?? [];
-					dates.push(coordinate.work_date);
-					datesByCompany.set(company.id, dates);
-				}
-				const holidayByScope = new Map<string, PreparedHolidayInput>();
-				for (const [companyId, dates] of datesByCompany) {
-					for (const choice of (yield* prepareHolidayInputs(api, companyId, dates)).inputs)
-						holidayByScope.set(`${companyId}:${choice.date}`, choice);
-				}
-				const holidayByDay = new Map<string, PreparedHolidayInput>();
-				for (const coordinate of coordinates) {
-					const key = `${coordinate.employment_id}:${coordinate.work_date}`;
-					const choice = holidayByScope.get(`${scopeByDay.get(key)}:${coordinate.work_date}`);
-					if (!choice) refuse(`No holiday input was prepared for ${coordinate.work_date}.`);
-					holidayByDay.set(key, choice);
 				}
 				return {
-					holidayByDay,
 					companyByEmployment,
 					windowsByCompany: new Map(
 						[...runsByCompany].map(([companyId, grouped]) => [
@@ -1087,7 +1048,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose scheduled attendance that run already settled, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects, and pins the published holiday or re-classifies when it was retracted.',
+					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose scheduled attendance that run already settled, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, refuses a plan change under recorded attendance unless the same write restates the attendance, and — for a month with no roster of record — refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects. Statutory rest, hour and break ceilings refuse any plan, rostered or not.',
 				handler: ({ input, existing, prepared, api, recordId }) =>
 					Effect.gen(function* () {
 						// The engine's capture or release of this row: the one write a settled row takes.
@@ -1103,8 +1064,7 @@ export default {
 						assertWorkedIntervals(
 							input.worked_intervals !== undefined
 								? input.worked_intervals
-								: existing?.worked_intervals,
-							input.break_minutes !== undefined ? input.break_minutes : existing?.break_minutes
+								: existing?.worked_intervals
 						);
 						// An edit is the only write that can disturb something already settled: a create has
 						// no prior row for a run to have consumed.
@@ -1139,11 +1099,14 @@ export default {
 							 * the plan, record it again.
 							 */
 							const frozen = planChanges(input, existing);
-							// ponytail: an import is the period's roster of record and overrides the plan under
-							// recorded attendance; its rows say so by provenance. Add a per-batch flag if
-							// provenance ever stops being the import's alone.
-							const imported = input.planned_origin === 'IMPORT';
-							if (attendanceRecorded(existing.worked_intervals) && frozen.length > 0 && !imported)
+							// A write that restates the attendance beside the new plan — an import setting the
+							// whole day — is not re-pricing punches behind anyone's back: the punches are its own.
+							const restatesAttendance = input.worked_intervals !== undefined;
+							if (
+								attendanceRecorded(existing.worked_intervals) &&
+								frozen.length > 0 &&
+								!restatesAttendance
+							)
 								refuse(
 									`The roster for ${dateKey(workDate)} is locked: attendance has already been ` +
 										`recorded against it, and ${frozen.join(', ')} decides how that ` +
@@ -1173,27 +1136,8 @@ export default {
 								...(existing === undefined ? {} : { existing_id: existing.id })
 							}
 						]);
-						const holiday = prepared.holidayByDay.get(`${employmentId}:${dateKey(workDate)}`);
-						if (!holiday) refuse('The workday has no prepared holiday input.');
-						// The pin is evidence, not a stamp: it stands while the same date still
-						// publishes the same holiday. A re-saved day whose holiday was retracted
-						//
-						// An explicit null is the holiday hook releasing this day as it retracts the
-						// row: the retraction is not written yet, so the calendar still reads as
-						// published and only the retracting hook knows. `holiday_id` is in no grant
-						// mask, so no writer but a hook can send it.
-						const dayKey = dateKey(workDate);
-						const pinned =
-							input.holiday_id === null
-								? null
-								: existing?.holiday_id != null &&
-									  dateKey(existing.work_date) === dayKey &&
-									  existing.holiday_id === holiday.holiday_id
-									? existing.holiday_id
-									: holiday.holiday_id;
 						// Moving employments is refused before any nested write below posts.
-						boundToContract(input, existing);
-						return { ...boundToContract(input, existing), holiday_id: pinned };
+						return boundToContract(input, existing);
 					})
 			}
 		}

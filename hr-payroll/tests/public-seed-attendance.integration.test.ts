@@ -18,7 +18,6 @@ const WORK_DAY_LIVE_COLUMNS = {
 	id: true,
 	row_version: true,
 	worked_intervals: true,
-	break_minutes: true,
 	work_date: true,
 	shift_definition_id: true
 };
@@ -113,8 +112,7 @@ test(
 								action: 'update',
 								values: {
 									id: restDay.id,
-									worked_intervals: [],
-									break_minutes: 0
+									worked_intervals: []
 								}
 							}
 						]

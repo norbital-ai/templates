@@ -1,23 +1,15 @@
 /**
- * The import round trip, on the workbooks that were sent to operators.
+ * The import round trip, on the workbook that is sent to operators.
  *
- * A real .xlsx is written with the layout of the shipped import templates — the `Read me first`
- * sheet included, dates and clock times stored as text — then read back through the same conversion
- * the browser runs, and the resulting JSON is handed to the collection's own `+pipelines.ts`
- * handler. So this exercises the whole path the operator's click takes, minus the file dialog and
- * the transport.
+ * A real .xlsx is written with the layout of the shipped scheduling template — the `Read me first`
+ * sheet included, dates and clock times stored as text — then read back through the same
+ * conversion the browser runs (`schedulingImportPayload`), and the resulting JSON is handed to the
+ * collection's own `+pipelines.ts` handler. So this exercises the whole path the operator's click
+ * takes, minus the file dialog and the transport.
  *
- * The roster sheet carries real roster-code tokens. A blank shift cell is an absent explicit
- * assignment, REST/OFF are real variants, and PH is validated against the observed calendar but
- * never persisted as a person-day fact.
- *
- * The time-entry sheet carries four columns, one row per person per day.
- *
- * Both sheets now land in ONE collection through ONE pipeline: `work_days` has a single `import`,
- * and the payload's `sheet` tag decides which arm reads it. So the upsert is exercised here too —
- * a punch imported onto a day the roster import already wrote is an UPDATE of that row. The
- * pipeline returns both creates and updates; the stored id is the update assertion the runtime
- * sends through the same canonical mutation path as every other imported row.
+ * One workbook, one legal entity, one calendar month, as a set: the Roster sheet is the roster of
+ * record (whole, or refused naming the gaps), the Time entries sheet is the attendance. A sealed
+ * day may be restated unchanged; changed or omitted it refuses the file by name.
  *
  * The refusal cases matter as much as the happy one: the platform writes an import in a single
  * transaction and has no per-row rejection, so a bad row must refuse the WHOLE file and say which
@@ -88,22 +80,32 @@ function workbookFromFile(filePath) {
 }
 
 /** The `Read me first` sheet every shipped template opens with, which the import must ignore. */
-const README = [['Roster import — planned assignment'], [], ['One row per person per day.']];
-
-const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'];
-const ROSTER_ROWS = [
-	['PUBEM0002', '2026-05-01', '7.5AM'],
-	['PUBEM0002', '2026-05-02', '7.5AM'],
-	['PUBEM0002', '2026-05-03', 'REST'],
-	['PUBEM0002', '2026-05-04', '7.5AM'],
-	['PUBEM0002', '2026-05-05', '7.5AM'],
-	['PUBEM0023', '2026-05-04', 'AM0830'],
-	['PUBEM0023', '2026-05-05', 'PM2030'],
-	['PUBEM0023', '2026-05-06', 'OFF'],
-	['PUBEM0023', '2026-05-07', '']
+const README = [['Scheduling import — one legal entity, one month'], [], ['Two sheets.']];
+const MONTH = '2026-05';
+const MAY_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1));
+const SETTINGS = [
+	['Setting', 'Value'],
+	['legal_entity', 'Public Fixture Co'],
+	['month', MONTH],
+	['timezone', 'Asia/Kuala_Lumpur'],
+	[],
+	['', 'An IANA timezone name.']
 ];
-
+const SETTINGS_NO_TIMEZONE = SETTINGS.slice(0, 3);
+const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'];
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
+const COMPANY_ID = 'company:1';
+
+/** A whole month for one person: weekdays on `code`, Saturday REST, Sunday OFF. */
+function wholeMonth(employee, code, overrides = {}) {
+	return MAY_DAYS.map((day) => {
+		const date = `${MONTH}-${day.padStart(2, '0')}`;
+		const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+		const shift = overrides[date] ?? (weekday === 6 ? 'REST' : weekday === 0 ? 'OFF' : code);
+		return [employee, date, shift];
+	});
+}
+const ROSTER_ROWS = [...wholeMonth('PUBEM0002', '7.5AM'), ...wholeMonth('PUBEM0023', 'AM0830')];
 const TIME_ENTRY_ROWS = [
 	['PUBEM0002', '2026-05-04', '08:16', '17:10'],
 	['PUBEM0002', '2026-05-05', '08:02', '17:05'],
@@ -111,20 +113,6 @@ const TIME_ENTRY_ROWS = [
 	['PUBEM0023', '2026-05-05', '20:28', '05:02'],
 	['PUBEM0023', '2026-05-06', '20:31', '']
 ];
-const SETTINGS_ROWS = [
-	['Setting', 'Value'],
-	['timezone', 'Asia/Kuala_Lumpur'],
-	[],
-	['', 'An IANA timezone name.']
-];
-
-const ROSTER_SETTINGS_ROWS = [
-	['Setting', 'Value'],
-	['legal_entity', 'Public Fixture Co'],
-	['month', '2026-05']
-];
-
-const COMPANY_ID = 'company:1';
 
 function matches(row, where = {}) {
 	return Object.entries(where).every(([column, condition]) => {
@@ -132,10 +120,11 @@ function matches(row, where = {}) {
 		if ('eq' in condition) return String(row[column]) === String(condition.eq);
 		if ('in' in condition) return condition.in.map(String).includes(String(row[column]));
 		if ('isNull' in condition) return (row[column] == null) === condition.isNull;
-		if ('gte' in condition || 'lte' in condition)
+		if ('gte' in condition || 'lte' in condition || 'lt' in condition)
 			return (
 				(!('gte' in condition) || String(row[column]) >= String(condition.gte)) &&
-				(!('lte' in condition) || String(row[column]) <= String(condition.lte))
+				(!('lte' in condition) || String(row[column]) <= String(condition.lte)) &&
+				(!('lt' in condition) || String(row[column]) < String(condition.lt))
 			);
 		if ('isNotNull' in condition)
 			return condition.isNotNull ? row[column] != null : row[column] == null;
@@ -188,85 +177,43 @@ function employments() {
 	}));
 }
 
-function rosterApi(overrides = {}) {
+const shift = (id, code, variant) => ({
+	id,
+	code,
+	company_id: COMPANY_ID,
+	variant,
+	effective_range: { start: '2020-01-01', end: null }
+});
+
+function api(overrides = {}) {
 	return stubApi({
 		companies: companies(),
-		payroll_runs: overrides.payrollRuns ?? [],
-		// The lock is the payslip's, so a paid window is a window whose *people* have been paid.
-		payslips: overrides.payslips ?? [],
-		jurisdiction_settings: [
-			{
-				id: 'settings:test',
-				code: 'TEST',
-				jurisdiction_code: 'TEST-JUR',
-				sealed_at: '2020-01-01T00:00:00Z',
-				voided_at: null,
-				effective_range: { start: '2020-01-01', end: null }
-			}
-		],
-		jurisdiction_holidays: (overrides.holidays ?? [{ date: '2026-05-08' }]).map((row, index) => ({
-			id: `holiday:${index}`,
-			company_id: COMPANY_ID,
-			date: row.date,
-			name: 'Fixture holiday',
-			kind: 'PUBLIC',
-			replaces: null,
-			source: null,
-			published_at: '2025-12-01T00:00:00Z'
-		})),
 		employments: employments(),
 		shift_definitions: [
-			{
-				id: 'shift:75',
-				code: '7.5AM',
-				company_id: COMPANY_ID,
-				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 },
-				effective_range: { start: '2020-01-01', end: null }
-			},
-			{
-				id: 'shift:am',
-				code: 'AM0830',
-				company_id: COMPANY_ID,
-				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
-				effective_range: { start: '2020-01-01', end: null }
-			},
-			{
-				id: 'shift:pm',
-				code: 'PM2030',
-				company_id: COMPANY_ID,
-				variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 },
-				effective_range: { start: '2020-01-01', end: null }
-			},
-			{
-				id: 'shift:rest',
-				code: 'REST',
-				company_id: COMPANY_ID,
-				variant: { kind: 'REST' },
-				effective_range: { start: '2020-01-01', end: null }
-			},
-			{
-				id: 'shift:off',
-				code: 'OFF',
-				company_id: COMPANY_ID,
-				variant: { kind: 'OFF' },
-				effective_range: { start: '2020-01-01', end: null }
-			}
+			shift('shift:75', '7.5AM', {
+				kind: 'WORK',
+				start_time: '08:30',
+				end_time: '17:00',
+				break_minutes: 60
+			}),
+			shift('shift:am', 'AM0830', {
+				kind: 'WORK',
+				start_time: '08:30',
+				end_time: '17:30',
+				break_minutes: 60
+			}),
+			shift('shift:pm', 'PM2030', {
+				kind: 'WORK',
+				start_time: '20:30',
+				end_time: '05:30',
+				break_minutes: 60
+			}),
+			shift('shift:rest', 'REST', { kind: 'REST' }),
+			shift('shift:off', 'OFF', { kind: 'OFF' })
 		],
 		work_days: overrides.existingDays ?? [],
 		rosters: overrides.rosters ?? [],
-		// The whole-workbook case runs the attendance arm too, which reads approved leave.
 		leave_entries: overrides.leaveEntries ?? []
-	});
-}
-
-function attendanceApi(overrides = {}) {
-	return stubApi({
-		companies: companies(),
-		employments: employments(),
-		work_days: overrides.existingDays ?? [],
-		payroll_runs: overrides.payrollRuns ?? [],
-		payslips: overrides.payslips ?? [],
-		leave_entries: overrides.leaveRequests ?? []
 	});
 }
 
@@ -295,381 +242,401 @@ const program = Effect.gen(function* () {
 	);
 
 	const verification = Effect.gen(function* () {
-		const { attendanceImportPayload, rosterImportPayload, schedulingImportPayload } =
-			yield* tryPromise(() =>
-				vite.ssrLoadModule('/src/collections/work_days/lib/import-workbook.ts')
-			);
-		const { workbookGrids, csvGrid } = yield* tryPromise(() =>
+		const { schedulingImportPayload } = yield* tryPromise(() =>
+			vite.ssrLoadModule('/src/collections/work_days/lib/import-workbook.ts')
+		);
+		const { workbookGrids } = yield* tryPromise(() =>
 			vite.ssrLoadModule('/src/lib/workbook-rows.ts')
 		);
 		const workDayPipeline = (yield* tryPromise(() =>
 			vite.ssrLoadModule('/src/collections/work_days/+pipelines.ts')
 		)).default;
 
-		const rosterGrids = (rows) =>
-			gridsOf([
-				['Read me first', README],
-				['Settings', ROSTER_SETTINGS_ROWS],
-				['Roster', [ROSTER_HEADERS, ...rows]]
-			]).pipe(Effect.map(workbookGrids));
-		const timeEntryGrids = (rows, headers = TIME_ENTRY_HEADERS) =>
-			gridsOf([
-				['Read me first', README],
-				['Settings', SETTINGS_ROWS],
-				['Time entries', [headers, ...rows]]
-			]).pipe(Effect.map(workbookGrids));
-
-		// ── The roster workbook, from bytes to written rows ────────────────────────────────────────────
-		const rosterPayload = rosterImportPayload(yield* rosterGrids(ROSTER_ROWS));
-		assert.equal(
-			rosterPayload.sheet,
-			'ROSTER',
-			'the arm is tagged, not inferred from which fields are set'
-		);
-		assert.equal(rosterPayload.legal_entity, 'Public Fixture Co');
-		assert.equal(rosterPayload.month, '2026-05');
-		assert.equal(rosterPayload.rows.length, 8, 'blank assignment rows are omitted');
-		assert.deepEqual(
-			rosterPayload.rows[0],
-			{
-				employee_number: 'PUBEM0002',
-				work_date: '2026-05-01',
-				shift_code: '7.5AM',
-				assignment_code: undefined
-			},
-			'a row naming a shift reads as a working day on that shift'
-		);
-		assert.deepEqual(
-			rosterPayload.rows[2],
-			{
-				employee_number: 'PUBEM0002',
-				work_date: '2026-05-03',
-				shift_code: 'REST',
-				assignment_code: undefined
-			},
-			'REST is a real roster-code variant'
-		);
-
-		const rosterWrite = rosterApi();
-		const written = yield* runHandler(
-			workDayPipeline.import.handler({ input: rosterPayload }, rosterWrite)
-		);
-		assert.equal(written.length, 8, 'every filled roster cell becomes one person-day');
-		// The sheet states a roster of record: one per person-cycle it touches, every day stamped.
-		const rosters = rosterWrite.mutated.rosters ?? [];
-		assert.ok(rosters.length >= 1, 'the import created a roster of record');
-		assert.ok(
-			rosters.every((row) => row.origin === 'IMPORT' && row.employment_id && row.period),
-			'a created roster names its employment, cycle and provenance'
-		);
-		assert.ok(
-			rosters.every((row) => row.id === undefined),
-			'a roster the import creates is a create: the runtime owns its id'
-		);
-		assert.deepEqual(
-			written.map((row) => row.shift_definition_id),
-			[
-				'shift:75',
-				'shift:75',
-				'shift:rest',
-				'shift:75',
-				'shift:75',
-				'shift:am',
-				'shift:pm',
-				'shift:off'
-			],
-			'every persisted person-day references a real WORK/REST/OFF roster code'
-		);
-		assert.deepEqual(
-			written.at(-1),
-			{
-				employment_id: 'employment:23',
-				work_date: '2026-05-06',
-				shift_definition_id: 'shift:off',
-				assignment_code: null,
-				planned_origin: 'IMPORT'
-			},
-			'OFF remains explicit and its meaning comes from the referenced code variant'
-		);
-		assert.ok(
-			written.every((row) => row.planned_origin === 'IMPORT'),
-			'a workbook row is IMPORT provenance, not the MANUAL the board writes'
-		);
-		assert.ok(
-			written.every(
-				(row) => !Object.hasOwn(row, 'worked_intervals') && !Object.hasOwn(row, 'break_minutes')
-			),
-			'the roster arm writes the plan and never touches the clock'
-		);
-
-		const unobservedPh = yield* refusal(() =>
-			Effect.gen(function* () {
-				const grids = yield* rosterGrids([
-					['PUBEM0002', '2026-05-01', '7.5AM'],
-					['PUBEM0023', '2026-05-08', 'PH']
-				]);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids) },
-						rosterApi({ holidays: [] })
-					)
-				);
-			})
-		);
-		assert.match(unobservedPh, /These PH rows are not published holidays for Public Fixture Co/);
-		assert.match(unobservedPh, /PUBEM0023 on 2026-05-08/);
-
-		const observedPh = yield* runHandler(
-			workDayPipeline.import.handler(
-				{
-					input: rosterImportPayload(
-						yield* rosterGrids([
-							['PUBEM0002', '2026-05-01', '7.5AM'],
-							['PUBEM0023', '2026-05-08', 'PH']
-						])
-					)
-				},
-				rosterApi()
-			)
-		);
-		assert.equal(observedPh.length, 1, 'an observed PH token is not stored per person');
-		assert.equal(observedPh[0].work_date, '2026-05-01');
-
-		// ── Every column the long-form sheet declares reaches the row that is written ──────────────────
-		const annotatedWorkbook = yield* gridsOf([
+		/** The workbook as bytes, then as the browser's payload. */
+		const payloadOf = (sheets) =>
+			gridsOf(sheets).pipe(Effect.map((wb) => schedulingImportPayload(workbookGrids(wb))));
+		const workbook = (roster, attendance, settings = SETTINGS) => [
 			['Read me first', README],
-			['Settings', ROSTER_SETTINGS_ROWS],
-			[
-				'Roster',
-				[
-					[...ROSTER_HEADERS, 'assignment_code'],
-					['PUBEM0002', '2026-05-04', '7.5AM', 'AMRES']
-				]
-			]
+			['Settings', settings],
+			...(roster === undefined ? [] : [['Roster', [ROSTER_HEADERS, ...roster]]]),
+			...(attendance === undefined ? [] : [['Time entries', [TIME_ENTRY_HEADERS, ...attendance]]])
+		];
+		const imported = (payload, stub = api()) =>
+			runHandler(workDayPipeline.import.handler({ input: payload }, stub)).pipe(
+				Effect.map((rows) => ({ rows, stub }))
+			);
+		/** The workbook straight through to the handler, as one effect a refusal can catch. */
+		const importOf = (sheets, stub = api()) =>
+			payloadOf(sheets).pipe(Effect.flatMap((payload) => imported(payload, stub)));
+
+		// ── The whole workbook, from bytes to written rows ─────────────────────────────────────────
+		const payload = yield* payloadOf(workbook(ROSTER_ROWS, TIME_ENTRY_ROWS));
+		assert.deepEqual(Object.keys(payload).toSorted(), [
+			'attendance',
+			'legal_entity',
+			'month',
+			'roster',
+			'timezone'
 		]);
-		const annotated = yield* runHandler(
-			workDayPipeline.import.handler(
-				{
-					input: rosterImportPayload(workbookGrids(annotatedWorkbook))
-				},
-				rosterApi()
-			)
+		assert.equal(payload.legal_entity, 'Public Fixture Co');
+		assert.equal(payload.month, MONTH);
+		assert.equal(payload.timezone, 'Asia/Kuala_Lumpur');
+		assert.equal(payload.roster.length, 62, 'every filled roster cell is one row');
+		assert.deepEqual(payload.roster[0], {
+			employee_number: 'PUBEM0002',
+			work_date: '2026-05-01',
+			shift_code: '7.5AM'
+		});
+		assert.equal(payload.attendance.length, 5);
+		assert.deepEqual(
+			JSON.parse(JSON.stringify(payload.attendance[4])),
+			{ employee_number: 'PUBEM0023', work_date: '2026-05-06', clock_in: '20:31' },
+			'an absent close travels as absence'
 		);
-		assert.deepEqual(annotated, [
+
+		const whole = yield* imported(payload);
+		assert.equal(whole.rows.length, 62, 'one row per person-day the file names');
+		assert.ok(
+			whole.rows.every((row) => row.id === undefined),
+			'nothing stored yet, so every row is a create'
+		);
+		assert.ok(
+			whole.rows.every((row) => 'shift_definition_id' in row && 'worked_intervals' in row),
+			'both halves are stated on every row'
+		);
+		const may4 = whole.rows.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04'
+		);
+		assert.deepEqual(
+			may4,
 			{
-				employment_id: 'employment:2',
-				work_date: '2026-05-04',
 				shift_definition_id: 'shift:75',
-				assignment_code: 'AMRES',
-				planned_origin: 'IMPORT'
-			}
-		]);
+				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
+				employment_id: 'employment:2',
+				work_date: '2026-05-04'
+			},
+			'a punch is converted in the Settings timezone (KL is UTC+8)'
+		);
+		const overnight = whole.rows.find(
+			(row) => row.employment_id === 'employment:23' && row.work_date === '2026-05-04'
+		);
+		assert.equal(
+			overnight.worked_intervals[0].end,
+			'2026-05-04T21:15:00.000Z',
+			'a close at or before the open is the next local day (05:15 KL on the 5th is 21:15Z on the 4th)'
+		);
+		const open = whole.rows.find(
+			(row) => row.employment_id === 'employment:23' && row.work_date === '2026-05-06'
+		);
+		assert.equal(open.worked_intervals[0].end, null, 'an open clock stays open');
+		const planOnly = whole.rows.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-01'
+		);
+		assert.equal(planOnly.worked_intervals, null, 'a day only the roster names has no punch');
+		assert.ok(
+			!whole.rows.some(
+				(row) =>
+					'break_minutes' in row ||
+					'assignment_code' in row ||
+					'planned_origin' in row ||
+					'holiday_id' in row
+			),
+			'only the five columns exist'
+		);
+		assert.deepEqual(
+			(whole.stub.mutated.rosters ?? [])
+				.map((row) => `${row.employment_id} ${row.period}`)
+				.toSorted(),
+			['employment:2 2026-05', 'employment:23 2026-05'],
+			'one roster of record per person the Roster sheet names, for the month'
+		);
+		assert.ok(
+			(whole.stub.mutated.rosters ?? []).every(
+				(row) => row.id === undefined && Object.keys(row).length === 2
+			),
+			'a roster is employment and month, nothing else'
+		);
 
-		// ── One bad row refuses the whole file, and says which row ─────────────────────────────────────
-		const unknownEmployee = yield* refusal(() =>
-			Effect.gen(function* () {
-				const grids = yield* rosterGrids([...ROSTER_ROWS, ['PUBEM9999', '2026-05-06', '7.5AM']]);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler({ input: rosterImportPayload(grids) }, rosterApi())
-				);
-			})
-		);
-		assert.match(
-			unknownEmployee,
-			/No approved employment contract covers PUBEM9999 on 2026-05-06 in this legal entity/
-		);
-		assert.match(unknownEmployee, /PUBEM9999/);
-		assert.doesNotMatch(
-			unknownEmployee,
-			/PUBEM0002/,
-			'only the offending number is named — the other rows are not at fault'
-		);
-
-		const outsideMonth = yield* refusal(() =>
-			Effect.gen(function* () {
-				const grids = yield* rosterGrids([...ROSTER_ROWS, ['PUBEM0002', '2026-06-01', '7.5AM']]);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler({ input: rosterImportPayload(grids) }, rosterApi())
-				);
-			})
-		);
-		assert.match(outsideMonth, /These rows do not belong to 2026-05/);
-		assert.match(outsideMonth, /• PUBEM0002 on 2026-06-01/);
-
-		const paidLock = yield* refusal(() =>
-			runHandlerCall(() =>
-				workDayPipeline.import.handler(
-					{ input: rosterPayload },
-					rosterApi({
-						payrollRuns: [
-							{
-								id: 'run:2026-05',
-								company_id: COMPANY_ID,
-								period: '2026-05',
-								attendance_from: '2026-04-21',
-								attendance_to: '2026-05-20'
-							}
-						],
-						// Both people in the roster have been paid for that window, so both are locked.
-						payslips: employments().map((employment) => ({
-							payroll_run_id: 'run:2026-05',
-							employment_id: employment.id,
-							paid_at: '2026-05-31'
-						}))
-					})
+		// ── A roster is whole ──────────────────────────────────────────────────────────────────────
+		const gap = yield* refusal(() =>
+			importOf(
+				workbook(
+					ROSTER_ROWS.filter((row) => !(row[0] === 'PUBEM0023' && row[1] === '2026-05-13')),
+					TIME_ENTRY_ROWS
 				)
 			)
 		);
-		assert.match(paidLock, /inside paid payroll 2026-05/);
-		assert.match(paidLock, /Importing roster/);
+		assert.match(gap, /A roster covers every day of the month a person is employed/);
+		assert.match(gap, /PUBEM0023: 2026-05-13/);
+		assert.doesNotMatch(gap, /PUBEM0002/, 'only the person with the gap is named');
 
-		const draftRunStillImports = yield* runHandler(
-			workDayPipeline.import.handler(
-				{
-					input: rosterPayload
-				},
-				rosterApi({
-					payrollRuns: [
+		// ── PH is not a code; unknown codes and people; outside the month; duplicates ──────────────
+		const ph = yield* refusal(() =>
+			importOf(workbook(wholeMonth('PUBEM0002', '7.5AM', { '2026-05-01': 'PH' }), undefined))
+		);
+		assert.match(ph, /PH is not a roster code/);
+		assert.match(ph, /PUBEM0002 on 2026-05-01/);
+		const unknownCode = yield* refusal(() =>
+			importOf(workbook(wholeMonth('PUBEM0002', '7.5AM', { '2026-05-04': 'NIGHT' }), undefined))
+		);
+		assert.match(unknownCode, /roster codes are not defined/);
+		assert.match(unknownCode, /NIGHT/);
+		const unknownEmployee = yield* refusal(() =>
+			importOf(workbook([...ROSTER_ROWS, ['PUBEM9999', '2026-05-06', '7.5AM']], undefined))
+		);
+		assert.match(unknownEmployee, /No approved employment contract covers PUBEM9999 on 2026-05-06/);
+		assert.doesNotMatch(unknownEmployee, /PUBEM0002/);
+		const outsideMonth = yield* refusal(() =>
+			importOf(workbook([...ROSTER_ROWS, ['PUBEM0002', '2026-06-01', '7.5AM']], undefined))
+		);
+		assert.match(outsideMonth, /do not belong to 2026-05/);
+		assert.match(outsideMonth, /PUBEM0002 on 2026-06-01/);
+		const duplicated = yield* refusal(() =>
+			importOf(workbook([...ROSTER_ROWS, ['PUBEM0002', '2026-05-06', 'REST']], undefined))
+		);
+		assert.match(duplicated, /repeats the same employee and day/);
+
+		// ── Attendance without a timezone, on a leave day ──────────────────────────────────────────
+		const noZone = yield* refusal(() =>
+			importOf(workbook(undefined, TIME_ENTRY_ROWS, SETTINGS_NO_TIMEZONE))
+		);
+		assert.match(noZone, /does not say which timezone/);
+		const onLeave = yield* refusal(() =>
+			importOf(
+				workbook(undefined, TIME_ENTRY_ROWS),
+				api({
+					leaveEntries: [
 						{
-							id: 'run:2026-05',
-							company_id: COMPANY_ID,
-							period: '2026-05',
-							attendance_from: '2026-04-21',
-							attendance_to: '2026-05-20'
+							employment_id: 'employment:2',
+							kind: 'TIME_OFF',
+							approval_id: null,
+							from_date: '2026-05-04',
+							to_date: '2026-05-04',
+							half_day_start: false,
+							half_day_end: false
 						}
-					],
-					// A run with no payment behind it locks nothing, whatever it is called.
-					payslips: []
+					]
 				})
 			)
 		);
-		assert.equal(draftRunStillImports.length, 8, 'a draft payroll window does not lock the roster');
+		assert.match(onLeave, /PUBEM0002 on 2026-05-04 is covered by approved leave/);
 
-		yield* writeWorkbookFile(VALID_ROSTER_FIXTURE, [
-			['Read me first', README],
-			['Settings', ROSTER_SETTINGS_ROWS],
-			['Roster', [ROSTER_HEADERS, ...ROSTER_ROWS]]
-		]);
-		yield* writeWorkbookFile(INVALID_ROSTER_FIXTURE, [
-			['Read me first', README],
-			['Settings', ROSTER_SETTINGS_ROWS],
-			['Roster', [ROSTER_HEADERS, ['PUBEM0002', '04/05/2026', '7.5AM']]]
-		]);
-		const fixturePayload = rosterImportPayload(
-			workbookGrids(yield* workbookFromFile(VALID_ROSTER_FIXTURE))
-		);
-		const fixtureWritten = yield* runHandler(
-			workDayPipeline.import.handler({ input: fixturePayload }, rosterApi())
-		);
-		assert.equal(fixtureWritten.length, 8, 'the committed .xlsx fixture is a valid roster upload');
-		const invalidFixture = yield* refusal(() =>
-			tryMap(workbookFromFile(INVALID_ROSTER_FIXTURE), (workbook) =>
-				rosterImportPayload(workbookGrids(workbook))
-			)
-		);
-		assert.match(invalidFixture, /work_date is "04\/05\/2026"/);
-
-		// The file is the state of the period: a day it names is overwritten as an id-bearing update,
-		// a planned-only day it omits is deleted, and a day it omits that carries attendance keeps the
-		// clock and loses the plan.
-		const periodApi = rosterApi({
-			existingDays: [
-				{
-					id: 'day:1',
-					employment_id: 'employment:2',
-					work_date: '2026-05-04',
-					shift_definition_id: 'shift:75',
-					worked_intervals: null
-				},
-				{
-					id: 'day:stale-plan',
-					employment_id: 'employment:2',
-					work_date: '2026-05-20',
-					shift_definition_id: 'shift:75',
-					worked_intervals: null
-				},
-				{
-					id: 'day:stale-attended',
-					employment_id: 'employment:23',
-					work_date: '2026-05-21',
-					shift_definition_id: 'shift:75',
-					worked_intervals: [{ start: '2026-05-21T00:30:00.000Z', end: '2026-05-21T09:30:00.000Z' }]
-				}
-			]
-		});
-		const rosterOverride = yield* runHandler(
-			Effect.gen(function* () {
-				const grids = yield* rosterGrids(ROSTER_ROWS);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler({ input: rosterImportPayload(grids) }, periodApi)
-				);
+		// ── The set: what the file names is written, what it does not is removed ──────────────────
+		const existing = [
+			{
+				id: 'day:1',
+				employment_id: 'employment:2',
+				work_date: '2026-05-04',
+				shift_definition_id: 'shift:am',
+				worked_intervals: null,
+				payslip_id: null
+			},
+			{
+				id: 'day:stale',
+				employment_id: 'employment:2',
+				work_date: '2026-05-20',
+				shift_definition_id: 'shift:75',
+				worked_intervals: [{ start: '2026-05-20T00:30:00.000Z', end: '2026-05-20T09:30:00.000Z' }],
+				payslip_id: null
+			}
+		];
+		const bothSheets = yield* importOf(
+			workbook(ROSTER_ROWS, TIME_ENTRY_ROWS),
+			api({
+				existingDays: existing,
+				rosters: [{ id: 'roster:2', employment_id: 'employment:2', period: MONTH }]
 			})
 		);
-		assert.equal(rosterOverride.find((row) => row.id === 'day:1')?.work_date, '2026-05-04');
+		assert.equal(
+			bothSheets.rows.find((row) => row.id === 'day:1')?.shift_definition_id,
+			'shift:75',
+			'a day the file names is overwritten as an id-bearing update'
+		);
+		assert.equal(
+			bothSheets.rows.find((row) => row.id === 'day:stale')?.shift_definition_id,
+			'shift:75',
+			'May 20 is in the roster sheet, so it is restated'
+		);
+		assert.equal(
+			bothSheets.rows.find((row) => row.id === 'day:stale')?.worked_intervals,
+			null,
+			'and its old punch is gone: the Time entries sheet does not name it'
+		);
 		assert.deepEqual(
-			periodApi.deleted.work_days,
-			['day:stale-plan'],
+			bothSheets.stub.deleted.work_days ?? [],
+			[],
+			'every stored day was named, so nothing is deleted'
+		);
+		assert.deepEqual(
+			(bothSheets.stub.mutated.rosters ?? []).map((row) => row.employment_id),
+			['employment:23'],
+			'the roster that already exists is not created twice'
+		);
+
+		// A person the file drops loses the month and the roster of record.
+		const dropped = yield* importOf(
+			workbook(wholeMonth('PUBEM0002', '7.5AM'), []),
+			api({
+				existingDays: [
+					{
+						id: 'day:23',
+						employment_id: 'employment:23',
+						work_date: '2026-05-04',
+						shift_definition_id: 'shift:am',
+						worked_intervals: null,
+						payslip_id: null
+					}
+				],
+				rosters: [{ id: 'roster:23', employment_id: 'employment:23', period: MONTH }]
+			})
+		);
+		assert.deepEqual(dropped.stub.deleted.work_days, ['day:23']);
+		assert.deepEqual(dropped.stub.deleted.rosters, ['roster:23']);
+		assert.equal(dropped.rows.length, 31);
+
+		// A Roster sheet alone replaces the plan and keeps recorded attendance; an attended day it
+		// omits keeps its punch and loses its plan.
+		const rosterOnly = yield* importOf(
+			workbook(wholeMonth('PUBEM0002', '7.5AM'), undefined),
+			api({
+				existingDays: [
+					{
+						id: 'day:attended',
+						employment_id: 'employment:23',
+						work_date: '2026-05-21',
+						shift_definition_id: 'shift:am',
+						worked_intervals: [
+							{ start: '2026-05-21T00:30:00.000Z', end: '2026-05-21T09:30:00.000Z' }
+						],
+						payslip_id: null
+					},
+					{
+						id: 'day:planned',
+						employment_id: 'employment:23',
+						work_date: '2026-05-22',
+						shift_definition_id: 'shift:am',
+						worked_intervals: null,
+						payslip_id: null
+					}
+				]
+			})
+		);
+		assert.ok(
+			rosterOnly.rows.every((row) => !('worked_intervals' in row) || row.id === 'day:attended'),
+			'the plan half only'
+		);
+		assert.deepEqual(
+			rosterOnly.rows.find((row) => row.id === 'day:attended'),
+			{
+				id: 'day:attended',
+				employment_id: 'employment:23',
+				work_date: '2026-05-21',
+				shift_definition_id: null
+			},
+			'the attended day keeps its punch and loses its plan'
+		);
+		assert.deepEqual(
+			rosterOnly.stub.deleted.work_days,
+			['day:planned'],
 			'a planned-only day the file omits goes'
 		);
-		const cleared = rosterOverride.find((row) => row.id === 'day:stale-attended');
-		assert.equal(
-			cleared?.shift_definition_id,
-			null,
-			'an attended day the file omits loses its plan'
-		);
-		assert.equal(cleared?.planned_origin, 'IMPORT');
-		assert.equal(rosterOverride.length, 9, 'eight file rows and one cleared plan');
 
-		// The one day no import may rewrite is one a payslip has consumed: the run holds it.
-		const capturedDay = yield* refusal(() =>
-			Effect.gen(function* () {
-				const grids = yield* rosterGrids(ROSTER_ROWS);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids) },
-						rosterApi({
-							existingDays: [
-								{
-									id: 'day:1',
-									employment_id: 'employment:2',
-									work_date: '2026-05-04',
-									shift_definition_id: 'shift:75',
-									worked_intervals: null,
-									payslip_id: 'payslip:1'
-								}
-							]
-						})
-					)
-				);
+		// A Time entries sheet alone touches no plan.
+		const clockOnly = yield* importOf(
+			workbook(undefined, TIME_ENTRY_ROWS),
+			api({
+				existingDays: [
+					{
+						id: 'day:plan',
+						employment_id: 'employment:2',
+						work_date: '2026-05-04',
+						shift_definition_id: 'shift:75',
+						worked_intervals: null,
+						payslip_id: null
+					}
+				]
 			})
 		);
-		assert.match(capturedDay, /already taken into account by a payroll run/);
-		assert.match(capturedDay, /• PUBEM0002 on 2026-05-04/);
-		assert.match(capturedDay, /import the period again/);
+		const clockRow = clockOnly.rows.find((row) => row.id === 'day:plan');
+		assert.ok(clockRow && !('shift_definition_id' in clockRow), 'the plan is not restated');
+		assert.equal(
+			clockOnly.stub.mutated.rosters,
+			undefined,
+			'attendance creates no roster of record'
+		);
 
-		// ── Cells the browser refuses before anything is sent ──────────────────────────────────────────
+		// ── Sealed days: restated unchanged passes, changed or omitted refuses by name ─────────────
+		const sealed = [
+			{
+				id: 'day:sealed',
+				employment_id: 'employment:2',
+				work_date: '2026-05-04',
+				shift_definition_id: 'shift:75',
+				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
+				payslip_id: 'payslip:1'
+			}
+		];
+		const restated = yield* importOf(
+			workbook(ROSTER_ROWS, TIME_ENTRY_ROWS),
+			api({ existingDays: sealed })
+		);
+		assert.ok(
+			!restated.rows.some((row) => row.id === 'day:sealed'),
+			'a sealed day restated unchanged is left untouched'
+		);
+		assert.equal(restated.rows.length, 61);
+		const changedSealed = yield* refusal(() =>
+			importOf(
+				workbook(
+					ROSTER_ROWS.map((row) =>
+						row[0] === 'PUBEM0002' && row[1] === '2026-05-04' ? [row[0], row[1], 'AM0830'] : row
+					),
+					TIME_ENTRY_ROWS
+				),
+				api({ existingDays: sealed })
+			)
+		);
+		assert.match(changedSealed, /already taken into account by a payslip/);
+		assert.match(changedSealed, /PUBEM0002 on 2026-05-04 \(the file changes it\)/);
+		const omittedSealed = yield* refusal(() =>
+			importOf(workbook(wholeMonth('PUBEM0023', 'AM0830'), []), api({ existingDays: sealed }))
+		);
+		assert.match(omittedSealed, /PUBEM0002 on 2026-05-04 \(the file leaves it out\)/);
+		const clockChangedSealed = yield* refusal(() =>
+			importOf(
+				workbook(
+					ROSTER_ROWS,
+					TIME_ENTRY_ROWS.map((row) =>
+						row[0] === 'PUBEM0002' && row[1] === '2026-05-04'
+							? [row[0], row[1], '08:16', '18:10']
+							: row
+					)
+				),
+				api({ existingDays: sealed })
+			)
+		);
+		assert.match(clockChangedSealed, /PUBEM0002 on 2026-05-04 \(the file changes it\)/);
+
+		// ── Cells the browser refuses before anything is sent ──────────────────────────────────────
 		const badCells = yield* refusal(() =>
-			tryMap(
-				rosterGrids([
-					['PUBEM0002', '04/05/2026', '7.5AM'],
-					['PUBEM0023', '', 'PM2030'],
-					['', '2026-05-06', '']
-				]),
-				(grids) => rosterImportPayload(grids)
+			payloadOf(
+				workbook(
+					[
+						['PUBEM0002', '04/05/2026', '7.5AM'],
+						['PUBEM0023', '', 'PM2030'],
+						['', '2026-05-06', '']
+					],
+					undefined
+				)
 			)
 		);
 		assert.match(badCells, /Nothing was written/);
 		assert.match(badCells, /Row 2 \(PUBEM0002 on 04\/05\/2026\): work_date is "04\/05\/2026"/);
 		assert.match(badCells, /Row 3 \(PUBEM0023\): work_date is empty/);
 		assert.match(badCells, /Row 4 \(2026-05-06\): employee_number is empty/);
-		assert.doesNotMatch(
-			badCells,
-			/shift_code/,
-			'the third row leaves shift_code blank, which is an absent assignment — nothing to complain about'
-		);
-
-		const renamedColumns = workbookGrids(
-			yield* gridsOf([
+		const missingColumn = yield* refusal(() =>
+			payloadOf([
+				['Settings', SETTINGS],
 				[
 					'Roster',
 					[
@@ -679,428 +646,68 @@ const program = Effect.gen(function* () {
 				]
 			])
 		);
-		const missingColumn = yield* refusal(() => rosterImportPayload(renamedColumns));
 		assert.match(missingColumn, /missing column the import needs/);
 		assert.match(missingColumn, /No "shift_code" column/);
-
 		const wrongSheet = yield* refusal(() =>
-			tryMap(
-				gridsOf([
-					['Read me first', README],
-					['Sheet1', [ROSTER_HEADERS, ...ROSTER_ROWS]]
-				]),
-				(workbook) => rosterImportPayload(workbookGrids(workbook))
-			)
-		);
-		assert.match(wrongSheet, /has no "Roster" sheet/);
-		assert.match(wrongSheet, /"Read me first", "Sheet1"/);
-
-		// ── A CSV is one sheet under any name ──────────────────────────────────────────────────────────
-		const csvPayload = rosterImportPayload(
-			new Map([
-				[
-					'roster.csv',
-					csvGrid(
-						`${ROSTER_HEADERS.join(',')}\n` +
-							'PUBEM0002,2026-05-04,7.5AM\n' +
-							'PUBEM0002,2026-05-05,\n'
-					)
-				]
+			payloadOf([
+				['Read me first', README],
+				['Settings', SETTINGS],
+				['Sheet1', [ROSTER_HEADERS, ...ROSTER_ROWS]]
 			])
 		);
-		assert.deepEqual(csvPayload.rows, [
-			{
-				employee_number: 'PUBEM0002',
-				work_date: '2026-05-04',
-				shift_code: '7.5AM',
-				assignment_code: undefined
-			}
-		]);
+		assert.match(wrongSheet, /has neither a "Roster" nor a "Time entries" sheet/);
+		const noEntity = yield* refusal(() =>
+			payloadOf(
+				workbook(ROSTER_ROWS, undefined, [
+					['Setting', 'Value'],
+					['month', MONTH]
+				])
+			)
+		);
+		assert.match(noEntity, /does not say which legal entity/);
+		const empty = yield* refusal(() => payloadOf(workbook([], [])));
+		assert.match(empty, /nothing to import/);
 
-		// ── One workbook, both sheets: the whole state of the period ──────────────────────────────────
-		const wholeGrids = yield* gridsOf([
+		// ── The issued month grids: a person down the side, a day across the top ──────────────────
+		const gridRow = (employee, cells) => [employee, ...MAY_DAYS.map((day) => cells[day] ?? '')];
+		const rosterCells = (employee, code) =>
+			Object.fromEntries(
+				wholeMonth(employee, code).map(([, date, shift]) => [String(Number(date.slice(8))), shift])
+			);
+		const gridPayload = yield* payloadOf([
 			['Read me first', README],
-			['Settings', [...ROSTER_SETTINGS_ROWS, ['timezone', 'Asia/Kuala_Lumpur']]],
-			['Roster', [ROSTER_HEADERS, ...ROSTER_ROWS]],
-			['Time entries', [TIME_ENTRY_HEADERS, ...TIME_ENTRY_ROWS]]
-		]).pipe(Effect.map(workbookGrids));
-		const wholePayload = schedulingImportPayload(wholeGrids);
-		assert.equal(wholePayload.sheet, 'WORKBOOK', 'both sheets present load as one state');
-		assert.equal(wholePayload.roster.rows.length, 8);
-		assert.equal(wholePayload.attendance.rows.length, 5);
-		const wholeApi = rosterApi({
-			existingDays: [
-				{
-					id: 'day:stale-both',
-					employment_id: 'employment:2',
-					work_date: '2026-05-20',
-					shift_definition_id: 'shift:75',
-					worked_intervals: [{ start: '2026-05-20T00:30:00.000Z', end: '2026-05-20T09:30:00.000Z' }]
-				}
-			]
-		});
-		const whole = yield* runHandler(
-			runHandlerCall(() => workDayPipeline.import.handler({ input: wholePayload }, wholeApi))
-		);
-		const plannedAndClocked = whole.find(
-			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04'
-		);
-		assert.equal(
-			plannedAndClocked.shift_definition_id,
-			'shift:75',
-			'the roster half rides the row'
-		);
-		assert.equal(plannedAndClocked.worked_intervals.length, 1, 'the clock half rides the same row');
-		const plannedOnly = whole.find(
-			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-01'
-		);
-		assert.equal(plannedOnly.worked_intervals, null, 'a day only the roster names has no clock');
-		assert.equal(
-			whole.filter((row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04')
-				.length,
-			1,
-			'one person-day is one row, never one per sheet'
-		);
-		assert.deepEqual(
-			wholeApi.deleted.work_days,
-			['day:stale-both'],
-			'a stored day neither sheet names goes, plan and clock alike'
-		);
-		assert.equal(
-			schedulingImportPayload(yield* rosterGrids(ROSTER_ROWS)).sheet,
-			'ROSTER',
-			'a lone Roster sheet still loads its own half'
-		);
-
-		// ── The time-entry workbook ────────────────────────────────────────────────────────────────────
-		const timePayload = attendanceImportPayload(yield* timeEntryGrids(TIME_ENTRY_ROWS));
-		assert.equal(timePayload.sheet, 'ATTENDANCE');
-		assert.equal(
-			timePayload.timezone,
-			'Asia/Kuala_Lumpur',
-			'the zone comes from the Settings sheet, never from the browser'
-		);
-		assert.equal(timePayload.rows.length, 5);
-		assert.deepEqual(
-			timePayload.rows[1],
-			{
-				employee_number: 'PUBEM0002',
-				work_date: '2026-05-05',
-				clock_in: '08:02',
-				clock_out: '17:05',
-				break_minutes: undefined
-			},
-			'a four-column row reads as punches alone — everything else the pipeline derives'
-		);
-		assert.equal(timePayload.rows[4].clock_out, undefined, 'an unclosed punch stays unclosed');
-
-		const landed = yield* runHandler(
-			workDayPipeline.import.handler({ input: timePayload }, attendanceApi())
-		);
-		assert.equal(landed.length, 5);
-		assert.deepEqual(
-			landed[0],
-			{
-				employment_id: 'employment:2',
-				work_date: '2026-05-04',
-				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
-				break_minutes: 0
-			},
-			'both clocks present close the entry, and a break nobody wrote lands as none'
-		);
-		assert.deepEqual(
-			landed[2],
-			{
-				employment_id: 'employment:23',
-				work_date: '2026-05-04',
-				worked_intervals: [{ start: '2026-05-04T12:30:00.000Z', end: '2026-05-04T21:15:00.000Z' }],
-				break_minutes: 0
-			},
-			'a night shift closes on the next calendar day, eight hours behind UTC'
-		);
-		assert.equal(
-			landed[4].worked_intervals[0].end,
-			null,
-			'a missing close remains an open interval'
-		);
-
-		// ── THE UPSERT: a punch on a rostered day updates that day, it does not make a second one ──
-		//
-		// This is the whole point of the merge. `unique(employment_id, work_date)` means a person-day
-		// is one row, so attendance landing on a day the roster import already wrote is an UPDATE row
-		// carrying the stored id. New rows omit id; both remain in one ordered mutation batch.
-		const rosteredDays = [
-			{
-				id: 'day:2-05-04',
-				employment_id: 'employment:2',
-				work_date: '2026-05-04',
-				shift_definition_id: 'shift:75',
-				worked_intervals: null
-			},
-			{
-				id: 'day:2-05-05',
-				employment_id: 'employment:2',
-				work_date: '2026-05-05',
-				shift_definition_id: 'shift:75',
-				worked_intervals: null
-			}
-		];
-		const onRostered = yield* runHandler(
-			workDayPipeline.import.handler(
-				{ input: timePayload },
-				attendanceApi({ existingDays: rosteredDays })
-			)
-		);
-		assert.equal(
-			onRostered.length,
-			5,
-			'the import returns its complete ordered create/update mutation batch'
-		);
-		assert.deepEqual(
-			onRostered.filter((values) => values.id != null).map((values) => values.id),
-			['day:2-05-04', 'day:2-05-05'],
-			'the two rostered days assert their stored ids rather than creating duplicates'
-		);
-		assert.deepEqual(
-			onRostered[0],
-			{
-				id: 'day:2-05-04',
-				employment_id: 'employment:2',
-				work_date: '2026-05-04',
-				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
-				break_minutes: 0
-			},
-			'the attendance arm writes the clock and never touches the plan it landed on'
-		);
-
-		// The file is the clock of record for the period: a reviewed-empty day it names comes back
-		// carrying the new intervals, a clock-only day it omits is deleted, and a rostered day it
-		// omits keeps its plan and loses its clock.
-		const clockPeriodApi = attendanceApi({
-			existingDays: [
-				{
-					id: 'day:2-05-04',
-					employment_id: 'employment:2',
-					work_date: '2026-05-04',
-					shift_definition_id: null,
-					worked_intervals: []
-				},
-				{
-					id: 'day:stale-clock',
-					employment_id: 'employment:2',
-					work_date: '2026-05-22',
-					shift_definition_id: null,
-					worked_intervals: [{ start: '2026-05-22T00:30:00.000Z', end: '2026-05-22T09:30:00.000Z' }]
-				},
-				{
-					id: 'day:stale-planned',
-					employment_id: 'employment:23',
-					work_date: '2026-05-23',
-					shift_definition_id: 'shift:75',
-					worked_intervals: [{ start: '2026-05-23T00:30:00.000Z', end: '2026-05-23T09:30:00.000Z' }]
-				}
-			]
-		});
-		const attendanceOverride = yield* runHandler(
-			workDayPipeline.import.handler({ input: timePayload }, clockPeriodApi)
-		);
-		const overwritten = attendanceOverride.find((row) => row.id === 'day:2-05-04');
-		assert.equal(overwritten?.worked_intervals?.length, 1);
-		assert.deepEqual(clockPeriodApi.deleted.work_days, ['day:stale-clock']);
-		const unclocked = attendanceOverride.find((row) => row.id === 'day:stale-planned');
-		assert.equal(
-			unclocked?.worked_intervals,
-			null,
-			'a rostered day the file omits loses its clock'
-		);
-		assert.equal(unclocked?.break_minutes, 0);
-
-		const capturedAttendance = yield* refusal(() =>
-			runHandlerCall(() =>
-				workDayPipeline.import.handler(
-					{ input: timePayload },
-					attendanceApi({
-						existingDays: [
-							{
-								id: 'day:2-05-04',
-								employment_id: 'employment:2',
-								work_date: '2026-05-04',
-								shift_definition_id: null,
-								worked_intervals: [],
-								payslip_id: 'payslip:1'
-							}
-						]
-					})
-				)
-			)
-		);
-		assert.match(capturedAttendance, /already taken into account by a payroll run/);
-		assert.match(capturedAttendance, /• PUBEM0002 on 2026-05-04/);
-
-		const rosterOntoAttendance = yield* runHandler(
-			workDayPipeline.import.handler(
-				{ input: rosterPayload },
-				rosterApi({
-					existingDays: [
-						{
-							id: 'day:attendance-first',
-							employment_id: 'employment:2',
-							work_date: '2026-05-01',
-							shift_definition_id: null,
-							worked_intervals: [
-								{ start: '2026-05-01T00:16:00.000Z', end: '2026-05-01T09:10:00.000Z' }
-							]
-						}
-					]
-				})
-			)
-		);
-		assert.equal(
-			rosterOntoAttendance.length,
-			8,
-			'a day that exists only because attendance arrived first is not a roster conflict — the ' +
-				'plan lands on it as one id-bearing update beside seven creates'
-		);
-		assert.equal(rosterOntoAttendance[0].id, 'day:attendance-first');
-
-		const unknownPuncher = yield* refusal(() =>
-			Effect.gen(function* () {
-				const grids = yield* timeEntryGrids([
-					...TIME_ENTRY_ROWS,
-					['PUBEM9999', '2026-05-04', '08:00', '17:00']
-				]);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler({ input: attendanceImportPayload(grids) }, attendanceApi())
-				);
-			})
-		);
-		assert.match(unknownPuncher, /No approved employment contract covers PUBEM9999 on 2026-05-04/);
-
-		const noTimezone = yield* refusal(() =>
-			tryMap(gridsOf([['Time entries', [TIME_ENTRY_HEADERS, ...TIME_ENTRY_ROWS]]]), (workbook) =>
-				attendanceImportPayload(workbookGrids(workbook))
-			)
-		);
-		assert.match(noTimezone, /does not say which timezone/);
-
-		const badClock = yield* refusal(() =>
-			tryMap(
-				timeEntryGrids([
-					['PUBEM0002', '2026-05-04', '8.30am', '17:00'],
-					['PUBEM0023', '05/05/2026', '20:30', '05:15']
-				]),
-				attendanceImportPayload
-			)
-		);
-		assert.match(badClock, /clock_in is "8\.30am", expected a local time as HH:mm/);
-		assert.match(badClock, /work_date is "05\/05\/2026", expected a date as YYYY-MM-DD/);
-
-		// ── The issued month-grid templates (one entity × one month) ──────────────────────────────────
-		const MAY_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1));
-		const gridRow = (employee, assignments) => {
-			const cells = Array.from({ length: 31 }, () => '');
-			for (const [day, value] of Object.entries(assignments)) cells[Number(day) - 1] = value;
-			return [employee, ...cells];
-		};
-		const ROSTER_GRID_SETTINGS = [
-			['Setting', 'Value'],
-			['legal_entity', 'Public Fixture Co'],
-			['month', '2026-05']
-		];
-		const TIME_GRID_SETTINGS = [
-			['Setting', 'Value'],
-			['legal_entity', 'Public Fixture Co'],
-			['month', '2026-05'],
-			['timezone', 'Asia/Kuala_Lumpur']
-		];
-
-		const rosterGridPayload = rosterImportPayload(
-			workbookGrids(
-				yield* gridsOf([
-					['Read me first', [['Roster import — one legal entity, one month']]],
-					['Settings', ROSTER_GRID_SETTINGS],
-					[
-						'Roster',
-						[
-							['employee_number', ...MAY_DAYS],
-							gridRow('PUBEM0002', { 1: '7.5AM', 2: '7.5AM', 3: 'REST', 4: '7.5AM', 5: '7.5AM' }),
-							gridRow('PUBEM0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' })
-						]
-					]
-				])
-			)
-		);
-		assert.equal(rosterGridPayload.legal_entity, 'Public Fixture Co');
-		assert.equal(rosterGridPayload.month, '2026-05');
-		assert.equal(rosterGridPayload.rows.length, 8);
-		assert.deepEqual(
-			rosterGridPayload.rows.map(
-				(row) => `${row.employee_number} ${row.work_date} ${row.shift_code}`
-			),
+			['Settings', SETTINGS],
 			[
-				'PUBEM0002 2026-05-01 7.5AM',
-				'PUBEM0002 2026-05-02 7.5AM',
-				'PUBEM0002 2026-05-03 REST',
-				'PUBEM0002 2026-05-04 7.5AM',
-				'PUBEM0002 2026-05-05 7.5AM',
-				'PUBEM0023 2026-05-04 AM0830',
-				'PUBEM0023 2026-05-05 PM2030',
-				'PUBEM0023 2026-05-06 OFF'
+				'Roster',
+				[
+					['employee_number', ...MAY_DAYS],
+					gridRow('PUBEM0002', rosterCells('PUBEM0002', '7.5AM')),
+					gridRow('PUBEM0023', rosterCells('PUBEM0023', 'AM0830'))
+				]
+			],
+			[
+				'Time entries',
+				[
+					['employee_number', ...MAY_DAYS],
+					gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-17:05' }),
+					gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' })
+				]
 			]
+		]);
+		const plain = (value) => JSON.parse(JSON.stringify(value));
+		assert.deepEqual(
+			plain(gridPayload.roster),
+			plain(payload.roster),
+			'the grid reads as the long form does'
 		);
-		const rosterGridWritten = yield* runHandler(
-			workDayPipeline.import.handler({ input: rosterGridPayload }, rosterApi())
-		);
-		assert.equal(rosterGridWritten.length, 8);
+		assert.deepEqual(plain(gridPayload.attendance), plain(payload.attendance));
+		const gridWritten = yield* imported(gridPayload);
+		assert.equal(gridWritten.rows.length, 62);
 
-		const timeGridPayload = attendanceImportPayload(
-			workbookGrids(
-				yield* gridsOf([
-					['Read me first', [['Time entries import — one legal entity, one month']]],
-					['Settings', TIME_GRID_SETTINGS],
-					[
-						'Time entries',
-						[
-							['employee_number', ...MAY_DAYS],
-							gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-17:05' }),
-							gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' })
-						]
-					]
-				])
-			)
+		console.log(
+			'workbook import: the scheduling workbook round trips as a set of the month, and refuses by row.'
 		);
-		assert.equal(timeGridPayload.legal_entity, 'Public Fixture Co');
-		assert.equal(timeGridPayload.month, '2026-05');
-		assert.equal(timeGridPayload.rows.length, 5);
-		assert.deepEqual(timeGridPayload.rows[4], {
-			employee_number: 'PUBEM0023',
-			work_date: '2026-05-06',
-			clock_in: '20:31'
-		});
-		const timeGridWritten = yield* runHandler(
-			workDayPipeline.import.handler({ input: timeGridPayload }, attendanceApi())
-		);
-		assert.equal(timeGridWritten.length, 5);
-		assert.equal(timeGridWritten[4].worked_intervals[0].end, null);
-
-		const wrongEntity = yield* refusal(() =>
-			runHandlerCall(() =>
-				workDayPipeline.import.handler(
-					{
-						input: {
-							...rosterGridPayload,
-							legal_entity: 'Public Fixture PH'
-						}
-					},
-					rosterApi()
-				)
-			)
-		);
-		assert.match(wrongEntity, /No approved employment contract covers .* in this legal entity/);
-
-		console.log('workbook import: roster and time-entry templates round trip, and refuse by row.');
 	});
-
 	return yield* verification.pipe(Effect.ensuring(tryPromise(() => vite.close())));
 });
 

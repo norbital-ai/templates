@@ -34,9 +34,8 @@ export default defineModel(
 		 * unpublished row is a proposal that costs nobody a day.
 		 *
 		 * There is no consumed stamp: a holiday is frozen while a payroll run captured it
-		 * (`payroll_runs.holidays`) or while any work day still pins it (`work_days.holiday_id`),
-		 * and free again once nothing does. Retraction while captured is refused; otherwise the
-		 * pinning days are re-saved and re-classified.
+		 * (`payroll_runs.holidays`) and free again once none does. Work days never link a
+		 * holiday; the calendar is overlaid on the date when a day is read.
 		 */
 		published_at: instant()
 	},

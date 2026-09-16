@@ -177,9 +177,7 @@ const WORK_DAYS = [
 		employment_id: 'employment:pattern',
 		work_date: OVERRIDE_DATE,
 		shift_definition_id: NIGHT_SHIFT.id,
-		assignment_code: null,
-		worked_intervals: null,
-		break_minutes: 0
+		worked_intervals: null
 	}
 ];
 

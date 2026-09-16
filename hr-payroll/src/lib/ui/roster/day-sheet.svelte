@@ -28,14 +28,10 @@
 	"beyond schedule" below is derived by `beyondScheduleMinutes` and rendered read-only. A control
 	that let somebody type an overtime figure would be re-introducing the buckets by another name.
 
-	── THE BREAK CLAMP ──────────────────────────────────────────────────────────────────────────────
-	`work_days/+hooks.ts` refuses a closed day whose unpaid break is not strictly shorter than the
-	recorded worked time. That is not a hypothetical: four seeded rows carried a sixty-minute break
-	against nineteen to forty-one minutes of attendance, which is exactly the shape a naive editor
-	produces — it shortens a punch and leaves the break at the roster code's scheduled hour. So the
-	sheet assesses every edit with `assessAttendanceDraft`, which is the same arithmetic the hook
-	uses, and STATES the clamp where the operator can see it. Silently correcting the break would
-	hide that the punch, not the break, is the half that is wrong.
+	── THE BREAK ────────────────────────────────────────────────────────────────────────────────────
+	Nobody types a break. It is derived from the punches against the shift's granted break
+	(`derivedBreakMinutes`), which is the same arithmetic payroll reads the stored day with, so the
+	sheet assesses every edit with `assessAttendanceDraft` and shows the net it produces.
 
 	════════════════════════════════════════════════════════════════════════════════════════════════
 	PROP CONTRACT — STABLE. Employee Self-Service renders this same component with `mode="employee"`.
@@ -168,7 +164,6 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Label } from '@norbital-ai/ui/label';
 	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import {
@@ -195,7 +190,6 @@
 		minutesFromDayStart,
 		scheduledMinutes
 	} from './roster-month.js';
-	import { decodeNumber } from '@norbital-ai/std/json';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -237,9 +231,8 @@
 	/** The caller's verdict on the currently chosen code; recomputed on seed and on every change. */
 	let overlapWarning = $state<string | null>(null);
 	let draftIntervals = $state<EditableInterval[]>([]);
-	let draftBreak = $state(0);
 	let draftAttendanceRecorded = $state(false);
-	let baselineAttendance = $state<AttendanceValue>({ intervals: null, breakMinutes: 0 });
+	let baselineAttendance = $state<AttendanceValue>({ intervals: null });
 	/** Employee mode only: the operator has asked to report a punch on a day that has none. */
 	let reporting = $state(false);
 
@@ -259,14 +252,12 @@
 		draftCodeId = rosterCodeId;
 		baselineCodeId = rosterCodeId;
 		overlapWarning = resolveOverlap?.(rosterCodeId ?? null) ?? null;
-		draftBreak = day?.breakMinutes ?? 0;
 		draftAttendanceRecorded = day?.attendanceState != null;
 		baselineAttendance = {
 			intervals:
 				day?.attendanceState == null
 					? null
-					: intervals.map((interval) => ({ start: interval.start, end: interval.end })),
-			breakMinutes: day?.breakMinutes ?? 0
+					: intervals.map((interval) => ({ start: interval.start, end: interval.end }))
 		};
 		/**
 		 * A fresh array every time, including when the day has no entry.
@@ -312,16 +303,12 @@
 							: instantFromDayStart(date, interval.endMinutes, timeZone)
 				}))
 	);
-	const assessment = $derived(assessAttendanceDraft(draftIntervalValues, draftBreak));
+	const assessment = $derived(assessAttendanceDraft(draftIntervalValues, day?.shiftBreakMinutes));
 	const missingIntervalStart = $derived(
 		draftAttendanceRecorded && draftIntervals.some((interval) => interval.startMinutes == null)
 	);
 	const draftAttendance = $derived<AttendanceValue>({
-		intervals: draftAttendanceRecorded ? draftIntervalValues : null,
-		breakMinutes:
-			draftAttendanceRecorded && draftIntervalValues.length > 0
-				? Math.max(0, Math.trunc(draftBreak))
-				: 0
+		intervals: draftAttendanceRecorded ? draftIntervalValues : null
 	});
 
 	const frozen = $derived(lockRungFreezes(lockRung));
@@ -371,15 +358,6 @@
 				? null
 				: t(ATTENDANCE_DRAFT_PROBLEM_KEY[assessment.problem])
 	);
-
-	/**
-	 * Silent for the same reason `problemMessage` is: an empty editor has nothing to clamp against.
-	 *
-	 * An unrecorded day starts with an actual break of zero. Adding the first interval suggests the
-	 * scheduled break beside the scheduled window, and only then can a clamp be the result of numbers
-	 * the operator is actually considering.
-	 */
-	const breakClampNotice = $derived(assessment.breakClamped && draftIntervals.length > 0);
 
 	/**
 	 * Whether a save can be offered at all.
@@ -448,25 +426,15 @@
 
 	/** Mirror the plan half into the form; the picker is custom composition. */
 	function pushPlan(form: CollectionFormController): void {
-		form.setValues({
-			shift_definition_id: draftCodeId,
-			planned_origin: 'MANUAL'
-		});
+		form.setValues({ shift_definition_id: draftCodeId });
 	}
 
 	/**
-	 * Mirror the actual half into the form, carrying the clamped break, never the typed one.
-	 *
-	 * `assessAttendanceDraft` has already reduced it to something the hook accepts, and the notice
-	 * below says it did. `null` intervals are explicit clearing; untouched editors never call this,
-	 * so their columns stay `undefined` and ride past the write.
+	 * Mirror the actual half into the form. `null` intervals are explicit clearing; untouched
+	 * editors never call this, so the column stays `undefined` and rides past the write.
 	 */
 	function pushAttendance(form: CollectionFormController): void {
-		form.setValues({
-			worked_intervals: draftAttendanceRecorded ? draftIntervalValues : null,
-			break_minutes:
-				draftAttendanceRecorded && draftIntervalValues.length > 0 ? assessment.breakMinutes : 0
-		});
+		form.setValues({ worked_intervals: draftAttendanceRecorded ? draftIntervalValues : null });
 	}
 
 	function clockValue(minutes: number | null): string {
@@ -539,7 +507,6 @@
 					? scheduledEnd + DAY_MINUTES
 					: scheduledEnd
 				: start + 60;
-		if (!draftAttendanceRecorded) draftBreak = day?.shiftBreakMinutes ?? 0;
 		draftAttendanceRecorded = true;
 		draftIntervals = [...draftIntervals, { startMinutes: start, endMinutes: end }];
 	}
@@ -547,33 +514,23 @@
 	function removeInterval(index: number): void {
 		draftAttendanceRecorded = true;
 		draftIntervals = draftIntervals.filter((_entry, position) => position !== index);
-		if (draftIntervals.length === 0) draftBreak = 0;
 	}
 
 	/** Mark the day absent: a deliberate reviewed-no-work fact without an interval. */
 	function markAbsent(): void {
 		draftAttendanceRecorded = true;
 		draftIntervals = [];
-		draftBreak = 0;
 	}
 
 	/** Return actual attendance to the distinct unrecorded `null` state. */
 	function clearAttendance(): void {
 		draftAttendanceRecorded = false;
 		draftIntervals = [];
-		draftBreak = 0;
 	}
 
 	/**
 	 * Employee mode's one write: pre-fill the day the roster says it should have been, then let the
 	 * person correct it.
-	 *
-	 * The pre-fill takes the roster code's own break, which is the value that produced the seeded
-	 * defect — a scheduled hour against a day that turned out to be minutes long. It is safe here
-	 * for the same reason every other path is: nothing goes out un-assessed. `assessAttendanceDraft`
-	 * runs over the draft the moment it changes, so a pre-fill the punches cannot support is clamped
-	 * and announced exactly as a typed one would be. That is the point of having one assessment
-	 * rather than a rule repeated at each affordance.
 	 */
 	function reportMissingPunch(): void {
 		reporting = true;
@@ -584,7 +541,6 @@
 			day?.shiftEnd == null ? start + 480 : (clockToDayMinutes(day.shiftEnd, 0) ?? start + 480);
 		draftIntervals = [{ startMinutes: start, endMinutes: end <= start ? end + DAY_MINUTES : end }];
 		draftAttendanceRecorded = true;
-		draftBreak = day?.shiftBreakMinutes ?? 0;
 	}
 
 	const heading = $derived(
@@ -641,12 +597,8 @@
 							<Field name="employment_id" hidden />
 							<Field name="work_date" hidden />
 							<Field name="shift_definition_id" hidden />
-							<Field name="assignment_code" hidden />
-							<Field name="planned_origin" hidden />
 							<Field name="worked_intervals" hidden />
-							<Field name="break_minutes" hidden />
 							<Field name="payslip_id" hidden />
-							<Field name="holiday_id" hidden />
 							<Stack gap="lg" class="pr-1">
 								<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
 								<Stack gap="sm">
@@ -715,9 +667,7 @@
 									{@render fieldRow(
 										t('roster.day_sheet_source'),
 										hasExplicitEntry || day.overrideCode != null
-											? day.plannedOrigin === 'IMPORT'
-												? t('roster.layer_override_imported')
-												: t('roster.layer_override_manual')
+											? t('roster.layer_override')
 											: day.basePatternCode == null
 												? t('roster.day_sheet_source_pattern')
 												: t('roster.layer_base_from', { pattern: day.basePatternCode })
@@ -887,46 +837,6 @@
 											{/if}
 										</Cluster>
 
-										{#if draftAttendanceRecorded && draftIntervals.length > 0}
-											<Inline gap="sm" align="center">
-												<Label for="day-sheet-break" class="min-w-28 shrink-0 text-xs">
-													{t('roster.day_sheet_unpaid_break')}
-												</Label>
-												<Input
-													id="day-sheet-break"
-													type="number"
-													min="0"
-													step="1"
-													class="w-24"
-													value={String(draftBreak)}
-													oninput={(event) => {
-														draftBreak = decodeNumber(event.currentTarget.value) || 0;
-														pushAttendance(form);
-													}}
-												/>
-												<span class="text-xs text-muted-foreground"
-													>{t('roster.day_sheet_minutes')}</span
-												>
-											</Inline>
-										{/if}
-
-										{#if breakClampNotice}
-											<!--
-								Stated, never silent. The operator asked for one break and the day can only carry
-								another, and the reason is almost always that the punch is too short rather than
-								that the break is too long — which they can only see if the change is visible.
-							-->
-											<Alert>
-												<AlertTitle>{t('roster.day_sheet_break_clamped_title')}</AlertTitle>
-												<AlertDescription>
-													{t('roster.day_sheet_break_clamped', {
-														requested: assessment.requestedBreakMinutes,
-														applied: assessment.breakMinutes,
-														worked: Math.round(assessment.closedMinutes)
-													})}
-												</AlertDescription>
-											</Alert>
-										{/if}
 										{#if problemMessage != null}
 											<Alert variant="destructive">
 												<AlertTitle>{t('roster.day_sheet_cannot_save')}</AlertTitle>
@@ -1024,11 +934,10 @@
 												: t('roster.day_sheet_lock_open'))}
 									</p>
 									<!--
-						SCOPED OUT — the `AMENDMENT` provenance arm for a published month (`docs/scheduling-leave-proposal.md`, amendments).
-						A single-cell write in a published month is refused whole today, and that stays true:
-						opening a narrow amendment path needs a new `work_days.planned_origin` enum arm and a
-						migration, and the decision has not been taken. When it is, this panel is where the
-						amendment is offered and `planLockedReason` is the sentence it replaces.
+						SCOPED OUT — amendments to a published month (`docs/scheduling-leave-proposal.md`).
+						A single-cell write in a published month is refused whole today, and that stays true
+						until the decision is taken. When it is, this panel is where the amendment is offered
+						and `planLockedReason` is the sentence it replaces.
 					-->
 								</Stack>
 							</Stack>
@@ -1057,9 +966,7 @@
 								client.db.work_days.mutate([
 									{
 										id: workDayId,
-										shift_definition_id: null,
-										assignment_code: null,
-										planned_origin: null
+										shift_definition_id: null
 									}
 								])
 							).pipe(

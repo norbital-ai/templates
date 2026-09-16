@@ -83,9 +83,7 @@ const row = (date, extra = {}) => ({
 	employment_id: EMPLOYMENT,
 	work_date: date,
 	shift_definition_id: null,
-	planned_origin: null,
 	worked_intervals: null,
-	break_minutes: 0,
 	...extra
 });
 
@@ -115,21 +113,19 @@ test('a rest day of the base is a base layer too, with the rest code', () => {
 	assert.equal(day.status, 'REST');
 });
 
-test('override: a roster row replaces the base for its date and says where it came from', () => {
-	const facts = month({
-		workDays: [row('2026-08-05', { shift_definition_id: NIGHT_ID, planned_origin: 'IMPORT' })]
-	});
+test('override: a roster row replaces the base for its date', () => {
+	const facts = month({ workDays: [row('2026-08-05', { shift_definition_id: NIGHT_ID })] });
 	const day = facts.get(`${EMPLOYMENT}:2026-08-05`);
 	const layers = resolveCellLayers(day);
 	assert.deepEqual(layers.base, { code: 'REST', kind: 'REST', patternCode: 'A-2x2' });
-	assert.deepEqual(layers.override, { code: 'N', kind: 'WORK', origin: 'IMPORT' });
+	assert.deepEqual(layers.override, { code: 'N', kind: 'WORK' });
 	assert.equal(layers.effective, 'OVERRIDE');
 	assert.equal(day.shiftCode, 'N');
 	// Work rostered over a rest base is planned extra work, as before.
 	assert.equal(day.plannedOT, true);
 	assert.match(
 		describePlanLayer(day, t),
-		/roster\.layer_override_over_base \{"origin":"roster\.layer_override_imported","base":"REST"\}/
+		/roster\.layer_override_over_base \{"origin":"roster\.layer_override","base":"REST"\}/
 	);
 });
 
@@ -138,15 +134,14 @@ test('override with punches: the clock layer carries the punch window in the pay
 		workDays: [
 			row('2026-08-04', {
 				shift_definition_id: DAY_ID,
-				planned_origin: 'MANUAL',
-				worked_intervals: [{ start: '2026-08-04T00:31:00.000Z', end: '2026-08-04T09:02:00.000Z' }],
-				break_minutes: 60
+				worked_intervals: [{ start: '2026-08-04T00:31:00.000Z', end: '2026-08-04T09:02:00.000Z' }]
 			})
 		]
 	});
 	const day = facts.get(`${EMPLOYMENT}:2026-08-04`);
 	const layers = resolveCellLayers(day);
 	assert.equal(layers.effective, 'OVERRIDE');
+	// 511 gross, less the shift's granted hour: one interval takes the whole break off.
 	assert.deepEqual(layers.actual, {
 		kind: 'CLOCKED',
 		first: '08:31',
