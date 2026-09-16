@@ -10,8 +10,6 @@
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
 	import { CollectionActionToolbar } from '@norbital-ai/ui/collection-toolbar';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
@@ -933,17 +931,11 @@
 		{@render companyScopeActions()}
 	</AppHeaderActions>
 
-	<Tabs
-		animate={false}
-		config={[
-			{
-				name: 'board',
-				label: t('app.scheduling.tab_board'),
-				icon: 'lucide:calendar-range',
-				content: board
-			}
-		] satisfies TabConfig[]}
-	/>
+	<!--
+		No tab strip: the board is the app's only surface now. The `board` snippet's `Cover` reads
+		the height AppShell's body already grants it, so the board still owns its own scrollport.
+	-->
+	{@render board()}
 </AppShell>
 
 <!--
