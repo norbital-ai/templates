@@ -49,12 +49,18 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a work pattern whose projected cycle breaches any hour limit of the jurisdiction settings version in force at its effective start.',
+					'Requires a cycle of whole weeks, and refuses a work pattern whose projected cycle breaches any hour limit of the jurisdiction settings version in force at its effective start.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
 						const pattern = row.pattern as WorkPattern | null | undefined;
 						if (pattern == null || !('days' in pattern)) return input;
+						// A cycle is whole weeks: it names a code for every weekday, so the day an
+						// employment is projected onto is never one the pattern has no answer for.
+						if (pattern.days.length % 7 !== 0)
+							refuse(
+								`A shift pattern cycle is whole weeks; this one has ${pattern.days.length} days.`
+							);
 						const companyId = row.company_id as string | null | undefined;
 						const range = readRange(row.effective_range);
 						if (companyId == null || range == null) return input;

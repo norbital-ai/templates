@@ -1049,5 +1049,7 @@
 	"component.source": "Entries come from",
 	"component.source_hint": "Keyed: somebody records each payment. Scheduled: the run materialises an occurrence on the calendar below and the band prices it over the year axis (year.earned.BASIC, year.months_employed …).",
 	"component.schedule": "Schedule",
-	"renderer.contribution_base.annual_exempt": "Exempt per year"
+	"renderer.contribution_base.annual_exempt": "Exempt per year",
+	"component.roster": "Roster of record",
+	"component.roster_hint": "One employment over one payroll cycle. Its days on the Work board name a shift for every day of the cycle, and while it exists payroll reads it instead of the shift pattern."
 }

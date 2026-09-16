@@ -31,7 +31,12 @@ import {
 	requiredDateKey,
 	type IsoDate
 } from '../../collections/payroll_runs/lib/dates.js';
-import { coversDate, live, overlapsRange } from '../../collections/payroll_runs/lib/effective.js';
+import {
+	coversDate,
+	live,
+	overlapsRange,
+	readRange
+} from '../../collections/payroll_runs/lib/effective.js';
 import {
 	isEligible,
 	personContext,
@@ -141,21 +146,49 @@ export function prepareWorkInputs(options: {
 	readonly allowanceMonthsByEmployment: ReadonlyMap<string, ReadonlySet<string>>;
 }): Effect.Effect<{
 	readonly workDaysByEmployment: ReadonlyMap<string, EmploymentBundle['workDays']>;
+	readonly rostersByEmployment: ReadonlyMap<string, EmploymentBundle['rosters']>;
 	readonly workHolidayEvidence: GatheredRun['workHolidayEvidence'];
 }> {
 	return Effect.gen(function* () {
 		const { complianceSpan, allowanceConfigurations, allowanceMonthsByEmployment } = options;
 		const db = options.api.db;
 		const approved = { approval_id: { isNull: true } } as const;
-		const workDayRows = yield* db.work_days.findMany({
-			where: {
-				employment_id: { in: [...options.employmentIds] },
-				work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
-				...approved
-			},
-			limit: PAGE_LIMIT
-		});
+		const [workDayRows, rosterRows] = yield* Effect.all(
+			[
+				db.work_days.findMany({
+					where: {
+						employment_id: { in: [...options.employmentIds] },
+						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
+						...approved
+					},
+					limit: PAGE_LIMIT
+				}),
+				// The rosters of record: one row per person-cycle, read beside the days they govern and
+				// narrowed to the span below — a person has at most a handful, so the filter is cheap.
+				db.rosters.findMany({
+					where: { employment_id: { in: [...options.employmentIds] }, ...approved },
+					columns: { employment_id: true, range: true, approval_id: true },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		options.api.reads.assertComplete(workDayRows, 'work days');
+		options.api.reads.assertComplete(rosterRows, 'rosters');
+		const rostersByEmployment = Map.groupBy(
+			live(rosterRows).flatMap((row) => {
+				const range = readRange(row.range);
+				const start = range == null ? null : dateKey(range.start);
+				const end = range?.end == null ? null : dateKey(range.end);
+				return start == null ||
+					end == null ||
+					end < complianceSpan.start ||
+					start > complianceSpan.end
+					? []
+					: [{ employment_id: row.employment_id, start, end }];
+			}),
+			(row) => row.employment_id
+		);
 		// A late allowance is measured on its source month's roster, so those rows are read too —
 		// only where the source month's law prorates by working days, because nothing else asks.
 		const historicalWorkDays: Array<EmploymentBundle['workDays'][number]> = [];
@@ -203,6 +236,12 @@ export function prepareWorkInputs(options: {
 		});
 		return {
 			workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
+			rostersByEmployment: new Map(
+				[...rostersByEmployment].map(([id, rows]) => [
+					id,
+					rows.map(({ start, end }) => ({ start, end }))
+				])
+			),
 			workHolidayEvidence: { inputs: workHolidayInputs, holidays: live(workHolidays) }
 		};
 	});
@@ -392,6 +431,7 @@ export function prepareWorkContext(
 		dates: attendanceDays,
 		terms: scheduleTermsAt,
 		workDays: bundle.workDays,
+		rosters: bundle.rosters,
 		configuration
 	});
 
@@ -418,6 +458,7 @@ export function prepareWorkContext(
 			dates,
 			terms: scheduleTermsAt,
 			workDays: prorationWorkDays,
+			rosters: bundle.rosters,
 			configuration
 		});
 		const days = dates.filter((date) => prorationSchedule.get(date)?.dayType === 'ORDINARY').length;

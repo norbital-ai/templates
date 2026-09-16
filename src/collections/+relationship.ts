@@ -71,7 +71,8 @@ export default ((r) => ({
 		company_shift_definition: r.many.shift_definitions(),
 		company_shift_pattern: r.many.shift_patterns(),
 		employment_company: r.many.employments(),
-		payroll_run_company: r.many.payroll_runs()
+		payroll_run_company: r.many.payroll_runs(),
+		roster_company: r.many.rosters()
 	},
 
 	/**
@@ -168,6 +169,7 @@ export default ((r) => ({
 		loan_repayment_employment: r.many.loan_repayments(),
 		leave_entry_employment: r.many.leave_entries(),
 		work_day_employment: r.many.work_days(),
+		roster_employment: r.many.rosters(),
 		payslip_employment: r.many.payslips()
 	},
 
@@ -263,6 +265,14 @@ export default ((r) => ({
 			to: r.leave_entries.id
 		}),
 		leave_original_reversals: r.many.leave_entries()
+	},
+
+	rosters: {
+		roster_employment: r.one.employments({
+			from: r.rosters.employment_id,
+			to: r.employments.id
+		}),
+		roster_company: r.one.companies({ from: r.rosters.company_id, to: r.companies.id })
 	},
 
 	work_days: {

@@ -23,6 +23,8 @@ import type { Configuration } from './configuration.js';
 import type { EmploymentBundle } from './gather.js';
 import type { PayrollWindow } from './period.js';
 import { termPattern } from '../../../lib/scheduling/work-pattern.js';
+import { dateKey } from '../../../lib/iso-day.js';
+import { addDays } from '../../../lib/period.js';
 import {
 	blockers,
 	rosteredWorkCodeMaps,
@@ -54,7 +56,13 @@ export function payrollRunPrecheck(options: {
 	/** The employments the run pays, as `gatherRun` bundled them: their terms and their work days. */
 	readonly bundles: readonly Pick<
 		EmploymentBundle,
-		'employment' | 'termsHistory' | 'workDays' | 'attendance' | 'employedDays' | 'deferral'
+		| 'employment'
+		| 'termsHistory'
+		| 'workDays'
+		| 'rosters'
+		| 'attendance'
+		| 'employedDays'
+		| 'deferral'
 	>[];
 }): RunIssue[] {
 	const issues: RunIssue[] = validateConfiguration(options.configuration);
@@ -78,6 +86,29 @@ export function payrollRunPrecheck(options: {
 	const settled = options.bundles.filter(
 		(bundle) => bundle.employedDays != null && bundle.deferral == null
 	);
+	// A roster of record is whole or it is not one: a rostered day inside the paid window makes
+	// every other day of that window owe a rostered row with a shift. Refused here, before the
+	// build, because pricing a half roster would price the other half off the pattern in silence.
+	for (const bundle of settled) {
+		const byDate = new Map(bundle.workDays.map((day) => [dateKey(day.work_date), day]));
+		for (const roster of bundle.rosters) {
+			const start = roster.start > bundle.attendance.start ? roster.start : bundle.attendance.start;
+			const end = roster.end < bundle.attendance.end ? roster.end : bundle.attendance.end;
+			const missing: string[] = [];
+			for (let date = start; date <= end; date = addDays(date, 1))
+				if (byDate.get(date)?.shift_definition_id == null) missing.push(date);
+			if (missing.length > 0)
+				issues.push({
+					code: 'ROSTER_INCOMPLETE',
+					message:
+						`${bundle.employment.employee_number}'s roster of record for ${roster.start} to ` +
+						`${roster.end} names no shift on ${missing.length} day(s): ` +
+						`${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ', …' : ''}. A roster ` +
+						'covers every day of the payroll cycle; import the whole cycle or remove the roster.',
+					collection: 'rosters'
+				});
+		}
+	}
 	issues.push(
 		...validateRosteredExpectations({
 			period: options.window.period,

@@ -1049,5 +1049,7 @@
 	"component.source": "条目来源",
 	"component.source_hint": "手工：由人逐笔录入。排程：薪资运行按下方日历自动生成一次，并由档位表达式按年度口径计价（year.earned.BASIC、year.months_employed 等）。",
 	"component.schedule": "排程",
-	"renderer.contribution_base.annual_exempt": "年度豁免额"
+	"renderer.contribution_base.annual_exempt": "年度豁免额",
+	"component.roster": "排班记录",
+	"component.roster_hint": "一份雇佣合同在一个薪资周期内的排班。其工作日必须为周期内每一天指定班次；存在期间，薪资以它为准而非班次模式。"
 }
