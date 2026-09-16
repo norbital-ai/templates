@@ -55,7 +55,6 @@
 				chosenCompanyId = id;
 			}}
 		/>
-		{@render periodNavigation()}
 	</AppHeaderActions>
 
 	{#if companiesUnknown}
@@ -68,6 +67,7 @@
 				{client}
 				collection="payment_requests"
 				view={`hr_controller:events:payments:${selectedCompanyId}:${pay.period}`}
+				navigation={periodNavigation}
 				title={t('app.payments.title')}
 				recordMetadata={(row: PaymentRow) =>
 					payRequestRecordMetadata(

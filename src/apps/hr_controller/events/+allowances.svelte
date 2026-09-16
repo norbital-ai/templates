@@ -71,7 +71,6 @@
 				chosenCompanyId = id;
 			}}
 		/>
-		{@render periodNavigation()}
 	</AppHeaderActions>
 
 	{#if companiesUnknown}
@@ -82,7 +81,6 @@
 		{#key selectedCompanyId}
 			<Tabs
 				animate={false}
-				variant="underline"
 				contentPadding={false}
 				config={[
 					{
@@ -164,7 +162,8 @@
 				{client}
 				collection="allowance_requests"
 				view={`hr_controller:events:allowances:one-off:${selectedCompanyId}:${pay.period}`}
-				title={t('app.events.one_off_in_period', { period: pay.period })}
+				title={t('app.events.tab_one_off')}
+				navigation={periodNavigation}
 				recordMetadata={(row: AllowanceRow) =>
 					payRequestRecordMetadata(
 						row.approval_id,

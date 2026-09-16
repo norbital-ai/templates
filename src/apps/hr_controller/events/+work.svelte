@@ -46,6 +46,7 @@
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import type { CollectionToolbarComposition } from '@norbital-ai/ui/collection-toolbar';
 	import { resolveWindow } from '../../../collections/payroll_runs/lib/period.js';
 	import RosterMonthBoard, {
 		type BoardCell
@@ -960,6 +961,7 @@
 		collection="work_days"
 		query={boardQuery}
 		navigation={monthNavigation}
+		actions={monthStatus}
 		operations={{
 			importPipelines: [
 				{
@@ -983,7 +985,8 @@
 	/>
 {/snippet}
 
-{#snippet monthStatus()}
+<!-- The eye filter and the board help ride the toolbar row, after its actions: one row of chrome. -->
+{#snippet monthStatus(_composition: CollectionToolbarComposition<Record<string, unknown>>)}
 	<Cluster gap="sm">
 		<Button
 			size="sm"
@@ -1028,7 +1031,6 @@
 			data-month-board-eye-filter-queries={boardLoadReceipt.eyeFilterAdditionalQueries}
 		></span>
 		{@render boardToolbar()}
-		{@render monthStatus()}
 	</Stack>
 {/snippet}
 
