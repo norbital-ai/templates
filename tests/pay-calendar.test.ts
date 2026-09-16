@@ -207,9 +207,9 @@ test('lexicographic order of the grammar is chronological within a company', () 
 });
 
 test('a component entry defaults to the run its cadence pays it in', () => {
-	// A monthly company: the money cutoff, as before.
-	assert.equal(defaultPayPeriod('2026-02-21', 21), '2026-02');
-	assert.equal(defaultPayPeriod('2026-02-22', 21), '2026-03');
+	// A monthly company: the cutoff day opens the next cycle, for an entry as for attendance.
+	assert.equal(defaultPayPeriod('2026-02-20', 21), '2026-02');
+	assert.equal(defaultPayPeriod('2026-02-21', 21), '2026-03');
 	// Semi-monthly terms at a semi-monthly company: the half the day falls in, the 15th in the first.
 	const semi = { company: PH_SEMI, payFrequency: 'SEMI_MONTHLY' };
 	assert.equal(defaultPayPeriod('2026-02-15', 21, semi), '2026-02-1');
@@ -219,8 +219,8 @@ test('a component entry defaults to the run its cadence pays it in', () => {
 	// the only run that pays them.
 	const monthlyThere = { company: PH_SEMI, payFrequency: 'MONTHLY' };
 	assert.equal(defaultPayPeriod('2026-02-10', 21, monthlyThere), '2026-02-2');
-	assert.equal(defaultPayPeriod('2026-02-21', 21, monthlyThere), '2026-02-2');
-	assert.equal(defaultPayPeriod('2026-02-22', 21, monthlyThere), '2026-03-2');
+	assert.equal(defaultPayPeriod('2026-02-20', 21, monthlyThere), '2026-02-2');
+	assert.equal(defaultPayPeriod('2026-02-21', 21, monthlyThere), '2026-03-2');
 	// A monthly company ignores the cadence.
 	assert.equal(
 		defaultPayPeriod('2026-02-10', 21, { company: MONTHLY_ONLY, payFrequency: 'MONTHLY' }),

@@ -1,4 +1,5 @@
 import { resolveEmployment } from '../../../lib/employment-contract.js';
+import { addDays } from '../../../lib/period.js';
 /**
  * Loading a settled run back out for export.
  *
@@ -173,7 +174,7 @@ export function loadRunExports(
 					api.db.work_days.findMany({
 						where: {
 							employment_id: { in: employmentIds },
-							work_date: { gte: attendanceFrom, lte: attendanceTo }
+							work_date: { gte: attendanceFrom, lt: addDays(attendanceTo, 1) }
 						},
 						limit: PAGE_LIMIT
 					})

@@ -16,6 +16,7 @@ import { resolveHolidayInputs, type PreparedHolidayInput } from '../../../lib/ho
 import { effectiveOn, live } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
+import { addDays } from '../../../lib/period.js';
 
 import type { FamilyPayItem } from '../../../lib/payroll/family.js';
 
@@ -189,7 +190,9 @@ export function pickConfiguration(
 		const holidayRows = yield* db.jurisdiction_holidays.findMany({
 			where: {
 				company_id: { eq: company.id },
-				date: { gte: windowStart, lte: windowEnd },
+				// A bare day as the upper bound is cast in the server's zone, before the day's own
+				// instant: the window's last day went unread. Exclusive next-day bound instead.
+				date: { gte: windowStart, lt: addDays(windowEnd, 1) },
 				published_at: { isNotNull: true },
 				...approved
 			},

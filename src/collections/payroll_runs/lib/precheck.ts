@@ -91,9 +91,12 @@ export function payrollRunPrecheck(options: {
 	// build, because pricing a half roster would price the other half off the pattern in silence.
 	for (const bundle of settled) {
 		const byDate = new Map(bundle.workDays.map((day) => [dateKey(day.work_date), day]));
+		// A joiner or leaver owes rostered days only while employed: the cycle's other days are not
+		// theirs to fill.
+		const employed = bundle.employedDays ?? bundle.attendance;
 		for (const roster of bundle.rosters) {
-			const start = roster.start > bundle.attendance.start ? roster.start : bundle.attendance.start;
-			const end = roster.end < bundle.attendance.end ? roster.end : bundle.attendance.end;
+			const start = [roster.start, bundle.attendance.start, employed.start].sort().at(-1)!;
+			const end = [roster.end, bundle.attendance.end, employed.end].sort()[0]!;
 			const missing: string[] = [];
 			for (let date = start; date <= end; date = addDays(date, 1))
 				if (byDate.get(date)?.shift_definition_id == null) missing.push(date);

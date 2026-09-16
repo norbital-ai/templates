@@ -37,6 +37,7 @@ import {
 	overlapsRange,
 	readRange
 } from '../../collections/payroll_runs/lib/effective.js';
+import { addDays } from '../period.js';
 import {
 	isEligible,
 	personContext,
@@ -158,7 +159,10 @@ export function prepareWorkInputs(options: {
 				db.work_days.findMany({
 					where: {
 						employment_id: { in: [...options.employmentIds] },
-						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
+						// A bare day as an upper bound is cast in the server's zone and lands before the
+						// day's stored instant, dropping the span's last day; a leaver settled to month end
+						// lost 28 February. Exclusive next-day bound instead, as the event pages read.
+						work_date: { gte: complianceSpan.start, lt: addDays(complianceSpan.end, 1) },
 						...approved
 					},
 					limit: PAGE_LIMIT
@@ -202,7 +206,7 @@ export function prepareWorkInputs(options: {
 							.filter(([, months]) => months.has(sourceMonth))
 							.map(([id]) => id)
 					},
-					work_date: { gte: span.start, lte: span.end },
+					work_date: { gte: span.start, lt: addDays(span.end, 1) },
 					...approved
 				},
 				limit: PAGE_LIMIT

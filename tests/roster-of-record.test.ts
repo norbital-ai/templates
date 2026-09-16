@@ -99,7 +99,7 @@ const bundle = (workDays, rosters = [{ start: '2026-03-02', end: '2026-03-08' }]
 	workDays,
 	rosters,
 	attendance: { start: '2026-03-02', end: '2026-03-08' },
-	employedDays: 7,
+	employedDays: { start: '2026-03-02', end: '2026-03-08' },
 	deferral: null
 });
 const rosteredWeek = (missing = []) =>
@@ -143,7 +143,7 @@ const rosterApi = {
 		companies: {
 			findMany: () =>
 				Effect.succeed([
-					{ id: 'monthly', pay_frequency: 'MONTHLY', pay_cutoff_day: 20 },
+					{ id: 'monthly', pay_frequency: 'MONTHLY', pay_cutoff_day: 21 },
 					{ id: 'halves', pay_frequency: 'SEMI_MONTHLY', pay_cutoff_day: 15 }
 				])
 		}
