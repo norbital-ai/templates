@@ -65,7 +65,10 @@
 		{#snippet children({ Field, form })}
 			{@const employmentId =
 				scopedEmploymentId ?? (String(form.values().employment_id ?? '') || undefined)}
+			<!-- The payroll engine owns both: `payslip_id` is the capture lock, and a row it materialised
+			     from a scheduled catalogue entry carries the occurrence it came from. -->
 			<Field name="payslip_id" hidden />
+			<Field name="schedule_key" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first

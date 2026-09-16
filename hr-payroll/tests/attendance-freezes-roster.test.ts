@@ -158,3 +158,28 @@ test('a day with no plan at all cannot be given one after the fact', () => {
 		/is locked/
 	);
 });
+
+test('an import overrides the plan under recorded attendance: the file is the period of record', () => {
+	// The one writer the freeze admits, by provenance: a roster import restates the period, so a
+	// day it moves under a punch is a decision the operator took, not a silent re-price.
+	const result = write(
+		{ shift_definition_id: REST, planned_origin: 'IMPORT' },
+		stored({ worked_intervals: PUNCHED })
+	);
+	assert.equal(result.shift_definition_id, REST);
+	// A cleared plan carries the same provenance: the import decided the day has no assignment.
+	const cleared = write(
+		{ shift_definition_id: null, assignment_code: null, planned_origin: 'IMPORT' },
+		stored({ worked_intervals: PUNCHED })
+	);
+	assert.equal(cleared.shift_definition_id, null);
+	// The board's own writes stay frozen.
+	assert.throws(
+		() =>
+			write(
+				{ shift_definition_id: REST, planned_origin: 'MANUAL' },
+				stored({ worked_intervals: PUNCHED })
+			),
+		/is locked/
+	);
+});

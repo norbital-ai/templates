@@ -16,11 +16,15 @@
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
+	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
+	/** The pay period the one-off entries are stepped by, in the entity's own grammar. */
+	const pay = createPayPeriodScope(() => companyById(selectedCompanyId));
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		companyId: () => selectedCompanyId ?? undefined,
 		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined
@@ -51,18 +55,19 @@
 				chosenCompanyId = id;
 			}}
 		/>
+		{@render periodNavigation()}
 	</AppHeaderActions>
 
 	{#if companiesUnknown}
 		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.events.empty_scope')}</p>
-	{:else}
-		{#key selectedCompanyId}
+	{:else if pay.bounds != null}
+		{#key `${selectedCompanyId}:${pay.period}`}
 			<CollectionTable
 				{client}
 				collection="payment_requests"
-				view={`hr_controller:events:payments:${selectedCompanyId}`}
+				view={`hr_controller:events:payments:${selectedCompanyId}:${pay.period}`}
 				title={t('app.payments.title')}
 				recordMetadata={(row: PaymentRow) =>
 					payRequestRecordMetadata(
@@ -72,7 +77,15 @@
 					)}
 				query={{
 					where: {
-						payment_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
+						payment_request_employment: { some: { company_id: { eq: selectedCompanyId } } },
+						// The period's entries: dated by the cutoff rule, or pinned to it outright.
+						OR: [
+							{ pay_period: { eq: pay.period } },
+							{
+								pay_period: { isNull: true },
+								effective_on: { gte: pay.bounds.start, lt: pay.bounds.end }
+							}
+						]
 					},
 					orderBy: { effective_on: 'desc' },
 					with: {
@@ -111,3 +124,12 @@
 		{/key}
 	{/if}
 </AppShell>
+
+{#snippet periodNavigation()}
+	<MonthPeriodPicker
+		month={pay.period}
+		halves={pay.halves}
+		ariaLabel={t('app.events.pay_period')}
+		onMonthChange={(next) => pay.select(next)}
+	/>
+{/snippet}

@@ -5,6 +5,7 @@ import {
 	buildRosterMonth,
 	employmentMonthEmptyReason,
 	employmentOverlapsMonth,
+	monthDays,
 	shiftTimeCue
 } from '../src/lib/ui/roster/roster-month.ts';
 
@@ -96,4 +97,12 @@ test('the roster draws dated leave charges, combining separate halves without fi
 	assert.equal(facts.get('employment-1:2026-08-06')?.leaveCode, 'AL');
 	assert.equal(facts.get('employment-1:2026-08-07')?.pendingLeave, true);
 	assert.equal(facts.get('employment-1:2026-08-07')?.leaveCode, null);
+});
+
+test('a half period lists only its own days, so a semi-monthly board is half a month wide', () => {
+	assert.deepEqual(monthDays('2026-02-1').at(0), '2026-02-01');
+	assert.deepEqual(monthDays('2026-02-1').at(-1), '2026-02-15');
+	assert.equal(monthDays('2026-02-1').length, 15);
+	assert.deepEqual(monthDays('2026-02-2'), monthDays('2026-02').slice(15));
+	assert.equal(monthDays('2026-02').length, 28);
 });

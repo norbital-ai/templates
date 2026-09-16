@@ -1,8 +1,9 @@
 /**
  * What a settled payroll run hands to the outside world.
  *
- * Three artefacts, each tagged with its `metadata.kind` so the app can route them:
- * `payroll-report-xlsx`, `bank-files`, `payslip-pdfs`.
+ * Four artefacts, each tagged with its `metadata.kind` so the app can route them:
+ * `payroll-report-xlsx`, `bank-files`, `payslip-pdfs`, and `catalogue-entries-xlsx` — the
+ * allowances, claims, loans and payments alone, with totals, for the periods that settled any.
  *
  * The workbook's column vocabulary lives in `lib/report.ts` — in the export path, never as a column
  * on a model. A component knows its code, its type and how it is measured; what a spreadsheet
@@ -18,12 +19,16 @@ import { bankFileFor } from './lib/bank-formats.js';
 export default {
 	export: {
 		description:
-			'Turns the selected payroll runs into the three artefacts a settled period hands out: a bank payment CSV, one PDF payslip per employee, and the payroll report workbook.',
+			'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment CSV, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims, loans and payments only, with totals).',
 		handler: ({ records }, api) =>
 			Effect.gen(function* () {
-				const { bankFileRows, payrollReportXlsx, payslipPdf } = yield* Effect.tryPromise(
-					() => import('./lib/export.js')
-				).pipe(
+				const {
+					bankFileRows,
+					payrollReportXlsx,
+					payslipPdf,
+					catalogueEntriesXlsx,
+					hasCatalogueEntries
+				} = yield* Effect.tryPromise(() => import('./lib/export.js')).pipe(
 					Effect.catch(() =>
 						Effect.sync(() =>
 							refuse(
@@ -115,6 +120,34 @@ export default {
 						],
 						metadata: {
 							kind: 'payroll-report-xlsx',
+							periods: sheets.map((run) => run.period)
+						}
+					});
+				}
+
+				if (hasCatalogueEntries(sheets)) {
+					const label = sheets.length === 1 ? sheets[0]!.period : `${sheets.length}_runs`;
+					actions.push({
+						label: 'Catalogue entries',
+						attachments: [
+							{
+								name: `catalogue_entries_${label}.xlsx`,
+								contentType: 'XLSX',
+								content: yield* catalogueEntriesXlsx(sheets).pipe(
+									Effect.catch((cause) =>
+										Effect.sync(() =>
+											refuse(
+												`Catalogue entries workbook creation failed: ${
+													cause instanceof Error ? cause.message : String(cause)
+												}`
+											)
+										)
+									)
+								)
+							}
+						],
+						metadata: {
+							kind: 'catalogue-entries-xlsx',
 							periods: sheets.map((run) => run.period)
 						}
 					});

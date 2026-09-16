@@ -5,7 +5,7 @@
 	import { HOLIDAY_QUERY_LIMIT, holidayView } from '../../../lib/ui/holiday-calendar.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { client } from '../../../lib/workspace-client.js';
-	import { Effect, Number as EffectNumber } from 'effect';
+	import { Effect } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import { AppShell } from '@norbital-ai/ui/app-shell';
@@ -36,6 +36,8 @@
 	import {
 		PAYROLL_TIME_ZONE,
 		monthWorkDateInstantBounds,
+		periodInCompanyGrammar,
+		periodMonthOf,
 		shiftDayKey,
 		shiftMonthKey,
 		todayKey
@@ -44,6 +46,7 @@
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import { resolveWindow } from '../../../collections/payroll_runs/lib/period.js';
 	import RosterMonthBoard, {
 		type BoardCell
 	} from '../../../lib/ui/roster/roster-month-board.svelte';
@@ -100,6 +103,15 @@
 	});
 	let month = $state<string>(todayKey().slice(0, 7));
 	/**
+	 * The board's period, in the entity's own pay grammar: a whole month at a monthly company, one
+	 * half at a semi-monthly one. Every day list, lock and run lookup below reads this, and the
+	 * calendar month only scopes the queries that fetch a superset.
+	 */
+	const period = $derived(
+		periodInCompanyGrammar(month, selectedCompany?.pay_frequency, todayKey())
+	);
+	const calendarMonth = $derived(periodMonthOf(period));
+	/**
 	 * The day sheet's subject. Nothing else: the drawer owns its editors and its write, and the
 	 * app holds only which cell is open.
 	 */
@@ -132,13 +144,15 @@
 	const companiesUnknown = $derived(companiesUnknownOf());
 
 	/** The month's calendar bounds, which every dated query below is narrowed to. */
-	const monthStart = $derived(`${month}-01`);
+	const monthStart = $derived(`${calendarMonth}-01`);
 	const monthEnd = $derived(
-		formatDateISO(new Date(Date.parse(`${shiftMonthKey(month, 1)}-01T00:00:00.000Z`) - 86_400_000))
+		formatDateISO(
+			new Date(Date.parse(`${shiftMonthKey(calendarMonth, 1)}-01T00:00:00.000Z`) - 86_400_000)
+		)
 	);
 	/** Day-precision instants: a calendar `gte` on UTC midnight misses the first local work date. */
-	const monthWorkDateBounds = $derived(monthWorkDateInstantBounds(month));
-	const monthDateKeys = $derived(monthDays(month));
+	const monthWorkDateBounds = $derived(monthWorkDateInstantBounds(calendarMonth));
+	const monthDateKeys = $derived(monthDays(period));
 
 	/**
 	 * Every payroll run the company has, not just this month's: the board's lock stripes come from
@@ -187,19 +201,21 @@
 	 * same rule stated in `docs/architecture.md`.
 	 */
 	const cutoff = $derived.by(() => {
-		const run = (payrollRunsQuery?.current ?? []).find((candidate) => candidate.period === month);
+		const run = (payrollRunsQuery?.current ?? []).find((candidate) => candidate.period === period);
 		if (run?.attendance_from != null && run.attendance_to != null) {
 			return { start: formatDateISO(run.attendance_from), end: formatDateISO(run.attendance_to) };
 		}
-		const cutoffDay = selectedCompany?.pay_cutoff_day;
-		if (cutoffDay == null) return null;
-		const day = String(
-			EffectNumber.clamp({ minimum: 1, maximum: 28 })(decodeNumber(cutoffDay))
-		).padStart(2, '0');
-		return {
-			start: `${shiftMonthKey(month, -1)}-${day}`,
-			end: formatDateISO(new Date(Date.parse(`${month}-${day}T00:00:00.000Z`) - 86_400_000))
-		};
+		if (selectedCompany?.pay_cutoff_day == null) return null;
+		// The engine's own window for this period at this company: the cutoff window of a month, or
+		// the half of a semi-monthly month.
+		try {
+			return resolveWindow(period, {
+				pay_cutoff_day: decodeNumber(selectedCompany.pay_cutoff_day),
+				pay_frequency: selectedCompany.pay_frequency
+			}).attendance;
+		} catch {
+			return null;
+		}
 	});
 
 	const employmentsQuery = $derived.by(() => {
@@ -219,7 +235,7 @@
 	);
 	const employments = $derived((employmentsQuery?.current ?? []).map(resolveEmployment));
 	const monthEmployments = $derived(
-		employments.filter((employment) => employmentOverlapsMonth(employment, month))
+		employments.filter((employment) => employmentOverlapsMonth(employment, period))
 	);
 	const monthEmploymentIds = $derived(monthEmployments.map((employment) => employment.id));
 	const monthEmployeeIds = $derived(monthEmployments.map((employment) => employment.employee_id));
@@ -235,7 +251,7 @@
 	const employeeNamesById = $derived(
 		new Map((employeesQuery?.current ?? []).map((employee) => [employee.id, employee.name]))
 	);
-	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, month));
+	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, period));
 	const people = $derived(
 		monthEmployments.map((employment) => ({
 			id: employment.id,
@@ -536,7 +552,7 @@
 	});
 	const facts = $derived(
 		buildRosterMonth({
-			month,
+			month: period,
 			timeZone: boardTimeZone,
 			employments: monthEmployments,
 			employmentTerms,
@@ -629,7 +645,7 @@
 	}
 
 	function selectMonth(nextMonth: string): void {
-		if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(nextMonth)) return;
+		if (!/^\d{4}-(0[1-9]|1[0-2])(-[12])?$/.test(nextMonth)) return;
 		month = nextMonth;
 		boardQuery.setPageIndex(0);
 	}
@@ -898,7 +914,11 @@
 {/snippet}
 
 {#snippet monthNavigation()}
-	<MonthPeriodPicker {month} onMonthChange={selectMonth} />
+	<MonthPeriodPicker
+		month={period}
+		halves={selectedCompany?.pay_frequency === 'SEMI_MONTHLY'}
+		onMonthChange={selectMonth}
+	/>
 {/snippet}
 
 <AppShell
@@ -945,7 +965,7 @@
 				{
 					id: 'roster-workbook',
 					label: t('app.scheduling.import'),
-					description: t('app.scheduling.import_title', { month }),
+					description: t('app.scheduling.import_title', { month: calendarMonth }),
 					icon: 'lucide:upload',
 					run: importRoster
 				},
@@ -954,7 +974,7 @@
 					// that was never drafted still takes its punches — see `importAttendance`.
 					id: 'attendance-workbook',
 					label: t('app.scheduling.import_attendance'),
-					description: t('app.scheduling.import_attendance_description', { month }),
+					description: t('app.scheduling.import_attendance_description', { month: calendarMonth }),
 					icon: 'lucide:clock-arrow-up',
 					run: importAttendance
 				}
@@ -1030,7 +1050,7 @@
 				<!-- A terminal state, so a board that cannot be built says so instead of pretending to
 				     still be loading. -->
 				<Alert variant="destructive">
-					<AlertTitle>{t('app.scheduling.board_load_failed', { month })}</AlertTitle>
+					<AlertTitle>{t('app.scheduling.board_load_failed', { month: period })}</AlertTitle>
 					<AlertDescription>
 						<Stack as="ul" gap="xs" class="list-disc pl-4">
 							{#each boardErrors as boardError (boardError)}
@@ -1042,7 +1062,7 @@
 			{:else if !loading && people.length > 0 && boardPeople.length === 0}
 				<p class="text-sm text-muted-foreground">
 					{unresolvedClockOutsOnly
-						? t('app.scheduling.no_unresolved_clock_outs', { month })
+						? t('app.scheduling.no_unresolved_clock_outs', { month: period })
 						: t('app.scheduling.no_matches')}
 				</p>
 			{:else if !loading && people.length === 0}
@@ -1050,14 +1070,14 @@
 					{emptyEmploymentReason === 'NONE'
 						? t('app.scheduling.no_company_employments')
 						: emptyEmploymentReason === 'ENDED'
-							? t('app.scheduling.employments_ended_before', { month })
+							? t('app.scheduling.employments_ended_before', { month: period })
 							: emptyEmploymentReason === 'NOT_STARTED'
-								? t('app.scheduling.employments_start_after', { month })
-								: t('app.scheduling.employments_outside_month', { month })}
+								? t('app.scheduling.employments_start_after', { month: period })
+								: t('app.scheduling.employments_outside_month', { month: period })}
 				</p>
 			{:else}
 				<RosterMonthBoard
-					{month}
+					month={period}
 					people={boardPeople}
 					{loading}
 					{facts}

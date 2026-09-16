@@ -106,8 +106,8 @@ test('a settled run exports a bank file, a payslip per employment and the workbo
 	const byKind = assertManifestShape(manifest);
 	assert.deepEqual(
 		manifest.map((action) => action.metadata.kind),
-		['bank-files', 'payslip-pdfs', 'payroll-report-xlsx'],
-		'three artefacts, in the order the app routes them'
+		['bank-files', 'payslip-pdfs', 'payroll-report-xlsx', 'catalogue-entries-xlsx'],
+		'four artefacts, in the order the app routes them'
 	);
 
 	// ── the bank file: one row per paid payslip, under one header row ───────────────────────────
@@ -160,6 +160,12 @@ test('a settled run exports a bank file, a payslip per employment and the workbo
 	assert.equal(workbook.attachments[0].name, `payroll_report_${PERIOD}.xlsx`);
 	assert.equal(workbook.attachments[0].contentType, 'XLSX');
 	assert.deepEqual(workbook.metadata.periods, [PERIOD]);
+
+	// ── the catalogue entries: the same rows, only the requested families, with totals ─────────
+	const catalogue = byKind.get('catalogue-entries-xlsx');
+	assert.equal(catalogue.attachments[0].name, `catalogue_entries_${PERIOD}.xlsx`);
+	assert.equal(catalogue.attachments[0].contentType, 'XLSX');
+	assert.deepEqual(catalogue.metadata.periods, [PERIOD]);
 });
 
 test('a payslip with no bank destination is named as skipped rather than dropped in silence', async () => {
@@ -211,7 +217,8 @@ test('two runs selected together export as two sets, each named by its own perio
 			'Bank file 2026-02',
 			`Payslips ${PERIOD}`,
 			'Payslips 2026-02',
-			'Payroll workbook'
+			'Payroll workbook',
+			'Catalogue entries'
 		],
 		'each run contributes its own bank file and payslips, grouped by artefact so the app routes ' +
 			'one kind at a time; the workbook is one report over the whole selection'

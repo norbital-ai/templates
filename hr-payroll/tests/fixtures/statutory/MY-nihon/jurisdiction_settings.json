@@ -21,39 +21,39 @@
 			"overtime_when": "terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0)",
 			"bands": [
 				{
-					"label": "OT-1.5X",
+					"label": "WORKDAY-OT-1.5X",
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
-					"label": "OT-0.5X",
+					"label": "RESTDAY-HALF-DAY-PAY",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "day_wage * 0.5"
 				},
 				{
-					"label": "OT-1.0X",
+					"label": "RESTDAY-FULL-DAY-PAY",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 1.0"
 				},
 				{
-					"label": "OT-2.0X",
+					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 2.0",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
-					"label": "OT-2.0X",
+					"label": "HOLIDAY-2-DAYS-PAY",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{
-					"label": "OT-3.0X",
+					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 3.0",
@@ -106,7 +106,7 @@
 				{
 					"when": "consecutive_hours > 5.0",
 					"owed_minutes": "30.0",
-					"counts_as_worked_time": false
+					"counts_as_worked_time": null
 				}
 			],
 			"weekly_rest_rule": {
@@ -162,39 +162,39 @@
 			"overtime_when": "terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0)",
 			"bands": [
 				{
-					"label": "OT-1.5X",
+					"label": "WORKDAY-OT-1.5X",
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
-					"label": "OT-0.5X",
+					"label": "RESTDAY-HALF-DAY-PAY",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "day_wage * 0.5"
 				},
 				{
-					"label": "OT-1.0X",
+					"label": "RESTDAY-FULL-DAY-PAY",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 1.0"
 				},
 				{
-					"label": "OT-2.0X",
+					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 2.0",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
-					"label": "OT-2.0X",
+					"label": "HOLIDAY-2-DAYS-PAY",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{
-					"label": "OT-3.0X",
+					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 3.0",
@@ -247,7 +247,7 @@
 				{
 					"when": "consecutive_hours > 5.0",
 					"owed_minutes": "30.0",
-					"counts_as_worked_time": false
+					"counts_as_worked_time": null
 				}
 			],
 			"weekly_rest_rule": {
@@ -299,39 +299,39 @@
 			"overtime_when": "terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0)",
 			"bands": [
 				{
-					"label": "OT-1.5X",
+					"label": "WORKDAY-OT-1.5X",
 					"when": "day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
-					"label": "OT-0.5X",
+					"label": "RESTDAY-HALF-DAY-PAY",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
 					"price_amount": "day_wage * 0.5"
 				},
 				{
-					"label": "OT-1.0X",
+					"label": "RESTDAY-FULL-DAY-PAY",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 1.0"
 				},
 				{
-					"label": "OT-2.0X",
+					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 2.0",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
-					"label": "OT-2.0X",
+					"label": "HOLIDAY-2-DAYS-PAY",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{
-					"label": "OT-3.0X",
+					"label": "HOLIDAY-OT-3.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 3.0",
@@ -384,7 +384,7 @@
 				{
 					"when": "consecutive_hours > 5.0",
 					"owed_minutes": "30.0",
-					"counts_as_worked_time": false
+					"counts_as_worked_time": null
 				}
 			],
 			"weekly_rest_rule": {

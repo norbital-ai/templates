@@ -72,22 +72,25 @@ function contextOf(options: {
 	readonly limits: Record<string, number>;
 }): Record<string, unknown> {
 	const { day, rates, limits, person } = options;
+	// An OFF day is a working-week day the roster left unassigned, not a rest day: every hour
+	// worked on it is beyond the normal week, so the bands read it as ORDINARY overtime (the same
+	// reading `ruleDayType` and the monthly counter make). Left as its own type it matched no band
+	// and every OFF-day hour was priced at nothing.
+	const ordinary = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
 	return {
 		person,
 		date: day.date,
-		day_type: day.dayType,
+		day_type: ordinary ? 'ORDINARY' : day.dayType,
 		worked_hours: day.workedHours,
 		normal_hours: day.normalHours,
-		hours_beyond_normal:
-			day.dayType === 'ORDINARY'
-				? day.overtimeHours
-				: Math.max(0, day.overtimeHours - day.normalHours),
-		hours_from_start_fraction:
-			day.dayType === 'ORDINARY'
-				? 0
-				: day.normalHours > 0
-					? Math.min(1, day.overtimeHours / day.normalHours)
-					: 0,
+		hours_beyond_normal: ordinary
+			? day.overtimeHours
+			: Math.max(0, day.overtimeHours - day.normalHours),
+		hours_from_start_fraction: ordinary
+			? 0
+			: day.normalHours > 0
+				? Math.min(1, day.overtimeHours / day.normalHours)
+				: 0,
 		total_work_hours: day.workedHours,
 		overtime_hours: day.overtimeHours,
 		month_overtime_hours: day.monthOvertimeHours,

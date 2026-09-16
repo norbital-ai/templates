@@ -55,7 +55,8 @@ import {
 	periodHalf,
 	periodMonth,
 	shiftPeriod,
-	type IsoDate
+	type IsoDate,
+	monthKey
 } from './dates.js';
 import { coversDate } from './effective.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -148,6 +149,47 @@ export function attendanceWindow(period: string, cutoffDay: number): DayRange {
 		start: monthDay(year, monthIndex - 1, cutoffDay),
 		end: addDays(monthDay(year, monthIndex, cutoffDay), -1)
 	};
+}
+
+/**
+ * The dates whose entries settle in a period by the default cutoff rule (`defaultPayPeriod` read
+ * backwards): the 1st–15th or 16th–end half at a semi-monthly company, and at a monthly one the
+ * day after last month's cutoff through this month's cutoff. The event pages step their one-off
+ * tables by this window, so a clerk sees a period's claims the way the run that pays them will.
+ */
+export function payPeriodWindow(period: string, company: PayCalendarCompany): DayRange {
+	if (company.pay_frequency === 'SEMI_MONTHLY') {
+		const bounds = monthBounds(periodMonth(period));
+		return periodHalf(period) === 2
+			? { start: `${periodMonth(period)}-16`, end: bounds.end }
+			: { start: bounds.start, end: `${periodMonth(period)}-15` };
+	}
+	const cutoffDay = assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day');
+	const { year, monthIndex } = monthParts(period);
+	return {
+		start: addDays(monthDay(year, monthIndex - 1, cutoffDay), 1),
+		end: monthDay(year, monthIndex, cutoffDay)
+	};
+}
+
+/**
+ * The assessment span of the company's pay grid that one date falls in: the 1st-to-15th or
+ * 16th-to-end half at a semi-monthly company, the cutoff window at a monthly one. An import that
+ * states a period's roster or attendance replaces the rows inside exactly this span.
+ */
+export function assessmentSpan(company: PayCalendarCompany, date: IsoDate): DayRange {
+	const month = monthKey(date);
+	if (company.pay_frequency === 'SEMI_MONTHLY') {
+		const bounds = monthBounds(month);
+		return dayOfMonth(date) <= 15
+			? { start: bounds.start, end: `${month}-15` }
+			: { start: `${month}-16`, end: bounds.end };
+	}
+	const cutoffDay = assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day');
+	// The window of period P runs from P-1's cutoff day to the day before P's: a date on or after
+	// the cutoff already belongs to next month's period.
+	const period = dayOfMonth(date) >= cutoffDay ? shiftPeriod(month, 1) : month;
+	return attendanceWindow(period, cutoffDay);
 }
 
 function assertDayOfMonth(value: unknown, what: string): number {

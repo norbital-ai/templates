@@ -12,7 +12,9 @@ import {
 	identityRow,
 	outputGroups,
 	workbookRows,
-	type ReportPayslip
+	type ReportPayslip,
+	catalogueGroups,
+	catalogueRows
 } from './report.js';
 
 const IDENTITY_COLUMNS = [
@@ -322,7 +324,7 @@ function addPeriodSheet(
 	groups: readonly { readonly name: string; readonly outputIds: readonly string[] }[],
 	vendor: boolean,
 	identityColumnCount: number
-): void {
+): ExcelJS.Worksheet {
 	// The vendor layout's machine-readable half sits beside the catalogue matrix, so the two cannot
 	// take the same sheet name. The matrix keeps the bare period, which is what every reader of this
 	// file already looks for.
@@ -414,6 +416,49 @@ function addPeriodSheet(
 		from: { row: headerRow, column: 1 },
 		to: { row: headerRow, column: worksheet.columnCount }
 	};
+	return worksheet;
+}
+
+/**
+ * The catalogue-entries workbook: one sheet per period of allowances, claims, loans and payments
+ * per employee, a per-row roll-up, and a SUM row under every money column. The payroll workbook
+ * minus salary, absence and statute.
+ */
+function buildCatalogueWorkbook(sheets: readonly WorkbookSheet[]): ExcelJS.Workbook {
+	const workbook = new ExcelJSBrowser.Workbook();
+	workbook.creator = 'Norbital';
+	workbook.subject = 'Catalogue entries report';
+	for (const sheet of sheets) {
+		const groups = catalogueGroups(sheet.payslips);
+		if (groups.length === 0) continue;
+		const rows = catalogueRows(sheet.payslips, groups);
+		const worksheet = addPeriodSheet(workbook, sheet, rows, groups, false, IDENTITY_COLUMNS.length);
+		const firstDataRow = HEADER_ROW + 1;
+		const lastDataRow = HEADER_ROW + rows.length;
+		const total = worksheet.addRow({ employee_number: 'TOTAL' });
+		total.font = { bold: true };
+		for (
+			let position = IDENTITY_COLUMNS.length + 1;
+			position <= worksheet.columnCount;
+			position += 1
+		) {
+			const letter = worksheet.getColumn(position).letter;
+			total.getCell(position).value = {
+				formula: `SUM(${letter}${firstDataRow}:${letter}${lastDataRow})`
+			};
+		}
+	}
+	return workbook;
+}
+
+/** Whether the selected runs settled any catalogue entry at all; an empty workbook is not offered. */
+export function hasCatalogueEntries(sheets: readonly WorkbookSheet[]): boolean {
+	return sheets.some((sheet) => catalogueGroups(sheet.payslips).length > 0);
+}
+
+/** The catalogue-entries workbook, as the bytes a download expects. */
+export function catalogueEntriesXlsx(sheets: readonly WorkbookSheet[]) {
+	return xlsxBytes(() => buildCatalogueWorkbook(sheets));
 }
 
 /** The customer's own workbook on a period: visible vendor listing plus the hidden matrix behind it. */
@@ -458,10 +503,12 @@ function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void 
  * actually fail: the build and the serialization. The only promise in the module is this adapter's.
  */
 export function payrollReportXlsx(sheets: readonly WorkbookSheet[]) {
-	return Effect.try({
-		try: () => buildPayrollWorkbook(sheets),
-		catch: (error) => error
-	}).pipe(
+	return xlsxBytes(() => buildPayrollWorkbook(sheets));
+}
+
+/** A built workbook as the bytes a download expects; the build and the serialisation are what fail. */
+function xlsxBytes(build: () => ExcelJS.Workbook) {
+	return Effect.try({ try: build, catch: (error) => error }).pipe(
 		Effect.flatMap((workbook) => Effect.tryPromise(() => workbook.xlsx.writeBuffer())),
 		Effect.map((bytes) => [...new Uint8Array(bytes)])
 	);

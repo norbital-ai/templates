@@ -298,22 +298,14 @@ test('a night shift pays only the hours past its carried-forward end', () => {
 });
 
 /**
- * Clocking in early on a night shift is overtime, and `clampStart` is dead.
+ * Clocking in early is not work.
  *
- * `clockedWorkHours` carries a comment saying "time clocked before the scheduled start is
- * discarded: an employee who arrives early is not working, and not paid, until their shift
- * begins". The function does not clamp — it sums every interval and subtracts the break — and
- * `ScheduledDay.clampStart`, computed for exactly this in `schedule.ts`, is read by nothing in
- * `src/`.
- *
- * So the hour before a shift is paid as overtime, on an ordinary day, the same way the hour after
- * it is. That is coherent with the day-shift case above ("work outside the scheduled window"), and
- * it is not what the comment says. This pins the behaviour that ships, so that changing it is a
- * decision somebody takes rather than a comment somebody believes. It also matters beyond the
- * overtime line: `totalWorkHours` is what the twelve-hour daily ceiling is measured against, so an
- * early clock-in moves the reclassification boundary too.
+ * Overtime on a scheduled day is the clock-out past the shift end; the hour before the shift is
+ * discarded, and the day's total — what the twelve-hour ceiling is measured against — is counted
+ * from the shift start. The owner's rule (2026-09-16): an employee who arrives early is not
+ * working, and not paid, until their shift begins.
  */
-test('clocking in early on a night shift is overtime, and counts toward total work hours', () => {
+test('clocking in early on a night shift is neither overtime nor total work hours', () => {
 	const day = deriveDailyOvertime(
 		nightEntry({
 			worked_intervals: [
@@ -322,8 +314,17 @@ test('clocking in early on a night shift is overtime, and counts toward total wo
 		}),
 		nightScheduled()
 	);
-	assert.equal(day.hours, 1, 'the hour before the shift is priced as overtime, not discarded');
-	assert.equal(day.totalWorkHours, 9, 'and it counts against the daily work ceiling');
+	assert.equal(day, null, 'the hour before the shift is discarded, so the day earns no overtime');
+	const late = deriveDailyOvertime(
+		nightEntry({
+			worked_intervals: [
+				{ start: '2026-03-10T19:00:00.000+08:00', end: '2026-03-11T05:30:00.000+08:00' }
+			]
+		}),
+		nightScheduled()
+	);
+	assert.equal(late.hours, 0.5, 'only the clock-out past the shift end is overtime');
+	assert.equal(late.totalWorkHours, 8.5, 'and the total is counted from the shift start');
 });
 
 test('a shift whose end reads before its start is carried forward even without the flag', () => {

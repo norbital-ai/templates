@@ -322,7 +322,7 @@
 				<Popover.Root>
 					<Popover.Trigger
 						type="button"
-						class="w-fit rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-sm font-medium hover:bg-amber-500/15"
+						class="w-fit text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
 						data-run-warnings
 					>
 						{t('component.run_warnings', { count: warnings.length })}

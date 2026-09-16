@@ -320,6 +320,29 @@
 									yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
 								yield* Effect.sync(() => saveCollectionExport(manifest));
 							})
+					},
+					{
+						id: 'catalogue-entries-xlsx',
+						label: t('app.payroll.export_catalogue_entries'),
+						description: t('app.payroll.export_catalogue_entries_description'),
+						requiresSelection: true,
+						run: ({ selectedRows }) =>
+							Effect.gen(function* () {
+								const manifest = yield* Effect.tryPromise({
+									try: () =>
+										downloadCollectionExport(
+											payrollRunsExportQuery(selectedRows.map((record) => record.id)),
+											{
+												includeAction: (action) =>
+													action.metadata?.kind === 'catalogue-entries-xlsx'
+											}
+										),
+									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+								});
+								if (manifest.length === 0)
+									yield* Effect.fail(new Error(t('app.payroll.export_catalogue_entries_error')));
+								yield* Effect.sync(() => saveCollectionExport(manifest));
+							})
 					}
 				]}
 				deletion={{
@@ -345,17 +368,6 @@
 						rendererProps={{
 							format: ({ row }: { row: { pay_date: unknown } }) =>
 								formatCalendarInstant(row.pay_date)
-						}}
-					/>
-					<Column
-						name="warnings"
-						label={t('app.payroll.warnings')}
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }: { row: { warnings: unknown } }) =>
-								typeof row.warnings === 'string' && row.warnings !== ''
-									? String(row.warnings.split('\n').length)
-									: '—'
 						}}
 					/>
 					<Column

@@ -186,6 +186,52 @@ const SECTION_LAYOUT: readonly {
 /** Where output ids no section ranks are collected, so a new id is never dropped. */
 const OTHER_SECTION_NAME = 'Other';
 
+/**
+ * The catalogue-entries report: what people requested and the run settled, by family — no salary,
+ * no absence, no statute. Same rows and identity block as the payroll workbook, fewer columns.
+ */
+const CATALOGUE_SECTIONS: readonly { readonly name: string; readonly family: string }[] = [
+	{ name: 'Allowances', family: 'ALLOWANCE' },
+	{ name: 'Claims', family: 'CLAIM' },
+	{ name: 'Loans', family: 'LOAN_REPAYMENT' },
+	{ name: 'Payments', family: 'PAYMENT' }
+];
+
+/** The per-row roll-up column of the catalogue-entries report. */
+const CATALOGUE_TOTAL_ID = 'total';
+
+/** One column per catalogue code these payslips settled, sectioned by family, then the roll-up. */
+export function catalogueGroups(payslips: readonly ReportPayslip[]): OutputSection[] {
+	const lines = payslips.flatMap((payslip) => payslip.lines);
+	const groups: OutputSection[] = [];
+	for (const section of CATALOGUE_SECTIONS) {
+		const outputIds = [
+			...new Set(
+				lines.filter((line) => line.family === section.family).map((line) => line.componentCode)
+			)
+		].toSorted();
+		if (outputIds.length > 0) groups.push({ name: section.name, unit: 'MONEY', outputIds });
+	}
+	return groups.length === 0
+		? []
+		: [...groups, { name: 'Total', unit: 'MONEY', outputIds: [CATALOGUE_TOTAL_ID] }];
+}
+
+/** One row per payslip over the catalogue columns, squared off with zeros, plus its roll-up. */
+export function catalogueRows(
+	payslips: readonly ReportPayslip[],
+	groups: readonly OutputSection[]
+): Record<string, number>[] {
+	const ids = groups.flatMap((group) => group.outputIds).filter((id) => id !== CATALOGUE_TOTAL_ID);
+	return payslips.map((payslip) => {
+		const row: Record<string, number> = Object.fromEntries(ids.map((id) => [id, 0]));
+		for (const line of payslip.lines)
+			if (line.componentCode in row) row[line.componentCode]! += line.amount;
+		row[CATALOGUE_TOTAL_ID] = ids.reduce((sum, id) => sum + row[id]!, 0);
+		return row;
+	});
+}
+
 /** The ids the layout names outright; `totalDeductions` is one, not a scheme's total. */
 const FIXED_IDS: ReadonlySet<string> = new Set(
 	SECTION_LAYOUT.flatMap((section) => section.outputIds ?? [])
@@ -203,9 +249,19 @@ const stem = (code: string): string =>
 		.map((word, index) => (index === 0 ? word : `${word[0]!.toUpperCase()}${word.slice(1)}`))
 		.join('');
 
+/**
+ * Schemes that are one fund in the report. Malaysia's EPF is three catalogue rows because the Third
+ * Schedule is three rate tables (Part A citizens, Part C permanent residents aged 60+, Part F
+ * non-citizens); a person only ever matches one, so the sheet shows one EPF column group.
+ */
+const REPORT_SCHEME: Readonly<Record<string, string>> = {
+	EPF_PR: 'EPF',
+	EPF_NON_CITIZEN: 'EPF'
+};
+
 /** What the workbook calls one role of one scheme: `epfEmployee`, `epfEmployer`, `totalEpf`, `epfGross`. */
 export function statutoryColumn(code: string, role: StatutoryRole): string {
-	const name = stem(code);
+	const name = stem(REPORT_SCHEME[code] ?? code);
 	switch (role) {
 		case 'employee':
 			return `${name}Employee`;

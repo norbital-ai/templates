@@ -35,7 +35,7 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{
@@ -153,7 +153,7 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{
@@ -270,7 +270,7 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{
@@ -389,7 +389,7 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
-					"take_hours": "normal_hours / 2.0",
+					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
 				},
 				{

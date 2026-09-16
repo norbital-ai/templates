@@ -1,4 +1,13 @@
-import { boolean, custom, defineModel, file, numeric, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	boolean,
+	custom,
+	defineModel,
+	file,
+	instant,
+	numeric,
+	sql,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /**
  * A standing allowance a person is paid: Bob's $100 transport allowance, monthly.
@@ -21,6 +30,15 @@ export default defineModel(
 		 * settles it; there is no separate override column.
 		 */
 		recurrence: custom('allowance_recurrence').notNull(),
+		/**
+		 * A one-off's day as a scalar instant, generated from the recurrence; null for a recurring
+		 * allowance. The event page splits the family on it and steps the one-offs by pay period,
+		 * which a JSON member cannot be ordered or ranged on. `bolt_instant` is the immutable
+		 * platform function `loans.effective_from` already anchors through.
+		 */
+		one_off_on: instant({ precision: 'day' }).generatedAlwaysAs(
+			sql`case when recurrence ->> 'kind' = 'ONE_OFF' then bolt_instant(recurrence ->> 'on') end`
+		),
 		/** The receipt. Required when the catalogue row's `evidence` says so. */
 		evidence_file: file(),
 		/** Settle this one against the direction its catalogue declares, rather than with it. */

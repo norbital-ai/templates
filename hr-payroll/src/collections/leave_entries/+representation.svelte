@@ -34,6 +34,7 @@
 <RecordShell
 	icon={record != null ? 'lucide:lock-keyhole' : undefined}
 	badge={record != null ? t('recordMetadata.readOnly') : undefined}
+	hint={record != null ? t('component.leave_entry_sealed_note') : undefined}
 >
 	<CollectionForm
 		{client}

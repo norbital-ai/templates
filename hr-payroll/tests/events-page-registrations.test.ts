@@ -16,7 +16,16 @@ const families = [
 for (const { page, family, employee } of families) {
 	test(`Controller ${page} registers one family table carrying contract, catalogue and payroll capture`, () => {
 		const text = source(`apps/hr_controller/events/+${page}.svelte`);
-		assert.deepEqual(registrations(text), ['CollectionTable']);
+		// Allowances split into a recurring table and a one-off table stepped by pay period; the
+		// one-off families are one table stepped the same way.
+		assert.deepEqual(
+			registrations(text),
+			family === 'allowance' ? ['CollectionTable', 'CollectionTable'] : ['CollectionTable']
+		);
+		assert.match(text, /createPayPeriodScope\(/);
+		assert.match(text, /gte: pay\.bounds\.start, lt: pay\.bounds\.end/);
+		if (family === 'allowance') assert.match(text, /one_off_on: \{ isNull: true \}/);
+		else assert.match(text, /pay_period: \{ eq: pay\.period \}/);
 		assert.match(text, new RegExp(`collection="${family}_requests"`));
 		assert.match(text, new RegExp(`${family}_request_employment:`));
 		assert.match(text, new RegExp(`${family}_request_${family}_catalogue:`));
