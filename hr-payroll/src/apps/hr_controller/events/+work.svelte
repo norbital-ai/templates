@@ -627,14 +627,14 @@
 	);
 	const boardHelp = $derived(t('app.scheduling.help_published'));
 
-	function importRoster() {
-		// No draft roster to land in: an assignment belongs to the company and the day, and the
-		// file states both on its Settings sheet. The pipeline refuses a file that does not.
+	function importWorkbook() {
+		// One file, two sheets: the roster and the time entries of one legal entity's month, stated on
+		// its Settings sheet. There is no draft roster to land in; the pipeline refuses a file that
+		// does not name its entity and month.
 		return runWorkbookImport(
 			{
 				collectionName: 'work_days',
-				recordLabel: t('component.roster_rows'),
-				// One file may carry both sheets; whichever it carries is what loads.
+				recordLabel: t('component.work_days'),
 				buildPayload: schedulingImportPayload
 			},
 			t
@@ -869,36 +869,6 @@
 	}
 
 	const swapEnabled = $derived(matrixMutationReady);
-
-	/* ────────────────────────────────────────────────────────────────────────────────────────────
-	 * ATTENDANCE IMPORT. Built already; it was only reachable from the wrong screen.
-	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
-
-	/**
-	 * A month of punches, landed on the board beside the roster import.
-	 *
-	 * Unlike the roster import this needs NO draft roster, and that is not an oversight: an
-	 * assignment belongs to a roster, and attendance belongs to nothing but the day. A month nobody
-	 * ever drafted still accepts its punches, which is the common case when a customer is
-	 * backfilling history — so there is no `getDisabledReason` here to match the roster import's.
-	 *
-	 * `expandTimeMonthGrid` collects every problem in the file and throws one `WorkbookImportError`
-	 * listing all of them, so a 300-person sheet is corrected once and re-imported once.
-	 *
-	 * Both imports name the same collection, because both sheets describe the same person-day. The
-	 * pipeline dispatches on the payload's own `sheet` tag, and a punch landing on a day the roster
-	 * import already wrote is an update of that day rather than a refusal.
-	 */
-	function importAttendance() {
-		return runWorkbookImport(
-			{
-				collectionName: 'work_days',
-				recordLabel: t('component.work_days'),
-				buildPayload: schedulingImportPayload
-			},
-			t
-		);
-	}
 </script>
 
 {#snippet companyScopeActions()}
@@ -942,9 +912,9 @@
 	matching person-day keeps its person on screen and the board still shows that person's complete
 	month, so a filter narrows the roster without stripping away the calendar context.
 
-	Import is an ordinary import pipeline, which is what lets it state its own refusal. A roster
-	file states its legal entity and month on its Settings sheet; an attendance file states its
-	timezone the same way.
+	Import is an ordinary import pipeline, which is what lets it state its own refusal. The one
+	workbook carries the roster and the time entries as two sheets; its Settings sheet states the
+	legal entity, the month and the timezone.
 -->
 {#snippet boardToolbar()}
 	<CollectionActionToolbar
@@ -956,20 +926,11 @@
 		operations={{
 			importPipelines: [
 				{
-					id: 'roster-workbook',
+					id: 'scheduling-workbook',
 					label: t('app.scheduling.import'),
 					description: t('app.scheduling.import_title', { month: calendarMonth }),
 					icon: 'lucide:upload',
-					run: importRoster
-				},
-				{
-					// No `getDisabledReason`. Attendance belongs to the day, not to a roster, so a month
-					// that was never drafted still takes its punches — see `importAttendance`.
-					id: 'attendance-workbook',
-					label: t('app.scheduling.import_attendance'),
-					description: t('app.scheduling.import_attendance_description', { month: calendarMonth }),
-					icon: 'lucide:clock-arrow-up',
-					run: importAttendance
+					run: importWorkbook
 				}
 			]
 		}}
