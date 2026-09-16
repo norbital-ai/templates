@@ -121,7 +121,27 @@ const attendanceImportSchema = Schema.Struct({
 });
 type AttendanceImport = Schema.Schema.Type<typeof attendanceImportSchema>;
 
-const importSchema = Schema.Union([rosterImportSchema, attendanceImportSchema]);
+const workbookImportSchema = Schema.Struct({
+	sheet: Schema.Literal('WORKBOOK'),
+	roster: Schema.Struct({
+		legal_entity: Schema.optional(trimmedNonEmpty),
+		month: Schema.optional(trimmedNonEmpty),
+		rows: Schema.Array(rosterRowSchema)
+	}),
+	attendance: Schema.Struct({
+		timezone: trimmedNonEmpty,
+		legal_entity: Schema.optional(trimmedNonEmpty),
+		month: Schema.optional(trimmedNonEmpty),
+		rows: Schema.Array(attendanceRowSchema)
+	})
+});
+type WorkbookImport = Schema.Schema.Type<typeof workbookImportSchema>;
+
+const importSchema = Schema.Union([
+	rosterImportSchema,
+	attendanceImportSchema,
+	workbookImportSchema
+]);
 
 /** One stored person-day, reduced to what an import has to decide about it. */
 
@@ -158,7 +178,8 @@ type PeriodStateRow<Values extends object> = Readonly<{
 function replacePeriodState<Values extends object>(
 	api: Api,
 	options: {
-		readonly half: 'PLAN' | 'CLOCK';
+		/** Which half the file carries; `BOTH` is the whole day and keeps nothing it does not name. */
+		readonly half: 'PLAN' | 'CLOCK' | 'BOTH';
 		readonly companies: ReadonlyMap<string, PayGridCompany>;
 		readonly rows: readonly PeriodStateRow<Values>[];
 	}
@@ -248,7 +269,11 @@ function replacePeriodState<Values extends object>(
 		for (const day of inSpan) {
 			if (fileKeys.has(personDayKey(day.employment_id, dateKey(day.work_date) ?? ''))) continue;
 			const keepsOtherHalf =
-				options.half === 'PLAN' ? day.worked_intervals != null : day.shift_definition_id != null;
+				options.half === 'BOTH'
+					? false
+					: options.half === 'PLAN'
+						? day.worked_intervals != null
+						: day.shift_definition_id != null;
 			if (!keepsOtherHalf) {
 				deletes.push(day.id);
 				continue;
@@ -275,7 +300,7 @@ function replacePeriodState<Values extends object>(
 		// A roster sheet states a roster of record: every person-cycle the file touches has one,
 		// created here when it has none. The days the file leaves out of a cycle are what a run then
 		// refuses as an incomplete roster.
-		if (options.half === 'PLAN') yield* rostersOfRecord(api, options);
+		if (options.half !== 'CLOCK') yield* rostersOfRecord(api, options);
 		return [
 			...personDayMutations(
 				existing,
@@ -409,7 +434,8 @@ function formatRosterRows(rows: readonly RosterRow[]): string[] {
 	return rows.map((row) => `${row.employee_number} on ${row.work_date}`);
 }
 
-function importRosterMonth(payload: RosterImport, api: Api) {
+/** The roster sheet, validated into the period-state rows it replaces, and the entity they belong to. */
+function prepareRosterMonth(payload: RosterImport, api: Api) {
 	return Effect.gen(function* () {
 		const { legal_entity: legalEntity, month: fileMonth, rows } = payload;
 		// A roster import states its own legal entity and month on the Settings sheet: there is no
@@ -536,8 +562,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		// made a whole imported month indistinguishable from an operator's ad hoc edits. The note is
 		// an optional column of the long-form sheet, so a file that carries one carries it through
 		// rather than having it read and discarded.
-		return yield* replacePeriodState(api, {
-			half: 'PLAN',
+		return {
 			companies: new Map([[company.id, company]]),
 			rows: assignments.map((row) => {
 				const code = codeByName.get(row.shift_code);
@@ -554,7 +579,14 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 					}
 				};
 			})
-		});
+		};
+	});
+}
+
+function importRosterMonth(payload: RosterImport, api: Api) {
+	return Effect.gen(function* () {
+		const prepared = yield* prepareRosterMonth(payload, api);
+		return yield* replacePeriodState(api, { half: 'PLAN', ...prepared });
 	});
 }
 
@@ -647,7 +679,8 @@ function attendanceValues(row: AttendanceRow, timeZone: string) {
 	};
 }
 
-function importAttendanceMonth(payload: AttendanceImport, api: Api) {
+/** The time-entries sheet, validated into the period-state rows it replaces, by each contract's entity. */
+function prepareAttendanceMonth(payload: AttendanceImport, api: Api) {
 	return Effect.gen(function* () {
 		const { timezone, legal_entity: legalEntity, month: fileMonth, rows } = payload;
 		yield* assertValidTimeZone(timezone);
@@ -800,8 +833,7 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			}
 		}
 
-		return yield* replacePeriodState(api, {
-			half: 'CLOCK',
+		return {
 			companies: companyById,
 			rows: rows.map((row) => ({
 				employmentId: contractFor(row).id,
@@ -810,6 +842,55 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 				who: row.employee_number,
 				values: attendanceValues(row, timezone)
 			}))
+		};
+	});
+}
+
+function importAttendanceMonth(payload: AttendanceImport, api: Api) {
+	return Effect.gen(function* () {
+		const prepared = yield* prepareAttendanceMonth(payload, api);
+		return yield* replacePeriodState(api, { half: 'CLOCK', ...prepared });
+	});
+}
+
+/**
+ * One workbook carrying both sheets is the whole state of the period: plan and clock together,
+ * every person-day either sheet names, and nothing else. A day only the roster names has no
+ * clock; a day only the time entries name has no plan; a stored day neither names goes.
+ */
+function importWorkbookMonth(payload: WorkbookImport, api: Api) {
+	return Effect.gen(function* () {
+		const [roster, attendance] = yield* Effect.all(
+			[
+				prepareRosterMonth({ ...payload.roster, sheet: 'ROSTER' }, api),
+				prepareAttendanceMonth({ ...payload.attendance, sheet: 'ATTENDANCE' }, api)
+			],
+			{ concurrency: 'unbounded' }
+		);
+		const blankPlan = {
+			shift_definition_id: null,
+			assignment_code: null,
+			planned_origin: 'IMPORT' as const
+		};
+		const blankClock = { worked_intervals: null, break_minutes: 0 };
+		const merged = new Map<string, PeriodStateRow<Record<string, unknown>>>();
+		for (const row of roster.rows)
+			merged.set(personDayKey(row.employmentId, row.workDate), {
+				...row,
+				values: { ...blankClock, ...row.values }
+			});
+		for (const row of attendance.rows) {
+			const key = personDayKey(row.employmentId, row.workDate);
+			const planned = merged.get(key);
+			merged.set(key, {
+				...row,
+				values: { ...blankPlan, ...(planned?.values ?? {}), ...row.values }
+			});
+		}
+		return yield* replacePeriodState(api, {
+			half: 'BOTH',
+			companies: new Map([...roster.companies, ...attendance.companies]),
+			rows: [...merged.values()]
 		});
 	});
 }
@@ -817,12 +898,13 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 export default {
 	import: {
 		description:
-			'Loads one month of person-days for one legal entity, from either sheet of the scheduling workbook: the Roster sheet loads planned roster-code assignments, and the Time entries sheet loads local attendance punches as generic worked intervals. The file is the state of the assessment period it covers (the half-month or cutoff window of the legal entity): on the half that sheet carries, every person-day of that entity in the period is replaced by the file, and a day the file omits loses that half. The half the other sheet carries is never touched. A period a payroll run has already taken into account is refused until that run is deleted. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
+			'Loads one month of person-days for one legal entity from the scheduling workbook: the Roster sheet loads planned roster-code assignments, the Time entries sheet loads local attendance punches as generic worked intervals, and a workbook carrying both loads both as one state. The file is the state of the assessment period it covers (the half-month or cutoff window of the legal entity): on the half a sheet carries, every person-day of that entity in the period is replaced by the file, and a day the file omits loses that half; with both sheets, a day neither names goes. The half a single sheet does not carry is never touched. A period a payroll run has already taken into account is refused until that run is deleted. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
 				const payload = Schema.decodeUnknownSync(importSchema)(input);
 				if (payload.sheet === 'ROSTER') return yield* importRosterMonth(payload, api);
+				if (payload.sheet === 'WORKBOOK') return yield* importWorkbookMonth(payload, api);
 				return yield* importAttendanceMonth(payload, api);
 			})
 	}

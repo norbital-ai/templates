@@ -27,10 +27,7 @@
 	import { Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
-	import {
-		attendanceImportPayload,
-		rosterImportPayload
-	} from '../../../collections/work_days/lib/import-workbook.js';
+	import { schedulingImportPayload } from '../../../collections/work_days/lib/import-workbook.js';
 	import {
 		PAYROLL_TIME_ZONE,
 		monthWorkDateInstantBounds,
@@ -637,7 +634,8 @@
 			{
 				collectionName: 'work_days',
 				recordLabel: t('component.roster_rows'),
-				buildPayload: (grids) => rosterImportPayload(grids)
+				// One file may carry both sheets; whichever it carries is what loads.
+				buildPayload: schedulingImportPayload
 			},
 			t
 		);
@@ -896,7 +894,7 @@
 			{
 				collectionName: 'work_days',
 				recordLabel: t('component.work_days'),
-				buildPayload: attendanceImportPayload
+				buildPayload: schedulingImportPayload
 			},
 			t
 		);

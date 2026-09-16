@@ -50,7 +50,7 @@ import {
 	nightWindowHours,
 	type DailyOvertime
 } from '../../collections/payroll_runs/lib/overtime.js';
-import { priceWorkDay, type WorkBandDay } from './work-bands.js';
+import { INCENTIVE_LINE, OVERTIME_LINE, priceWorkDay, type WorkBandDay } from './work-bands.js';
 import {
 	absenceDayRate,
 	ordinaryDayWage,
@@ -563,7 +563,7 @@ export function prepareWorkContext(
 
 /** Price Work attendance using the money families' prepared period totals for wage coverage. */
 export function calculateWorkAttendance(
-	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration'> & {
+	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'priorOvertimeHours'> & {
 		readonly work: ReturnType<typeof prepareWorkContext>;
 		readonly entryTotalByComponentId: ReadonlyMap<string, number>;
 	}
@@ -660,8 +660,10 @@ export function calculateWorkAttendance(
 				(day) => day.date >= overtimeAttendance.start && day.date <= overtimeAttendance.end
 			)
 		: [];
+	// The regulated-overtime ceiling governs the overtime the Act pays. A salaried engineer outside
+	// the overtime rule has no regulated hours to cap, so the ceiling is not reported against them.
 	const calendarMonthOvertimeHours = new Map<string, number>();
-	for (const day of overtimeDays) {
+	for (const day of paymentEligible ? overtimeDays : []) {
 		if (day.dayType !== 'ORDINARY' && day.dayType !== 'OFF_DAY') continue;
 		const calendarMonth = monthKey(day.date);
 		calendarMonthOvertimeHours.set(
@@ -737,14 +739,23 @@ export function calculateWorkAttendance(
 						: [];
 				});
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
-	const adjustments = [
-		...measureWorkBands({
+	const capped = funnelMonthlyOvertime({
+		rows: measureWorkBands({
 			work: configuration.work,
 			person: subject,
 			days: pricedBandDays,
 			rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage },
 			catalogueComponents: configuration.catalogueComponents
 		}),
+		days: pricedBandDays,
+		limits: configuration.limits,
+		prior: options.priorOvertimeHours ?? new Map(),
+		catalogueComponents: configuration.catalogueComponents
+	});
+	for (const [month, hours] of capped.funnelledHours)
+		calendarMonthOvertimeHours.set(month, (calendarMonthOvertimeHours.get(month) ?? 0) - hours);
+	const adjustments = [
+		...capped.rows,
 		...(nightPremium == null
 			? []
 			: measureNightPremium({
@@ -1138,6 +1149,78 @@ function measureWorkBands(options: {
 		}
 	}
 	return rows;
+}
+
+/**
+ * The monthly overtime ceiling is a funnel, not a refusal: regulated overtime beyond the cap in a
+ * calendar month is paid as incentive at the band's own multiple, exactly as a day's hours past
+ * the daily ceiling are. The cap counts the month's earlier paid runs first, so a window that
+ * straddles two months continues each month from where the last run left it.
+ */
+export function funnelMonthlyOvertime(options: {
+	readonly rows: readonly MeasuredAdjustment[];
+	readonly days: readonly WorkBandDay[];
+	readonly limits: Configuration['limits'];
+	readonly prior: ReadonlyMap<string, number>;
+	readonly catalogueComponents: readonly CatalogueComponent[];
+}): { readonly rows: MeasuredAdjustment[]; readonly funnelledHours: ReadonlyMap<string, number> } {
+	const limit = options.limits.find(
+		(candidate) => candidate.period === 'MONTH' && candidate.measure === 'OVERTIME_HOURS'
+	);
+	if (limit == null) return { rows: [...options.rows], funnelledHours: new Map() };
+	const maxHours = decodeNumber(limit.max_hours);
+	const dateOf = new Map(options.days.map((day) => [day.workDayId, day.date]));
+	const incentiveFor = (label: string) => {
+		const component = options.catalogueComponents.find(
+			(row) => row.family === 'WORK' && row.output === `${INCENTIVE_LINE}:${label}`
+		);
+		if (component == null)
+			throw new Error(
+				`The monthly overtime ceiling funnels ${label} hours to ${INCENTIVE_LINE} ${label}, which has no pay item to settle under.`
+			);
+		return component;
+	};
+	const running = new Map<string, number>();
+	const funnelled = new Map<string, number>();
+	const rows: MeasuredAdjustment[] = [];
+	const ordered = options.rows
+		.map((row, index) => ({ row, index, date: dateOf.get(row.input.id) ?? '' }))
+		.toSorted((left, right) => left.date.localeCompare(right.date) || left.index - right.index);
+	for (const { row, date } of ordered) {
+		const overtime =
+			row.input.family === 'WORK_DAY' &&
+			row.catalogueComponent.output?.startsWith(`${OVERTIME_LINE}:`) === true &&
+			row.quantity != null &&
+			row.quantity > 0 &&
+			date !== '';
+		if (!overtime) {
+			rows.push(row);
+			continue;
+		}
+		const month = monthKey(date);
+		const before = running.get(month) ?? options.prior.get(month) ?? 0;
+		const hours = row.quantity!;
+		const excess = Math.min(hours, Math.max(0, before + hours - maxHours));
+		running.set(month, before + hours);
+		if (excess <= 0) {
+			rows.push(row);
+			continue;
+		}
+		funnelled.set(month, (funnelled.get(month) ?? 0) + excess);
+		const incentive = incentiveFor(row.label);
+		const excessAmount = cents((row.amount * excess) / hours);
+		if (hours - excess > 0)
+			rows.push({ ...row, quantity: hours - excess, amount: cents(row.amount - excessAmount) });
+		rows.push({
+			...row,
+			catalogueComponent: incentive,
+			bucket: settlementBucket(incentive.destination, incentive.direction),
+			quantity: excess,
+			amount: excessAmount,
+			statutoryRuleKey: `${INCENTIVE_LINE}:${row.label}`
+		});
+	}
+	return { rows, funnelledHours: funnelled };
 }
 
 export function prepareWorkSteps(

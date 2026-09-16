@@ -229,6 +229,8 @@ export type MeasureEmploymentOptions = {
 	readonly yearEarned: ReadonlyMap<string, number>;
 	/** Calculate a deferred period's wages without settling manual money again. */
 	readonly deferredWagesOnly?: boolean;
+	/** Regulated overtime hours earlier PAID payslips settled, by calendar month: the cap counts them. */
+	readonly priorOvertimeHours?: ReadonlyMap<string, number>;
 };
 
 export type Measurement = {

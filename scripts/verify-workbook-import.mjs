@@ -253,7 +253,9 @@ function rosterApi(overrides = {}) {
 			}
 		],
 		work_days: overrides.existingDays ?? [],
-		rosters: overrides.rosters ?? []
+		rosters: overrides.rosters ?? [],
+		// The whole-workbook case runs the attendance arm too, which reads approved leave.
+		leave_entries: overrides.leaveEntries ?? []
 	});
 }
 
@@ -293,9 +295,10 @@ const program = Effect.gen(function* () {
 	);
 
 	const verification = Effect.gen(function* () {
-		const { attendanceImportPayload, rosterImportPayload } = yield* tryPromise(() =>
-			vite.ssrLoadModule('/src/collections/work_days/lib/import-workbook.ts')
-		);
+		const { attendanceImportPayload, rosterImportPayload, schedulingImportPayload } =
+			yield* tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/work_days/lib/import-workbook.ts')
+			);
 		const { workbookGrids, csvGrid } = yield* tryPromise(() =>
 			vite.ssrLoadModule('/src/lib/workbook-rows.ts')
 		);
@@ -713,6 +716,61 @@ const program = Effect.gen(function* () {
 				assignment_code: undefined
 			}
 		]);
+
+		// ── One workbook, both sheets: the whole state of the period ──────────────────────────────────
+		const wholeGrids = yield* gridsOf([
+			['Read me first', README],
+			['Settings', [...ROSTER_SETTINGS_ROWS, ['timezone', 'Asia/Kuala_Lumpur']]],
+			['Roster', [ROSTER_HEADERS, ...ROSTER_ROWS]],
+			['Time entries', [TIME_ENTRY_HEADERS, ...TIME_ENTRY_ROWS]]
+		]).pipe(Effect.map(workbookGrids));
+		const wholePayload = schedulingImportPayload(wholeGrids);
+		assert.equal(wholePayload.sheet, 'WORKBOOK', 'both sheets present load as one state');
+		assert.equal(wholePayload.roster.rows.length, 8);
+		assert.equal(wholePayload.attendance.rows.length, 5);
+		const wholeApi = rosterApi({
+			existingDays: [
+				{
+					id: 'day:stale-both',
+					employment_id: 'employment:2',
+					work_date: '2026-05-20',
+					shift_definition_id: 'shift:75',
+					worked_intervals: [{ start: '2026-05-20T00:30:00.000Z', end: '2026-05-20T09:30:00.000Z' }]
+				}
+			]
+		});
+		const whole = yield* runHandler(
+			runHandlerCall(() => workDayPipeline.import.handler({ input: wholePayload }, wholeApi))
+		);
+		const plannedAndClocked = whole.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04'
+		);
+		assert.equal(
+			plannedAndClocked.shift_definition_id,
+			'shift:75',
+			'the roster half rides the row'
+		);
+		assert.equal(plannedAndClocked.worked_intervals.length, 1, 'the clock half rides the same row');
+		const plannedOnly = whole.find(
+			(row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-01'
+		);
+		assert.equal(plannedOnly.worked_intervals, null, 'a day only the roster names has no clock');
+		assert.equal(
+			whole.filter((row) => row.employment_id === 'employment:2' && row.work_date === '2026-05-04')
+				.length,
+			1,
+			'one person-day is one row, never one per sheet'
+		);
+		assert.deepEqual(
+			wholeApi.deleted.work_days,
+			['day:stale-both'],
+			'a stored day neither sheet names goes, plan and clock alike'
+		);
+		assert.equal(
+			schedulingImportPayload(yield* rosterGrids(ROSTER_ROWS)).sheet,
+			'ROSTER',
+			'a lone Roster sheet still loads its own half'
+		);
 
 		// ── The time-entry workbook ────────────────────────────────────────────────────────────────────
 		const timePayload = attendanceImportPayload(yield* timeEntryGrids(TIME_ENTRY_ROWS));
