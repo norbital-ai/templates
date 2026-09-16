@@ -37,6 +37,28 @@ whose NOT APPLIED items cite the row numbers below.
 | `loans`, `loan_repayments`                                    | agreement with principal and range; dated instalments                                                                                                                                                                                                         |
 | `payroll_runs`, `payslips`                                    | the frozen run and its slips: base, proration, statutory charges, adjustments, gross, deductions, net, employer cost, status, paid_at                                                                                                                         |
 
+Behaviour notes, 2026-09-16 (customer rules from OPS HR, Jul 2026):
+
+- **One assessment date per entity.** `pay_cutoff_day` opens the cycle for attendance, overtime,
+  unpaid leave and every catalogue entry alike; a cutoff of 1 is the calendar month. Nihon 21
+  (matches its 21st–20th OT/NPL window; salary month stays the calendar month), OPSPH 21 with
+  1st–15th / 16th–end halves, KDIT 21 (its own OT window is the 16th–15th; overtime clocked on the
+  16th–20th settles one cycle later than KDIT's listing). Joiners after the cutoff are deferred and
+  paid as arrears in their first run; a leaver settles to the exit date in the current run.
+- **Not modelled:** Nihon's "extended unpaid leave deducts through month end in the current
+  payroll" (the cutoff applies instead); OPSPH's "bi-monthly employees' 21st–month-end NPL deducted
+  in the next mid-month run" (halves apply instead).
+- **Overtime ceilings are funnels.** Hours past the daily total limit and, since today, past the
+  monthly regulated-overtime cap (104 h in Malaysia, counting the month's earlier paid runs) are
+  paid as INCENTIVE at the band's own multiple. Daily, weekly, spread and rest-day rules refuse at
+  the schedule gate (shift pattern and roster writes), not at payroll.
+- **The scheduling workbook is a set operation.** A file replaces every person-day of the
+  assessment period on the half it carries; a workbook carrying both sheets replaces plan and
+  clock together and deletes every stored day it does not name. Any day a payslip has taken into
+  account refuses the whole file until that run is deleted.
+- **A recurring allowance is one standing row and one materialised row per period**, each
+  materialised row pinned to its own payslip; the standing row is never pinned itself.
+
 ### 1.2 Expression context, by site
 
 - **person** (eligibility, `when`, wages.applies_when): employee.gender, age, citizenship,

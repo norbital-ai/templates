@@ -218,7 +218,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		bundle,
 		configuration,
 		work,
-		entryTotalByComponentId
+		entryTotalByComponentId,
+		priorOvertimeHours: options.priorOvertimeHours
 	});
 	const { overtimeDays, calendarMonthOvertimeHours, nightShiftHours } = workAttendance;
 	const measuredLeave = calculateLeavePayroll({
@@ -887,7 +888,8 @@ export function calculateFamilyAssessments(options: {
 			periodsRemaining: projection.payslipsRemaining,
 			headcount: gathered.headcount,
 			consumedEntries: gathered.consumedEntries,
-			yearEarned
+			yearEarned,
+			priorOvertimeHours: gathered.priorOvertimeHours.get(bundle.employment.employee_id)
 		});
 
 		// What the family measurements said about requests they read and paid nothing for. Warnings:

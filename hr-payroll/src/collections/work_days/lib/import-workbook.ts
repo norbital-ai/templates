@@ -214,3 +214,23 @@ export function attendanceImportPayload(grids: WorkbookGrids): AttendanceImportP
 		rows
 	};
 }
+
+/**
+ * The whole scheduling workbook, whichever sheets it carries: both together load as one state
+ * of the period, a lone Roster or Time entries sheet loads its own half, as before.
+ */
+export function schedulingImportPayload(grids: WorkbookGrids) {
+	const hasRoster = grids.has(ROSTER_SHEET_NAME);
+	const hasAttendance = grids.has(ATTENDANCE_SHEET_NAME);
+	if (hasRoster && hasAttendance) {
+		const { sheet: _roster, ...roster } = rosterImportPayload(grids);
+		const { sheet: _attendance, ...attendance } = attendanceImportPayload(grids);
+		return { sheet: 'WORKBOOK' as const, roster, attendance };
+	}
+	if (hasRoster) return rosterImportPayload(grids);
+	if (hasAttendance) return attendanceImportPayload(grids);
+	throw new WorkbookImportError(
+		`This file has neither a "${ROSTER_SHEET_NAME}" nor a "${ATTENDANCE_SHEET_NAME}" sheet.`,
+		['Start from the scheduling workbook template, which carries both.']
+	);
+}
