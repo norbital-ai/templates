@@ -153,6 +153,20 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 			(text) => /Salary month/.test(text),
 			'period-preview'
 		);
+		// Watch the runs table from the moment of the click: the first time the new period is in it,
+		// it must already carry its payslips. An engine-authored create is not painted from the
+		// browser's own input — that was an empty run, "0/0 paid", twenty seconds before its slips.
+		await page.evaluate(`(() => {
+			window.__firstRunRow = null;
+			const region = document.querySelector('[aria-label="Collection table rows"]') ?? document.body;
+			const look = () => {
+				if (window.__firstRunRow !== null) return;
+				const line = (region.innerText ?? '').split('\\n').find((row) => /2026-02/.test(row));
+				if (line !== undefined) window.__firstRunRow = line;
+			};
+			new MutationObserver(look).observe(region, { subtree: true, childList: true, characterData: true });
+			look();
+		})()`);
 		await page.click('[role="dialog"] button:text-is("Create payroll run")');
 		// The sheet closes on its own once the write settles…
 		await waitFor(
@@ -170,6 +184,13 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 			(text) => /2026-02/.test(text) && /\d+\/\d+ paid/.test(text),
 			'run-in-table',
 			30_000
+		);
+		const firstRow = String(await page.evaluate('String(window.__firstRunRow)'));
+		assert.match(firstRow, /2026-02/, 'the observer saw the run row arrive');
+		assert.doesNotMatch(
+			firstRow,
+			/\b0\/0 paid/,
+			`the run appeared before its payslips: ${firstRow}`
 		);
 		assert.equal(await page.evaluate('JSON.stringify(window.__payrollErrors)'), '[]');
 	} finally {

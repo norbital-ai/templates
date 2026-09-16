@@ -40,10 +40,19 @@
 	const companiesUnknown = $derived(companiesUnknownOf());
 	/** The pay period the one-off entries are stepped by, in the entity's own grammar. */
 	const pay = createPayPeriodScope(() => companyById(selectedCompanyId));
+	/** The open tab: what a request created from this page is, before anyone touches the form. */
+	let tab = $state('recurring');
 	/** The scope the create form this page opens is drawn against. See `+claims.svelte`. */
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		companyId: () => selectedCompanyId ?? undefined,
-		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined
+		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined,
+		allowanceRecurrence: () => {
+			const start = pay.window?.start;
+			if (start == null) return undefined;
+			return tab === 'one-off'
+				? { kind: 'ONE_OFF', on: start }
+				: { kind: 'RECURRING', from: start, to: null };
+		}
 	});
 
 	type AllowanceRow = WorkspaceRow<'allowance_requests'> & {
@@ -80,6 +89,7 @@
 	{:else}
 		{#key selectedCompanyId}
 			<Tabs
+				bind:value={tab}
 				animate={false}
 				contentPadding={false}
 				config={[

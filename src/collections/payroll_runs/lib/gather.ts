@@ -426,25 +426,43 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		};
 
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-		const {
-			allowanceConfigurations,
-			allowanceMonthsByEmployment,
-			factsByEmployee,
-			loansByEmployment,
-			repaymentsByLoan,
-			workDaysByEmployment,
-			workHolidayEvidence
-		} = yield* prepareFamilyInputs({
-			api: options.api,
-			configuration: options.configuration,
-			employments,
-			requestsByEmployment,
-			cadenceByEmployment,
-			period,
-			periodWindow: { start: salary.start, end: salary.end },
-			window,
-			complianceSpan
-		});
+		// The prior settlement needs only the employees and the period, so it is read beside the
+		// family inputs rather than after them: on a network database every wave of reads is a
+		// round trip, and this one was three in a row at the end of the gather.
+		const [
+			{
+				allowanceConfigurations,
+				allowanceMonthsByEmployment,
+				factsByEmployee,
+				loansByEmployment,
+				repaymentsByLoan,
+				workDaysByEmployment,
+				workHolidayEvidence
+			},
+			prior
+		] = yield* Effect.all(
+			[
+				prepareFamilyInputs({
+					api: options.api,
+					configuration: options.configuration,
+					employments,
+					requestsByEmployment,
+					cadenceByEmployment,
+					period,
+					periodWindow: { start: salary.start, end: salary.end },
+					window,
+					complianceSpan
+				}),
+				gatherPriorSettlement({
+					api: options.api,
+					configuration: options.configuration,
+					period,
+					employeeIds,
+					companyId
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		const bundles: EmploymentBundle[] = [];
 		for (const employment of employments) {
 			const employee = employeeById.get(employment.employee_id);
@@ -495,18 +513,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			});
 		}
 
-		return {
-			bundles,
-			headcount,
-			workHolidayEvidence,
-			...(yield* gatherPriorSettlement({
-				api: options.api,
-				configuration: options.configuration,
-				period,
-				employeeIds,
-				companyId
-			}))
-		};
+		return { bundles, headcount, workHolidayEvidence, ...prior };
 	});
 }
 
