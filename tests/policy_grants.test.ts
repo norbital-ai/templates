@@ -571,7 +571,7 @@ test('the kiosk sees one app and may only key time entries and face enrollments'
 		assert.equal(grant.approval, undefined, `kiosk work_days.${coordinate} must not review`);
 	}
 	const [dayNew] = grantsFor(kiosk, 'work_days', 'mutate.new');
-	for (const field of ['shift_definition_id', 'assignment_code', 'planned_origin']) {
+	for (const field of ['shift_definition_id']) {
 		assert.equal(dayNew.fields.includes(field), false, `kiosk may not plan ${field}`);
 	}
 	assert.equal(may(kiosk, 'work_days', 'delete'), false, 'kiosk may not delete days');

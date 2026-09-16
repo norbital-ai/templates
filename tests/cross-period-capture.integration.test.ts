@@ -144,7 +144,6 @@ function withRecoverableLoan(world) {
 		row.worked_intervals = [
 			{ start: `${row.work_date}T07:30:00+08:00`, end: `${row.work_date}T16:30:00+08:00` }
 		];
-		row.break_minutes = 60;
 	}
 	world.loan_catalogue.push({
 		id: LOAN_COMPONENT_ID,

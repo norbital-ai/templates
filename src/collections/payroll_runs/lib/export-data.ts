@@ -37,6 +37,7 @@ import {
 	termPatternRow
 } from '../../../lib/scheduling/work-pattern.js';
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
+import { derivedBreakMinutes } from '../../../lib/scheduling/rest-break.js';
 import type { WorkspaceRow } from '../$types.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { payerAccountSchema, type PayerAccount } from './bank-formats.js';
@@ -83,12 +84,19 @@ type ExportLine = {
 	readonly family: FamilyPayItem['family'];
 };
 
-function timestampHours(row: WorkDayLike): number {
-	const elapsed = normalizedWorkedIntervals(row).reduce(
+function timestampHours(
+	row: Omit<WorkDayLike, 'break_minutes'>,
+	grantedBreakMinutes: number
+): number {
+	const clocked = {
+		...row,
+		break_minutes: derivedBreakMinutes(row.worked_intervals, grantedBreakMinutes)
+	};
+	const elapsed = normalizedWorkedIntervals(clocked).reduce(
 		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
 		0
 	);
-	return Math.max(0, elapsed - Math.max(0, decodeNumber(row.break_minutes)) / 60);
+	return Math.max(0, elapsed - clocked.break_minutes / 60);
 }
 
 /** Every roster code a pattern can project, so the shift definitions behind one can be loaded. */
@@ -349,7 +357,7 @@ export function loadRunExports(
 					const explicit = plannedByDate.get(date);
 					if (explicit?.shift_definition_id != null) {
 						const shift = shiftById.get(explicit.shift_definition_id);
-						return shift == null ? [] : [{ code: explicit.assignment_code ?? shift.code, shift }];
+						return shift == null ? [] : [{ date, code: shift.code, shift }];
 					}
 					// The pattern is the baseline only while the employment runs. Nobody is scheduled
 					// before they joined or after they left, and on those days there is no explicit row
@@ -364,8 +372,11 @@ export function loadRunExports(
 						patternAnchor(patternRow)
 					);
 					const shift = codeId == null ? null : shiftById.get(codeId);
-					return shift == null ? [] : [{ code: shift.code, shift }];
+					return shift == null ? [] : [{ date, code: shift.code, shift }];
 				});
+				const grantedBreakByDate = new Map(
+					scheduled.map((day) => [day.date, workWindow(day.shift.variant)?.break_minutes ?? 0])
+				);
 				const account = employment?.bank;
 				if (account == null) skipped.push(payslip.employment_id);
 				else
@@ -475,7 +486,15 @@ export function loadRunExports(
 									: total,
 							0
 						),
-						actualHours: runTimes.reduce((total, row) => total + timestampHours(row), 0),
+						actualHours: runTimes.reduce(
+							(total, row) =>
+								total +
+								timestampHours(
+									row,
+									grantedBreakByDate.get(requiredDateKey(row.work_date, 'work_days.work_date')) ?? 0
+								),
+							0
+						),
 						shiftCodes: [...new Set(scheduled.map((day) => day.code))].toSorted()
 					},
 					gross: decodeNumber(payslip.gross),

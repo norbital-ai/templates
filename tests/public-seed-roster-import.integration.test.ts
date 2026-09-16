@@ -13,9 +13,10 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import { workbookGrids, WorkbookImportError } from '../src/lib/workbook-rows.ts';
-import { rosterImportPayload } from '../src/collections/work_days/lib/import-workbook.ts';
+import { schedulingImportPayload } from '../src/collections/work_days/lib/import-workbook.ts';
 import {
 	COMPANY_ID,
+	EMPLOYMENT_ID,
 	JANUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
@@ -25,23 +26,44 @@ const ROSTER_SHEET_NAME = 'Roster';
 const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'] as const;
 const SETTINGS_SHEET_NAME = 'Settings';
 
-// A roster import states its own legal entity and month: there is no draft roster to attach it
-// to. The one valid patterned change below is REST-into-OFF on a Sunday — a single WORK-into-OFF
-// cell would break the month's WORK-day count against the pattern and the write-time
-// conformance check would refuse it before anything else is asked.
+/** Every day of a month, as YYYY-MM-DD. */
+const daysOf = (month: string): string[] => {
+	const [year, monthNumber] = month.split('-').map(Number) as [number, number];
+	const count = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+	return Array.from(
+		{ length: count },
+		(_, index) => `${month}-${String(index + 1).padStart(2, '0')}`
+	);
+};
+
+/**
+ * A roster of record covers every employed day of its month, so a person the sheet names is
+ * named on every day: the day under test carries its code, the rest OFF. PUB-EMP-0001 has been
+ * employed since 2021, so every day of the month is one the sheet must state.
+ */
+const wholeMonth = (
+	month: string,
+	employeeNumber: string,
+	assignments: Readonly<Record<string, string>> = {}
+): ReadonlyArray<readonly [string, string, string]> =>
+	daysOf(month).map((date) => [employeeNumber, date, assignments[date] ?? 'OFF'] as const);
+
 const rosterImportBody = (
 	month: string,
-	rows: ReadonlyArray<Readonly<Record<string, string>>>
+	rows: ReadonlyArray<readonly [string, string, string]>
 ) => ({
 	records: [
 		{
 			collection: 'work_days',
 			id: crypto.randomUUID(),
 			values: {
-				sheet: 'ROSTER',
 				legal_entity: 'Public Fixture Co',
 				month,
-				rows
+				roster: rows.map(([employee_number, work_date, shift_code]) => ({
+					employee_number,
+					work_date,
+					shift_code
+				}))
 			}
 		}
 	]
@@ -83,15 +105,19 @@ const rosterPayloadFromXlsx = async (
 	const bytes = await writeRosterXlsx(month, rows);
 	const loaded = new ExcelJS.Workbook();
 	await loaded.xlsx.load(bytes as never);
-	return rosterImportPayload(workbookGrids(loaded));
+	return schedulingImportPayload(workbookGrids(loaded));
 };
 
+const UNKNOWN_EMPLOYEE_SENTENCE =
+	'No approved employment contract covers PUB-EMP-9999 on 2026-03-04 in this legal entity.';
+
 /**
- * I3 / H4: public-valid roster import commits; public-invalid is 422 with the server sentence.
- * Client `04/05/2026` is refused by the workbook reader without regenerating an xlsx.
+ * I3 / H4: public-valid roster import commits the month and its roster of record; public-invalid
+ * is 422 with the server sentence. Client `04/05/2026` is refused by the workbook reader without
+ * regenerating an xlsx.
  */
 test(
-	'public seed roster import accepts PUB-EMP-0001 OFF and refuses unknown employee numbers',
+	'public seed roster import commits a whole month for PUB-EMP-0001 and refuses unknown employee numbers',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-i3-import');
@@ -101,13 +127,10 @@ test(
 			const valid = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.import',
-				rosterImportBody('2026-03', [
-					{
-						employee_number: 'PUB-EMP-0001',
-						work_date: '2026-03-01',
-						shift_code: 'OFF'
-					}
-				]),
+				rosterImportBody(
+					'2026-03',
+					wholeMonth('2026-03', 'PUB-EMP-0001', { '2026-03-01': 'REST' })
+				),
 				headers
 			);
 			assert.ok(
@@ -115,21 +138,31 @@ test(
 				`valid roster import ${valid.status}: ${JSON.stringify(valid.value)}`
 			);
 			const imported = asRecord(valid.value, 'collections.import').imported;
-			assert.ok(
-				typeof imported === 'number' && imported >= 1,
-				`expected imported ≥ 1, got ${JSON.stringify(valid.value)}`
+			assert.equal(imported, 31, `expected the whole month, got ${JSON.stringify(valid.value)}`);
+			const rosters = (await session.query('select period from rosters where employment_id = $1', [
+				EMPLOYMENT_ID
+			])) as ReadonlyArray<{ readonly period: string }>;
+			assert.deepEqual(
+				rosters.map((row) => row.period),
+				['2026-03'],
+				'the sheet names the person, so the month is their roster of record'
 			);
+
+			// A roster is whole or it is not one: a person named on one day is missing thirty.
+			const partial = await postGuestCommand(
+				session.host.baseUrl,
+				'collections.import',
+				rosterImportBody('2026-04', [['PUB-EMP-0001', '2026-04-01', 'OFF']]),
+				headers
+			);
+			assert.equal(partial.status, 422, JSON.stringify(partial.value));
+			assert.match(commandSentence(partial), /missing days in 2026-04/);
+			assert.match(commandSentence(partial), /PUB-EMP-0001: 2026-04-02, 2026-04-03/);
 
 			const invalid = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.import',
-				rosterImportBody('2026-03', [
-					{
-						employee_number: 'PUB-EMP-9999',
-						work_date: '2026-03-04',
-						shift_code: 'OFF'
-					}
-				]),
+				rosterImportBody('2026-03', [['PUB-EMP-9999', '2026-03-04', 'OFF']]),
 				headers
 			);
 			assert.equal(
@@ -137,10 +170,7 @@ test(
 				422,
 				`invalid roster import expected 422, got ${invalid.status}: ${JSON.stringify(invalid.value)}`
 			);
-			assert.equal(
-				commandSentence(invalid),
-				'No approved employment contract covers PUB-EMP-9999 on 2026-03-04 in this legal entity.'
-			);
+			assert.equal(commandSentence(invalid), UNKNOWN_EMPLOYEE_SENTENCE);
 		} finally {
 			await session.stop();
 		}
@@ -148,16 +178,17 @@ test(
 );
 
 test(
-	'public seed roster xlsx commits PUB-EMP-0001 OFF and refuses unknown employee numbers',
+	'public seed roster xlsx commits a whole month for PUB-EMP-0001 and refuses unknown employee numbers',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-t18-xlsx');
 		try {
 			const headers = bearerHeaders(session.credential);
 
-			const validPayload = await rosterPayloadFromXlsx('2026-03', [
-				['PUB-EMP-0001', '2026-03-01', 'OFF']
-			]);
+			const validPayload = await rosterPayloadFromXlsx(
+				'2026-03',
+				wholeMonth('2026-03', 'PUB-EMP-0001', { '2026-03-01': 'REST' })
+			);
 			const valid = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.import',
@@ -169,9 +200,10 @@ test(
 				`valid roster xlsx import ${valid.status}: ${JSON.stringify(valid.value)}`
 			);
 			const imported = asRecord(valid.value, 'collections.import').imported;
-			assert.ok(
-				typeof imported === 'number' && imported >= 1,
-				`expected imported ≥ 1 from xlsx, got ${JSON.stringify(valid.value)}`
+			assert.equal(
+				imported,
+				31,
+				`expected the whole month from xlsx, got ${JSON.stringify(valid.value)}`
 			);
 
 			const invalidPayload = await rosterPayloadFromXlsx('2026-03', [
@@ -188,10 +220,7 @@ test(
 				422,
 				`invalid roster xlsx import expected 422, got ${invalid.status}: ${JSON.stringify(invalid.value)}`
 			);
-			assert.equal(
-				commandSentence(invalid),
-				'No approved employment contract covers PUB-EMP-9999 on 2026-03-04 in this legal entity.'
-			);
+			assert.equal(commandSentence(invalid), UNKNOWN_EMPLOYEE_SENTENCE);
 		} finally {
 			await session.stop();
 		}
@@ -199,7 +228,7 @@ test(
 );
 
 test(
-	'public seed roster xlsx refuses a January day inside paid payroll 2026-01',
+	'public seed roster xlsx refuses a January month once January 2026 is paid',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-t18-lock');
@@ -239,9 +268,12 @@ test(
 				[COMPANY_ID, JANUARY_2026]
 			);
 
-			const payload = await rosterPayloadFromXlsx(JANUARY_2026, [
-				['PUB-EMP-0001', '2026-01-18', 'OFF']
-			]);
+			// The seed stores no January days, so the file's days are creates, and a create on a day
+			// inside a paid window is the `work_days` write hook's to refuse.
+			const payload = await rosterPayloadFromXlsx(
+				JANUARY_2026,
+				wholeMonth(JANUARY_2026, 'PUB-EMP-0001', { '2026-01-18': 'REST' })
+			);
 			const locked = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.import',
@@ -253,21 +285,26 @@ test(
 				422,
 				`locked January xlsx import expected 422, got ${locked.status}: ${JSON.stringify(locked.value)}`
 			);
-			assert.match(
-				commandSentence(locked),
-				/Importing roster on .* is refused: that day is inside paid payroll 2026-01/
-			);
+			assert.match(commandSentence(locked), /inside paid payroll 2026-01/);
 		} finally {
 			await session.stop();
 		}
 	}
 );
 
-test('rosterImportPayload refuses a slashed work_date without opening an xlsx', () => {
+test('schedulingImportPayload refuses a slashed work_date without opening an xlsx', () => {
 	assert.throws(
 		() =>
-			rosterImportPayload(
+			schedulingImportPayload(
 				new Map([
+					[
+						'Settings',
+						[
+							['Setting', 'Value'],
+							['legal_entity', 'Public Fixture Co'],
+							['month', '2026-05']
+						]
+					],
 					[
 						'Roster',
 						[

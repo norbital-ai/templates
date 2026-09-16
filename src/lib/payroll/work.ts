@@ -83,6 +83,7 @@ import {
 	type PatternWorkload
 } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
+import { derivedBreakMinutes } from '../scheduling/rest-break.js';
 import type {
 	Measurement,
 	MeasureComponentOptions,
@@ -138,7 +139,7 @@ export function prepareWorkCatalogue(options: {
 	});
 }
 
-/** Read current Work days, source-month allowance rosters, and their exact retained holiday evidence. */
+/** Read current Work days, the monthly rosters of record over the span, and source-month allowance rosters. */
 export function prepareWorkInputs(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly employmentIds: readonly string[];
@@ -148,7 +149,6 @@ export function prepareWorkInputs(options: {
 }): Effect.Effect<{
 	readonly workDaysByEmployment: ReadonlyMap<string, EmploymentBundle['workDays']>;
 	readonly rostersByEmployment: ReadonlyMap<string, EmploymentBundle['rosters']>;
-	readonly workHolidayEvidence: GatheredRun['workHolidayEvidence'];
 }> {
 	return Effect.gen(function* () {
 		const { complianceSpan, allowanceConfigurations, allowanceMonthsByEmployment } = options;
@@ -167,11 +167,15 @@ export function prepareWorkInputs(options: {
 					},
 					limit: PAGE_LIMIT
 				}),
-				// The rosters of record: one row per person-cycle, read beside the days they govern and
-				// narrowed to the span below — a person has at most a handful, so the filter is cheap.
+				// The rosters of record: one row per person-month. A cycle that straddles a month
+				// boundary reads the two months it spans.
 				db.rosters.findMany({
-					where: { employment_id: { in: [...options.employmentIds] }, ...approved },
-					columns: { employment_id: true, range: true, approval_id: true },
+					where: {
+						employment_id: { in: [...options.employmentIds] },
+						period: { in: monthsSpanned(complianceSpan) },
+						...approved
+					},
+					columns: { employment_id: true, period: true, approval_id: true },
 					limit: PAGE_LIMIT
 				})
 			],
@@ -180,16 +184,9 @@ export function prepareWorkInputs(options: {
 		options.api.reads.assertComplete(workDayRows, 'work days');
 		options.api.reads.assertComplete(rosterRows, 'rosters');
 		const rostersByEmployment = Map.groupBy(
-			live(rosterRows).flatMap((row) => {
-				const range = readRange(row.range);
-				const start = range == null ? null : dateKey(range.start);
-				const end = range?.end == null ? null : dateKey(range.end);
-				return start == null ||
-					end == null ||
-					end < complianceSpan.start ||
-					start > complianceSpan.end
-					? []
-					: [{ employment_id: row.employment_id, start, end }];
+			live(rosterRows).map((row) => {
+				const bounds = monthBounds(row.period);
+				return { employment_id: row.employment_id, start: bounds.start, end: bounds.end };
 			}),
 			(row) => row.employment_id
 		);
@@ -217,27 +214,6 @@ export function prepareWorkInputs(options: {
 		const workDays = new Map(
 			[...live(workDayRows), ...historicalWorkDays].map((row) => [row.id, row])
 		);
-		// A day that was classified as a holiday pins it; read those holidays back whole, published
-		// or not, because the pin is what the day was. An unpinned day takes whatever is published
-		// at the point of running.
-		const pinnedDays = [...workDays.values()].filter((row) => row.holiday_id != null);
-		const workHolidays = pinnedDays.length
-			? yield* db.jurisdiction_holidays.findMany({
-					where: {
-						id: { in: [...new Set(pinnedDays.map((row) => row.holiday_id!))] },
-						...approved
-					},
-					limit: PAGE_LIMIT
-				})
-			: [];
-		options.api.reads.assertComplete(workHolidays, 'Work holidays');
-		const holidayById = new Map(live(workHolidays).map((row) => [row.id, row]));
-		const workHolidayInputs = pinnedDays.map((row) => {
-			const holiday = holidayById.get(row.holiday_id!);
-			const date = requiredDateKey(row.work_date, 'work_days.work_date');
-			if (!holiday) refuse(`Work day ${date} pins a missing holiday.`);
-			return { company_id: holiday.company_id, date, holiday_id: holiday.id };
-		});
 		return {
 			workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
 			rostersByEmployment: new Map(
@@ -245,10 +221,19 @@ export function prepareWorkInputs(options: {
 					id,
 					rows.map(({ start, end }) => ({ start, end }))
 				])
-			),
-			workHolidayEvidence: { inputs: workHolidayInputs, holidays: live(workHolidays) }
+			)
 		};
 	});
+}
+
+/** Every calendar month a span touches, as YYYY-MM. */
+function monthsSpanned(span: PayRange): string[] {
+	const months: string[] = [];
+	for (let month = span.start.slice(0, 7); month <= span.end.slice(0, 7);) {
+		months.push(month);
+		month = addDays(monthBounds(month).end, 1).slice(0, 7);
+	}
+	return months;
 }
 
 function termsIdentity(terms: EmploymentBundle['terms'][number]): string {
@@ -600,8 +585,14 @@ export function calculateWorkAttendance(
 		if (!day) continue;
 		// Attendance is priced as it happened: the break rule belongs to the schedule gate
 		// (`work_rules.breaks`), not to the money.
+		// The break is derived, never stored: the shift's granted break less the gaps the punches
+		// already show. `deriveDailyOvertime` reads it off the entry like every other clock fact.
+		const clocked = {
+			...entry,
+			break_minutes: derivedBreakMinutes(entry.worked_intervals, day.shift?.break_minutes ?? 0)
+		};
 		const derived = deriveDailyOvertime(
-			entry,
+			clocked,
 			day,
 			configuration.breaks,
 			offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate)
@@ -615,7 +606,7 @@ export function calculateWorkAttendance(
 			workedHours: derived.totalWorkHours,
 			normalHours: derived.normalHours,
 			overtimeHours: derived.hours,
-			breakMinutes: decodeNumber(entry.break_minutes ?? 0),
+			breakMinutes: clocked.break_minutes,
 			rosterCode: day.shift?.code ?? '',
 			holidayKind: configuration.holidays.get(workDate)?.kind ?? '',
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
@@ -973,7 +964,10 @@ function measureWorkComponent(
 					? Math.min(
 							scheduledHours,
 							ordinaryWorkedHours(
-								actual,
+								{
+									...actual,
+									break_minutes: derivedBreakMinutes(intervals, shift.break_minutes)
+								},
 								shift,
 								offsetMinutesFor(options.configuration.jurisdiction.payroll.timezone, date)
 							) +

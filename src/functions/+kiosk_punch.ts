@@ -149,8 +149,7 @@ export default defineCommandHandler({
 					{
 						employment_id,
 						work_date: workDate,
-						worked_intervals: outcome.intervals,
-						break_minutes: 0
+						worked_intervals: outcome.intervals
 					}
 				]);
 			} else {

@@ -741,45 +741,17 @@ function priorOvertimeHours(options: {
 }
 
 import { sha256Json } from '@norbital-ai/std/reckon';
-import { configurationSnapshot } from '../../collections/payroll_runs/lib/configuration.js';
-import { resolveHolidayInputs } from '../holiday-inputs.js';
 import type { GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 export function finalizeFamilyConfiguration(
 	configuration: Configuration,
 	facts: GatheredRun,
 	window: PayrollWindow
 ) {
-	const withWorkHolidays = (source: Configuration, period: string): Configuration => {
-		if (facts.workHolidayEvidence.inputs.length === 0) return source;
-		const resolved = resolveHolidayInputs(
-			[
-				...new Map(
-					[...source.holidaySnapshots, ...facts.workHolidayEvidence.holidays].map((holiday) => [
-						holiday.id,
-						holiday
-					])
-				).values()
-			],
-			source.company.id,
-			source.holidayInputs.map((input) => input.date),
-			facts.workHolidayEvidence.inputs
-		);
-		const pinned = {
-			...source,
-			holidays: resolved.holidays,
-			holidaySnapshots: resolved.snapshots,
-			holidayInputs: resolved.inputs
-		};
-		return { ...pinned, hash: sha256Json(configurationSnapshot(pinned, period)) };
-	};
-	const current = withWorkHolidays(configuration, window.period);
-	// Source-month configurations are the run's evidence too: the same work-holiday pins reach them,
-	// and their calendars ride the run's holiday snapshot, so a payslip re-reads the days it paid.
+	const current = configuration;
+	// Source-month configurations are the run's evidence too: a payslip re-reads the days it paid.
 	const allowanceSources = new Map(
 		facts.bundles.flatMap((bundle) => [...(bundle.allowanceConfigurations ?? [])])
 	);
-	for (const [month, source] of allowanceSources)
-		allowanceSources.set(month, withWorkHolidays(source, month));
 	const gathered = {
 		...facts,
 		bundles: facts.bundles.map((bundle) =>

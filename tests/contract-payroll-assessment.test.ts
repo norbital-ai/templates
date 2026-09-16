@@ -34,7 +34,6 @@ function rehireWorld() {
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:00:00+08:00` }
 		];
-		day.break_minutes = 60;
 	}
 	world.allowance_requests.length = 0;
 	world.statutory_contributions.push({

@@ -45,8 +45,7 @@ const writeDays = (
 					id: crypto.randomUUID(),
 					employment_id: EMPLOYMENT_ID,
 					work_date: date,
-					shift_definition_id: shift,
-					planned_origin: 'MANUAL'
+					shift_definition_id: shift
 				}
 			}))
 		}),

@@ -108,10 +108,9 @@ The holidays surface is the entity's own, paginated a year at a time — a year'
 a time, and a table showing every year at once cannot be checked against a gazette.
 
 A holiday that has been read is history, and the freeze derives from the live references,
-not a stamp. A work day classified as a holiday pins it (`work_days.holiday_id`) and payroll
+not a stamp. Work days never link a holiday — the calendar is overlaid by date — and payroll
 captures the holidays it read on the run (`payroll_runs.holidays`); retracting a holiday
-(unpublish, moving its day or entity, delete) is refused while a run captures it, and
-otherwise the pinning days are re-saved — re-classified — while any Leave charge that names the
+(unpublish, moving its day or entity, delete) is refused while a run captures it, while any Leave charge that names the
 holiday refuses the change. A finished run is never touched by a holiday published later,
 and a holiday published after a run has no effect on that run. Observed substitute dates are
 their own rows with an `original_date`. Work applies explicit rest/holiday precedence without

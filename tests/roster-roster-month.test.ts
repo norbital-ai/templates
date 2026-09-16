@@ -98,7 +98,6 @@ test('A1: a local-midnight work_date still attaches the stored row to the calend
 				employment_id: EMPLOYMENT,
 				work_date: stored,
 				shift_definition_id: 'code-rest',
-				planned_origin: 'IMPORT',
 				worked_intervals: null
 			}
 		],
@@ -136,7 +135,6 @@ test('a rostered day nobody has punched has a row id and still no attendance', (
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-04',
 				shift_definition_id: 'code-a',
-				planned_origin: 'IMPORT',
 				worked_intervals: null
 			}
 		]
@@ -144,7 +142,6 @@ test('a rostered day nobody has punched has a row id and still no attendance', (
 	// The plan and the clock are one row now, so the id exists as soon as either half does — which
 	// is what makes recording a punch on a rostered day an update rather than a second row.
 	assert.equal(day.workDayId, 'day-plan');
-	assert.equal(day.plannedOrigin, 'IMPORT');
 	assert.equal(day.designation, 'WORK');
 	assert.equal(day.attendanceState, null);
 	assert.equal(day.breakMinutes, null);
@@ -159,8 +156,7 @@ test('an empty interval array is a day that was read, not a day nobody answered 
 				id: 'day-read',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-07',
-				worked_intervals: [],
-				break_minutes: 0
+				worked_intervals: []
 			}
 		]
 	}).get(`${EMPLOYMENT}:2026-08-07`);
@@ -170,14 +166,14 @@ test('an empty interval array is a day that was read, not a day nobody answered 
 	assert.equal(day.clockedIn, false);
 });
 
-test('a closed day reports worked minutes net of the unpaid break', () => {
+test('a closed day reports worked minutes net of the derived break', () => {
 	const day = month({
 		workDays: [
 			{
 				id: 'day-1',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-04',
-				break_minutes: 60,
+				shift_definition_id: 'code-a',
 				worked_intervals: [
 					{ start: '2026-08-04T00:16:00.000Z', end: '2026-08-04T04:30:00.000Z' },
 					{ start: '2026-08-04T05:00:00.000Z', end: '2026-08-04T09:10:00.000Z' }
@@ -186,9 +182,10 @@ test('a closed day reports worked minutes net of the unpaid break', () => {
 		]
 	}).get(`${EMPLOYMENT}:2026-08-04`);
 	assert.equal(day.workDayId, 'day-1');
-	assert.equal(day.breakMinutes, 60);
-	// 254 + 250 gross, less the 60-minute unpaid break.
-	assert.equal(day.workedMinutes, 444);
+	// The shift grants 60; the 30-minute gap between the punches is already visible, so 30 remain.
+	assert.equal(day.breakMinutes, 30);
+	// 254 + 250 gross, less the 30 minutes of break not already in the gap.
+	assert.equal(day.workedMinutes, 474);
 	assert.equal(day.attendanceState, 'CLOSED');
 });
 
@@ -199,7 +196,6 @@ test('an open punch reports no worked minutes at all', () => {
 				id: 'day-2',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-20',
-				break_minutes: 0,
 				worked_intervals: [{ start: '2026-08-20T00:02:00.000Z', end: null }]
 			}
 		]
@@ -217,7 +213,6 @@ test('Date-valued interval ends are levelled the same way string ones are', () =
 				id: 'day-3',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-05',
-				break_minutes: 30,
 				worked_intervals: [
 					{
 						start: new Date('2026-08-05T00:00:00.000Z'),
@@ -227,11 +222,11 @@ test('Date-valued interval ends are levelled the same way string ones are', () =
 			}
 		]
 	}).get(`${EMPLOYMENT}:2026-08-05`);
-	assert.equal(day.workedMinutes, 450);
+	assert.equal(day.workedMinutes, 480);
 	assert.equal(day.clockedIn, true);
 });
 
-test('a missing break column reads as no break, not as a missing entry', () => {
+test('a day with no shift derives no break', () => {
 	const day = month({
 		workDays: [
 			{
@@ -302,60 +297,29 @@ function span(startMinute, endMinute) {
 	};
 }
 
-test('a scheduled hour of break against a nineteen-minute day is clamped, not sent', () => {
-	const assessment = assessAttendanceDraft([span(0, 19)], 60);
-	assert.equal(assessment.closedMinutes, 19);
-	// Strictly below, because the hook refuses greater-OR-EQUAL.
-	assert.equal(assessment.maxBreakMinutes, 18);
-	assert.equal(assessment.breakMinutes, 18);
-	assert.equal(assessment.requestedBreakMinutes, 60);
-	// The clamp must be visible. A silently corrected break hides that the punch is the broken half.
-	assert.equal(assessment.breakClamped, true);
-	assert.equal(assessment.problem, null);
-	assert.equal(assessment.workedMinutes, 1);
-});
-
-test('a break that already fits is left exactly as the operator set it', () => {
+test('the break is the shift’s grant less the gaps already visible between the punches', () => {
 	const assessment = assessAttendanceDraft([span(0, 254), span(284, 534)], 60);
+	assert.equal(assessment.closedMinutes, 504);
+	assert.equal(assessment.breakMinutes, 30);
+	assert.equal(assessment.workedMinutes, 474);
+	assert.equal(assessment.problem, null);
+});
+
+test('one interval takes the whole granted break off; no grant takes nothing', () => {
+	assert.equal(assessAttendanceDraft([span(0, 480)], 60).workedMinutes, 420);
+	assert.equal(assessAttendanceDraft([span(0, 480)], null).workedMinutes, 480);
+});
+
+test('a day shorter than its granted break works nothing, never a negative', () => {
+	const assessment = assessAttendanceDraft([span(0, 19)], 60);
 	assert.equal(assessment.breakMinutes, 60);
-	assert.equal(assessment.breakClamped, false);
-	assert.equal(assessment.workedMinutes, 444);
+	assert.equal(assessment.workedMinutes, 0);
 	assert.equal(assessment.problem, null);
 });
 
-test('a break equal to the worked time is one minute too long', () => {
-	// 480 >= 480 is the hook's refusal, so the ceiling on an eight-hour day is 479.
-	const assessment = assessAttendanceDraft([span(0, 480)], 480);
-	assert.equal(assessment.maxBreakMinutes, 479);
-	assert.equal(assessment.breakClamped, true);
-});
-
-test('a sub-minute day admits a zero break and nothing longer', () => {
-	// The hook refuses `unpaidBreak >= closedMinutes`, and 0 IS strictly below 0.5 — so a half-minute
-	// day is saveable with no break at all, and every longer break is clamped down to that. This test
-	// used to assert `null` and `BREAK_NOT_SHORTER_THAN_WORK` on the belief that a day under a minute
-	// could carry no break "including zero", which reads the ceiling as a floor: `Math.floor(0.5)` is
-	// 0, and zero fits. The refusal arm belongs to a day of exactly zero worked minutes, which cannot
-	// be reached without an interval that already failed `ENDS_BEFORE_IT_STARTS`.
-	const assessment = assessAttendanceDraft([span(0, 0.5)], 0);
-	assert.equal(assessment.maxBreakMinutes, 0);
-	assert.equal(assessment.breakMinutes, 0);
-	assert.equal(assessment.breakClamped, false);
-	assert.equal(assessment.problem, null);
-
-	const clamped = assessAttendanceDraft([span(0, 0.5)], 30);
-	assert.equal(clamped.breakMinutes, 0);
-	assert.equal(clamped.breakClamped, true);
-	assert.equal(clamped.problem, null);
-});
-
-test('an open punch defers the break question instead of clamping against a partial day', () => {
+test('an open punch has no worked total yet', () => {
 	const assessment = assessAttendanceDraft([span(0, null)], 60);
 	assert.equal(assessment.hasOpenInterval, true);
-	assert.equal(assessment.maxBreakMinutes, null);
-	// Untouched: nobody knows how long the day is yet, so there is nothing to clamp it against.
-	assert.equal(assessment.breakMinutes, 60);
-	assert.equal(assessment.breakClamped, false);
 	assert.equal(assessment.workedMinutes, null);
 	assert.equal(assessment.problem, null);
 });

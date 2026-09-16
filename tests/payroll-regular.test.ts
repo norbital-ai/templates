@@ -61,10 +61,8 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 		day.worked_intervals = [
 			{ start: '2026-01-05T09:30:00+08:00', end: '2026-01-05T16:30:00+08:00' }
 		];
-		day.break_minutes = 60;
 		assert.equal(await base(), scheduled - 20);
 		day.worked_intervals = [];
-		day.break_minutes = 0;
 		assert.equal(await base(), scheduled - 80);
 		day.worked_intervals = null;
 		assert.equal(await base(), scheduled);
@@ -137,7 +135,6 @@ function attendedWorld(options: Parameters<typeof createPublicPayrollWorld>[0] =
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
-		day.break_minutes = 60;
 	}
 	return world;
 }
@@ -198,7 +195,6 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 			const day = world.work_days.find((row) => row.work_date === '2026-01-05');
 			const regular = (await build(world, '2026-01')).slip;
 			day.worked_intervals = [];
-			day.break_minutes = 0;
 			const catalogueId = '00000000-0000-4000-8000-000000000001';
 			world.leave_catalogue.push({
 				id: catalogueId,

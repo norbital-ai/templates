@@ -177,17 +177,14 @@ test('both month-board work_days prefixes project the whole-row base version and
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.work_date, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.shift_definition_id, true);
 	assert.equal('roster_id' in MONTH_BOARD_WORK_DAY_COLUMNS, false);
-	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.assignment_code, true);
-	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.planned_origin, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.worked_intervals, true);
-	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.break_minutes, true);
+	assert.equal('break_minutes' in MONTH_BOARD_WORK_DAY_COLUMNS, false);
 
 	assert.equal(MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS.id, true);
 	assert.equal(MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS.row_version, true);
 	assert.equal(MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS.employment_id, true);
 	assert.equal(MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS.work_date, true);
 	assert.equal(MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS.shift_definition_id, true);
-	assert.equal(MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS.assignment_code, true);
 	assert.equal('roster_id' in MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS, false);
 	assert.equal('worked_intervals' in MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS, false);
 	assert.equal('break_minutes' in MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS, false);

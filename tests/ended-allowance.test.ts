@@ -115,7 +115,6 @@ function historicalWorkingDaysWorld() {
 		work_date: `2025-12-${10 + index}`,
 		shift_definition_id: shift.id,
 		worked_intervals: null,
-		break_minutes: null,
 		approval_id: null
 	}));
 	world.jurisdiction_holidays.push(
@@ -125,7 +124,7 @@ function historicalWorkingDaysWorld() {
 	return world;
 }
 
-test('active and ended late Allowance use source-month Work calendar pins and latest unlinked dates', async () => {
+test('active and ended late Allowance read the published calendar over the source-month Work', async () => {
 	for (const ended of [true, false]) {
 		const world = historicalWorkingDaysWorld();
 		world.allowance_requests.splice(0, 1);
@@ -134,10 +133,8 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 			world.employment_terms[0]!.effective_range.end = null;
 			world.shift_definitions[0]!.effective_range.end = null;
 		}
-		// Every source day was classified when written: the 12th as its holiday, the rest as none.
-		// Two holidays published since then reach the days nothing pinned, and only those.
-		for (const day of world.work_days)
-			day.holiday_id = day.work_date === '2025-12-12' ? 'holiday-2025-12-12' : null;
+		// Two holidays published since the source days were written reach them like any other: a
+		// work day pins nothing, so the calendar as published now is what every source day reads.
 		world.jurisdiction_holidays.push(
 			sourceHoliday('2025-12-13', 'Latest holiday'),
 			sourceHoliday('2025-12-26', 'Latest holiday')
@@ -148,7 +145,7 @@ test('active and ended late Allowance use source-month Work calendar pins and la
 		assert.equal(
 			slip.adjustments.find((row) => row.family === 'ALLOWANCE')?.amount,
 			ended ? 96.67 : 193.33,
-			'290 × covered days / 27 days once the two later holidays reach the unpinned days'
+			'290 × covered days / 27 days once the two later holidays reach the source days'
 		);
 	}
 });

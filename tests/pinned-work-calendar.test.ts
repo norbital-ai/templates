@@ -17,50 +17,41 @@ const holiday = (date: string, published = true) => ({
 });
 
 /**
- * The 5th was classified as its holiday when the day was written and the holiday has been
- * unpublished since; the 6th was written as an ordinary day and a holiday was published on it
- * later; the 7th has a published holiday nothing pinned.
+ * The 5th's holiday has been unpublished; the 6th and 7th carry published ones. Work days sit on
+ * all three, and none of them pins anything: the run overlays what the calendar publishes now.
  */
-function pinnedWorld() {
+function calendarWorld() {
 	const world = createPublicPayrollWorld();
 	world.jurisdiction_holidays.push(
 		holiday('2026-01-05', false),
 		holiday('2026-01-06'),
 		holiday('2026-01-07')
 	);
-	world.work_days.find((row) => row.id === 'work-day-2026-01-05')!.holiday_id =
-		'holiday-2026-01-05';
-	world.work_days.find((row) => row.id === 'work-day-2026-01-06')!.holiday_id = null;
 	return world;
 }
 
-test('payroll keeps a pinned holiday, and reads what is published now for every other day', async () => {
-	const world = pinnedWorld();
+test('payroll reads the published calendar for every day; a work day pins nothing', async () => {
+	const world = calendarWorld();
 	const prepared = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 	);
 	const configuration = prepared.configuration;
-	assert.equal(configuration.holidays.has('2026-01-05'), true, 'the pin is what the day was');
-	assert.equal(
-		configuration.holidays.has('2026-01-06'),
-		true,
-		'a day pinned to no holiday takes the holiday published since'
-	);
+	assert.equal(configuration.holidays.has('2026-01-05'), false, 'unpublished is not there');
+	assert.equal(configuration.holidays.has('2026-01-06'), true);
 	assert.equal(configuration.holidays.has('2026-01-07'), true);
 	assert.deepEqual(
 		configuration.holidayInputs
 			.filter((row) => row.date >= '2026-01-05' && row.date <= '2026-01-07')
 			.map((row) => row.holiday_id),
-		['holiday-2026-01-05', 'holiday-2026-01-06', 'holiday-2026-01-07']
+		[null, 'holiday-2026-01-06', 'holiday-2026-01-07']
 	);
 	assert.deepEqual(configuration.holidaySnapshots.map((row) => row.id).toSorted(), [
-		'holiday-2026-01-05',
 		'holiday-2026-01-06',
 		'holiday-2026-01-07'
 	]);
 	assert.equal(
-		world.work_days.find((row) => row.id === 'work-day-2026-01-05')!.holiday_id,
-		'holiday-2026-01-05',
-		'Work keeps its own pin'
+		'holiday_id' in world.work_days.find((row) => row.id === 'work-day-2026-01-05')!,
+		false,
+		'a work day carries no holiday column to pin with'
 	);
 });

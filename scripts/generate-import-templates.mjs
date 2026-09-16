@@ -114,9 +114,13 @@ const SCHEDULING_README = [
 	'Do not rename the sheets or the column headers. Set legal_entity, month and timezone once, on',
 	'the "Settings" sheet.',
 	'',
-	'The file is the state of the month it names. Import it once with both sheets filled; import it',
-	'again and the month becomes what the file now says. A day the file no longer names is removed.',
-	'A file that carries only one of the two sheets replaces only that half and leaves the other alone.',
+	'The file is the state of the month it names, for every employee of the entity. Import it again',
+	'and the month becomes what the file now says; a person the file no longer names loses the month',
+	'and falls back to their work pattern. A file carrying only one of the two sheets replaces only',
+	'that half. Every person on the Roster sheet needs a code on every day they are employed — write',
+	'REST or OFF where they are not working — or the file is refused naming the missing days.',
+	'A day a payslip has already taken into account may be restated as it is; a file that changes or',
+	'omits one is refused naming those days.',
 	'',
 	'Roster — three rules that change what people get paid',
 	'',
@@ -127,8 +131,8 @@ const SCHEDULING_README = [
 	'• A cell must name an existing roster code (or PH). The hours a working day earns are measured',
 	'  against the code it names, so a code the company has not defined refuses the file.',
 	'',
-	"• PH is checked against the legal entity's holiday calendar and is not stored as a person-day",
-	'  fact. Configure the holiday first; a PH cell on a day that is not observed refuses the file.',
+	'• PH is not a roster code. Holidays are overlaid from the legal entity’s published calendar;',
+	'  the cell names the shift the person would have worked, or REST or OFF.',
 	'',
 	'Time entries — three rules worth knowing',
 	'',
@@ -137,8 +141,7 @@ const SCHEDULING_README = [
 	'  treated as the next calendar day. Every clock time is local wall time in the Settings timezone.',
 	'',
 	'• A cell carries punches only — breaks, overtime and the open/closed state are derived from them.',
-	'  The issued grid has no break_minutes column. A long-form sheet may still carry break_minutes',
-	'  (minutes, not hours).',
+	'  The break is the shift’s granted break, less any gap already visible between the punches.',
 	'',
 	'• A leave day is NOT a time entry. Leave lives in its own record so it can be approved and audited;',
 	'  do not add punchless cells to stand in for it.',
@@ -146,19 +149,20 @@ const SCHEDULING_README = [
 	'What is refused',
 	'',
 	'The whole file is refused, not individual rows, and the offending cells are named: unknown',
-	'employee or roster code, a day outside the Settings month, duplicates inside the file, and days',
-	'a paid payroll run has already taken into account.',
+	'employee or roster code, a day outside the Settings month, duplicates inside the file, a missing',
+	'day on a rostered person, a sealed day the file would change, and a shift the statutory rules',
+	'refuse (rest days, hour ceilings, granted breaks, overlapping shifts).',
 	'',
 	'Accepted values',
 	'',
 	'employee_number   as seeded on the employment, e.g. PUBEM0002',
 	'day columns       1–31 (or YYYY-MM-DD) for the Settings month',
 	'Roster cell       an existing roster code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 ·',
-	'                  PM2030 · PM2230 · REST · OFF — or PH on an observed holiday',
+	'                  PM2030 · PM2230 · REST · OFF',
 	'Time entries cell HH:mm-HH:mm, 24-hour — or HH:mm when the close has not landed yet',
 	'',
-	'Long-form sheets still import: Roster with employee_number, work_date, shift_code (and optionally',
-	'assignment_code); Time entries with employee_number, work_date, clock_in, clock_out.',
+	'Long-form sheets still import: Roster with employee_number, work_date, shift_code; Time entries',
+	'with employee_number, work_date, clock_in, clock_out.',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
 ];
@@ -286,10 +290,6 @@ Effect.runPromise(
 		assert.equal(cellOf(shipped, 'Roster', 3, '6'), 'OFF');
 		assert.equal(cellOf(shipped, 'Time entries', 2, '4'), '08:16-17:10');
 		assert.equal(cellOf(shipped, 'Time entries', 3, '6'), '20:31');
-		assert.ok(
-			!headersOf(shipped, 'Time entries').includes('break_minutes'),
-			'the issued month grid has no break_minutes column — that name belongs to long-form sheets only'
-		);
 
 		console.log(`${SCHEDULING_TEMPLATE_PATH}`);
 		console.log(`  sheets: Read me first, Settings, Roster, Time entries`);

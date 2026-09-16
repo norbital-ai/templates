@@ -33,54 +33,25 @@ test('every classified date gets an input: the published holiday on it, or none'
 	);
 });
 
-test('a work day pin keeps its holiday after it was unpublished; an unpinned day takes what is published now', () => {
+test('an unpublished holiday is not on the calendar, whatever a day once was classified as', () => {
+	// There is no pin: the overlay is what is published now, for every date asked about.
 	const unpublished = { ...festival, published_at: null };
-	const pinned = resolveHolidayInputs(
+	const result = resolveHolidayInputs(
 		[unpublished, later],
 		'11111111-1111-4111-8111-111111111111',
-		['2026-02-03', '2026-06-01'],
+		['2026-02-03', '2026-06-01']
+	);
+	assert.equal(result.holidays.has('2026-02-03'), false);
+	assert.equal(result.holidays.get('2026-06-01')?.id, 'later');
+	assert.deepEqual(
+		result.inputs.map((row) => [row.date, row.holiday_id]),
 		[
-			{
-				company_id: '11111111-1111-4111-8111-111111111111',
-				date: '2026-02-03',
-				holiday_id: 'festival'
-			}
+			['2026-02-03', null],
+			['2026-06-01', 'later']
 		]
 	);
-	assert.equal(pinned.holidays.get('2026-02-03')?.id, 'festival');
-	assert.equal(pinned.holidays.get('2026-06-01')?.id, 'later');
-	const unpinned = resolveHolidayInputs(
-		[unpublished, later],
-		'11111111-1111-4111-8111-111111111111',
-		['2026-02-03']
-	);
-	assert.equal(unpinned.holidays.has('2026-02-03'), false);
-});
-
-test('two pins disagreeing on one day, or a pin to a missing holiday, refuse', () => {
-	const pin = (holiday_id: string) => ({
-		company_id: '11111111-1111-4111-8111-111111111111',
-		date: '2026-02-03',
-		holiday_id
-	});
-	assert.throws(
-		() =>
-			resolveHolidayInputs(
-				[festival],
-				'11111111-1111-4111-8111-111111111111',
-				['2026-02-03'],
-				[pin('festival'), pin('other')]
-			),
-		/disagree/
-	);
-	assert.throws(
-		() =>
-			resolveHolidayInputs(
-				[],
-				'11111111-1111-4111-8111-111111111111',
-				['2026-02-03'],
-				[pin('gone')]
-			),
-		/missing holiday/
+	assert.deepEqual(
+		result.snapshots.map((row) => row.id),
+		['later']
 	);
 });

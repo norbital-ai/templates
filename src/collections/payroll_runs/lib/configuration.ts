@@ -230,7 +230,7 @@ export function pickConfiguration(
  * population, never a timestamp — so two builds of the same month against unchanged law hash alike
  * and a changed hash always means changed law.
  */
-export function configurationSnapshot(
+function configurationSnapshot(
 	configuration: Omit<Configuration, 'hash'>,
 	period: string
 ): Record<string, unknown> {

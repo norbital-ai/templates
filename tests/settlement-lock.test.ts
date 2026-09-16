@@ -104,8 +104,7 @@ const readDay = (id, date) => ({
 	id,
 	work_date: date,
 	shift_definition_id: null,
-	worked_intervals: [],
-	break_minutes: 0
+	worked_intervals: []
 });
 
 function measure(overrides = {}) {
@@ -232,8 +231,7 @@ test('a day carrying only a plan is not captured, because there is no punch to f
 				id: 'wd-planned',
 				work_date: '2026-03-02',
 				shift_definition_id: null,
-				worked_intervals: null,
-				break_minutes: 0
+				worked_intervals: null
 			}
 		]
 	});

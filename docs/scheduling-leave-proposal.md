@@ -23,11 +23,11 @@ contract's departure is recorded separately and does not create Leave or Payment
 
 Three scheduling layers have distinct meanings:
 
-| Layer      | Stored input                                     | Meaning                                        |
-| ---------- | ------------------------------------------------ | ---------------------------------------------- |
-| Base       | Terms reference a named `shift_patterns` row     | The contractual schedule projected onto a date |
-| Assignment | `work_days.shift_definition_id`                  | An explicit plan for that contract/date        |
-| Attendance | `work_days.worked_intervals` and `break_minutes` | The observed time worked                       |
+| Layer      | Stored input                                 | Meaning                                        |
+| ---------- | -------------------------------------------- | ---------------------------------------------- |
+| Base       | Terms reference a named `shift_patterns` row | The contractual schedule projected onto a date |
+| Assignment | `work_days.shift_definition_id`              | An explicit plan for that contract/date        |
+| Attendance | `work_days.worked_intervals`                 | The observed time worked; the break is derived |
 
 A `PATTERNED` shift pattern repeats one or more roster-code phases from its anchor. It covers fixed
 weeks, short crew cycles and calendar-month rotations without copying the pattern into each
@@ -76,10 +76,10 @@ flowchart LR
 ```
 
 Nothing asks a year to be complete: a day that is not published is simply not a holiday, and a
-missing year is not a block. The freeze derives from live references, not a stamp: a
-work day classified as a holiday pins it (`work_days.holiday_id`) and a payroll run snapshots the
+missing year is not a block. The freeze derives from live references, not a stamp: work days
+never link a holiday (the calendar is overlaid by date) and a payroll run snapshots the
 holidays it read (`payroll_runs.holidays`). Retracting a holiday (unpublish, moving its day or
-entity, delete) is refused while a run snapshots it; otherwise the pinning days are re-saved —
+entity, delete) is refused while a run snapshots it —
 re-classified — while any Leave charge that names the holiday refuses the change. A finished run is
 never touched by a holiday published later, and an import skips a day the entity already has.
 

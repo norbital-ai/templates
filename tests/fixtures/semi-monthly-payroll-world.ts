@@ -38,7 +38,6 @@ function rosteredWorkDays(employmentId: string, start: string, end: string) {
 			work_date: date,
 			shift_definition_id: WORK_SHIFT_ID,
 			worked_intervals: null,
-			break_minutes: null,
 			approval_id: null
 		});
 		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10);
@@ -118,7 +117,6 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
-		day.break_minutes = 60;
 	}
 	return world;
 }

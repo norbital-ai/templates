@@ -335,9 +335,8 @@
 				work_date: { gte: monthWorkDateBounds.start, lte: monthWorkDateBounds.end },
 				employment_id: { in: monthEmploymentIds }
 			},
-			// `id`, `row_version`, and `break_minutes` are needed by the same surface: the day
-			// sheet updates *this* row (mutate needs the whole-row base version in client
-			// state), and it cannot assess the unpaid break without knowing what it is.
+			// `id` and `row_version` are needed by the same surface: the day sheet updates *this*
+			// row, and mutate needs the whole-row base version in client state.
 			columns: MONTH_BOARD_WORK_DAY_COLUMNS,
 			limit: MONTH_BOARD_QUERY_LIMITS.workDays
 		});
@@ -1065,15 +1064,13 @@
 										...(fromExisting == null
 											? { employment_id: from.employmentId, work_date: from.date }
 											: { id: fromExisting.id }),
-										shift_definition_id: toCodeId,
-										planned_origin: 'MANUAL'
+										shift_definition_id: toCodeId
 									},
 									{
 										...(toExisting == null
 											? { employment_id: to.employmentId, work_date: to.date }
 											: { id: toExisting.id }),
-										shift_definition_id: fromCodeId,
-										planned_origin: 'MANUAL'
+										shift_definition_id: fromCodeId
 									}
 								])
 							).pipe(

@@ -31,7 +31,6 @@ import { cascade, deferrable, setNull } from '@norbital-ai/bolt/authoring';
 export default ((r) => ({
 	/** Restrict: a holiday a work day pinned is history and cannot be deleted. */
 	jurisdiction_holidays: {
-		work_day_holiday: r.many.work_days(),
 		/** The entity that observes the day. A holiday is the employer's, not the country's. */
 		holiday_company: r.one.companies({
 			from: r.jurisdiction_holidays.company_id,
@@ -71,8 +70,7 @@ export default ((r) => ({
 		company_shift_definition: r.many.shift_definitions(),
 		company_shift_pattern: r.many.shift_patterns(),
 		employment_company: r.many.employments(),
-		payroll_run_company: r.many.payroll_runs(),
-		roster_company: r.many.rosters()
+		payroll_run_company: r.many.payroll_runs()
 	},
 
 	/**
@@ -271,15 +269,10 @@ export default ((r) => ({
 		roster_employment: r.one.employments({
 			from: r.rosters.employment_id,
 			to: r.employments.id
-		}),
-		roster_company: r.one.companies({ from: r.rosters.company_id, to: r.companies.id })
+		})
 	},
 
 	work_days: {
-		work_day_holiday: r.one.jurisdiction_holidays({
-			from: r.work_days.holiday_id,
-			to: r.jurisdiction_holidays.id
-		}),
 		work_day_payslip: deferrable(
 			setNull(r.one.payslips({ from: r.work_days.payslip_id, to: r.payslips.id }))
 		),

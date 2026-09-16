@@ -14,9 +14,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
-	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
 	import FormSection from '../../lib/ui/form-section.svelte';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
@@ -66,9 +65,7 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Field name="planned_origin" hidden />
 			<Field name="payslip_id" hidden />
-			<Field name="holiday_id" hidden />
 			<Stack gap="lg">
 				<Grid gap="sm" minimum="compact">
 					<Field
@@ -83,37 +80,25 @@
 					title={t('component.work_day_planned')}
 					hint={t('component.work_day_planned_description')}
 				>
-					<Grid gap="sm" minimum="compact">
-						<Field
-							name="shift_definition_id"
-							label={t('component.shift')}
-							relationOptions={{
-								label: (shift) =>
-									[shift.code, shift.name]
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { code: 'asc' },
-								limit: 500
-							}}
-						/>
-						<Field name="assignment_code" label={t('component.source_roster_token')} />
-					</Grid>
+					<Field
+						name="shift_definition_id"
+						label={t('component.shift')}
+						relationOptions={{
+							label: (shift) =>
+								[shift.code, shift.name]
+									.filter((part) => part != null && part !== '')
+									.join(' · ') || '—',
+							orderBy: { code: 'asc' },
+							limit: 500
+						}}
+					/>
 				</FormSection>
 
 				<FormSection
 					title={t('component.work_day_actual')}
 					hint={t('component.work_day_actual_description')}
 				>
-					<Grid gap="sm" minimum="compact">
-						<Column span="all">
-							<Field name="worked_intervals" label={t('component.worked_intervals')} />
-						</Column>
-						<Field
-							name="break_minutes"
-							label={t('component.unpaid_break_hours')}
-							renderer={DurationHoursRenderer}
-						/>
-					</Grid>
+					<Field name="worked_intervals" label={t('component.worked_intervals')} />
 				</FormSection>
 			</Stack>
 		{/snippet}

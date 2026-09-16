@@ -84,10 +84,10 @@ export default {
 		// Every grant answers "what may the device do"; none answers "what does a hook need". The
 		// day guards a punch runs, and the ledger an enrolment generates, read as the workspace.
 		grantOn('work_days', 'mutate.new', {
-			fields: ['employment_id', 'work_date', 'worked_intervals', 'break_minutes']
+			fields: ['employment_id', 'work_date', 'worked_intervals']
 		}),
 		grantOn('work_days', 'mutate.existing', {
-			fields: ['worked_intervals', 'break_minutes']
+			fields: ['worked_intervals']
 		})
 	),
 	limits: {

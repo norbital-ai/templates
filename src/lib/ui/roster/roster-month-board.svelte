@@ -366,11 +366,6 @@
 				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
 			day.pendingLeave ? t('roster.pending_leave') : null,
 			day.plannedOT ? t('roster.planned_ot') : null,
-			day.plannedOrigin == null
-				? null
-				: day.plannedOrigin === 'IMPORT'
-					? t('roster.origin_import')
-					: t('roster.origin_manual'),
 			...day.conflicts.map((conflict) => t(CONFLICT_PRESENTATION[conflict].labelKey)),
 			// The refusal sentence when there is one; otherwise the draft window's advisory note.
 			lockNote(day) ??

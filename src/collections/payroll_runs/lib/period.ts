@@ -178,25 +178,6 @@ export function payPeriodWindow(period: string, company: PayCalendarCompany): Da
 	);
 }
 
-/**
- * The assessment span of the company's pay grid that one date falls in: the 1st-to-15th or
- * 16th-to-end half at a semi-monthly company, the cutoff window at a monthly one. An import that
- * states a period's roster or attendance replaces the rows inside exactly this span.
- */
-export function assessmentSpan(company: PayCalendarCompany, date: IsoDate): DayRange {
-	const month = monthKey(date);
-	if (company.pay_frequency === 'SEMI_MONTHLY') {
-		const bounds = monthBounds(month);
-		return dayOfMonth(date) <= 15
-			? { start: bounds.start, end: `${month}-15` }
-			: { start: `${month}-16`, end: bounds.end };
-	}
-	const cutoffDay = assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day');
-	// The window of period P runs from P-1's cutoff day to the day before P's: a date on or after
-	// the cutoff already belongs to next month's period. A cutoff of 1 is the calendar month.
-	return attendanceWindow(monthlyPeriodOf(date, cutoffDay), cutoffDay);
-}
-
 function assertDayOfMonth(value: unknown, what: string): number {
 	const day = decodeNumber(value);
 	if (!Number.isInteger(day) || day < 1 || day > 31)

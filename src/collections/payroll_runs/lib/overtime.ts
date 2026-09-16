@@ -114,7 +114,8 @@ const WorkDayLikeSchema = Schema.Struct({
 			})
 		)
 	),
-	break_minutes: Schema.Number
+	/** The day's break, derived by the caller (`derivedBreakMinutes`); absent reads as none. */
+	break_minutes: Schema.optional(Schema.Number)
 });
 export type WorkDayLike = Schema.Schema.Type<typeof WorkDayLikeSchema>;
 
@@ -169,12 +170,12 @@ function midnight(date: IsoDate, utcOffsetMinutes: number): number {
  *
  * On a scheduled day `from` is the shift start: time clocked before it is discarded, because an
  * employee who arrives early is not working, and not paid, until their shift begins. The unpaid
- * break is deducted from what remains, never below zero — the schema records a flat
- * `break_minutes` rather than break windows, so an overlap test is not available here.
+ * break is deducted from what remains, never below zero — the break is a derived duration, not a
+ * window, so an overlap test is not available here.
  */
 function clockedWorkHours(entry: WorkDayLike, from: number = Number.NEGATIVE_INFINITY): number {
 	const elapsed = overlapHours(normalizedWorkedIntervals(entry), from, Number.POSITIVE_INFINITY);
-	return Math.max(0, elapsed - Math.max(0, decodeNumber(entry.break_minutes)) / 60);
+	return Math.max(0, elapsed - Math.max(0, decodeNumber(entry.break_minutes ?? 0)) / 60);
 }
 
 /**
@@ -209,7 +210,7 @@ export function ordinaryWorkedHours(
 	);
 	return Math.min(
 		shift.paid_minutes / 60,
-		Math.max(0, inside - Math.max(0, decodeNumber(entry.break_minutes)) / 60)
+		Math.max(0, inside - Math.max(0, decodeNumber(entry.break_minutes ?? 0)) / 60)
 	);
 }
 
@@ -331,7 +332,7 @@ export function deriveDailyOvertime(
 	 * make the rule fire on the tail of a shift instead of on the stretch the statute describes.
 	 *
 	 * Only the **shortfall** is deducted, and only where the statute says the break is not working
-	 * time. `clockedWorkHours` above has already taken the recorded `break_minutes` off the day, so
+	 * time. `clockedWorkHours` above has already taken the derived break off the day, so
 	 * an entry that recorded its full statutory break deducts nothing further here — it was deducted
 	 * once already, and taking the requirement again would charge a half-hour break as a full hour.
 	 *
@@ -344,7 +345,7 @@ export function deriveDailyOvertime(
 	 */
 	const restBreak = restBreakAssessment({
 		intervals: entry.worked_intervals ?? [],
-		breakMinutes: entry.break_minutes,
+		breakMinutes: entry.break_minutes ?? 0,
 		breaks,
 		overtimeHours: raw
 	});
@@ -359,7 +360,7 @@ export function deriveDailyOvertime(
 		hours,
 		normalHours: day.normalHours,
 		totalWorkHours,
-		breakMinutes: Math.max(0, decodeNumber(entry.break_minutes)),
+		breakMinutes: Math.max(0, decodeNumber(entry.break_minutes ?? 0)),
 		// Null rather than a "no rule" assessment: a consumer asking whether a break governed this day
 		// should not have to reach two levels in to find out that none did.
 		restBreak: restBreak.rule === null ? null : restBreak,

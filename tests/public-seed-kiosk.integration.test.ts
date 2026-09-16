@@ -100,8 +100,8 @@ test(
 				]);
 				if (shiftDefinitionId === null) return;
 				await session.query(
-					`insert into work_days (id, employment_id, work_date, shift_definition_id, break_minutes)
-					 values ($1, $2, $3, $4, 0)`,
+					`insert into work_days (id, employment_id, work_date, shift_definition_id)
+					 values ($1, $2, $3, $4)`,
 					[crypto.randomUUID(), EMPLOYMENT_ID, workDate, shiftDefinitionId]
 				);
 			};

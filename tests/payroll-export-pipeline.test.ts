@@ -51,7 +51,6 @@ async function januaryWorld({ bank = false, period = PERIOD, runId = RUN_ID, wor
 		day.worked_intervals = [
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
-		day.break_minutes = 60;
 	}
 	const api = memoryPayrollApi(world);
 	const prepared = await Effect.runPromise(

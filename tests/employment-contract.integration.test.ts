@@ -272,8 +272,7 @@ test(
 									id: workId,
 									employment_id: nestedContractId,
 									work_date: '2026-08-03',
-									worked_intervals: null,
-									break_minutes: 0
+									worked_intervals: null
 								}
 							}
 						]

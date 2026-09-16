@@ -127,7 +127,7 @@ test('an employee may mutate only their own existing person-day attendance', asy
 	};
 	const context = (employment_id) => ({
 		previous: { employment_id },
-		changes: { break_minutes: 30 },
+		changes: { worked_intervals: [] },
 		record: { employment_id }
 	});
 	assert.equal(await Effect.runPromise(grant.authorize(context('own-employment'), api)), true);
@@ -137,7 +137,7 @@ test('an employee may mutate only their own existing person-day attendance', asy
 	for (const field of WORK_DAY_ATTENDANCE_FIELDS) {
 		const flow = grant.approval.flow({
 			previous: {},
-			changes: { [field]: field === 'break_minutes' ? 30 : [] },
+			changes: { [field]: [] },
 			record: {}
 		});
 		assert.equal(flow._tag, 'Review', `employee mutate.existing of ${field} is not reviewed`);
@@ -178,7 +178,7 @@ test('a supervisor cannot edit attendance on their own authority', () => {
 	for (const field of WORK_DAY_ATTENDANCE_FIELDS) {
 		const flow = existingGrant.approval.flow({
 			previous: {},
-			changes: { [field]: field === 'break_minutes' ? 45 : [] },
+			changes: { [field]: [] },
 			record: {}
 		});
 		assert.equal(flow._tag, 'Review', `mutate.existing touching ${field} must be reviewed`);
@@ -272,13 +272,13 @@ test('the HR ranks keep both halves, and a roster edit is not reviewed as attend
 		assert.equal(
 			existingGrant.approval.flow({
 				previous: {},
-				changes: { assignment_code: 'AMRES' },
+				changes: { shift_definition_id: 'shift-2' },
 				record: {}
 			})._tag,
 			'NoApproval'
 		);
 		assert.equal(
-			existingGrant.approval.flow({ previous: {}, changes: { break_minutes: 30 }, record: {} })
+			existingGrant.approval.flow({ previous: {}, changes: { worked_intervals: [] }, record: {} })
 				._tag,
 			'Review'
 		);

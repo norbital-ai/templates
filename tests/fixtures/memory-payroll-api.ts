@@ -156,6 +156,11 @@ export function memoryPayrollApi(world: PayrollWorld) {
 							value.id == null ? { ...value, id: crypto.randomUUID() } : { ...value }
 						);
 				}
+			}),
+		delete: (ids: readonly string[]) =>
+			Effect.sync(() => {
+				const live = (world as Record<string, PayrollRow[]>)[name];
+				if (live) live.splice(0, live.length, ...live.filter((row) => !ids.includes(row.id)));
 			})
 	});
 	return {

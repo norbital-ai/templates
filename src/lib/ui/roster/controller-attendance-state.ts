@@ -6,7 +6,6 @@ type AttendanceIntervalValue = Readonly<{
 export type AttendanceValue = Readonly<{
 	/** `null` is unrecorded; `[]` is an explicit reviewed-no-work fact. */
 	intervals: readonly AttendanceIntervalValue[] | null;
-	breakMinutes: number;
 }>;
 
 export type DaySheetSaveIntent = 'none' | 'assignment' | 'attendance' | 'changes';
@@ -27,10 +26,7 @@ const sameIntervals = (
 
 /** Compare actual attendance without collapsing unrecorded `null` into reviewed-empty `[]`. */
 export function attendanceChanged(baseline: AttendanceValue, draft: AttendanceValue): boolean {
-	return (
-		!sameIntervals(baseline.intervals, draft.intervals) ||
-		baseline.breakMinutes !== draft.breakMinutes
-	);
+	return !sameIntervals(baseline.intervals, draft.intervals);
 }
 
 export function daySheetSaveIntent(

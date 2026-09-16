@@ -76,8 +76,6 @@ import {
 	type EmploymentSettlement
 } from './settlement.js';
 import { decodeNumber } from '@norbital-ai/std/json';
-import type { HolidayRow } from '../../../lib/holiday-calendar.js';
-import type { PreparedHolidayInput } from '../../../lib/holiday-inputs.js';
 
 type Employment = ResolvedEmployment;
 type Employee = WorkspaceRow<'employees'>;
@@ -156,10 +154,6 @@ export type GatheredRun = {
 	readonly bundles: readonly EmploymentBundle[];
 	/** Active employments in the company at the period end — the HEADCOUNT band selector. */
 	readonly headcount: number;
-	readonly workHolidayEvidence: {
-		readonly inputs: readonly PreparedHolidayInput[];
-		readonly holidays: readonly HolidayRow[];
-	};
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 	/** employee id → component code → what earlier PAID payslips earned this tax year. */
@@ -403,7 +397,6 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			return {
 				bundles: [],
 				headcount,
-				workHolidayEvidence: { inputs: [], holidays: [] },
 				yearToDate: new Map(),
 				yearEarned: new Map(),
 				priorOvertimeHours: new Map(),
@@ -439,8 +432,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				loansByEmployment,
 				repaymentsByLoan,
 				workDaysByEmployment,
-				rostersByEmployment,
-				workHolidayEvidence
+				rostersByEmployment
 			},
 			prior
 		] = yield* Effect.all(
@@ -517,7 +509,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			});
 		}
 
-		return { bundles, headcount, workHolidayEvidence, ...prior };
+		return { bundles, headcount, ...prior };
 	});
 }
 

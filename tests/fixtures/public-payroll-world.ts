@@ -48,7 +48,6 @@ function rosteredWorkDays(): PayrollWorld['work_days'] {
 			work_date: date,
 			shift_definition_id: WORK_SHIFT_ID,
 			worked_intervals: null,
-			break_minutes: null,
 			approval_id: null
 		});
 		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10);

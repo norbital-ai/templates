@@ -446,11 +446,9 @@
 	 */
 	const scheduleFactWorkDays = $derived(
 		scheduleWorkDays.map((row) =>
-			// A pending submission's clock is masked, not deleted. `worked_intervals` is nullable and
-			// NULL is the honest "no attendance visible" value; `break_minutes` is NOT NULL with a
-			// default of 0, so 0 is its masked form — a null there would state a value the column
-			// cannot hold.
-			row.approval_id == null ? { ...row } : { ...row, worked_intervals: null, break_minutes: 0 }
+			// A pending submission's clock is masked, not deleted: NULL is the honest "no attendance
+			// visible" value.
+			row.approval_id == null ? { ...row } : { ...row, worked_intervals: null }
 		)
 	);
 	const schedulePendingDates = $derived(
@@ -607,7 +605,7 @@
 	 *                           still reportable, because the hook only refuses full coverage
 	 *
 	 * A roster-only person-day is deliberately NOT a blocker. The employee `mutate.existing` grant is
-	 * scoped to their own employment and masked to `worked_intervals` / `break_minutes`, so a report
+	 * scoped to their own employment and masked to `worked_intervals`, so a report
 	 * changes the clock on that row while leaving the plan intact. A day with no row uses `mutate.new`.
 	 *
 	 * ONE REFUSAL IS DELIBERATELY NOT PRE-CHECKED HERE, AND MUST NOT BE ADDED.
@@ -719,7 +717,7 @@
 	/**
 	 * Employee mode's one write, handed back from the drawer's Save.
 	 *
-	 * The sheet assessed the draft already (the clamp is stated on its face), so this only carries
+	 * The sheet assessed the draft already, so this only carries
 	 * the create or update across the same hooks every other attendance write crosses. A roster-only
 	 * day carries its existing id and is updated; a day with no row carries employment and date and
 	 * is created. Either write is immediately held under `approval_id`, which the platform's mutation
@@ -750,16 +748,9 @@
 
 	/**
 	 * What a report would actually write, assessed by the same function the day sheet uses and
-	 * against the same rules `work_days/+hooks.ts` enforces.
-	 *
-	 * The break is the part that matters and the reason this is not a one-click submit. A reported
-	 * punch is frequently SHORT — twenty minutes on a day somebody stepped in — and carrying the
-	 * roster code's scheduled sixty-minute break across to it produces `unpaidBreak >= closedMinutes`,
-	 * which `assertWorkedIntervals` refuses. Four rows in the seed bank were exactly that shape. An
-	 * employee cannot debug that refusal, so the break is clamped by `assessAttendanceDraft` before
-	 * the write, the clamp is stated on the confirmation rather than performed quietly, and a draft
-	 * that still cannot be saved disables the button instead of offering a round trip to a sentence
-	 * about unpaid breaks.
+	 * against the same rules `work_days/+hooks.ts` enforces. The break is derived from the punches
+	 * against the shift's granted break, and the preview states it so a short call-in is not a
+	 * surprise on the payslip.
 	 */
 	const reportDraft = $derived.by(() => {
 		const date = report.date;
@@ -776,13 +767,11 @@
 				end: instantFromDayStart(date, crossesMidnight ? end + DAY_MINUTES : end, scheduleTimeZone)
 			}
 		];
-		const requestedBreak = scheduleDay(date)?.shiftBreakMinutes ?? 0;
 		return {
 			date,
 			intervals,
 			crossesMidnight,
-			requestedBreak,
-			assessment: assessAttendanceDraft(intervals, requestedBreak)
+			assessment: assessAttendanceDraft(intervals, scheduleDay(date)?.shiftBreakMinutes)
 		};
 	});
 	const reportProblem = $derived.by(() => {
@@ -793,8 +782,8 @@
 
 	/**
 	 * Update the stored row when one exists, create it when none does. Minimal like the day
-	 * sheet's: only the routing is seeded, and the clamped draft is pushed via `setValues` as
-	 * the clocks are typed, so an untouched dialog cannot submit anything.
+	 * sheet's: only the routing is seeded, and the draft is pushed via `setValues` as the clocks
+	 * are typed, so an untouched dialog cannot submit anything.
 	 */
 	const reportWorkDayId = $derived(
 		report.date == null ? null : (scheduleDay(report.date)?.workDayId ?? null)
@@ -807,7 +796,7 @@
 				: { id: reportWorkDayId }
 	);
 
-	/** Mirror the clamped draft into the form; the time inputs are custom composition. */
+	/** Mirror the draft into the form; the time inputs are custom composition. */
 	function presetReport(form: CollectionFormController): void {
 		const draft = reportDraft;
 		if (draft == null || employmentId == null) return;
@@ -817,8 +806,7 @@
 			worked_intervals: draft.intervals.map((interval) => ({
 				start: interval.start,
 				end: interval.end
-			})),
-			break_minutes: draft.assessment.breakMinutes
+			}))
 		});
 	}
 
@@ -833,7 +821,7 @@
 				return [{ message: t('app.hr_employee.report_punch_needs_times') }];
 			const problem = assessAttendanceDraft(
 				intervals as { start: string; end: string | null }[],
-				typeof values.break_minutes === 'number' ? values.break_minutes : 0
+				report.date == null ? null : scheduleDay(report.date)?.shiftBreakMinutes
 			).problem;
 			if (problem != null) return [{ message: t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]) }];
 			return;
@@ -1397,12 +1385,8 @@
 					<Field name="employment_id" hidden />
 					<Field name="work_date" hidden />
 					<Field name="shift_definition_id" hidden />
-					<Field name="assignment_code" hidden />
-					<Field name="planned_origin" hidden />
 					<Field name="worked_intervals" hidden />
-					<Field name="break_minutes" hidden />
 					<Field name="payslip_id" hidden />
-					<Field name="holiday_id" hidden />
 					<Stack gap="sm">
 						<Inline gap="sm" align="end">
 							<label class="flex-1 text-sm font-medium">
@@ -1437,8 +1421,8 @@
 
 						<!--
  							What will actually be recorded, spelled out before the submit rather than after the
- 							refusal. The break line is the one that earns this panel: it is clamped to fit the
- 							reported interval, and a clamp that happened silently would leave somebody wondering why
+ 							refusal. The break line is the one that earns this panel: it is derived from the
+ 							reported interval, and a break nobody could see would leave somebody wondering why
  							a twenty-minute call-in was paid as nothing.
  						-->
 						{#if reportDraft != null}
@@ -1457,18 +1441,6 @@
 								{#if reportDraft.crossesMidnight}
 									<p class="text-muted-foreground">
 										{t('app.hr_employee.report_punch_crosses_midnight')}
-									</p>
-								{/if}
-								{#if reportDraft.assessment.breakClamped}
-									<p class="text-warning-foreground">
-										{reportDraft.assessment.breakMinutes === 0
-											? t('app.hr_employee.report_punch_break_zeroed', {
-													scheduled: reportDraft.requestedBreak
-												})
-											: t('app.hr_employee.report_punch_break_clamped', {
-													scheduled: reportDraft.requestedBreak,
-													recorded: reportDraft.assessment.breakMinutes
-												})}
 									</p>
 								{/if}
 							</Stack>

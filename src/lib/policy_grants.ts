@@ -333,14 +333,10 @@ export const settingsCatalogueGrants = (
 const WORK_DAY_IDENTITY_FIELDS = ['employment_id', 'work_date'] as const;
 
 /** The plan: the roster code and its provenance. */
-export const WORK_DAY_PLANNED_FIELDS = [
-	'shift_definition_id',
-	'assignment_code',
-	'planned_origin'
-] as const;
+export const WORK_DAY_PLANNED_FIELDS = ['shift_definition_id'] as const;
 
 /** The clock. Writing any of these is what review exists for. */
-export const WORK_DAY_ATTENDANCE_FIELDS = ['worked_intervals', 'break_minutes'] as const;
+export const WORK_DAY_ATTENDANCE_FIELDS = ['worked_intervals'] as const;
 
 /** What a rank that records attendance and does not set the schedule may write. */
 const WORK_DAY_ATTENDANCE_WRITE_FIELDS = [
