@@ -35,7 +35,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
@@ -269,11 +269,17 @@
 		rows.some((row) => row.status === 'PAID') ? t('component.paid_is_terminal') : null;
 </script>
 
-<RecordShell
-	subtitle={record
-		? t('component.period_line', { period: record.period, count: payslipCount ?? 0 })
-		: undefined}
->
+<!--
+	THE RUN'S SUMMARY IS THE COVER CHROME; THE PAYSLIP TABLE IS THE BODY.
+
+	The table is a bounded surface (its own toolbar, scrollport and pagination), so it has to be
+	handed a definite height or it grows to its rows and the record sheet's scrollport scrolls the
+	whole record. The shell is told to fill the height its tab grants it (`class="h-full"`), the
+	Cover spends that height on the summary above and hands the remainder to the table, and the
+	table then scrolls its own rows. Nothing outside the table overflows.
+-->
+{#snippet runSummary()}
+	<!-- The snippet outlives the `{#if}` that renders it, so its own guard is what narrows. -->
 	{#if record}
 		<Stack gap="lg">
 			<Stack as="section" gap="sm" aria-label={t('component.payroll_run_summary')}>
@@ -341,107 +347,117 @@
 				</Popover.Root>
 			{/if}
 
-			<Stack as="section" gap="sm" aria-label={t('component.payslips')}>
-				{#if heldCount > 0}
-					<p class="text-sm text-muted-foreground" data-held-excluded>
-						{t('component.held_excluded_from_bank', { count: heldCount })}
-					</p>
-				{/if}
-				<CollectionTable
-					{client}
-					collection="payslips"
-					title={t('component.payslips')}
-					description={t('component.payslips_description')}
-					features={{ create: false }}
-					query={payslipsTableQuery}
-					bulkPipelines={[
-						{
-							id: 'payslips-hold',
-							label: t('component.hold'),
-							description: t('component.hold_selected_description'),
-							icon: 'lucide:pause',
-							requiresSelection: true,
-							getDisabledReason: paidSelected,
-							run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
-								submitCollectionMutation(() =>
-									client.db.payslips.mutate(statusRows(selectedRows, 'ON_HOLD'))
-								).pipe(Effect.catch(slipActionFailed))
-						},
-						{
-							id: 'payslips-release',
-							label: t('component.release'),
-							description: t('component.release_selected_description'),
-							icon: 'lucide:play',
-							requiresSelection: true,
-							getDisabledReason: paidSelected,
-							run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
-								submitCollectionMutation(() =>
-									client.db.payslips.mutate(statusRows(selectedRows, 'DRAFT'))
-								).pipe(Effect.catch(slipActionFailed))
-						},
-						{
-							id: 'payslips-paid',
-							label: t('payroll.mark_paid'),
-							description: t('component.mark_paid_selected_description'),
-							icon: 'lucide:banknote',
-							requiresSelection: true,
-							getDisabledReason: paidSelected,
-							run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
-								submitCollectionMutation(() =>
-									client.db.payslips.mutate(statusRows(selectedRows, 'PAID'))
-								).pipe(Effect.catch(slipActionFailed))
-						}
-					]}
-				>
-					{#snippet columns({ Column })}
-						<Column
-							name="employment_id"
-							label={t('component.employee')}
-							card="title"
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: PayrollRunPayslipRow }) => payslipEmployeeCode(row)
-							}}
-						/>
-						<Column name="currency" card="badge" />
-						<Column name="status" renderer={PayslipStatusBadge} />
-						<Column
-							name="gross"
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'gross')
-							}}
-						/>
-						<Column
-							name="total_deductions"
-							label={t('component.deductions')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: PayrollRunPayslipRow }) =>
-									payslipAmount(row, 'total_deductions')
-							}}
-						/>
-						<Column
-							name="net"
-							card="subtitle"
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'net')
-							}}
-						/>
-						<Column
-							name="employer_cost"
-							label={t('component.employer_cost')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: PayrollRunPayslipRow }) =>
-									payslipAmount(row, 'employer_cost')
-							}}
-						/>
-					{/snippet}
-				</CollectionTable>
-			</Stack>
+			{#if heldCount > 0}
+				<p class="text-sm text-muted-foreground" data-held-excluded>
+					{t('component.held_excluded_from_bank', { count: heldCount })}
+				</p>
+			{/if}
 		</Stack>
+	{/if}
+{/snippet}
+
+<RecordShell
+	class={record ? 'h-full' : undefined}
+	subtitle={record
+		? t('component.period_line', { period: record.period, count: payslipCount ?? 0 })
+		: undefined}
+>
+	{#if record}
+		<Cover gap="lg" grow top={runSummary}>
+			<CollectionTable
+				{client}
+				collection="payslips"
+				title={t('component.payslips')}
+				description={t('component.payslips_description')}
+				features={{ create: false }}
+				query={payslipsTableQuery}
+				bulkPipelines={[
+					{
+						id: 'payslips-hold',
+						label: t('component.hold'),
+						description: t('component.hold_selected_description'),
+						icon: 'lucide:pause',
+						requiresSelection: true,
+						getDisabledReason: paidSelected,
+						run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
+							submitCollectionMutation(() =>
+								client.db.payslips.mutate(statusRows(selectedRows, 'ON_HOLD'))
+							).pipe(Effect.catch(slipActionFailed))
+					},
+					{
+						id: 'payslips-release',
+						label: t('component.release'),
+						description: t('component.release_selected_description'),
+						icon: 'lucide:play',
+						requiresSelection: true,
+						getDisabledReason: paidSelected,
+						run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
+							submitCollectionMutation(() =>
+								client.db.payslips.mutate(statusRows(selectedRows, 'DRAFT'))
+							).pipe(Effect.catch(slipActionFailed))
+					},
+					{
+						id: 'payslips-paid',
+						label: t('payroll.mark_paid'),
+						description: t('component.mark_paid_selected_description'),
+						icon: 'lucide:banknote',
+						requiresSelection: true,
+						getDisabledReason: paidSelected,
+						run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
+							submitCollectionMutation(() =>
+								client.db.payslips.mutate(statusRows(selectedRows, 'PAID'))
+							).pipe(Effect.catch(slipActionFailed))
+					}
+				]}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="employment_id"
+						label={t('component.employee')}
+						card="title"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipEmployeeCode(row)
+						}}
+					/>
+					<Column name="currency" card="badge" />
+					<Column name="status" renderer={PayslipStatusBadge} />
+					<Column
+						name="gross"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'gross')
+						}}
+					/>
+					<Column
+						name="total_deductions"
+						label={t('component.deductions')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) =>
+								payslipAmount(row, 'total_deductions')
+						}}
+					/>
+					<Column
+						name="net"
+						card="subtitle"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'net')
+						}}
+					/>
+					<Column
+						name="employer_cost"
+						label={t('component.employer_cost')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) =>
+								payslipAmount(row, 'employer_cost')
+						}}
+					/>
+				{/snippet}
+			</CollectionTable>
+		</Cover>
 	{:else}
 		{#key `${companyId ?? scopedCompanyId ?? ''}:${period ?? ''}`}
 			<CollectionForm

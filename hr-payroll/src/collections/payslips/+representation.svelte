@@ -534,7 +534,7 @@
 					<Scroll axis="x" name={t('component.payslip_adjustments')}>
 						<div class="min-w-[40rem] text-sm tabular-nums" data-payslip-adjustments>
 							<div
-								class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] gap-x-3 px-1 py-1 text-meta"
+								class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] gap-x-3 py-1 text-meta"
 							>
 								<span>{t('component.component')}</span>
 								<span>{t('component.input_type')}</span>
@@ -547,7 +547,7 @@
 								{#each adjustmentGroups as group (group.key)}
 									{#if group.entries.length === 1}
 										<div
-											class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 border-b border-border px-1 py-2"
+											class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 border-b border-border py-2"
 											data-adjustment-group={group.key}
 										>
 											<span class="truncate">{group.label}</span>
@@ -563,11 +563,23 @@
 											class="border-b border-border"
 											data-adjustment-group={group.key}
 										>
-											<AccordionTrigger class="py-2 hover:no-underline">
+											<AccordionTrigger
+												class="group py-2 hover:no-underline [&>[data-slot=accordion-chevron]]:hidden"
+											>
 												<div
-													class="grid flex-1 grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 font-normal"
+													class="grid flex-1 grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 font-normal"
 												>
 													<span class="flex min-w-0 items-center gap-2">
+														<!--
+															The disclosure marker rides inside the Component column. A trailing
+															chevron costs every accordion row 28px of grid width, so its numeric
+															columns end left of the header's and the plain rows' — the marker
+															moves in here and every row keeps one right edge.
+														-->
+														<IconWrapper
+															name="lucide:chevron-down"
+															class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+														/>
 														<span class="truncate">{group.label}</span>
 														<span
 															class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
@@ -588,7 +600,7 @@
 												<div class="rounded-md bg-muted/40">
 													{#each group.entries as entry (entry.id)}
 														<div
-															class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 py-1 text-muted-foreground"
+															class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 py-1 text-muted-foreground"
 														>
 															<span class="pl-4">#{Number(entry.id) + 1}</span>
 															<span></span>
