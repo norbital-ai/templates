@@ -1,4 +1,5 @@
 import { getContext } from 'svelte';
+import type { AllowanceRecurrence } from '../../datatypes/allowance_recurrence/+definition.js';
 import { inForceSettings } from './settings-scope.js';
 import { todayKey } from './calendar.js';
 
@@ -35,6 +36,11 @@ export interface HrCreateScope {
 	readonly employeeId?: () => string | undefined;
 	/** Settings only: the version whose catalogue the row is a line of. */
 	readonly settingsId?: () => string | undefined;
+	/**
+	 * Allowances only: the cadence the open tab is scoped to — one-off on the shown period's first
+	 * day, or recurring from it — so the form opens already saying what the tab says.
+	 */
+	readonly allowanceRecurrence?: () => AllowanceRecurrence | undefined;
 }
 
 export const HR_CREATE_SCOPE = Symbol('norbital_hr.create_scope');

@@ -858,6 +858,22 @@ type Prepared = {
 	readonly settingsCodeByCompany: ReadonlyMap<string, string | null>;
 };
 
+/** What a settlement-only batch prepares: nothing, because its per-record handler asks for nothing. */
+const SETTLEMENT_PREPARED: Prepared = {
+	holidayByDay: new Map(),
+	companyByEmployment: new Map(),
+	windowsByCompany: new Map(),
+	leaveByEmployment: new Map(),
+	overlap: {
+		termsByEmployment: new Map(),
+		patternById: new Map(),
+		explicitByKey: new Map(),
+		codeById: new Map()
+	},
+	versions: [],
+	settingsCodeByCompany: new Map()
+};
+
 type WorkDayCoordinate = Readonly<{
 	employment_id: string;
 	work_date: string;
@@ -868,6 +884,12 @@ export default {
 	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
+				// The engine's capture or release of settled rows: the per-record handler returns before
+				// it reads anything prepared, so the batch reads nothing. A payroll run pins two
+				// thousand days at once, and preparing them was the whole roster re-validated — nine
+				// reads, tens of thousands of rows across the isolate — to decide nothing.
+				if (inputs.every((input) => input.id !== undefined && isSettlementWrite(input)))
+					return SETTLEMENT_PREPARED;
 				const existingIds = inputs.flatMap((input) => (input.id === undefined ? [] : [input.id]));
 				const existingRows = existingIds.length
 					? yield* api.db.work_days.findMany({

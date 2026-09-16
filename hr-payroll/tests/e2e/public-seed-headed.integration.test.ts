@@ -422,6 +422,36 @@ const chooseEntity = async (page: HeadedPage, ready: RegExp | string, label: str
 	);
 };
 
+/**
+ * Steps a page's pay-period picker (the one-off event boards) to a month: open the month grid by
+ * its accessible name, walk the year, activate the month cell.
+ */
+const choosePeriod = async (page: HeadedPage, month: string, label: string) => {
+	await page.click('button[data-month-picker][aria-label="Pay period"]');
+	const target = Number(month.slice(0, 4));
+	let year = Number(
+		await pollEvaluate(
+			page,
+			'document.querySelector("[data-month-picker-year]")?.textContent?.trim() ?? ""',
+			(value) => /^\d{4}$/.test(value),
+			`${label}-year`
+		)
+	);
+	while (year !== target) {
+		const next = year + (target < year ? -1 : 1);
+		await page.click(`button[aria-label="${target < year ? 'Previous year' : 'Next year'}"]`);
+		year = Number(
+			await pollEvaluate(
+				page,
+				'document.querySelector("[data-month-picker-year]")?.textContent?.trim() ?? ""',
+				(value) => Number(value) === next,
+				`${label}-year-change`
+			)
+		);
+	}
+	await page.click(`button[data-month="${month}"]`);
+};
+
 const waitForBody = async (page: HeadedPage, pattern: RegExp, label: string): Promise<string> => {
 	const deadline = Date.now() + S1_EVALUATE_TIMEOUT_MS;
 	let last = '';
@@ -498,7 +528,8 @@ it('HR self-host scheduling paints the eye filter and no Exceptions tab', async 
 				})()`)
 		);
 		assert.equal(monthPicker, 'combobox', `H12 month picker: ${monthPicker}`);
-		assert.match(body, /Month board/);
+		// The board has no title of its own since its toolbar became one row; the eye toggle is its mark.
+		assert.match(body, /Show unresolved clock-outs/);
 		// The roster vocabulary — codes and patterns — is the jurisdiction's Work catalogue now;
 		// the board only reads it, so neither table is a tab here.
 		assert.doesNotMatch(body, /Roster codes/);
@@ -659,6 +690,8 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
 		await chooseEntity(managerPage, /Leave activities/, 'h5-entity');
+		// The board is stepped by pay period and opens on today's; the fixture's leave is April 2026.
+		await choosePeriod(managerPage, '2026-04', 'h5-period');
 		const manager = await waitForBody(
 			managerPage,
 			/PUB-EMP-0001|Public Fixture Employee/,

@@ -30,12 +30,15 @@
 	const scopedEmploymentId = $derived(createScope?.employmentId?.());
 	const scopedCompanyId = $derived(createScope?.companyId());
 	const scopedSettingsCode = $derived(createScope?.settingsCode());
+	const scopedRecurrence = $derived(createScope?.allowanceRecurrence?.());
 	// A create starts with the claw-back switch at No: the column defaults to false, but a form
 	// value the person never touched is undefined, and the form reads undefined as required.
 	const formValues = $derived(
 		record ?? {
 			as_adjustment_entry: false,
-			...(scopedEmploymentId ? { employment_id: scopedEmploymentId } : {})
+			...(scopedEmploymentId ? { employment_id: scopedEmploymentId } : {}),
+			// The tab this form was opened from already says whether it is paid once or across a window.
+			...(scopedRecurrence ? { recurrence: scopedRecurrence } : {})
 		}
 	);
 
