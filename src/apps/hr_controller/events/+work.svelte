@@ -923,15 +923,16 @@
 	title="Work"
 	description="Plan the monthly roster on a calendar, publish it against the statutory rules, and manage the shifts a day is worked on and the patterns a week is shaped by"
 	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
-	variant="full"
 >
 	<AppHeaderActions>
 		{@render companyScopeActions()}
 	</AppHeaderActions>
 
 	<!--
-		No tab strip: the board is the app's only surface now. The `board` snippet's `Cover` reads
-		the height AppShell's body already grants it, so the board still owns its own scrollport.
+		No tab strip: the board is the app's only surface now, so nothing carries the app inset —
+		the shell's default `page` variant does, which is what aligns the board with the hero icon.
+		Its `Bound size="full"` still hands the board its height, and the board's `Cover` reads it,
+		so the board still owns its own scrollport.
 	-->
 	{@render board()}
 </AppShell>

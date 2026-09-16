@@ -33,6 +33,20 @@
 	 */
 	let offboardOpen = $state(false);
 	let changeTermsOpen = $state(false);
+	/**
+	 * The contract opens read-only and is edited only after Edit is pressed.
+	 *
+	 * A record an operator opens to read is not an editor; treating it as one asks every field
+	 * whether it should have been touched. Save leaves edit mode with the form's committed values
+	 * still mounted, so the read-only view never goes stale. Cancel is the one path that does not
+	 * commit, so it bumps an epoch and remounts the form from the record as it stands.
+	 */
+	let editing = $state(false);
+	let formEpoch = $state(0);
+	function cancelEdit(): void {
+		editing = false;
+		formEpoch += 1;
+	}
 	// A contract is sealed by the rows that reference it; the hook is the guard, this is the hint.
 	const consumers = $derived(
 		record == null
@@ -69,8 +83,18 @@
 </svelte:head>
 
 {#snippet contractActions()}
-	{#if record != null && !departed}
-		<div class="flex gap-2">
+	<div class="flex gap-2">
+		{#if editing}
+			<Button variant="outline" size="sm" onclick={cancelEdit}>
+				{t('common.cancel')}
+			</Button>
+		{:else}
+			<Button variant="outline" size="sm" onclick={() => (editing = true)}>
+				<Icon icon="lucide:pencil" class="size-4" />
+				{t('common.edit')}
+			</Button>
+		{/if}
+		{#if !departed}
 			<Button variant="outline" size="sm" onclick={() => (changeTermsOpen = true)}>
 				<Icon icon="lucide:file-signature" class="size-4" />
 				{t('offboarding.change_terms')}
@@ -79,15 +103,15 @@
 				<Icon icon="lucide:log-out" class="size-4" />
 				{t('offboarding.open')}
 			</Button>
-		</div>
-	{/if}
+		{/if}
+	</div>
 {/snippet}
 
 <RecordShell
 	icon={sealed ? 'lucide:lock-keyhole' : undefined}
 	badge={sealed ? t('recordMetadata.readOnly') : undefined}
 	hint={sealed ? t('component.employment_sealed') : undefined}
-	actions={record != null && !departed ? contractActions : undefined}
+	actions={record != null ? contractActions : undefined}
 >
 	<Stack gap="md">
 		{#if record != null && !departed}
@@ -129,64 +153,76 @@
 				</Dialog.Content>
 			</Dialog.Root>
 		{/if}
-		<CollectionForm
-			{client}
-			collection="employments"
-			disabled={sealQuery?.loading ?? false}
-			defaultValues={defaults}
-			submitLabel={record ? t('component.save_employment') : t('component.create_employment')}
-			onAfterSubmit={record ? undefined : close}
-		>
-			{#snippet children({ Field })}
-				<Grid gap="md" minimum="panel">
-					<Field
-						name="employee_id"
-						label={t('component.person')}
-						disabled={sealed}
-						relationOptions={{
-							label: (person) =>
-								person.name != null && person.name !== '' ? String(person.name) : '—',
-							orderBy: { name: 'asc' },
-							limit: 10_000
-						}}
-					/>
-					{#if scopedCompanyId != null}
-						<Field name="company_id" hidden />
-					{:else}
+		{#key formEpoch}
+			<CollectionForm
+				{client}
+				collection="employments"
+				disabled={sealQuery?.loading ?? false}
+				readonly={record != null && !editing}
+				defaultValues={defaults}
+				submitLabel={record ? t('component.save_employment') : t('component.create_employment')}
+				onAfterSubmit={record != null ? () => (editing = false) : close}
+			>
+				{#snippet children({ Field })}
+					<Grid gap="md" minimum="panel">
 						<Field
-							name="company_id"
-							label={t('component.legal_entity')}
+							name="employee_id"
+							label={t('component.person')}
 							disabled={sealed}
 							relationOptions={{
-								label: (company) =>
-									company.name != null && company.name !== '' ? String(company.name) : '—',
+								label: (person) =>
+									person.name != null && person.name !== '' ? String(person.name) : '—',
 								orderBy: { name: 'asc' },
-								limit: 500
+								limit: 10_000
 							}}
 						/>
-					{/if}
-					<Field name="employee_number" label={t('component.employee_number')} disabled={sealed} />
-					{#if record == null}
-						<Field name="contract_number" hidden />
-					{:else}
-						<Field name="contract_number" label={t('component.contract_number')} disabled />
-					{/if}
-					<Column span="all"
-						><Field name="bank" label={t('component.pay_destination')} disabled={sealed} /></Column
-					>
-					<Column span="all"
-						><Field
-							name="effective_range"
-							label={t('component.effective_period')}
+						{#if scopedCompanyId != null}
+							<Field name="company_id" hidden />
+						{:else}
+							<Field
+								name="company_id"
+								label={t('component.legal_entity')}
+								disabled={sealed}
+								relationOptions={{
+									label: (company) =>
+										company.name != null && company.name !== '' ? String(company.name) : '—',
+									orderBy: { name: 'asc' },
+									limit: 500
+								}}
+							/>
+						{/if}
+						<Field
+							name="employee_number"
+							label={t('component.employee_number')}
 							disabled={sealed}
-						/></Column
-					>
-					<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
-					<Column span="all"><Field name="exit_reason" label={t('component.exit_reason')} /></Column
-					>
-					<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
-				</Grid>
-			{/snippet}
-		</CollectionForm>
+						/>
+						{#if record == null}
+							<Field name="contract_number" hidden />
+						{:else}
+							<Field name="contract_number" label={t('component.contract_number')} disabled />
+						{/if}
+						<Column span="all"
+							><Field
+								name="bank"
+								label={t('component.pay_destination')}
+								disabled={sealed}
+							/></Column
+						>
+						<Column span="all"
+							><Field
+								name="effective_range"
+								label={t('component.effective_period')}
+								disabled={sealed}
+							/></Column
+						>
+						<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
+						<Column span="all"
+							><Field name="exit_reason" label={t('component.exit_reason')} /></Column
+						>
+						<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
+					</Grid>
+				{/snippet}
+			</CollectionForm>
+		{/key}
 	</Stack>
 </RecordShell>
