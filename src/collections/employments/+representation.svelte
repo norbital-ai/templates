@@ -86,7 +86,7 @@
 <RecordShell
 	icon={sealed ? 'lucide:lock-keyhole' : undefined}
 	badge={sealed ? t('recordMetadata.readOnly') : undefined}
-	subtitle={sealed ? t('component.employment_sealed') : undefined}
+	hint={sealed ? t('component.employment_sealed') : undefined}
 	actions={record != null && !departed ? contractActions : undefined}
 >
 	<Stack gap="md">
@@ -180,6 +180,9 @@
 							label={t('component.effective_period')}
 							disabled={sealed}
 						/></Column
+					>
+					<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
+					<Column span="all"><Field name="exit_reason" label={t('component.exit_reason')} /></Column
 					>
 					<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
 				</Grid>

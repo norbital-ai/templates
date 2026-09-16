@@ -132,6 +132,11 @@ function matches(row, where = {}) {
 		if ('eq' in condition) return String(row[column]) === String(condition.eq);
 		if ('in' in condition) return condition.in.map(String).includes(String(row[column]));
 		if ('isNull' in condition) return (row[column] == null) === condition.isNull;
+		if ('gte' in condition || 'lte' in condition)
+			return (
+				(!('gte' in condition) || String(row[column]) >= String(condition.gte)) &&
+				(!('lte' in condition) || String(row[column]) <= String(condition.lte))
+			);
 		if ('isNotNull' in condition)
 			return condition.isNotNull ? row[column] != null : row[column] == null;
 		if ('isNull' in condition) return condition.isNull ? row[column] == null : row[column] != null;
@@ -159,7 +164,9 @@ function companies() {
 			id: COMPANY_ID,
 			name: 'Public Fixture Co',
 			registration_number: '1234567-A',
-			settings_code: 'TEST'
+			settings_code: 'TEST',
+			pay_frequency: 'MONTHLY',
+			pay_cutoff_day: 1
 		},
 		{
 			id: 'company:ph',
@@ -546,7 +553,59 @@ const program = Effect.gen(function* () {
 		);
 		assert.match(invalidFixture, /work_date is "04\/05\/2026"/);
 
-		const alreadyPresent = yield* refusal(() =>
+		// The file is the state of the period: a day it names is overwritten as an id-bearing update,
+		// a planned-only day it omits is deleted, and a day it omits that carries attendance keeps the
+		// clock and loses the plan.
+		const periodApi = rosterApi({
+			existingDays: [
+				{
+					id: 'day:1',
+					employment_id: 'employment:2',
+					work_date: '2026-05-04',
+					shift_definition_id: 'shift:75',
+					worked_intervals: null
+				},
+				{
+					id: 'day:stale-plan',
+					employment_id: 'employment:2',
+					work_date: '2026-05-20',
+					shift_definition_id: 'shift:75',
+					worked_intervals: null
+				},
+				{
+					id: 'day:stale-attended',
+					employment_id: 'employment:23',
+					work_date: '2026-05-21',
+					shift_definition_id: 'shift:75',
+					worked_intervals: [{ start: '2026-05-21T00:30:00.000Z', end: '2026-05-21T09:30:00.000Z' }]
+				}
+			]
+		});
+		const rosterOverride = yield* runHandler(
+			Effect.gen(function* () {
+				const grids = yield* rosterGrids(ROSTER_ROWS);
+				return yield* runHandlerCall(() =>
+					workDayPipeline.import.handler({ input: rosterImportPayload(grids) }, periodApi)
+				);
+			})
+		);
+		assert.equal(rosterOverride.find((row) => row.id === 'day:1')?.work_date, '2026-05-04');
+		assert.deepEqual(
+			periodApi.deleted.work_days,
+			['day:stale-plan'],
+			'a planned-only day the file omits goes'
+		);
+		const cleared = rosterOverride.find((row) => row.id === 'day:stale-attended');
+		assert.equal(
+			cleared?.shift_definition_id,
+			null,
+			'an attended day the file omits loses its plan'
+		);
+		assert.equal(cleared?.planned_origin, 'IMPORT');
+		assert.equal(rosterOverride.length, 9, 'eight file rows and one cleared plan');
+
+		// The one day no import may rewrite is one a payslip has consumed: the run holds it.
+		const capturedDay = yield* refusal(() =>
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids(ROSTER_ROWS);
 				return yield* runHandlerCall(() =>
@@ -559,7 +618,8 @@ const program = Effect.gen(function* () {
 									employment_id: 'employment:2',
 									work_date: '2026-05-04',
 									shift_definition_id: 'shift:75',
-									worked_intervals: null
+									worked_intervals: null,
+									payslip_id: 'payslip:1'
 								}
 							]
 						})
@@ -567,8 +627,9 @@ const program = Effect.gen(function* () {
 				);
 			})
 		);
-		assert.match(alreadyPresent, /already have an explicit assignment/);
-		assert.match(alreadyPresent, /• PUBEM0002 on 2026-05-04/);
+		assert.match(capturedDay, /already taken into account by a payroll run/);
+		assert.match(capturedDay, /• PUBEM0002 on 2026-05-04/);
+		assert.match(capturedDay, /import the period again/);
 
 		// ── Cells the browser refuses before anything is sent ──────────────────────────────────────────
 		const badCells = yield* refusal(() =>
@@ -741,7 +802,49 @@ const program = Effect.gen(function* () {
 			'the attendance arm writes the clock and never touches the plan it landed on'
 		);
 
-		const alreadyAttended = yield* refusal(() =>
+		// The file is the clock of record for the period: a reviewed-empty day it names comes back
+		// carrying the new intervals, a clock-only day it omits is deleted, and a rostered day it
+		// omits keeps its plan and loses its clock.
+		const clockPeriodApi = attendanceApi({
+			existingDays: [
+				{
+					id: 'day:2-05-04',
+					employment_id: 'employment:2',
+					work_date: '2026-05-04',
+					shift_definition_id: null,
+					worked_intervals: []
+				},
+				{
+					id: 'day:stale-clock',
+					employment_id: 'employment:2',
+					work_date: '2026-05-22',
+					shift_definition_id: null,
+					worked_intervals: [{ start: '2026-05-22T00:30:00.000Z', end: '2026-05-22T09:30:00.000Z' }]
+				},
+				{
+					id: 'day:stale-planned',
+					employment_id: 'employment:23',
+					work_date: '2026-05-23',
+					shift_definition_id: 'shift:75',
+					worked_intervals: [{ start: '2026-05-23T00:30:00.000Z', end: '2026-05-23T09:30:00.000Z' }]
+				}
+			]
+		});
+		const attendanceOverride = yield* runHandler(
+			workDayPipeline.import.handler({ input: timePayload }, clockPeriodApi)
+		);
+		const overwritten = attendanceOverride.find((row) => row.id === 'day:2-05-04');
+		assert.equal(overwritten?.worked_intervals?.length, 1);
+		assert.deepEqual(clockPeriodApi.deleted.work_days, ['day:stale-clock']);
+		const unclocked = attendanceOverride.find((row) => row.id === 'day:stale-planned');
+		assert.equal(
+			unclocked?.worked_intervals,
+			null,
+			'a rostered day the file omits loses its clock'
+		);
+		assert.equal(unclocked?.break_minutes, 0);
+
+		const capturedAttendance = yield* refusal(() =>
 			runHandlerCall(() =>
 				workDayPipeline.import.handler(
 					{ input: timePayload },
@@ -752,17 +855,16 @@ const program = Effect.gen(function* () {
 								employment_id: 'employment:2',
 								work_date: '2026-05-04',
 								shift_definition_id: null,
-								worked_intervals: []
+								worked_intervals: [],
+								payslip_id: 'payslip:1'
 							}
 						]
 					})
 				)
 			)
 		);
-		// An empty array is attendance: the day was read and nothing was worked. NULL is the absence
-		// this import is allowed to fill in, and the two are deliberately different claims.
-		assert.match(alreadyAttended, /already have attendance/);
-		assert.match(alreadyAttended, /• PUBEM0002 on 2026-05-04/);
+		assert.match(capturedAttendance, /already taken into account by a payroll run/);
+		assert.match(capturedAttendance, /• PUBEM0002 on 2026-05-04/);
 
 		const rosterOntoAttendance = yield* runHandler(
 			workDayPipeline.import.handler(

@@ -1117,7 +1117,11 @@ export default {
 							 * the plan, record it again.
 							 */
 							const frozen = planChanges(input, existing);
-							if (attendanceRecorded(existing.worked_intervals) && frozen.length > 0)
+							// ponytail: an import is the period's roster of record and overrides the plan under
+							// recorded attendance; its rows say so by provenance. Add a per-batch flag if
+							// provenance ever stops being the import's alone.
+							const imported = input.planned_origin === 'IMPORT';
+							if (attendanceRecorded(existing.worked_intervals) && frozen.length > 0 && !imported)
 								refuse(
 									`The roster for ${dateKey(workDate)} is locked: attendance has already been ` +
 										`recorded against it, and ${frozen.join(', ')} decides how that ` +

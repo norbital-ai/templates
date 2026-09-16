@@ -41,6 +41,7 @@ import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
 import { payrollWindows, assertNotSettled } from '../../lib/scheduling/lock.js';
 import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+definition.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
+import { assessmentSpan } from '../payroll_runs/lib/period.js';
 import { personDayMutations } from './lib/person-day-mutations.js';
 import type { Api, Pipelines, WorkspaceRow } from './$types.js';
 import { clockMinutes } from '../../lib/scheduling/roster-code.js';
@@ -61,10 +62,10 @@ type CompanyIdentity = Pick<
  * imported by the roster one across a collection boundary, which is a boundary that no longer
  * exists.
  */
-function resolveLegalEntity(
-	companies: readonly CompanyIdentity[],
+function resolveLegalEntity<Company extends CompanyIdentity>(
+	companies: readonly Company[],
 	legalEntity: string
-): CompanyIdentity {
+): Company {
 	const wanted = legalEntity.trim().toLowerCase();
 	const matches = companies.filter(
 		(company) =>
@@ -123,55 +124,167 @@ type AttendanceImport = Schema.Schema.Type<typeof attendanceImportSchema>;
 const importSchema = Schema.Union([rosterImportSchema, attendanceImportSchema]);
 
 /** One stored person-day, reduced to what an import has to decide about it. */
-type ExistingDay = {
-	readonly id: string;
-	readonly planned: boolean;
-	readonly attended: boolean;
-};
 
 function personDayKey(employmentId: string, workDate: string): string {
 	return `${employmentId}\t${workDate}`;
 }
 
+/** The pay grid a company's assessment span is read off. */
+type PayGridCompany = Pick<WorkspaceRow<'companies'>, 'pay_frequency' | 'pay_cutoff_day'>;
+
+/** One person-day the file states, on the half the sheet carries. */
+type PeriodStateRow<Values extends object> = Readonly<{
+	readonly employmentId: string;
+	readonly companyId: string;
+	readonly workDate: string;
+	/** The employee number, for refusals. */
+	readonly who: string;
+	readonly values: Values;
+}>;
+
 /**
- * The person-days this file touches that already exist, keyed the way the unique index keys them.
+ * The file is the state of the assessment period it touches.
  *
- * One read for the whole file. Both halves of the row are read because both arms need to know
- * which side is already occupied: the roster arm to tell a re-import from attendance that arrived
- * first, the attendance arm to refuse overwriting punches somebody already recorded.
+ * A roster or attendance import is not a merge: for every company assessment span (the pay grid's
+ * half-month or cutoff window) the file's dates fall in, the file becomes that span's statement of
+ * record on the half the sheet carries. A person-day the file names is created or overwritten on
+ * that half; one it does not name loses that half — its row is deleted when nothing else is on it,
+ * and kept with the other half when there is. The other sheet's half is never touched.
+ *
+ * The one thing no import may rewrite is a day a payslip has taken into account; the whole file is
+ * refused by run so the operator deletes that run first. A paid day is refused earlier, by the
+ * window guard.
  */
-function readExistingDays(
+function replacePeriodState<Values extends object>(
 	api: Api,
-	employmentIds: readonly string[],
-	workDates: readonly string[]
-): Effect.Effect<ReadonlyMap<string, ExistingDay>, never, never> {
-	if (employmentIds.length === 0 || workDates.length === 0) {
-		return Effect.succeed(new Map<string, ExistingDay>());
+	options: {
+		readonly half: 'PLAN' | 'CLOCK';
+		readonly companies: ReadonlyMap<string, PayGridCompany>;
+		readonly rows: readonly PeriodStateRow<Values>[];
 	}
-	return Effect.map(
-		api.db.work_days.findMany({
-			where: { employment_id: { in: employmentIds }, work_date: { in: workDates } },
+) {
+	return Effect.gen(function* () {
+		const spansByCompany = new Map<string, Map<string, { start: string; end: string }>>();
+		for (const row of options.rows) {
+			const company = options.companies.get(row.companyId);
+			if (company == null) refuse(`No legal entity resolved for ${row.who} on ${row.workDate}.`);
+			const span = assessmentSpan(company, row.workDate);
+			const spans = spansByCompany.get(row.companyId) ?? new Map();
+			spans.set(span.start, span);
+			spansByCompany.set(row.companyId, spans);
+		}
+		if (spansByCompany.size === 0) return [];
+		const employments = yield* api.db.employments.findMany({
+			where: { company_id: { in: [...spansByCompany.keys()] }, approval_id: { isNull: true } },
+			columns: { id: true, company_id: true, employee_number: true },
+			limit: QUERY_LIMIT
+		});
+		if (employments.length >= QUERY_LIMIT) refuse('Employment history is incomplete.');
+		const employmentById = new Map(employments.map((row) => [row.id, row]));
+		const allSpans = [...spansByCompany.values()].flatMap((spans) => [...spans.values()]);
+		const stored = yield* api.db.work_days.findMany({
+			where: {
+				employment_id: { in: employments.map((row) => row.id) },
+				work_date: {
+					gte: allSpans.map((span) => span.start).toSorted()[0]!,
+					lte: allSpans
+						.map((span) => span.end)
+						.toSorted()
+						.at(-1)!
+				},
+				approval_id: { isNull: true }
+			},
 			columns: {
 				id: true,
 				employment_id: true,
 				work_date: true,
 				shift_definition_id: true,
-				worked_intervals: true
+				worked_intervals: true,
+				payslip_id: true
 			},
 			limit: QUERY_LIMIT
-		}),
-		(days) =>
-			new Map(
-				days.map((day) => [
-					personDayKey(day.employment_id, dateKey(day.work_date)),
-					{
-						id: day.id,
-						planned: day.shift_definition_id != null,
-						attended: day.worked_intervals != null
-					}
-				])
-			)
-	);
+		});
+		if (stored.length >= QUERY_LIMIT) refuse('Work day history is incomplete.');
+		const inSpan = stored.filter((day) => {
+			const date = dateKey(day.work_date) ?? '';
+			const spans = spansByCompany.get(employmentById.get(day.employment_id)?.company_id ?? '');
+			return [...(spans?.values() ?? [])].some((span) => date >= span.start && date <= span.end);
+		});
+		const who = (day: (typeof stored)[number]) =>
+			`${employmentById.get(day.employment_id)?.employee_number ?? day.employment_id} on ${dateKey(day.work_date) ?? ''}`;
+		const held = inSpan.filter((day) => day.payslip_id != null).map(who);
+		if (held.length > 0)
+			refuse(
+				`These days are already taken into account by a payroll run:\n${formatNamedList(held)}\n` +
+					'Delete that run to release them, then import the period again.'
+			);
+		const fileKeys = new Set(
+			options.rows.map((row) => personDayKey(row.employmentId, row.workDate))
+		);
+		const existing = new Map(
+			inSpan.map((day) => [
+				personDayKey(day.employment_id, dateKey(day.work_date) ?? ''),
+				{ id: day.id }
+			])
+		);
+		const clears: Array<
+			| {
+					id: string;
+					employment_id: string;
+					work_date: string;
+					shift_definition_id: null;
+					assignment_code: null;
+					planned_origin: 'IMPORT';
+			  }
+			| {
+					id: string;
+					employment_id: string;
+					work_date: string;
+					worked_intervals: null;
+					break_minutes: number;
+			  }
+		> = [];
+		const deletes: string[] = [];
+		for (const day of inSpan) {
+			if (fileKeys.has(personDayKey(day.employment_id, dateKey(day.work_date) ?? ''))) continue;
+			const keepsOtherHalf =
+				options.half === 'PLAN' ? day.worked_intervals != null : day.shift_definition_id != null;
+			if (!keepsOtherHalf) {
+				deletes.push(day.id);
+				continue;
+			}
+			const base = {
+				id: day.id,
+				employment_id: day.employment_id,
+				work_date: dateKey(day.work_date) ?? ''
+			};
+			// `planned_origin` stays IMPORT on a cleared plan: the import is what decided this day has
+			// no assignment, and it is the provenance the write hook admits under recorded attendance.
+			clears.push(
+				options.half === 'PLAN'
+					? {
+							...base,
+							shift_definition_id: null,
+							assignment_code: null,
+							planned_origin: 'IMPORT' as const
+						}
+					: { ...base, worked_intervals: null, break_minutes: 0 }
+			);
+		}
+		if (deletes.length > 0) yield* api.db.work_days.delete(deletes);
+		return [
+			...personDayMutations(
+				existing,
+				options.rows.map((row) => ({
+					employment_id: row.employmentId,
+					work_date: row.workDate,
+					values: row.values
+				})),
+				personDayKey
+			),
+			...clears
+		];
+	});
 }
 
 /** Resolve each imported person-day against its approved contract's actual service window. */
@@ -254,7 +367,14 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		}
 		const month: string = fileMonth;
 		const companies = yield* api.db.companies.findMany({
-			columns: { id: true, name: true, registration_number: true, settings_code: true },
+			columns: {
+				id: true,
+				name: true,
+				registration_number: true,
+				settings_code: true,
+				pay_frequency: true,
+				pay_cutoff_day: true
+			},
 			limit: QUERY_LIMIT
 		});
 		const company = resolveLegalEntity(companies, legalEntity);
@@ -337,24 +457,6 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		}
 		for (const code of rosterCodes) Schema.decodeUnknownSync(rosterCodeVariantSchema)(code.variant);
 
-		const employmentIds = [...new Set(assignments.map((row) => contractFor(row).id))];
-		const workDates = [...new Set(assignments.map((row) => row.work_date))];
-		const existing = yield* readExistingDays(api, employmentIds, workDates);
-
-		/**
-		 * A day that already carries a PLAN is the conflict. A day that exists only because
-		 * attendance was imported first is not one — that is the merge working, and the plan lands
-		 * on the row the punch already made.
-		 */
-		const alreadyAssigned = assignments.filter(
-			(row) => existing.get(personDayKey(contractFor(row).id, row.work_date))?.planned
-		);
-		if (alreadyAssigned.length > 0) {
-			refuse(
-				`These days already have an explicit assignment:\n${formatNamedList(formatRosterRows(alreadyAssigned))}`
-			);
-		}
-
 		const runs = yield* api.db.payroll_runs.findMany({
 			where: { company_id: { eq: companyId } },
 			columns: { id: true, period: true, attendance_from: true, attendance_to: true },
@@ -377,23 +479,25 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		// made a whole imported month indistinguishable from an operator's ad hoc edits. The note is
 		// an optional column of the long-form sheet, so a file that carries one carries it through
 		// rather than having it read and discarded.
-		return personDayMutations(
-			existing,
-			assignments.map((row) => {
+		return yield* replacePeriodState(api, {
+			half: 'PLAN',
+			companies: new Map([[company.id, company]]),
+			rows: assignments.map((row) => {
 				const code = codeByName.get(row.shift_code);
 				if (code == null) refuse(`No roster code resolved for ${row.shift_code}.`);
 				return {
-					employment_id: contractFor(row).id,
-					work_date: row.work_date,
+					employmentId: contractFor(row).id,
+					companyId: contractFor(row).company_id,
+					workDate: row.work_date,
+					who: row.employee_number,
 					values: {
 						shift_definition_id: code.id,
 						assignment_code: row.assignment_code ?? null,
 						planned_origin: 'IMPORT' as const
 					}
 				};
-			}),
-			personDayKey
-		);
+			})
+		});
 	});
 }
 
@@ -505,14 +609,22 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			}
 		}
 
-		let companyId: string | undefined;
-		if (legalEntity != null) {
-			const companies = yield* api.db.companies.findMany({
-				columns: { id: true, name: true, registration_number: true, settings_code: true },
-				limit: QUERY_LIMIT
-			});
-			companyId = resolveLegalEntity(companies, legalEntity).id;
-		}
+		// Every company, not only a named one: the file may name no legal entity, and the period the
+		// rows replace is read off each contract's own company pay grid.
+		const companies = yield* api.db.companies.findMany({
+			columns: {
+				id: true,
+				name: true,
+				registration_number: true,
+				settings_code: true,
+				pay_frequency: true,
+				pay_cutoff_day: true
+			},
+			limit: QUERY_LIMIT
+		});
+		const companyById = new Map(companies.map((company) => [company.id, company]));
+		const companyId =
+			legalEntity == null ? undefined : resolveLegalEntity(companies, legalEntity).id;
 
 		const invalidDates = [
 			...new Set(rows.filter((row) => !isCalendarDate(row.work_date)).map((row) => row.work_date))
@@ -558,21 +670,6 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 		const contractFor = yield* readImportContracts(api, rows, companyId);
 		const employmentIds = [...new Set(rows.map((row) => contractFor(row).id))];
 		const workDates = [...new Set(rows.map((row) => row.work_date))].toSorted();
-		const existing = yield* readExistingDays(api, employmentIds, workDates);
-
-		/**
-		 * A rostered day is not a conflict — the punch lands on the row the plan already made. A day
-		 * that already carries ATTENDANCE is: `worked_intervals` non-NULL is somebody's recorded
-		 * answer about that day, and an import silently replacing it would lose it.
-		 */
-		const present = rows
-			.filter((row) => existing.get(personDayKey(contractFor(row).id, row.work_date))?.attended)
-			.map((row) => `${row.employee_number} on ${row.work_date}`);
-		if (present.length > 0) {
-			refuse(
-				`These days already have attendance:\n${formatNamedList(present)}\nUpdate the existing day instead of importing a duplicate.`
-			);
-		}
 
 		// One writer wins the day even on import: attendance cannot be loaded onto a day approved
 		// leave already owns, or onto a day a paid payroll run settled.
@@ -646,22 +743,24 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			}
 		}
 
-		return personDayMutations(
-			existing,
-			rows.map((row) => ({
-				employment_id: contractFor(row).id,
-				work_date: row.work_date,
+		return yield* replacePeriodState(api, {
+			half: 'CLOCK',
+			companies: companyById,
+			rows: rows.map((row) => ({
+				employmentId: contractFor(row).id,
+				companyId: contractFor(row).company_id,
+				workDate: row.work_date,
+				who: row.employee_number,
 				values: attendanceValues(row, timezone)
-			})),
-			personDayKey
-		);
+			}))
+		});
 	});
 }
 
 export default {
 	import: {
 		description:
-			'Loads one month of person-days for one legal entity, from either sheet of the scheduling workbook: the Roster sheet loads planned roster-code assignments, and the Time entries sheet loads local attendance punches as generic worked intervals. A day already held by the other sheet is updated rather than duplicated. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
+			'Loads one month of person-days for one legal entity, from either sheet of the scheduling workbook: the Roster sheet loads planned roster-code assignments, and the Time entries sheet loads local attendance punches as generic worked intervals. The file is the state of the assessment period it covers (the half-month or cutoff window of the legal entity): on the half that sheet carries, every person-day of that entity in the period is replaced by the file, and a day the file omits loses that half. The half the other sheet carries is never touched. A period a payroll run has already taken into account is refused until that run is deleted. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {

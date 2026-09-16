@@ -146,3 +146,19 @@ test('the evaluated CLOCK limit subtracts the shift break', async () => {
 	assert.equal(evaluatedLimits(nihon.limits, 60).daily_total, 11);
 	assert.equal(evaluatedLimits(nihon.limits, 0).daily_total, 12);
 });
+
+test('an OFF day is priced as ordinary overtime: every hour worked is beyond the normal week', () => {
+	// A five-day week's Saturday. No shift, so the whole clocked day is overtime, and the band
+	// that says `day_type == "ORDINARY"` must take all of it — an OFF day that matched no band
+	// paid nothing for the day.
+	const rows = priceWorkDay({
+		work: nihon,
+		person,
+		day: day({ dayType: 'OFF_DAY', workedHours: 5, overtimeHours: 5 }),
+		rates
+	});
+	assert.deepEqual(
+		rows.map((row) => [row.line, row.label, row.hours, Math.round(row.amount * 100) / 100]),
+		[['OVERTIME', '1.5', 5, 191.25]]
+	);
+});

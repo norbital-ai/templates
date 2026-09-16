@@ -27,7 +27,8 @@ import { Schema } from 'effect';
 import { leaveChargesValueSchema } from '../../../datatypes/leave_charges/+definition.js';
 import {
 	PAYROLL_TIME_ZONE,
-	daysInMonth,
+	periodDayRange,
+	periodMonthOf,
 	startOfDayInstant,
 	workDateCalendarKey
 } from '../calendar.js';
@@ -322,12 +323,16 @@ const holidayLikeSchema = Schema.Struct({
 });
 export type HolidayLike = Schema.Schema.Type<typeof holidayLikeSchema>;
 
-/** Every calendar day of a `YYYY-MM` month, in order. */
-export function monthDays(month: string): string[] {
-	const count = daysInMonth(month);
+/**
+ * Every calendar day of a period, in order: the whole `YYYY-MM` month, or the 1st–15th / 16th–end
+ * half a `-1` / `-2` suffix names. The board reads the entity's pay cycle, so its days do too.
+ */
+export function monthDays(period: string): string[] {
+	const month = periodMonthOf(period);
+	const { from, to } = periodDayRange(period);
 	return Array.from(
-		{ length: count },
-		(_value, index) => `${month}-${String(index + 1).padStart(2, '0')}`
+		{ length: to - from + 1 },
+		(_value, index) => `${month}-${String(from + index).padStart(2, '0')}`
 	);
 }
 

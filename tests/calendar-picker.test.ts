@@ -6,7 +6,9 @@ import {
 	calendarDayAsPickerInstant,
 	calendarDayFromPickerInstant,
 	calendarDateInTimeZone,
+	dayWindowInstantBounds,
 	monthWorkDateInstantBounds,
+	periodInCompanyGrammar,
 	periodWindow,
 	startOfDayInstant,
 	workDateCalendarKey
@@ -80,5 +82,35 @@ describe('calendar-day picker adapters', () => {
 			() => calendarDayFromPickerInstant('not-an-instant', 'Asia/Singapore'),
 			/not a valid instant/
 		);
+	});
+});
+
+describe('periodInCompanyGrammar', () => {
+	it('reads a bare month as the half today falls in at a semi-monthly company', () => {
+		assert.equal(periodInCompanyGrammar('2026-03', 'SEMI_MONTHLY', '2026-03-09'), '2026-03-1');
+		assert.equal(periodInCompanyGrammar('2026-03', 'SEMI_MONTHLY', '2026-03-16'), '2026-03-2');
+		assert.equal(periodInCompanyGrammar('2026-03-2', 'SEMI_MONTHLY', '2026-03-09'), '2026-03-2');
+	});
+	it('drops a half suffix at a monthly company', () => {
+		assert.equal(periodInCompanyGrammar('2026-03-2', 'MONTHLY', '2026-03-09'), '2026-03');
+		assert.equal(periodInCompanyGrammar('2026-03', undefined, '2026-03-09'), '2026-03');
+	});
+});
+
+describe('dayWindowInstantBounds', () => {
+	it('spans the payroll-zone day starts, with the end exclusive, so both instant anchors match', () => {
+		const bounds = dayWindowInstantBounds({ start: '2026-01-16', end: '2026-01-31' });
+		assert.deepEqual(bounds, {
+			start: '2026-01-15T16:00:00.000Z',
+			end: '2026-01-31T16:00:00.000Z'
+		});
+		const inside = (instant: string) => instant >= bounds.start && instant < bounds.end;
+		// A 31 January stored at UTC midnight, and one stored at the zone's day start.
+		assert.ok(inside('2026-01-31T00:00:00.000Z'));
+		assert.ok(inside('2026-01-30T16:00:00.000Z'));
+		// The 16th on either anchor is in; the 15th and 1 February on either anchor are out.
+		assert.ok(inside('2026-01-16T00:00:00.000Z') && inside('2026-01-15T16:00:00.000Z'));
+		assert.ok(!inside('2026-01-15T00:00:00.000Z') && !inside('2026-01-14T16:00:00.000Z'));
+		assert.ok(!inside('2026-02-01T00:00:00.000Z') && !inside('2026-01-31T16:00:00.000Z'));
 	});
 });

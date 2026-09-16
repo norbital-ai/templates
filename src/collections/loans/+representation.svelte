@@ -24,6 +24,8 @@
 		type LoanRepaymentDraft
 	} from '../../lib/loan-schedule.js';
 	import { Button } from '@norbital-ai/ui/button';
+	import { Badge } from '@norbital-ai/ui/badge';
+	import Icon from '@iconify/svelte';
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 	import EligibleTypes from '../../lib/ui/eligible-types.svelte';
 	import FormSection from '../../lib/ui/form-section.svelte';
@@ -110,7 +112,7 @@
 		});
 	});
 	const lockedIds = $derived(new Set((capturedQuery?.current ?? []).map((row) => row.id)));
-	/** A payslip has captured instalments: the header carries the lock, the captured rows refuse edits. */
+	/** A payslip has captured instalments: the schedule's title carries the lock, the captured rows refuse edits. */
 	const scheduleLocked = $derived(lockedIds.size > 0);
 
 	const applySchedule = (
@@ -148,7 +150,19 @@
 		)) satisfies CollectionFormSemantic;
 </script>
 
-<RecordShell icon={scheduleLocked ? 'lucide:lock-keyhole' : undefined}>
+{#snippet scheduleLock()}
+	<Badge
+		variant="outline"
+		class="gap-1"
+		title={t('component.loan_schedule_locked_note')}
+		aria-label={`${t('component.loan_schedule_locked_badge')}: ${t('component.loan_schedule_locked_note')}`}
+	>
+		<Icon icon="lucide:lock-keyhole" class="size-3 shrink-0" aria-hidden="true" />
+		{t('component.loan_schedule_locked_badge')}
+	</Badge>
+{/snippet}
+
+<RecordShell>
 	<CollectionForm
 		{client}
 		collection="loans"
@@ -209,6 +223,7 @@
 				<FormSection
 					title={t('component.repayment_schedule')}
 					hint={t('component.loan_section_schedule_hint')}
+					trailing={scheduleLocked ? scheduleLock : undefined}
 				>
 					<Stack
 						gap="sm"

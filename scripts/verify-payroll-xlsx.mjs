@@ -343,7 +343,7 @@ Effect.runPromise(
 	Effect.scoped(
 		Effect.gen(function* () {
 			const vite = yield* viteResource;
-			const { payrollReportXlsx } = yield* Effect.tryPromise(() =>
+			const { payrollReportXlsx, catalogueEntriesXlsx } = yield* Effect.tryPromise(() =>
 				vite.ssrLoadModule('/src/collections/payroll_runs/lib/export.ts')
 			);
 			const { IDENTITY_OUTPUT_IDS, outputGroups, workbookRows } = yield* Effect.tryPromise(() =>
@@ -586,6 +586,45 @@ Effect.runPromise(
 				13.25,
 				4240
 			]);
+
+			// ── the catalogue entries workbook: the same rows, only what was requested, with totals ───────
+			const catalogueBytes = yield* catalogueEntriesXlsx([
+				{ period: '2026-03', payslips: [VERIFIED, JOINER] }
+			]);
+			const catalogue = new ExcelJS.Workbook();
+			yield* Effect.tryPromise(() => catalogue.xlsx.load(Uint8Array.from(catalogueBytes)));
+			const entries = catalogue.getWorksheet('2026-03');
+			assert.ok(entries, 'the catalogue entries workbook has no sheet for the period');
+			// exceljs row values are 1-based with an empty slot at 0.
+			const entryColumns = entries.getRow(2).values.slice(1);
+			for (const code of ['TRANSPORT', 'MEDICAL_CLAIM', 'STAFF_LOAN', 'total'])
+				assert.ok(entryColumns.includes(code), `${code} has no column in the catalogue entries`);
+			for (const absent of [
+				'BASIC',
+				'OVERTIME',
+				'UNPAID_LEAVE_DEDUCTION',
+				'grossEarnings',
+				'netPay',
+				'epfEmployee'
+			])
+				assert.ok(!entryColumns.includes(absent), `${absent} is not a catalogue entry`);
+			const entryColumn = (id) => entryColumns.indexOf(id) + 1;
+			// Band row 1, header row 2, VERIFIED row 3, JOINER row 4, the SUM row 5.
+			assert.equal(entries.getCell(3, entryColumn('MEDICAL_CLAIM')).value, 93.5);
+			assert.equal(
+				entries.getCell(3, entryColumn('TRANSPORT')).value,
+				0,
+				'squared off with a zero'
+			);
+			assert.equal(entries.getCell(4, entryColumn('TRANSPORT')).value, 150);
+			assert.equal(entries.getCell(4, entryColumn('STAFF_LOAN')).value, 100);
+			assert.equal(entries.getCell(4, entryColumn('total')).value, 250, 'the per-row roll-up');
+			assert.equal(entries.getCell(5, 1).value, 'TOTAL');
+			assert.match(
+				entries.getCell(5, entryColumn('TRANSPORT')).value?.formula ?? '',
+				/^SUM\(/,
+				'the totals row sums each money column'
+			);
 
 			// ── and an empty period still writes a real archive, as it always did ─────────────────────────
 			const emptyBytes = yield* payrollReportXlsx([{ period: 'verification', payslips: [] }]);

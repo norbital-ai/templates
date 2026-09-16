@@ -40,6 +40,7 @@
 <RecordShell
 	icon={sealed ? 'lucide:lock-keyhole' : undefined}
 	badge={sealed ? t('component.settings_sealed_badge') : undefined}
+	hint={sealed ? t('component.settings_sealed_note') : undefined}
 >
 	<CollectionForm
 		{client}

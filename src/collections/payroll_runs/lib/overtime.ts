@@ -167,16 +167,13 @@ function midnight(date: IsoDate, utcOffsetMinutes: number): number {
 /**
  * Hours actually worked on a day, from the clocks.
  *
- * Time clocked before the scheduled start is discarded: an employee who arrives early is not
- * working, and not paid, until their shift begins. The unpaid break is deducted from what remains,
- * never below zero — the schema records a flat `break_minutes` rather than break windows, so an
- * overlap test is not available here (see the note in the module report).
+ * On a scheduled day `from` is the shift start: time clocked before it is discarded, because an
+ * employee who arrives early is not working, and not paid, until their shift begins. The unpaid
+ * break is deducted from what remains, never below zero — the schema records a flat
+ * `break_minutes` rather than break windows, so an overlap test is not available here.
  */
-function clockedWorkHours(entry: WorkDayLike): number {
-	const elapsed = normalizedWorkedIntervals(entry).reduce(
-		(total, interval) => total + (interval.end - interval.start) / HOUR_MS,
-		0
-	);
+function clockedWorkHours(entry: WorkDayLike, from: number = Number.NEGATIVE_INFINITY): number {
+	const elapsed = overlapHours(normalizedWorkedIntervals(entry), from, Number.POSITIVE_INFINITY);
 	return Math.max(0, elapsed - Math.max(0, decodeNumber(entry.break_minutes)) / 60);
 }
 
@@ -309,7 +306,7 @@ export function deriveDailyOvertime(
 ): DailyOvertime | null {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const intervals = normalizedWorkedIntervals(entry);
-	const totalWorkHours = clockedWorkHours(entry);
+	let totalWorkHours = clockedWorkHours(entry);
 	let raw = totalWorkHours;
 	if (day.dayType === 'ORDINARY') {
 		if (day.shift == null) return null;
@@ -318,9 +315,10 @@ export function deriveDailyOvertime(
 		if (day.shift.crosses_midnight || endMinutes <= startMinutes) endMinutes += 1440;
 		const shiftStart = midnight(workDate, utcOffsetMinutes) + startMinutes * MINUTE_MS;
 		const shiftEnd = midnight(workDate, utcOffsetMinutes) + endMinutes * MINUTE_MS;
-		const before = overlapHours(intervals, Number.NEGATIVE_INFINITY, shiftStart);
-		const after = overlapHours(intervals, shiftEnd, Number.POSITIVE_INFINITY);
-		raw = before + after;
+		// An early clock-in is not work: overtime on a scheduled day is the clock-out past the
+		// shift end, and the day's total is measured from the shift start (owner's rule, 2026-09-16).
+		totalWorkHours = clockedWorkHours(entry, shiftStart);
+		raw = overlapHours(intervals, shiftEnd, Number.POSITIVE_INFINITY);
 	}
 
 	/**

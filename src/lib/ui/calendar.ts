@@ -165,7 +165,7 @@ export function periodMonthOf(period: string): string {
 }
 
 /** `1`, `2`, or `null` for a whole month. */
-function periodHalfOf(period: string): 1 | 2 | null {
+export function periodHalfOf(period: string): 1 | 2 | null {
 	return period.length === 7 ? null : period.endsWith('1') ? 1 : 2;
 }
 
@@ -180,6 +180,40 @@ export function periodDayRange(period: string): { readonly from: number; readonl
 		default:
 			return { from: 1, to: last };
 	}
+}
+
+/**
+ * A selected period restated in the company's grammar: a semi-monthly company reads a bare month
+ * as the half `today` falls in, a monthly company drops a half suffix. The board and its picker
+ * follow the entity's pay cycle, not the calendar month.
+ */
+export function periodInCompanyGrammar(
+	period: string,
+	payFrequency: string | undefined,
+	today: string
+): string {
+	const month = periodMonthOf(period);
+	if (payFrequency !== 'SEMI_MONTHLY') return month;
+	if (periodHalfOf(period) != null) return period;
+	return `${month}-${Number(today.slice(8, 10)) <= 15 ? 1 : 2}`;
+}
+
+/**
+ * A `start`..`end` day window as the instants a day-precision column is filtered by: inclusive
+ * start-of-day for `start`, exclusive start-of-day for the day after `end`, both in the payroll
+ * zone. A bare `YYYY-MM-DD` bound is cast in the server's own zone and drops the boundary day —
+ * a 31 January instalment stored at UTC midnight is past `lte: '2026-01-31'` on a UTC+8 host —
+ * while these bounds hold for a day stored at UTC midnight and for one stored at the payroll
+ * zone's day start alike.
+ */
+export function dayWindowInstantBounds(window: { readonly start: string; readonly end: string }): {
+	readonly start: string;
+	readonly end: string;
+} {
+	return {
+		start: startOfDayInstant(window.start, PAYROLL_TIME_ZONE),
+		end: startOfDayInstant(addDays(window.end, 1), PAYROLL_TIME_ZONE)
+	};
 }
 
 /**

@@ -70,20 +70,32 @@ const holiday = (worked, normalHours = 8) => ({
 
 test('Malaysia and Singapore — a rest day worked for exactly half the normal hours is the half-day limb', () => {
 	for (const code of ['MY', 'MY-nihon']) {
-		// EA 1955 s.60(3)(b): "does not exceed half" → half a day's wages; over half → one day.
-		assert.deepEqual(price(code, restDay(4)), [['OT-0.5X', 4, 400]]);
-		assert.deepEqual(price(code, restDay(4.5)), [['OT-1.0X', 4, 800]]);
-		// Beyond the normal hours: two times the hourly rate, s.60(3)(c).
+		// EA 1955 s.60(3)(b), the monthly-rated limb: "does not exceed half" the normal hours → half
+		// a day's wages; over half, up to the normal hours → one day's wages. The row carries the
+		// hours actually worked, so a 4.5-hour day reads as 4.5 hours at a day's wage, never as four
+		// fabricated hours at twice the hourly rate. The labels say what the statute pays, not a
+		// multiple the payslip reader has to reverse-engineer.
+		assert.deepEqual(price(code, restDay(4)), [['RESTDAY-HALF-DAY-PAY', 4, 400]]);
+		assert.deepEqual(price(code, restDay(4.5)), [['RESTDAY-FULL-DAY-PAY', 4.5, 800]]);
+		// s.60(3)(c): work in excess of the normal hours on a rest day, two times the hourly rate.
 		assert.deepEqual(price(code, restDay(10)), [
-			['OT-1.0X', 4, 800],
-			['OT-2.0X', 2, 400]
+			['RESTDAY-FULL-DAY-PAY', 8, 800],
+			['RESTDAY-OT-2.0X', 2, 400]
 		]);
+		// s.60D(3)(a)(i): two days' wages for work on a paid holiday, in addition to the holiday pay;
+		// s.60D(3)(aa): three times the hourly rate beyond the normal hours. Two statutes, two rows.
+		assert.deepEqual(price(code, holiday(10)), [
+			['HOLIDAY-2-DAYS-PAY', 8, 1600],
+			['HOLIDAY-OT-3.0X', 2, 600]
+		]);
+		// s.60A(3)(a): an ordinary day's overrun at one and a half times the hourly rate.
+		assert.deepEqual(price(code, ordinary(10)), [['WORKDAY-OT-1.5X', 2, 300]]);
 	}
 	// Singapore EA s.37(3): one day's basic pay up to half, two days' over half, 1.5× beyond.
 	assert.deepEqual(price('SG', restDay(4)), [['OT-1.0X', 4, 800]]);
-	assert.deepEqual(price('SG', restDay(4.5)), [['OT-2.0X', 4, 1600]]);
+	assert.deepEqual(price('SG', restDay(4.5)), [['OT-2.0X', 4.5, 1600]]);
 	assert.deepEqual(price('SG', restDay(10)), [
-		['OT-2.0X', 4, 1600],
+		['OT-2.0X', 8, 1600],
 		['OT-1.5X', 2, 300]
 	]);
 });

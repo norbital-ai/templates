@@ -31,12 +31,26 @@
 	import { inForceTodayFilter } from '../../../lib/ui/calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { repaymentProgress } from '../../../lib/loan-schedule.js';
+	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
+	import { payRequestRecordMetadata } from '../../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	type RepaymentRow = WorkspaceRow<'loan_repayments'> & {
+		readonly loan_repayment_employment?: Pick<
+			WorkspaceRow<'employments'>,
+			'employee_number'
+		> | null;
+		readonly loan_repayment_loan?: Pick<WorkspaceRow<'loans'>, 'reference'> | null;
+	};
 
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
+	/** The pay period the one-off entries are stepped by, in the entity's own grammar. */
+	const pay = createPayPeriodScope(() => companyById(selectedCompanyId));
 	/**
 	 * The scope the create forms this page opens are drawn against: this entity's own people, and
 	 * the catalogue version its jurisdiction lineage has in force. Without it a form opened from
@@ -167,6 +181,7 @@
 >
 	<AppHeaderActions>
 		{@render companyScopeActions()}
+		{@render periodNavigation()}
 	</AppHeaderActions>
 
 	{#if companiesUnknown}
@@ -177,61 +192,148 @@
 		</p>
 	{:else}
 		{#key selectedCompanyId}
+			<Tabs
+				animate={false}
+				variant="underline"
+				contentPadding={false}
+				config={[
+					{
+						name: 'recurring',
+						label: t('app.events.tab_recurring'),
+						icon: 'lucide:repeat',
+						content: agreements
+					},
+					{
+						name: 'one-off',
+						label: t('app.events.tab_one_off'),
+						icon: 'lucide:calendar-check',
+						content: repayments
+					}
+				] satisfies TabConfig[]}
+			/>
+		{/key}
+	{/if}
+</AppShell>
+
+{#snippet agreements()}
+	<CollectionTable
+		{client}
+		collection="loans"
+		view={`hr_controller:loans:${selectedCompanyId}`}
+		title={t('app.loans.agreements')}
+		description={t('app.loans.agreements_description')}
+		initialFilters={inForceTodayFilter()}
+		query={{
+			where: {
+				loan_employment: {
+					some: {
+						approval_id: { isNull: true },
+						company_id: { eq: selectedCompanyId }
+					}
+				}
+			},
+			orderBy: { effective_from: 'desc' },
+			with: {
+				loan_employment: { columns: { employee_number: true } },
+				loan_loan_catalogue: { columns: { code: true } }
+			}
+		}}
+	>
+		{#snippet columns({ Column })}
+			<Column name="reference" card="title" />
+			<Column
+				name="employment_id"
+				label={t('component.employment')}
+				card="subtitle"
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }: { row: NestedLoan }) => row.loan_employment?.employee_number ?? '—'
+				}}
+			/>
+			<Column
+				name="loan_catalogue_id"
+				label={t('app.loans.deducted_as')}
+				renderer={FormattedValueRenderer}
+				rendererProps={{ format: ({ row }: { row: NestedLoan }) => componentLabel(row) }}
+			/>
+			<Column name="principal" label={t('app.loans.principal_outstanding')} />
+			<Column name="effective_range" />
+		{/snippet}
+		{#snippet ListCard(loan)}
+			<Stack gap="xs">
+				<Inline align="start" justify="between" gap="sm">
+					<p class="truncate font-medium">{loan.reference ?? '—'}</p>
+					<span class="shrink-0 text-meta">
+						{formatEffectiveRange(loan.effective_range)}
+					</span>
+				</Inline>
+				<p class="text-sm">{progressLabel(loan)}</p>
+			</Stack>
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet repayments()}
+	{#if pay.bounds != null}
+		{#key pay.period}
 			<CollectionTable
 				{client}
-				collection="loans"
-				view={`hr_controller:loans:${selectedCompanyId}`}
-				title={t('app.loans.agreements')}
-				description={t('app.loans.agreements_description')}
-				initialFilters={inForceTodayFilter()}
+				collection="loan_repayments"
+				view={`hr_controller:loans:repayments:${selectedCompanyId}:${pay.period}`}
+				title={t('app.loans.repayments_in_period', { period: pay.period })}
+				features={{ create: false }}
+				recordMetadata={(row: RepaymentRow) =>
+					payRequestRecordMetadata(
+						row.approval_id,
+						row.payslip_id == null ? [] : [{ period: '' }],
+						t
+					)}
 				query={{
 					where: {
-						loan_employment: {
-							some: {
-								approval_id: { isNull: true },
-								company_id: { eq: selectedCompanyId }
-							}
-						}
+						loan_repayment_employment: { some: { company_id: { eq: selectedCompanyId } } },
+						due_date: { gte: pay.bounds.start, lt: pay.bounds.end }
 					},
-					orderBy: { effective_from: 'desc' },
+					orderBy: { due_date: 'asc' },
 					with: {
-						loan_employment: { columns: { employee_number: true } },
-						loan_loan_catalogue: { columns: { code: true } }
+						loan_repayment_employment: { columns: { employee_number: true } },
+						loan_repayment_loan: { columns: { reference: true } }
 					}
 				}}
 			>
 				{#snippet columns({ Column })}
-					<Column name="reference" card="title" />
 					<Column
-						name="employment_id"
-						label={t('component.employment')}
-						card="subtitle"
+						name="loan_id"
+						label={t('app.loans.agreement')}
+						card="title"
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }: { row: NestedLoan }) => row.loan_employment?.employee_number ?? '—'
+							format: ({ row }: { row: RepaymentRow }) => row.loan_repayment_loan?.reference ?? '—'
 						}}
 					/>
 					<Column
-						name="loan_catalogue_id"
-						label={t('app.loans.deducted_as')}
+						name="employment_id"
+						label={t('component.person')}
+						card="subtitle"
 						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }: { row: NestedLoan }) => componentLabel(row) }}
+						rendererProps={{
+							format: ({ row }: { row: RepaymentRow }) =>
+								row.loan_repayment_employment?.employee_number ?? '—'
+						}}
 					/>
-					<Column name="principal" label={t('app.loans.principal_outstanding')} />
-					<Column name="effective_range" />
-				{/snippet}
-				{#snippet ListCard(loan)}
-					<Stack gap="xs">
-						<Inline align="start" justify="between" gap="sm">
-							<p class="truncate font-medium">{loan.reference ?? '—'}</p>
-							<span class="shrink-0 text-meta">
-								{formatEffectiveRange(loan.effective_range)}
-							</span>
-						</Inline>
-						<p class="text-sm">{progressLabel(loan)}</p>
-					</Stack>
+					<Column name="sequence" label={t('app.loans.instalment')} />
+					<Column name="due_date" label={t('app.loans.due_date')} />
+					<Column name="amount_due" label={t('component.amount')} />
 				{/snippet}
 			</CollectionTable>
 		{/key}
 	{/if}
-</AppShell>
+{/snippet}
+
+{#snippet periodNavigation()}
+	<MonthPeriodPicker
+		month={pay.period}
+		halves={pay.halves}
+		ariaLabel={t('app.events.pay_period')}
+		onMonthChange={(next) => pay.select(next)}
+	/>
+{/snippet}
