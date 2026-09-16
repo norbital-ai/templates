@@ -142,8 +142,14 @@ function monthParts(period: string): { year: number; monthIndex: number } {
 	};
 }
 
-/** The attendance window of the monthly cadence in a period, given the company's cutoff day. */
+/**
+ * The attendance window of the monthly cadence in a period, given the company's cutoff day: it
+ * opens on last month's cutoff day and closes the day before this month's. A cutoff of 1 is the
+ * calendar month itself — the period's own month, not the one before — because an entity that
+ * opens on the 1st pays the month it names.
+ */
 export function attendanceWindow(period: string, cutoffDay: number): DayRange {
+	if (cutoffDay === 1) return monthBounds(period);
 	const { year, monthIndex } = monthParts(period);
 	return {
 		start: monthDay(year, monthIndex - 1, cutoffDay),
@@ -154,7 +160,7 @@ export function attendanceWindow(period: string, cutoffDay: number): DayRange {
 /**
  * The dates whose entries settle in a period by the default cutoff rule (`defaultPayPeriod` read
  * backwards): the 1st–15th or 16th–end half at a semi-monthly company, and at a monthly one the
- * day after last month's cutoff through this month's cutoff. The event pages step their one-off
+ * attendance window itself, last month's cutoff day through the day before this month's. The event pages step their one-off
  * tables by this window, so a clerk sees a period's claims the way the run that pays them will.
  */
 export function payPeriodWindow(period: string, company: PayCalendarCompany): DayRange {
@@ -164,12 +170,12 @@ export function payPeriodWindow(period: string, company: PayCalendarCompany): Da
 			? { start: `${periodMonth(period)}-16`, end: bounds.end }
 			: { start: bounds.start, end: `${periodMonth(period)}-15` };
 	}
-	const cutoffDay = assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day');
-	const { year, monthIndex } = monthParts(period);
-	return {
-		start: addDays(monthDay(year, monthIndex - 1, cutoffDay), 1),
-		end: monthDay(year, monthIndex, cutoffDay)
-	};
+	// One window for attendance and entries alike: last month's cutoff day through the day before
+	// this month's. Two readings of one cutoff had the 21st in different cycles.
+	return attendanceWindow(
+		period,
+		assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day')
+	);
 }
 
 /**
@@ -187,9 +193,8 @@ export function assessmentSpan(company: PayCalendarCompany, date: IsoDate): DayR
 	}
 	const cutoffDay = assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day');
 	// The window of period P runs from P-1's cutoff day to the day before P's: a date on or after
-	// the cutoff already belongs to next month's period.
-	const period = dayOfMonth(date) >= cutoffDay ? shiftPeriod(month, 1) : month;
-	return attendanceWindow(period, cutoffDay);
+	// the cutoff already belongs to next month's period. A cutoff of 1 is the calendar month.
+	return attendanceWindow(monthlyPeriodOf(date, cutoffDay), cutoffDay);
 }
 
 function assertDayOfMonth(value: unknown, what: string): number {
@@ -358,9 +363,20 @@ export function defaultPayPeriod(
 	if (cadence?.company.pay_frequency === 'SEMI_MONTHLY') {
 		if (cadence.payFrequency === 'SEMI_MONTHLY')
 			return dayOfMonth(eventDate) <= 15 ? `${month}-1` : `${month}-2`;
-		return `${dayOfMonth(eventDate) <= cutoffDay ? month : shiftPeriod(month, 1)}-2`;
+		return `${monthlyPeriodOf(eventDate, cutoffDay)}-2`;
 	}
-	return dayOfMonth(eventDate) <= cutoffDay ? month : shiftPeriod(month, 1);
+	return monthlyPeriodOf(eventDate, cutoffDay);
+}
+
+/**
+ * The cutoff day opens the next cycle for an entry exactly as for attendance: at a 21st-cutoff
+ * entity the 21st is the first day of next month's window, so an entry on it settles there. A
+ * cutoff of 1 is the calendar month.
+ */
+function monthlyPeriodOf(eventDate: IsoDate, cutoffDay: number): string {
+	const month = eventDate.slice(0, 7);
+	if (cutoffDay === 1) return month;
+	return dayOfMonth(eventDate) < cutoffDay ? month : shiftPeriod(month, 1);
 }
 
 /** First and last day of the tax year a run period sits in. */
