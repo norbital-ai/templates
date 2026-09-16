@@ -181,7 +181,6 @@
 >
 	<AppHeaderActions>
 		{@render companyScopeActions()}
-		{@render periodNavigation()}
 	</AppHeaderActions>
 
 	{#if companiesUnknown}
@@ -194,7 +193,6 @@
 		{#key selectedCompanyId}
 			<Tabs
 				animate={false}
-				variant="underline"
 				contentPadding={false}
 				config={[
 					{
@@ -280,7 +278,8 @@
 				{client}
 				collection="loan_repayments"
 				view={`hr_controller:loans:repayments:${selectedCompanyId}:${pay.period}`}
-				title={t('app.loans.repayments_in_period', { period: pay.period })}
+				title={t('app.loans.repayments_due')}
+				navigation={periodNavigation}
 				features={{ create: false }}
 				recordMetadata={(row: RepaymentRow) =>
 					payRequestRecordMetadata(

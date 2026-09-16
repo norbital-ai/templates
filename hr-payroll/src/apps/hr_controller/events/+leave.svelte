@@ -14,12 +14,16 @@
 	import { setContext } from 'svelte';
 	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesError = $derived(companiesErrorOf());
+	/** The pay period the leave events are stepped by, in the entity's own grammar. */
+	const pay = createPayPeriodScope(() => companyById(selectedCompanyId));
 	/**
 	 * The scope the create forms this page opens are drawn against: this entity's own people, and
 	 * the catalogue version its jurisdiction lineage has in force. Without it a form opened from
@@ -60,41 +64,58 @@
 
 	{#if companiesError != null}
 		<p class="text-sm text-destructive">{companiesError.message}</p>
-	{:else if selectedCompanyId != null}
-		<CollectionTable
-			{client}
-			collection="leave_entries"
-			view={`hr_controller:events:leave:${selectedCompanyId}`}
-			title={t('app.leave.requests_title')}
-			description={t('app.leave.requests_description')}
-			recordMetadata={() => [
-				{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
-			]}
-			query={{
-				where: { leave_entry_employment: { some: { company_id: { eq: selectedCompanyId } } } },
-				orderBy: { effective_on: 'desc' },
-				with: {
-					leave_entry_employment: {
-						columns: { employee_number: true },
-						with: { employment_employee: { columns: { name: true } } }
+	{:else if selectedCompanyId != null && pay.bounds != null}
+		{#key pay.period}
+			<CollectionTable
+				navigation={periodNavigation}
+				{client}
+				collection="leave_entries"
+				view={`hr_controller:events:leave:${selectedCompanyId}`}
+				title={t('app.leave.requests_title')}
+				description={t('app.leave.requests_description')}
+				recordMetadata={() => [
+					{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+				]}
+				query={{
+					where: {
+						leave_entry_employment: { some: { company_id: { eq: selectedCompanyId } } },
+						// The period's leave: any event whose days overlap the window.
+						from_date: { lt: pay.bounds.end },
+						to_date: { gte: pay.bounds.start }
+					},
+					orderBy: { effective_on: 'desc' },
+					with: {
+						leave_entry_employment: {
+							columns: { employee_number: true },
+							with: { employment_employee: { columns: { name: true } } }
+						}
 					}
-				}
-			}}
-		>
-			{#snippet columns({ Column })}
-				<Column
-					name="employment_id"
-					label={t('component.person')}
-					card="subtitle"
-					renderer={FormattedValueRenderer}
-					rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
-				/>
-				<Column name="catalogue_id" label={t('component.catalogue_leave')} card="title" />
-				<Column name="event" label={t('leave.activity')} />
-				<Column name="days" label={t('component.days')} />
-				<Column name="reference" label={t('component.reference')} />
-				<Column name="certificate_file" label={t('component.certificate')} />
-			{/snippet}
-		</CollectionTable>
+				}}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="employment_id"
+						label={t('component.person')}
+						card="subtitle"
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
+					/>
+					<Column name="catalogue_id" label={t('component.catalogue_leave')} card="title" />
+					<Column name="event" label={t('leave.activity')} />
+					<Column name="days" label={t('component.days')} />
+					<Column name="reference" label={t('component.reference')} />
+					<Column name="certificate_file" label={t('component.certificate')} />
+				{/snippet}
+			</CollectionTable>
+		{/key}
 	{/if}
 </AppShell>
+
+{#snippet periodNavigation()}
+	<MonthPeriodPicker
+		month={pay.period}
+		halves={pay.halves}
+		ariaLabel={t('app.events.pay_period')}
+		onMonthChange={(next) => pay.select(next)}
+	/>
+{/snippet}
