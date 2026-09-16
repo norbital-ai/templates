@@ -12,6 +12,8 @@ import { Effect } from 'effect';
 export function stubApi(tables, matches) {
 	/** Ids a handler asked to delete, by table, so a check can assert what went. */
 	const deleted = {};
+	/** Rows a handler staged through `mutate`, by table, so a check can assert what it wrote. */
+	const mutated = {};
 	const db = Object.fromEntries(
 		Object.entries(tables).map(([name, rows]) => {
 			let live = [...rows];
@@ -25,10 +27,14 @@ export function stubApi(tables, matches) {
 						Effect.sync(() => {
 							(deleted[name] ??= []).push(...ids);
 							live = live.filter((row) => !ids.includes(row.id));
+						}),
+					mutate: (rows) =>
+						Effect.sync(() => {
+							(mutated[name] ??= []).push(...rows);
 						})
 				}
 			];
 		})
 	);
-	return { db, deleted };
+	return { db, deleted, mutated };
 }

@@ -126,6 +126,8 @@ export type EmploymentBundle = {
 	readonly termsHistory: readonly EmploymentTerms[];
 	/** Plan and punch together. */
 	readonly workDays: readonly WorkDay[];
+	/** The rosters of record whose cycles touch the attendance span, as day ranges. */
+	readonly rosters: readonly { readonly start: IsoDate; readonly end: IsoDate }[];
 	/** Completed months of service at the period end. */
 	readonly serviceMonths: number;
 	/** Completed years of age at the period end, or `null` when no date of birth is recorded. */
@@ -437,6 +439,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				loansByEmployment,
 				repaymentsByLoan,
 				workDaysByEmployment,
+				rostersByEmployment,
 				workHolidayEvidence
 			},
 			prior
@@ -503,6 +506,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				leave: leaveByEmployment.get(employment.id)!,
 				termsHistory: termsByEmployment.get(employment.id) ?? [],
 				workDays: workDaysByEmployment.get(employment.id) ?? [],
+				rosters: rostersByEmployment.get(employment.id) ?? [],
 				serviceMonths: completedMonths(hire, paid.end),
 				age: dob == null ? null : completedYears(dob, paid.end),
 				employedDays: settlement.employedDays,

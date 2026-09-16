@@ -252,7 +252,8 @@ function rosterApi(overrides = {}) {
 				effective_range: { start: '2020-01-01', end: null }
 			}
 		],
-		work_days: overrides.existingDays ?? []
+		work_days: overrides.existingDays ?? [],
+		rosters: overrides.rosters ?? []
 	});
 }
 
@@ -346,10 +347,22 @@ const program = Effect.gen(function* () {
 			'REST is a real roster-code variant'
 		);
 
+		const rosterWrite = rosterApi();
 		const written = yield* runHandler(
-			workDayPipeline.import.handler({ input: rosterPayload }, rosterApi())
+			workDayPipeline.import.handler({ input: rosterPayload }, rosterWrite)
 		);
 		assert.equal(written.length, 8, 'every filled roster cell becomes one person-day');
+		// The sheet states a roster of record: one per person-cycle it touches, every day stamped.
+		const rosters = rosterWrite.mutated.rosters ?? [];
+		assert.ok(rosters.length >= 1, 'the import created a roster of record');
+		assert.ok(
+			rosters.every((row) => row.origin === 'IMPORT' && row.employment_id && row.period),
+			'a created roster names its employment, cycle and provenance'
+		);
+		assert.ok(
+			rosters.every((row) => row.id === undefined),
+			'a roster the import creates is a create: the runtime owns its id'
+		);
 		assert.deepEqual(
 			written.map((row) => row.shift_definition_id),
 			[

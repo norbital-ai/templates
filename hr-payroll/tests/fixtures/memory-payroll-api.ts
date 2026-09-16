@@ -31,6 +31,8 @@ export type PayrollWorld = {
 	readonly loans: PayrollRow[];
 	readonly loan_repayments: PayrollRow[];
 	readonly work_days: PayrollRow[];
+	/** Rosters of record; a world that states none has no rostered cycle. */
+	readonly rosters?: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
 };
@@ -127,7 +129,9 @@ export function memoryPayrollApi(world: PayrollWorld) {
 	// A stored payslip always carries its `adjustments` array; a test that files one without it
 	// reads it back the way the database would.
 	const rows = (name: keyof PayrollWorld): readonly PayrollRow[] =>
-		name === 'payslips' ? world.payslips.map((row) => ({ adjustments: [], ...row })) : world[name];
+		name === 'payslips'
+			? world.payslips.map((row) => ({ adjustments: [], ...row }))
+			: (world[name] ?? []);
 	const collection = (name: keyof PayrollWorld) => ({
 		findPending: (query: { where?: unknown; limit?: number }) =>
 			Effect.succeed(
@@ -145,10 +149,10 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			Effect.sync(() => {
 				for (const value of values) {
 					const stored =
-						value.id == null ? undefined : world[name].find((row) => row.id === value.id);
+						value.id == null ? undefined : (world[name] ?? []).find((row) => row.id === value.id);
 					if (stored) Object.assign(stored, value);
 					else
-						world[name].push(
+						((world as Record<string, PayrollRow[]>)[name] ??= []).push(
 							value.id == null ? { ...value, id: crypto.randomUUID() } : { ...value }
 						);
 				}
@@ -178,6 +182,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			loans: collection('loans'),
 			loan_repayments: collection('loan_repayments'),
 			work_days: collection('work_days'),
+			rosters: collection('rosters'),
 			payroll_runs: collection('payroll_runs'),
 			payslips: collection('payslips')
 		}

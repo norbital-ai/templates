@@ -121,6 +121,8 @@ type ResolveScheduleOptions = {
 	readonly dates: readonly IsoDate[];
 	readonly terms: (date: IsoDate) => ScheduleTerms;
 	readonly workDays: readonly PlannedDay[];
+	/** The cycles a roster of record covers; a day inside one reads its row before the pattern. */
+	readonly rosters?: readonly { readonly start: IsoDate; readonly end: IsoDate }[];
 	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById' | 'holidayRestPrecedence'>;
 };
 
@@ -197,7 +199,11 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		// For a patterned employment the pattern remains the contractual baseline. A monthly WORK
 		// assignment on a patterned REST/OFF day therefore carries a real shift window while retaining
 		// the protected day type: scheduled overtime is derived from that difference, not tagged.
-		const dayCode = patternCode ?? assignmentCode;
+		// A roster of record outranks the pattern: inside its cycle the row is the contract.
+		const rostered = (options.rosters ?? []).some(
+			(roster) => roster.start <= date && date <= roster.end
+		);
+		const dayCode = rostered ? (assignmentCode ?? patternCode) : (patternCode ?? assignmentCode);
 		const baseDayType = dayCode == null ? 'OFF_DAY' : dayTypeFor(dayCode.kind);
 		const holidayRow = options.configuration.holidays.get(date);
 		// A holiday scoped to staff who were off on the replaced date does not apply to someone

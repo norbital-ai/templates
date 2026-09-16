@@ -62,7 +62,8 @@ test('the manifest covers current source collections and stages consumers after 
 				existsSync(new URL(`../src/collections/${entry.name}/+model.ts`, import.meta.url))
 		)
 		.map((entry) => entry.name);
-	const unseededPayrollCollections = ['payroll_runs', 'payslips'];
+	// Rosters of record are stated by an import or an operator, never seeded.
+	const unseededPayrollCollections = ['payroll_runs', 'payslips', 'rosters'];
 	assert.equal(manifest.counts.collections, collections.length);
 	for (const name of unseededPayrollCollections) assert.ok(collections.includes(name), name);
 	assert.equal(new Set(seeded).size, seeded.length, 'a collection must be seeded only once');

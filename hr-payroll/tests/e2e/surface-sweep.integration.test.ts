@@ -86,6 +86,7 @@ const UNSEEDED_COLLECTIONS = new Set([
 	'payment_requests',
 	'payroll_runs',
 	'payslips',
+	'rosters',
 	'work_days'
 ]);
 

@@ -272,6 +272,10 @@ function replacePeriodState<Values extends object>(
 			);
 		}
 		if (deletes.length > 0) yield* api.db.work_days.delete(deletes);
+		// A roster sheet states a roster of record: every person-cycle the file touches has one,
+		// created here when it has none. The days the file leaves out of a cycle are what a run then
+		// refuses as an incomplete roster.
+		if (options.half === 'PLAN') yield* rostersOfRecord(api, options);
 		return [
 			...personDayMutations(
 				existing,
@@ -284,6 +288,59 @@ function replacePeriodState<Values extends object>(
 			),
 			...clears
 		];
+	});
+}
+
+/** The payroll cycle a date settles in, in the entity's period grammar. */
+function cyclePeriod(company: PayGridCompany, date: string): string {
+	if (company.pay_frequency === 'SEMI_MONTHLY')
+		return `${date.slice(0, 7)}-${Number(date.slice(8, 10)) <= 15 ? 1 : 2}`;
+	// A monthly cycle is named by the month its cutoff falls in: the window ending on the 20th of
+	// January is January's.
+	return assessmentSpan(company, date).end.slice(0, 7);
+}
+
+/** The roster of record for every person-cycle a roster sheet touches: created where absent. */
+function rostersOfRecord<Values extends object>(
+	api: Api,
+	options: {
+		readonly companies: ReadonlyMap<string, PayGridCompany>;
+		readonly rows: readonly PeriodStateRow<Values>[];
+	}
+) {
+	return Effect.gen(function* () {
+		const key = (employmentId: string, period: string) => `${employmentId}\u0000${period}`;
+		const wanted = new Map<string, { employmentId: string; companyId: string; period: string }>();
+		for (const row of options.rows) {
+			const company = options.companies.get(row.companyId)!;
+			const period = cyclePeriod(company, row.workDate);
+			wanted.set(key(row.employmentId, period), {
+				employmentId: row.employmentId,
+				companyId: row.companyId,
+				period
+			});
+		}
+		const stored = yield* api.db.rosters.findMany({
+			where: {
+				employment_id: { in: [...new Set([...wanted.values()].map((row) => row.employmentId))] },
+				period: { in: [...new Set([...wanted.values()].map((row) => row.period))] }
+			},
+			columns: { id: true, employment_id: true, period: true },
+			limit: QUERY_LIMIT
+		});
+		if (stored.length >= QUERY_LIMIT) refuse('Roster history is incomplete.');
+		const present = new Set(stored.map((row) => key(row.employment_id, row.period)));
+		const creates = [...wanted.entries()]
+			.filter(([wantedKey]) => !present.has(wantedKey))
+			.map(([, row]) => ({
+				employment_id: row.employmentId,
+				company_id: row.companyId,
+				period: row.period,
+				origin: 'IMPORT' as const
+			}));
+		// The cycle window is the hook's to resolve from the entity's cutoff, so the create states
+		// everything but `range`, which the generated create type requires.
+		if (creates.length > 0) yield* api.db.rosters.mutate(creates as never);
 	});
 }
 
