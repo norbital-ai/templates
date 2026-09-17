@@ -522,16 +522,13 @@
 				>
 					{#snippet children({ Field })}
 						<Field name="dispatched_at" hidden />
-						<!-- Dispatched by this sheet; the create hook stamps the time. -->
+						<!-- Dispatched by this sheet; the collection stamps the time. -->
 						<Field name="status" hidden />
 						<Field name="completed_at" hidden />
 						<Field name="amount_charged" hidden />
 						<Field name="location" hidden />
 						<Field name="summary" hidden />
 						<Field name="source_message_id" hidden />
-						<Field name="suspicion_checked_at" hidden />
-						<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
-						<Field name="search_text" hidden />
 						<Stack gap="md">
 							<Field
 								name="job_id"

@@ -185,7 +185,7 @@ export default {
 					job_id: entry.jobId,
 					assignee_user_id: entry.assigneeUserId,
 					status: 'assigned' as const,
-					summary: entry.row.summary ?? null
+					summary: entry.row.summary
 				}));
 			})
 	}

@@ -82,6 +82,28 @@ export const decodePhotoInspection = Schema.decodeUnknownSync(photoInspectionSch
 const VISUAL_DUPLICATE_MAX_HAMMING = 31;
 export const VISUAL_DUPLICATE_MAX_L2 = Math.sqrt(VISUAL_DUPLICATE_MAX_HAMMING);
 
+/** Keep in sync with the `photo_evidence` model's `perceptual_embedding` dimensions. */
+export const PDQ_DIMENSIONS = 256;
+
+/**
+ * The stable identity of one photo's provenance, unique-indexed on the model: a channel attachment
+ * is the same photo however often the provider redelivers it, and a workspace upload is its object.
+ */
+export const photoSourceKey = (
+	source:
+		| { readonly kind: 'workspace_upload' }
+		| {
+				readonly kind: 'channel';
+				readonly provider: string;
+				readonly conversation_id: string;
+				readonly attachment_id: string;
+		  },
+	storageKey: string
+): string =>
+	source.kind === 'channel'
+		? `${source.provider}:${source.conversation_id}:${source.attachment_id}`
+		: `workspace:${storageKey}`;
+
 /** Below this PDQ quality, the hash is too featureless to trust for similarity. */
 const PDQ_MIN_QUALITY = 50;
 
@@ -162,8 +184,8 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
 /**
  * Inspect a JPEG/PNG evidence file.
  *
- * PDQ hashes are computed in hex here; hooks persist them as a 256-dim 0/1 `vector` via
- * `hexToBinaryEmbedding`. Near-duplicate search uses the same `findNearest` path as omni
+ * PDQ hashes are computed in hex here; the inspection automation persists them as a 256-dim 0/1
+ * `vector` via `hexToBinaryEmbedding`. Near-duplicate search uses the same `findNearest` path as omni
  * embeddings (HNSW + L2). Exact duplicates
  * still use SHA-256. EXIF/GPS stays on `exifr`.
  */

@@ -504,17 +504,12 @@
 		defaultValues={record ?? undefined}
 	>
 		{#snippet children({ Field })}
-			<Field name="job_id" hidden />
-			<Field name="assignee_user_id" hidden />
-			<Field name="source_message_id" hidden />
-			<Field name="suspicion_checked_at" hidden />
 			<!--
-					Hook-owned, like the two above it. `search_text` is the job title copied onto the
-					assignment so the board can search the words an operator can actually see; `+hooks.ts`
-					derives it and strips it back out of every update, so there is nothing here for anyone
-					to edit. It is still a mutable column, so the form has to name it or refuse to render.
+					The update selection is progress only: the job, the assignee, the source message and
+					the board's search label are fixed at dispatch and are not inputs here. The checked
+					stamp is, because the review automation writes it through the same selection.
 				-->
-			<Field name="search_text" hidden />
+			<Field name="suspicion_checked_at" hidden />
 			<Stack gap="md">
 				<div>
 					<h3 id="assignment-activity-heading" class="text-sm font-semibold">
@@ -855,12 +850,6 @@
 											onAfterSubmit={() => afterResolve(log)}
 										>
 											{#snippet children({ Field, form })}
-												<Field name="job_assignment_id" hidden />
-												<Field name="origin" hidden />
-												<Field name="basis" hidden />
-												<Field name="review_id" hidden />
-												<Field name="evidence_id" hidden />
-												<Field name="reason" hidden />
 												<Field name="resolution" hidden />
 												<Field name="resolved_at" hidden />
 												<Field name="resolved_by" hidden />
@@ -1137,9 +1126,6 @@
 				<Field name="location" hidden />
 				<Field name="summary" hidden />
 				<Field name="source_message_id" hidden />
-				<Field name="suspicion_checked_at" hidden />
-				<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
-				<Field name="search_text" hidden />
 				<Grid minimum="panel">
 					<Field
 						name="job_id"

@@ -2,8 +2,8 @@
 	/**
 	 * One photo and its captured evidence facts, read only.
 	 *
-	 * Nothing here is written by hand — the ingest pipeline hashes the image and records what it
-	 * matched — so this panel explains a result rather than offering to change one. The auto form
+	 * Nothing here is written by hand — the inspection automation hashes the image and records what
+	 * it matched — so this panel explains a result rather than offering to change one. The auto form
 	 * offered all four uuid columns as editable text boxes: the two links, the stored image, and the
 	 * list of evidence this photo duplicates.
 	 *
@@ -98,6 +98,12 @@
 								}}
 							/>
 						</Column>
+					{:else}
+						<!-- Still registered: the update selection names them, and a form declares every
+						selected column exactly once whether or not this subject may read them. -->
+						<Field name="source" hidden />
+						<Field name="flags" hidden />
+						<Field name="matched_evidence_ids" hidden />
 					{/if}
 				</Grid>
 			{/snippet}

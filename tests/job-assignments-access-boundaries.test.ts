@@ -136,15 +136,6 @@ test('only the static review automation can mark assignments checked', () => {
 	assert.equal(grant(suspicionAutomation, 'suspicious_activity_logs', 'delete'), undefined);
 });
 
-test('controller mutations can carry the hook-owned search label through field authorization', () => {
-	for (const action of ['mutate.new', 'mutate.existing'] as const) {
-		assert.equal(
-			grant(controller, 'job_assignments', action)?.fields?.includes('search_text'),
-			true
-		);
-	}
-});
-
 test('WhatsApp can read every assignment, mutate only an existing one, and has no other authority', () => {
 	assert.equal(whatsappEnvoy.delegation, 'disabled');
 	assert.deepEqual(whatsappPolicy.capabilities?.apps, []);
@@ -167,6 +158,6 @@ test('contractor-facing WhatsApp envoy instructions do not disclose private revi
 	const hiddenVocabulary = /suspici|integrity|site_identity|\bflags?\b/i;
 	assert.doesNotMatch(whatsappEnvoy.task, hiddenVocabulary);
 	assert.match(whatsappEnvoy.task, /read job\s+assignments/i);
-	assert.match(whatsappEnvoy.task, /cannot mutate new records or delete anything/i);
-	assert.match(whatsappEnvoy.task, /only call mutate/i);
+	assert.match(whatsappEnvoy.task, /cannot create new records or delete anything/i);
+	assert.match(whatsappEnvoy.task, /only call write_collection/i);
 });

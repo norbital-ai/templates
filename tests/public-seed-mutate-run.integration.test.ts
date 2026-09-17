@@ -15,7 +15,7 @@ import {
 import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed-guest.js';
 
 const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 120_000;
-const MUTATE_COMMAND = 'collections.mutate';
+const WRITE_COMMAND = 'collections.write';
 const START_COMMAND = 'automations.start';
 const SUSPICION_AUTOMATION = 'review_job_assignment_suspicion';
 
@@ -93,7 +93,7 @@ const recordedEmptyPhotoClear: RecordedGenerated = recordedSubmission(
 );
 
 test(
-	'public seed mutate persists completed_at and Run now records Generated progress',
+	'public seed write persists completed_at and Run now records Generated progress',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const guest = await bootPublicSeedGuest({
@@ -122,13 +122,13 @@ test(
 
 			const mutated = await postGuestCommand(
 				guest.baseUrl,
-				MUTATE_COMMAND,
+				WRITE_COMMAND,
 				mutationPush(
 					guest.schemaFingerprint,
 					{
-						action: 'mutate',
 						collection: 'job_assignments',
-						rows: [{ action: 'update', values: { id: PUBLIC_ASSIGNMENT_ID, status: 'completed' } }]
+						action: 'update',
+						inputs: [{ id: PUBLIC_ASSIGNMENT_ID, status: 'completed' }]
 					},
 					[
 						{
@@ -141,16 +141,16 @@ test(
 			);
 			assert.ok(
 				mutated.status >= 200 && mutated.status < 300,
-				`${MUTATE_COMMAND} returned ${mutated.status}: ${JSON.stringify(mutated.value)}`
+				`${WRITE_COMMAND} returned ${mutated.status}: ${JSON.stringify(mutated.value)}`
 			);
-			const resolution = mutationResolution(mutated.value, MUTATE_COMMAND);
+			const resolution = mutationResolution(mutated.value, WRITE_COMMAND);
 			switch (resolution) {
 				case 'accepted':
 					break;
 				case 'rebased':
 				case 'rejected':
 				case 'quarantined':
-					throw new Error(`${MUTATE_COMMAND} ${resolution}: ${JSON.stringify(mutated.value)}`);
+					throw new Error(`${WRITE_COMMAND} ${resolution}: ${JSON.stringify(mutated.value)}`);
 				default: {
 					const _exhaustive: never = resolution;
 					throw new Error(`unhandled mutation resolution: ${String(_exhaustive)}`);
@@ -162,7 +162,7 @@ test(
 			assert.equal(typeof after.completed_at, 'string');
 			assert.ok(
 				String(after.completed_at).length > 0,
-				'completed_at must be stamped by the mutate hook'
+				'completed_at must be stamped by the collection transform'
 			);
 
 			const started = await postGuestCommand(

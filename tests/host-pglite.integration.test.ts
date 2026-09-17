@@ -41,7 +41,7 @@ const colonyListenRefusal = (error: unknown): string | undefined => {
 /**
  * Listen-only smoke — `withSelfHost` + compiled field-operations artifact + `/readyz`.
  * `tasks` is injected by `startApplication`. AI is a catalog stub.
- * I5 owns mutate + Run now on the public seed.
+ * I5 owns the kanban write + Run now on the public seed.
  */
 test(
 	'listens on PGlite selected by Effect Config against the compiled field-operations artifact',

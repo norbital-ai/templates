@@ -102,9 +102,6 @@
 				<Field name="basis" hidden />
 				<Field name="review_id" hidden />
 				<Field name="evidence_id" hidden />
-				<Field name="resolution" hidden />
-				<Field name="resolved_at" hidden />
-				<Field name="resolved_by" hidden />
 				<Grid minimum="panel">
 					<Field
 						name="job_assignment_id"

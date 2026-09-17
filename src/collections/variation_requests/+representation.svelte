@@ -29,7 +29,8 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Field name="source_message_id" hidden />
+			<!-- Accepted on create only: a filed variation keeps the message it came from. -->
+			{#if record == null}<Field name="source_message_id" hidden />{/if}
 			<Grid minimum="compact">
 				<Field
 					name="job_assignment_id"

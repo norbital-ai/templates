@@ -12,7 +12,7 @@ const locationLikeSchema = Schema.optional(
 	Schema.NullOr(Schema.Struct({ geometry: Schema.optional(Schema.NullOr(geoPointSchema)) }))
 );
 
-export type LocationLike = Schema.Schema.Type<typeof locationLikeSchema>;
+type LocationLike = Schema.Schema.Type<typeof locationLikeSchema>;
 
 /** The concrete coordinates a geo shape carries, or nothing when either axis is missing. */
 export function coordinatesOf(location: LocationLike): { lat: number; lon: number } | null {
