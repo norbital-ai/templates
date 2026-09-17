@@ -3,17 +3,19 @@
  * (Roster and Time entries sheets) and the holidays workbook.
  *
  * The sheets mirror exactly what the reader in `src/collections/work_days/lib` accepts as the
- * designed layout — both of them, because both sheets describe the same person-day: one entity × one month,
- * a person down the side and a calendar day across the top. Roster cells carry a company roster
- * code (or the reserved `PH` token). Time-entry cells carry a local punch range `HH:mm-HH:mm`, or
- * `HH:mm` when still open. Blank cells are omitted — they are not inferred rest days and not
- * punchless leave. The timezone, legal entity and month are declared once on the `Settings` sheet.
+ * designed layout — one entity × one month. The Roster sheet is the plan as a month grid: a person
+ * down the side and a calendar day across the top, cells carrying a company roster code (or the
+ * reserved `PH` token). The Time entries sheet is the attendance as one person-day per row, with a
+ * `clock_in` and a `clock_out` column, each a local wall time `HH:mm`; a blank `clock_out` is still
+ * open. Blank cells are omitted — they are not inferred rest days and not punchless leave. The two
+ * clock columns are imported as the one timestamp interval the day worked. The timezone, legal
+ * entity and month are declared once on the `Settings` sheet.
  *
- * Long-form person-day sheets (`employee_number`, `work_date`, `shift_code` / `clock_in` /
- * `clock_out`, and optionally `break_minutes` in minutes — not hours) still import. These files
- * are the ones operators are issued. The `Read me first` sheets state the rules in the same terms
- * the readers enforce them, so what the file promises and what the import accepts cannot drift
- * apart quietly.
+ * A long-form Roster sheet (`employee_number`, `work_date`, `shift_code`) and a month-grid Time
+ * entries sheet (`HH:mm-HH:mm` per day cell) still import, including the files operators already
+ * have on disk — but the issued template is the grid roster and the two-column clock table. The
+ * `Read me first` sheets state the rules in the same terms the readers enforce them, so what the
+ * file promises and what the import accepts cannot drift apart quietly.
  *
  * The script is re-runnable and deterministic: the workbook metadata is pinned to a fixed instant,
  * so two runs emit the same bytes, and it reads each file back on the way out and asserts the
@@ -90,9 +92,13 @@ const ROSTER_SAMPLE_ROWS = [
 	gridRow('PUBEM0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' }, SAMPLE_MONTH)
 ];
 
+const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
 const TIME_ENTRY_SAMPLE_ROWS = [
-	gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-17:05' }, SAMPLE_MONTH),
-	gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' }, SAMPLE_MONTH)
+	['PUBEM0002', '2026-05-04', '08:16', '17:10'],
+	['PUBEM0002', '2026-05-05', '08:02', '17:05'],
+	['PUBEM0023', '2026-05-04', '20:30', '05:15'],
+	['PUBEM0023', '2026-05-05', '20:28', '05:02'],
+	['PUBEM0023', '2026-05-06', '20:31', '']
 ];
 
 const SETTINGS_ROWS = [
@@ -109,10 +115,10 @@ const SETTINGS_ROWS = [
 const SCHEDULING_README = [
 	'Scheduling import — one legal entity, one month, two sheets',
 	'',
-	'"Roster" is the planned assignment: who is scheduled where. "Time entries" is what actually',
-	'happened on the clock. Both sheets have one person per row and one calendar day per column.',
-	'Do not rename the sheets or the column headers. Set legal_entity, month and timezone once, on',
-	'the "Settings" sheet.',
+	'"Roster" is the planned assignment: who is scheduled where, one person per row and one',
+	'calendar day per column. "Time entries" is what actually happened on the clock, one person-day',
+	'per row with a clock_in and a clock_out column. Do not rename the sheets or the column',
+	'headers. Set legal_entity, month and timezone once, on the "Settings" sheet.',
 	'',
 	'The file is the state of the month it names, for every employee of the entity. Import it again',
 	'and the month becomes what the file now says; a person the file no longer names loses the month',
@@ -136,12 +142,14 @@ const SCHEDULING_README = [
 	'',
 	'Time entries — three rules worth knowing',
 	'',
-	'• A cell is a punch range. HH:mm-HH:mm is a closed day; HH:mm alone is still open; a blank cell',
-	'  is no punch. An overnight shift needs no special marker — a clock_out at or before clock_in is',
-	'  treated as the next calendar day. Every clock time is local wall time in the Settings timezone.',
+	'• Each row is one person-day. clock_in and clock_out are local wall times as HH:mm, 24-hour. A',
+	'  row with a clock_in and a blank clock_out is still open; an overnight shift needs no special',
+	'  marker — a clock_out at or before clock_in is treated as the next calendar day. Every clock',
+	'  time is local wall time in the Settings timezone.',
 	'',
-	'• A cell carries punches only — breaks, overtime and the open/closed state are derived from them.',
-	'  The break is the shift’s granted break, less any gap already visible between the punches.',
+	'• The two clock columns carry punches only — breaks, overtime and the open/closed state are',
+	'  derived from them. The break is the shift’s granted break, less any gap already visible between',
+	'  the punches.',
 	'',
 	'• A leave day is NOT a time entry. Leave lives in its own record so it can be approved and audited;',
 	'  do not add punchless cells to stand in for it.',
@@ -156,13 +164,14 @@ const SCHEDULING_README = [
 	'Accepted values',
 	'',
 	'employee_number   as seeded on the employment, e.g. PUBEM0002',
-	'day columns       1–31 (or YYYY-MM-DD) for the Settings month',
+	'Roster day columns 1–31 (or YYYY-MM-DD) for the Settings month',
 	'Roster cell       an existing roster code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 ·',
 	'                  PM2030 · PM2230 · REST · OFF',
-	'Time entries cell HH:mm-HH:mm, 24-hour — or HH:mm when the close has not landed yet',
+	'Time entries row  employee_number, work_date as YYYY-MM-DD, clock_in, and clock_out once the',
+	'                  shift is closed — each clock time HH:mm, 24-hour',
 	'',
-	'Long-form sheets still import: Roster with employee_number, work_date, shift_code; Time entries',
-	'with employee_number, work_date, clock_in, clock_out.',
+	'A Roster sheet as a long-form table (employee_number, work_date, shift_code) still imports, and',
+	'so does a month-grid Time entries sheet with HH:mm-HH:mm cells.',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
 ];
@@ -246,8 +255,8 @@ addTableSheet(
 addTableSheet(
 	schedulingWorkbook,
 	'Time entries',
-	[18, ...DAY_HEADERS.map(() => 14)],
-	GRID_HEADERS,
+	[18, 14, 12, 12],
+	TIME_ENTRY_HEADERS,
 	TIME_ENTRY_SAMPLE_ROWS
 );
 const holidaysWorkbook = newWorkbook();
@@ -276,7 +285,7 @@ Effect.runPromise(
 			['Read me first', 'Settings', 'Roster', 'Time entries']
 		);
 		assert.deepEqual(headersOf(shipped, 'Roster'), GRID_HEADERS);
-		assert.deepEqual(headersOf(shipped, 'Time entries'), GRID_HEADERS);
+		assert.deepEqual(headersOf(shipped, 'Time entries'), TIME_ENTRY_HEADERS);
 		assert.deepEqual(
 			[...settingMap(shipped)],
 			[
@@ -288,11 +297,14 @@ Effect.runPromise(
 		assert.equal(cellOf(shipped, 'Roster', 2, '1'), '7.5AM');
 		assert.equal(cellOf(shipped, 'Roster', 2, '3'), 'REST');
 		assert.equal(cellOf(shipped, 'Roster', 3, '6'), 'OFF');
-		assert.equal(cellOf(shipped, 'Time entries', 2, '4'), '08:16-17:10');
-		assert.equal(cellOf(shipped, 'Time entries', 3, '6'), '20:31');
+		assert.equal(cellOf(shipped, 'Time entries', 2, 'clock_in'), '08:16');
+		assert.equal(cellOf(shipped, 'Time entries', 2, 'clock_out'), '17:10');
+		assert.equal(cellOf(shipped, 'Time entries', 6, 'clock_in'), '20:31');
+		assert.equal(cellOf(shipped, 'Time entries', 6, 'clock_out'), '');
 
 		console.log(`${SCHEDULING_TEMPLATE_PATH}`);
 		console.log(`  sheets: Read me first, Settings, Roster, Time entries`);
 		console.log(`  grid header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
+		console.log(`  Time entries columns: ${TIME_ENTRY_HEADERS.join(', ')}`);
 	})
 );
