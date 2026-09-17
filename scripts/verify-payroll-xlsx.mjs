@@ -449,10 +449,14 @@ Effect.runPromise(
 					'Statutory',
 					'Deductions',
 					'Payments',
-					'Net'
+					'Net',
+					'Company cost'
 				],
-				'the listing’s section order is the reader’s order'
+				'the listing’s section order is the reader’s order, and what the person cost is last'
 			);
+			// The last column of every sheet is the company's cost, headed by the owner's own words.
+			assert.equal(VENDOR_COLUMNS.at(-1), 'companyCost');
+			assert.equal(rowValues(listing, 5).at(-1), 'Company cost');
 			assert.deepEqual(bandedSections[0], ['Identity', 1, 8]);
 
 			// ── row 5: the column headers, in the vendor vocabulary's own order ───────────────────────────
@@ -481,6 +485,7 @@ Effect.runPromise(
 			assert.equal(at(6, 'grossEarnings'), 3760.78);
 			assert.equal(at(6, 'MEDICAL_CLAIM'), 93.5);
 			assert.equal(at(6, 'netPay'), 3454.03);
+			assert.equal(at(6, 'companyCost'), 515.15);
 			assert.equal(at(6, 'epfEmployee'), 374);
 			assert.equal(at(6, 'epfEmployer'), 442);
 			assert.equal(at(6, 'socsoEmployee'), 18.75);
@@ -515,6 +520,7 @@ Effect.runPromise(
 			assert.equal(totalOf('netPay'), 4276.89);
 			assert.equal(totalOf('epfEmployee'), 450);
 			assert.equal(totalOf('epfEmployer'), 532);
+			assert.equal(totalOf('companyCost'), 624.8);
 			// Every money and hours column is totalled; the two text columns are deliberately not.
 			for (const [index, outputId] of VENDOR_COLUMNS.entries()) {
 				const value = listing.getRow(totalRow).getCell(index + 1).value;
@@ -562,7 +568,8 @@ Effect.runPromise(
 				'cpfEmployee',
 				'cpfEmployer',
 				'sdlEmployer',
-				'netPay'
+				'netPay',
+				'companyCost'
 			]);
 			// The band sits above the headers, and column A stays blank so a row walker can tell a band
 			// from a payslip by the absence of an employee number.
@@ -574,6 +581,7 @@ Effect.runPromise(
 			assert.equal(generic.getRow(1).getCell(6).value, 'Gross');
 			assert.equal(generic.getRow(1).getCell(7).value, 'Statutory');
 			assert.equal(generic.getRow(1).getCell(10).value, 'Net');
+			assert.equal(generic.getRow(1).getCell(11).value, 'Company cost');
 			assert.deepEqual(rowValues(generic, 3), [
 				'PUBSG0001',
 				'Public Non-Citizen Employee',
@@ -584,7 +592,8 @@ Effect.runPromise(
 				1060,
 				901,
 				13.25,
-				4240
+				4240,
+				914.25
 			]);
 
 			// ── the catalogue entries workbook: the same rows, only what was requested, with totals ───────
@@ -605,6 +614,7 @@ Effect.runPromise(
 				'UNPAID_LEAVE_DEDUCTION',
 				'grossEarnings',
 				'netPay',
+				'companyCost',
 				'epfEmployee'
 			])
 				assert.ok(!entryColumns.includes(absent), `${absent} is not a catalogue entry`);

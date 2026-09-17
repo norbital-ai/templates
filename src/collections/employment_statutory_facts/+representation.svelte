@@ -4,7 +4,7 @@
 	 * registered with a reason, across a window.
 	 *
 	 * The scheme picker offers the schemes of the version in force today on the page's lineage;
-	 * `supersedes_fact_id` is written by the statutory-successor automation and never offered.
+	 * a successor closes its predecessor by an explicit edit of the predecessor's range.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -44,7 +44,6 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Field name="supersedes_fact_id" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first

@@ -68,15 +68,16 @@ function settle(world, period, prepared, built) {
 			approval_id: null
 		});
 		const captured = capturesOf(built, slip);
-		// Materialised per-period allowance rows are created by the run; file them pinned to the
-		// slip, then pin every captured source (a direct one-off pins itself).
+		// The allowance entries the run priced are created under the slip; file them pinned to it,
+		// then pin every captured source.
 		for (const row of captured.materialised)
-			world.allowance_requests.push({ ...row.values, payslip_id: slip.id, approval_id: null });
-		for (const id of captured.allowances)
-			settleSource(world, 'allowance_requests', id, slip.id, period);
+			(world.allowance_entries ??= []).push({
+				id: row.id,
+				...row.values,
+				payslip_id: slip.id,
+				approval_id: null
+			});
 		for (const id of captured.claims) settleSource(world, 'claim_requests', id, slip.id, period);
-		for (const id of captured.payments)
-			settleSource(world, 'payment_requests', id, slip.id, period);
 		for (const id of captured.leave) settleSource(world, 'leave_entries', id, slip.id, period);
 		for (const id of captured.loanRepayments)
 			settleSource(world, 'loan_repayments', id, slip.id, period);
@@ -214,29 +215,38 @@ for (const [name, proration] of [
 	});
 }
 
-test('a one-off entry settles in the half its day falls in, for a semi-monthly employment', async () => {
+test('an allowance whose window is one half is priced in that half alone, at the half’s share of the month', async () => {
 	const world = createSemiMonthlyPayrollWorld();
-	const transport = world.payment_catalogue.find((component) => component.code === 'TRANSPORT');
-	const entry = (id, eventDate) => ({
+	const transport = world.allowance_catalogue.find((component) => component.code === 'TRANSPORT');
+	const allowance = (id, from, to) => ({
 		id,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		catalogue_id: transport.id,
 		amount: 100,
-		effective_on: eventDate,
-		pay_period: null,
-		reason: eventDate,
+		effective_from: from,
+		effective_to: to,
+		reason: id,
+		evidence_file: null,
+		as_adjustment_entry: false,
 		approval_id: null
 	});
-	world.payment_requests.push(
-		entry('payment-on-the-15th', '2026-02-15'),
-		entry('payment-on-the-16th', '2026-02-16')
+	world.allowances.push(
+		allowance('first-half', '2026-02-01', '2026-02-15'),
+		allowance('second-half', '2026-02-16', '2026-02-28')
 	);
 	const first = await build(world, '2026-02-1');
 	settle(world, '2026-02-1', first.prepared, first.built);
 	const second = await build(world, '2026-02-2');
-	const captured = (built) => capturesOf(built, slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)).payments;
-	assert.deepEqual(captured(first.built), ['payment-on-the-15th']);
-	assert.deepEqual(captured(second.built), ['payment-on-the-16th']);
+	const entries = (built) =>
+		capturesOf(built, slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)).materialised.map((row) => [
+			row.sourceId,
+			row.values.days,
+			row.values.denominator,
+			row.values.amount
+		]);
+	// The public fixture prorates on calendar days: a monthly 100 over the 1st–15th is 15/28 of it.
+	assert.deepEqual(entries(first.built), [['first-half', 15, 28, 53.57]]);
+	assert.deepEqual(entries(second.built), [['second-half', 13, 28, 46.43]]);
 });
 
 /**
@@ -253,16 +263,16 @@ test('a one-off entry settles in the half its day falls in, for a semi-monthly e
  * The annual scale as its rules state it: project the year, clamp at zero, scale through the
  * published ladder, spread what is left, then round to the cent.
  */
-const PUB_TAX_CHARGEABLE = 'year_to_date.base + base * (1.0 + projection.future_equivalents)';
+const PUB_TAX_CHARGEABLE =
+	'scheme.year_to_date.base + base * (1.0 + scheme.projection.future_equivalents)';
 const PUB_TAX_CLAMPED = `(${PUB_TAX_CHARGEABLE} > 0.0 ? ${PUB_TAX_CHARGEABLE} : 0.0)`;
 const PUB_TAX_SCALED = `progressive(${PUB_TAX_CLAMPED}, [0.0, 0.0, 0.0, 20000.0, 0.0, 1.0, 35000.0, 150.0, 3.0, 50000.0, 600.0, 8.0])`;
-const PUB_TAX_EMPLOYEE = `round_cent((${PUB_TAX_SCALED} - year_to_date.employee > 0.0 ? (${PUB_TAX_SCALED} - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0))`;
+const PUB_TAX_EMPLOYEE = `round_cent((${PUB_TAX_SCALED} - scheme.year_to_date.employee > 0.0 ? (${PUB_TAX_SCALED} - scheme.year_to_date.employee) / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0))`;
 
 test('the tax projection over twenty-four half payslips lands where twelve monthly ones did', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	world.employment_terms[0].base_salary = { value: SEMI_MONTHLY_BASE, currency: 'MYR' };
-	world.payment_requests.length = 0;
-	world.allowance_requests.length = 0;
+	world.allowances.length = 0;
 	world.statutory_contributions.push({
 		id: 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa9',
 		settings_id: JURISDICTION_ID,
@@ -270,29 +280,16 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 		name: 'Public fixture withholding',
 		authority: 'Public fixture',
 		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
+		assessed_on:
+			"BASE + OVERTIME + NIGHT_PREMIUM - ABSENCE - NO_PAY_LEAVE + catalog('CLAIM') + catalog('ALLOWANCE') + catalog('LOAN')",
 		approval_id: null,
 		rules: [{ when: 'true', employee: PUB_TAX_EMPLOYEE, employer: '0.0' }]
 	});
-	// Both schemes charge every work line and every money catalogue row.
-	for (const code of ['PUB-EPF', 'PUB-TAX']) {
-		const row = world.statutory_contributions.find((candidate) => candidate.code === code);
-		if (row == null) continue;
-		row.base = {
-			salary: true,
-			absence: true,
-			overtime: true,
-			night_premium: true,
-			entries: [
-				...world.claim_catalogue.map((item) => ({ family: 'CLAIM', code: item.code })),
-				...world.allowance_catalogue.map((item) => ({ family: 'ALLOWANCE', code: item.code })),
-				...world.payment_catalogue.map((item) => ({ family: 'PAYMENT', code: item.code })),
-				...world.loan_catalogue.map((item) => ({ family: 'LOAN', code: item.code }))
-			]
-		};
-	}
 
 	const tax = (slip) => slip.statutory.find((line) => line.scheme_code === 'PUB-TAX');
 
@@ -319,21 +316,24 @@ test('the tax projection over twenty-four half payslips lands where twelve month
 });
 
 /**
- * A one-off Allowance becomes due when its source month ends. The regular second-half run
- * settles its full source-month entitlement once; the capture excludes it from later runs.
+ * A standing allowance at a semi-monthly employment is priced in both halves, each taking its
+ * share of the month, and the two shares are the month: the halves prorate within the half.
  */
-test('an allowance is paid once across a semi-monthly month, not once per half', async () => {
+test('a standing allowance is split across the halves and adds up to the month', async () => {
 	const world = createSemiMonthlyPayrollWorld();
 	const transport = world.allowance_catalogue.find((component) => component.code === 'TRANSPORT');
 	assert.ok(transport, 'the semi-monthly world offers a component that takes entries');
-	const ONE_OFF_ID = 'once-in-february';
-	world.allowance_requests.push({
-		id: ONE_OFF_ID,
+	const STANDING_ID = 'standing-from-february';
+	world.allowances.push({
+		id: STANDING_ID,
 		employment_id: SEMI_MONTHLY_EMPLOYMENT_ID,
 		catalogue_id: transport.id,
 		amount: 100,
-		pay_period: null,
-		recurrence: { kind: 'ONE_OFF', on: '2026-02-28' },
+		effective_from: '2026-02-01',
+		effective_to: null,
+		reason: '',
+		evidence_file: null,
+		as_adjustment_entry: false,
 		approval_id: null
 	});
 
@@ -341,19 +341,17 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 	settle(world, '2026-02-1', firstHalf.prepared, firstHalf.built);
 	const secondHalf = await build(world, '2026-02-2');
 
-	/**
-	 * An adjustment names the *capture* it was priced from, not the entry, so the entry is reached
-	 * through the junction the same run produced.
-	 */
-	const paidFor = (built, entryId) =>
+	/** An adjustment names the standing source, so the month is read off the two slips by it. */
+	const paidFor = (built, sourceId) =>
 		slipOf(built, SEMI_MONTHLY_EMPLOYMENT_ID)
-			.adjustments.filter((row) => row.family === 'ALLOWANCE' && row.source_id === entryId)
+			.adjustments.filter((row) => row.family === 'ALLOWANCE' && row.source_id === sourceId)
 			.reduce((total, row) => total + Number(row.amount), 0);
 
-	const first = paidFor(firstHalf.built, ONE_OFF_ID);
-	const second = paidFor(secondHalf.built, ONE_OFF_ID);
-	assert.equal(first, 0, 'the source month has not ended in the first half');
-	assert.equal(second, 100, 'the second half settles the complete source-month amount');
+	const first = paidFor(firstHalf.built, STANDING_ID);
+	const second = paidFor(secondHalf.built, STANDING_ID);
+	assert.equal(first, 53.57, 'the 1st to the 15th is 15/28 of the month');
+	assert.equal(second, 46.43, 'the 16th to the 28th is 13/28 of it');
+	assert.equal(cents(first + second), 100, 'the halves are the month');
 	settle(world, '2026-02-2', secondHalf.prepared, secondHalf.built);
 	const roster = world.work_days.find((row) => row.employment_id === SEMI_MONTHLY_EMPLOYMENT_ID);
 	world.work_days.push(
@@ -368,8 +366,8 @@ test('an allowance is paid once across a semi-monthly month, not once per half',
 		})
 	);
 	assert.equal(
-		paidFor((await build(world, '2026-03-1')).built, ONE_OFF_ID),
-		0,
-		'the captured one-off is not paid again'
+		paidFor((await build(world, '2026-03-1')).built, STANDING_ID),
+		48.39,
+		'a standing allowance is due again next month: 15/31 of it in the first half'
 	);
 });

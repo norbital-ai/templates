@@ -1,30 +1,38 @@
 /**
- * Vietnam: expected payslips against the sealed stack.
+ * Vietnam: expected payslips against the law itself.
  *
- * Law on Social Insurance 41/2024/QH15; Law on Health Insurance; Law on Employment 74/2025/QH15;
- * Trade Union Law 50/2024/QH15; PIT Law 04/2007 art.22 with Resolution 110/2025/UBTVQH15, and
- * PIT Law 109/2025/QH15 from 1 July 2026.
+ * Law on Social Insurance 41/2024/QH15 arts.31, 33 and 34; Law on Health Insurance as amended by
+ * Law 51/2024/QH15; Law on Employment 74/2025/QH15 (38/2013/QH13 to 31 December 2025); Trade Union
+ * Law 50/2024/QH15 art.29; PIT Law 04/2007/QH12 art.22 with Resolution 954/2020/UBTVQH14, PIT Law
+ * 109/2025/QH15 art.9 and art.29(2) with Resolution 110/2025/UBTVQH15; Circular 111/2013/TT-BTC
+ * art.7 and art.25(1)(b); Decree 74/2024/NĐ-CP and Decree 293/2025/NĐ-CP (regional minimum wages);
+ * Decree 161/2026/NĐ-CP (the 2,530,000 reference level from 1 July 2026).
  *
- * The insurance figures below are the law's, straight. The PIT figures are not the month's
- * withholding-table figure, and the two tests say so beside each derivation: the engine
- * annualises every progressive withholding (PROJECT gross, RELIEVE, SCALE, SPREAD), and a
- * social-security relief counts only what has actually been paid in the year so far — the
- * deliberate asymmetry of `contribute.ts` (decision E9): a retirement-fund relief is projected
- * because the employee will certainly keep contributing, a social-security one is not. The
- * sealed PIT seed carries no `RELIEF_PROJECTED` on SI/HI/UI, so a January run relieves one
- * month of insurance against twelve months of gross, and a standalone July run annualises
- * July–December against the full annual personal relief. The year total still converges; the
- * monthly distribution is front-loaded. The law's monthly-table figure sits beside each
- * derivation so the gap is measured, not hidden.
+ * Every figure here is the statute's own monthly figure. Personal income tax is withheld month by
+ * month on the MONTHLY progressive table (Circular 111/2013 art.25(1)(b)) over the month's income
+ * net of the month's own SI, HI and UI (art.7) and the monthly family deduction — so a January run,
+ * a run with year-to-date on file and a standalone July run all land on the same table figure. The
+ * year-end finalisation (Gap #38) is a separate reckoning the seed does not carry.
+ *
+ * Every contribution and withholding is a whole đồng: the currency has no minor unit, VSS bills and
+ * the tax return (Circular 80/2021/TT-BTC) carry whole đồng, so each rule rounds with `round_unit`.
+ * The engine's own money — the prorated base, an overtime line, gross and net — is still kept to
+ * two decimals (`cents()` in `rounding.ts` is currency-blind); the goldens below pin that too.
  */
 
+import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	assessStatutory,
+	buildStatutory,
 	expectStatutory,
 	expectStatutorySkipped,
-	assertEveryVersionPriced
+	assertEveryVersionPriced,
+	settingsVersions,
+	COMPANY_ID,
+	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
+import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const VN_PEOPLE = [
 	{ key: 'VN-20M', wage: 20_000_000, age: 25, citizenship: 'CITIZEN' },
@@ -55,20 +63,70 @@ test('Vietnam — SI, HI, UI and the union fee under the 1 January 2026 version'
 	expectStatutory(book, 'VN-60M', 'UI', 600_000, 600_000);
 	// Law 74/2025 covers Vietnamese citizens: a foreign employee is outside the scheme entirely.
 	expectStatutorySkipped(book, 'VN-FOREIGN', 'UI');
+	// Social and health insurance reach a foreign employee like anyone else (Law 41/2024 art.2(2)).
+	expectStatutory(book, 'VN-FOREIGN', 'SI', 1_600_000, 3_500_000);
+	expectStatutory(book, 'VN-FOREIGN', 'HI', 300_000, 600_000);
 
 	// Union budget contribution: 2% of the social-insurance salary fund, employer only, same cap.
 	expectStatutory(book, 'VN-20M', 'UNION_FEE', 0, 400_000);
 	expectStatutory(book, 'VN-60M', 'UNION_FEE', 0, 936_000);
 });
 
+test('Vietnam — the contribution floor is the reference level (Law 41/2024 art.31(1)(đ))', () => {
+	// A wage under 2,340,000 contributes on 2,340,000 for SI, HI and the union fee; UI has no floor
+	// of its own and charges 1% of the wage. 2,340,000 × 8% = 187,200, × 17.5% = 409,500, × 1.5% =
+	// 35,100, × 3% = 70,200, × 2% = 46,800.
+	const january = assessStatutory({
+		code: 'VN',
+		period: '2026-01',
+		region: 'I',
+		people: [{ key: 'VN-2M', wage: 2_000_000, citizenship: 'CITIZEN' }]
+	});
+	expectStatutory(january, 'VN-2M', 'SI', 187_200, 409_500);
+	expectStatutory(january, 'VN-2M', 'HI', 35_100, 70_200);
+	expectStatutory(january, 'VN-2M', 'UNION_FEE', 0, 46_800);
+	expectStatutory(january, 'VN-2M', 'UI', 20_000, 20_000);
+	expectStatutory(january, 'VN-2M', 'PIT', 0, 0);
+	// From 1 July 2026 the floor is 2,530,000: × 8% = 202,400, × 17.5% = 442,750, × 1.5% = 37,950,
+	// × 3% = 75,900, × 2% = 50,600.
+	const july = assessStatutory({
+		code: 'VN',
+		period: '2026-07',
+		region: 'I',
+		people: [{ key: 'VN-2M', wage: 2_000_000, citizenship: 'CITIZEN' }]
+	});
+	expectStatutory(july, 'VN-2M', 'SI', 202_400, 442_750);
+	expectStatutory(july, 'VN-2M', 'HI', 37_950, 75_900);
+	expectStatutory(july, 'VN-2M', 'UNION_FEE', 0, 50_600);
+});
+
+test('Vietnam — the unemployment ceiling follows the company region (Decree 293/2025)', () => {
+	// Twenty times the regional minimum wage: Region II 4,730,000 → 94,600,000, Region III
+	// 4,140,000 → 82,800,000, Region IV 3,700,000 → 74,000,000. A 120,000,000 wage is over all of them.
+	const person = { key: 'VN-120M', wage: 120_000_000, citizenship: 'CITIZEN' };
+	for (const [region, cap] of [
+		['II', 946_000],
+		['III', 828_000],
+		['IV', 740_000]
+	] as const) {
+		const book = assessStatutory({ code: 'VN', period: '2026-01', region, people: [person] });
+		expectStatutory(book, 'VN-120M', 'UI', cap, cap);
+		// The SI ceiling does not read the region.
+		expectStatutory(book, 'VN-120M', 'SI', 3_744_000, 8_190_000);
+	}
+	// The wages orders exclude a vocational trainee (Labour Code art.61); everyone else is covered.
+	for (const version of settingsVersions('VN'))
+		assert.equal(version.wages.applies_when, 'employment.type != "INTERN"');
+});
+
 test('Vietnam — monthly PIT withholding on the 1 January 2026 scale', () => {
 	const book = assessStatutory({ code: 'VN', period: '2026-01', people: VN_PEOPLE, region: 'I' });
 
-	// Circular 111/2013 art.25 withholds on the monthly table; the seeded scale is the five-bracket
-	// table of Law 109/2025 (≤10M at 5%, >10–30M at 10%, >30–60M at 20%, >60–100M at 30%, >100M at
-	// 35%), annualised. PROJECT annualises the wage and the insurance relief alike, RELIEVE the
-	// 186,000,000 personal deduction (Resolution 110/2025), SCALE and SPREAD over twelve payslips —
-	// which lands on the month's own table figure.
+	// Circular 111/2013 art.25(1)(b) withholds on the monthly table; the scale is the five-bracket
+	// table of Law 109/2025 art.9 (≤10M at 5%, >10–30M at 10%, >30–60M at 20%, >60–100M at 30%,
+	// >100M at 35%), applied from the 2026 tax period by art.29(2), over the month's income net of
+	// the month's own SI, HI and UI and the 15,500,000 monthly personal deduction (Resolution
+	// 110/2025).
 	//
 	// VN-20M: 20,000,000 − 2,100,000 (1,600,000 + 300,000 + 200,000) − 15,500,000 = 2,400,000 at
 	// 5% = 120,000.
@@ -79,36 +137,100 @@ test('Vietnam — monthly PIT withholding on the 1 January 2026 scale', () => {
 	// VN-60M: 60,000,000 − 5,046,000 − 15,500,000 = 39,454,000: 500,000 + 2,000,000 + 9,454,000 ×
 	// 20% = 4,390,800.
 	expectStatutory(book, 'VN-60M', 'PIT', 4_390_800, 0);
-	// A foreign employee runs the same resident scale minus the UI they are outside:
+	// A resident foreign employee runs the same scale minus the UI they are outside:
 	// 20,000,000 − 1,900,000 − 15,500,000 = 2,600,000 at 5% = 130,000.
 	expectStatutory(book, 'VN-FOREIGN', 'PIT', 130_000, 0);
 });
 
-test('Vietnam — the 1 July 2026 version raises the ceiling and replaces the PIT scale', () => {
+test('Vietnam — a dependant deducts 6,200,000 a month, and a non-resident is withheld at 20%', () => {
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-01',
+		region: 'I',
+		people: [
+			{ key: 'VN-46.8M-D1', wage: 46_800_000, citizenship: 'CITIZEN', children: 1 },
+			{ key: 'VN-20M-D1', wage: 20_000_000, citizenship: 'CITIZEN', children: 1 },
+			// Law 04/2007 art.26 (carried by Law 109/2025): a non-resident's salary is taxed at a
+			// flat 20% with no deductions; the registration's rate override carries the election.
+			{
+				key: 'VN-NR-20M',
+				wage: 20_000_000,
+				citizenship: 'FOREIGNER',
+				registrations: { PIT: { kind: 'REGISTERED', rate_override: 20 } }
+			}
+		]
+	});
+	// Resolution 110/2025: 6,200,000 a month per dependant. 46,800,000 − 4,914,000 − 15,500,000 −
+	// 6,200,000 = 20,186,000: 500,000 + 10,186,000 × 10% = 1,518,600.
+	expectStatutory(book, 'VN-46.8M-D1', 'PIT', 1_518_600, 0);
+	// 20,000,000 − 2,100,000 − 21,700,000 is negative: nothing is withheld.
+	expectStatutory(book, 'VN-20M-D1', 'PIT', 0, 0);
+	expectStatutory(book, 'VN-NR-20M', 'PIT', 4_000_000, 0);
+});
+
+test('Vietnam — February relieves February’s insurance, not the year’s (Circular 111/2013 art.7)', () => {
+	// The monthly table is applied to the month's income net of the insurance deducted from that
+	// month's pay. With January on file the relief must still be one month's 2,100,000, and the
+	// withholding the same 120,000 as January's.
+	const book = assessStatutory(
+		{ code: 'VN', period: '2026-02', region: 'I', people: [VN_PEOPLE[0]!] },
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'VN-20M');
+			assert.ok(employment);
+			world.payroll_runs.push({ id: 'prior-2026-01', company_id: COMPANY_ID, period: '2026-01' });
+			world.payslips.push({
+				id: 'payslip-2026-01',
+				payroll_run_id: 'prior-2026-01',
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: '2026-01-28T00:00:00.000Z',
+				currency: 'VND',
+				base: [],
+				adjustments: [],
+				statutory: [
+					['PIT', 120_000, 0],
+					['SI', 1_600_000, 3_500_000],
+					['HI', 300_000, 600_000],
+					['UI', 200_000, 200_000],
+					['UNION_FEE', 0, 400_000]
+				].map(([scheme_code, employee_amount, employer_amount]) => ({
+					scheme_code,
+					employee_amount,
+					employer_amount,
+					base_amount: 20_000_000,
+					rule_when: null,
+					authority: null
+				}))
+			});
+		}
+	);
+	expectStatutory(book, 'VN-20M', 'SI', 1_600_000, 3_500_000);
+	expectStatutory(book, 'VN-20M', 'PIT', 120_000, 0);
+});
+
+test('Vietnam — the 1 July 2026 version raises the ceiling and exempts the overtime wage', () => {
 	const book = assessStatutory({ code: 'VN', period: '2026-07', people: VN_PEOPLE, region: 'I' });
 
-	// The reference level rises to 2,530,000, so the SI/HI ceiling becomes 20 × 2,530,000 =
-	// 50,600,000: 8% = 4,048,000 and 17.5% = 8,855,000; 1.5% = 759,000 and 3% = 1,518,000.
+	// Decree 161/2026 raises the reference level to 2,530,000, so the SI/HI ceiling becomes 20 ×
+	// 2,530,000 = 50,600,000: 8% = 4,048,000 and 17.5% = 8,855,000; 1.5% = 759,000 and 3% = 1,518,000.
 	expectStatutory(book, 'VN-60M', 'SI', 4_048_000, 8_855_000);
 	expectStatutory(book, 'VN-60M', 'HI', 759_000, 1_518_000);
 	expectStatutory(book, 'VN-60M', 'UNION_FEE', 0, 1_012_000); // 2% × 50,600,000
 	// The regional minimum did not move on 1 July, so UI is unchanged.
 	expectStatutory(book, 'VN-60M', 'UI', 600_000, 600_000);
 
-	// PIT Law 109/2025/QH15, five brackets from 1 July 2026: monthly ≤10M at 5%, >10–30M at 10%,
-	// >30–60M at 20%, >60–100M at 30%, >100M at 35%, seeded annualised. A standalone July run has
-	// no year-to-date, so PROJECT covers July–December only — six payslips against the full annual
-	// personal relief (E9). These pin the engine's figures; the month's own table gives 120,000 for
-	// VN-20M, 2,138,600 for VN-46.8M and 4,390,800 for VN-60M. A mid-year joiner with no history is
-	// the one population this residue reaches; a run with year-to-date lands on the table.
-	expectStatutory(book, 'VN-20M', 'PIT', 0, 0);
-	expectStatutory(book, 'VN-46.8M', 'PIT', 544_300, 0);
-	expectStatutory(book, 'VN-60M', 'PIT', 1_359_300, 0);
+	// The same monthly table, over the month's own insurance. A standalone July run has no
+	// year-to-date and needs none: VN-20M and VN-46.8M are unchanged at 120,000 and 2,138,600; VN-60M
+	// relieves the higher capped insurance, 60,000,000 − 5,407,000 (4,048,000 + 759,000 + 600,000) −
+	// 15,500,000 = 39,093,000: 2,500,000 + 9,093,000 × 20% = 4,318,600.
+	expectStatutory(book, 'VN-20M', 'PIT', 120_000, 0);
+	expectStatutory(book, 'VN-46.8M', 'PIT', 2_138_600, 0);
+	expectStatutory(book, 'VN-60M', 'PIT', 4_318_600, 0);
 });
 
 test('Vietnam — the December 2025 version, and the regional cap that moves off it', () => {
 	// The first sealed version: Decree 74/2024 regional minimum wages, the 2,340,000 reference
-	// level, and the Resolution 954/2020 family deductions of 132,000,000 / 52,800,000 a year.
+	// level, and the Resolution 954/2020 family deductions of 11,000,000 / 4,400,000 a month.
 	// A wage of 120,000,000 is the only way to see the unemployment ceiling, which is the one
 	// figure the 1 January 2026 version actually moves.
 	const people = [
@@ -132,15 +254,16 @@ test('Vietnam — the December 2025 version, and the regional cap that moves off
 	expectStatutory(december, 'VN-120M', 'UI', 992_000, 992_000);
 	expectStatutory(january, 'VN-120M', 'UI', 1_062_000, 1_062_000);
 
-	// PIT on the seven-rung annual ladder with the Resolution 954/2020 deduction of 132,000,000.
-	// A December payslip projects no further month — the tax year is over — so the annual income
-	// is the month's own. 200,000,000 − (3,744,000 + 702,000 + 992,000) − 132,000,000 =
-	// 62,562,000, in the 60,000,000–120,000,000 rung: 3,000,000 + 2,562,000 × 10% = 3,256,200.
-	// (On the 1 January 2026 version's 186,000,000 deduction the same month yields 428,100, so
-	// this figure is the December relief and not a restatement of the later one.)
-	expectStatutory(december, 'VN-200M', 'PIT', 3_256_200, 0);
-	// 120,000,000 is under 132,000,000 + the insurance relief, so there is nothing to withhold.
-	expectStatutory(december, 'VN-120M', 'PIT', 0, 0);
+	// PIT on the seven-rung MONTHLY table of Law 04/2007 art.22 (≤5M 5%, >5–10M 10%, >10–18M 15%,
+	// >18–32M 20%, >32–52M 25%, >52–80M 30%, >80M 35%) with the 11,000,000 monthly deduction.
+	// VN-20M: 20,000,000 − 2,100,000 − 11,000,000 = 6,900,000: 250,000 + 1,900,000 × 10% = 440,000.
+	expectStatutory(december, 'VN-20M', 'PIT', 440_000, 0);
+	// VN-120M: 120,000,000 − 5,438,000 (3,744,000 + 702,000 + 992,000) − 11,000,000 = 103,562,000:
+	// 18,150,000 + 23,562,000 × 35% = 26,396,700.
+	expectStatutory(december, 'VN-120M', 'PIT', 26_396_700, 0);
+	// VN-200M: 200,000,000 − 5,438,000 − 11,000,000 = 183,562,000: 18,150,000 + 103,562,000 × 35% =
+	// 54,396,700.
+	expectStatutory(december, 'VN-200M', 'PIT', 54_396_700, 0);
 });
 
 test('Vietnam — the đồng above the ceiling is charged on the ceiling', () => {
@@ -154,6 +277,322 @@ test('Vietnam — the đồng above the ceiling is charged on the ceiling', () =
 	expectStatutory(book, 'VN-50600000.01', 'SI', 4_048_000, 8_855_000);
 	expectStatutory(book, 'VN-50600000.01', 'HI', 759_000, 1_518_000);
 	expectStatutory(book, 'VN-50600000.01', 'UNION_FEE', 0, 1_012_000);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Labour Code 2019: the pay side. The world's shift is 09:00–18:00 with a sixty-minute break —
+// eight normal hours, Monday to Friday, Saturday and Sunday rest days — and the version's ordinary
+// divisor is `period.working_days` (Decree 145/2020 art.54(1)(a): the month's salary over the
+// month's normal working days, then over eight hours). A public holiday on a scheduled working
+// day is a working day — a paid one (art.112) — so it stays in the count. Wages are chosen so the
+// hourly rate is a round 100,000: 22 working days × 8 h × 100,000 = 17,600,000 for January 2026.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+const VN_2026_JAN = 'b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8';
+const holiday = (date: string, name: string) => ({
+	id: `holiday-${date}`,
+	company_id: COMPANY_ID,
+	date,
+	name,
+	kind: 'PUBLIC',
+	replaces: null,
+	source: null,
+	published_at: '2025-12-01T00:00:00.000Z',
+	approval_id: null
+});
+/** A punch from `start` to `end` on `date`, in Hồ Chí Minh City's +07:00 frame. */
+const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	world.work_days.push({
+		id: `wd-${key}-${date}`,
+		employment_id: employment.id,
+		work_date: date,
+		shift_definition_id: null,
+		worked_intervals: [{ start: `${date}T${start}:00+07:00`, end: `${date}T${end}:00+07:00` }],
+		approval_id: null
+	});
+};
+/** The work-day lines one payslip carries, as `[date, label, hours, amount]`, in date order. */
+const workLines = (slip: BuiltPayslip) =>
+	slip.adjustments
+		.filter((row) => row.family === 'WORK_DAY')
+		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
+		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
+const charge = (slip: BuiltPayslip, code: string) => {
+	const row = slip.statutory.find((entry) => entry.scheme_code === code)!;
+	return [row.base_amount, row.employee_amount, row.employer_amount] as const;
+};
+/** The same five days, on a Monday, a Saturday, a holiday and a Monday into the night. */
+const week = (
+	world: PayrollWorld,
+	key: string,
+	month: string,
+	days: readonly [string, string, string, string]
+) => {
+	const [monday, saturday, holidayDate, nightMonday] = days;
+	world.jurisdiction_holidays.push(holiday(`${month}-${holidayDate}`, 'Holiday'));
+	punch(world, key, `${month}-${monday}`, '09:00', '21:00'); // 11 worked: 3 h beyond the normal day
+	punch(world, key, `${month}-${saturday}`, '09:00', '18:00'); // rest day: 9 h clock, 8.5 h worked
+	punch(world, key, `${month}-${holidayDate}`, '09:00', '18:00'); // holiday: the normal day
+	punch(world, key, `${month}-${nightMonday}`, '09:00', '24:00'); // 14 worked: 6 h beyond, 2 of them at night
+};
+
+test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the art.109 break', () => {
+	const { slips, warnings } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-01',
+			region: 'I',
+			people: [{ key: 'VN-17.6M', wage: 17_600_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			week(world, 'VN-17.6M', '2026-01', ['05', '10', '01', '12']);
+			punch(world, 'VN-17.6M', '2026-01-17', '09:00', '17:00'); // rest day: 8 h clock, no break
+		}
+	);
+	const slip = slips.get('VN-17.6M')!;
+	assert.deepEqual(workLines(slip), [
+		// Art.98(1)(c): every hour worked on a holiday at 300% of the hourly wage, on top of the
+		// holiday's own paid day inside the month; the shift's sixty-minute break leaves eight.
+		['2026-01-01', 'OT-3.0X', 8, 2_400_000],
+		// Art.98(1)(a): the three hours beyond the normal day at 150%.
+		['2026-01-05', 'OT-1.5X', 3, 450_000],
+		// Art.98(1)(b): a rest day at 200% from its first hour. Art.109(1) owes a thirty-minute break
+		// on a day of six hours or more and, outside continuous-shift work, it is not working time —
+		// so a nine-hour clock span is eight and a half paid hours, in the seed's two rows (the normal
+		// day, then the half hour beyond it, both at 200%).
+		['2026-01-10', 'OT-2.0X', 8, 1_600_000],
+		['2026-01-10', 'OT-2.0X', 0.5, 100_000],
+		// Six hours beyond the normal day at 150%, and art.98(2)–(3) for the two of them after 22:00:
+		// 30% of the hourly wage for night work plus 20% of the day-time unit price, 100,000 an hour.
+		['2026-01-12', 'NIGHT_PREMIUM', 2, 100_000],
+		['2026-01-12', 'OT-1.5X', 6, 900_000],
+		// An eight-hour rest-day clock with no break: the art.109(1) half hour is not working time,
+		// so the day priced from its start is seven and a half hours at 200%, never the raw clock.
+		['2026-01-17', 'OT-2.0X', 7.5, 1_500_000]
+	]);
+	// Art.107(2)(b): overtime may not exceed 50% of the normal day — four hours. The sixth is paid
+	// at the same rate and reported.
+	assert.deepEqual(
+		warnings.map((warning) => warning.split('.')[0]),
+		['DAILY_OVERTIME_LIMIT_EXCEEDED: VN-17']
+	);
+	assert.equal(slip.gross, 17_600_000 + 6_950_000 + 100_000);
+	// Social, health and unemployment insurance and the union fee read the salary alone (Labour Code
+	// art.168, Circular 06/2021 art.30: the contractual wage, never overtime).
+	assert.deepEqual(charge(slip, 'SI'), [17_600_000, 1_408_000, 3_080_000]);
+	assert.deepEqual(charge(slip, 'HI'), [17_600_000, 264_000, 528_000]);
+	assert.deepEqual(charge(slip, 'UI'), [17_600_000, 176_000, 176_000]);
+	assert.deepEqual(charge(slip, 'UNION_FEE'), [17_600_000, 0, 352_000]);
+	// PINNED DEVIATION — the January 2026 version taxes the WHOLE overtime wage: 17,600,000 +
+	// 6,950,000 − 1,848,000 − 15,500,000 = 7,202,000 × 5% = 360,100. Law 04/2007 art.4(9) with
+	// Circular 111/2013 art.3(1)(i) exempts only the part paid above the ordinary rate — 150,000 +
+	// 850,000 + 1,600,000 + 300,000 + 750,000 = 3,650,000 here — so the law's figure is (17,600,000
+	// + 3,300,000 − 1,848,000 − 15,500,000) × 5% = 177,600 (README NOT APPLIED #5, Gap #22). The
+	// night premium is the whole of its line and is outside the base on every version.
+	assert.deepEqual(charge(slip, 'PIT'), [24_550_000, 360_100, 0]);
+	assert.equal(slip.total_deductions, 2_208_100); // 1,408,000 + 264,000 + 176,000 + 360,100
+	assert.equal(slip.net, 22_441_900); // 24,650,000 − 2,208,100
+	assert.equal(slip.employer_cost, 3_080_000 + 528_000 + 176_000 + 352_000);
+});
+
+test('Vietnam — from 1 July 2026 the overtime and night wage are outside PIT (Law 109/2025 art.4(8))', () => {
+	// July 2026 has 23 weekdays, the holiday on Wednesday the 1st among them: 23 × 8 × 100,000.
+	const { slips } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-07',
+			region: 'I',
+			people: [{ key: 'VN-18.4M', wage: 18_400_000, citizenship: 'CITIZEN' }]
+		},
+		(world) => week(world, 'VN-18.4M', '2026-07', ['06', '11', '01', '13'])
+	);
+	const slip = slips.get('VN-18.4M')!;
+	assert.deepEqual(
+		workLines(slip).map((row) => [row[1], row[2], row[3]]),
+		[
+			['OT-3.0X', 8, 2_400_000],
+			['OT-1.5X', 3, 450_000],
+			['OT-2.0X', 8, 1_600_000],
+			['OT-2.0X', 0.5, 100_000],
+			['NIGHT_PREMIUM', 2, 100_000],
+			['OT-1.5X', 6, 900_000]
+		]
+	);
+	// The third version's PIT base is BASE − ABSENCE − NO_PAY_LEAVE: 18,400,000 − 1,932,000
+	// (1,472,000 + 276,000 + 184,000) − 15,500,000 = 968,000 × 5% = 48,400, whatever was worked
+	// beyond the normal day.
+	assert.deepEqual(charge(slip, 'SI'), [18_400_000, 1_472_000, 3_220_000]);
+	assert.deepEqual(charge(slip, 'PIT'), [18_400_000, 48_400, 0]);
+	assert.equal(slip.gross, 18_400_000 + 5_450_000 + 100_000);
+});
+
+test('Vietnam — a part month prorates on working days, an allowance with it, and unpaid leave leaves the allowance whole', () => {
+	const NPL = 'c1c1c1c1-0000-4000-8000-00000000000a';
+	const LUNCH = 'c1c1c1c1-0000-4000-8000-00000000000b';
+	// January 2026 with no holiday planted: 22 working days on the Monday-to-Friday pattern.
+	const { slips, entries } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-01',
+			region: 'I',
+			people: [
+				{ key: 'VN-WHOLE', wage: 22_000_000, citizenship: 'CITIZEN' },
+				{ key: 'VN-NPL', wage: 22_000_000, citizenship: 'CITIZEN' },
+				{ key: 'VN-JOINER', wage: 22_000_000, citizenship: 'CITIZEN', hire_date: '2026-01-19' },
+				{ key: 'VN-LEAVER', wage: 22_000_000, citizenship: 'CITIZEN', exit_date: '2026-01-15' },
+				// A base that does not divide: 20,000,000 × 10 ÷ 22 = 9,090,909.09.
+				{ key: 'VN-JOINER-20M', wage: 20_000_000, citizenship: 'CITIZEN', hire_date: '2026-01-19' }
+			]
+		},
+		(world) => {
+			world.allowance_catalogue.push({
+				id: LUNCH,
+				settings_id: VN_2026_JAN,
+				code: 'LUNCH',
+				name: 'Tiền ăn giữa ca',
+				eligibility: '',
+				evidence: 'NONE',
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				approval_id: null
+			});
+			for (const [index, employment] of world.employments.entries())
+				world.allowances.push({
+					id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: LUNCH,
+					amount: 2_200_000,
+					effective_from: '2025-01-01',
+					effective_to: null,
+					reason: '',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			world.leave_catalogue.push({
+				id: NPL,
+				settings_id: VN_2026_JAN,
+				code: 'BEREAVEMENT_LEAVE_UNPAID',
+				name: 'Nghỉ không hưởng lương',
+				eligibility: '',
+				evidence: 'NONE',
+				evidence_after_days: null,
+				entitlement: {
+					availability: 'UNLIMITED',
+					year_start_month: 1,
+					proration: 'NONE',
+					bands: []
+				},
+				is_npl: true,
+				can_encash: false,
+				bands: [],
+				approval_id: null
+			});
+			const employment = world.employments.find((row) => row.employee_number === 'VN-NPL')!;
+			const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-000000000001',
+				employment_id: employment.id,
+				catalogue_id: NPL,
+				leave_code: 'BEREAVEMENT_LEAVE_UNPAID',
+				reference: 'NPL-1',
+				from_date: '2026-01-14',
+				to_date: '2026-01-14',
+				half_day_start: false,
+				half_day_end: false,
+				days: 1,
+				effective_on: '2026-01-14',
+				reason: 'art.115(2)',
+				allocations: [],
+				charges: [
+					{
+						date: '2026-01-14',
+						days: 1,
+						catalogue_id: NPL,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					}
+				],
+				approval_id: null
+			});
+		}
+	);
+	const facts = (key: string) => {
+		const entry = entries.get(key)![0]!;
+		const line = slips.get(key)!.adjustments.find((row) => row.family === 'ALLOWANCE')!;
+		assert.equal(line.amount, entry.values.amount, `${key}: the line is the entry`);
+		return [
+			entry.values.days,
+			entry.values.denominator,
+			entry.values.unpaid_days,
+			entry.values.amount
+		];
+	};
+	const prorated = (key: string) =>
+		slips.get(key)!.proration.map((row) => [row.days, row.denominator, row.prorated_amount]);
+	// `work_rules.proration` is WORKING_DAYS: a joiner on Monday the 19th takes 10 of January's 22,
+	// a leaver on the 15th the 11 before it, on the salary and the allowance alike — one entry each.
+	assert.deepEqual(prorated('VN-JOINER'), [[10, 22, 10_000_000]]);
+	assert.deepEqual(facts('VN-JOINER'), [10, 22, 0, 1_000_000]);
+	assert.deepEqual(prorated('VN-LEAVER'), [[11, 22, 11_000_000]]);
+	assert.deepEqual(facts('VN-LEAVER'), [11, 22, 0, 1_100_000]);
+	assert.deepEqual(facts('VN-WHOLE'), [22, 22, 0, 2_200_000]);
+	// Art.115(2): the day is unpaid — one working day, 22,000,000 ÷ 22 = 1,000,000, off the salary.
+	// `payroll.allowance_npl_prorates` is false, so the allowance stays whole.
+	assert.deepEqual(facts('VN-NPL'), [22, 22, 0, 2_200_000]);
+	const absence = slips.get('VN-NPL')!.adjustments.find((row) => row.bucket === 'ABSENCE')!;
+	assert.deepEqual([absence.quantity, absence.amount], [1, 1_000_000]);
+	// No Vietnamese scheme opts an allowance in (`assessed_on` names no `catalog('ALLOWANCE')`):
+	// right for a mid-shift meal (Circular 06/2021 art.30(3) keeps it out of the insurance salary),
+	// and the PIT exemption of Circular 111/2013 art.2(2)(g.5) stops at 730,000 a month — the
+	// 1,470,000 above it is taxable and is not taxed here (README NOT APPLIED #21). Law 41/2024
+	// art.33(5): one unpaid working day is under the fourteen the cliff names, so the month insures
+	// on the whole contractual salary, 22,000,000 × 8% = 1,760,000 / 17.5% = 3,850,000.
+	assert.deepEqual(charge(slips.get('VN-NPL')!, 'SI'), [22_000_000, 1_760_000, 3_850_000]);
+	// 22,000,000 − 2,310,000 − 15,500,000 = 4,190,000 × 5% = 209,500.
+	assert.deepEqual(charge(slips.get('VN-WHOLE')!, 'PIT'), [22_000_000, 209_500, 0]);
+	// The đồng has no minor unit: a prorated base is a whole đồng, 20,000,000 × 10 ÷ 22 =
+	// 9,090,909.09 → 9,090,909, on the segment as on the line.
+	assert.deepEqual(prorated('VN-JOINER-20M'), [[10, 22, 9_090_909]]);
+	assert.equal(slips.get('VN-JOINER-20M')!.gross, 9_090_909 + 1_000_000);
+	// The part month. Law 41/2024 art.33(5): a month with fourteen or more unpaid working days
+	// contributes nothing; fewer contributes on the whole contractual salary. The joiner has twelve
+	// (2–16 January) and the leaver twelve (16–30), so both insure the whole 22,000,000 × 8% =
+	// 1,760,000 / 17.5% = 3,850,000 (the scheme reads `person.period.working_days` less
+	// `period.days_employed`), and the 20,000,000 joiner 1,600,000 / 3,500,000, 300,000 / 600,000
+	// health.
+	assert.deepEqual(charge(slips.get('VN-JOINER')!, 'SI'), [22_000_000, 1_760_000, 3_850_000]);
+	assert.deepEqual(charge(slips.get('VN-LEAVER')!, 'SI'), [22_000_000, 1_760_000, 3_850_000]);
+	assert.deepEqual(charge(slips.get('VN-JOINER-20M')!, 'SI'), [20_000_000, 1_600_000, 3_500_000]);
+	assert.deepEqual(charge(slips.get('VN-JOINER-20M')!, 'HI'), [20_000_000, 300_000, 600_000]);
+});
+
+test('Vietnam — fourteen unpaid working days in the month is a month outside insurance (Law 41/2024 art.33(5))', () => {
+	// January 2026 holds 22 working days; a leaver on Friday the 9th worked seven of them and is
+	// unpaid for the fifteen after, so the month contributes nothing to social, health or
+	// unemployment insurance, and the union fee that rides the same fund is nothing too. The wage
+	// itself is still paid on the working days: 22,000,000 × 7 ÷ 22.
+	const { slips } = buildStatutory({
+		code: 'VN',
+		period: '2026-01',
+		region: 'I',
+		people: [{ key: 'VN-EARLY', wage: 22_000_000, citizenship: 'CITIZEN', exit_date: '2026-01-09' }]
+	});
+	const slip = slips.get('VN-EARLY')!;
+	assert.deepEqual(
+		slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[[7, 22, 7_000_000]]
+	);
+	for (const code of ['SI', 'HI', 'UI', 'UNION_FEE'])
+		assert.equal(
+			slip.statutory.find((entry) => entry.scheme_code === code),
+			undefined,
+			`${code} charges nothing and carries no row`
+		);
 });
 
 test('every sealed version of `VN` is priced by a golden here', () => {

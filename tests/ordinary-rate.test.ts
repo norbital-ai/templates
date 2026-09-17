@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import { gatherPayrollRun, buildPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { accumulateBases } from '../src/collections/payroll_runs/lib/accumulate.ts';
+import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
 import { COMPANY_ID, createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import {
@@ -64,18 +64,20 @@ test('Work uses the version’s own rules, and its pay items settle under them',
 	assert.ok(workItems.every((row) => !row.id.startsWith('engine:')));
 });
 
-test('Contribution reads the scheme’s declaration: salary adds, absence reduces, silence excludes', async () => {
+test('Contribution reads the scheme’s formula: salary adds, absence reduces, silence excludes', async () => {
 	const world = createPublicPayrollWorld();
 	world.statutory_contributions.push({
 		id: 'scheme',
 		settings_id: world.jurisdiction_settings[0]!.id,
 		code: 'FUND',
 		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
 		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }],
-		base: { salary: true, absence: true, overtime: false, night_premium: false, entries: [] }
+		assessed_on: 'BASE - ABSENCE'
 	});
 	const { configuration } = await Effect.runPromise(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
@@ -88,8 +90,9 @@ test('Contribution reads the scheme’s declaration: salary adds, absence reduce
 			label: 'A label with no classification information',
 			amount: row.output === 'salary' ? 1000 : row.output === 'absence' ? 50 : 100
 		}));
-	// Salary includes, absence reduces; a line the rules do not name is excluded.
-	assert.equal(accumulateBases({ configuration, items, employeeNumber: 'TEST' })[0]?.base, 950);
+	// Salary includes, absence reduces: the formula is what the declaration used to be.
+	const accumulation = accumulatePayslip({ items });
+	assert.equal(accumulation.reserved.BASE - accumulation.reserved.ABSENCE, 950);
 });
 
 test('an absence no rule opts into is excluded, not refused', async () => {
@@ -99,11 +102,13 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 		settings_id: world.jurisdiction_settings[0]!.id,
 		code: 'FUND',
 		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
 		rules: [{ when: 'base >= 0.0', employee: '0.0', employer: '0.0' }],
-		base: { salary: true, absence: false, overtime: false, night_premium: false, entries: [] }
+		assessed_on: 'BASE'
 	});
 	// Every rostered day punched over its shift: nothing is absent, so the line is never priced.
 	const variant = world.shift_definitions[0]!.variant as {

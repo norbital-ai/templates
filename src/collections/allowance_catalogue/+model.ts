@@ -1,13 +1,4 @@
-import {
-	boolean,
-	custom,
-	defineModel,
-	enums,
-	integer,
-	sql,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -30,20 +21,11 @@ export default defineModel(
 		/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 		eligibility: text().notNull().default(''),
 		/** Whether a request against this line must, may or need not attach proof. */
-		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
-		/**
-		 * Whether the allowance is a standing one: its entries carry a window and settle once per
-		 * period it covers, and may be drawn on in more than one payroll. A one-off settles once.
-		 */
-		recurring: boolean().notNull().default(false),
-		/** Whether a partial period reduces an entry by the days actually employed. */
-		prorates: boolean().notNull().default(false),
-		/** Day of the month a recurring instalment is incurred on; null leaves the window to decide. */
-		on_day: integer()
+		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE')
 	},
 	{
 		description:
-			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, the evidence it demands and its recurrence facts. Sealed with its version; the run cites the version it priced against.',
+			'The allowance catalogue of one jurisdiction settings version: code, destination and direction, the bands that price, cap and opt the allowance into statutory schemes, and the evidence it demands. Every allowance is standing: a monthly amount over an effective window, prorated like basic salary. Sealed with its version; the run cites the version it priced against.',
 		recordLabel: ['code'],
 		icon: 'lucide:calendar-clock',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

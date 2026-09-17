@@ -15,7 +15,8 @@
 		"payroll": {
 			"currency": "MYR",
 			"timezone": "Asia/Kuala_Lumpur",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {}

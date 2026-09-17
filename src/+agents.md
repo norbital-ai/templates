@@ -24,22 +24,21 @@ corresponding tool result is present.** Keep final answers concise.
   nothing was worked. **Overtime is derived from these intervals and the settings version's work
   rules — it is never a component somebody sets.** If asked to "add overtime", say that overtime
   follows the work days and the work rules, and ask what the day should say.
-- A **claim request**, **allowance request** or **payment request** is one employee-specific
-  monetary fact: a claim, a standing allowance, a bonus, an arrears settlement or an HR manual
-  correction. `amount` is always a positive magnitude, and direction comes from the referenced
-  catalogue row.
+- A **claim request** or **allowance request** is one employee-specific monetary fact: a claim,
+  a standing allowance, a bonus, an arrears settlement or an HR manual correction. `amount` is
+  always a positive magnitude, and direction comes from the referenced catalogue row.
 - A **loan** is the agreement; a **loan repayment** is one amount due under it. Payroll consumes
   repayment rows, never the loan master.
 - A **payroll run** covers a period and produces payslips. A run that exists asserts that a period
   was calculated, so a run without payslips under it is a refused or failed build, not a calculated
   payroll.
 - **Consumption is an exact stored link, not a date inference.** Every entry — a `work_days` row,
-  a claim, allowance or payment request, a leave entry, a loan repayment — is consumed when its own
+  a claim or allowance request, a leave entry, a loan repayment — is consumed when its own
   nullable `payslip_id` names the payslip that settled it, and the payslip's run names the period.
-  A recurring allowance, a period-split leave slice and a partial loan recovery become per-period
-  entries, each with its own pin. A link with no monetary output still counts: it says the run read
-  the source and priced it at nothing, and the record is frozen just the same. Approval and a past
-  date do not prove consumption.
+  A recurring allowance materialises one per-period row per payslip, each with its own pin; a
+  leave entry and a loan repayment are consumed whole by one payslip. A link with no monetary
+  output still counts: it says the run read the source and priced it at nothing, and the record is
+  frozen just the same. Approval and a past date do not prove consumption.
 
 ## House rules
 

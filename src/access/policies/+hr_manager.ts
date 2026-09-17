@@ -5,7 +5,9 @@ import {
 	mergeGrants,
 	payrollGrants,
 	payrollRunCascadeGrants,
+	payrollRunGrants,
 	peopleGrants,
+	requestGrants,
 	referenceGrants,
 	settingsCatalogueGrants,
 	settingsGrants,
@@ -26,17 +28,15 @@ import type { Policy } from './$types.js';
  *     same collection and grant coordinate, no gate. It is also the other end of the controller's
  *     escalation, since it is holders of this role who sit in the `HR Manager` team the
  *     controller's step routes to.
- *   - `payroll_runs.mutate.existing` — run. A same-state DRAFT mutation is this workspace's
- *     recalculate.
- *   - nothing on payslips, adjustments or the `payslip_id` pins. A recalculation states
- *     the run's complete set of payslips from the `before` hook and the omitted ones go with it;
- *     that graph is the workspace's own work, so no grant of this policy names it.
+ *   - nothing on payslips, adjustments or the `payslip_id` pins. The run's transform states the
+ *     run's complete set of payslips and their pins; that graph is the workspace's own work, so no
+ *     grant of this policy names it. A run is never edited: a correction is an entry in a later run.
  *   - `payroll_runs: delete` — the release path for the settlement lock. Deleting a run cascades to
- *     its payslips and their `payslip_adjustments` rows, which is what unlocks the work days,
- *     component entries and leave requests that run consumed. `payroll_runs/+hooks.ts` refuses the
- *     delete outright once a slip has been paid, so this grant can only ever release an unpaid run's claims.
- *     The cascade descends as the deleting manager (`payrollRunCascadeGrants()`): delete, and only
- *     delete, on the six collections a run owns.
+ *     its payslips, which is what unlocks the work days, component entries and leave requests that
+ *     run consumed. The grant's `authorize` refuses the delete once a slip has been paid or a later
+ *     run stands, so it can only ever release an unpaid run's claims, newest first. The cascade
+ *     descends as the deleting manager (`payrollRunCascadeGrants()`): delete, and only delete, on
+ *     the payslips a run owns.
  *
  * The generated groups and shared approval declarations carry over from `+hr_controller.ts`.
  * Derived approval identity includes this policy key, so the same flow reached through another
@@ -74,7 +74,7 @@ export default {
 	grants: mergeGrants(
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		// The settings lineage: everything the controller may do, plus sealing and voiding under
-		// approval. The hooks still refuse every write under a seal.
+		// approval. The transforms still refuse every write under a seal.
 		statutoryGrants('read'),
 		settingsGrants('seal'),
 		settingsCatalogueGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
@@ -83,11 +83,7 @@ export default {
 		grantsOn('work_days', ['read']),
 
 		// The adjustment path. Unconditional on both read and `mutate.new` — see `+hr_controller.ts`.
-		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('payment_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		requestGrants(),
 
 		// Both sides of the person-day: publish the schedule, and record what happened against it.
 		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
@@ -103,7 +99,7 @@ export default {
 		payrollGrants('read'),
 		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
 		payrollRunCascadeGrants(),
-		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
+		payrollRunGrants()
 	),
 	/**
 	 * What a holder of this policy may spend.

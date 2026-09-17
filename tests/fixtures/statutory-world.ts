@@ -21,6 +21,7 @@ import {
 	gatherPayrollRun
 } from '../../src/collections/payroll_runs/lib/engine.ts';
 import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
+import type { MaterialisedMoney } from '../../src/lib/payroll/money.ts';
 import { memoryPayrollApi, type PayrollWorld } from './memory-payroll-api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -44,7 +45,15 @@ function law(code: Lineage, file: string, options?: { optional: true }): any[] {
 
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
 export const leaveCatalogue = (code: Lineage) => law(code, 'leave_catalogue');
-export const contributionSchemes = (code: Lineage) => law(code, 'statutory_contributions');
+/** The bank omits a column at its model default; the database fills it, so the world does too. */
+export const contributionSchemes = (code: Lineage) =>
+	law(code, 'statutory_contributions').map((row) => ({
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
+		...row
+	}));
+export const allowanceCatalogue = (code: Lineage) =>
+	law(code, 'allowance_catalogue', { optional: true });
 
 export const COMPANY_ID = 'c0000000-0000-4000-8000-000000000001';
 const SHIFT_ID = 'c0000000-0000-4000-8000-0000000000d1';
@@ -59,6 +68,8 @@ export type Person = {
 	readonly wage: number;
 	/** Completed years of age at the period end; the fixture derives a birth date from it. */
 	readonly age?: number;
+	/** An exact birth date, for a test that needs one measured in months; overrides `age`. */
+	readonly birth_date?: string;
 	readonly gender?: string;
 	readonly marital_status?: string;
 	readonly spouse_status?: string;
@@ -79,9 +90,19 @@ export type Person = {
 	readonly hire_date?: string;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
-	/** Per-scheme registration: a code mapped to `NOT_REGISTERED`, or to a flat rate override. */
+	/**
+	 * Per-scheme registration: a code mapped to `NOT_REGISTERED`, a flat rate override, or the
+	 * employment's declared elections under that scheme (e.g. `shg_opt_out`).
+	 */
 	readonly registrations?: Readonly<
-		Record<string, { kind: string; rate_override?: number | null }>
+		Record<
+			string,
+			{
+				readonly kind: string;
+				readonly rate_override?: number | null;
+				readonly elections?: Readonly<Record<string, boolean | number | string>>;
+			}
+		>
 	>;
 	/** The cadence the contract is paid on; `MONTHLY` unless stated. */
 	readonly pay_frequency?: 'MONTHLY' | 'SEMI_MONTHLY';
@@ -133,7 +154,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const { code, period } = options;
 	const versions = settingsVersions(code);
 	const jurisdictionCode = versions[0]!.jurisdiction_code;
-	const schemes = law(code, 'statutory_contributions');
+	const schemes = contributionSchemes(code);
 	// Padding employments stand outside every scheme: they count toward a HEADCOUNT band but
 	// charge nothing, relieve nothing, and always settle positive on their token wage.
 	const padding: Person[] = Array.from(
@@ -154,8 +175,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const employees = people.map((person, index) => ({
 		id: `a0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		name: person.key,
-		date_of_birth: birthDateFor(person.age ?? 40, period),
-		gender: person.gender ?? 'FEMALE',
+		date_of_birth: person.birth_date ?? birthDateFor(person.age ?? 40, period),
+		// Unrecorded unless stated: a predicate that turns on gender must be given one explicitly.
+		gender: person.gender ?? '',
 		marital_status: person.marital_status ?? 'SINGLE',
 		spouse_status: person.spouse_status ?? 'NONE',
 		solo_parent: person.solo_parent ?? false,
@@ -190,6 +212,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		job_title: 'Fixture',
 		grade: person.grade ?? null,
 		payroll_group: null,
+		agreed_days_per_week: 5,
 		shift_pattern_id: PATTERN_ID,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
 		approval_id: null
@@ -210,6 +233,10 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 					kind: declared?.kind ?? 'REGISTERED',
 					reference_number: 'FIXTURE',
 					rate_override: declared?.rate_override ?? null,
+					elections: declared?.elections ?? {},
+					// The employment's first day is its registration day: registration history, not
+					// current age, is what the seniority limbs read.
+					since: person.hire_date ?? '2015-01-01',
 					reason: ''
 				},
 				effective_range: RANGE,
@@ -237,8 +264,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		statutory_contributions: schemes,
 		loan_catalogue: [],
 		claim_catalogue: [],
-		allowance_catalogue: [],
-		payment_catalogue: law(code, 'payment_catalogue', { optional: true }),
+		allowance_catalogue: allowanceCatalogue(code),
 		shift_definitions: [
 			{
 				id: SHIFT_ID,
@@ -293,8 +319,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employment_terms: terms,
 		employment_statutory_facts: facts,
 		claim_requests: [],
-		allowance_requests: [],
-		payment_requests: [],
+		allowances: [],
 		loans: [],
 		loan_repayments: [],
 		work_days: [],
@@ -394,8 +419,13 @@ export function assertEveryVersionPriced(code: Lineage): void {
 	);
 }
 
-export function assessStatutory(options: WorldOptions): StatutoryBook {
+export function assessStatutory(
+	options: WorldOptions,
+	/** Seed prior runs and payslips a year-end reconciliation reads as year-to-date. */
+	prepareWorld?: (world: PayrollWorld, period: string) => void
+): StatutoryBook {
 	const world = createStatutoryWorld(options);
+	prepareWorld?.(world, options.period);
 	const prepared = Effect.runSync(
 		gatherPayrollRun({
 			api: memoryPayrollApi(world),
@@ -419,8 +449,59 @@ export function assessStatutory(options: WorldOptions): StatutoryBook {
 	);
 }
 
-export function assessStatutoryUnvalidated(options: WorldOptions): StatutoryBook {
+/** One built payslip, keyed by the employee number the golden names. */
+export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_run'][number];
+
+/**
+ * The whole run — every payslip with its base, proration, adjustments and charges, and the run's
+ * warnings — for a golden that prices the pay side of a statute (overtime bands, the ordinary
+ * rate, proration, absence) rather than a contribution scheme. `prepareWorld` is where a test
+ * plants the work days and holidays the world starts without.
+ */
+export function buildStatutory(
+	options: WorldOptions,
+	prepareWorld?: (world: PayrollWorld, period: string) => void
+): {
+	readonly slips: Map<string, BuiltPayslip>;
+	readonly entries: Map<string, readonly MaterialisedMoney[]>;
+	readonly warnings: readonly string[];
+} {
 	const world = createStatutoryWorld(options);
+	prepareWorld?.(world, options.period);
+	const prepared = Effect.runSync(
+		gatherPayrollRun({
+			api: memoryPayrollApi(world),
+			companyId: COMPANY_ID,
+			period: options.period
+		})
+	);
+	pricedVersions.add(`${options.code}:${String(prepared.configuration.jurisdiction.id)}`);
+	const built = buildPayrollRun(prepared);
+	const numbers = new Map(
+		world.employments.map((row) => [String(row.id), String(row.employee_number)])
+	);
+	const slips = new Map(
+		built.payslip_payroll_run.map((slip) => [numbers.get(String(slip.employment_id))!, slip])
+	);
+	return {
+		slips,
+		/** The allowance entries each payslip priced, with the proration facts the row will carry. */
+		entries: new Map(
+			[...slips].map(([key, slip]) => [
+				key,
+				built.captures.find((capture) => capture.payslipId === slip.id)?.materialised ?? []
+			])
+		),
+		warnings: built.warnings
+	};
+}
+
+export function assessStatutoryUnvalidated(
+	options: WorldOptions,
+	prepareWorld?: (world: PayrollWorld, period: string) => void
+): StatutoryBook {
+	const world = createStatutoryWorld(options);
+	prepareWorld?.(world, options.period);
 	const prepared = Effect.runSync(
 		gatherPayrollRun({
 			api: memoryPayrollApi(world),

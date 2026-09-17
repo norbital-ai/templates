@@ -13,7 +13,7 @@
 
 import type { Entitlement } from '../../../datatypes/entitlement/+definition.js';
 
-/** The entry columns this rule reads, so a hook may pass a candidate the database has never seen. */
+/** The entry columns this rule reads, so a transform may pass a candidate the database has never seen. */
 export type LimitSibling = {
 	readonly id: string;
 	readonly employment_id: string;

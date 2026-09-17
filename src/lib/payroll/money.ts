@@ -1,24 +1,19 @@
-/** Normalized money inputs supplied by Claim, Allowance and Payment. */
+/** Normalized money inputs supplied by Claim and Allowance. */
+import type { CollectionPayload } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
-import type { AllowanceRecurrence } from '../../datatypes/allowance_recurrence/+definition.js';
 import type {
 	CatalogueComponent,
 	Configuration
 } from '../../collections/payroll_runs/lib/configuration.js';
-import {
-	completedMonths,
-	monthDay,
-	requiredDateKey,
-	type IsoDate
-} from '../../collections/payroll_runs/lib/dates.js';
-import type { CatalogueSchedule } from '../../datatypes/catalogue_schedule/+definition.js';
+import { requiredDateKey, type IsoDate } from '../../collections/payroll_runs/lib/dates.js';
 import { defaultPayPeriod, type PayCadence } from '../../collections/payroll_runs/lib/period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { compileEligibility } from '../../collections/payroll_runs/lib/eligibility.js';
 import { expressionEngine, evaluateBoolean, evaluateNumber } from '../expressions/evaluate.js';
 import {
+	isEligible,
 	personContext,
 	type PersonContext
 } from '../../collections/payroll_runs/lib/eligibility.js';
@@ -27,57 +22,57 @@ import {
 	resolveEntryLimit,
 	type LimitSibling
 } from '../../collections/payroll_runs/lib/entry-cap.js';
-import { prorationFraction } from '../../collections/payroll_runs/lib/proration.js';
+import { prorationSegment } from '../../collections/payroll_runs/lib/proration.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
-import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
-import { termsAt } from './work.js';
-import { activeTimeOff } from '../leave/activity.js';
-import { patternAnchor, termPatternRow } from '../scheduling/work-pattern.js';
-import { payRequestTerms } from '../component_entry_cap_subject.js';
-import { resolveSchedule, type ScheduledDay } from '../../collections/payroll_runs/lib/schedule.js';
 import {
 	intersectDays,
 	monthBounds,
 	monthDays,
+	monthKey,
 	shiftPeriod
 } from '../../collections/payroll_runs/lib/dates.js';
-import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
 import { stint } from '../employment-contract.js';
-import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
+import { payRequestTerms } from '../component_entry_cap_subject.js';
 import type { PayslipAdjustment } from '../../datatypes/payslip_adjustments/+definition.js';
 import { settlementBucket } from './family.js';
 import type {
 	Measurement,
 	MeasureComponentOptions,
-	PayRange,
 	FamilyStep,
+	PayRange,
 	YearContext
 } from './family.js';
+import {
+	PAGE_LIMIT,
+	type PayrollReadApi,
+	type ReadLog
+} from '../../collections/payroll_runs/lib/api.js';
 
 type ClaimRequest =
 	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'claim_requests'>;
-type AllowanceRequest =
-	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'allowance_requests'>;
-type PaymentRequest =
-	import('../../collections/payroll_runs/$types.js').WorkspaceRow<'payment_requests'>;
+type Allowance = import('../../collections/payroll_runs/$types.js').WorkspaceRow<'allowances'>;
 
 /** Which collection a request came from. The engine names it in refusals and in provenance. */
-export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ALLOWANCE', 'PAYMENT'] as const;
+export const PAY_REQUEST_FAMILIES = ['CLAIM', 'ALLOWANCE'] as const;
 export type PayRequestFamily = (typeof PAY_REQUEST_FAMILIES)[number];
 
-/** The window a standing allowance is live across; `end` null is open-ended. */
+/** The window a standing allowance is in force across; `end` null is open-ended. */
 type RequestWindow = { readonly start: IsoDate; readonly end: IsoDate | null };
 
 /**
- * One pay request as the run reads it. Every derived answer is settled by the builder that made it,
- * so nothing downstream re-derives economics from storage shape.
+ * One pay request as the run reads it: a claim as itself, a standing allowance as the one entry
+ * this run will price and create. Every derived answer is settled by the builder that made it, so
+ * nothing downstream re-derives economics from storage shape.
  */
 export type PayRequest = {
+	/** A claim's own row id; an allowance's is the id of the entry the run creates under the slip. */
 	readonly id: string;
 	readonly family: PayRequestFamily;
+	/** What the payslip adjustment names and what a ceiling counts: the claim, or the allowance. */
+	readonly source_id: string;
 	readonly employment_id: string;
 	readonly catalogue_id: string;
-	/** A positive magnitude, exactly as stored. */
+	/** A positive magnitude, exactly as stored; a monthly amount for an allowance. */
 	readonly amount: unknown;
 	readonly approval_id: string | null;
 	readonly pay_period: string | null;
@@ -91,16 +86,8 @@ export type PayRequest = {
 	 * the same payslip line as the one it corrects.
 	 */
 	readonly sign: number;
-	/** A standing allowance's own window, which prorates it independently of the employment. */
+	/** A standing allowance's own window, which prorates it beside the employment; null for a claim. */
 	readonly window: RequestWindow | null;
-	/** Whether a part-month reduces it. Only a standing allowance is measured per day. */
-	readonly prorates: boolean;
-	/** Whether drawing on it uses it up. */
-	readonly depletes: boolean;
-	/** Whether the catalogue says the allowance recurs per period. */
-	readonly recurring: boolean;
-	/** A recurring allowance's incurred day of month, from its catalogue. */
-	readonly on_day: number | null;
 	/** A payslip already captured this single-use request. */
 	readonly captured: boolean;
 };
@@ -114,120 +101,49 @@ export type PayRequestCapture = {
 export type PreparedPayRequest = PayRequest & {
 	readonly catalogueComponent: CatalogueComponent;
 	readonly captures: readonly PayRequestCapture[];
-	/** The per-period allowance row this request materialised, when it is a standing source. */
-	readonly materialised: MaterialisedMoney | null;
 };
 
-const magnitudeBase = (
-	row: {
-		readonly id: string;
-		readonly employment_id: string;
-		readonly amount: unknown;
-		readonly approval_id?: string | null;
-		readonly pay_period?: string | null;
-		readonly as_adjustment_entry?: boolean;
-		readonly payslip_id?: string | null;
-	},
-	family: PayRequestFamily,
-	eventDate: IsoDate,
-	catalogueId: string
-) => ({
+/** A claim's economics belong to the day the expense was incurred, not the day it was entered. */
+export const claimRequest = (row: ClaimRequest): PayRequest => ({
 	id: row.id,
-	family,
+	family: 'CLAIM',
+	source_id: row.id,
 	employment_id: row.employment_id,
-	// The three catalogues are three tables and one id space, so the view keeps one column: which
-	// table it came from is `family`, and nothing downstream has to ask.
-	catalogue_id: catalogueId,
-
+	catalogue_id: row.catalogue_id,
 	amount: row.amount,
 	approval_id: row.approval_id ?? null,
 	pay_period: row.pay_period ?? null,
-	event_date: eventDate,
+	event_date: requiredDateKey(row.incurred_on, 'claim incurred date'),
 	// The catalogue says which way this settles; the tick says settle it the other way.
 	sign: row.as_adjustment_entry === true ? -1 : 1,
-	window: null as RequestWindow | null,
-	prorates: false,
-	/**
-	 * Everything except a live recurring allowance is bounded by its amount, so what earlier paid
-	 * runs took reduces what is left — and it belongs to at most one payslip.
-	 *
-	 * An adjustment entry is **signed rather than depleted**: netting a negative draw against a
-	 * magnitude would grow the ceiling it is supposed to be bounded by.
-	 */
-	depletes: row.as_adjustment_entry !== true,
-	recurring: false,
-	on_day: null as number | null,
+	window: null,
 	captured: row.payslip_id != null
 });
 
-/** A claim's economics belong to the day the expense was incurred, not the day it was entered. */
-export const claimRequest = (row: ClaimRequest): PayRequest =>
-	magnitudeBase(
-		row,
-		'CLAIM',
-		requiredDateKey(row.incurred_on, 'claim incurred date'),
-		row.catalogue_id
-	);
-
 /**
- * A standing allowance. The catalogue states whether it recurs, prorates and which day of the month
- * it is incurred on; the entry states its window (or one day).
+ * A standing allowance as one period's entry: the amount is the month's, the window is the
+ * allowance's own, and the id is the entry the run creates under the payslip that prices it.
  */
-export const allowanceRequest = (row: AllowanceRequest, catalogue: AllowanceFacts): PayRequest => {
-	const recurrence = row.recurrence as AllowanceRecurrence;
-	// The entry's own recurrence kind is what makes it standing: a one-off instance of a code the
-	// catalogue marks recurring is still a single-use request, priced as itself over its own month.
-	const standing = recurrence.kind === 'RECURRING' && catalogue.recurring;
-	const window: RequestWindow =
-		recurrence.kind === 'ONE_OFF'
-			? {
-					start: requiredDateKey(`${monthKey(recurrence.on)}-01`, 'allowance month'),
-					end: requiredDateKey(monthEndDay(monthKey(recurrence.on)), 'allowance month end')
-				}
-			: {
-					start: requiredDateKey(recurrence.from, 'allowance start'),
-					end: recurrence.to == null ? null : requiredDateKey(recurrence.to, 'allowance end')
-				};
+export const allowanceEntryRequest = (row: Allowance): PayRequest => {
+	const start = requiredDateKey(row.effective_from, 'allowance start');
 	return {
-		...magnitudeBase(
-			row,
-			'ALLOWANCE',
-			requiredDateKey(
-				recurrence.kind === 'ONE_OFF' ? recurrence.on : recurrence.from,
-				'allowance day'
-			),
-			row.catalogue_id
-		),
-		window,
-		prorates: catalogue.prorates,
-		depletes: recurrence.kind === 'ONE_OFF' && row.as_adjustment_entry !== true,
-		recurring: standing,
-		on_day: standing ? catalogue.on_day : null
+		id: crypto.randomUUID(),
+		family: 'ALLOWANCE',
+		source_id: row.id,
+		employment_id: row.employment_id,
+		catalogue_id: row.catalogue_id,
+		amount: row.amount,
+		approval_id: row.approval_id ?? null,
+		pay_period: null,
+		event_date: start,
+		sign: row.as_adjustment_entry === true ? -1 : 1,
+		window: {
+			start,
+			end: row.effective_to == null ? null : requiredDateKey(row.effective_to, 'allowance end')
+		},
+		captured: false
 	};
 };
-
-/** The catalogue facts an allowance entry reads. */
-type AllowanceFacts = {
-	readonly recurring: boolean;
-	readonly prorates: boolean;
-	readonly on_day: number | null;
-};
-
-/** The last calendar day of a `YYYY-MM` month. */
-const monthEndDay = (month: string): string => {
-	const [year, index] = month.split('-').map(Number) as [number, number];
-	return `${month}-${String(new Date(Date.UTC(year, index, 0)).getUTCDate()).padStart(2, '0')}`;
-};
-
-const monthKey = (day: string): string => day.slice(0, 7);
-
-export const paymentRequest = (row: PaymentRequest): PayRequest =>
-	magnitudeBase(
-		row,
-		'PAYMENT',
-		requiredDateKey(row.effective_on, 'payment effective date'),
-		row.catalogue_id
-	);
 
 /**
  * Which run a request settles in. The stored `pay_period` wins; the cutoff supplies the default, in
@@ -251,28 +167,11 @@ export function requestIsDue(
 	cadence: PayCadence
 ): boolean {
 	if (request.approval_id != null || request.captured) return false;
-	if (request.recurring) {
-		const window = request.window!;
-		if (request.on_day == null)
-			return window.start <= salary.end && (window.end == null || window.end >= salary.start);
-		/**
-		 * One instalment a month, incurred on `on_day`: the run the cutoff maps that month's
-		 * occurrence to is the one that pays it. A 15th at a semi-monthly company belongs to the
-		 * first half, a 20th to the second; a 25th past a 21st cutoff belongs to the next month's
-		 * run, so this run's month and the one before it are the candidates.
-		 */
-		for (const month of [monthKey(period), shiftPeriod(monthKey(period), -1)]) {
-			const day = Math.min(request.on_day, monthDays(`${month}-01`));
-			const occurrence = `${month}-${String(day).padStart(2, '0')}`;
-			if (occurrence < window.start) continue;
-			if (window.end != null && occurrence > window.end) continue;
-			if (defaultPayPeriod(occurrence, cutoffDay, cadence) === period) return true;
-		}
-		return false;
-	}
-	// Every request is dated now, so the cutoff rule places it: a one-off allowance on its day, a
-	// claim on its incurred date, a payment on its effective date. Anything already due is picked
-	// up by this run rather than lost.
+	const window = request.window;
+	if (window != null)
+		return window.start <= salary.end && (window.end == null || window.end >= salary.start);
+	// Every claim is dated, so the cutoff rule places it on its incurred date. Anything already
+	// due is picked up by this run rather than lost.
 	return requestPayPeriod(request, cutoffDay, cadence) <= period;
 }
 
@@ -289,6 +188,9 @@ export function entryContext(options: {
 	readonly periodStart: string;
 	readonly periodEnd: string;
 	readonly instalments: number;
+	/** The employment's days of the pay month on the proration basis, and the month's calendar days. */
+	readonly daysEmployed: number;
+	readonly daysInMonth: number;
 	readonly ordinaryDay: number;
 	readonly ordinaryHour: number;
 	readonly limits: Readonly<Record<string, number>>;
@@ -306,8 +208,6 @@ export function entryContext(options: {
 			quantity: 0,
 			event_date: entry.event_date,
 			period: options.period,
-			recurring: entry.recurring,
-			occurrence_index: 1,
 			window: {
 				start: entry.window?.start ?? '',
 				end: entry.window?.end ?? ''
@@ -323,9 +223,11 @@ export function entryContext(options: {
 			key: options.period,
 			start: options.periodStart,
 			end: options.periodEnd,
-			index: options.instalments > 1 ? 1 : 1,
+			index: 1,
 			instalments: options.instalments,
-			last_of_year: year?.last_of_year ?? false
+			last_of_year: year?.last_of_year ?? false,
+			days_employed: options.daysEmployed,
+			days_in_month: options.daysInMonth
 		},
 		year:
 			year == null
@@ -366,9 +268,63 @@ function bandAmount(band: CatalogueBand, context: Record<string, unknown>): numb
 	return evaluateNumber(expressionEngine, band.amount, context);
 }
 
+/** The proration facts of one allowance entry, as the payslip stores them beside the money. */
+type AllowanceProration = {
+	readonly from: IsoDate;
+	readonly to: IsoDate;
+	readonly basis: NonNullable<Configuration['work']['proration']>;
+	readonly days: number;
+	readonly denominator: number;
+	readonly unpaid_days: number;
+};
+
+/**
+ * How much of the period a standing allowance earns, on the same basis as basic salary.
+ *
+ * The covered span is the allowance's window ∩ the employment's own days of the period, so a
+ * joiner, a leaver, an allowance that opens or closes mid-period all prorate everywhere. Unpaid
+ * leave comes off it only where the jurisdiction says so (`payroll.allowance_npl_prorates`): the
+ * Philippines' "no work, no pay" reaches the allowance; Singapore, Malaysia, Taiwan, Indonesia and
+ * Vietnam leave a fixed allowance whole. `null` is a span that never touches the period.
+ */
+function allowanceProration(options: {
+	readonly window: RequestWindow;
+	readonly employed: PayRange;
+	readonly salary: PayRange;
+	readonly configuration: Configuration;
+	readonly workingDaysIn: (window: PayRange) => number;
+	readonly instalments: number;
+	readonly unpaidDaysIn: (window: PayRange) => number;
+}): AllowanceProration | null {
+	const covered = intersectDays(
+		{ start: options.window.start, end: options.window.end ?? options.salary.end },
+		options.employed
+	);
+	const segment = prorationSegment({
+		work: options.configuration.work,
+		period: options.salary,
+		covered,
+		workingDaysIn: options.workingDaysIn,
+		instalments: options.instalments
+	});
+	if (segment == null) return null;
+	const unpaid = options.configuration.jurisdiction.payroll.allowance_npl_prorates
+		? options.unpaidDaysIn({ start: segment.from, end: segment.to })
+		: 0;
+	return {
+		from: segment.from,
+		to: segment.to,
+		basis: segment.basis,
+		days: Math.max(0, segment.days - unpaid),
+		denominator: segment.denominator,
+		unpaid_days: unpaid
+	};
+}
+
 /**
  * One entry as MEASURE prices it. The catalogue's bands decide the amount, the limit and the
- * opt-ins; with no bands the entry's own amount stands unchanged.
+ * opt-ins; with no bands the entry's own amount stands unchanged. An allowance entry is prorated
+ * first and carries its proration out with the measurement, for the row the run creates.
  */
 function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null {
 	const definition = options.component.definition;
@@ -378,43 +334,21 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		);
 	if (options.entry == null) return null;
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
-	const entryFraction = (source: PreparedPayRequest): number => {
-		const window = source.window;
-		// A late one-off allowance retains the source month's proration and employment coverage; a
-		// standing allowance's materialised slice is a period occurrence, not a source month.
-		const lateOneOff = !source.recurring && source.materialised == null && window != null;
-		const sourcePeriod = lateOneOff ? { start: window.start, end: window.end! } : options.salary;
-		const employmentRange = employmentDates(options.bundle.employment);
-		const covered = lateOneOff
-			? intersectDays(sourcePeriod, {
-					start: employmentRange.hire,
-					end: employmentRange.exit ?? sourcePeriod.end
-				})
-			: window == null
-				? options.employed
-				: intersectDays(
-						{ start: window.start, end: window.end ?? sourcePeriod.end },
-						options.employed
-					);
-		const sourceMonth = lateOneOff ? monthKey(window.start) : null;
-		// A due one-off always has its source month prepared. A sibling read for a ceiling can be
-		// dated in a month this run never prepared — a later month's award counted against an
-		// annual cap — and is valued under this run's own law rather than stopping the payroll.
-		const allowanceConfiguration =
-			sourceMonth == null ? null : options.bundle.allowanceConfigurations?.get(sourceMonth);
-		return source.prorates
-			? prorationFraction({
-					// The basis is the source month's law, not today's: the entry was earned then.
-					work: allowanceConfiguration?.work ?? options.configuration.work,
-					period: sourcePeriod,
-					covered,
-					workingDaysIn:
-						sourceMonth == null
-							? options.workingDaysIn
-							: (window) => options.allowanceWorkingDaysIn(sourceMonth, window)
-				})
-			: 1;
-	};
+	const prorationOf = (source: PreparedPayRequest): AllowanceProration | null =>
+		source.window == null
+			? null
+			: allowanceProration({
+					window: source.window,
+					employed: options.employed,
+					salary: options.salary,
+					configuration: options.configuration,
+					workingDaysIn: options.workingDaysIn,
+					instalments: options.instalments,
+					unpaidDaysIn: options.unpaidDaysIn
+				});
+	const fractionOf = (proration: AllowanceProration | null): number =>
+		proration == null ? 0 : proration.denominator <= 0 ? 0 : proration.days / proration.denominator;
+	const currency = options.configuration.jurisdiction.payroll.currency;
 
 	const measureEntry = (entry: PreparedPayRequest): Measurement | null => {
 		const subjectOn = (source: PayRequest): PersonContext =>
@@ -446,8 +380,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				message:
 					`${options.bundle.employment.employee_number}: ${options.component.family.toLowerCase()} ` +
 					`${options.component.code} was captured for ${options.period} and paid nothing — ${reason}.`,
-				collection: `${options.component.family.toLowerCase()}_requests`,
-				recordId: entry.id
+				collection: entry.family === 'CLAIM' ? 'claim_requests' : 'allowances',
+				recordId: entry.source_id
 			});
 			return null;
 		};
@@ -464,7 +398,16 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			period: options.period,
 			periodStart: options.salary.start,
 			periodEnd: options.salary.end,
-			instalments: 1,
+			instalments: options.instalments,
+			daysEmployed:
+				prorationSegment({
+					work: options.configuration.work,
+					period: options.salary,
+					covered: options.employed,
+					workingDaysIn: options.workingDaysIn,
+					instalments: options.instalments
+				})?.days ?? 0,
+			daysInMonth: monthDays(options.salary.start),
 			ordinaryDay: rates.ordinaryDay,
 			ordinaryHour: rates.ordinaryHour,
 			limits: Object.fromEntries(
@@ -481,16 +424,20 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		if (band == null && options.component.bands.length > 0)
 			return skipped('no band of the catalogue covers this entry');
 		const sign = entry.sign;
-		const fraction = entryFraction(entry);
-		if (fraction <= 0)
-			return skipped('the employment covered none of the period the amount is prorated over');
+		const proration = prorationOf(entry);
+		// A claim is never prorated; an allowance whose window and employment cover none of the
+		// period is not an entry at all — the source is silent rather than captured at nothing.
+		if (entry.window != null && proration == null) return null;
+		const fraction = entry.window == null ? 1 : fractionOf(proration);
+		if (fraction <= 0 && entry.window != null)
+			return skipped('unpaid leave covered every day of the period the allowance was in force');
 		const raw = band == null ? decodeNumber(entry.amount) : bandAmount(band, context);
-		const reimbursable = cents(raw * fraction);
+		const reimbursable = cents(raw * fraction, currency);
 		let payable = reimbursable;
 		if (band?.limit != null) {
 			const limitAmount = evaluateNumber(expressionEngine, band.limit.amount, context);
 			// The ceiling spans catalogue revisions of one code: a request agreed under an earlier
-			// revision still consumes it. Compare by code, not id, for the same reason the hook's
+			// revision still consumes it. Compare by code, not id, for the same reason the transform's
 			// `catalogueRevisionsOf` reads the whole lineage.
 			const siblings: LimitSibling[] = options.bundle.payRequests
 				.filter(
@@ -506,21 +453,25 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 							{
 								id: candidate.id,
 								employment_id: candidate.employment_id,
-								event_date: candidate.event_date,
-								// A sibling is valued the way the run will price it: a due one-off allowance by
-								// its actual source-month proration, a captured one by what it actually paid.
+								event_date: candidate.window == null ? candidate.event_date : options.salary.start,
+								// A sibling is valued the way the run will price it: an allowance by this
+								// period's proration, a claim by its amount.
 								amount:
-									candidate.sign * cents(decodeNumber(candidate.amount) * entryFraction(candidate))
+									candidate.sign *
+									cents(
+										decodeNumber(candidate.amount) *
+											(candidate.window == null ? 1 : fractionOf(prorationOf(candidate))),
+										currency
+									)
 							}
 						];
-					// Each period a standing award paid is its own use of the ceiling, dated in the
-					// period it occurred; a single-use capture keeps the source's own event date.
-					const perOccurrence = candidate.recurring || candidate.materialised != null;
+					// Each period a standing allowance paid is its own use of the ceiling, dated in the
+					// period it occurred; a claim's capture keeps the claim's own event date.
 					return candidate.captures.map((capture) => ({
-						id: perOccurrence ? `${candidate.id}:${capture.id}` : candidate.id,
+						id: candidate.window == null ? candidate.id : `${candidate.source_id}:${capture.id}`,
 						employment_id: candidate.employment_id,
 						event_date:
-							perOccurrence && capture.period !== ''
+							candidate.window != null && capture.period !== ''
 								? `${capture.period}-15`
 								: candidate.event_date,
 						amount: candidate.sign * capture.amount
@@ -531,18 +482,17 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				limitAmount,
 				entryId: entry.id,
 				employmentId: entry.employment_id,
-				eventDate: entry.event_date,
+				eventDate: entry.window == null ? entry.event_date : options.salary.start,
 				siblings
 			});
 			if (resolved == null) throw new Error('A stated limit must resolve against its siblings.');
-			// A standing award is bounded per occurrence: it pays what the ceiling has left rather
+			// A standing allowance is bounded per period: it pays what the ceiling has left rather
 			// than stopping the whole run, so the next period continues from the remainder.
-			if (
-				(entry.recurring || entry.materialised != null) &&
-				sign > 0 &&
-				band.limit.on_exceed === 'BLOCK'
-			)
-				payable = Math.min(reimbursable, Math.max(0, cents(limitAmount - resolved.exceededBy)));
+			if (entry.window != null && sign > 0 && band.limit.on_exceed === 'BLOCK')
+				payable = Math.min(
+					reimbursable,
+					Math.max(0, cents(limitAmount - resolved.exceededBy, currency))
+				);
 			const refusal = entryLimitRefusal({
 				limit: band.limit,
 				resolved,
@@ -552,19 +502,16 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			});
 			if (refusal !== null) throw new Error(refusal);
 		}
-		const amount = cents(sign * payable);
+		const amount = cents(sign * payable, currency);
 		return {
 			amount,
 			base: [],
 			proration: [],
 			adjustments: [
 				{
-					input: {
-						family: entry.family,
-						// The stored row's id is the runtime's; the adjustment names the standing
-						// source it repeats, which is what the capture and its ceiling key on.
-						id: entry.materialised?.sourceId ?? entry.id
-					},
+					// The adjustment names the standing source an allowance entry repeats, which is what
+					// the capture and its ceiling key on; a claim names itself.
+					input: { family: entry.family, id: entry.source_id },
 					catalogueComponent: options.component,
 					bucket,
 					label: options.component.code,
@@ -573,95 +520,29 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					rate: null,
 					statutoryRuleKey: null
 				}
-			]
+			],
+			...(proration == null
+				? {}
+				: {
+						allowanceEntry: {
+							id: entry.id,
+							sourceId: entry.source_id,
+							collection: 'allowance_entries' as const,
+							values: {
+								derived_from_id: entry.source_id,
+								employment_id: entry.employment_id,
+								catalogue_id: entry.catalogue_id,
+								...proration,
+								contract_amount: decodeNumber(entry.amount),
+								amount
+							}
+						}
+					})
 		};
 	};
 
 	return measureEntry(options.entry);
 }
-
-export function prepareAllowanceWork(
-	options: Pick<MeasureComponentOptions, 'bundle' | 'configuration'>
-) {
-	const { bundle } = options;
-	const allowanceWorkDayIds = new Set<string>();
-	const allowanceSchedules = new Map<string, Map<IsoDate, ScheduledDay>>();
-	const allowanceWorkingDaysIn = (sourceMonth: string, window: PayRange): number => {
-		// Same fallback as `entryFraction`: a month nobody prepared is a ceiling sibling's month.
-		const source = bundle.allowanceConfigurations?.get(sourceMonth) ?? options.configuration;
-		let schedule = allowanceSchedules.get(sourceMonth);
-		if (!schedule) {
-			const sourceWindow = monthBounds(sourceMonth);
-			const dates = daysBetween(sourceWindow.start, sourceWindow.end);
-			const { hire, exit } = employmentDates(bundle.employment);
-			const sourceTermsAt = (date: IsoDate) =>
-				termsAt(bundle, date < hire ? hire : exit != null && date > exit ? exit : date);
-			const leaveCharges = new Map(
-				activeTimeOff(bundle.leave.entries).flatMap((row) =>
-					row.charges.map((charge) => [charge.date, charge] as const)
-				)
-			);
-			const sourceRows = bundle.workDays.filter((row) => {
-				const date = requiredDateKey(row.work_date, 'work_days.work_date');
-				return date >= sourceWindow.start && date <= sourceWindow.end;
-			});
-			const plannedByDate = new Map(
-				sourceRows.map((row) => [requiredDateKey(row.work_date, 'work_days.work_date'), row])
-			);
-			const planned = dates.flatMap<
-				Pick<EmploymentBundle['workDays'][number], 'work_date' | 'shift_definition_id'>
-			>((date) => {
-				const patternRow = termPatternRow(sourceTermsAt(date), source.patternById);
-				const pattern = patternRow?.pattern ?? null;
-				const row = plannedByDate.get(date);
-				// The approved Leave charge preserves the original shift if an absence changed the roster to OFF.
-				const leaveShift = leaveCharges.get(date)?.shift_definition_id;
-				if (
-					pattern != null &&
-					'expectation' in pattern &&
-					row?.shift_definition_id == null &&
-					leaveShift == null &&
-					!source.holidays.has(date)
-				)
-					throw new Error(
-						`Allowance working-day proration requires a source-month roster assignment on ${date}.`
-					);
-				if (row) allowanceWorkDayIds.add(row.id);
-				if (leaveCharges.has(date))
-					return (pattern != null && 'days' in pattern) || leaveShift == null
-						? []
-						: [{ work_date: date, shift_definition_id: leaveShift }];
-				return row == null ? [] : [row];
-			});
-			schedule = resolveSchedule({
-				window: sourceWindow,
-				dates,
-				workDays: planned,
-				configuration: source,
-				terms: (date) => {
-					const row = termPatternRow(sourceTermsAt(date), source.patternById);
-					return {
-						work_pattern: row?.pattern ?? null,
-						pattern_anchor: patternAnchor(row),
-						// Only ORDINARY day classification enters this fraction; no clock hours are priced.
-						normal_daily_hours: 8
-					};
-				}
-			});
-			allowanceSchedules.set(sourceMonth, schedule);
-		}
-		const resolved = schedule;
-		return daysBetween(window.start, window.end).filter(
-			(date) => resolved.get(date)?.dayType === 'ORDINARY'
-		).length;
-	};
-
-	return { allowanceWorkDayIds, allowanceWorkingDaysIn };
-}
-
-/** Imported late to keep the module graph flat; these are engine internals. */
-import { daysBetween } from '../../collections/payroll_runs/lib/dates.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
 
 export function prepareMoneySteps(
 	options: Omit<MeasureComponentOptions, 'component' | 'entry'> & {
@@ -677,11 +558,6 @@ export function prepareMoneySteps(
 	}));
 }
 
-import { pickConfiguration } from '../../collections/payroll_runs/lib/configuration.js';
-import type { PayrollWindow, PayFrequency } from '../../collections/payroll_runs/lib/period.js';
-import type { PayrollReadApi, ReadLog } from '../../collections/payroll_runs/lib/api.js';
-import { PAGE_LIMIT } from '../../collections/payroll_runs/lib/api.js';
-
 /** The catalogue rows of the money families, lifted into engine components. */
 export function prepareMoneyCatalogues(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -692,25 +568,22 @@ export function prepareMoneyCatalogues(options: {
 			settings_id: { eq: options.settingsId },
 			approval_id: { isNull: true }
 		} as const;
-		const [claims, allowances, payments] = yield* Effect.all(
+		const [claims, allowances] = yield* Effect.all(
 			[
 				options.api.db.claim_catalogue.findMany({ where, limit: PAGE_LIMIT }),
-				options.api.db.allowance_catalogue.findMany({ where, limit: PAGE_LIMIT }),
-				options.api.db.payment_catalogue.findMany({ where, limit: PAGE_LIMIT })
+				options.api.db.allowance_catalogue.findMany({ where, limit: PAGE_LIMIT })
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'claim catalogue');
 		options.api.reads.assertComplete(allowances, 'allowance catalogue');
-		options.api.reads.assertComplete(payments, 'payment catalogue');
 		const components: CatalogueComponent[] = [
 			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
 			...allowances.map((row) => ({
 				...row,
 				family: 'ALLOWANCE' as const,
 				definition: entryOf()
-			})),
-			...payments.map((row) => ({ ...row, family: 'PAYMENT' as const, definition: entryOf() }))
+			}))
 		] as unknown as CatalogueComponent[];
 		return components;
 	});
@@ -718,81 +591,6 @@ export function prepareMoneyCatalogues(options: {
 
 /** The stored row lifted into the engine's `ENTRY` arm: the bands are the definition. */
 const entryOf = () => ({ source: 'ENTRY' }) as const;
-
-/**
- * The source-month Work and calendar facts for the late one-off allowances this run pays.
- *
- * A late allowance is measured against the month it was earned in: that month's proration basis,
- * its roster and its published holidays — not today's. One governed configuration is picked per
- * distinct source month, exactly as a run's own is picked, and filed on the employment that
- * carries the entry.
- */
-export function prepareAllowanceSources(options: {
-	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly configuration: Configuration;
-	readonly employments: readonly { readonly id: string }[];
-	readonly requestsByEmployment: ReadonlyMap<string, readonly PreparedPayRequest[]>;
-	readonly cadenceByEmployment: ReadonlyMap<
-		string,
-		{ readonly window: PayrollWindow; readonly payFrequency: PayFrequency }
-	>;
-	readonly window: PayrollWindow;
-}) {
-	return Effect.gen(function* () {
-		const { window, employments, requestsByEmployment, cadenceByEmployment } = options;
-		const period = window.period;
-		const company = options.configuration.company;
-		const companyId = company.id;
-		const allowanceMonthsByEmployment = new Map<string, Set<string>>();
-		for (const employment of employments) {
-			const cadence = cadenceByEmployment.get(employment.id);
-			if (!cadence) continue;
-			const months = new Set(
-				(requestsByEmployment.get(employment.id) ?? [])
-					.filter(
-						(request) =>
-							request.family === 'ALLOWANCE' &&
-							!request.recurring &&
-							request.materialised == null &&
-							requestIsDue(
-								request,
-								period,
-								cadence.window.salary,
-								decodeNumber(company.pay_cutoff_day),
-								{ company, payFrequency: cadence.payFrequency }
-							)
-					)
-					.map((request) => monthKey(request.window!.start))
-			);
-			if (months.size) allowanceMonthsByEmployment.set(employment.id, months);
-		}
-		const allowanceConfigurations = new Map<string, Configuration>();
-		for (const sourceMonth of [
-			...new Set([...allowanceMonthsByEmployment.values()].flatMap((months) => [...months]))
-		].sort()) {
-			const span = monthBounds(sourceMonth);
-			const source = yield* pickConfiguration({
-				api: options.api,
-				companyId,
-				window: {
-					...window,
-					period: sourceMonth,
-					salary: span,
-					attendance: span,
-					payDate: span.end,
-					instalments: [{ sequence: 1, salary: span, attendance: span, payDate: span.end }]
-				}
-			});
-			if (
-				source.jurisdiction.payroll.currency !== options.configuration.jurisdiction.payroll.currency
-			)
-				refuse('An Allowance source month has a different currency from this payroll.');
-			allowanceConfigurations.set(sourceMonth, source);
-		}
-
-		return { allowanceMonthsByEmployment, allowanceConfigurations };
-	});
-}
 
 /** A source-to-payslip link: which family source settled on which payslip, and in which period. */
 type PayRequestCaptureLink = {
@@ -804,8 +602,8 @@ type PayRequestCaptureLink = {
 
 /**
  * Sum what each payslip actually settled per source, keyed by source id. The write-time guard and
- * the engine share this arithmetic so a captured zero means the same thing on both. A materialised
- * allowance row's adjustment names its standing source, so both link to the same key.
+ * the engine share this arithmetic so a captured zero means the same thing on both. An allowance
+ * entry's adjustment names its standing source, so both link to the same key.
  */
 export function captureAmounts(
 	links: readonly PayRequestCaptureLink[],
@@ -825,8 +623,6 @@ export function captureAmounts(
 			amounts.set(key, (amounts.get(key) ?? 0) + decodeNumber(row.amount));
 		}
 	for (const link of links) {
-		// A released materialised row names a payslip that no longer exists; it is history nobody
-		// reads any more, so it is not a capture.
 		if (!present.has(link.payslipId)) continue;
 		const rows = captures.get(link.sourceId) ?? [];
 		rows.push({
@@ -843,35 +639,35 @@ export function captureAmounts(
 function captureLinksOf(
 	family: PayRequestFamily,
 	api: PayrollReadApi & { readonly reads: ReadLog },
-	ids: readonly string[]
+	sourceIds: readonly string[]
 ): Effect.Effect<readonly PayRequestCaptureLink[]> {
 	return Effect.gen(function* () {
-		if (ids.length === 0) return [];
-		const where = { id: { in: [...ids] }, payslip_id: { isNull: false } } as const;
-		const columns = { id: true, payslip_id: true } as const;
-		const rows =
-			family === 'CLAIM'
-				? yield* api.db.claim_requests.findMany({ where, columns, limit: PAGE_LIMIT })
-				: family === 'PAYMENT'
-					? yield* api.db.payment_requests.findMany({ where, columns, limit: PAGE_LIMIT })
-					: yield* api.db.allowance_requests.findMany({
-							where: { derived_from_id: { in: [...ids] }, payslip_id: { isNull: false } },
-							columns: { id: true, payslip_id: true, derived_from_id: true, recurrence: true },
-							limit: PAGE_LIMIT
-						});
-		return rows.map((row): PayRequestCaptureLink => {
-			if (!('derived_from_id' in row) || row.derived_from_id == null)
-				return { family, payslipId: row.payslip_id!, period: '', sourceId: row.id };
-			return {
+		if (sourceIds.length === 0) return [];
+		if (family === 'CLAIM') {
+			const rows = yield* api.db.claim_requests.findMany({
+				where: { id: { in: [...sourceIds] }, payslip_id: { isNull: false } },
+				columns: { id: true, payslip_id: true },
+				limit: PAGE_LIMIT
+			});
+			return rows.map((row): PayRequestCaptureLink => ({
 				family,
 				payslipId: row.payslip_id!,
-				// The slice the materialised row paid for names the period its cap usage belongs to.
-				period: monthKey(
-					requiredDateKey((row.recurrence as { readonly from: string }).from, 'allowance start')
-				),
-				sourceId: String(row.derived_from_id)
-			};
+				period: '',
+				sourceId: row.id
+			}));
+		}
+		const rows = yield* api.db.allowance_entries.findMany({
+			where: { derived_from_id: { in: [...sourceIds] } },
+			columns: { id: true, payslip_id: true, derived_from_id: true, from: true },
+			limit: PAGE_LIMIT
 		});
+		return rows.map((row): PayRequestCaptureLink => ({
+			family,
+			payslipId: row.payslip_id,
+			// The period the entry paid for names the month its cap usage belongs to.
+			period: monthKey(requiredDateKey(row.from, 'allowance entry start')),
+			sourceId: row.derived_from_id
+		}));
 	});
 }
 
@@ -879,19 +675,20 @@ function captureLinksOf(
 function requestCaptures(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly requests: readonly PayRequest[];
-	/** request id → the standing source a per-period allowance row materialised from. */
-	readonly sourceOf?: ReadonlyMap<string, string>;
 }): Effect.Effect<ReadonlyMap<string, readonly PayRequestCapture[]>, never, never> {
 	return Effect.gen(function* () {
 		const captures = new Map<string, PayRequestCapture[]>();
 		if (options.requests.length === 0) return captures;
-		const sourceIdOf = (request: PayRequest) => options.sourceOf?.get(request.id) ?? request.id;
-		const idsOf = (family: PayRequestFamily) =>
-			options.requests.filter((request) => request.family === family).map(sourceIdOf);
+		const idsOf = (family: PayRequestFamily) => [
+			...new Set(
+				options.requests
+					.filter((request) => request.family === family)
+					.map((request) => request.source_id)
+			)
+		];
 		const links = [
 			...(yield* captureLinksOf('CLAIM', options.api, idsOf('CLAIM'))),
-			...(yield* captureLinksOf('ALLOWANCE', options.api, idsOf('ALLOWANCE'))),
-			...(yield* captureLinksOf('PAYMENT', options.api, idsOf('PAYMENT')))
+			...(yield* captureLinksOf('ALLOWANCE', options.api, idsOf('ALLOWANCE')))
 		];
 		if (links.length === 0) return captures;
 		const payslips = yield* options.api.db.payslips.findMany({
@@ -901,203 +698,79 @@ function requestCaptures(options: {
 		});
 		options.api.reads.assertComplete(payslips, 'captured pay-request outputs');
 		const bySource = captureAmounts(links, payslips);
-		// A materialised row carries its source's capture history, so its cap usage and its
-		// same-period exclusion are read from the standing allowance it repeats.
+		// An allowance entry carries its source's capture history, so its cap usage is read from the
+		// standing allowance it repeats.
 		for (const request of options.requests)
-			captures.set(request.id, [...(bySource.get(sourceIdOf(request)) ?? [])]);
+			captures.set(request.id, [...(bySource.get(request.source_id) ?? [])]);
 		return captures;
 	});
 }
 
 type MoneyPreparationOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly configuration: import('../../collections/payroll_runs/lib/configuration.js').Configuration;
+	readonly configuration: Configuration;
 	readonly employmentIds: readonly string[];
 	readonly period: string;
-	/** The salary window this run settles; a recurring allowance outside it materialises a slice. */
+	/** The salary window this run settles; an allowance in force inside it is an entry. */
 	readonly periodWindow: { readonly start: string; readonly end: string };
 };
 
-/** Whether the salary window is fully inside a request's window. */
-function windowCovered(
-	window: RequestWindow | null,
-	salary: { readonly start: string; readonly end: string }
-): boolean {
-	if (window == null) return true;
-	// An open-ended standing window is never a single period's: the run cuts a slice and leaves the
-	// source unpinned for the next period.
-	return window.start >= salary.start && window.end != null && window.end <= salary.end;
-}
-
-/** The slice of a standing window this period covers, clamped to both ends. */
-function windowSlice(
-	window: RequestWindow,
-	salary: { readonly start: string; readonly end: string }
-): { readonly start: string; readonly end: string } {
-	return {
-		start: window.start > salary.start ? window.start : salary.start,
-		end: window.end == null ? salary.end : window.end < salary.end ? window.end : salary.end
-	};
-}
-
 /**
- * Build the requests the run prices.
- *
- * A single-period request is priced as itself. A standing allowance whose window reaches past this
- * period materialises **one per-period row**: the row is created with the
- * run, linked to the payslip it priced, and deleted with that payslip, so the source is due again
- * next period.
+ * Build the requests the run prices: every unpinned approved claim of these people, and one entry
+ * per standing allowance in force in the window. The entry is created with the run under the
+ * payslip that priced it and deleted with that payslip, so the source is due again next period.
  */
-function buildRequests(options: {
-	readonly claimRows: readonly ClaimRequest[];
-	readonly allowanceRows: readonly AllowanceRequest[];
-	readonly paymentRows: readonly PaymentRequest[];
-	readonly allowanceFacts: ReadonlyMap<string, AllowanceFacts>;
-	readonly periodWindow: { readonly start: string; readonly end: string };
-}): {
-	readonly direct: readonly PayRequest[];
-	readonly materialised: readonly MaterialisedMoney[];
-} {
-	const direct: PayRequest[] = [
-		...options.claimRows.map(claimRequest),
-		...options.paymentRows.map(paymentRequest)
-	];
-	const materialised: MaterialisedMoney[] = [];
-	for (const row of options.allowanceRows) {
-		const facts = options.allowanceFacts.get(row.catalogue_id) ?? {
-			recurring: false,
-			prorates: false,
-			on_day: null
-		};
-		const request = allowanceRequest(row, facts);
-		if (!request.recurring || windowCovered(request.window, options.periodWindow)) {
-			direct.push(request);
-			continue;
-		}
-		const slice = windowSlice(request.window!, options.periodWindow);
-		const id = crypto.randomUUID();
-		materialised.push({
-			id,
-			sourceId: row.id,
-			collection: 'allowance_requests',
-			values: {
-				employment_id: row.employment_id,
-				catalogue_id: row.catalogue_id,
-				amount: decodeNumber(row.amount),
-				recurrence: { kind: 'RECURRING', from: slice.start, to: slice.end },
-				evidence_file: null,
-				as_adjustment_entry: row.as_adjustment_entry,
-				derived_from_id: row.id
-			}
-		});
-		direct.push({
-			...request,
-			id,
-			// The occurrence's economics belong to the slice it pays for, not the standing source's
-			// start: its event date places its use of any ceiling in the period it occurred.
-			event_date: slice.start,
-			window: { start: slice.start, end: slice.end },
-			recurring: false
-		});
-	}
-	return { direct, materialised };
-}
-
-/**
- * One per-period row the run materialised, ready to create and link to its payslip.
- *
- * `id` is the engine's own request identity for the occurrence; the stored row's id is the
- * runtime's, assigned on create, and the payslip adjustment names the standing `sourceId` it
- * repeats rather than the row, so nothing downstream needs to know the stored id.
- */
-export type MaterialisedMoney = {
-	readonly id: string;
-	readonly sourceId: string;
-	/** The table the run creates the row in when the payslip is written. */
-	readonly collection: 'allowance_requests' | 'payment_requests';
-	readonly values: Readonly<Record<string, unknown>>;
-};
-
-/** The catalogue facts an allowance entry reads, keyed by catalogue id. */
-function allowanceFactsOf(
-	rows: readonly {
-		readonly id: string;
-		readonly recurring: boolean;
-		readonly prorates: boolean;
-		readonly on_day: number | null;
-	}[]
-): ReadonlyMap<string, AllowanceFacts> {
-	return new Map(
-		rows.map((row) => [
-			row.id,
-			{ recurring: row.recurring, prorates: row.prorates, on_day: row.on_day }
-		])
-	);
-}
-
 export function prepareMoneyInputs(options: MoneyPreparationOptions) {
 	return Effect.gen(function* () {
 		const db = options.api.db;
-		const approved = { approval_id: { isNull: true }, payslip_id: { isNull: true } } as const;
-		const inBegun = { employment_id: { in: [...options.employmentIds] }, ...approved } as const;
-		const [claimRows, allowanceRows, paymentRows] = yield* Effect.all(
+		const approved = { approval_id: { isNull: true } } as const;
+		const [claimRows, allowanceRows] = yield* Effect.all(
 			[
-				db.claim_requests.findMany({ where: inBegun, limit: PAGE_LIMIT }),
-				// A released materialised row (unpinned, still derived) is an orphan of a deleted
-				// draft; it is not a source, so it is not read.
-				db.allowance_requests.findMany({
-					where: { ...inBegun, derived_from_id: { isNull: true } },
+				db.claim_requests.findMany({
+					where: {
+						employment_id: { in: [...options.employmentIds] },
+						...approved,
+						payslip_id: { isNull: true }
+					},
 					limit: PAGE_LIMIT
 				}),
-				// A scheduled occurrence is materialised by the run that owns it; a released one is an
-				// orphan of a deleted draft, and a keyed request never carries a schedule key.
-				db.payment_requests.findMany({
-					where: { ...inBegun, schedule_key: { isNull: true } },
+				db.allowances.findMany({
+					where: {
+						employment_id: { in: [...options.employmentIds] },
+						...approved,
+						effective_from: { lte: options.periodWindow.end }
+					},
 					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claimRows, 'claim requests');
-		options.api.reads.assertComplete(allowanceRows, 'allowance requests');
-		options.api.reads.assertComplete(paymentRows, 'payment requests');
-		const allowanceCatalogues = yield* db.allowance_catalogue.findMany({
-			where: {
-				id: { in: [...new Set(allowanceRows.map((row) => row.catalogue_id))] },
-				approval_id: { isNull: true }
-			},
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(allowanceCatalogues, 'allowance catalogue facts');
-		const built = buildRequests({
-			claimRows,
-			allowanceRows,
-			paymentRows,
-			allowanceFacts: allowanceFactsOf(allowanceCatalogues),
-			periodWindow: options.periodWindow
-		});
-		const requests: readonly PayRequest[] = built.direct;
-		const sourceOf = new Map(built.materialised.map((row) => [row.id, row.sourceId]));
-		const capturesByRequest = yield* requestCaptures({ api: options.api, requests, sourceOf });
+		options.api.reads.assertComplete(allowanceRows, 'allowances');
+		// One month back as well as this one: a deferred joining period is measured against the
+		// previous month, and the standing allowances in force then are part of what it owes.
+		const earliest = monthBounds(shiftPeriod(monthKey(options.periodWindow.start), -1)).start;
+		const requests: readonly PayRequest[] = [
+			...claimRows.map(claimRequest),
+			...allowanceRows
+				.filter(
+					(row) =>
+						row.effective_to == null ||
+						requiredDateKey(row.effective_to, 'allowance end') >= earliest
+				)
+				.map(allowanceEntryRequest)
+		];
+		const capturesByRequest = yield* requestCaptures({ api: options.api, requests });
 		const requestCatalogues = yield* prepareRequestCatalogues(options, requests);
 		const requestsByEmployment = Map.groupBy(
-			requests.map((request): PreparedPayRequest => {
-				const captures = capturesByRequest.get(request.id) ?? [];
-				const standing = request.recurring || sourceOf.has(request.id);
-				return {
-					...request,
-					// A standing award is due again each period; only an occurrence already paid in
-					// *this* period excludes it, while a single-use entry is spent by any capture.
-					captured: captures.some((capture) => !standing || capture.period === options.period),
-					captures,
-					catalogueComponent: requestCatalogues.get(request.catalogue_id)!,
-					materialised: built.materialised.find((row) => row.id === request.id) ?? null
-				};
-			}),
+			requests.map((request): PreparedPayRequest => ({
+				...request,
+				captures: capturesByRequest.get(request.id) ?? [],
+				catalogueComponent: requestCatalogues.get(request.catalogue_id)!
+			})),
 			(row) => row.employment_id
 		);
-
-		return { requestsByEmployment, materialised: built.materialised };
+		return { requestsByEmployment };
 	});
 }
 
@@ -1116,7 +789,7 @@ function prepareRequestCatalogues(
 			)
 		];
 		const approved = { approval_id: { isNull: true } } as const;
-		const [claims, allowances, payments] = yield* Effect.all(
+		const [claims, allowances] = yield* Effect.all(
 			[
 				options.api.db.claim_catalogue.findMany({
 					where: { id: { in: idsOf('CLAIM') }, ...approved },
@@ -1125,25 +798,19 @@ function prepareRequestCatalogues(
 				options.api.db.allowance_catalogue.findMany({
 					where: { id: { in: idsOf('ALLOWANCE') }, ...approved },
 					limit: PAGE_LIMIT
-				}),
-				options.api.db.payment_catalogue.findMany({
-					where: { id: { in: idsOf('PAYMENT') }, ...approved },
-					limit: PAGE_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'source Claim catalogue');
 		options.api.reads.assertComplete(allowances, 'source Allowance catalogue');
-		options.api.reads.assertComplete(payments, 'source Payment catalogue');
 		const components = [
 			...claims.map((row) => ({ ...row, family: 'CLAIM' as const, definition: entryOf() })),
 			...allowances.map((row) => ({
 				...row,
 				family: 'ALLOWANCE' as const,
 				definition: entryOf()
-			})),
-			...payments.map((row) => ({ ...row, family: 'PAYMENT' as const, definition: entryOf() }))
+			}))
 		] as unknown as CatalogueComponent[];
 		// The lineage's versions are already in hand; only a component from outside it is read.
 		const settingsById = new Map(
@@ -1183,8 +850,8 @@ function prepareRequestCatalogues(
 }
 
 /**
- * What earlier PAID runs already took from each entry, keyed by entry id. A captured zero means the
- * entry was read and paid nothing, rather than leaving historical usage unknown.
+ * What earlier PAID runs already took from each entry, keyed by source id. A captured zero means
+ * the entry was read and paid nothing, rather than leaving historical usage unknown.
  */
 export function prepareMoneyConsumption(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
@@ -1194,21 +861,16 @@ export function prepareMoneyConsumption(options: {
 		const db = options.api.db;
 		const priorPayslipIds = [...options.payslipIds];
 		const consumedEntries = new Map<string, number>();
-		const [claims, allowances, payments, payslips] = yield* Effect.all(
+		const [claims, entries, payslips] = yield* Effect.all(
 			[
 				db.claim_requests.findMany({
 					where: { payslip_id: { in: priorPayslipIds } },
 					columns: { id: true },
 					limit: PAGE_LIMIT
 				}),
-				db.allowance_requests.findMany({
+				db.allowance_entries.findMany({
 					where: { payslip_id: { in: priorPayslipIds } },
 					columns: { id: true, derived_from_id: true },
-					limit: PAGE_LIMIT
-				}),
-				db.payment_requests.findMany({
-					where: { payslip_id: { in: priorPayslipIds } },
-					columns: { id: true },
 					limit: PAGE_LIMIT
 				}),
 				db.payslips.findMany({
@@ -1220,12 +882,10 @@ export function prepareMoneyConsumption(options: {
 			{ concurrency: 'unbounded' }
 		);
 		options.api.reads.assertComplete(claims, 'prior claim captures');
-		options.api.reads.assertComplete(allowances, 'prior allowance captures');
-		options.api.reads.assertComplete(payments, 'prior payment captures');
+		options.api.reads.assertComplete(entries, 'prior allowance entries');
 		options.api.reads.assertComplete(payslips, 'prior payslips');
 		for (const row of claims) consumedEntries.set(row.id, 0);
-		for (const row of allowances) consumedEntries.set(row.derived_from_id ?? row.id, 0);
-		for (const row of payments) consumedEntries.set(row.id, 0);
+		for (const row of entries) consumedEntries.set(row.derived_from_id, 0);
 		for (const payslip of payslips)
 			for (const row of payslip.adjustments) {
 				if (!(PAY_REQUEST_FAMILIES as readonly string[]).includes(row.family)) continue;
@@ -1239,160 +899,44 @@ export function prepareMoneyConsumption(options: {
 }
 
 /**
- * The occurrences of a scheduled payment row inside one window: every calendar hit
- * of `every`/`month`/`day` between the window's days, the day clamped to the month's length.
- */
-export function scheduleOccurrences(
-	schedule: CatalogueSchedule,
-	window: { readonly start: IsoDate; readonly end: IsoDate }
-): IsoDate[] {
-	if (schedule.every === 'SEPARATION') return [];
-	const startYear = decodeNumber(window.start.slice(0, 4));
-	const endYear = decodeNumber(window.end.slice(0, 4));
-	const hits: IsoDate[] = [];
-	for (let year = startYear; year <= endYear; year += 1) {
-		const months = schedule.every === 'YEAR' ? [schedule.month! - 1] : [...Array(12).keys()];
-		for (const monthIndex of months) {
-			const date = monthDay(year, monthIndex, schedule.day);
-			if (date >= window.start && date <= window.end) hits.push(date);
-		}
-	}
-	return hits;
-}
-
-/**
  * The standing PAY allowances in force for one employment on a day, summed: what a statute means by
  * "one month's wage" when it names the fixed allowances (ID THR and pesangon, Permenaker 6/2016
- * art. 3(2)). A one-off is not standing, and a deduction is not wage.
+ * art. 3(2): upah pokok + tunjangan tetap). A deduction is not wage, and neither is an allowance
+ * whose window is confined to one pay month — a one-month reimbursement keyed as an allowance is
+ * paid once, not "regularly and irrespective of attendance" (SE-07/MEN/1990 §I(2)(b)), so it does
+ * not carry into the month's wage a THR is a multiple of.
  */
 export function fixedAllowancesOn(requests: readonly PreparedPayRequest[], asOf: IsoDate): number {
+	const month = monthBounds(monthKey(asOf));
 	return requests
 		.filter(
 			(request) =>
 				request.family === 'ALLOWANCE' &&
-				// Standing: the recurring source itself, or the per-period slice the run cut from it.
-				(request.recurring || request.materialised != null) &&
 				request.sign === 1 &&
 				request.window != null &&
 				request.window.start <= asOf &&
 				(request.window.end == null || asOf <= request.window.end) &&
+				// Standing: the window reaches beyond the pay month the day sits in.
+				(request.window.start < month.start ||
+					request.window.end == null ||
+					request.window.end > month.end) &&
 				request.catalogueComponent.destination === 'PAY' &&
 				request.catalogueComponent.direction === 'ADD'
 		)
 		.reduce((sum, request) => sum + Math.abs(decodeNumber(request.amount)), 0);
 }
 
-/** The pin of one occurrence for one employment: the row, the person, and the day or the year's separation. */
-export const scheduleKey = (catalogueId: string, employmentId: string, occurrence: string) =>
-	`${catalogueId}:${employmentId}:${occurrence}`;
-/** The separation occurrence of the year a leaver exits in. */
-export const separationOf = (exit: IsoDate) => `${exit.slice(0, 4)}:separation`;
-
 /**
- * The requests a scheduled payment row owes one employment in one run, materialised as the rows a
- * person would otherwise have keyed: one per occurrence inside the employment's own salary window,
- * and, where the row says so, the year's occurrence on the exit date of a leaver whose final period
- * closes before the day. An occurrence a payslip already pinned — this year's, in a draft or paid
- * run — is never raised again; `pinned` names those keys.
+ * One allowance entry the run materialised, ready to create under its payslip.
+ *
+ * `id` is the engine's own identity for the entry and the stored row's id; the payslip adjustment
+ * names the standing `sourceId` it repeats, which is what the capture and its ceiling key on.
  */
-export function scheduledPaymentRequests(options: {
-	readonly components: readonly CatalogueComponent[];
-	readonly employment: { readonly id: string; readonly effective_range: unknown };
-	readonly hire: IsoDate;
-	readonly exit: IsoDate | null;
-	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
-	readonly period: string;
-	readonly person: (asOf: IsoDate) => PersonContext;
-	readonly pinned: ReadonlySet<string>;
-}): PreparedPayRequest[] {
-	const requests: PreparedPayRequest[] = [];
-	for (const component of options.components) {
-		if (
-			component.family !== 'PAYMENT' ||
-			component.source !== 'SCHEDULE' ||
-			component.schedule == null
-		)
-			continue;
-		const schedule = component.schedule;
-		const occurrences = scheduleOccurrences(schedule, options.window).map((date) => ({
-			date,
-			key: scheduleKey(component.id, options.employment.id, date)
-		}));
-		const exit = options.exit;
-		const leaving = exit != null && exit >= options.window.start && exit <= options.window.end;
-		// A separation row falls due on the exit date itself.
-		if (leaving && schedule.every === 'SEPARATION')
-			occurrences.push({ date: exit, key: scheduleKey(component.id, options.employment.id, exit) });
-		// A leaver whose final period closes before the year's day is owed it on separation.
-		if (leaving && schedule.on_separation && schedule.every === 'YEAR') {
-			const own = monthDay(decodeNumber(exit.slice(0, 4)), schedule.month! - 1, schedule.day);
-			if (own > exit)
-				occurrences.push({
-					date: exit,
-					key: scheduleKey(component.id, options.employment.id, separationOf(exit))
-				});
-		}
-		for (const occurrence of occurrences) {
-			if (options.pinned.has(occurrence.key)) continue;
-			if (occurrence.date < options.hire) continue;
-			if (completedMonths(options.hire, occurrence.date) < schedule.from_service_months) continue;
-			if (!isEligible(schedule.when, options.person(occurrence.date))) continue;
-			const id = crypto.randomUUID();
-			requests.push({
-				id,
-				family: 'PAYMENT',
-				employment_id: options.employment.id,
-				catalogue_id: component.id,
-				amount: 0,
-				approval_id: null,
-				pay_period: options.period,
-				event_date: occurrence.date,
-				sign: 1,
-				window: null,
-				prorates: false,
-				depletes: false,
-				recurring: false,
-				on_day: null,
-				captured: false,
-				captures: [],
-				catalogueComponent: component,
-				materialised: {
-					id,
-					sourceId: component.id,
-					collection: 'payment_requests',
-					values: {
-						employment_id: options.employment.id,
-						catalogue_id: component.id,
-						amount: 0,
-						effective_on: `${occurrence.date}T00:00:00.000Z`,
-						reason: `Scheduled by the settings version: ${component.code} on ${occurrence.date}`,
-						evidence_file: null,
-						as_adjustment_entry: false,
-						pay_period: options.period,
-						schedule_key: occurrence.key
-					}
-				}
-			});
-		}
-	}
-	return requests;
-}
-
-/** The schedule keys among `keys` that a payslip has already pinned, in any run, draft or paid. */
-export function pinnedScheduleKeys(
-	api: PayrollReadApi & { readonly reads: ReadLog },
-	keys: readonly string[]
-): Effect.Effect<ReadonlySet<string>> {
-	if (keys.length === 0) return Effect.succeed(new Set());
-	return Effect.map(
-		api.db.payment_requests.findMany({
-			where: { schedule_key: { in: [...keys] }, payslip_id: { isNotNull: true } },
-			columns: { schedule_key: true },
-			limit: PAGE_LIMIT
-		}),
-		(rows) => {
-			api.reads.assertComplete(rows, 'pinned scheduled payments');
-			return new Set(rows.flatMap((row) => (row.schedule_key == null ? [] : [row.schedule_key])));
-		}
-	);
-}
+export type MaterialisedMoney = {
+	readonly id: string;
+	readonly sourceId: string;
+	/** The table the run creates the row in when the payslip is written. */
+	readonly collection: 'allowance_entries';
+	/** The row as the payslip's nested `create` submits it; the pin is the parent's to fill. */
+	readonly values: Omit<CollectionPayload<WorkspaceSchema, 'allowance_entries'>, 'payslip_id'>;
+};

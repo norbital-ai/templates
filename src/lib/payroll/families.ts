@@ -23,7 +23,7 @@ import {
 	type PayCadence,
 	type PayFrequency
 } from '../../collections/payroll_runs/lib/period.js';
-import { calculateLeavePayroll } from '../leave/payroll.js';
+import { calculateLeavePayroll, unpaidLeaveDays } from '../leave/payroll.js';
 import { settle } from '../../collections/payroll_runs/lib/settle.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import { stint } from '../employment-contract.js';
@@ -39,10 +39,7 @@ import { baseLine, settlementBucket } from './family.js';
 import {
 	PAY_REQUEST_FAMILIES,
 	requestIsDue,
-	prepareAllowanceSources,
-	prepareAllowanceWork,
 	prepareMoneySteps,
-	type PayRequest,
 	type PayRequestFamily,
 	type PreparedPayRequest,
 	type MaterialisedMoney
@@ -61,13 +58,16 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	// period is measured to the exit date, because no later run will ever read those days.
 	const attendance = bundle.attendance;
 	const employed = bundle.employedDays;
-	const { allowanceWorkDayIds, allowanceWorkingDaysIn } = prepareAllowanceWork({
-		bundle,
-		configuration
-	});
-
 	if (employed == null) {
+		/** An ended contract charges no attendance: the unpaid days are the leave's own. */
+		const unpaidDaysIn = (window: { readonly start: string; readonly end: string }) =>
+			unpaidLeaveDays(bundle.leave, window);
 		const currency = configuration.jurisdiction.payroll.currency;
+		const finalDate = employmentDates(bundle.employment).exit;
+		if (finalDate == null) throw new Error('An ended contract requires a final service date.');
+		// An ended contract acquires no new time off, but it can still settle an encashment agreed
+		// before the exit; that money prices at the ordinary day wage the Work context resolves,
+		// and the resolution is deferred to the run that actually settles one.
 		const leave = calculateLeavePayroll({
 			prepared: bundle.leave,
 			window: options.salary,
@@ -75,19 +75,24 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			currency,
 			absenceRate: () => {
 				throw new Error('An ended employment cannot acquire new time-off charges in this period.');
-			}
+			},
+			ordinaryDayRate: () =>
+				prepareWorkContext({
+					bundle,
+					configuration,
+					salary: options.salary,
+					employed: { start: finalDate, end: finalDate }
+				}).absenceDayWage
 		});
-		const finalDate = employmentDates(bundle.employment).exit;
-		if (finalDate == null) throw new Error('An ended contract requires a final service date.');
 		const finalTerms = termsAt(bundle, finalDate);
 		const cadence: PayCadence = {
 			company: configuration.company,
 			payFrequency: bundle.payFrequency
 		};
+		// An ended contract settles the claims it still owes; a standing allowance ended with it.
 		const requests = bundle.payRequests.filter(
 			(request) =>
-				!request.recurring &&
-				request.materialised == null &&
+				request.window == null &&
 				requestIsDue(
 					request,
 					options.period,
@@ -118,11 +123,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			requests,
 			consumedEntries: options.consumedEntries,
 			period: options.period,
-			// A late allowance earned over its source month prorates on that month’s working days:
-			// the source-month schedule is what `allowanceWorkingDaysIn` resolves, historical terms
-			// included. A zero here priced every late allowance on a departed contract at nothing.
-			workingDaysIn: (window) => allowanceWorkingDaysIn(monthKey(window.start), window),
-			allowanceWorkingDaysIn,
+			workingDaysIn: () => 0,
+			unpaidDaysIn,
+			instalments: 1,
 			rates: { ordinaryDay: 0, ordinaryHour: 0 },
 			subject,
 			note: (issue: RunIssue) => notes.push(issue)
@@ -154,17 +157,14 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			adjustments,
 			notes,
 			captured: {
-				workDays: [...allowanceWorkDayIds],
+				workDays: [],
 				payRequests: {
 					CLAIM: requests.filter((entry) => entry.family === 'CLAIM').map((entry) => entry.id),
-					ALLOWANCE: requests
-						.filter((entry) => entry.family === 'ALLOWANCE')
-						.map((entry) => entry.id),
-					PAYMENT: requests.filter((entry) => entry.family === 'PAYMENT').map((entry) => entry.id)
+					ALLOWANCE: []
 				},
 				leave: leave.captures,
 				loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
-				materialised: materialisedRows(requests, adjustments)
+				materialised: []
 			},
 			arrears: null,
 			componentAmounts,
@@ -173,7 +173,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			overtimeDays: [],
 			calendarMonthOvertimeHours: new Map(),
 			currency,
-			schedule: new Map()
+			schedule: new Map(),
+			periodWorkingDays: 0
 		};
 	}
 	const work = prepareWorkContext({ bundle, configuration, salary: options.salary, employed });
@@ -197,9 +198,11 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		company: configuration.company,
 		payFrequency: rateTerms.pay_frequency
 	};
+	// A deferred period's wages are the salary and the standing allowances; the claims that settled
+	// there are settled once, by the run that pays them.
 	const periodEntries = bundle.payRequests.filter(
 		(request) =>
-			(!options.deferredWagesOnly || request.recurring) &&
+			(!options.deferredWagesOnly || request.window != null) &&
 			requestIsDue(request, options.period, options.salary, cutoffDay, cadence)
 	);
 	const entriesByComponent = Map.groupBy(periodEntries, (entry) => entry.catalogue_id);
@@ -222,13 +225,34 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		priorOvertimeHours: options.priorOvertimeHours
 	});
 	const { overtimeDays, calendarMonthOvertimeHours, nightShiftHours } = workAttendance;
+	/**
+	 * The unpaid days an allowance loses, for the jurisdictions whose allowances lose them
+	 * (`payroll.allowance_npl_prorates`): the no-pay leave this run charges and the rostered days
+	 * with no punch it deducts, over the window the allowance actually covers. Unpaid leave and
+	 * absence are charged over the ATTENDANCE window, so an allowance that covers the whole salary
+	 * month is netted by that window — the salary window would count the days of the next run's
+	 * cut-off and miss the days of this one's; a part-month allowance is netted by its own days.
+	 */
+	const unpaidDaysIn = (window: { readonly start: string; readonly end: string }) => {
+		const span =
+			window.start <= options.salary.start && window.end >= options.salary.end
+				? attendance
+				: window;
+		return (
+			unpaidLeaveDays(bundle.leave, span) +
+			workAttendance.absentDays
+				.filter((day) => day.date >= span.start && day.date <= span.end)
+				.reduce((total, day) => total + day.days, 0)
+		);
+	};
 	const measuredLeave = calculateLeavePayroll({
 		prepared: bundle.leave,
 		includeMonetary: !options.deferredWagesOnly,
 		window: attendance,
 		dueThrough: options.salary.end,
 		currency,
-		absenceRate: work.absenceRate
+		absenceRate: work.absenceRate,
+		ordinaryDayRate: () => absenceDayWage
 	});
 
 	const componentAmounts = new Map<string, number>();
@@ -251,7 +275,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		calculatedArrears == null
 			? undefined
 			: (entriesByComponent.get(calculatedArrears.componentCatalogueId) ?? []).find(
-					(entry) => cents(entry.sign * decodeNumber(entry.amount)) === calculatedArrears.amount
+					(entry) =>
+						cents(entry.sign * decodeNumber(entry.amount), currency) === calculatedArrears.amount
 				);
 	// A distinct arrears period is a different month (or a different amount story keyed as an
 	// entry). Measuring this same period again as "arrears" is double-pay: two BASIC lines and
@@ -302,7 +327,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		consumedEntries: options.consumedEntries,
 		period: options.period,
 		workingDaysIn,
-		allowanceWorkingDaysIn,
+		unpaidDaysIn,
+		instalments: rateTerms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
 		rates: { ordinaryDay: dayWage, ordinaryHour: hourlyRate },
 		subject,
 		note: (issue: RunIssue) => notes.push(issue)
@@ -316,9 +342,11 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 				: a.item.code.localeCompare(b.item.code)
 		)
 	];
+	const materialised: MaterialisedMoney[] = [];
 	for (const step of steps) {
 		const measured = step.calculate();
 		if (measured == null) continue;
+		if (measured.allowanceEntry != null) materialised.push(measured.allowanceEntry);
 		const component = step.item;
 		const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 		componentAmounts.set(component.code, running);
@@ -360,9 +388,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 	 * the monthly statutory overtime counter can reset — and those extra days belong to a
 	 * neighbouring period. Capturing them would freeze attendance a future run has not settled yet.
 	 */
-	const capturedWorkDayIds = [
-		...new Set([...allowanceWorkDayIds, ...workAttendance.capturedWorkDayIds])
-	];
+	const capturedWorkDayIds = [...new Set(workAttendance.capturedWorkDayIds)];
 
 	return {
 		bundle,
@@ -374,15 +400,15 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 			payRequests: Object.fromEntries(
 				PAY_REQUEST_FAMILIES.map((family) => [
 					family,
-					// A materialised occurrence is created with its pin; only authored sources are pinned.
+					// An allowance entry is created with its pin; only authored claims are pinned.
 					periodEntries
-						.filter((entry) => entry.family === family && entry.materialised == null)
+						.filter((entry) => entry.family === family && entry.window == null)
 						.map((entry) => entry.id)
 				])
 			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leave: measuredLeave.captures,
 			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id),
-			materialised: materialisedRows(periodEntries, adjustments)
+			materialised
 		},
 		arrears,
 		notes,
@@ -392,7 +418,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		overtimeDays,
 		calendarMonthOvertimeHours,
 		currency,
-		schedule
+		schedule,
+		periodWorkingDays: subject.period.working_days
 	};
 }
 
@@ -451,13 +478,15 @@ function measureArrears(
 	const amount = settle({
 		base: measured.base,
 		adjustments: measured.adjustments,
-		charges: []
+		charges: [],
+		currency: measured.currency
 	}).gross;
 	return amount <= 0 ? null : { period: owed.period, componentCatalogueId, amount };
 }
 
 import { Effect } from 'effect';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
+import type { GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 import { prepareWorkCatalogue, prepareWorkInputs } from './work.js';
 import { workPayItems } from './work-lines.js';
 import {
@@ -584,14 +613,10 @@ export function prepareFamilyInputs(
 	} & Omit<Parameters<typeof prepareLoanPayroll>[0], 'employmentIds' | 'employments'>
 ) {
 	return Effect.gen(function* () {
-		const { allowanceConfigurations, allowanceMonthsByEmployment } =
-			yield* prepareAllowanceSources(options);
 		const inputOptions = {
 			...options,
 			employmentIds: options.employments.map((row) => row.id),
-			employeeIds: [...new Set(options.employments.map((row) => row.employee_id))],
-			allowanceConfigurations,
-			allowanceMonthsByEmployment
+			employeeIds: [...new Set(options.employments.map((row) => row.employee_id))]
 		};
 		const [work, loans, factsByEmployee] = yield* Effect.all(
 			[
@@ -601,13 +626,7 @@ export function prepareFamilyInputs(
 			],
 			{ concurrency: 'unbounded' }
 		);
-		return {
-			...work,
-			...loans,
-			factsByEmployee,
-			allowanceConfigurations,
-			allowanceMonthsByEmployment
-		};
+		return { ...work, ...loans, factsByEmployee };
 	});
 }
 export function prepareFamilyHistory(
@@ -630,30 +649,9 @@ export function prepareFamilyHistory(
 }
 
 /**
- * The per-period rows this run materialised, carrying what it priced them at. A scheduled payment
- * is raised at nothing and priced by its band; the row a person later reads shows the figure the
- * payslip paid, and one priced at nothing is not raised at all.
- */
-function materialisedRows(
-	entries: readonly PreparedPayRequest[],
-	adjustments: readonly MeasuredAdjustment[]
-): MaterialisedMoney[] {
-	return entries.flatMap((entry) => {
-		const row = entry.materialised;
-		if (row == null) return [];
-		if (row.collection !== 'payment_requests') return [row];
-		// An adjustment names its source, which for a materialised row is the catalogue row itself.
-		const amount = adjustments
-			.filter((line) => line.input.id === row.sourceId && line.input.family === 'PAYMENT')
-			.reduce((sum, line) => sum + Math.abs(line.amount), 0);
-		return amount > 0 ? [{ ...row, values: { ...row.values, amount: cents(amount) } }] : [];
-	});
-}
-
-/**
  * What each employee's earlier paid payslips earned this tax year, by component code: the base
  * lines and every earning or non-wage payment adjustment. The year axis a scheduled
- * payment's amount and a base entry's annual exemption read.
+ * occurrence's amount and a base entry's annual exemption read.
  */
 function earnedYearToDate(options: {
 	readonly payslips: readonly WorkspaceRow<'payslips'>[];
@@ -740,68 +738,12 @@ function priorOvertimeHours(options: {
 	return hours;
 }
 
-import { sha256Json } from '@norbital-ai/std/reckon';
-import type { GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
-export function finalizeFamilyConfiguration(
-	configuration: Configuration,
-	facts: GatheredRun,
-	window: PayrollWindow
-) {
-	const current = configuration;
-	// Source-month configurations are the run's evidence too: a payslip re-reads the days it paid.
-	const allowanceSources = new Map(
-		facts.bundles.flatMap((bundle) => [...(bundle.allowanceConfigurations ?? [])])
-	);
-	const gathered = {
-		...facts,
-		bundles: facts.bundles.map((bundle) =>
-			bundle.allowanceConfigurations
-				? {
-						...bundle,
-						allowanceConfigurations: new Map(
-							[...bundle.allowanceConfigurations.keys()].map((month) => [
-								month,
-								allowanceSources.get(month)!
-							])
-						)
-					}
-				: bundle
-		)
-	};
-	const historicalCalendars = [...allowanceSources.values()].filter(
-		(source) => source.work.proration.by === 'WORKING_DAYS'
-	);
-	const preparedConfiguration =
-		allowanceSources.size === 0
-			? current
-			: {
-					...current,
-					holidaySnapshots: [
-						...new Map(
-							[current, ...historicalCalendars]
-								.flatMap((source) => source.holidaySnapshots)
-								.map((holiday) => [holiday.id, holiday])
-						).values()
-					],
-					holidayInputs: [
-						...new Map(
-							[current, ...historicalCalendars]
-								.flatMap((source) => source.holidayInputs)
-								.map((input) => [`${input.company_id}/${input.date}`, input])
-						).values()
-					],
-					hash: sha256Json({
-						current: current.hash,
-						allowance_sources: [...allowanceSources]
-							.map(([month, source]) => [month, source.hash])
-							.sort(([left], [right]) => String(left).localeCompare(String(right)))
-					})
-				};
-	return { configuration: preparedConfiguration, gathered };
-}
-
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { assessContributions, prepareContributionAssessment } from './contribution.js';
+import {
+	assessCompanyContributions,
+	assessContributions,
+	prepareContributionAssessment
+} from './contribution.js';
 import { validateWorkInputs, validateWorkResult } from './work.js';
 import { blockers, describeIssues } from '../../collections/payroll_runs/lib/validate.js';
 import { payProjection } from '../../collections/payroll_runs/lib/period.js';
@@ -923,5 +865,14 @@ export function calculateFamilyAssessments(options: {
 
 	// 6 — CONTRIBUTE once per person/entity assessment; outputs remain on their own contracts.
 	const chargesByEmployment = assessContributions(measuredContracts);
-	return { measuredContracts, chargesByEmployment, issues };
+	// A COMPANY-assessed scheme is charged once on the run, over the sum of every payslip, after
+	// the employment schemes. It is the employer's own levy and rides on no payslip.
+	const companyCharges = assessCompanyContributions({
+		configuration,
+		gathered,
+		window,
+		period,
+		accumulations: measuredContracts.map(({ calculation }) => calculation.accumulation)
+	});
+	return { measuredContracts, chargesByEmployment, companyCharges, issues };
 }

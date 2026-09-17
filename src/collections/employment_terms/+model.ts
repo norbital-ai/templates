@@ -1,11 +1,20 @@
-import { custom, defineModel, enums, instant, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	custom,
+	defineModel,
+	enums,
+	instant,
+	integer,
+	sql,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		/** Standing in this contract's jurisdiction on the effective dates; null is unrecorded. */
 		residency_status: enums(['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']),
-		/** When that standing began; predicates read completed months as `employee.residency_months`. */
+		/** When that standing began; predicates read whole calendar months as `employee.residency_months`. */
 		residency_since: instant({ precision: 'day' }),
 		base_salary: custom('money').notNull(),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
@@ -37,11 +46,19 @@ export default defineModel(
 		/** The entity's own benefit tier; catalogue predicates read it as terms.grade. */
 		grade: text(),
 		/**
-		 * The employment's base: the named `shift_patterns` row its days are projected from.
-		 * Workdays, hours, rest and off days derive from the pattern; a `work_days` row overrides one
-		 * day of it. NULL means rostered as assigned: nothing is projected, every day is a roster row,
-		 * and there is no guarantee to measure. A company that wants a rostered expectation named
-		 * keeps it on a ROSTERED pattern row and points the terms at that.
+		 * The shift assignment's first half: how many days a week this contract agrees to work,
+		 * 1–7. Always set. Proration divides by it (`work.ts` / `proration.ts` read this column),
+		 * whether or not a pattern is named: a rostered person is not ad hoc, their days move
+		 * inside a five- or six-day week.
+		 */
+		agreed_days_per_week: integer().notNull(),
+		/**
+		 * The shift assignment's second half, optional: the named `shift_patterns` row its days are
+		 * projected from. Workdays, hours, rest and off days derive from the pattern; a `work_days`
+		 * row overrides one day of it. A named cycle must work `agreed_days_per_week` days in each
+		 * of its weeks (refused otherwise). NULL means rostered: nothing is projected, and the
+		 * person must hold a roster with a shift for every day payroll prices, or the run refuses
+		 * them by name.
 		 */
 		shift_pattern_id: uuid(),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
@@ -59,7 +76,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The effective-dated pay, jurisdiction residency, classification and shift pattern of one employment contract. Schedule hours, workdays, rest days and off days derive from the named pattern.',
+			'The effective-dated pay, jurisdiction residency, classification and shift assignment (agreed days per week, optional pattern) of one employment contract, owned by that contract. Schedule hours, workdays, rest days and off days derive from the named pattern; without one the roster is the schedule.',
 		recordLabel: 'summary',
 		icon: 'lucide:file-signature',
 		// Exclusion: employment =, effective range &&. One employment has exactly one set of terms

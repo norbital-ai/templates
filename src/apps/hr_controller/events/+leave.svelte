@@ -101,7 +101,7 @@
 						rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
 					/>
 					<Column name="catalogue_id" label={t('component.catalogue_leave')} card="title" />
-					<Column name="event" label={t('leave.activity')} />
+					<Column name="summary" label={t('leave.activity')} />
 					<Column name="days" label={t('component.days')} />
 					<Column name="reference" label={t('component.reference')} />
 					<Column name="certificate_file" label={t('component.certificate')} />

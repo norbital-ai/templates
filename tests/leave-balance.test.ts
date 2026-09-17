@@ -40,9 +40,10 @@ test('a manual carry entry debits its source year and supplies expiring credit t
 	approve(
 		context,
 		{
-			kind: 'CARRY_FORWARD',
-			source_window: annualWindow,
-			destination_window: { start: '2027-01-01', end: '2027-12-31' },
+			from_date: annualWindow.start,
+			to_date: annualWindow.end,
+			destination_from: '2027-01-01',
+			destination_to: '2027-12-31',
 			days: 3,
 			available_from: '2027-01-01',
 			expires_on: '2027-03-31',

@@ -25,13 +25,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Effect } from 'effect';
-import { assertPayRequestAdmissible } from '../src/lib/pay_request_hooks.ts';
-import claimHooks from '../src/collections/claim_requests/+hooks.ts';
-import allowanceHooks from '../src/collections/allowance_requests/+hooks.ts';
-import paymentHooks from '../src/collections/payment_requests/+hooks.ts';
+import { admitPayRequests } from '../src/lib/pay_request_rules.ts';
+import claimRequests from '../src/collections/claim_requests/+collection.ts';
+import allowances from '../src/collections/allowances/+collection.ts';
+import { transformOne } from './helpers/transform.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
+	STANDING_ENTRY_ID,
+	TRANSPORT_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
@@ -42,11 +44,7 @@ const CLAIM_ID = '00000000-0000-4000-8000-0000000000c1';
 function requestWorld(component = {}) {
 	const world = createPublicPayrollWorld();
 	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: CLAIM_ID, code: 'MEDICAL' });
-	for (const row of [
-		world.claim_catalogue[0],
-		world.payment_catalogue[0],
-		world.allowance_catalogue[0]
-	])
+	for (const row of [world.claim_catalogue[0], world.allowance_catalogue[0]])
 		Object.assign(row, component);
 	return world;
 }
@@ -60,13 +58,9 @@ const ENTRY = {
 	direction: 'ADD'
 };
 
-const guardOf = (hooks) => hooks.mutate.perRecord.before.handler;
-
-const attempt = (hooks, component, input) => {
+const attempt = (collection, component, input) => {
 	const world = requestWorld({ bands: [], ...component });
-	return Effect.runSync(
-		guardOf(hooks)({ input, existing: undefined, api: memoryPayrollApi(world) })
-	);
+	return transformOne(collection, input, undefined, memoryPayrollApi(world).db);
 };
 
 const CLAIM = {
@@ -79,23 +73,10 @@ const CLAIM = {
 test('a component that demands evidence gets it, whichever family the request is in', () => {
 	const demanding = { code: 'MEDICAL', evidence: 'REQUIRED' };
 	assert.throws(
-		() => attempt(claimHooks, demanding, CLAIM),
+		() => attempt(claimRequests, demanding, CLAIM),
 		/MEDICAL requires evidence for its claims/
 	);
-	// Evidence is a catalogue fact, not a claim fact: a payment line that demands it refuses too,
-	// and nothing but a claim can attach a receipt.
-	assert.throws(
-		() =>
-			attempt(paymentHooks, demanding, {
-				employment_id: EMPLOYMENT_ID,
-				catalogue_id: '77777777-7777-4777-8777-777777777778',
-				amount: 100,
-				effective_on: '2026-04-02',
-				reason: 'Approved'
-			}),
-		/MEDICAL requires evidence for its payments/
-	);
-	attempt(claimHooks, demanding, {
+	attempt(claimRequests, demanding, {
 		...CLAIM,
 		evidence_file: {
 			storage_key: 'k',
@@ -109,13 +90,14 @@ test('a component that demands evidence gets it, whichever family the request is
 		employment_id: EMPLOYMENT_ID,
 		catalogue_id: '77777777-7777-4777-8777-777777777777',
 		amount: 100,
-		recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
+		effective_from: '2026-04-01',
+		effective_to: '2026-04-30'
 	};
 	assert.throws(
-		() => attempt(allowanceHooks, demanding, allowance),
+		() => attempt(allowances, demanding, allowance),
 		/MEDICAL requires evidence for its allowances/
 	);
-	attempt(allowanceHooks, demanding, {
+	attempt(allowances, demanding, {
 		...allowance,
 		evidence_file: {
 			storage_key: 'k',
@@ -134,33 +116,27 @@ test('a type whose eligibility rule does not hold for the person is refused, whi
 	};
 	const claim = { ...CLAIM, catalogue_id: CLAIM_ID };
 	assert.throws(
-		() => attempt(claimHooks, drivers, claim),
+		() => attempt(claimRequests, drivers, claim),
 		/FUEL is not offered to PF0001/,
 		'the fixture contract has no department'
 	);
 	const world = requestWorld(drivers);
 	world.employment_terms[0].department = 'LOGISTICS';
 	assert.equal(
-		Effect.runSync(
-			guardOf(claimHooks)({
-				input: claim,
-				existing: undefined,
-				api: memoryPayrollApi(world)
-			})
-		).employment_id,
+		transformOne(claimRequests, claim, undefined, memoryPayrollApi(world).db).employment_id,
 		EMPLOYMENT_ID
 	);
 	// An empty rule is everyone, and asks nothing of the person.
 	assert.equal(
 		attempt(
-			paymentHooks,
+			allowances,
 			{ code: 'BONUS', evidence: 'NONE', eligibility: '' },
 			{
 				employment_id: EMPLOYMENT_ID,
-				catalogue_id: '77777777-7777-4777-8777-777777777778',
+				catalogue_id: TRANSPORT_ID,
 				amount: 100,
-				effective_on: '2026-04-02',
-				reason: 'Approved'
+				effective_from: '2026-04-01',
+				effective_to: null
 			}
 		).employment_id,
 		EMPLOYMENT_ID
@@ -171,7 +147,11 @@ test('an amount is a positive magnitude, whichever family states it', () => {
 	for (const amount of [0, -1, Number.NaN, 'not a number']) {
 		assert.throws(
 			() =>
-				attempt(claimHooks, { code: 'X', evidence: 'NONE', eligibility: '' }, { ...CLAIM, amount }),
+				attempt(
+					claimRequests,
+					{ code: 'X', evidence: 'NONE', eligibility: '' },
+					{ ...CLAIM, amount }
+				),
 			/A claim amount is a positive magnitude/,
 			String(amount)
 		);
@@ -180,32 +160,41 @@ test('an amount is a positive magnitude, whichever family states it', () => {
 
 test('a component that is not in the catalogue at all refuses nothing here', () => {
 	// Deliberate: the foreign key is what refuses an unknown component, and it refuses it on every
-	// path including the seed. A second refusal in the hook would be a rule the database already
-	// holds, stated worse.
+	// path including the seed. A second refusal in the transform would be a rule the database
+	// already holds, stated worse.
 	Effect.runSync(
-		assertPayRequestAdmissible(
+		admitPayRequests(
 			{
 				family: 'CLAIM',
 				noun: 'claim',
 				eventDate: (c) => c.incurred_on
 			},
-			{ api: memoryPayrollApi(requestWorld()), input: CLAIM, existing: undefined }
+			memoryPayrollApi(requestWorld()).db,
+			[CLAIM],
+			[undefined]
 		)
 	);
 });
 
-test('Payment requires a reason and seals its contract', () => {
-	const payment = {
+test('an allowance is admitted with an empty reason, seals its contract, and states a window that opens before it closes', () => {
+	// The reason is a descriptive column: the transform does not gate on it, and the contract
+	// binding is still enforced by `boundToContract` on the way in.
+	const standing = {
 		employment_id: EMPLOYMENT_ID,
-		catalogue_id: '77777777-7777-4777-8777-777777777778',
+		catalogue_id: TRANSPORT_ID,
 		amount: 100,
-		effective_on: '2026-04-02',
-		reason: 'Approved separation payment'
+		effective_from: '2026-04-02',
+		effective_to: null,
+		reason: ''
 	};
-	const component = { code: 'SEPARATION', evidence: 'NONE', eligibility: '' };
+	const component = { code: 'TRANSPORT', evidence: 'NONE', eligibility: '' };
+	assert.equal(attempt(allowances, component, standing).employment_id, EMPLOYMENT_ID);
 	assert.throws(
-		() => attempt(paymentHooks, component, { ...payment, reason: ' ' }),
-		/requires a reason/
+		() => attempt(allowances, component, { ...standing, effective_to: '2026-04-01' }),
+		/cannot end before it starts/
 	);
-	assert.equal(attempt(paymentHooks, component, payment).employment_id, EMPLOYMENT_ID);
+	assert.throws(
+		() => attempt(allowances, component, { ...standing, effective_from: undefined }),
+		/states the day it starts/
+	);
 });

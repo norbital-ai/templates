@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Schema } from 'effect';
 import { assertPayrollPeriodAvailable } from '../src/collections/payroll_runs/lib/period.ts';
-import hooks from '../src/collections/payroll_runs/+hooks.ts';
+import payrollRuns from '../src/collections/payroll_runs/+collection.ts';
 
 test('a company cannot create a second payroll for a draft or paid period', () => {
 	for (const lifecycle of ['DRAFT', 'PAID'])
@@ -42,9 +41,8 @@ test('a skipped period is refused: the run must stand on the one before it', () 
 	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2025-12' }], '2026-01'));
 });
 
-test('payroll creation accepts company and period without a run type', () => {
-	const input = { company_id: '00000000-0000-4000-8000-000000000001', period: '2026-01' };
-	const decode = Schema.decodeUnknownSync(hooks.input);
-	assert.deepEqual(decode(input, { onExcessProperty: 'error' }), input);
-	assert.throws(() => decode({ ...input, run_kind: 'AD_HOC' }, { onExcessProperty: 'error' }));
+test('payroll creation accepts company and period and nothing else', () => {
+	// The declared input is the whole of what a caller may submit; every other column is derived.
+	assert.deepEqual(Object.keys(payrollRuns.create.input.columns), ['company_id', 'period']);
+	assert.equal(payrollRuns.create.input.with, undefined);
 });

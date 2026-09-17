@@ -1,12 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import {
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, graphOf, writeGraph } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	JURISDICTION_ID,
@@ -116,8 +112,8 @@ test(
 				);
 				await session.query(
 					`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification,
-						statutory_work_category, employment_type, job_title, shift_pattern_id, effective_range)
-					 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+						statutory_work_category, employment_type, job_title, agreed_days_per_week, shift_pattern_id, effective_range)
+					 values ($1, $2, $3, $4, $5, $6, $7, $8, 6, $9, $10)`,
 					[
 						crypto.randomUUID(),
 						employmentId,
@@ -136,21 +132,13 @@ test(
 			const semiMonthly = await hire('PUB-SEMI-0001', 'SEMI_MONTHLY', 4100);
 			const monthly = await hire('PUB-SEMI-0002', 'MONTHLY', 3451);
 
-			const command = (
-				body: Parameters<typeof mutationPush>[1],
-				bases: Parameters<typeof mutationPush>[2] = []
-			) =>
-				postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(session.schemaFingerprint, body, bases),
-					headers
-				);
-			const createRun = (id: string, period: string) =>
+			const command = (body: Parameters<typeof graphOf>[0]) =>
+				writeGraph(session, body, [], headers);
+			const createRun = (period: string) =>
 				command({
 					action: 'mutate',
 					collection: 'payroll_runs',
-					rows: [{ action: 'create', values: { id, company_id: companyId, period } }]
+					rows: [{ action: 'create', values: { company_id: companyId, period } }]
 				});
 			const slipsOf = async (runId: string) =>
 				(await session.query(
@@ -165,21 +153,22 @@ test(
 				}>;
 
 			// A whole month is the wrong grammar for this company, and the refusal says whose.
-			const month = await createRun(crypto.randomUUID(), '2026-02');
+			const month = await createRun('2026-02');
 			assert.match(
 				JSON.stringify(month.value),
 				/Public Semi-monthly Co pays SEMI_MONTHLY.*YYYY-MM-1.*YYYY-MM-2/
 			);
-			// And a malformed half never reaches the company at all: the hook's input schema rejects it.
-			const malformed = await createRun(crypto.randomUUID(), '2026-02-3');
+			// And a malformed half never reaches the company at all: the transform refuses the grammar.
+			const malformed = await createRun('2026-02-3');
 			assert.match(
 				JSON.stringify(malformed.value),
-				/"resolution":"rejected".*hook input validation failed/
+				/"resolution":"rejected".*YYYY-MM-1 \/ YYYY-MM-2/
 			);
 
 			// Half 1: the 1st to the 15th, paid on the 15th, the semi-monthly employment alone.
-			const firstId = crypto.randomUUID();
-			requireAccepted((await createRun(firstId, '2026-02-1')).value, 'first half');
+			const firstHalf = await createRun('2026-02-1');
+			requireAccepted(firstHalf.value, 'first half');
+			const [firstId] = createdIds(firstHalf.value);
 			const [first] = (await session.query('select * from payroll_runs where id = $1', [
 				firstId
 			])) as ReadonlyArray<Record<string, unknown>>;
@@ -202,8 +191,9 @@ test(
 
 			// Half 2: the 16th to the end for the semi-monthly employment, the cutoff window for the
 			// monthly one; the run records the envelope and pays at the month end.
-			const secondId = crypto.randomUUID();
-			requireAccepted((await createRun(secondId, '2026-02-2')).value, 'second half');
+			const secondHalf = await createRun('2026-02-2');
+			requireAccepted(secondHalf.value, 'second half');
+			const [secondId] = createdIds(secondHalf.value);
 			const [second] = (await session.query('select * from payroll_runs where id = $1', [
 				secondId
 			])) as ReadonlyArray<Record<string, unknown>>;
@@ -242,7 +232,6 @@ test(
 					{
 						action: 'create',
 						values: {
-							id: crypto.randomUUID(),
 							company_id: '11111111-1111-4111-8111-111111111111',
 							period: '2026-02-1'
 						}

@@ -45,17 +45,6 @@ import { requestIsDue, type PreparedPayRequest } from '../../../lib/payroll/mone
 import type { PreparedLoan, LoanRepayment } from '../../../lib/payroll/loan.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
 import {
-	fixedAllowancesOn,
-	pinnedScheduleKeys,
-	scheduleKey,
-	scheduleOccurrences,
-	scheduledPaymentRequests,
-	separationOf
-} from '../../../lib/payroll/money.js';
-import { childrenOn, stint } from '../../../lib/employment-contract.js';
-import { personContext } from './eligibility.js';
-import { coversDate } from './effective.js';
-import {
 	hasLeavePayment,
 	withLeaveDeductionEligibility,
 	type PreparedLeavePayroll
@@ -106,10 +95,8 @@ export type EmploymentBundle = {
 	/** Every terms row touching the pay period, in effective order — a mid-month raise is two rows. */
 	readonly terms: readonly EmploymentTerms[];
 	readonly statutoryFacts: readonly StatutoryFact[];
-	/** Claims, standing allowances, payments, arrears settlements and corrections, as one view. */
+	/** Claims, standing allowances, arrears settlements and corrections, as one view. */
 	readonly payRequests: readonly PreparedPayRequest[];
-	/** Source-month Work and calendar facts for due one-off allowances. */
-	readonly allowanceConfigurations?: ReadonlyMap<string, Configuration>;
 	/** The person's child facts — what `children.under(age)` counts. */
 	readonly children: WorkspaceRow<'employees'>['children'];
 	/**
@@ -208,12 +195,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const touching = begun.filter((row) =>
 			overlapsRange(row.effective_range, salary.start, salary.end)
 		);
-		// A materialised row is a slice of a standing allowance: its recurring source keeps the
-		// employment selected while it runs, so the derived row must not select an ended contract
-		// that the allowance no longer covers.
+		// An outstanding claim keeps an ended contract in the run; a standing allowance ended with
+		// the contract and never selects it.
 		const hasOutstandingRequest = (employmentId: string) =>
 			(requestsByEmploymentGathered.get(employmentId) ?? []).some(
-				(request) => !request.recurring && request.materialised == null && !request.captured
+				(request) => request.window == null && !request.captured
 			);
 		const candidates = begun.filter(
 			(row) =>
@@ -295,63 +281,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			);
 		}
 
-		// What the version's scheduled payment rows owe in this run: one request per
-		// occurrence inside each employment's own salary window, materialised as if keyed, unless a
-		// payslip has already pinned that occurrence.
-		const scheduled = options.configuration.catalogueComponents.filter(
-			(component) => component.family === 'PAYMENT' && component.source === 'SCHEDULE'
-		);
-		const requestsByEmployment = new Map(
-			[...requestsByEmploymentGathered].map(([id, rows]) => [id, [...rows]])
-		);
-		if (scheduled.length > 0) {
-			const candidateKeys = candidates.flatMap((row) => {
-				const cadence = cadenceByEmployment.get(row.id);
-				if (cadence == null) return [];
-				const dates = employmentDates(row);
-				return scheduled.flatMap((component) => {
-					const schedule = component.schedule!;
-					const keys = scheduleOccurrences(schedule, cadence.window.salary).map((date) =>
-						scheduleKey(component.id, row.id, date)
-					);
-					if (dates.exit != null && schedule.every === 'SEPARATION')
-						keys.push(scheduleKey(component.id, row.id, dates.exit));
-					if (dates.exit != null && schedule.on_separation && schedule.every === 'YEAR')
-						keys.push(scheduleKey(component.id, row.id, separationOf(dates.exit)));
-					return keys;
-				});
-			});
-			const pinned = yield* pinnedScheduleKeys(options.api, [...new Set(candidateKeys)]);
-			for (const row of candidates) {
-				const cadence = cadenceByEmployment.get(row.id);
-				const employee = employeeById.get(row.employee_id);
-				if (cadence == null || employee == null) continue;
-				const dates = employmentDates(row);
-				const terms = termsByEmployment.get(row.id) ?? [];
-				const owed = scheduledPaymentRequests({
-					components: scheduled,
-					employment: row,
-					hire: dates.hire,
-					exit: dates.exit,
-					window: cadence.window.salary,
-					period,
-					pinned,
-					person: (asOf) =>
-						personContext({
-							employee,
-							employment: stint(row),
-							fixedAllowances: fixedAllowancesOn(requestsByEmployment.get(row.id) ?? [], asOf),
-							terms: terms.find((term) => coversDate(term.effective_range, asOf)) ?? null,
-							children: childrenOn(employee.children ?? [], asOf),
-							company,
-							asOf
-						})
-				});
-				if (owed.length > 0)
-					requestsByEmployment.set(row.id, [...(requestsByEmployment.get(row.id) ?? []), ...owed]);
-			}
-		}
-
+		const requestsByEmployment = requestsByEmploymentGathered;
 		const employments = candidates.filter((row) => {
 			const settlement = settlementByEmployment.get(row.id);
 			const cadence = cadenceByEmployment.get(row.id);
@@ -359,8 +289,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				cadence != null &&
 				(requestsByEmployment.get(row.id) ?? []).some(
 					(request) =>
-						!request.recurring &&
-						request.materialised == null &&
+						request.window == null &&
 						requestIsDue(
 							request,
 							period,
@@ -426,8 +355,6 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// round trip, and this one was three in a row at the end of the gather.
 		const [
 			{
-				allowanceConfigurations,
-				allowanceMonthsByEmployment,
 				factsByEmployee,
 				loansByEmployment,
 				repaymentsByLoan,
@@ -482,16 +409,6 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				terms: effectiveWithin(termsByEmployment.get(employment.id) ?? [], paid.start, paid.end),
 				statutoryFacts,
 				payRequests: requestsByEmployment.get(employment.id) ?? [],
-				...(allowanceMonthsByEmployment.has(employment.id)
-					? {
-							allowanceConfigurations: new Map(
-								[...allowanceMonthsByEmployment.get(employment.id)!].map((month) => [
-									month,
-									allowanceConfigurations.get(month)!
-								])
-							)
-						}
-					: {}),
 				children: employee.children,
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),

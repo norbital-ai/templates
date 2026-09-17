@@ -7,7 +7,7 @@ import {
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
-import { createLeave, leaveBalances } from './helpers/public-leave.ts';
+import { createLeave, createdLeaveId, leaveBalances } from './helpers/public-leave.ts';
 
 test(
 	'hospitalization availability is computed and one approved entry retains its exact dated charges',
@@ -20,27 +20,23 @@ test(
 			const before = await session.query('select id from leave_entries where employment_id = $1', [
 				EMPLOYMENT_ID
 			]);
-			const id = crypto.randomUUID();
 			const created = await createLeave(session, {
-				id,
 				reference: 'HOSPITAL-ADMISSION',
 				catalogue_id: HOSPITALIZATION_LEAVE_CATALOGUE_ID,
-				event: {
-					kind: 'TIME_OFF',
-					range: {
-						start: { date: '2026-06-03', half: 'FIRST' },
-						end: { date: '2026-06-04', half: 'SECOND' }
-					},
-					chargeable_days: null,
-					reason: 'Admission'
-				}
+				from_date: '2026-06-03',
+				to_date: '2026-06-04',
+				half_day_start: false,
+				half_day_end: false,
+				days: null,
+				reason: 'Admission'
 			});
 			requireAccepted(created.value, 'hospitalization Leave');
+			const id = createdLeaveId(created.value);
 			const [stored] = await session.query(
-				'select event, charges, allocations from leave_entries where id = $1',
+				'select days, charges, allocations from leave_entries where id = $1',
 				[id]
 			);
-			assert.equal(stored.event.chargeable_days, 2);
+			assert.equal(Number(stored.days), 2);
 			assert.deepEqual(
 				stored.charges.map((row: { date: string; days: number }) => [row.date, row.days]),
 				[

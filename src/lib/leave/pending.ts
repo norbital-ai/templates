@@ -1,10 +1,5 @@
-import { Effect, Result, Schema } from 'effect';
-import { refuse, type Api } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceSchema } from '$bolt/types.js';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceRow } from '../../collections/leave_entries/$types.js';
-import { leaveEventValueSchema } from '../../datatypes/leave_event/+definition.js';
-import { leaveAllocationsValueSchema } from '../../datatypes/leave_allocations/+definition.js';
-import { leaveChargesValueSchema } from '../../datatypes/leave_charges/+definition.js';
 
 export type LeaveActivity = Pick<
 	WorkspaceRow<'leave_entries'>,
@@ -13,51 +8,39 @@ export type LeaveActivity = Pick<
 	| 'catalogue_id'
 	| 'leave_code'
 	| 'reference'
-	| 'event'
+	| 'from_date'
+	| 'to_date'
+	| 'half_day_start'
+	| 'half_day_end'
+	| 'days'
+	| 'encash_days'
+	| 'as_adjustment_entry'
+	| 'reversal_of_id'
+	| 'effective_on'
+	| 'due_on'
+	| 'destination_from'
+	| 'destination_to'
+	| 'available_from'
+	| 'expires_on'
+	| 'reason'
 	| 'charges'
 	| 'allocations'
 	| 'approval_id'
 	| 'payslip_id'
 >;
 
-const proposalSchema = Schema.Struct({
-	employment_id: Schema.String,
-	catalogue_id: Schema.String,
-	leave_code: Schema.String,
-	reference: Schema.String,
-	event: leaveEventValueSchema,
-	charges: leaveChargesValueSchema,
-	allocations: leaveAllocationsValueSchema
-});
-
-/** Held activity reserves its original server-measured debits until approval or rejection. */
+/**
+ * Held activity reserves its original server-measured debits until approval or rejection.
+ *
+ * A held proposal is a committed row stamped `approval_id`, read with the rest: its charges and
+ * allocations are the transform's, so it reserves exactly what it measured. A held row is never
+ * a settled one — payroll consumes only rows in force — so its pin reads as absent.
+ */
 export function withPendingLeaveEntries(
-	api: { db: { leave_entries: Pick<Api<WorkspaceSchema>['db']['leave_entries'], 'findPending'> } },
-	employmentIds: readonly string[],
+	pending: readonly LeaveActivity[],
 	stored: readonly LeaveActivity[]
-): Effect.Effect<LeaveActivity[]> {
-	return Effect.gen(function* () {
-		if (employmentIds.length === 0) return [];
-		const pending = yield* api.db.leave_entries.findPending({
-			where: { employment_id: { in: [...employmentIds] } },
-			limit: 2000
-		});
-		if (pending.length >= 2000)
-			refuse('The pending leave read reached its safety ceiling; the balance cannot be verified.');
-		const rows = new Map(stored.map((row) => [row.id, row]));
-		for (const row of pending) {
-			const decoded = Schema.decodeUnknownResult(proposalSchema)({ ...rows.get(row.id), ...row });
-			if (Result.isFailure(decoded))
-				refuse(
-					'A pending leave entry has no valid approval evidence. Review or withdraw it before submitting more leave.'
-				);
-			rows.set(row.id, {
-				...decoded.success,
-				id: row.id,
-				approval_id: row.approval_id,
-				payslip_id: null
-			});
-		}
-		return [...rows.values()];
-	});
+): LeaveActivity[] {
+	if (pending.length >= 2000)
+		refuse('The pending leave read reached its safety ceiling; the balance cannot be verified.');
+	return [...stored, ...pending.map((row) => ({ ...row, payslip_id: null }))];
 }

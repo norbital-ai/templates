@@ -4,7 +4,7 @@ import { dateKey } from '../iso-day.js';
 /**
  * Leave coverage of one date, for the writers that must respect it.
  *
- * The roster and attendance hooks refuse a working day that an approved leave already owns
+ * The work day transform refuses a working day that an approved leave already owns
  * ("one writer wins"), and the board draws the same coverage. The rule is a pure function over the
  * stored half-day steps: a date is fully covered unless it is one of the request's half-day
  * boundary dates — the morning-free start day or the afternoon-free end day.

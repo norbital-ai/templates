@@ -6,7 +6,8 @@
  * these. This replaces the old `payroll_runs.lifecycle = 'PAID'` write every integration test
  * used to make; a run-level gesture is exactly the thing that no longer exists.
  */
-import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
+import { requireAccepted } from '@norbital-ai/test-utilities';
+import { observedVersion, writeRows } from './write.ts';
 
 type MarkPaidSession = Readonly<{
 	readonly host: { readonly baseUrl: string };
@@ -29,25 +30,13 @@ export async function markRunPaid(session: MarkPaidSession, runId: string): Prom
 	}>;
 	const unpaid = slips.filter((slip) => slip.status !== 'PAID');
 	if (unpaid.length === 0) return;
-	const result = await postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(
-			session.schemaFingerprint,
-			{
-				action: 'mutate',
-				collection: 'payslips',
-				rows: unpaid.map((slip) => ({
-					action: 'update',
-					values: { id: slip.id, status: 'PAID', paid_at: new Date().toISOString() }
-				}))
-			},
-			unpaid.map((slip) => ({
-				row: { collection: 'payslips', recordId: slip.id },
-				rowVersion: slip.row_version
-			}))
-		),
-		{ authorization: `Bearer ${session.credential}` }
+	const result = await writeRows(
+		session,
+		'payslips',
+		'update',
+		unpaid.map((slip) => ({ id: slip.id, status: 'PAID', paid_at: new Date().toISOString() })),
+		undefined,
+		unpaid.map((slip) => observedVersion('payslips', slip.id, slip.row_version))
 	);
 	requireAccepted(result.value, `mark run ${runId} paid`);
 }

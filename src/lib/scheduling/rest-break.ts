@@ -29,7 +29,7 @@ type SelectedBreakRule = {
  * hours. So the input is intervals and a break total, never a derived overtime figure.
  *
  * Pure, like `lock.ts` and for the identical reason: a badge on the day sheet, a roster publish
- * gate and a `work_days` write hook must quote the same number, and the only way to guarantee
+ * gate and a `work_days` transform must quote the same number, and the only way to guarantee
  * that is for all three to call one function over inputs each of them reads for itself.
  *
  * It produces a **compliance assessment with a citation, never a priced quantity.** No caller may
@@ -114,7 +114,7 @@ function instant(value: string): number {
 /**
  * The worked intervals as a sorted, unioned set of instants, plus whether any is still open.
  *
- * Overlap is rejected by the write hook, but unioning here keeps an imported duplicate from
+ * Overlap is rejected by the transform, but unioning here keeps an imported duplicate from
  * inventing a gap between two copies of the same minute. Intervals that cannot be read as a pair of
  * instants are dropped rather than thrown on: this function is called during a render pass, and
  * `attendance.ts` already sets the precedent that malformed attendance is reported, not fatal.

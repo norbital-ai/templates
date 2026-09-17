@@ -8,6 +8,8 @@
  * the epsilon is load-bearing and deliberate — see decision E35.
  */
 
+import { currencyFractionDigits } from '@norbital-ai/std/finance';
+
 /**
  * Every rounding the engine executes. A scheme's rule names one of these as a registered helper
  * (`round_cent`, `round_5_cents`, `truncate_cent`, `up_5_cents`, `round_unit`, `floor_unit`,
@@ -47,9 +49,15 @@ export function roundMoney(value: number, method: RoundingMethod): number {
 	}
 }
 
-/** `round(x, NEAREST_CENT)`, the shape most call sites want. */
-export function cents(value: number): number {
-	return roundMoney(value, 'NEAREST_CENT');
+/**
+ * Round to the payroll currency's minor unit — whole đồng and rupiah, cents elsewhere. Without a
+ * currency it is `round(x, NEAREST_CENT)`: a rate or an intermediate the currency does not reach.
+ */
+export function cents(value: number, currency?: string): number {
+	if (currency == null) return roundMoney(value, 'NEAREST_CENT');
+	if (!Number.isFinite(value)) throw new Error('Cannot round a non-finite amount.');
+	const scale = 10 ** currencyFractionDigits(currency);
+	return Math.round((value + epsilon(value)) * scale) / scale;
 }
 
 /**

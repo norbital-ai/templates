@@ -23,6 +23,7 @@
  */
 
 import { Schema } from 'effect';
+import { bySchemeListing, schemeLabel } from '../../../lib/payroll/scheme-label.js';
 
 const ReportLineSchema = Schema.Struct({
 	componentCode: Schema.String,
@@ -137,6 +138,8 @@ export function identityRow(payslip: ReportPayslip): Record<string, string | num
  */
 /** The columns a bucket section claims: a predicate over the settled lines, in the clerk's order. */
 type LineMatch = (line: ReportLine) => boolean;
+/** The final column of every sheet, whatever else the population produced. */
+const COMPANY_COST_SECTION_NAME = 'Company cost';
 const EARNING_FAMILIES_RANKED = ['BASE', 'ALLOWANCE', 'WORK_DAY'] as const;
 
 const SECTION_LAYOUT: readonly {
@@ -180,7 +183,8 @@ const SECTION_LAYOUT: readonly {
 	{ name: 'Payments', unit: 'MONEY', lines: (line) => line.bucket === 'NON_WAGE_PAYMENT' },
 	{ name: 'Net', unit: 'MONEY', outputIds: ['netPay'] },
 	{ name: 'Employer costs', unit: 'MONEY', lines: (line) => line.bucket === 'EMPLOYER_COST' },
-	{ name: 'Information', unit: 'MONEY', lines: (line) => line.bucket === 'INFORMATION' }
+	{ name: 'Information', unit: 'MONEY', lines: (line) => line.bucket === 'INFORMATION' },
+	{ name: COMPANY_COST_SECTION_NAME, unit: 'MONEY', outputIds: ['companyCost'] }
 ];
 
 /** Where output ids no section ranks are collected, so a new id is never dropped. */
@@ -193,8 +197,7 @@ const OTHER_SECTION_NAME = 'Other';
 const CATALOGUE_SECTIONS: readonly { readonly name: string; readonly family: string }[] = [
 	{ name: 'Allowances', family: 'ALLOWANCE' },
 	{ name: 'Claims', family: 'CLAIM' },
-	{ name: 'Loans', family: 'LOAN_REPAYMENT' },
-	{ name: 'Payments', family: 'PAYMENT' }
+	{ name: 'Loans', family: 'LOAN_REPAYMENT' }
 ];
 
 /** The per-row roll-up column of the catalogue-entries report. */
@@ -261,7 +264,7 @@ const REPORT_SCHEME: Readonly<Record<string, string>> = {
 
 /** What the workbook calls one role of one scheme: `epfEmployee`, `epfEmployer`, `totalEpf`, `epfGross`. */
 export function statutoryColumn(code: string, role: StatutoryRole): string {
-	const name = stem(REPORT_SCHEME[code] ?? code);
+	const name = stem(schemeLabel(REPORT_SCHEME[code] ?? code));
 	switch (role) {
 		case 'employee':
 			return `${name}Employee`;
@@ -273,17 +276,6 @@ export function statutoryColumn(code: string, role: StatutoryRole): string {
 			return `${name}Gross`;
 	}
 }
-
-const ROLE_OF: readonly (readonly [StatutoryRole, RegExp])[] = [
-	['employee', /Employee$/],
-	['employer', /Employer$/],
-	['total', /^total[A-Z]/],
-	['base', /Gross$/]
-];
-
-/** Whether an output id is a statutory column of the given role; catalogue codes are UPPER_SNAKE and never match. */
-const hasRole = (outputId: string, role: StatutoryRole): boolean =>
-	ROLE_OF.some(([candidate, pattern]) => candidate === role && pattern.test(outputId));
 
 /**
  * The statutory columns, derived from the schemes the run actually charged.
@@ -326,7 +318,9 @@ function workbookRow(payslip: ReportPayslip): Record<string, number> {
 		// reconciles the sheet against the lines, and those were a second sum of the same columns.
 		grossEarnings: payslip.gross,
 		netPay: payslip.net,
-		...statutoryOutputs(payslip)
+		...statutoryOutputs(payslip),
+		// The one total that is written: what this person cost the entity, last on every sheet.
+		companyCost: payslip.employerCost
 	};
 }
 
@@ -370,14 +364,19 @@ export function outputGroups(
 	const lines = payslips.flatMap((payslip) => payslip.lines);
 	const claimed = new Set<string>();
 	const groups: OutputSection[] = [];
+	// The schemes this population ran, in the order the entity's own listing reads them; each role's
+	// block follows it, so the employee shares run SSS, PhilHealth, Pag-IBIG and so do the employer's.
+	const schemes = [
+		...new Set(payslips.flatMap((payslip) => [...payslip.contributions.keys()]))
+	].toSorted(bySchemeListing);
 	for (const section of SECTION_LAYOUT) {
 		const match = section.lines;
 		const outputIds =
 			match == null
 				? [
-						...(section.statutoryRoles ?? []).flatMap((role) =>
-							[...present].filter((id) => !FIXED_IDS.has(id) && hasRole(id, role)).toSorted()
-						),
+						...(section.statutoryRoles ?? []).flatMap((role) => [
+							...new Set(schemes.map((code) => statutoryColumn(code, role)))
+						]),
 						...(section.outputIds ?? [])
 					].filter((id) => present.has(id))
 				: [...new Set(lines.filter(match).map(section.columnId ?? columnIdOf))]
@@ -388,7 +387,11 @@ export function outputGroups(
 		if (outputIds.length > 0) groups.push({ name: section.name, unit: section.unit, outputIds });
 	}
 	const unranked = [...present].filter((id) => !claimed.has(id)).toSorted();
-	return unranked.length === 0
-		? groups
-		: [...groups, { name: OTHER_SECTION_NAME, unit: 'MONEY', outputIds: unranked }];
+	if (unranked.length === 0) return groups;
+	// Company cost stays last: anything unranked slots in front of it.
+	const last = groups.at(-1);
+	const other = { name: OTHER_SECTION_NAME, unit: 'MONEY' as const, outputIds: unranked };
+	return last?.name === COMPANY_COST_SECTION_NAME
+		? [...groups.slice(0, -1), other, last]
+		: [...groups, other];
 }

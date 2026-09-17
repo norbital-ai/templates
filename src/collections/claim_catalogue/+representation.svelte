@@ -9,7 +9,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/record-media/pay_components-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/record-media/catalogue-banner.svg"
 	/>
 </svelte:head>
 

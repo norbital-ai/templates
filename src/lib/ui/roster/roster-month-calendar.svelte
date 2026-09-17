@@ -23,7 +23,7 @@
 	── THE LOCK LADDER HERE IS THE RECORD AXIS ONLY, AND THAT IS THE POINT ────────────────────────
 	The board draws two axes. `day.lock` is a `DayLock`: window arithmetic over `payroll_runs`, about
 	a *day*. `entryLocks` is a `SourceLock` per date: the claim held over the *record* on that day,
-	computed by the caller with the same `sourceLock` call the write hook makes.
+	computed by the caller with the same `sourceLock` call the transform makes.
 
 	This calendar draws only the second one, because its reader is an employee and an employee has no
 	`read` grant on `payroll_runs` — that is the owner's ruling, not a gap. The day axis therefore
@@ -115,7 +115,7 @@
 		 * The record-axis lock, keyed by date: what holds the *person-day* on that day.
 		 *
 		 * Computed by the caller rather than here, because the only honest way to compute it is the
-		 * `sourceLock` call `work_days/+hooks.ts` makes — same inputs, same answer — and the rows
+		 * `sourceLock` call `work_days/+collection.ts` makes — same inputs, same answer — and the rows
 		 * and settlement claims it needs are the caller's queries, not this component's.
 		 */
 		entryLocks?: ReadonlyMap<string, SourceLock>;

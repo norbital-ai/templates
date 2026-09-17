@@ -1,13 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, observedVersion, writeGraph, writeRows } from './helpers/write.ts';
 import {
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
@@ -58,29 +53,18 @@ const write = async (
 	baseVersion?: number
 ) => {
 	const id = String(row.values.id);
-	return postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(
-			session.schemaFingerprint,
-			{ action: 'mutate', collection, rows: [row] },
-			baseVersion === undefined
-				? []
-				: [{ row: { collection, recordId: id }, rowVersion: baseVersion }]
-		),
+	return writeGraph(
+		session,
+		{ action: 'mutate', collection, rows: [row] },
+		baseVersion === undefined ? [] : [observedVersion(collection, id, baseVersion)],
 		headers
 	);
 };
 
 const remove = async (session: Session, headers: Headers, collection: string, id: string) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(session.schemaFingerprint, { action: 'delete', collection, ids: [id] }, [
-			{ row: { collection, recordId: id }, rowVersion: await rowVersion(session, collection, id) }
-		]),
-		headers
-	);
+	writeRows(session, collection, 'delete', [{ id }], headers, [
+		observedVersion(collection, id, await rowVersion(session, collection, id))
+	]);
 
 const refusedWith = (response: { readonly value: unknown }, what: string, pattern: RegExp) => {
 	const body = asRecord(response.value, what);
@@ -104,7 +88,6 @@ const CATALOGUES = [
 	'leave_catalogue',
 	'claim_catalogue',
 	'allowance_catalogue',
-	'payment_catalogue',
 	'loan_catalogue'
 ] as const;
 const catalogueRows = new Map<string, Row>(
@@ -175,9 +158,7 @@ const STORED: ReadonlyArray<{
 		id: ANNUAL_LEAVE_CATALOGUE_ID,
 		change: { name: 'Annual leave (edited)' }
 	},
-	...(
-		['claim_catalogue', 'allowance_catalogue', 'payment_catalogue', 'loan_catalogue'] as const
-	).map((collection) => ({
+	...(['claim_catalogue', 'allowance_catalogue', 'loan_catalogue'] as const).map((collection) => ({
 		collection,
 		id: String(catalogueRows.get(collection)!.id),
 		change: { name: 'Edited under seal' }
@@ -198,7 +179,14 @@ const ROOT_CHANGES: ReadonlyArray<Row> = [
 	{ work_rules: { ...structuredClone(SEEDED_WORK_RULES), authority: 'Edited under seal' } },
 	{ wages: { by_region: { 'EDIT-REGION': 1234 } } },
 	{ sources: { urls: ['https://example.test/law'] } },
-	{ payroll: { currency: 'SGD', timezone: 'Asia/Singapore', tax_year_start_month: 7 } },
+	{
+		payroll: {
+			currency: 'SGD',
+			timezone: 'Asia/Singapore',
+			tax_year_start_month: 7,
+			allowance_npl_prorates: false
+		}
+	},
 	{ effective_range: { start: '2019-01-01T00:00:00.000Z', end: null } },
 	{ cloned_from_id: '22222222-2222-4222-8222-222222222299' },
 	{ sealed_at: null }
@@ -226,21 +214,16 @@ test(
 			);
 			// Holidays are independent of settings: both operators can add one even here.
 			for (const [index, team] of [CONTROLLER, MANAGER].entries()) {
-				const id = crypto.randomUUID();
-				requireAccepted(
-					(
-						await write(session, teamHeaders(session, team), 'jurisdiction_holidays', {
-							action: 'create',
-							values: {
-								id,
-								company_id: HOLIDAY.company_id,
-								date: `203${index}-01-01`,
-								name: 'Fixture holiday'
-							}
-						})
-					).value,
-					`${team} adds an independent holiday`
-				);
+				const added = await write(session, teamHeaders(session, team), 'jurisdiction_holidays', {
+					action: 'create',
+					values: {
+						company_id: HOLIDAY.company_id,
+						date: `203${index}-01-01`,
+						name: 'Fixture holiday'
+					}
+				});
+				requireAccepted(added.value, `${team} adds an independent holiday`);
+				const [id] = createdIds(added.value);
 				assert.equal((await stored(session, 'jurisdiction_holidays', id)).published_at, null);
 			}
 			const countsBefore = await counts(session);
@@ -254,7 +237,7 @@ test(
 				for (const { collection, values } of CREATES) {
 					const created = await write(session, headers, collection, {
 						action: 'create',
-						values: { id: crypto.randomUUID(), ...values }
+						values
 					});
 					refusedWith(created, `${team} create ${collection}`, SEALED);
 				}
@@ -268,8 +251,9 @@ test(
 						version
 					);
 					refusedWith(edited, `${team} update ${collection}`, pattern ?? SEALED);
+					// A delete has no transform: the grant's `authorize` reads the seal and refuses.
 					const deleted = await remove(session, headers, collection, id);
-					refusedWith(deleted, `${team} delete ${collection}`, pattern ?? SEALED);
+					refusedWith(deleted, `${team} delete ${collection}`, /sealed|authoriz|refused/i);
 				}
 				for (const change of ROOT_CHANGES) {
 					const version = await rowVersion(session, 'jurisdiction_settings', JURISDICTION_ID);
@@ -281,8 +265,8 @@ test(
 						version
 					);
 					const column = Object.keys(change)[0];
-					// The controller's authority stops at drafts, so the policy refuses ahead of the hook
-					// for the root; the manager reaches the hook and gets the sentence.
+					// The controller's authority stops at drafts, so the policy refuses ahead of the
+					// transform for the root; the manager reaches the transform and gets the sentence.
 					refusedWith(
 						edited,
 						`${team} update root ${column}`,
@@ -310,16 +294,12 @@ test(
 
 			// A paid run cites the version, so voiding it states a reason.
 			const founder = teamHeaders(session);
-			const runId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await write(session, founder, 'payroll_runs', {
-						action: 'create',
-						values: { id: runId, company_id: COMPANY_ID, period: JANUARY_2026 }
-					})
-				).value,
-				'January run'
-			);
+			const january = await write(session, founder, 'payroll_runs', {
+				action: 'create',
+				values: { company_id: COMPANY_ID, period: JANUARY_2026 }
+			});
+			requireAccepted(january.value, 'January run');
+			const [runId] = createdIds(january.value);
 			await markRunPaid(session, runId);
 			const [run] = (await session.query('select settings_id from payroll_runs where id = $1', [
 				runId

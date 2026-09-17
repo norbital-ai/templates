@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bearerHeaders, mutationPush, postGuestCommand } from '@norbital-ai/test-utilities';
+import { writeRows } from './helpers/write.ts';
 import {
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -27,29 +27,20 @@ const SUNDAY = '2026-03-15';
 const NEXT_DAY = '2026-03-16';
 /** Wednesday the 25th, past the Sunday the 22nd that ends the run either way. */
 const LATER_WEEK = '2026-03-25';
-const MUTATE = 'collections.mutate';
 
 const writeDays = (
 	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
 	days: ReadonlyArray<{ readonly date: string; readonly shift: string }>
 ) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		MUTATE,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'work_days',
-			rows: days.map(({ date, shift }) => ({
-				action: 'create',
-				values: {
-					id: crypto.randomUUID(),
-					employment_id: EMPLOYMENT_ID,
-					work_date: date,
-					shift_definition_id: shift
-				}
-			}))
-		}),
-		bearerHeaders(session.credential)
+	writeRows(
+		session,
+		'work_days',
+		'create',
+		days.map(({ date, shift }) => ({
+			employment_id: EMPLOYMENT_ID,
+			work_date: date,
+			shift_definition_id: shift
+		}))
 	);
 
 test(

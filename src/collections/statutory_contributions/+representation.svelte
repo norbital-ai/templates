@@ -89,10 +89,10 @@
 				</FormSection>
 
 				<FormSection
-					title={t('component.scheme_section_base')}
-					hint={t('component.scheme_section_base_hint')}
+					title={t('component.scheme_section_assessed_on')}
+					hint={t('component.scheme_section_assessed_on_hint')}
 				>
-					<Field name="base" label={t('component.scheme_base')} />
+					<Field name="assessed_on" label={t('component.scheme_assessed_on')} />
 				</FormSection>
 
 				<FormSection
@@ -101,6 +101,8 @@
 				>
 					<Grid gap="sm" minimum="compact">
 						<Field name="assessment_period" label={t('component.assessment_period')} />
+						<Field name="assessment_scope" label={t('component.assessment_scope')} />
+						<Field name="elections" label={t('component.scheme_elections')} />
 						<Field
 							name="employee_share_annual_cap"
 							label={t('component.employee_share_annual_cap')}

@@ -4,8 +4,8 @@
  * `work_rules.limits` are ceilings a plan may not breach: a day's normal, total and spread hours,
  * and a week, month, quarter or year of work and overtime. Payroll reports an overrun and still
  * prices it; the schedule is where the ceiling refuses, because a plan the law forbids should never
- * have been written. This module is that decision, pure, so the `work_days` hook and the
- * `shift_patterns` hook quote the same sentence.
+ * have been written. This module is that decision, pure, so the `work_days` transform and the
+ * `shift_patterns` transform quote the same sentence.
  *
  * The projection is the pattern cycle plus the roster overlay: every date in the window resolves to
  * the roster code an explicit row names, else the code the pattern projects. A plan's paid minutes

@@ -81,8 +81,8 @@ export default {
 		grantOn('shift_patterns', 'read', { fields: ['id', 'company_id', 'code', 'pattern'] }),
 		grantOn('shift_definitions', 'read', { fields: ['id', 'company_id', 'code', 'variant'] }),
 		grantsOn('work_days', ['read']),
-		// Every grant answers "what may the device do"; none answers "what does a hook need". The
-		// day guards a punch runs, and the ledger an enrolment generates, read as the workspace.
+		// Every grant answers "what may the device do"; none answers "what does a transform need".
+		// The day guards a punch runs read as the workspace.
 		grantOn('work_days', 'mutate.new', {
 			fields: ['employment_id', 'work_date', 'worked_intervals']
 		}),

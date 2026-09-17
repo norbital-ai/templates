@@ -99,7 +99,7 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours > 4.0 && continuous_attendance",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
@@ -114,7 +114,8 @@
 		"payroll": {
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {
@@ -244,7 +245,7 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours > 4.0 && continuous_attendance",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
@@ -259,7 +260,8 @@
 		"payroll": {
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {
@@ -381,7 +383,7 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours > 4.0 && continuous_attendance",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
@@ -396,7 +398,8 @@
 		"payroll": {
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {

@@ -118,10 +118,8 @@ test('write grants use only mutate.new and mutate.existing authoring coordinates
 		}
 	}
 
-	assert.deepEqual(Object.keys(hrManager.grants.payroll_runs.mutate).toSorted(), [
-		'existing',
-		'new'
-	]);
+	// A run is frozen once built: nobody holds `mutate.existing` on it.
+	assert.deepEqual(Object.keys(hrManager.grants.payroll_runs.mutate).toSorted(), ['new']);
 });
 
 test('read scopes are structured trees with compiler-owned dependencies', () => {
@@ -243,7 +241,7 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	assert.equal(may(hrController, 'payroll_runs', 'mutate.existing'), false);
 	assert.equal(may(hrController, 'payroll_runs', 'delete'), false);
 
-	// The run's `before` hook returns the payslips and the capture pins, and what a hook returns is
+	// The run's transform returns the payslips and the capture pins, and what a transform returns is
 	// the workspace's own work: no grant of this policy names them, and a controller submitting a
 	// payslip directly is refused on that claim.
 	for (const collection of ['payslips']) {
@@ -252,19 +250,18 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	}
 });
 
-test('hr_manager and senior management mutate new and existing payroll runs without a gate', () => {
+test('hr_manager and senior management create and delete payroll runs without a gate; a run is never edited', () => {
 	for (const policy of [hrManager, seniorManagement]) {
 		const [newGrant] = grantsFor(policy, 'payroll_runs', 'mutate.new');
 		assert.notEqual(newGrant, undefined, nameOf(policy));
 		assert.equal(newGrant.approval, undefined, `${nameOf(policy)} mutate.new must not be gated`);
-		assert.equal(may(policy, 'payroll_runs', 'mutate.existing'), true, nameOf(policy));
+		assert.equal(may(policy, 'payroll_runs', 'mutate.existing'), false, nameOf(policy));
 		assert.equal(may(policy, 'payroll_runs', 'delete'), true, nameOf(policy));
-
-		// Running a draft again states the run's complete set of payslips from the `before` hook
-		// and the omitted ones go with it. That graph is the workspace's own work, so the policy
-		// holds no write on the result: `payroll_runs.mutate.existing` is the whole of "run again".
-		// Deleting a run is different: its cascade descends as the deleting person,
-		// so the payslips a run owns carry delete, and only delete.
+		// Deleting a run is the settlement lock's release: the grant's own decision refuses a run
+		// with a paid slip or a later sibling, and the cascade descends as the deleting person, so
+		// the payslips a run owns carry delete, and only delete — of an unpaid slip.
+		const [deleteGrant] = grantsFor(policy, 'payroll_runs', 'delete');
+		assert.equal(typeof deleteGrant.authorize, 'function', `${nameOf(policy)} delete decides`);
 		for (const collection of ['payslips']) {
 			assert.equal(may(policy, collection, 'mutate.new'), false, `${nameOf(policy)} ${collection}`);
 			assert.equal(
@@ -273,6 +270,9 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 				`${nameOf(policy)} ${collection}`
 			);
 			assert.equal(may(policy, collection, 'delete'), true, `${nameOf(policy)} ${collection}`);
+			const [slipDelete] = grantsFor(policy, collection, 'delete');
+			assert.equal(slipDelete.authorize({ record: { status: 'PAID', paid_at: 'x' } }), false);
+			assert.equal(slipDelete.authorize({ record: { status: 'DRAFT', paid_at: null } }), true);
 		}
 
 		// A completed run stays readable: the creator and HR Manager both see it after it lands.
@@ -281,25 +281,29 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 	}
 });
 
-test('every rank reads its own three request families, and a correction is not a record anybody reads', () => {
+test('every rank reads its own request families, and a correction is not a record anybody reads', () => {
 	// The rule used to be a row predicate — `event -> 'kind' <> 'MANUAL_ADJUSTMENT'` — explicitly
 	// `AND`ed with the ownership path, because `rowPredicate` unions matching grants and a second
 	// unconditional read would have widened it to every correction in the workspace. Then it was
 	// the absence of a grant on `correction_requests`. It is now neither: a correction is not a
 	// record at all. It is an entry against the same component with `as_adjustment_entry` set, so
 	// what a rank sees of one is exactly what it sees of the family that entry belongs to.
-	for (const family of ['claim', 'allowance', 'payment']) {
-		const [read, ...extra] = grantsFor(employee, `${family}_requests`, 'read');
-		assert.notEqual(read, undefined, family);
+	for (const [collection, relation] of [
+		['claim_requests', 'claim_request_employment'],
+		['allowances', 'allowance_employment'],
+		['allowance_entries', 'allowance_entry_employment']
+	]) {
+		const [read, ...extra] = grantsFor(employee, collection, 'read');
+		assert.notEqual(read, undefined, collection);
 		assert.deepEqual(
 			extra,
 			[],
-			`a second ${family} read grant would be OR-ed in and would widen this one`
+			`a second ${collection} read grant would be OR-ed in and would widen this one`
 		);
 		assert.deepEqual(
-			read.where[`${family}_request_employment`].some.employment_employee.some.email,
+			read.where[relation].some.employment_employee.some.email,
 			{ caseFoldEq: { $subject: 'email' } },
-			family
+			collection
 		);
 	}
 
@@ -320,29 +324,36 @@ test('an employee may raise only a time-off request', async () => {
 	assert.notEqual(grant.approval, undefined, 'an employee leave request must be reviewed');
 
 	const unusedApi = {};
-	for (const kind of ['ENCASHMENT', 'CARRY_FORWARD', 'ADJUSTMENT', 'REVERSAL']) {
+	// Presence is the discriminator now: the tick, encashed days, a destination and a stated
+	// adjustment day are each the thing an ordinary rank may not raise.
+	for (const fields of [
+		{ as_adjustment_entry: true, reversal_of_id: 'entry' },
+		{ encash_days: 1, days: 1 },
+		{ destination_from: '2027-01-01', destination_to: '2027-03-31' },
+		{ from_date: '2026-01-01', to_date: '2026-01-01', days: 1 }
+	]) {
 		const allowed = await Effect.runPromise(
-			grant.authorize({ record: { employment_id: 'employment', event: { kind } } }, unusedApi)
+			grant.authorize({ record: { employment_id: 'employment', ...fields } }, unusedApi)
 		);
-		assert.equal(allowed, false, kind);
+		assert.equal(allowed, false, JSON.stringify(fields));
 	}
-	assert.equal(
-		await Effect.runPromise(
-			grant.authorize({ record: { employment_id: 'employment', event: null } }, unusedApi)
-		),
-		false
-	);
 });
 
 test('manual Leave categories require HR authority, while time off retains its review route', async () => {
-	for (const kind of ['ENCASHMENT', 'CARRY_FORWARD', 'ADJUSTMENT', 'REVERSAL']) {
-		const input = { record: { employment_id: 'employment', event: { kind } } };
+	const manual = [
+		{ as_adjustment_entry: true, reversal_of_id: 'entry' },
+		{ encash_days: 1, days: 1 },
+		{ destination_from: '2027-01-01', destination_to: '2027-03-31' },
+		{ from_date: '2026-01-01', to_date: '2026-01-01', days: 1 }
+	];
+	for (const fields of manual) {
+		const input = { record: { employment_id: 'employment', ...fields } };
 		for (const policy of [employee, supervisor, manager]) {
 			const [grant] = grantsFor(policy, 'leave_entries', 'mutate.new');
 			assert.equal(
 				await Effect.runPromise(grant.authorize(input, {})),
 				false,
-				`${nameOf(policy)} ${kind}`
+				`${nameOf(policy)} ${JSON.stringify(fields)}`
 			);
 		}
 		const [controllerGrant] = grantsFor(hrController, 'leave_entries', 'mutate.new');
@@ -352,15 +363,27 @@ test('manual Leave categories require HR authority, while time off retains its r
 		]);
 		for (const policy of [hrManager, seniorManagement]) {
 			const [grant] = grantsFor(policy, 'leave_entries', 'mutate.new');
-			assert.equal(grant.approval.flow(input), noApproval, `${nameOf(policy)} ${kind}`);
+			assert.equal(
+				grant.approval.flow(input),
+				noApproval,
+				`${nameOf(policy)} ${JSON.stringify(fields)}`
+			);
 		}
 	}
+	const timeOff = {
+		from_date: '2026-01-01',
+		to_date: '2026-01-01',
+		half_day_start: false,
+		half_day_end: false,
+		days: null
+	};
 	for (const policy of [hrController, hrManager, seniorManagement]) {
 		const [grant] = grantsFor(policy, 'leave_entries', 'mutate.new');
-		assert.deepEqual(
-			grant.approval.flow({ record: { event: { kind: 'TIME_OFF' } } }).stages[0].approvers,
-			['L1 Manager', 'HR Manager', 'Senior Management']
-		);
+		assert.deepEqual(grant.approval.flow({ record: timeOff }).stages[0].approvers, [
+			'L1 Manager',
+			'HR Manager',
+			'Senior Management'
+		]);
 		assert.equal(may(policy, 'leave_entries', 'mutate.existing'), false);
 		assert.equal(may(policy, 'leave_entries', 'delete'), false);
 	}
@@ -370,9 +393,23 @@ test('manual Leave categories require HR authority, while time off retains its r
 		assert.deepEqual(grant.fields, [
 			'employment_id',
 			'catalogue_id',
-			'event',
 			'reference',
-			'certificate_file'
+			'certificate_file',
+			'from_date',
+			'to_date',
+			'half_day_start',
+			'half_day_end',
+			'days',
+			'encash_days',
+			'as_adjustment_entry',
+			'reversal_of_id',
+			'effective_on',
+			'due_on',
+			'destination_from',
+			'destination_to',
+			'available_from',
+			'expires_on',
+			'reason'
 		]);
 	}
 });
@@ -435,7 +472,8 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 		}
 	}
 	// Every row under a version is the draft's to edit, by whoever holds the catalogue; the seal
-	// is what reviews them, once, and after it the hooks refuse every write.
+	// is what reviews them, once, and after it the transforms refuse every write. A delete has
+	// no transform, so the grant's own decision reads the seal.
 	for (const policy of [hrController, hrManager, seniorManagement])
 		for (const collection of [
 			'statutory_contributions',
@@ -443,14 +481,17 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 			'loan_catalogue',
 			'claim_catalogue',
 			'allowance_catalogue',
-			'payment_catalogue',
 			'jurisdiction_holidays'
 		])
 			for (const action of ['mutate.new', 'mutate.existing', 'delete']) {
 				const [grant, ...extra] = grantsFor(policy, collection, action);
 				assert.deepEqual(extra, [], `${nameOf(policy)} ${collection} ${action}`);
 				assert.equal(grant.approval, undefined, `${nameOf(policy)} ${collection} ${action}`);
-				assert.equal(grant.authorize, undefined, `${nameOf(policy)} ${collection} ${action}`);
+				assert.equal(
+					typeof grant.authorize,
+					action === 'delete' ? 'function' : 'undefined',
+					`${nameOf(policy)} ${collection} ${action}`
+				);
 			}
 	// Generated rows are the reconciler's: no person may create an entitlement.
 	for (const policy of [employee, supervisor, manager, hrController, hrManager, seniorManagement])
@@ -467,19 +508,20 @@ test('ordinary ranks authorize only their own reviewed claim; HR may raise any f
 	// A claim is the only family they may raise. Raising an adjustment is raising an entry with
 	// the tick set, so "may an employee correct their own pay" is answered by this same grant —
 	// and it is answered by the approval on it, not by a separate authority.
-	for (const family of ['allowance', 'payment'])
-		assert.equal(may(employee, `${family}_requests`, 'mutate.new'), false, family);
+	assert.equal(may(employee, 'allowances', 'mutate.new'), false, 'allowance');
 
 	for (const policy of [hrController, hrManager, seniorManagement]) {
-		for (const family of ['claim', 'allowance', 'payment']) {
-			const [newGrant] = grantsFor(policy, `${family}_requests`, 'mutate.new');
-			assert.notEqual(newGrant, undefined, `${nameOf(policy)} ${family}`);
+		for (const collection of ['claim_requests', 'allowances']) {
+			const [newGrant] = grantsFor(policy, collection, 'mutate.new');
+			assert.notEqual(newGrant, undefined, `${nameOf(policy)} ${collection}`);
 			assert.equal(
 				newGrant.where,
 				undefined,
-				`${nameOf(policy)} ${family} mutate.new must be unconditional`
+				`${nameOf(policy)} ${collection} mutate.new must be unconditional`
 			);
 		}
+		// The priced entries are the run's: nobody keys one.
+		assert.equal(may(policy, 'allowance_entries', 'mutate.new'), false, nameOf(policy));
 	}
 });
 
@@ -523,7 +565,7 @@ test('no human policy may author the system-only statutory predecessor instructi
 });
 
 test('a rank whose app shows captures reads the settlement ledger masked to the claim', () => {
-	// The hooks that refuse a settled record read the ledger as the workspace, so no policy holds a
+	// The transforms that refuse a settled record read the ledger as the workspace, so no policy holds a
 	// grant for their sake. The grants below exist for the apps: My attendance and My leave mark a
 	// day or an entry consumed by a payslip, and they read the claim as the person using them.
 	//
@@ -577,14 +619,14 @@ test('the kiosk sees one app and may only key time entries and face enrollments'
 	assert.equal(may(kiosk, 'work_days', 'delete'), false, 'kiosk may not delete days');
 
 	// Nothing outside people, employments, days, companies, terms and shifts. Every grant answers
-	// "what may the device do"; none answers "what does a hook need". The day guards a punch runs
+	// "what may the device do"; none answers "what does a transform need". The day guards a punch runs
 	// and the leave ledger an enrolment generates read as the workspace, so the reads that used to
 	// exist for them (leave requests, payroll runs, the work-day capture) are gone, and the
 	// collections the ledger is made of were never granted at all.
 	for (const collection of [
 		'claim_requests',
-		'allowance_requests',
-		'payment_requests',
+		'allowances',
+		'allowance_entries',
 		'correction_requests',
 		'loans',
 		'payslips',

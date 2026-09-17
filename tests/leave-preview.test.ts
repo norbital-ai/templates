@@ -72,9 +72,11 @@ test('eligibility and certificate thresholds use server-measured scheduled days'
 test('preview distinguishes an occupied half from the available half on the same date', () => {
 	const context = leaveContext();
 	const held = approve(context, {
-		kind: 'TIME_OFF',
-		range: { start: range.start, end: range.start },
-		chargeable_days: null,
+		from_date: range.start.date,
+		to_date: range.start.date,
+		half_day_start: false,
+		half_day_end: true,
+		days: null,
 		reason: null
 	});
 	context.entries[0] = { ...held, approval_id: id(100) };

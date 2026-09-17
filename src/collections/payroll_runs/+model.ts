@@ -29,6 +29,14 @@ export default defineModel(
 			.notNull()
 			.default(sql`'[]'::jsonb`),
 		/**
+		 * The COMPANY-assessed schemes' charges: one row for the whole run, over the sum of every
+		 * payslip's money, after the employment schemes. The employer's own levy — it is on no
+		 * payslip, so a reader adds it to the run's employer cost.
+		 */
+		company_charges: custom('payslip_statutory', { multiple: true })
+			.notNull()
+			.default(sql`'[]'::jsonb`),
+		/**
 		 * What the engine noticed but did not refuse — a day past the hours-of-work limit, an
 		 * instalment net pay could not carry — one sentence per line, frozen with the run so the
 		 * operator reads them where the run is, not in a host log.

@@ -1,12 +1,7 @@
 import { it } from 'vitest';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, writeRows } from '../helpers/write.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -23,16 +18,7 @@ const create = async (
 	values: Readonly<Record<string, unknown>>,
 	headers: Readonly<Record<string, string>>
 ) => {
-	const response = await postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection,
-			rows: [{ action: 'create', values }]
-		}),
-		headers
-	);
+	const response = await writeRows(session, collection, 'create', [values], headers);
 	assert.ok(
 		response.status >= 200 && response.status < 300,
 		`${collection} create returned ${response.status}: ${JSON.stringify(response.value)}`
@@ -58,12 +44,10 @@ it(
 			// The founder: the one subject that lands a work day and a run without an approval step
 			// (no team mutates work_days except the kiosk).
 			const founder = bearerHeaders(session.credential);
-			const workDayId = crypto.randomUUID();
 			const day = await create(
 				session,
 				'work_days',
 				{
-					id: workDayId,
 					employment_id: EMPLOYMENT_ID,
 					work_date: '2026-02-03',
 					// Instants are UTC: 07:30 to 21:30 in Kuala Lumpur on 3 February.
@@ -77,6 +61,7 @@ it(
 				undefined,
 				`the founder lands the punch: ${JSON.stringify(day)}`
 			);
+			const [workDayId] = createdIds(day);
 			const stored = (await session.query(
 				'select shift_definition_id from work_days where id = $1',
 				[workDayId]
@@ -87,14 +72,14 @@ it(
 				'a punch is evidence on the base day, not a roster override'
 			);
 
-			const runId = crypto.randomUUID();
 			const run = await create(
 				session,
 				'payroll_runs',
-				{ id: runId, company_id: COMPANY_ID, period: FEBRUARY_2026 },
+				{ company_id: COMPANY_ID, period: FEBRUARY_2026 },
 				founder
 			);
 			requireAccepted(run, 'payroll run create');
+			const [runId] = createdIds(run);
 			assert.equal(
 				run.pendingApproval,
 				undefined,

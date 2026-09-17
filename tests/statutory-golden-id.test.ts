@@ -26,14 +26,21 @@ import { Effect } from 'effect';
 import {
 	assessStatutory,
 	assessStatutoryUnvalidated,
+	buildStatutory,
 	chargeOf,
 	createStatutoryWorld,
 	expectStatutory,
 	assertEveryVersionPriced,
-	COMPANY_ID
+	COMPANY_ID,
+	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
+import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
+import { ordinaryDivisorDays } from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
+import { settingsVersions, leaveCatalogue } from './fixtures/statutory-world.ts';
 
 const ID_PEOPLE = [
 	// Exactly the Kabupaten Bekasi UMK 2026: what five of the bank's sixteen contracts are paid.
@@ -43,6 +50,9 @@ const ID_PEOPLE = [
 	{ key: 'ID-25M', wage: 25_000_000, age: 55, marital_status: 'SINGLE', children: 0 },
 	// K/3 — married with three dependent children — is TER category C.
 	{ key: 'ID-C-15M', wage: 15_000_000, marital_status: 'MARRIED', children: 3 },
+	// A married woman is TK/0 (TER A) unless she holds the certificate combining her husband's
+	// income, which this employment carries as `scheme.elections.ptkp`.
+	{ key: 'ID-W-15M', wage: 15_000_000, gender: 'FEMALE', marital_status: 'MARRIED', children: 3 },
 	{ key: 'ID-C-25M', wage: 25_000_000, marital_status: 'MARRIED', children: 3 }
 ];
 
@@ -246,16 +256,139 @@ test('Indonesia — the December 2025 version, whose Kesehatan floor is the 2025
 	// stands until 1 March 2026 — both identical to the 1 January 2026 version.
 	expectStatutory(book, 'ID-5M', 'JHT', 100_000, 185_000);
 	expectStatutory(book, 'ID-15M', 'JP', 105_474, 210_948);
-	// JKK group II 0.40%, JKM 0.30% and the employer's 0.14% of JKP, all employer-borne.
+	// JKK at the PP 44/2015 Ps.16(1) group II rate of 0.54% (the 0.14% JKP recomposition is
+	// inside it, never a second line) and JKM 0.30%, both employer-borne.
 	expectStatutory(book, 'ID-5M', 'JKK', 0, 27_000);
 	expectStatutory(book, 'ID-5M', 'JKM', 0, 15_000);
 	// JKP: PP 37/2021 Ps.11 as amended by PP 6/2025 recomposes the employer's share from JKK,
 	// so the JKP line itself is 0/0 on this version too.
 	expectStatutory(book, 'ID-5M', 'JKP', 0, 0);
-	// PMK 168/2023 TER A: 5,000,000 is inside bracket 1 at 0.00%; 15,000,000 is in the
-	// 13,750,001–15,100,000 bracket at 6.00% → 900,000.
+	// PMK 168/2023: the last tax period is the annual reckoning, not a TER month — annual gross
+	// less biaya jabatan (5%) and the JP employee share, less PTKP 54,000,000 for TK/0. Both
+	// December-only worlds annualise below PTKP, so both withhold nothing this period.
 	expectStatutory(book, 'ID-5M', 'PPH21', 0, 0);
-	expectStatutory(book, 'ID-15M', 'PPH21', 900_000, 0);
+	expectStatutory(book, 'ID-15M', 'PPH21', 0, 0);
+});
+
+test('Indonesia — December is the annual reckoning against the year the TER already withheld', () => {
+	// PMK 168/2023 art.20: the last tax period reconciles. PPh 21 for the year is computed on
+	// PKP = annual gross − biaya jabatan (5%, at most 6,000,000 a year; PMK 250/PMK.03/2008) − the
+	// year's employee JP AND JHT (PMK 168/2023 art.10(3)(b): iuran terkait program pensiun dan hari
+	// tua paid through the employer to BPJS Ketenagakerjaan) − PTKP 54,000,000 TK/0, rounded down
+	// to the whole thousand (UU PPh art.17(4)), at 5% to 60,000,000 and 15% above; December charges
+	// the year's figure less what the TER already withheld. The prior eleven months are seeded as
+	// the engine priced them: TER A at 6% for a 15,000,000 monthly gross (900,000 a month), JP at
+	// the announced ceiling — 105,474 through February 2026 and 110,863 from 1 March — and JHT at
+	// 2% of the wage.
+	const priorPeriods = [
+		'2026-01',
+		'2026-02',
+		'2026-03',
+		'2026-04',
+		'2026-05',
+		'2026-06',
+		'2026-07',
+		'2026-08',
+		'2026-09',
+		'2026-10',
+		'2026-11'
+	];
+	const priorJp = (period: string) => (period < '2026-03' ? 105_474 : 110_863);
+	// What each seeded month withheld, exactly as the engine priced it in that month: TER A at 6%
+	// for 15,000,000 and 0% for 5,000,000, JP at 1% of the announced ceiling.
+	const month = (period: string, key: string) =>
+		key === 'ID-15M'
+			? {
+					gross: 15_000_000,
+					pph21: 900_000,
+					jp: priorJp(period),
+					jht: 300_000
+				}
+			: { gross: 5_000_000, pph21: 0, jp: 50_000, jht: 100_000 };
+	const book = assessStatutoryUnvalidated(idWorld('2026-12'), (world) => {
+		for (const key of ['ID-15M', 'ID-5M']) {
+			const employment = world.employments.find((row) => row.employee_number === key);
+			assert.ok(employment, `the ${key} employment exists`);
+			for (const period of priorPeriods) {
+				const prior = month(period, key);
+				const runId = `prior-${period}-${key}`;
+				world.payroll_runs.push({ id: runId, company_id: COMPANY_ID, period });
+				world.payslips.push({
+					id: `payslip-${period}-${key}`,
+					payroll_run_id: runId,
+					employment_id: employment.id,
+					status: 'PAID',
+					paid_at: `${period}-28T00:00:00.000Z`,
+					currency: 'IDR',
+					base: [],
+					adjustments: [],
+					statutory: [
+						{
+							scheme_code: 'PPH21',
+							employee_amount: prior.pph21,
+							employer_amount: 0,
+							base_amount: prior.gross,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'JP',
+							employee_amount: prior.jp,
+							employer_amount: prior.jp * 2,
+							base_amount: prior.gross,
+							rule_when: null,
+							authority: null
+						},
+						{
+							scheme_code: 'JHT',
+							employee_amount: prior.jht,
+							employer_amount: prior.jht * 1.85,
+							base_amount: prior.gross,
+							rule_when: null,
+							authority: null
+						}
+					]
+				});
+			}
+		}
+	});
+
+	// ID-15M: PKP = 180,000,000 − 6,000,000 − JP 1,319,578 − JHT 3,600,000 − 54,000,000 =
+	// 115,080,422 → 115,080,000 (art.17(4)). Annual tax = 5% × 60,000,000 + 15% × 55,080,000 =
+	// 11,262,000. December = 11,262,000 − 9,900,000 = 1,362,000.
+	expectStatutory(book, 'ID-15M', 'PPH21', 1_362_000, 0);
+	// ID-5M: PKP = 60,000,000 − 3,000,000 − 600,000 − 1,200,000 − 54,000,000 = 1,200,000 →
+	// 60,000; the TER withheld nothing all year, so December charges the whole annual figure.
+	expectStatutory(book, 'ID-5M', 'PPH21', 60_000, 0);
+});
+
+test('Indonesia — a married woman is TK/0 unless the PTKP election combines her husband’s income', () => {
+	const book = assessStatutoryUnvalidated({
+		...idWorld('2026-01'),
+		people: [
+			{
+				key: 'ID-W-15M',
+				wage: 15_000_000,
+				gender: 'FEMALE',
+				marital_status: 'MARRIED',
+				children: 3
+			},
+			{
+				key: 'ID-W-KI-15M',
+				wage: 15_000_000,
+				gender: 'FEMALE',
+				marital_status: 'MARRIED',
+				children: 3,
+				registrations: {
+					PPH21: { kind: 'REGISTERED', elections: { ptkp: 'KI' } }
+				}
+			}
+		]
+	});
+	// Without the certificate she is TK/0, TER category A: 15,000,000 withholds 900,000. With it the
+	// married ladder applies (K/3, category C): 750,000.
+	expectStatutory(book, 'ID-W-15M', 'PPH21', 900_000, 0);
+	expectStatutory(book, 'ID-W-KI-15M', 'PPH21', 750_000, 0);
 });
 
 test('every sealed version of `ID` is priced by a golden here', () => {
@@ -266,27 +399,33 @@ test('every sealed version of `ID` is priced by a golden here', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THR (Permenaker 6/2016) — gap tracker §4, landed 2026-09-16.
+// THR (Permenaker 6/2016) — gap tracker §4.
 //
-// Due seven days before the religious holiday (Idul Fitri 2026-03-20 → 13 March): one month's wage
-// after twelve months of continuous service, pro rata by completed months from one month, and
-// "one month's wage" is the basic wage plus the fixed allowances (art. 3(2)). THR is income for
-// PPh 21 and outside every BPJS base.
+// One month's wage after twelve months of continuous service, pro rata by completed months from
+// one month, and "one month's wage" is the basic wage plus the fixed allowances (art. 3(2)). THR
+// is income for PPh 21 and outside every BPJS base. The catalogue row prices it; HR keys it as an
+// allowance whose window is the month it is paid in, and the band reads the person as they stand
+// on the day the window opens.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HOUSE_ALLOWANCE_ID = 'a1a1a1a1-0000-4000-8000-000000000001';
+const THR_ID = '6905cf49-a5ed-5833-ad3d-d08074b60c4e';
 
 test('Indonesia — THR is a twelfth of the monthly wage per completed month, whole after a year', () => {
 	const world = createStatutoryWorld({
 		...idWorld('2026-03'),
 		people: [
 			{ key: 'ID-24M', wage: 10_000_000 },
-			// Six completed months on 13 March 2026.
+			// Five completed months on 1 March 2026, the day the March window opens.
 			{ key: 'ID-6M', wage: 12_000_000, hire_date: '2025-09-13' },
 			// Under a month of service on the day.
 			{ key: 'ID-NEW', wage: 12_000_000, hire_date: '2026-02-20' },
 			// A standing house allowance is part of the wage THR is measured on.
-			{ key: 'ID-FIXED', wage: 20_000_000 }
+			{ key: 'ID-FIXED', wage: 20_000_000 },
+			// A one-month reimbursement keyed as an allowance for March alone is not; one that runs
+			// past the month is.
+			{ key: 'ID-ONEOFF', wage: 20_000_000 },
+			{ key: 'ID-TWO-MONTHS', wage: 20_000_000 }
 		]
 	});
 	// The version in force in March 2026 (2026-03-01 → open).
@@ -300,25 +439,62 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 		evidence: 'NONE',
 		destination: 'PAY',
 		direction: 'ADD',
-		recurring: true,
-		prorates: false,
-		on_day: null,
 		bands: [{ when: '', amount: 'entry.amount', limit: null }],
 		approval_id: null
 	});
 	const fixed = world.employments.find((row) => row.employee_number === 'ID-FIXED')!;
-	world.allowance_requests.push({
+	world.allowances.push({
 		id: 'a1a1a1a1-0000-4000-8000-000000000002',
 		employment_id: fixed.id,
 		catalogue_id: HOUSE_ALLOWANCE_ID,
 		amount: 5_000_000,
-		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null },
+		effective_from: '2026-01-01',
+		effective_to: null,
+		reason: '',
 		evidence_file: null,
 		as_adjustment_entry: false,
-		derived_from_id: null,
-		payslip_id: null,
 		approval_id: null
 	});
+	const oneOff = world.employments.find((row) => row.employee_number === 'ID-ONEOFF')!;
+	world.allowances.push({
+		id: 'a1a1a1a1-0000-4000-8000-000000000003',
+		employment_id: oneOff.id,
+		catalogue_id: HOUSE_ALLOWANCE_ID,
+		amount: 5_000_000,
+		effective_from: '2026-03-01',
+		effective_to: '2026-03-31',
+		reason: 'one month, one payment',
+		evidence_file: null,
+		as_adjustment_entry: false,
+		approval_id: null
+	});
+	const twoMonths = world.employments.find((row) => row.employee_number === 'ID-TWO-MONTHS')!;
+	world.allowances.push({
+		id: 'a1a1a1a1-0000-4000-8000-000000000004',
+		employment_id: twoMonths.id,
+		catalogue_id: HOUSE_ALLOWANCE_ID,
+		amount: 5_000_000,
+		effective_from: '2026-03-01',
+		effective_to: '2026-04-30',
+		reason: 'two months',
+		evidence_file: null,
+		as_adjustment_entry: false,
+		approval_id: null
+	});
+	// THR keyed for March for everyone; the row's own band prices it, the eligibility declines it.
+	for (const [index, employment] of world.employments.entries())
+		world.allowances.push({
+			id: `a1a1a1a1-0000-4000-8000-00000000001${index}`,
+			employment_id: employment.id,
+			catalogue_id: THR_ID,
+			amount: 1,
+			effective_from: '2026-03-01',
+			effective_to: '2026-03-31',
+			reason: 'THR 2026',
+			evidence_file: null,
+			as_adjustment_entry: false,
+			approval_id: null
+		});
 	const prepared = Effect.runSync(
 		gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-03' })
 	);
@@ -335,22 +511,233 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 		return { thr, base };
 	};
 	assert.deepEqual(slip('ID-24M').thr, [10_000_000]);
-	assert.deepEqual(slip('ID-6M').thr, [6_000_000]);
+	assert.deepEqual(slip('ID-6M').thr, [5_000_000]);
 	assert.deepEqual(slip('ID-NEW').thr, []);
 	assert.deepEqual(slip('ID-FIXED').thr, [25_000_000]);
+	// Permenaker 6/2016 art.3(2) with SE-07/MEN/1990 §I(2)(b): a tunjangan tetap is paid regularly
+	// and irrespective of attendance. An allowance whose window is the one pay month is a single
+	// payment, so the wage a THR is a multiple of is the 20,000,000 basic alone — the 5,000,000 is
+	// still paid in March, it just does not become 5,000,000 more of THR.
+	assert.deepEqual(slip('ID-ONEOFF').thr, [20_000_000]);
+	assert.deepEqual(slip('ID-TWO-MONTHS').thr, [25_000_000]);
 	// PPh 21 is on gross, THR included; the BPJS bases are the wage alone.
 	assert.equal(slip('ID-24M').base('PPH21'), 20_000_000);
 	assert.equal(slip('ID-24M').base('JHT'), 10_000_000);
 	assert.equal(slip('ID-FIXED').base('PPH21'), 50_000_000);
-	// The open-ended standing allowance is paid as a March slice; the source row itself is never
-	// pinned, so April cuts its own slice (a pinned source paid January alone on the host).
+	// The open-ended standing allowance is paid as a March entry; the source row itself is never
+	// pinned, so April prices its own entry.
 	const fixedSlip = slips.find((row) => String(row.employment_id) === fixed.id)!;
 	const capture = built.captures.find((row) => row.payslipId === fixedSlip.id)!;
-	assert.deepEqual(capture.allowances, []);
 	assert.deepEqual(
 		capture.materialised
-			.filter((row) => row.collection === 'allowance_requests')
-			.map((row) => [row.values.amount, row.values.recurrence]),
-		[[5_000_000, { kind: 'RECURRING', from: '2026-03-01', to: '2026-03-31' }]]
+			.map((row) => [row.values.amount, row.values.from, row.values.to])
+			.toSorted((left, right) => Number(left[0]) - Number(right[0])),
+		[
+			[5_000_000, '2026-03-01', '2026-03-31'],
+			[25_000_000, '2026-03-01', '2026-03-31']
+		],
+		'the March entry of the house allowance and the THR are both materialised'
 	);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Working time and leave: the law's numbers against the sealed regime, on every version.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('Indonesia — the overtime hour is 1/173 of the monthly wage (PP 35/2021 Pasal 32(1))', () => {
+	// The divisor is stated in days per month over the contract's daily hours, so 40 hours over
+	// five days and 40 over six both come to one 173rd of the wage per overtime hour.
+	for (const version of settingsVersions('ID'))
+		for (const [hours, days] of [
+			[40, 5],
+			[40, 6]
+		]) {
+			const person = personContext({
+				employee: null,
+				employment: { service_start: '2020-01-01' },
+				terms: { base_salary: { value: 17_300_000, currency: 'IDR' } },
+				week: { ordinary_hours_per_week: hours, working_days_per_week: days },
+				asOf: '2026-06-30'
+			});
+			const divisor = ordinaryDivisorDays({
+				expression: version.work_rules.ordinary_divisor_days,
+				person
+			});
+			assert.equal(
+				Math.round((17_300_000 / divisor / (hours / days)) * 100) / 100,
+				100_000,
+				`${hours} hours over ${days} days`
+			);
+		}
+});
+
+/** A punch from `start` to `end` on `date`, in Asia/Jakarta (+07:00); `end` may be the next day. */
+const punchId = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	world.work_days.push({
+		id: `wd-${key}-${date}`,
+		employment_id: employment.id,
+		work_date: date,
+		shift_definition_id: null,
+		worked_intervals: [{ start: `${date}T${start}:00+07:00`, end: `${date}T${end}:00+07:00` }],
+		approval_id: null
+	});
+};
+const workLinesId = (slip: BuiltPayslip) =>
+	slip.adjustments
+		.filter((row) => row.family === 'WORK_DAY')
+		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
+		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
+
+test('Indonesia — the PP 35/2021 Pasal 31 ladder on an ordinary day, a rest day and a holiday', () => {
+	// Rp 17,300,000 a month is Rp 100,000 an hour (Pasal 32(1): 1/173). The fixture week is five
+	// days of 09:00–18:00 with an hour's break — Pasal 21(2)(b), 8 hours a day and 40 a week — and
+	// both Saturday and Sunday are `REST`, which is what Pasal 31(3) prices for a five-day worker.
+	const { slips } = buildStatutory(
+		{
+			code: 'ID',
+			period: '2026-01',
+			region: 'Kabupaten Bekasi',
+			riskClass: 'III',
+			people: [{ key: 'ID-OT', wage: 17_300_000, marital_status: 'SINGLE' }]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push({
+				id: 'holiday-2026-01-01',
+				company_id: COMPANY_ID,
+				date: '2026-01-01',
+				name: 'Tahun Baru 2026 Masehi',
+				replaces: null,
+				source: null,
+				published_at: '2025-12-01T00:00:00.000Z',
+				approval_id: null
+			});
+			punchId(world, 'ID-OT', '2026-01-01', '09:00', '18:00'); // Thursday holiday, a whole shift
+			punchId(world, 'ID-OT', '2026-01-05', '09:00', '20:00'); // Monday, two hours past the shift
+			punchId(world, 'ID-OT', '2026-01-10', '09:00', '18:30'); // Saturday rest day, 9.5 hours clocked
+			punchId(world, 'ID-OT', '2026-01-17', '09:00', '12:00'); // Saturday rest day, three hours
+		}
+	);
+	// Pasal 31(1): the first overtime hour 1.5×, every further hour 2×.
+	// Pasal 31(3): on a rest day or holiday the first 8 hours 2×, the 9th 3×, the 10th–12th 4×.
+	// UU 13/2003 Ps.79(2)(a): a 30-minute break is owed after four continuous hours and is not
+	// working time, so the 9.5 clocked rest-day hours are 9 payable ones; the holiday's shift has
+	// its hour of break inside the clock (09:00–18:00 is eight hours worked).
+	assert.deepEqual(workLinesId(slips.get('ID-OT')!), [
+		['2026-01-01', 'OT-2.0X', 8, 1_600_000],
+		['2026-01-05', 'OT-1.5X', 1, 150_000],
+		['2026-01-05', 'OT-2.0X', 1, 200_000],
+		['2026-01-10', 'OT-2.0X', 8, 1_600_000],
+		['2026-01-10', 'OT-3.0X', 1, 300_000],
+		['2026-01-17', 'OT-2.0X', 3, 600_000]
+	]);
+	// PPh 21 reads the overtime (PMK 168/2023 Ps.15, gross); the BPJS bases are the wage alone
+	// (PP 44/2015 Ps.19(2), PP 45/2015 Ps.29(1): upah pokok + tunjangan tetap).
+	const charge = (code: string) =>
+		slips.get('ID-OT')!.statutory.find((row) => row.scheme_code === code)!;
+	assert.equal(charge('PPH21').base_amount, 17_300_000 + 4_450_000);
+	assert.equal(charge('JHT').base_amount, 17_300_000);
+	assert.equal(charge('KESEHATAN').base_amount, 17_300_000);
+});
+
+test('Indonesia — a rest-day stint shorter than a normal day is priced on its payable hours, not the raw clock', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'ID',
+			period: '2026-01',
+			region: 'Kabupaten Bekasi',
+			riskClass: 'III',
+			people: [{ key: 'ID-OT', wage: 17_300_000, marital_status: 'SINGLE' }]
+		},
+		(world) => punchId(world, 'ID-OT', '2026-01-10', '09:00', '13:20') // Saturday: 4h20 clocked
+	);
+	// UU 13/2003 Ps.79(2)(a): 4h20 crosses four continuous hours, so the thirty-minute break the day
+	// owed and did not take is not working time; 3h50 floors to 3.5 payable hours at Pasal 31(3)'s
+	// 2× = 700,000. The bands consume the payable hours, never the raw clock (4.33 h, 866,667).
+	assert.deepEqual(workLinesId(slips.get('ID-OT')!), [['2026-01-10', 'OT-2.0X', 3.5, 700_000]]);
+});
+
+test('Indonesia — the 30-minute break after four continuous hours governs every worker (UU 13/2003 Ps.79(2)(a))', () => {
+	// "Paling sedikit setengah jam setelah bekerja selama 4 jam terus menerus, dan waktu istirahat
+	// tersebut tidak termasuk jam kerja" — the trigger is the four continuous hours worked, not a
+	// continual-attendance job class, and the break is not working time. The seeded rule had been
+	// conjoined with the Malaysian `continuous_attendance` proviso, which no day asserts, so it
+	// governed nobody and no shortfall was ever deducted.
+	for (const version of settingsVersions('ID')) {
+		const assessed = restBreakAssessment({
+			intervals: [{ start: '2026-06-15T09:00:00.000+07:00', end: '2026-06-15T14:30:00.000+07:00' }],
+			breakMinutes: 0,
+			breaks: version.work_rules.breaks
+		});
+		assert.equal(assessed.rule?.counts_as_worked_time, false);
+		assert.equal(assessed.requiredMinutes, 30);
+		assert.equal(assessed.shortfallMinutes, 30);
+		// Four hours exactly cross nothing.
+		const four = restBreakAssessment({
+			intervals: [{ start: '2026-06-15T09:00:00.000+07:00', end: '2026-06-15T13:00:00.000+07:00' }],
+			breakMinutes: 0,
+			breaks: version.work_rules.breaks
+		});
+		assert.equal(four.rule, null);
+	}
+});
+
+test('Indonesia — the overtime ceilings are 4 hours a day and 18 a week (PP 35/2021 Pasal 26(1))', () => {
+	for (const version of settingsVersions('ID')) {
+		const limits = Object.fromEntries(
+			version.work_rules.limits.map((limit) => [
+				`${limit.period}:${limit.measure}`,
+				limit.max_hours
+			])
+		);
+		assert.deepEqual(limits, { 'DAY:OVERTIME_HOURS': 4, 'WEEK:OVERTIME_HOURS': 18 });
+		assert.deepEqual(version.work_rules.weekly_rest_rule, {
+			max_consecutive_work_days: 6,
+			discharged_by: 'REST_OR_OFF'
+		});
+		assert.equal(version.work_rules.night_premium ?? null, null);
+	}
+});
+
+test('Indonesia — the statutory leave ladder on every version', () => {
+	// UU 13/2003 Ps.79(3) (12 days after 12 months), Ps.81(1) (menstrual, 2 days a month),
+	// Ps.82(1) with UU 4/2024 Ps.4(2)(a) (maternity 3 months = 91 days), Ps.82(2) (miscarriage 1.5
+	// months = 45 days), Ps.93(4)(a)–(g) (marriage 3, child's marriage 2, circumcision 2, baptism 2,
+	// paternity 2, immediate bereavement 2, household bereavement 1), Ps.93(3) (sick leave runs to
+	// termination). The SKB's 8 cuti bersama days.
+	const expected: Record<string, [string, number | null]> = {
+		ANNUAL_LEAVE: ['employment.service_months >= 12', 12],
+		MENSTRUAL_LEAVE: ['', 2],
+		MATERNITY_LEAVE: ['', 91],
+		MISCARRIAGE_LEAVE: ['', 45],
+		MARRIAGE_LEAVE: ['', 3],
+		CHILD_MARRIAGE_LEAVE: ['', 2],
+		CHILD_CIRCUMCISION_LEAVE: ['', 2],
+		CHILD_BAPTISM_LEAVE: ['', 2],
+		PATERNITY_LEAVE: ['', 2],
+		BEREAVEMENT_LEAVE: ['', 2],
+		BEREAVEMENT_HOUSEHOLD_LEAVE: ['', 1],
+		JOINT_LEAVE: ['', 8],
+		MEDICAL_LEAVE: ['', null]
+	};
+	for (const version of settingsVersions('ID')) {
+		const rows = leaveCatalogue('ID').filter((row) => row.settings_id === version.id);
+		for (const [code, [eligibility, days]] of Object.entries(expected)) {
+			const row = rows.find((candidate) => candidate.code === code);
+			assert.ok(row, `${code} on ${version.name}`);
+			const band = row.entitlement.bands.at(-1);
+			assert.equal(band?.eligibility ?? '', eligibility, `${code} eligibility`);
+			assert.equal(band?.days ?? null, days, `${code} days`);
+			if (days === null) assert.equal(row.entitlement.availability, 'UNLIMITED');
+			assert.equal(row.is_npl, false, `${code} is paid`);
+		}
+		assert.equal(
+			rows.find((row) => row.code === 'MENSTRUAL_LEAVE')?.entitlement.availability,
+			'MONTHLY'
+		);
+		assert.equal(
+			rows.find((row) => row.code === 'MATERNITY_LEAVE')?.eligibility,
+			'employee.gender == "FEMALE"'
+		);
+	}
 });

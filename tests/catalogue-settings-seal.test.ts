@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import claimHooks from '../src/collections/claim_catalogue/+hooks.ts';
-import allowanceHooks from '../src/collections/allowance_catalogue/+hooks.ts';
-import paymentHooks from '../src/collections/payment_catalogue/+hooks.ts';
-import loanHooks from '../src/collections/loan_catalogue/+hooks.ts';
+import claimCatalogue from '../src/collections/claim_catalogue/+collection.ts';
+import allowanceCatalogue from '../src/collections/allowance_catalogue/+collection.ts';
+import loanCatalogue from '../src/collections/loan_catalogue/+collection.ts';
+import { transformOne } from './helpers/transform.ts';
 
-const api = {
-	db: {
-		jurisdiction_settings: {
-			findFirst: ({ where }: { where: { id: { eq: string } } }) =>
-				Effect.succeed({
-					id: where.id.eq,
+const db = {
+	jurisdiction_settings: {
+		findMany: ({ where }: { where: { id: { in: readonly string[] } } }) =>
+			Effect.succeed(
+				where.id.in.map((id) => ({
+					id,
 					code: 'PUB',
 					name: 'Public fixture',
-					sealed_at: where.id.eq === 'sealed' ? '2026-01-01T00:00:00.000Z' : null
-				})
-		}
+					sealed_at: id === 'sealed' ? '2026-01-01T00:00:00.000Z' : null
+				}))
+			)
 	}
 };
 // A loan row must also recover (NET/SUBTRACT); the other families ignore the two columns.
@@ -29,21 +29,17 @@ const catalogue = {
 };
 const sealed = /is sealed, so it cannot be created, changed or deleted/;
 
-for (const [family, hooks] of [
-	['Claim', claimHooks],
-	['Allowance', allowanceHooks],
-	['Payment', paymentHooks],
-	['Loan', loanHooks]
+for (const [family, collection] of [
+	['Claim', claimCatalogue],
+	['Allowance', allowanceCatalogue],
+	['Loan', loanCatalogue]
 ] as const) {
 	const mutate = (input: Record<string, unknown>, existing?: Record<string, unknown>) =>
-		Effect.runSync(hooks.mutate.perRecord.before.handler({ input, existing, api } as never));
-	const remove = (existing: Record<string, unknown>) =>
-		Effect.runSync(hooks.delete.perRecord.before.handler({ existing, api } as never));
+		transformOne(collection, input, existing, db);
 
-	test(`${family} catalogue history cannot be created, changed, deleted or moved across a seal`, () => {
+	test(`${family} catalogue history cannot be created, changed or moved across a seal`, () => {
 		assert.throws(() => mutate(catalogue), sealed);
 		assert.throws(() => mutate({ code: 'CORRECTED' }, catalogue), sealed);
-		assert.throws(() => remove(catalogue), sealed);
 		assert.throws(() => mutate({ settings_id: 'draft' }, catalogue), sealed);
 		assert.throws(
 			() => mutate({ settings_id: 'sealed' }, { ...catalogue, settings_id: 'draft' }),
@@ -58,6 +54,5 @@ for (const [family, hooks] of [
 		assert.deepEqual(mutate({ settings_id: 'next-draft' }, draft), {
 			settings_id: 'next-draft'
 		});
-		assert.doesNotThrow(() => remove(draft));
 	});
 }

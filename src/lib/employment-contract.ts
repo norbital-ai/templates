@@ -1,4 +1,4 @@
-import { refuse, type Api } from '@norbital-ai/bolt/authoring';
+import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import {
 	coversDate,
@@ -7,15 +7,17 @@ import {
 } from '../collections/payroll_runs/lib/effective.js';
 import { dateKey } from './iso-day.js';
 import type { WorkspaceRow } from '$bolt/types.js';
-import type { WorkspaceSchema } from '$bolt/types.js';
 import type { LeaveCharge } from '../datatypes/leave_charges/+definition.js';
-import type { LeaveEvent } from '../datatypes/leave_event/+definition.js';
+import {
+	leaveActivityOf,
+	normaliseLeaveDays,
+	type LeaveEntryActivity
+} from './leave/activity-fields.js';
 
 const CONTRACT_INPUT_SOURCES = [
 	'employment_terms',
 	'claim_requests',
-	'allowance_requests',
-	'payment_requests',
+	'allowances',
 	'loans',
 	'loan_repayments',
 	'leave_entries',
@@ -25,21 +27,17 @@ const CONTRACT_INPUT_SOURCES = [
 
 type ContractScoped = { readonly employment_id?: string | null };
 type ContractReader = {
-	readonly findFirst: (query: {
-		readonly where: { readonly employment_id: { readonly eq: string } };
-		readonly columns: { readonly id: true };
-	}) => Effect.Effect<unknown>;
-	readonly findPending: (query: {
-		readonly where: { readonly employment_id: { readonly eq: string } };
+	readonly findMany: (query: {
+		readonly where: { readonly employment_id: { readonly in: ReadonlyArray<string> } };
+		readonly columns: { readonly employment_id: true; readonly approval_id: true };
 		readonly limit: number;
-	}) => Effect.Effect<readonly unknown[]>;
+	}) => Effect.Effect<ReadonlyArray<{ employment_id: string; approval_id: string | null }>>;
 };
 
 const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> = {
 	employment_terms: 'employment terms',
 	claim_requests: 'a claim',
-	allowance_requests: 'an allowance',
-	payment_requests: 'a payment',
+	allowances: 'an allowance',
 	loans: 'a loan',
 	loan_repayments: 'a loan repayment',
 	leave_entries: 'a leave entry',
@@ -47,33 +45,69 @@ const LABEL: Readonly<Record<(typeof CONTRACT_INPUT_SOURCES)[number], string>> =
 	payslips: 'a payslip'
 };
 
+const LIMIT = 20_000;
+
+type ContractReadDb = Pick<CollectionTransformDatabase, (typeof CONTRACT_INPUT_SOURCES)[number]>;
+
+/** What references each contract: the first sealing consumer, and whether one awaits approval. */
+type ContractReferences = ReadonlyMap<
+	string,
+	{ readonly sealedBy: string | null; readonly pending: boolean }
+>;
+
 /**
  * A contract is sealed by the rows that reference it. There is no separate seal log any more: a
- * contract whose every consumer has been removed is editable again (2026-09-09 inlining).
+ * contract whose every consumer has been removed is editable again (2026-09-09 inlining). One
+ * wave: the eight source reads, together, for every contract the batch names.
  */
-export function assertContractUnreferenced(api: Api<WorkspaceSchema>, employmentId: string) {
-	return Effect.gen(function* () {
-		for (const source of CONTRACT_INPUT_SOURCES) {
-			// Ten collections, one shape: the union of their clients is not callable, the reader is.
-			const reader = api.db[source] as unknown as ContractReader;
-			const stored = yield* reader.findFirst({
-				where: { employment_id: { eq: employmentId } },
-				columns: { id: true }
-			});
-			if (stored)
-				refuse(
-					`This employment contract is sealed by ${LABEL[source]}. Record its departure; create a new contract for a rehire.`
-				);
-			const pending = yield* reader.findPending({
-				where: { employment_id: { eq: employmentId } },
-				limit: 1
-			});
-			if (pending.length)
-				refuse(
-					'An event awaiting approval references this employment contract. Resolve it before changing the contract.'
-				);
+export function contractReferences(
+	db: ContractReadDb,
+	employmentIds: ReadonlyArray<string>
+): Effect.Effect<ContractReferences> {
+	const ids = [...new Set(employmentIds)];
+	if (ids.length === 0) return Effect.succeed(new Map());
+	return Effect.map(
+		Effect.all(
+			CONTRACT_INPUT_SOURCES.map((source) =>
+				// Eight collections, one shape: the union of their clients is not callable, the reader is.
+				(db[source] as unknown as ContractReader).findMany({
+					where: { employment_id: { in: ids } },
+					columns: { employment_id: true, approval_id: true },
+					limit: LIMIT
+				})
+			),
+			{ concurrency: 'unbounded' }
+		),
+		(results) => {
+			const references = new Map<string, { sealedBy: string | null; pending: boolean }>();
+			for (const [index, rows] of results.entries()) {
+				const source = CONTRACT_INPUT_SOURCES[index]!;
+				for (const row of rows) {
+					const entry = references.get(row.employment_id) ?? { sealedBy: null, pending: false };
+					entry.sealedBy ??= LABEL[source];
+					if (row.approval_id != null) entry.pending = true;
+					references.set(row.employment_id, entry);
+				}
+			}
+			return references;
 		}
-	});
+	);
+}
+
+/** Refuses changing a contract that any consumer names. */
+export function assertContractUnreferenced(
+	references: ContractReferences,
+	employmentId: string
+): void {
+	const entry = references.get(employmentId);
+	if (entry?.sealedBy != null)
+		refuse(
+			`This employment contract is sealed by ${entry.sealedBy}. Record its departure; create a new contract for a rehire.`
+		);
+	if (entry?.pending)
+		refuse(
+			'An event awaiting approval references this employment contract. Resolve it before changing the contract.'
+		);
 }
 
 /** The two rules every employee event obeys: it names a contract, and it never changes contract. */
@@ -89,74 +123,109 @@ export function boundToContract<T extends ContractScoped>(input: T, existing?: C
 
 /** The date through which one Leave activity consumed employment terms; null when it did not. */
 export function leaveTermsThrough(
-	event: LeaveEvent,
+	fields: LeaveEntryActivity,
 	charges: readonly LeaveCharge[],
 	exit: string | null
 ) {
-	if (event.kind === 'TIME_OFF')
+	const entry = normaliseLeaveDays({ ...fields, charges });
+	const activity = leaveActivityOf(entry);
+	if (activity === 'TIME_OFF')
 		return (
 			charges
 				.map((charge) => charge.date)
 				.toSorted()
 				.at(-1) ?? null
 		);
+	const candidates = [entry.effective_on, entry.to_date].filter(
+		(value): value is string => value != null
+	);
 	const date =
-		event.kind === 'ENCASHMENT'
-			? [event.effective_on, event.source_window.end].toSorted()[0]!
-			: event.kind === 'CARRY_FORWARD'
-				? event.source_window.end
-				: event.kind === 'ADJUSTMENT' && event.days < 0
-					? event.effective_on
+		activity === 'ENCASHMENT'
+			? (candidates.toSorted()[0] ?? null)
+			: activity === 'CARRY_FORWARD'
+				? (entry.to_date ?? null)
+				: activity === 'ADJUSTMENT' && (entry.days ?? 0) < 0
+					? (entry.effective_on ?? null)
 					: null;
 	return date == null ? null : [date, ...(exit == null ? [] : [exit])].toSorted()[0]!;
 }
 
-const LIMIT = 20_000;
-
 /**
- * The latest date on which this contract's terms were consumed, read off the consumers themselves:
+ * The latest date on which each contract's terms were consumed, read off the consumers themselves:
  * Work consumes its work date, approved Leave its charge or debit valuation date, a committed
- * payslip its `terms_through`. Held proposals protect the same dates until resolved.
+ * payslip its `terms_through`. Held proposals protect the same dates until resolved. One wave for
+ * every contract the batch names.
  */
-export function consumedTermsThrough(api: Api<WorkspaceSchema>, employmentId: string) {
-	return Effect.gen(function* () {
-		const where = { employment_id: { eq: employmentId } };
-		const employment = yield* api.db.employments.findFirst({
-			where: { id: { eq: employmentId } },
-			columns: { effective_range: true }
-		});
-		const exit = readRange(employment?.effective_range)?.end;
-		const exitKey = exit == null ? null : dateKey(exit);
-		const dates: string[] = [];
-		const work = yield* api.db.work_days.findFirst({
-			where,
-			columns: { work_date: true },
-			orderBy: { work_date: 'desc' }
-		});
-		if (work) dates.push(dateKey(work.work_date));
-		const pendingWork = yield* api.db.work_days.findPending({ where, limit: LIMIT });
-		const leave = yield* api.db.leave_entries.findMany({
-			where,
-			columns: { event: true, charges: true },
-			limit: LIMIT
-		});
-		const pendingLeave = yield* api.db.leave_entries.findPending({ where, limit: LIMIT });
-		if (pendingWork.length >= LIMIT || leave.length >= LIMIT || pendingLeave.length >= LIMIT)
-			refuse('Too many inputs to verify employment term history.');
-		for (const row of pendingWork) if (row.work_date != null) dates.push(dateKey(row.work_date));
-		for (const row of [...leave, ...pendingLeave]) {
-			if (row.event == null || row.charges == null) continue;
-			const through = leaveTermsThrough(row.event, row.charges, exitKey);
-			if (through != null) dates.push(through);
+export function consumedTermsThrough(
+	db: Pick<CollectionTransformDatabase, 'employments' | 'work_days' | 'leave_entries' | 'payslips'>,
+	employmentIds: ReadonlyArray<string>
+): Effect.Effect<ReadonlyMap<string, string>> {
+	const ids = [...new Set(employmentIds)];
+	if (ids.length === 0) return Effect.succeed(new Map());
+	const where = { employment_id: { in: ids } };
+	return Effect.map(
+		Effect.all(
+			[
+				db.employments.findMany({
+					where: { id: { in: ids } },
+					columns: { id: true, effective_range: true },
+					limit: ids.length
+				}),
+				db.work_days.findMany({
+					where,
+					columns: { employment_id: true, work_date: true },
+					limit: LIMIT
+				}),
+				db.leave_entries.findMany({
+					where,
+					columns: {
+						employment_id: true,
+						from_date: true,
+						to_date: true,
+						days: true,
+						encash_days: true,
+						as_adjustment_entry: true,
+						effective_on: true,
+						destination_from: true,
+						charges: true
+					},
+					limit: LIMIT
+				}),
+				db.payslips.findMany({
+					where,
+					columns: { employment_id: true, terms_through: true },
+					limit: LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		),
+		([employments, work, leave, payslips]) => {
+			if (work.length >= LIMIT || leave.length >= LIMIT || payslips.length >= LIMIT)
+				refuse('Too many inputs to verify employment term history.');
+			const exitOf = new Map(
+				employments.map((row) => {
+					const exit = readRange(row.effective_range)?.end;
+					return [row.id, exit == null ? null : dateKey(exit)] as const;
+				})
+			);
+			const through = new Map<string, string>();
+			const note = (employmentId: string, date: string | null) => {
+				if (date == null || date === '') return;
+				const known = through.get(employmentId);
+				if (known == null || date > known) through.set(employmentId, date);
+			};
+			for (const row of work) note(row.employment_id, dateKey(row.work_date));
+			for (const row of leave) {
+				if (row.charges == null) continue;
+				note(
+					row.employment_id,
+					leaveTermsThrough(row, row.charges, exitOf.get(row.employment_id) ?? null)
+				);
+			}
+			for (const row of payslips) note(row.employment_id, dateKey(row.terms_through));
+			return through;
 		}
-		const payslip = yield* api.db.payslips.findFirst({
-			where,
-			columns: { terms_through: true },
-			orderBy: { terms_through: 'desc' }
-		});
-		if (payslip) dates.push(dateKey(payslip.terms_through));
-		return dates.toSorted().at(-1) ?? null;
-	});
+	);
 }
 
 /** The child facts whose legal span holds on `date`; a null span is born → ongoing. */

@@ -31,7 +31,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
-import { allowanceRequest, paymentRequest } from '../src/lib/payroll/money.ts';
+import { allowanceEntryRequest, claimRequest } from '../src/lib/payroll/money.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { workPayItems } from '../src/lib/payroll/work-lines.ts';
 
@@ -89,7 +89,12 @@ const JURISDICTION = {
 	code: 'MY',
 	jurisdiction_code: 'MY',
 	name: 'Malaysia',
-	payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+	payroll: {
+		currency: 'MYR',
+		timezone: 'Asia/Kuala_Lumpur',
+		tax_year_start_month: 1,
+		allowance_npl_prorates: false
+	},
 	wages: { by_region: {} },
 	sources: { urls: [] },
 	work_rules: WORK,
@@ -281,6 +286,8 @@ const terms = (overrides = {}) => ({
 	employment_id: 'emp-1',
 	base_salary: { value: 3451, currency: 'MYR' },
 	pay_frequency: 'MONTHLY',
+	// The six-day pattern's own week: the divisor every rate below is built from.
+	agreed_days_per_week: 6,
 	shift_pattern_id: 'pattern-1',
 	statutory_work_category: 'NON_MANUAL',
 	work_classification: 'NON_MANUAL',
@@ -460,14 +467,14 @@ test('an entry settles by the money cut-off, not by the month it is dated in', (
 	// day its economics belong to in its own column, and the cutoff reads the one answer the
 	// builder derived from it.
 	const entry = (date) =>
-		paymentRequest({
+		claimRequest({
 			id: `entry-${date}`,
 			employment_id: 'emp-1',
 			catalogue_id: TRANSPORT.id,
 			pay_period: null,
-			effective_on: `${date}T00:00:00.000Z`,
+			incurred_on: date,
 			amount: 240,
-			reason: 'travel'
+			description: 'travel'
 		});
 
 	assert.equal(amountOf(measure({ payRequests: [entry('2026-03-20')] }), 'TRANSPORT'), 240);
@@ -499,14 +506,14 @@ test('an entry produces an adjustment naming it, and nothing produces two', () =
 	// One entry, one adjustment: `measureEntry` measures exactly one captured input, so the
 	// arbitrary provenance the old summed line had has nowhere left to be made.
 	const entry = (id, amount) =>
-		paymentRequest({
+		claimRequest({
 			id,
 			employment_id: 'emp-1',
 			catalogue_id: TRANSPORT.id,
 			pay_period: '2026-03',
-			effective_on: '2026-03-05T00:00:00.000Z',
+			incurred_on: '2026-03-05',
 			amount,
-			reason: 'travel'
+			description: 'travel'
 		});
 	const measured = measure({
 		payRequests: [entry('en-a', 240), entry('en-b', 60)]
@@ -515,8 +522,8 @@ test('an entry produces an adjustment naming it, and nothing produces two', () =
 	assert.deepEqual(
 		transport.map((row) => [row.input.family, row.input.id, row.amount]),
 		[
-			['PAYMENT', 'en-a', 240],
-			['PAYMENT', 'en-b', 60]
+			['CLAIM', 'en-a', 240],
+			['CLAIM', 'en-b', 60]
 		]
 	);
 	// And nothing about them landed in base: an entry is a record somebody can edit, which is
@@ -736,14 +743,15 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		catalogueComponents: [...COMPONENT_CATALOGUE, night],
 		nightPremium
 	};
-	// An ordinary day clocked 20:00–02:00: six overtime hours, four of them inside the window.
+	// An ordinary day clocked 14:30–02:00: ten and a half hours net of the break, two and a half
+	// beyond the normal eight, and four of the clocked hours inside the window.
 	const late = measure(
 		{
 			workDays: [
 				{
-					...clock('2026-03-10', '20:00', '23:59'),
+					...clock('2026-03-10', '14:30', '23:59'),
 					worked_intervals: [
-						{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
+						{ start: '2026-03-10T14:30:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
 					]
 				}
 			]
@@ -757,8 +765,8 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 	assert.equal(line?.input.id, 'day-2026-03-10');
 	assert.equal(
 		amountOf(late, OT_ORDINARY),
-		149.31,
-		'6 h × 1.5 × 16.59: overtime itself is unchanged'
+		62.21,
+		'2.5 h × 1.5 × 16.59: overtime itself is unchanged'
 	);
 	// A day clocked to its shift earns nothing in the window, and no line at all.
 	assert.equal(
@@ -1118,30 +1126,27 @@ test('a whole month is still one recorded segment, not an absence of one', () =>
 	]);
 });
 
-test('a standing allowance prorates with the employment; a one-off does not', () => {
-	// The allowance's own effective range is its cadence: an ALLOWANCE event pays every period the
-	// range covers, and no other arm prorates at all.
-	const standing = allowanceRequest(
-		{
-			id: 'entry-recurring',
-			employment_id: 'emp-1',
-			catalogue_id: TRANSPORT.id,
-			pay_period: null,
-			amount: 310,
-			recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
-		},
-		{ recurring: true, prorates: true, on_day: null }
-	);
-	// A different family, not a different payload on the same one: proration is a property of the
-	// collection now, so the contrast the test draws is between two tables rather than two arms.
-	const oneOff = paymentRequest({
+test('a standing allowance prorates with the employment; a claim does not', () => {
+	// The allowance's own window is its cadence: it pays every period the window covers, on the
+	// same basis as basic salary, and no other arm prorates at all.
+	const standing = allowanceEntryRequest({
+		id: 'entry-recurring',
+		employment_id: 'emp-1',
+		catalogue_id: TRANSPORT.id,
+		amount: 310,
+		effective_from: '2020-01-01',
+		effective_to: null,
+		as_adjustment_entry: false,
+		approval_id: null
+	});
+	const oneOff = claimRequest({
 		id: 'entry-once',
 		employment_id: 'emp-1',
 		catalogue_id: TRANSPORT.id,
 		pay_period: null,
 		amount: 310,
-		effective_on: '2026-03-01T00:00:00.000Z',
-		reason: 'x'
+		incurred_on: '2026-03-01',
+		description: 'x'
 	});
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
@@ -1158,6 +1163,6 @@ test('a standing allowance prorates with the employment; a one-off does not', ()
 	assert.equal(
 		amountOf(measure({ ...joined, payRequests: [oneOff] }), 'TRANSPORT'),
 		310,
-		'a one-off is a whole amount for a moment in time and is never divided by a month'
+		'a claim is a whole amount for a moment in time and is never divided by a month'
 	);
 });

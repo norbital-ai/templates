@@ -6,7 +6,9 @@ import {
 	patternAnchor,
 	patternRosterCodeId,
 	patternRosterCodeIds,
+	patternWorkDaysPerWeek,
 	patternWorkload,
+	shiftAssignmentRefusal,
 	termPattern,
 	termPatternRow
 } from '../src/lib/scheduling/work-pattern.ts';
@@ -150,4 +152,27 @@ test('a terms read carries the pattern row with its effective range, the cycle a
 		'2019-09-12'
 	);
 	assert.equal(patternAnchor({}), null);
+});
+
+test('the shift assignment: agreed days are 1–7 and a named cycle works them every week', () => {
+	const five = {
+		id: 'p5',
+		code: 'FIVE',
+		pattern: { days: [DAY, DAY, DAY, DAY, DAY, OFF, REST].map(dayOf) }
+	};
+	const twoWeeks = {
+		id: 'p56',
+		code: 'FIVE-SIX',
+		pattern: { days: [...five.pattern.days, ...[DAY, DAY, DAY, DAY, DAY, DAY, REST].map(dayOf)] }
+	};
+	assert.deepEqual(patternWorkDaysPerWeek(twoWeeks.pattern, codes), [5, 6]);
+	assert.deepEqual(patternWorkDaysPerWeek(null, codes), []);
+	const fit = (agreedDaysPerWeek, pattern) =>
+		shiftAssignmentRefusal({ agreedDaysPerWeek, pattern, rosterCodeById: codes });
+	assert.equal(fit(5, five), null);
+	assert.equal(fit(6, null), null, 'rostered: any agreed week, no cycle to fit');
+	assert.match(fit(6, five), /FIVE works 5 days in a week; the contract agrees 6/);
+	assert.match(fit(5, twoWeeks), /works 6 days in a week; the contract agrees 5/);
+	for (const bad of [0, 8, 5.5, '5', null, undefined])
+		assert.match(fit(bad, null), /whole number from 1 to 7/);
 });

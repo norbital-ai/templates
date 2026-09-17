@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {
 	asRecord,
 	bearerHeaders,
-	mutationPush,
 	postGuestCommand,
 	requireAccepted,
 	requireOk
 } from '@norbital-ai/test-utilities';
+import { graphOf, writeGraph } from './helpers/write.ts';
 import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -17,30 +17,20 @@ import {
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
-const MUTATE = 'collections.mutate';
-
 /**
  * The write contract, end to end through the same guest command the app uses: a
- * scheme's base may name only catalogue rows of its own settings version, and a scheme rule may
- * name only a `produced.<code>` this version carries. Both refusals happen at the write; the
- * accepted control proves the gate is not simply refusing everything.
+ * scheme's `assessed_on` formula may name only catalogue rows of its own settings version, and a
+ * scheme rule may name only a `produced.<code>` this version carries. Both refusals happen at the
+ * write; the accepted control proves the gate is not simply refusing everything.
  */
 test(
-	'the write gates refuse a base entry the version lacks and an unknown producer, and accept the version’s own',
+	'the write gates refuse a formula naming a row the version lacks and an unknown producer, and accept the version’s own',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS * 2 },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-write-gates');
 		try {
-			const command = (
-				body: Parameters<typeof mutationPush>[1],
-				bases: Parameters<typeof mutationPush>[2] = []
-			) =>
-				postGuestCommand(
-					session.host.baseUrl,
-					MUTATE,
-					mutationPush(session.schemaFingerprint, body, bases),
-					bearerHeaders(session.credential)
-				);
+			const command = (body: Parameters<typeof graphOf>[0], bases = []) =>
+				writeGraph(session, body, bases);
 			const rowVersion = async (collection: string, id: string): Promise<number> => {
 				const [row] = (await session.query(`select row_version from ${collection} where id = $1`, [
 					id
@@ -64,25 +54,25 @@ test(
 				).id
 			);
 			const [draftScheme] = (await session.query(
-				'select id, base from statutory_contributions where settings_id = $1 and code = $2',
+				'select id, assessed_on from statutory_contributions where settings_id = $1 and code = $2',
 				[draftId, 'PUB-EPF']
-			)) as ReadonlyArray<{ readonly id: string; readonly base: Record<string, unknown> }>;
+			)) as ReadonlyArray<{ readonly id: string; readonly assessed_on: string }>;
 			const [draftLeave] = (await session.query(
 				'select id from leave_catalogue where settings_id = $1 and code = $2',
 				[draftId, 'ANNUAL']
 			)) as Row[];
 			assert.ok(draftScheme && draftLeave, 'the draft carries the scheme and catalogue row');
 
-			const withEntry = (code: string) => ({
-				...draftScheme.base,
-				entries: [{ family: 'LEAVE', code }]
-			});
+			const withEntry = (code: string) =>
+				`${draftScheme.assessed_on} + catalog('ALLOWANCE', {'pick': ['${code}']})`;
 			const baseWrite = async (code: string) =>
 				command(
 					{
 						action: 'mutate',
 						collection: 'statutory_contributions',
-						rows: [{ action: 'update', values: { id: draftScheme.id, base: withEntry(code) } }]
+						rows: [
+							{ action: 'update', values: { id: draftScheme.id, assessed_on: withEntry(code) } }
+						]
 					},
 					[
 						{
@@ -92,7 +82,7 @@ test(
 					]
 				);
 
-			// A leave code this version does not carry. The write refuses it by name.
+			// An allowance code this version does not carry. The write refuses it by name.
 			const foreign = asRecord(
 				(await baseWrite('NOT_A_LEAVE_OF_THIS_VERSION')).value,
 				'unknown entry'
@@ -110,10 +100,10 @@ test(
 							{
 								action: 'create',
 								values: {
-									id: crypto.randomUUID(),
 									settings_id: draftId,
 									code: 'GHOST_DEP',
 									name: 'Ghost dependency',
+									assessed_on: 'BASE',
 									rules: [{ when: 'true', employee: 'produced.NOPE.employee', employer: '0.0' }]
 								}
 							}
@@ -125,8 +115,8 @@ test(
 			assert.equal(ghost.resolution, 'rejected', JSON.stringify(ghost));
 			assert.match(String(ghost.message ?? ''), /NOPE/);
 
-			// The draft's own leave row is accepted.
-			requireAccepted((await baseWrite('ANNUAL')).value, 'own-version entry');
+			// The draft's own allowance row is accepted.
+			requireAccepted((await baseWrite('TRANSPORT')).value, 'own-version entry');
 		} finally {
 			await session.stop();
 		}

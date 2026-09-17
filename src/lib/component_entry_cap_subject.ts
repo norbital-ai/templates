@@ -3,7 +3,7 @@
  *
  * An entitlement band is gated by an `eligibility` expression over the person — grade, department,
  * service, children, the company's region — so the ceiling is not a property of the component
- * alone. MEASURE builds this context from the bundle it already gathered; a write hook has to read
+ * alone. MEASURE builds this context from the bundle it already gathered; a transform has to read
  * it, and reads exactly the five things `personContext` consumes and nothing else.
  *
  * `null` means the employment is not on file, which is a different refusal made elsewhere: this
@@ -11,7 +11,7 @@
  */
 
 import { Effect } from 'effect';
-import { refuse } from '@norbital-ai/bolt/authoring';
+import { refuse, type CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
 import { personContext, type PersonContext } from '../collections/payroll_runs/lib/eligibility.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
 import { childrenOn, resolveEmployment } from './employment-contract.js';
@@ -38,45 +38,42 @@ type CapSubject = {
 	readonly label: string;
 };
 
-export function capSubject(
-	// The authored api, narrowed to the reads this makes.
-	api: {
-		readonly db: {
-			readonly employments: {
-				readonly findFirst: (input: unknown) => Effect.Effect<Record<string, unknown> | undefined>;
-			};
-			readonly employees: {
-				readonly findFirst: (input: unknown) => Effect.Effect<Record<string, unknown> | undefined>;
-			};
-			readonly employment_terms: {
-				readonly findMany: (input: unknown) => Effect.Effect<readonly Record<string, unknown>[]>;
-			};
-			readonly companies: {
-				readonly findFirst: (input: unknown) => Effect.Effect<Record<string, unknown> | undefined>;
-			};
-		};
-	},
-	employmentId: string,
-	asOf: string
-): Effect.Effect<CapSubject | null> {
-	return Effect.gen(function* () {
-		const employment = yield* api.db.employments.findFirst({
-			where: { id: { eq: employmentId }, approval_id: { isNull: true } },
+/** The five things `personContext` consumes, read as one nested query per batch. */
+type CapEmployment = {
+	readonly id: string;
+	readonly employee_id: string;
+	readonly company_id: string;
+	readonly employee_number: string | null;
+	readonly effective_range: unknown;
+	readonly employment_employee: Record<string, unknown> | null;
+	readonly employment_company: { readonly region?: string | null } | null;
+	readonly term_employment: ReadonlyArray<{ readonly effective_range: unknown }>;
+};
+
+/**
+ * The cap subjects of a batch: one read, keyed by the employment ids the inputs name, with the
+ * person, the entity and the terms nested under each employment. `null` for an employment that is
+ * not on file, which is a different refusal made elsewhere: an absent answer must not become a
+ * silent absence of a cap.
+ */
+export function capSubjects(
+	db: Pick<CollectionTransformDatabase, 'employments'>,
+	employmentIds: ReadonlyArray<string>
+): Effect.Effect<(employmentId: string, asOf: string) => CapSubject | null> {
+	const ids = [...new Set(employmentIds.filter((id) => id !== ''))];
+	if (ids.length === 0) return Effect.succeed(() => null);
+	return Effect.map(
+		db.employments.findMany({
+			where: { id: { in: ids }, approval_id: { isNull: true } },
 			columns: {
 				id: true,
 				employee_id: true,
 				company_id: true,
 				employee_number: true,
 				effective_range: true
-			}
-		});
-		if (employment == null) return null;
-		const contract = resolveEmployment(employment as Parameters<typeof resolveEmployment>[0]);
-		const start = contract.effective_range == null ? '' : dateKey(contract.effective_range.start);
-		const [employee, terms, company] = yield* Effect.all(
-			[
-				api.db.employees.findFirst({
-					where: { id: { eq: String(employment.employee_id) } },
+			},
+			with: {
+				employment_employee: {
 					columns: {
 						gender: true,
 						date_of_birth: true,
@@ -87,47 +84,50 @@ export function capSubject(
 						religion: true,
 						children: true
 					}
-				}),
-				api.db.employment_terms.findMany({
-					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
-					limit: LIMIT
-				}),
-				api.db.companies.findFirst({
-					where: { id: { eq: String(employment.company_id) } },
-					columns: { region: true }
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		if (terms.length >= LIMIT)
-			refuse('The contract cap eligibility history exceeds the supported read limit.');
-		const at = (date: string): PersonContext =>
-			personContext({
-				employee: employee as never,
-				employment: { service_start: start },
-				terms: payRequestTerms(
-					terms as readonly { effective_range: unknown }[],
-					contract,
-					date
-				) as never,
-				children: childrenOn(
-					(
-						employee as {
-							children?: readonly { child_birthdate: string; effective_range: unknown }[] | null;
-						} | null
-					)?.children ?? [],
-					date
-				),
-				company: company as never,
-				asOf: date
-			});
-		return {
-			subject: at(asOf),
-			at,
-			label:
-				employment.employee_number == null || employment.employee_number === ''
-					? employmentId
-					: String(employment.employee_number)
-		};
-	});
+				},
+				employment_company: { columns: { region: true } },
+				term_employment: { where: { approval_id: { isNull: true } }, limit: LIMIT }
+			},
+			limit: ids.length
+		}),
+		(rows) => {
+			const byId = new Map(rows.map((row) => [row.id, row as unknown as CapEmployment]));
+			return (employmentId, asOf) => {
+				const employment = byId.get(employmentId);
+				if (employment == null) return null;
+				const terms = employment.term_employment;
+				if (terms.length >= LIMIT)
+					refuse('The contract cap eligibility history exceeds the supported read limit.');
+				const contract = resolveEmployment(employment);
+				const start =
+					contract.effective_range == null ? '' : dateKey(contract.effective_range.start);
+				const employee = employment.employment_employee;
+				const at = (date: string): PersonContext =>
+					personContext({
+						employee: employee as never,
+						employment: { service_start: start },
+						terms: payRequestTerms(terms, contract, date) as never,
+						children: childrenOn(
+							(
+								employee as {
+									children?:
+										readonly { child_birthdate: string; effective_range: unknown }[] | null;
+								} | null
+							)?.children ?? [],
+							date
+						),
+						company: employment.employment_company as never,
+						asOf: date
+					});
+				return {
+					subject: at(asOf),
+					at,
+					label:
+						employment.employee_number == null || employment.employee_number === ''
+							? employmentId
+							: String(employment.employee_number)
+				};
+			};
+		}
+	);
 }

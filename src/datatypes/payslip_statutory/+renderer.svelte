@@ -14,6 +14,7 @@
 	 */
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { schemeLabel } from '../../lib/payroll/scheme-label.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
@@ -65,7 +66,7 @@
 				<tbody>
 					{#each charges as charge, index (`${charge.scheme_code}:${index}`)}
 						<tr class="border-t border-border">
-							<td class="py-1 pr-3">{charge.scheme_code}</td>
+							<td class="py-1 pr-3">{schemeLabel(charge.scheme_code)}</td>
 							<td class="py-1 pr-3 text-right font-medium"
 								>{formatNumeric(charge.employee_amount)}</td
 							>

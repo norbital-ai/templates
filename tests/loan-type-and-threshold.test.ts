@@ -28,12 +28,22 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 function leaverOwing(loanType) {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	world.employments[0].effective_range = { start: '2021-06-01', end: '2026-01-20' };
-	world.allowance_requests.length = 0;
-	const payment = world.payment_requests[0];
-	payment.effective_on = '2026-02-05';
-	payment.pay_period = '2026-02';
+	// A leaver's later money is a claim: a standing allowance ends with the contract.
+	world.allowances = [];
+	world.claim_catalogue.push({ ...world.allowance_catalogue[0], id: 'expense', code: 'EXPENSE' });
+	world.claim_requests.push({
+		id: 'later-claim',
+		employment_id: EMPLOYMENT_ID,
+		catalogue_id: 'expense',
+		amount: 100,
+		incurred_on: '2026-02-05',
+		pay_period: '2026-02',
+		as_adjustment_entry: false,
+		payslip_id: null,
+		approval_id: null
+	});
 	world.loan_catalogue.push({
-		...world.payment_catalogue[0],
+		...world.allowance_catalogue[0],
 		id: 'loan-type',
 		code: 'LOAN',
 		destination: 'NET',

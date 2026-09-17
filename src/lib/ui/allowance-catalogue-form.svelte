@@ -2,10 +2,10 @@
 	/**
 	 * The allowance catalogue's own form.
 	 *
-	 * It shared `catalogue-form.svelte` with claims and payments while the row was the same one.
-	 * The recurrence facts (`recurring`, `prorates`, `on_day`) ended that: a form serving rows of
-	 * different shapes can be typed against only their intersection. Same split as the loan
-	 * catalogue, same reason.
+	 * Split from `catalogue-form.svelte` when the row stopped matching the claim catalogue's, and
+	 * kept apart so each catalogue's form is typed against its own row. Every allowance is
+	 * standing — a monthly amount over a window, prorated like basic salary — so the row carries
+	 * no cadence of its own: the code, where it settles, who receives it, and what prices it.
 	 *
 	 * Segments are tabs, not stacked sections. `settings_id` is never a field on the Settings page:
 	 * the page names the version and the form prefills and hides it.
@@ -86,10 +86,6 @@
 								}}
 							></span>
 						{/if}
-						<!-- A standing allowance states how its instalments recur; a one-off does not. -->
-						<Field name="recurring" label={t('component.recurring')} />
-						<Field name="prorates" label={t('component.prorates')} />
-						<Field name="on_day" label={t('component.on_day')} />
 					</Grid>
 				</Stack>
 			{/snippet}

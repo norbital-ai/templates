@@ -2,7 +2,7 @@
  * Server-side helpers shared by the collection roles that speak in payroll months.
  *
  * `controller-surfaces.md` §1 tells app and representation authors to inline duplicated one-liners
- * rather than grow the import graph. It scopes that to controller UI; these are `+hooks.ts` and
+ * rather than grow the import graph. It scopes that to controller UI; these are transforms and
  * `+pipelines.ts` code, where a copy that drifts changes what the server *accepts*, not how a cell
  * reads. The month arithmetic itself lives in the engine's `dates.ts`; re-exported here so the
  * roles keep one import.

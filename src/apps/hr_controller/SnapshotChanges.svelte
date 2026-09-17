@@ -76,10 +76,6 @@
 				where: { settings_id },
 				limit: 2_000
 			}),
-			payment_catalogue: client.db.payment_catalogue.findMany({
-				where: { settings_id },
-				limit: 2_000
-			}),
 			loan_catalogue: client.db.loan_catalogue.findMany({ where: { settings_id }, limit: 2_000 })
 		};
 	});
@@ -121,8 +117,6 @@
 				return t('app.settings.claim_catalogue');
 			case 'allowance_catalogue':
 				return t('app.settings.allowance_catalogue');
-			case 'payment_catalogue':
-				return t('app.settings.payment_catalogue');
 			default:
 				return t('app.settings.loan_catalogue');
 		}

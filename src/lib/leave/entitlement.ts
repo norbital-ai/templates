@@ -1,7 +1,8 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
+import { Schema } from 'effect';
 import type { LeaveEntitlement } from '../../datatypes/leave_entitlement/+definition.js';
-import type { LeaveWindow } from '../../datatypes/leave_event/+definition.js';
+import { calendarDay } from '../iso-day.js';
 import {
 	addDays,
 	daysBetween,
@@ -11,6 +12,10 @@ import {
 } from '../../collections/payroll_runs/lib/dates.js';
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
 import { isEligible, type PersonContext } from '../../collections/payroll_runs/lib/eligibility.js';
+
+/** One inclusive window of leave days: the annual period a credit belongs to. */
+export const leaveWindowSchema = Schema.Struct({ start: calendarDay, end: calendarDay });
+export type LeaveWindow = Schema.Schema.Type<typeof leaveWindowSchema>;
 
 /** MONTHLY without proration is a fresh allowance per calendar month; earned annual leave keeps its annual window. */
 export function leaveWindowOf(

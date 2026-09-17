@@ -9,12 +9,12 @@
  *
  * `assertRunHasRestDay` is the pure decision. Everything below drives it directly, because the
  * arithmetic — where a run starts, what ends it, and whether this write is responsible for it — is
- * the whole rule; the hook around it only supplies rows.
+ * the whole rule; the transform around it only supplies rows.
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertRunHasRestDay } from '../src/collections/work_days/+hooks.ts';
+import { assertRunHasRestDay } from '../src/collections/work_days/lib/schedule-rules.ts';
 import { addDays } from '../src/lib/period.ts';
 
 const WORK = 'code-work';

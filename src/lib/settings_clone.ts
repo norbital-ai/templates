@@ -1,6 +1,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Api } from '$bolt/types.js';
+import type { CreateInput } from '../collections/jurisdiction_settings/$types.js';
 import { readRange } from '../collections/payroll_runs/lib/effective.js';
 import { describeVersion } from './jurisdiction_settings.js';
 import { dateKey } from './iso-day.js';
@@ -50,8 +51,8 @@ type SettingsCloneApi = Readonly<{
 		| 'loan_catalogue'
 		| 'claim_catalogue'
 		| 'allowance_catalogue'
-		| 'payment_catalogue'
 	>;
+	readonly collection: Pick<Api['collection'], 'jurisdiction_settings'>;
 }>;
 
 type Row<N extends keyof Db> = Effect.Success<ReturnType<Db[N]['findMany']>>[number];
@@ -64,11 +65,10 @@ export type SettingsVersionTree = Readonly<{
 	loanCatalogue: ReadonlyArray<Row<'loan_catalogue'>>;
 	claimCatalogue: ReadonlyArray<Row<'claim_catalogue'>>;
 	allowanceCatalogue: ReadonlyArray<Row<'allowance_catalogue'>>;
-	paymentCatalogue: ReadonlyArray<Row<'payment_catalogue'>>;
 }>;
 
-/** The nested write that creates a draft: the root and every child row under it. */
-export type SettingsDraftWrite = Parameters<Db['jurisdiction_settings']['mutate']>[0][number];
+/** The nested write that creates a draft: the root and every child row created under it. */
+export type SettingsDraftWrite = CreateInput;
 
 /** Reads a version and every row under it; refuses when it does not exist or is too large. */
 export const readSettingsVersionTree = (
@@ -81,31 +81,23 @@ export const readSettingsVersionTree = (
 		});
 		if (source == null) refuse('The jurisdiction settings version to clone does not exist.');
 		const under = { settings_id: { eq: source.id }, approval_id: { isNull: true } } as const;
-		const [
-			schemes,
-			catalogueLeaves,
-			loanCatalogue,
-			claimCatalogue,
-			allowanceCatalogue,
-			paymentCatalogue
-		] = yield* Effect.all(
-			[
-				api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
-				api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.allowance_catalogue.findMany({ where: under, limit: LIMIT }),
-				api.db.payment_catalogue.findMany({ where: under, limit: LIMIT })
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const [schemes, catalogueLeaves, loanCatalogue, claimCatalogue, allowanceCatalogue] =
+			yield* Effect.all(
+				[
+					api.db.statutory_contributions.findMany({ where: under, limit: LIMIT }),
+					api.db.leave_catalogue.findMany({ where: under, limit: LIMIT }),
+					api.db.loan_catalogue.findMany({ where: under, limit: LIMIT }),
+					api.db.claim_catalogue.findMany({ where: under, limit: LIMIT }),
+					api.db.allowance_catalogue.findMany({ where: under, limit: LIMIT })
+				],
+				{ concurrency: 'unbounded' }
+			);
 		for (const rows of [
 			schemes,
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
-			allowanceCatalogue,
-			paymentCatalogue
+			allowanceCatalogue
 		])
 			if (rows.length >= LIMIT) refuse('The version is too large to clone safely.');
 		return {
@@ -114,8 +106,7 @@ export const readSettingsVersionTree = (
 			catalogueLeaves,
 			loanCatalogue,
 			claimCatalogue,
-			allowanceCatalogue,
-			paymentCatalogue
+			allowanceCatalogue
 		};
 	});
 
@@ -126,8 +117,8 @@ type SettingsDraftOptions = Readonly<{
 }>;
 
 /**
- * The write that creates the draft, pure over the tree. The root carries no id: a submitted id is
- * read as an update of a stored row, and the runtime assigns the draft's own.
+ * The write that creates the draft, pure over the tree. Nothing carries an id: the runtime
+ * assigns the draft's own and every child's.
  *
  * Scheme rows keep their codes under new ids. A scheme's base names catalogue rows by family and
  * code, so the clone carries every declaration unchanged.
@@ -135,21 +126,13 @@ type SettingsDraftOptions = Readonly<{
 export function settingsDraftWrite(
 	tree: SettingsVersionTree,
 	options: SettingsDraftOptions
-): Readonly<{ name: string; write: SettingsDraftWrite; schemeIds: ReadonlyMap<string, string> }> {
-	const {
-		source,
-		schemes,
-		catalogueLeaves,
-		loanCatalogue,
-		claimCatalogue,
-		allowanceCatalogue,
-		paymentCatalogue
-	} = tree;
+): Readonly<{ name: string; write: SettingsDraftWrite }> {
+	const { source, schemes, catalogueLeaves, loanCatalogue, claimCatalogue, allowanceCatalogue } =
+		tree;
 	const sourceRange = readRange(source.effective_range);
 	const sourceStart = sourceRange == null ? '' : dateKey(sourceRange.start);
 	if (sourceStart !== '' && options.starts_on <= sourceStart)
 		refuse(`A new version starts after ${describeVersion(source)} begins (${sourceStart}).`);
-	const schemeIds = new Map(schemes.map((scheme) => [scheme.id, crypto.randomUUID()]));
 	const {
 		id: _sourceId,
 		approval_id: _approval,
@@ -164,7 +147,6 @@ export function settingsDraftWrite(
 	const name = options.name ?? `${source.code} from ${options.starts_on}`;
 	return {
 		name,
-		schemeIds,
 		write: {
 			...root,
 			name,
@@ -174,30 +156,11 @@ export function settingsDraftWrite(
 			cloned_from_id: source.id,
 			effective_range: { start: `${options.starts_on}T00:00:00.000Z`, end: null },
 			work_rules: root.work_rules,
-			contribution_settings: schemes.map((scheme) => ({
-				...cloneRow(scheme),
-				id: schemeIds.get(scheme.id)!
-			})),
-			leave_catalogue_settings: catalogueLeaves.map((row) => ({
-				...cloneRow(row),
-				id: crypto.randomUUID()
-			})),
-			loan_catalogue_settings: loanCatalogue.map((row) => ({
-				...cloneRow(row),
-				id: crypto.randomUUID()
-			})),
-			claim_catalogue_settings: claimCatalogue.map((row) => ({
-				...cloneRow(row),
-				id: crypto.randomUUID()
-			})),
-			allowance_catalogue_settings: allowanceCatalogue.map((row) => ({
-				...cloneRow(row),
-				id: crypto.randomUUID()
-			})),
-			payment_catalogue_settings: paymentCatalogue.map((row) => ({
-				...cloneRow(row),
-				id: crypto.randomUUID()
-			}))
+			contribution_settings: { create: schemes.map(cloneRow) },
+			leave_catalogue_settings: { create: catalogueLeaves.map(cloneRow) },
+			loan_catalogue_settings: { create: loanCatalogue.map(cloneRow) },
+			claim_catalogue_settings: { create: claimCatalogue.map(cloneRow) },
+			allowance_catalogue_settings: { create: allowanceCatalogue.map(cloneRow) }
 		}
 	};
 }
@@ -209,31 +172,17 @@ type SettingsDraftCreated = Readonly<{
 	cloned_from_id: string;
 }>;
 
-/** Writes the draft in one nested write and reads it back by its provenance. */
+/** Writes the draft in one nested write; the committed row carries the draft's id. */
 export const createSettingsDraft = (
 	api: SettingsCloneApi,
 	tree: SettingsVersionTree,
 	draft: Readonly<{ name: string; write: SettingsDraftWrite }>
 ): Effect.Effect<SettingsDraftCreated> =>
-	Effect.gen(function* () {
-		yield* api.db.jurisdiction_settings.mutate([draft.write]);
-		const [created] = yield* api.db.jurisdiction_settings.findMany({
-			where: {
-				cloned_from_id: { eq: tree.source.id },
-				code: { eq: tree.source.code },
-				name: { eq: draft.name },
-				sealed_at: { isNull: true }
-			},
-			orderBy: { created_at: 'desc' },
-			limit: 1
-		});
-		if (created == null) refuse('The new version was written but could not be read back.');
-		return {
-			id: created.id,
-			code: tree.source.code,
-			cloned_from_id: tree.source.id
-		};
-	});
+	Effect.map(api.collection.jurisdiction_settings.create(draft.write), (created) => ({
+		id: created.id,
+		code: tree.source.code,
+		cloned_from_id: tree.source.id
+	}));
 
 /** The three steps as one: the Settings timeline's New version. */
 export const cloneSettingsVersion = (

@@ -6,9 +6,6 @@
 		"name": "Annual leave",
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
-		"destination": "PAY",
-		"direction": "ADD",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -19,7 +16,9 @@
 					"days": 8
 				}
 			]
-		}
+		},
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff5",
@@ -28,9 +27,6 @@
 		"name": "Hospitalization leave",
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "",
-		"destination": "PAY",
-		"direction": "ADD",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -41,7 +37,9 @@
 					"days": 60
 				}
 			]
-		}
+		},
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff9",
@@ -50,15 +48,14 @@
 		"name": "National service leave",
 		"authority": "Public fixture: not a sealed statutory table.",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"destination": "PAY",
-		"direction": "ADD",
-		"paid": true,
 		"evidence_after_days": 0,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
-		}
+		},
+		"is_npl": false,
+		"can_encash": true
 	}
 ]

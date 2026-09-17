@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
+import { requireAccepted } from '@norbital-ai/test-utilities';
+import { WRITE_COMMAND, createdIds, observedVersion, writeRows } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	FEBRUARY_2026,
@@ -9,43 +10,31 @@ import {
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
-const MUTATE_COMMAND = 'collections.mutate';
+const MUTATE_COMMAND = WRITE_COMMAND;
 
 const createDraft = async (
 	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
 	period: string
 ): Promise<string> => {
-	const payrollRunId = crypto.randomUUID();
-	const created = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE_COMMAND,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'payroll_runs',
-			rows: [
-				{
-					action: 'create',
-					values: {
-						id: payrollRunId,
-						company_id: COMPANY_ID,
-						period
-					}
-				}
-			]
-		}),
-		{ authorization: `Bearer ${session.credential}` }
-	);
+	const created = await writeRows(session, 'payroll_runs', 'create', [
+		{ company_id: COMPANY_ID, period }
+	]);
 	assert.ok(
 		created.status >= 200 && created.status < 300,
 		`${MUTATE_COMMAND} create ${period} returned ${created.status}: ${JSON.stringify(created.value)}`
 	);
 	requireAccepted(created.value, `${MUTATE_COMMAND} create ${period}`);
-	return payrollRunId;
+	return createdIds(created.value)[0]!;
 };
 
 /**
- * Public-seed integration deletes two draft payroll runs in one `collections.mutate` graph.
- * One request, `ids` only — the same batch path mutate uses.
+ * Public-seed integration deletes two draft payroll runs in one `collections.write` graph.
+ * One request, one delete action naming two ids — the same batch path every write uses.
+ *
+ * Deleting a draft is the settlement lock's release: every source the run sealed — work days,
+ * claims, leave entries, loan repayments — is free again, and every allowance entry the run priced
+ * is gone with its slip. Each family the seed can seal is proven sealed first, so an empty capture
+ * cannot pass for a release.
  */
 test(
 	'public seed deletes two draft payroll runs in one batch',
@@ -86,14 +75,9 @@ test(
 				 join payslips p on p.id = c.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
-				 select 'allowance_request', a.id
-				 from allowance_requests a
+				 select 'allowance_entry', a.id
+				 from allowance_entries a
 				 join payslips p on p.id = a.payslip_id
-				 where p.payroll_run_id in ($1, $2) and a.derived_from_id is not null
-				 union all
-				 select 'payment_request', r.id
-				 from payment_requests r
-				 join payslips p on p.id = r.payslip_id
 				 where p.payroll_run_id in ($1, $2)
 				 union all
 				 select 'leave_request', l.id
@@ -107,6 +91,16 @@ test(
 				 where p.payroll_run_id in ($1, $2)`,
 				[februaryId, marchId]
 			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
+
+			// The seal is proven before its release: the public seed pays a standing allowance, so
+			// the drafts must have priced its entries (the seed carries no rostered days, claims,
+			// leave or loans inside these periods; the Bolt runtime's own test proves the release of
+			// a pinned row).
+			for (const kind of ['allowance_entry'])
+				assert.ok(
+					captured.some((row) => row.kind === kind),
+					`the drafts sealed no ${kind}; the release below would prove nothing`
+				);
 
 			const payslipsBefore = (await session.query(
 				`select id from payslips where payroll_run_id in ($1, $2)`,
@@ -127,22 +121,13 @@ test(
 				`expected two draft versions, got ${JSON.stringify(versions)}`
 			);
 
-			const deleted = await postGuestCommand(
-				session.host.baseUrl,
-				MUTATE_COMMAND,
-				mutationPush(
-					session.schemaFingerprint,
-					{
-						action: 'delete',
-						collection: 'payroll_runs',
-						ids: [februaryId, marchId]
-					},
-					versions.map((row) => ({
-						row: { collection: 'payroll_runs', recordId: row.id },
-						rowVersion: row.row_version
-					}))
-				),
-				{ authorization: `Bearer ${session.credential}` }
+			const deleted = await writeRows(
+				session,
+				'payroll_runs',
+				'delete',
+				[{ id: februaryId }, { id: marchId }],
+				undefined,
+				versions.map((row) => observedVersion('payroll_runs', row.id, row.row_version))
 			);
 			assert.ok(
 				deleted.status >= 200 && deleted.status < 300,
@@ -175,14 +160,6 @@ test(
 				 from claim_requests
 				 where payslip_id is not null and id = any($1::uuid[])
 				 union all
-				 select 'allowance_request', id
-				 from allowance_requests
-				 where payslip_id is not null and id = any($1::uuid[])
-				 union all
-				 select 'payment_request', id
-				 from payment_requests
-				 where payslip_id is not null and id = any($1::uuid[])
-				 union all
 				 select 'leave_request', id
 				 from leave_entries
 				 where payslip_id is not null and id = any($1::uuid[])
@@ -201,14 +178,23 @@ test(
 			const sourceTable = {
 				work_day: 'work_days',
 				claim_request: 'claim_requests',
-				payment_request: 'payment_requests',
 				leave_request: 'leave_entries',
 				loan_repayment: 'loan_repayments'
 			} as const;
 			for (const row of captured) {
-				// The per-period rows a standing allowance materialised are released with their slip;
-				// every source — authored or materialised — is unlinked, never deleted.
-				if (row.kind === 'allowance_request') continue;
+				// The entries a run priced from a standing allowance are the slip's own rows: they go
+				// with it, and the standing allowance is due again for the next run.
+				if (row.kind === 'allowance_entry') {
+					const surviving = (await session.query(`select id from allowance_entries where id = $1`, [
+						row.source_id
+					])) as ReadonlyArray<{ readonly id: string }>;
+					assert.deepEqual(
+						surviving,
+						[],
+						`deleting a draft run must delete entry ${row.source_id}`
+					);
+					continue;
+				}
 				const table = sourceTable[row.kind as keyof typeof sourceTable];
 				assert.ok(table, `unexpected capture kind ${row.kind}`);
 				const surviving = (await session.query(`select id from ${table} where id = $1`, [

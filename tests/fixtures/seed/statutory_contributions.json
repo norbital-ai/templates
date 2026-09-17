@@ -16,38 +16,7 @@
 				"employer": "round_cent((base) * 13.0 / 100.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": [
-				{
-					"family": "LEAVE",
-					"code": "ANNUAL"
-				},
-				{
-					"family": "LEAVE",
-					"code": "HOSPITALIZATION"
-				},
-				{
-					"family": "LEAVE",
-					"code": "NS"
-				},
-				{
-					"family": "ALLOWANCE",
-					"code": "TRANSPORT"
-				},
-				{
-					"family": "CLAIM",
-					"code": "TRANSPORT_CLAIM"
-				},
-				{
-					"family": "PAYMENT",
-					"code": "SEPARATION"
-				}
-			]
-		}
+		"assessed_on": "BASE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
 	},
 	{
 		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
@@ -66,37 +35,6 @@
 				"employer": "round_cent((base) * 5.0 / 100.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": [
-				{
-					"family": "LEAVE",
-					"code": "ANNUAL"
-				},
-				{
-					"family": "LEAVE",
-					"code": "HOSPITALIZATION"
-				},
-				{
-					"family": "LEAVE",
-					"code": "NS"
-				},
-				{
-					"family": "ALLOWANCE",
-					"code": "TRANSPORT"
-				},
-				{
-					"family": "CLAIM",
-					"code": "TRANSPORT_CLAIM"
-				},
-				{
-					"family": "PAYMENT",
-					"code": "SEPARATION"
-				}
-			]
-		}
+		"assessed_on": "BASE + catalog('ALLOWANCE') + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
 	}
 ]

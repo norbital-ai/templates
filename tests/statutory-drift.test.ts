@@ -133,14 +133,15 @@ test('the proposed rules replace the cloned ones in the draft write', () => {
 	const write = {
 		code: 'PUB',
 		name: 'draft',
-		contribution_settings: [
-			{ id: 's1', code: 'EPF', rules: [rule('11.0')] },
-			{ id: 's2', code: 'OTHER', rules: [rule('5.0')] }
-		],
-		leave_catalogue_settings: [
-			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }
-		],
-		payment_catalogue_settings: [{ id: 'p1', code: 'SEPARATION', bands: [] }]
+		contribution_settings: {
+			create: [
+				{ code: 'EPF', rules: [rule('11.0')] },
+				{ code: 'OTHER', rules: [rule('5.0')] }
+			]
+		},
+		leave_catalogue_settings: {
+			create: [{ code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }]
+		}
 	};
 	const proposal = {
 		proposed_by: 'statutory_drift',
@@ -168,10 +169,9 @@ test('the proposed rules replace the cloned ones in the draft write', () => {
 		revised.change_summary,
 		'Statutory drift: 1 change(s) proposed from v1 on 2026-09-07T00:00:00.000Z.'
 	);
-	assert.deepEqual(revised.contribution_settings[0].rules, [rule('12.0')]);
-	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
+	assert.deepEqual(revised.contribution_settings.create[0].rules, [rule('12.0')]);
+	assert.deepEqual(revised.contribution_settings.create[1], write.contribution_settings.create[1]);
 	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
-	assert.deepEqual(revised.payment_catalogue_settings, write.payment_catalogue_settings);
 });
 
 test('a changed rate preserves and targets its rule ladder', () => {
@@ -193,11 +193,11 @@ test('a changed rate preserves and targets its rule ladder', () => {
 	);
 	assert.equal(diff.changes.length, 1);
 	const result = applyProposedChanges(
-		{ contribution_settings: [{ code: 'EPF', rules: [first, second] }] },
+		{ contribution_settings: { create: [{ code: 'EPF', rules: [first, second] }] } },
 		diff.changes,
 		{ changes: diff.changes }
 	);
-	assert.deepEqual(result.contribution_settings[0].rules, [proposed, second]);
+	assert.deepEqual(result.contribution_settings.create[0].rules, [proposed, second]);
 });
 
 test('a proposed version begins on the first of the month after today', () => {
@@ -304,15 +304,11 @@ test('an HTTP-success browser challenge is recorded as unreadable rather than st
 	assert.match(read.unreachable[0].reason, /browser challenge/);
 });
 
-test('a cloned version carries every scheme’s base unchanged under the clone’s own id', () => {
-	// A base names catalogue rows by family and code, so nothing is remapped.
-	const base = {
-		salary: true,
-		absence: true,
-		overtime: false,
-		night_premium: false,
-		entries: [{ family: 'LEAVE', code: 'ANNUAL' }]
-	};
+test('a cloned version carries every scheme’s assessed-on formula unchanged, with no id of its own', () => {
+	// The formula names catalogue rows by code, so nothing is remapped; it is cloned verbatim.
+	// No row carries an id: the runtime assigns the draft's and every child's.
+	const assessed_on =
+		"BASE - ABSENCE - NO_PAY_LEAVE + catalog('ALLOWANCE', {'pick': ['TRANSPORT']})";
 	const source = {
 		id: 'source',
 		code: 'SG',
@@ -320,23 +316,21 @@ test('a cloned version carries every scheme’s base unchanged under the clone�
 		effective_range: { start: '2026-01-01T00:00:00.000Z', end: null },
 		work_rules: { proration: 'NONE', ordinary_divisor_days: '26.0', overtime_when: '', bands: [] }
 	};
-	const { write, schemeIds } = settingsDraftWrite(
+	const { write } = settingsDraftWrite(
 		{
 			source,
-			schemes: [{ id: OPT_IN_ID, code: 'CPF', rules: [rule('11.0')], base }],
+			schemes: [{ id: OPT_IN_ID, code: 'CPF', rules: [rule('11.0')], assessed_on }],
 			catalogueLeaves: [{ id: 'l1', code: 'ANNUAL' }],
 			loanCatalogue: [],
 			claimCatalogue: [],
-			allowanceCatalogue: [],
-			paymentCatalogue: []
+			allowanceCatalogue: []
 		},
 		{ starts_on: '2026-02-01' }
 	);
-	const cloneId = schemeIds.get(OPT_IN_ID);
-	assert.notEqual(cloneId, OPT_IN_ID);
-	assert.equal(write.contribution_settings[0].id, cloneId);
-	assert.deepEqual(write.contribution_settings[0].base, base);
-	assert.deepEqual(write.leave_catalogue_settings[0].code, 'ANNUAL');
+	assert.equal('id' in write, false);
+	assert.equal('id' in write.contribution_settings.create[0], false);
+	assert.deepEqual(write.contribution_settings.create[0].assessed_on, assessed_on);
+	assert.deepEqual(write.leave_catalogue_settings.create[0].code, 'ANNUAL');
 	assert.deepEqual(write.work_rules, source.work_rules);
 });
 

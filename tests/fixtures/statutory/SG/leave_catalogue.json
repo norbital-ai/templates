@@ -4,9 +4,8 @@
 		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.43(1)",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. NOT APPLIED: the engine rounds a prorated grant to the nearest half day, not s.88A(3)'s whole day.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -46,8 +45,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "6ccc5fa6-941e-59f7-b45a-c2c725a8d8cc",
@@ -56,7 +55,6 @@
 		"name": "Outpatient sick leave",
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -81,8 +79,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "9f3c38ae-b848-518d-93d5-fcbb95f286de",
@@ -91,7 +89,6 @@
 		"name": "Hospitalization leave",
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -116,8 +113,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "70185ff7-27b7-5d3b-8d00-041d07531e8f",
@@ -126,7 +123,6 @@
 		"name": "Maternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -142,8 +138,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "9116d81b-0424-5450-b1b2-5ce7691cb02d",
@@ -152,7 +148,6 @@
 		"name": "Paternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -164,8 +159,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "84163388-6728-5f36-b951-cc42ba8f0e10",
@@ -174,7 +169,6 @@
 		"name": "Childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -190,8 +184,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "cd589777-2c2a-53b0-be79-d6bdc8a29ead",
@@ -200,7 +194,6 @@
 		"name": "Extended childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -212,8 +205,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "08c24bdc-386b-5a9a-bdf1-57d405133fe5",
@@ -222,7 +215,6 @@
 		"name": "Unpaid infant care leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -234,8 +226,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "143fb2b8-7d4a-5eca-a9c8-914b77073925",
@@ -244,7 +236,6 @@
 		"name": "Adoption leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -256,8 +247,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "4eb7df56-50d8-5b69-8ad0-b34123e09488",
@@ -266,7 +257,6 @@
 		"name": "Shared parental leave",
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 6 weeks (42 calendar days) for children born, or with a Formal Intent to Adopt, from 1 April 2025 to 31 March 2026, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (3 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, for which a settings-version boundary is the wrong axis.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -278,8 +268,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "be0af4f5-cb18-5329-a294-677f9b3fabe5",
@@ -288,7 +278,6 @@
 		"name": "National service leave",
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -296,8 +285,8 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "9a72f91f-246f-5dc1-9ef7-a8c2c05c08b9",
@@ -306,24 +295,38 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
+	},
+	{
+		"id": "9d2b6b1e-5f1c-5c2c-9a6e-0e7b8a5c4d01",
+		"settings_id": "7908088e-77da-538a-9522-eabb6dd153c1",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "0c7bfbc6-a385-52bb-9925-dbc4320046b4",
 		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.43(1)",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. NOT APPLIED: the engine rounds a prorated grant to the nearest half day, not s.88A(3)'s whole day.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -363,8 +366,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000001",
@@ -373,7 +376,6 @@
 		"name": "Outpatient sick leave",
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -398,8 +400,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000002",
@@ -408,7 +410,6 @@
 		"name": "Hospitalization leave",
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -433,8 +434,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000003",
@@ -443,7 +444,6 @@
 		"name": "Maternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -459,8 +459,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000004",
@@ -469,7 +469,6 @@
 		"name": "Paternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -481,8 +480,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000005",
@@ -491,7 +490,6 @@
 		"name": "Childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -507,8 +505,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "23608f60-9728-59c2-aaf1-e24935cfd8f9",
@@ -517,7 +515,6 @@
 		"name": "Extended childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -529,8 +526,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "f3596de2-37b0-5863-b1a8-01bfad68d840",
@@ -539,7 +536,6 @@
 		"name": "Unpaid infant care leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -551,8 +547,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "c85c5d86-f46f-5f07-856d-93a45b95485a",
@@ -561,7 +557,6 @@
 		"name": "Adoption leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -573,8 +568,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "10000000-0000-5000-8000-000000000006",
@@ -583,7 +578,6 @@
 		"name": "Shared parental leave",
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 6 weeks (42 calendar days) for children born, or with a Formal Intent to Adopt, from 1 April 2025 to 31 March 2026, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (3 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, for which a settings-version boundary is the wrong axis.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -595,8 +589,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "10000000-0000-5000-8000-00000000c002",
@@ -605,7 +599,6 @@
 		"name": "National service leave",
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -613,17 +606,16 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a81594a4-c1d0-5687-b856-251606580acb",
 		"settings_id": "10000000-0000-5000-8000-000000000040",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.43(1)",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. NOT APPLIED: the engine rounds a prorated grant to the nearest half day, not s.88A(3)'s whole day.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -663,8 +655,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "03d19534-7b2c-55ea-aeeb-65b88f4b6730",
@@ -673,7 +665,6 @@
 		"name": "Outpatient sick leave",
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -698,8 +689,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "3cd03ef6-a0b5-5273-bf5e-3e810e64b1b3",
@@ -708,7 +699,6 @@
 		"name": "Hospitalization leave",
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -733,8 +723,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "f6099a36-5453-5e07-bfbd-af4f54e4bac0",
@@ -743,7 +733,6 @@
 		"name": "Maternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -759,8 +748,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "59a5566c-78ad-5b30-9b8b-5831c8581a86",
@@ -769,7 +758,6 @@
 		"name": "Paternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -781,8 +769,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "b9687ba0-26d9-5885-a553-ca5bf2109e97",
@@ -791,7 +779,6 @@
 		"name": "Childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -807,8 +794,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "05b56ffa-a6ee-583d-8e0d-8a86b742b654",
@@ -817,7 +804,6 @@
 		"name": "Extended childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -829,8 +815,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "4f6530ae-100a-5279-8713-1d50fd0eabcc",
@@ -839,7 +825,6 @@
 		"name": "Unpaid infant care leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -851,8 +836,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "19bb0ed0-3638-54e6-a0b4-425c2923f63d",
@@ -861,7 +846,6 @@
 		"name": "Adoption leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -873,8 +857,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "edfd424d-160d-546f-9196-729a8f302299",
@@ -883,7 +867,6 @@
 		"name": "Shared parental leave",
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -895,8 +878,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "10000000-0000-5000-8000-00000000c001",
@@ -905,7 +888,6 @@
 		"name": "National service leave",
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -913,17 +895,16 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "30539746-7100-5290-9aec-b1d7b13ac6f2",
 		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1968 s.43(1)",
+		"authority": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. NOT APPLIED: the engine rounds a prorated grant to the nearest half day, not s.88A(3)'s whole day.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -963,8 +944,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "b8e829b8-67a9-5d54-875e-27d743e135c2",
@@ -973,7 +954,6 @@
 		"name": "Outpatient sick leave",
 		"authority": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)).",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -998,8 +978,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "738b33a7-6198-5ca3-b095-8e2d1544031e",
@@ -1008,7 +988,6 @@
 		"name": "Hospitalization leave",
 		"authority": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. NOT APPLIED: the statutory 60 days INCLUDE the outpatient days already taken, so the two entitlements are one pool of 60 and not 74. The model carries two independent accounts and therefore over-grants by up to the 14 outpatient days.",
 		"eligibility": "employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1033,8 +1012,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "ffefa2fe-8d48-550e-89d7-af98ef3e9e9e",
@@ -1043,7 +1022,6 @@
 		"name": "Maternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.9 (Government-Paid Maternity Leave, 16 weeks = 112 calendar days) with Employment Act 1968 s.76 (12 weeks = 84 calendar days for a mother whose child is not a Singapore citizen), in both cases after 3 months' continuous service. NOT APPLIED: GPML turns on the CHILD's Singapore citizenship, for which the predicate grammar has no member; the mother's own citizenship stands in for it, so a citizen mother reads the 112-day band and everyone else the 84-day band. NOT APPLIED: under s.76 the last 4 of the 12 weeks are unpaid for a mother with two or more living children, and the 8 employer-paid weeks require at least a week's notice.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1059,8 +1037,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "afe9f68f-dd1b-5649-abf5-e08dc4ac078b",
@@ -1069,7 +1047,6 @@
 		"name": "Paternity leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12A — Government-Paid Paternity Leave of 4 weeks (28 calendar days), mandatory for children born on or after 1 April 2025 (2 weeks plus 2 voluntary weeks applied only before that date), after 3 months' continuous service. NOT APPLIED: the child must be a Singapore citizen and the father lawfully married to the mother between conception and birth or within 12 months after it; neither child citizenship nor the marriage condition has a predicate member.",
 		"eligibility": "employee.gender == \"MALE\" && employment.service_months >= 3 && employee.marital_status == \"MARRIED\" && children.count >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1081,8 +1058,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "c2302c70-2290-5f94-8cb1-cbd994171010",
@@ -1091,7 +1068,6 @@
 		"name": "Childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member and the employee's own citizenship stands in for it. NOT APPLIED: the 42-day lifetime cap per child under the GPCL scheme and the 14-day lifetime cap under s.87A — the entitlement grammar caps a year, not a lifetime.",
 		"eligibility": "children.under(7) >= 1 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1107,8 +1083,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "c9fb22f3-4217-5335-a7a8-4989b914b4d6",
@@ -1117,7 +1093,6 @@
 		"name": "Extended childcare leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12C — 2 days of Government-Paid Extended Childcare Leave a year for a parent whose youngest Singapore-citizen child is aged 7 to 12, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member; the predicate below expresses only 'a child under 13 and none under 7', which is the youngest-child test.",
 		"eligibility": "children.under(13) >= 1 && children.under(7) == 0 && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1129,8 +1104,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "583b7fbe-37a5-5add-aa76-4de3c606d4b0",
@@ -1139,7 +1114,6 @@
 		"name": "Unpaid infant care leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. NOT APPLIED: the child's Singapore citizenship has no predicate member.",
 		"eligibility": "children.under(2) >= 1 && employment.service_months >= 3",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1151,8 +1125,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "d1db595c-7af9-5e97-9f23-214d3520d666",
@@ -1161,7 +1135,6 @@
 		"name": "Adoption leave",
 		"authority": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. NOT APPLIED: the child must be under 12 months at the date of the Formal Intent to Adopt and must be or become a Singapore citizen; neither the child's age at adoption nor its citizenship has a predicate member.",
 		"eligibility": "employee.gender == \"FEMALE\" && employment.service_months >= 3",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1173,8 +1146,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "b4bfdcbd-108d-5413-bd8d-95d5007750ce",
@@ -1183,7 +1156,6 @@
 		"name": "Shared parental leave",
 		"authority": "Child Development Co-Savings Act 2001 and the MSF Shared Parental Leave scheme — 10 weeks (70 calendar days) for children born, or with a Formal Intent to Adopt, on or after 1 April 2026, including the reviewed estimated-delivery exception, after 3 months' continuous service. NOT APPLIED: the weeks are a POOL for the couple, split equally by default (5 weeks each), not a per-employee entitlement; and the trigger is the CHILD's date of birth, not the date the leave is taken, so this version over-grants 10 weeks to a parent of a child born before 1 April 2026.",
 		"eligibility": "employment.service_months >= 3 && children.count >= 1 && (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1195,8 +1167,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": false
 	},
 	{
 		"id": "c61e12a0-1b49-5b0a-aab1-cdc4815da996",
@@ -1205,7 +1177,6 @@
 		"name": "National service leave",
 		"authority": "Enlistment Act 1970 s.13 and s.31",
 		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -1213,8 +1184,8 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "2818c45e-2a0e-42c8-bb41-c137226065a3",
@@ -1223,15 +1194,30 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
+	},
+	{
+		"id": "9d2b6b1e-5f1c-5c2c-9a6e-0e7b8a5c4d02",
+		"settings_id": "e363af9a-a034-59f7-84bf-5052f57ecae5",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "f0838770-9076-40b6-9426-c592ea87953a",
@@ -1240,15 +1226,30 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
+	},
+	{
+		"id": "9d2b6b1e-5f1c-5c2c-9a6e-0e7b8a5c4d03",
+		"settings_id": "10000000-0000-5000-8000-000000000040",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "6690f990-eace-4639-a28e-b729cb1cf598",
@@ -1257,14 +1258,29 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
+	},
+	{
+		"id": "9d2b6b1e-5f1c-5c2c-9a6e-0e7b8a5c4d04",
+		"settings_id": "dbfd7e40-fe26-5ab7-8e0e-151e2671b316",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"authority": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false
 	}
 ]

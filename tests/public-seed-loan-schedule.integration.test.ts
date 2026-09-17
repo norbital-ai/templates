@@ -1,41 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
+import { createdIds, observedVersion, writeRows } from './helpers/write.ts';
 
 /**
  * A loan's repayment schedule, refused on the real write path rather than only on the form.
  *
  * The three invariants — the amounts sum to the principal, the due dates strictly increase along
- * `sequence`, and the last repayment falls inside the agreement's effective period — used to hold
- * only of schedules built on the loans screen. Everything else could store whatever it liked. This
- * drives the path everything else uses: a `collections.mutate` push at `loan_repayments`, through
- * the guest, against a real database.
+ * `sequence`, and the last repayment falls inside the agreement's effective period — hold of every
+ * schedule because a repayment is written through its agreement (RFC §4.2): the `loans` input
+ * carries the schedule as explicit `create`, `update` and `delete` actions, and the transform
+ * judges the schedule the write would leave. This drives that path through the guest, against a
+ * real database.
  *
- * The unit suite (`loan-schedule-invariants.test.ts`) drives the arithmetic and the hook directly.
- * What only a host can answer is whether preparation and validation receive the proposed parent on nested writes,
- * while direct repayment writes are judged against their complete stored schedule.
+ * The unit suite (`loan-schedule-invariants.test.ts`) drives the arithmetic and the transform
+ * directly. What only a host can answer is that a refused graph leaves nothing behind, that a
+ * dropped line is deleted only when named, and that a captured repayment stays as the payslip
+ * took it.
  */
 
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
 const CONTROLLER = 'HQ Payroll HR';
-const LOAN_ID = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1';
 const COMPONENT_ID = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd1';
-/** The seed carries no loan; this one is written the way provisioning writes facts, in SQL. */
+/** The seed carries no loan; the agreement is created through the collection, like any other. */
 const PRINCIPAL = 1200;
+const RANGE = { start: '2026-04-01T00:00:00.000Z', end: '2026-09-01T00:00:00.000Z' };
 const day = (value: string) => `${value}T00:00:00.000Z`;
 
 const headers = (session: Session) => ({
@@ -43,32 +40,13 @@ const headers = (session: Session) => ({
 	'x-colony-impersonated-team': CONTROLLER
 });
 
-const rowVersion = async (session: Session, id: string): Promise<number> => {
-	const [row] = (await session.query(`select row_version from loan_repayments where id = $1`, [
+const version = async (session: Session, collection: string, id: string): Promise<number> => {
+	const [row] = (await session.query(`select row_version from ${collection} where id = $1`, [
 		id
 	])) as ReadonlyArray<{ readonly row_version: number }>;
-	assert.ok(row, `loan_repayments ${id} exists`);
+	assert.ok(row, `${collection} ${id} exists`);
 	return row.row_version;
 };
-
-const write = (
-	session: Session,
-	rows: ReadonlyArray<{ readonly action: 'create' | 'update'; readonly values: Row }>,
-	baseVersions: ReadonlyArray<{
-		readonly row: { readonly collection: string; readonly recordId: string };
-		readonly rowVersion: number;
-	}> = []
-) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(
-			session.schemaFingerprint,
-			{ action: 'mutate', collection: 'loan_repayments', rows: [...rows] },
-			[...baseVersions]
-		),
-		headers(session)
-	);
 
 const refusedWith = (response: { readonly value: unknown }, what: string, pattern: RegExp) => {
 	const body = asRecord(response.value, what);
@@ -80,18 +58,24 @@ const refusedWith = (response: { readonly value: unknown }, what: string, patter
 	);
 };
 
-/** The stored schedule, in recovery order — what the assertions are actually about. */
-const schedule = async (session: Session) =>
+/** The stored schedule of one agreement, in recovery order — what the assertions are about. */
+const schedule = async (session: Session, loanId: string) =>
 	(await session.query(
 		`select id, to_char(due_date at time zone 'UTC', 'YYYY-MM-DD') as due_day, amount_due::float8 as amount_due, sequence
 		 from loan_repayments where loan_id = $1 order by sequence`,
-		[LOAN_ID]
+		[loanId]
 	)) as ReadonlyArray<{
 		readonly id: string;
 		readonly due_day: string;
 		readonly amount_due: number;
 		readonly sequence: number;
 	}>;
+
+const line = (sequence: number, dueDay: string, amountDue: number) => ({
+	due_date: day(dueDay),
+	amount_due: amountDue,
+	sequence
+});
 
 test(
 	'public seed: a repayment schedule that does not add up, runs backwards or outruns the agreement is refused on the write path',
@@ -111,359 +95,241 @@ test(
 				 values ($1, $2, 'LOAN_RECOVERY', 'STAFF', '')`,
 				[COMPONENT_ID, settings.settings_id]
 			);
-			await session.query(
-				`insert into loans (id, employment_id, loan_catalogue_id, principal, effective_range, reference)
-				 values ($1, $2, $3, $4, $5::jsonb, $6)`,
-				[
-					LOAN_ID,
-					EMPLOYMENT_ID,
-					COMPONENT_ID,
-					PRINCIPAL,
-					JSON.stringify({ start: day('2026-04-01'), end: day('2026-09-01') }),
-					'ADV-SCHEDULE'
-				]
-			);
+			const agreement = {
+				employment_id: EMPLOYMENT_ID,
+				loan_catalogue_id: COMPONENT_ID,
+				principal: PRINCIPAL,
+				effective_range: RANGE,
+				reference: 'ADV-SCHEDULE'
+			};
+			const create = (rows: ReadonlyArray<Row>, extra: Row = {}) =>
+				writeRows(
+					session,
+					'loans',
+					'create',
+					[{ ...agreement, ...extra, repayment_loan: { create: rows } }],
+					headers(session)
+				);
+			const loanCount = async () =>
+				(await session.query('select id from loans where reference = $1', ['ADV-SCHEDULE'])).length;
 
-			const instalment = (index: number, dueDay: string, amountDue: number) => ({
-				action: 'create' as const,
-				values: {
-					id: `cccccccc-cccc-4ccc-8ccc-cccccccccc1${index}`,
-					loan_id: LOAN_ID,
-					employment_id: EMPLOYMENT_ID,
-					due_date: day(dueDay),
-					amount_due: amountDue,
-					sequence: index
-				}
-			});
-
-			// A whole schedule in one push, one cent past the tolerance. The batch is judged as the
-			// schedule it would leave, so the refusal names the total — not one of the four rows.
+			// A whole schedule in one push, one cent past the tolerance. The graph is judged as the
+			// schedule it would leave, so the refusal names the total — not one of the rows.
 			refusedWith(
-				await write(session, [
-					instalment(1, '2026-04-01', 400),
-					instalment(2, '2026-05-01', 400),
-					instalment(3, '2026-06-01', 400.02)
+				await create([
+					line(1, '2026-04-01', 400),
+					line(2, '2026-05-01', 400),
+					line(3, '2026-06-01', 400.02)
 				]),
-				'imbalanced create batch',
+				'imbalanced create',
 				/SCHEDULE_IMBALANCED: the repayments add up to 1200\.02, and the loan's principal is 1200\.00/
 			);
-			assert.deepEqual(await schedule(session), [], 'nothing was stored by the refused batch');
+			assert.equal(await loanCount(), 0, 'a refused graph leaves no agreement behind');
 
 			// Backwards along the sequence, and outside the agreement, each refused by name.
 			refusedWith(
-				await write(session, [
-					instalment(1, '2026-05-01', 400),
-					instalment(2, '2026-04-01', 400),
-					instalment(3, '2026-06-01', 400)
+				await create([
+					line(1, '2026-05-01', 400),
+					line(2, '2026-04-01', 400),
+					line(3, '2026-06-01', 400)
 				]),
-				'backwards create batch',
+				'backwards create',
 				/SCHEDULE_OUT_OF_ORDER/
 			);
 			refusedWith(
-				await write(session, [
-					instalment(1, '2026-04-01', 400),
-					instalment(2, '2026-05-01', 400),
-					instalment(3, '2026-10-01', 400)
+				await create([
+					line(1, '2026-04-01', 400),
+					line(2, '2026-05-01', 400),
+					line(3, '2026-10-01', 400)
 				]),
-				'create batch past the agreement',
+				'create past the agreement',
 				/SCHEDULE_OUTSIDE_EFFECTIVE_RANGE/
+			);
+			refusedWith(await create([]), 'empty new agreement schedule', /complete repayment schedule/);
+			refusedWith(
+				await create([line(1, '2026-05-01', 1200)], {
+					employment_id: '44444444-4444-4444-8444-444444444445'
+				}),
+				'agreement on a contract that is not on file',
+				/does not exist|not offered|employment/i
 			);
 
 			// The negative control: the same shape, sound, lands. A guard that refuses everything
 			// reads exactly like a working one from the refusals alone.
-			requireAccepted(
-				(
-					await write(session, [
-						instalment(1, '2026-04-01', 400),
-						instalment(2, '2026-05-01', 400),
-						instalment(3, '2026-06-01', 400)
-					])
-				).value,
-				'balanced create batch'
-			);
+			const created = await create([
+				line(1, '2026-04-01', 400),
+				line(2, '2026-05-01', 400),
+				line(3, '2026-06-01', 400)
+			]);
+			requireAccepted(created.value, 'balanced create');
+			const [loanId] = createdIds(created.value);
+			assert.ok(loanId);
 			assert.deepEqual(
-				(await schedule(session)).map((row) => [row.due_day, row.amount_due]),
+				(await schedule(session, loanId)).map((row) => [row.due_day, row.amount_due]),
 				[
 					['2026-04-01', 400],
 					['2026-05-01', 400],
 					['2026-06-01', 400]
 				]
 			);
+			// Every repayment rides its agreement's contract: the transform fills it, no caller does.
 			assert.deepEqual(
 				await session.query(
 					`select distinct employment_id::text as employment_id from loan_repayments where loan_id = $1`,
-					[LOAN_ID]
+					[loanId]
 				),
 				[{ employment_id: EMPLOYMENT_ID }]
 			);
 
+			/** An edit of the agreement and its schedule, judged together, with what it read. */
+			const amend = async (patch: Row) => {
+				const current = await schedule(session, loanId);
+				return writeRows(session, 'loans', 'update', [{ id: loanId, ...patch }], headers(session), [
+					observedVersion('loans', loanId, await version(session, 'loans', loanId)),
+					...(await Promise.all(
+						current.map(async (row) =>
+							observedVersion(
+								'loan_repayments',
+								row.id,
+								await version(session, 'loan_repayments', row.id)
+							)
+						)
+					))
+				]);
+			};
+
 			// A partial update is judged as the row it would produce, against the whole schedule it
 			// would leave — the two columns it carries are not the schedule.
-			const [first, second] = await schedule(session);
+			const [first, second] = await schedule(session, loanId);
 			assert.ok(first && second);
 			refusedWith(
-				await write(
-					session,
-					[
-						{
-							action: 'update',
-							values: {
-								id: first.id,
-								employment_id: '44444444-4444-4444-8444-444444444445'
-							}
-						}
-					],
-					[
-						{
-							row: { collection: 'loan_repayments', recordId: first.id },
-							rowVersion: await rowVersion(session, first.id)
-						}
-					]
-				),
-				'repayment contract mismatch',
-				/same employment contract/
-			);
-			refusedWith(
-				await write(
-					session,
-					[{ action: 'update', values: { id: first.id, loan_id: LOAN_ID, amount_due: 300 } }],
-					[
-						{
-							row: { collection: 'loan_repayments', recordId: first.id },
-							rowVersion: await rowVersion(session, first.id)
-						}
-					]
-				),
+				await amend({ repayment_loan: { update: [{ id: first.id, set: { amount_due: 300 } }] } }),
 				'imbalancing patch',
 				/SCHEDULE_IMBALANCED: the repayments add up to 1100\.00/
 			);
-
 			// Two patches that move money between instalments keep the plan sound, and land.
 			requireAccepted(
 				(
-					await write(
-						session,
-						[
-							{ action: 'update', values: { id: first.id, loan_id: LOAN_ID, amount_due: 300 } },
-							{ action: 'update', values: { id: second.id, loan_id: LOAN_ID, amount_due: 500 } }
-						],
-						[
-							{
-								row: { collection: 'loan_repayments', recordId: first.id },
-								rowVersion: await rowVersion(session, first.id)
-							},
-							{
-								row: { collection: 'loan_repayments', recordId: second.id },
-								rowVersion: await rowVersion(session, second.id)
-							}
-						]
-					)
+					await amend({
+						repayment_loan: {
+							update: [
+								{ id: first.id, set: { amount_due: 300 } },
+								{ id: second.id, set: { amount_due: 500 } }
+							]
+						}
+					})
 				).value,
 				'balanced pair of patches'
 			);
 			assert.deepEqual(
-				(await schedule(session)).map((row) => row.amount_due),
+				(await schedule(session, loanId)).map((row) => row.amount_due),
 				[300, 500, 400]
 			);
 
-			// An edited parent and its complete nested schedule are judged together. The child
-			// receives the proposed agreement, including principal changes and omitted repayments.
-
-			const loanVersion = async () => {
-				const [row] = (await session.query(`select row_version from loans where id = $1`, [
-					LOAN_ID
-				])) as ReadonlyArray<{ readonly row_version: number }>;
-				assert.ok(row);
-				return row.row_version;
-			};
-			const remove = async (collection: 'loans' | 'loan_repayments', ids: readonly string[]) => {
-				const versions = await session.query(
-					`select id, row_version from ${collection} where id = any($1::uuid[])`,
-					[ids]
-				);
-				return postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(
-						session.schemaFingerprint,
-						{ action: 'delete', collection, ids: [...ids] },
-						versions.map((row) => ({
-							row: { collection, recordId: String(row.id) },
-							rowVersion: Number(row.row_version)
-						}))
-					),
-					headers(session)
-				);
-			};
-			const nested = async (rows: ReadonlyArray<Row>, principal: number) => {
-				const current = await schedule(session);
-				return postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(
-						session.schemaFingerprint,
-						{
-							action: 'mutate',
-							collection: 'loans',
-							rows: [
-								{ action: 'update', values: { id: LOAN_ID, principal, repayment_loan: [...rows] } }
-							]
-						},
-						[
-							{ row: { collection: 'loans', recordId: LOAN_ID }, rowVersion: await loanVersion() },
-							...(await Promise.all(
-								current.map(async (row) => ({
-									row: { collection: 'loan_repayments', recordId: row.id },
-									rowVersion: await rowVersion(session, row.id)
-								}))
-							))
-						]
-					),
-					headers(session)
-				);
-			};
-			const lines = await schedule(session);
-			refusedWith(await nested([], PRINCIPAL), 'empty schedule replacement', /cannot be empty/);
+			// The agreement and its schedule are judged together: a principal alone is refused
+			// against the stored schedule, and the schedule may not be emptied.
+			const lines = await schedule(session, loanId);
 			refusedWith(
-				await remove('loan_repayments', [lines[0]!.id]),
-				'standalone repayment deletion',
-				/complete repayment schedule instead/
-			);
-			refusedWith(
-				await remove(
-					'loan_repayments',
-					lines.map((row) => row.id)
-				),
-				'standalone whole schedule deletion',
-				/complete repayment schedule instead/
-			);
-			refusedWith(
-				await postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(
-						session.schemaFingerprint,
-						{
-							action: 'mutate',
-							collection: 'loans',
-							rows: [{ action: 'update', values: { id: LOAN_ID, principal: 1250 } }]
-						},
-						[{ row: { collection: 'loans', recordId: LOAN_ID }, rowVersion: await loanVersion() }]
-					),
-					headers(session)
-				),
+				await amend({ principal: 1250 }),
 				'principal-only amendment',
 				/SCHEDULE_IMBALANCED/
 			);
-			assert.deepEqual(
-				await schedule(session),
-				lines,
-				'invalid deletions and principal edits preserve the original schedule'
-			);
-			requireAccepted(
-				(
-					await nested(
-						lines.map((row, index) => ({
-							id: row.id,
-							due_date: day(row.due_day),
-							amount_due: 500,
-							sequence: index + 1
-						})),
-						1500
-					)
-				).value,
-				'nested principal rise with the schedule that matches it'
-			);
-			requireAccepted(
-				(
-					await nested(
-						lines.slice(0, 2).map((row, index) => ({
-							id: row.id,
-							due_date: day(row.due_day),
-							amount_due: 750,
-							sequence: index + 1
-						})),
-						1500
-					)
-				).value,
-				'nested write dropping a line'
-			);
-			assert.deepEqual(
-				(await schedule(session)).map((row) => row.amount_due),
-				[750, 750],
-				'the dropped line is gone and the rest stand'
-			);
-
-			const newLoanId = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2';
-			const createNestedLoan = (employmentId?: string, amount = 600, empty = false) =>
-				postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(
-						session.schemaFingerprint,
-						{
-							action: 'mutate',
-							collection: 'loans',
-							rows: [
-								{
-									action: 'create',
-									values: {
-										id: newLoanId,
-										employment_id: EMPLOYMENT_ID,
-										loan_catalogue_id: COMPONENT_ID,
-										principal: 600,
-										effective_range: { start: day('2026-04-01'), end: day('2026-09-01') },
-										reference: 'NESTED-CONTRACT',
-										repayment_loan: empty
-											? []
-											: [
-													{
-														due_date: day('2026-05-01'),
-														amount_due: amount,
-														sequence: 1,
-														...(employmentId === undefined ? {} : { employment_id: employmentId })
-													}
-												]
-									}
-								}
-							]
-						},
-						[]
-					),
-					headers(session)
-				);
 			refusedWith(
-				await createNestedLoan(undefined, 600, true),
-				'empty new agreement schedule',
-				/complete repayment schedule/
+				await amend({ repayment_loan: { delete: lines.map(({ id }) => ({ id })) } }),
+				'empty schedule replacement',
+				/cannot be empty/
 			);
+			// A repayment leaves through its agreement or its own delete grant; here, through its
+			// agreement, it is refused when the schedule it leaves does not add up.
 			refusedWith(
-				await createNestedLoan('44444444-4444-4444-8444-444444444445'),
-				'new nested loan contract mismatch',
-				/same employment contract/
-			);
-			refusedWith(
-				await createNestedLoan(undefined, 599),
-				'new nested loan schedule mismatch',
+				await amend({ repayment_loan: { delete: [{ id: lines[0]!.id }] } }),
+				'dropping a line without restating the rest',
 				/SCHEDULE_IMBALANCED/
 			);
 			assert.deepEqual(
-				await session.query('select id from loans where id = $1', [newLoanId]),
+				await schedule(session, loanId),
+				lines,
+				'refused amendments preserve the original schedule'
+			);
+			requireAccepted(
+				(
+					await amend({
+						principal: 1500,
+						repayment_loan: {
+							update: lines.map((row) => ({ id: row.id, set: { amount_due: 500 } }))
+						}
+					})
+				).value,
+				'principal rise with the schedule that matches it'
+			);
+			// Nothing is deleted by omission: a line goes only when the write names it.
+			requireAccepted(
+				(
+					await amend({
+						repayment_loan: {
+							update: lines.slice(0, 2).map((row) => ({ id: row.id, set: { amount_due: 750 } })),
+							delete: [{ id: lines[2]!.id }]
+						}
+					})
+				).value,
+				'dropping a named line'
+			);
+			assert.deepEqual(
+				(await schedule(session, loanId)).map((row) => row.amount_due),
+				[750, 750],
+				'the named line is gone and the rest stand'
+			);
+
+			// A second agreement, refused for a schedule that does not add up and for a line that
+			// names another person, leaves nothing behind; a sound one lands and goes whole.
+			const other = (rows: ReadonlyArray<Row>) =>
+				writeRows(
+					session,
+					'loans',
+					'create',
+					[
+						{
+							...agreement,
+							principal: 600,
+							reference: 'NESTED-CONTRACT',
+							repayment_loan: { create: rows }
+						}
+					],
+					headers(session)
+				);
+			refusedWith(
+				await other([line(1, '2026-05-01', 599)]),
+				'new agreement schedule mismatch',
+				/SCHEDULE_IMBALANCED/
+			);
+			refusedWith(
+				await other([
+					{ ...line(1, '2026-05-01', 600), employment_id: '44444444-4444-4444-8444-444444444445' }
+				]),
+				'a line naming a contract of its own',
+				/not part of the declared create input/
+			);
+			assert.deepEqual(
+				await session.query('select id from loans where reference = $1', ['NESTED-CONTRACT']),
 				[],
 				'refused nested graph leaves no agreement'
 			);
-			requireAccepted(
-				(await createNestedLoan()).value,
-				'new nested loan derives contract without reading an unwritten agreement'
+			const secondLoan = await other([line(1, '2026-05-01', 600)]);
+			requireAccepted(secondLoan.value, 'a sound new agreement lands');
+			const [newLoanId] = createdIds(secondLoan.value);
+			assert.deepEqual(
+				await session.query(
+					`select r.employment_id::text as employment_id, r.loan_id::text as loan_id from loan_repayments r where r.loan_id = $1`,
+					[newLoanId]
+				),
+				[{ employment_id: EMPLOYMENT_ID, loan_id: newLoanId }]
 			);
-			const [nestedRepayment] = await session.query(
-				`select r.employment_id::text as employment_id, r.loan_id::text as loan_id
-				 from loan_repayments r where r.loan_id = $1`,
-				[newLoanId]
-			);
-			assert.deepEqual(nestedRepayment, { employment_id: EMPLOYMENT_ID, loan_id: newLoanId });
 			requireAccepted(
-				(await remove('loans', [newLoanId])).value,
+				(
+					await writeRows(session, 'loans', 'delete', [{ id: newLoanId }], headers(session), [
+						observedVersion('loans', newLoanId, await version(session, 'loans', newLoanId))
+					])
+				).value,
 				'whole unused agreement deletion'
 			);
 			assert.deepEqual(
@@ -471,8 +337,8 @@ test(
 				[]
 			);
 
-			// Seed a previously captured input; the mutations below still traverse the real hooks.
-			const captured = (await schedule(session))[0]!;
+			// Seed a previously captured input; the writes below still traverse the real transform.
+			const captured = (await schedule(session, loanId))[0]!;
 			const runId = crypto.randomUUID();
 			const payslipId = crypto.randomUUID();
 			await session.query(
@@ -491,22 +357,27 @@ test(
 				captured.id
 			]);
 			const [capturePreimage] = await session.query(
-				`select to_jsonb(r) as record, current_setting('TimeZone') as time_zone
-				 from loan_repayments r where id = $1`,
+				`select to_jsonb(r) as record from loan_repayments r where id = $1`,
 				[captured.id]
 			);
-			const restatedSchedule = (await schedule(session)).map((row) => ({
-				id: row.id,
-				due_date: day(row.due_day),
-				amount_due: row.id === captured.id ? row.amount_due : 500,
-				sequence: row.sequence
-			}));
+			// The captured line restated exactly, beside an amendment of the rest, lands.
+			const remaining = (await schedule(session, loanId)).filter((row) => row.id !== captured.id);
 			requireAccepted(
-				(await nested(restatedSchedule, 1250)).value,
-				`captured repayment restatement while amending the remaining schedule: ${JSON.stringify({
-					preimage: capturePreimage,
-					submitted: restatedSchedule.find((row) => row.id === captured.id)
-				})}`
+				(
+					await amend({
+						principal: 1250,
+						repayment_loan: {
+							update: [
+								{
+									id: captured.id,
+									set: { due_date: day(captured.due_day), amount_due: captured.amount_due }
+								},
+								...remaining.map((row) => ({ id: row.id, set: { amount_due: 500 } }))
+							]
+						}
+					})
+				).value,
+				'captured repayment restatement while amending the remaining schedule'
 			);
 			const [captureAfter] = await session.query(
 				`select to_jsonb(r) as record from loan_repayments r where id = $1`,
@@ -517,50 +388,54 @@ test(
 			for (const column of ['loan_id', 'employment_id', 'due_date', 'amount_due', 'sequence'])
 				assert.equal(afterFacts[column], beforeFacts[column], `captured ${column} is unchanged`);
 			refusedWith(
-				await write(
-					session,
-					[
-						{
-							action: 'update',
-							values: { id: captured.id, due_date: `${captured.due_day}T00:00:01.000Z` }
-						}
-					],
-					[
-						{
-							row: { collection: 'loan_repayments', recordId: captured.id },
-							rowVersion: await rowVersion(session, captured.id)
-						}
-					]
-				),
+				await amend({
+					repayment_loan: {
+						update: [{ id: captured.id, set: { due_date: `${captured.due_day}T00:00:01.000Z` } }]
+					}
+				}),
 				'captured repayment instant change',
 				/settled by a payroll and cannot be changed/
 			);
 			refusedWith(
-				await write(
-					session,
-					[{ action: 'update', values: { id: captured.id, amount_due: 749 } }],
-					[
-						{
-							row: { collection: 'loan_repayments', recordId: captured.id },
-							rowVersion: await rowVersion(session, captured.id)
-						}
-					]
-				),
+				await amend({
+					repayment_loan: { update: [{ id: captured.id, set: { amount_due: 749 } }] }
+				}),
 				'captured repayment edit',
 				/settled by a payroll and cannot be changed/
 			);
 			refusedWith(
-				await remove('loan_repayments', [captured.id]),
-				'captured repayment deletion',
+				await amend({ repayment_loan: { delete: [{ id: captured.id }] } }),
+				'captured repayment deletion through the agreement',
 				/settled by a payroll and cannot be deleted/
 			);
+			// The direct delete is the grant's decision, read off the same pin.
 			refusedWith(
-				await remove('loans', [LOAN_ID]),
+				await writeRows(
+					session,
+					'loan_repayments',
+					'delete',
+					[{ id: captured.id }],
+					headers(session),
+					[
+						observedVersion(
+							'loan_repayments',
+							captured.id,
+							await version(session, 'loan_repayments', captured.id)
+						)
+					]
+				),
+				'captured repayment direct deletion',
+				/authoriz|refused/i
+			);
+			refusedWith(
+				await writeRows(session, 'loans', 'delete', [{ id: loanId }], headers(session), [
+					observedVersion('loans', loanId, await version(session, 'loans', loanId))
+				]),
 				'captured agreement deletion',
-				/settled by a payroll and cannot be deleted|payroll 2026-04 has already taken/
+				/authoriz|refused/i
 			);
 			assert.deepEqual(
-				(await schedule(session)).map((row) => row.amount_due),
+				(await schedule(session, loanId)).map((row) => row.amount_due),
 				[750, 500]
 			);
 		} finally {

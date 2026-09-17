@@ -49,15 +49,12 @@ test(
 				entriesBefore
 			);
 			const options = {
-				id: crypto.randomUUID(),
 				reference: 'MANUAL-DEBIT-2026',
-				event: {
-					kind: 'ADJUSTMENT' as const,
-					window: annual,
-					days: -2,
-					effective_on: '2026-09-01',
-					reason: 'Documented external usage'
-				}
+				from_date: annual.start,
+				to_date: annual.end,
+				days: -2,
+				effective_on: '2026-09-01',
+				reason: 'Documented external usage'
 			};
 			const held = await createLeave(session, options, leaveTeamHeaders(session, 'HQ Payroll HR'));
 			requireAccepted(held.value, 'held adjustment');
@@ -90,11 +87,11 @@ test(
 			);
 			assert.equal(posted?.balance, 5);
 			assert.equal(posted?.pending, 0);
-			const duplicate = await createLeave(session, { ...options, id: crypto.randomUUID() });
+			const duplicate = await createLeave(session, { ...options });
 			assert.match(JSON.stringify(duplicate.value), /reference.*already|already.*reference/i);
 			const denied = await createLeave(
 				session,
-				{ ...options, id: crypto.randomUUID(), reference: 'SELF-DEBIT' },
+				{ ...options, reference: 'SELF-DEBIT' },
 				leaveTeamHeaders(session, 'Employee')
 			);
 			assert.notEqual(asRecord(denied.value, 'employee adjustment').resolution, 'accepted');

@@ -17,15 +17,23 @@ import test from 'node:test';
 import { Effect } from 'effect';
 import {
 	assessStatutory,
+	buildStatutory,
 	createStatutoryWorld,
 	expectStatutory,
 	expectStatutoryBase,
 	assertEveryVersionPriced,
 	COMPANY_ID
 } from './fixtures/statutory-world.ts';
+import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 import { buildPayrollRun, gatherPayrollRun } from '../src/collections/payroll_runs/lib/engine.ts';
-import { scheduleOccurrences, scheduledPaymentRequests } from '../src/lib/payroll/money.ts';
+import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import {
+	absenceDayRate,
+	ordinaryDivisorDays
+} from '../src/collections/payroll_runs/lib/ordinary-rate.ts';
+import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
+import { leaveCatalogue, settingsVersions } from './fixtures/statutory-world.ts';
 
 const PH_PEOPLE = [
 	{ key: 'PH-4000', wage: 4000, age: 25 },
@@ -71,10 +79,9 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	expectStatutory(book, 'PH-30000', 'SSS_EC', 0, 30);
 	expectStatutory(book, 'PH-40000', 'SSS_EC', 0, 30);
 
-	// PhilHealth: 5% premium split 2.5% / 2.5%, on a monthly basic salary floored at ₱10,000 and
-	// capped at ₱100,000 — where the bank's vetting left one centavo on the table at half-centavo
-	// premia (two independent 2.5% legs instead of premium-then-split; README NOT APPLIED #1),
-	// which none of these wages reaches.
+	// PhilHealth: one 5% premium on a monthly basic salary floored at ₱10,000 and capped at
+	// ₱100,000, then split — employee = truncate_cent(premium / 2), employer = the rest (the
+	// employer table; the half-centavo case is pinned below).
 	// 4,000 → the floor: 2.5% × 10,000 = 250 each. 30,000 → 750 each. 40,000 → 1,000 each.
 	expectStatutory(book, 'PH-4000', 'PHIC', 250, 250);
 	expectStatutory(book, 'PH-30000', 'PHIC', 750, 750);
@@ -101,6 +108,46 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	expectStatutory(book, 'PH-40000', 'WTAX', 2618.4, 0);
 });
 
+test('Philippines — February relieves February’s contributions, not the year’s (RR 2-98 s.2.78.1)', () => {
+	// The monthly table is applied to the period's compensation net of the employee SSS, PhilHealth
+	// and Pag-IBIG deducted from that pay. With a January payslip on file the relief read had been
+	// the year to date — January's 2,450 again in February — so a ₱30,000 wage withheld 640.05 in
+	// February instead of the 1,007.55 the table prescribes every month.
+	const book = assessStatutory(
+		{ code: 'PH', period: '2026-02', people: [{ key: 'PH-30000', wage: 30_000 }] },
+		(world) => {
+			const employment = world.employments.find((row) => row.employee_number === 'PH-30000');
+			assert.ok(employment);
+			world.payroll_runs.push({ id: 'prior-2026-01', company_id: COMPANY_ID, period: '2026-01' });
+			world.payslips.push({
+				id: 'payslip-2026-01',
+				payroll_run_id: 'prior-2026-01',
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: '2026-01-28T00:00:00.000Z',
+				currency: 'PHP',
+				base: [],
+				adjustments: [],
+				statutory: [
+					['WTAX', 1_007.55, 0],
+					['SSS', 1_500, 3_000],
+					['PHIC', 750, 750],
+					['HDMF', 200, 200]
+				].map(([scheme_code, employee_amount, employer_amount]) => ({
+					scheme_code,
+					employee_amount,
+					employer_amount,
+					base_amount: 30_000,
+					rule_when: null,
+					authority: null
+				}))
+			});
+		}
+	);
+	expectStatutory(book, 'PH-30000', 'SSS', 1500, 3000);
+	expectStatutory(book, 'PH-30000', 'WTAX', 1007.55, 0);
+});
+
 test('Philippines — the December 2025 version prices the same schedules', () => {
 	// The bank cuts a second version on 2026-01-01 that adds a payment code and moves no statutory
 	// value: every schedule below is the one the 2026-01 golden prices.
@@ -111,6 +158,71 @@ test('Philippines — the December 2025 version prices the same schedules', () =
 	expectStatutory(book, 'PH-30000', 'HDMF', 200, 200);
 	expectStatutory(book, 'PH-4000', 'SSS', 250, 500);
 	expectStatutory(book, 'PH-40000', 'SSS', 1750, 3500);
+});
+
+test('Philippines — a half-centavo PhilHealth premium is split employee-down, employer-up (OPSPH010)', () => {
+	// The premium is ONE figure, 5% of the monthly basic to the centavo, and the shares divide it:
+	// 15,819 → 790.95 → 395.47 employee, 395.48 employer (the entity's own listing: 380.31 / 380.32
+	// on its netted 15,212.40). Two independent 2.5% legs paid 395.48 twice, a centavo over the
+	// premium (bank README, formerly NOT APPLIED #1).
+	for (const period of ['2026-01', '2025-12']) {
+		const book = assessStatutory({
+			code: 'PH',
+			period,
+			people: [{ key: 'PH-15819', wage: 15_819 }]
+		});
+		expectStatutory(book, 'PH-15819', 'PHIC', 395.47, 395.48);
+	}
+});
+
+test('Philippines — the rice subsidy is de minimis and outside withholding (RR 2-98 s.2.78.1(A)(3)(d))', () => {
+	// OPSPH003: ₱32,000 basic, ₱2,100 transport, ₱600 communication (taxable) and a ₱1,300 rice
+	// subsidy keyed on the `meal` row. The subsidy is de minimis up to ₱2,500 a month (RR 29-2025;
+	// ₱2,000 under RR 11-2018 on the December 2025 version), so the monthly table reads
+	// 32,000 + 2,700 − (1,750 + 800 + 200) = 31,950: 15% × (31,950 − 20,833) = 1,667.55 — the
+	// entity's own cell. With the subsidy inside the base it withheld 1,862.55.
+	const MEAL = {
+		'2026-01': '874b6d04-8bf1-4d59-b4c4-18daf98a98e5',
+		'2025-12': '89df9fab-45d9-585a-b243-4ddadcf1d0c4'
+	};
+	const TRANSPORT = {
+		'2026-01': '92e2ca4a-bd53-42f5-8b62-84e892da9954',
+		'2025-12': 'a3fbd97a-0b76-546d-bc4c-e56ac46dc4ce'
+	};
+	for (const period of ['2026-01', '2025-12'] as const) {
+		const book = assessStatutory(
+			{ code: 'PH', period, people: [{ key: 'OPSPH003', wage: 32_000 }] },
+			(world) => {
+				const employment = world.employments[0]!;
+				for (const [index, [catalogue_id, amount]] of [
+					[MEAL[period], 1300],
+					[TRANSPORT[period], 2700]
+				].entries())
+					world.allowances.push({
+						id: `d3000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+						employment_id: employment.id,
+						catalogue_id: String(catalogue_id),
+						amount: Number(amount),
+						effective_from: `${period}-01`,
+						effective_to: null,
+						reason: '',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+			}
+		);
+		// SSS and Pag-IBIG read the allowances, subsidy included (36,000 → MSC 35,000; the 10,000
+		// fund-salary ceiling); PhilHealth reads the basic alone.
+		expectStatutoryBase(book, 'OPSPH003', 'SSS', 36_000);
+		expectStatutory(book, 'OPSPH003', 'SSS', 1750, 3500);
+		expectStatutory(book, 'OPSPH003', 'PHIC', 800, 800);
+		expectStatutory(book, 'OPSPH003', 'HDMF', 200, 200);
+		expectStatutoryBase(book, 'OPSPH003', 'WTAX', 34_700);
+		// December is the year-end rung (RR 11-2018 s.16): the annual table on one month's income
+		// owes nothing, so only the January period reads the monthly column.
+		if (period === '2026-01') expectStatutory(book, 'OPSPH003', 'WTAX', 1667.55, 0);
+	}
 });
 
 test('Philippines — a wage on an SSS bracket floor insures at that bracket, never at nothing', () => {
@@ -184,6 +296,86 @@ test('Philippines — a semi-monthly company: the monthly schemes once a month, 
 	expectStatutory(second, 'PH-S-30000', 'WTAX', 687.45, 0);
 });
 
+test('Philippines — December annualises the year and charges the difference (RR 11-2018 s.16)', () => {
+	// The annual table is the TRAIN table: 15% of the excess over 250,000 to 400,000, then
+	// 22,500 + 20% to 800,000, 102,500 + 25% to 2,000,000, 402,500 + 30% to 8,000,000,
+	// 2,202,500 + 35% above. The monthly Annex E rows in the seed are that table divided by twelve.
+	//
+	// A 30,000 monthly wage contributes SSS 1,500, PHIC 750 and HDMF 200, so the monthly taxable
+	// compensation is 27,550 and the monthly table withholds 15% of (27,550 − 20,833) = 1,007.55.
+	// Annualised: 15% of (330,600 − 250,000) = 12,090. December charges 12,090 − 11,083.05 =
+	// 1,006.95.
+	const priorPeriods = [
+		'2026-01',
+		'2026-02',
+		'2026-03',
+		'2026-04',
+		'2026-05',
+		'2026-06',
+		'2026-07',
+		'2026-08',
+		'2026-09',
+		'2026-10',
+		'2026-11'
+	];
+	const book = assessStatutory({ code: 'PH', period: '2026-12', people: PH_PEOPLE }, (world) => {
+		const employment = world.employments.find((row) => row.employee_number === 'PH-30000');
+		assert.ok(employment, 'the PH-30000 employment exists');
+		for (const period of priorPeriods) {
+			const runId = `prior-${period}`;
+			world.payroll_runs.push({ id: runId, company_id: COMPANY_ID, period });
+			world.payslips.push({
+				id: `payslip-${period}`,
+				payroll_run_id: runId,
+				employment_id: employment.id,
+				status: 'PAID',
+				paid_at: `${period}-28T00:00:00.000Z`,
+				currency: 'PHP',
+				base: [],
+				adjustments: [],
+				statutory: [
+					{
+						scheme_code: 'WTAX',
+						employee_amount: 1_007.55,
+						employer_amount: 0,
+						// The assessed-on result is the gross; the monthly rule subtracts the
+						// contributions inside its expression, so the stored base is 30,000.
+						base_amount: 30_000,
+						rule_when: null,
+						authority: null
+					},
+					{
+						scheme_code: 'SSS',
+						employee_amount: 1_500,
+						employer_amount: 3_000,
+						base_amount: 30_000,
+						rule_when: null,
+						authority: null
+					},
+					{
+						scheme_code: 'PHIC',
+						employee_amount: 750,
+						employer_amount: 750,
+						base_amount: 30_000,
+						rule_when: null,
+						authority: null
+					},
+					{
+						scheme_code: 'HDMF',
+						employee_amount: 200,
+						employer_amount: 200,
+						base_amount: 5_000,
+						rule_when: null,
+						authority: null
+					}
+				]
+			});
+		}
+	});
+
+	expectStatutory(book, 'PH-30000', 'WTAX', 1_006.95, 0);
+});
+
 test('every sealed version of `PH` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
@@ -212,15 +404,34 @@ test('Philippines — the salary-based schemes are monthly schedules, not per-pe
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 13th month pay (P.D. 851; Revised Guidelines 1987; NIRC s.32(B)(7)(e)) — gap tracker §4, landed 2026-09-16.
+// 13th month pay (P.D. 851; Revised Guidelines 1987; NIRC s.32(B)(7)(e)) — gap tracker §4.
 //
-// The row is a SCHEDULE source: every 24 December, one twelfth of the basic salary earned in the
-// year, to rank-and-file with at least a month of service, and on separation to a leaver whose
-// year closes before the day. The ₱90,000 exclusion is the WTAX base entry's `annual_exempt`.
+// The catalogue row prices it — a twelfth of the basic salary earned in the year, to rank-and-file
+// — and HR keys it as an allowance whose window is the month it is paid in; the band reads the
+// year as it stands when the entry is priced. The ₱90,000 exclusion is the WTAX base entry's
+// `annual_exempt`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function payslipsOf(options: Parameters<typeof createStatutoryWorld>[0]) {
+const THIRTEENTH_MONTH_ID = '4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6';
+
+function payslipsOf(
+	options: Parameters<typeof createStatutoryWorld>[0],
+	window: { from: string; to: string }
+) {
 	const world = createStatutoryWorld(options);
+	for (const [index, employment] of world.employments.entries())
+		world.allowances.push({
+			id: `d1000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+			employment_id: employment.id,
+			catalogue_id: THIRTEENTH_MONTH_ID,
+			amount: 1,
+			effective_from: window.from,
+			effective_to: window.to,
+			reason: '13th month',
+			evidence_file: null,
+			as_adjustment_entry: false,
+			approval_id: null
+		});
 	const prepared = Effect.runSync(
 		gatherPayrollRun({
 			api: memoryPayrollApi(world),
@@ -237,108 +448,433 @@ function payslipsOf(options: Parameters<typeof createStatutoryWorld>[0]) {
 			(row) => row.component_code === 'THIRTEENTH_MONTH_PAY'
 		);
 		const wtax = slip.statutory.find((row) => row.scheme_code === 'WTAX')!;
-		// The request row the run materialises for the occurrence, priced at what the payslip paid.
-		const materialised = built.captures
+		// The entry the run materialises for the month, priced at what the payslip paid.
+		const entries = built.captures
 			.filter((capture) => capture.payslipId === slip.id)
 			.flatMap((capture) => capture.materialised)
-			.map((row) => [row.collection, row.values.amount, row.values.schedule_key]);
-		return { thirteenth, wtaxBase: wtax.base_amount, materialised };
+			.map((row) => [row.collection, row.values.amount]);
+		return { thirteenth, wtaxBase: wtax.base_amount, entries };
 	};
 }
 
-test('Philippines — 13th month pay is raised by the December schedule, a twelfth of the year’s basic', () => {
-	const slip = payslipsOf({
-		code: 'PH',
-		period: '2026-12',
-		people: [
-			{ key: 'PH-30000', wage: 30_000 },
-			// A twelfth above ₱90,000: the excess alone enters the withholding base.
-			{ key: 'PH-1200000', wage: 1_200_000 },
-			// Under a month of service on the day.
-			{ key: 'PH-JOINER', wage: 30_000, hire_date: '2026-12-10' },
-			// Managerial employees are outside P.D. 851.
-			{ key: 'PH-MANAGER', wage: 30_000, work_classification: 'MANAGERIAL' }
-		]
-	});
+test('Philippines — 13th month pay keyed for December is a twelfth of the year’s basic, and the excess over ₱90,000 is withheld on', () => {
+	const slip = payslipsOf(
+		{
+			code: 'PH',
+			period: '2026-12',
+			people: [
+				{ key: 'PH-30000', wage: 30_000 },
+				// A twelfth above ₱90,000: the excess alone enters the withholding base.
+				{ key: 'PH-1200000', wage: 1_200_000 },
+				// Managerial employees are outside P.D. 851: the row's eligibility declines them.
+				{ key: 'PH-MANAGER', wage: 30_000, work_classification: 'MANAGERIAL' }
+			]
+		},
+		{ from: '2026-12-01', to: '2026-12-31' }
+	);
 	// No earlier payslip in the fixture year, so the year's basic is December's own salary.
 	assert.deepEqual(
 		slip('PH-30000').thirteenth.map((row) => [row.bucket, row.amount]),
 		[['NON_WAGE_PAYMENT', 2500]]
 	);
+	assert.deepEqual(slip('PH-30000').entries, [['allowance_entries', 2500]]);
 	assert.equal(slip('PH-30000').wtaxBase, 30_000);
 	assert.deepEqual(
 		slip('PH-1200000').thirteenth.map((row) => row.amount),
 		[100_000]
 	);
 	assert.equal(slip('PH-1200000').wtaxBase, 1_210_000);
-	assert.deepEqual(slip('PH-JOINER').thirteenth, []);
 	assert.deepEqual(slip('PH-MANAGER').thirteenth, []);
 });
 
-test('Philippines — a leaver is paid the 13th month on separation; the rest wait for December', () => {
-	const slip = payslipsOf({
-		code: 'PH',
-		period: '2026-03',
-		people: [
-			{ key: 'PH-30000', wage: 30_000 },
-			{ key: 'PH-LEAVER', wage: 30_000, exit_date: '2026-03-31' }
-		]
-	});
-	assert.deepEqual(slip('PH-30000').thirteenth, []);
-	assert.deepEqual(
-		slip('PH-LEAVER').thirteenth.map((row) => row.amount),
-		[2500]
-	);
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// Semi-monthly statutory timing — the entity's own sheet (OPSPH Salary Listings Jan–Jun 2026).
+//
+// SSS (RA 11199 s.18), PhilHealth (RA 11223 s.10) and Pag-IBIG (RA 9679 s.7) premiums are
+// MONTHLY, on the month's compensation; the law leaves their timing across cut-offs to the
+// employer, and the entity deducts the whole month on the mid-month cut-off
+// (`semi_monthly_statutory_cutoff: FIRST`). Withholding follows the pay period (RR 2-98 Annex E,
+// semi-monthly column). OPSPH006, January 2026, as the sheet shows it: basic 15,650 paid twice, a
+// monthly taxable compensation of 17,761.89 — the sheet's own "To Calculate SSS/PAGIBIG" cell —
+// so SSS MSC 18,000 (900 / 1,800 + EC 30), Pag-IBIG at the 10,000 ceiling (200 / 200), nothing
+// statutory on the end-month cut-off, and no tax on either half.
+//
+// PhilHealth: the sheet nets that half's ₱600 unpaid day against the monthly basic (376.25 each
+// on 15,050); RA 11223 bases the premium on the monthly basic salary itself, so the golden holds
+// the law: 5% of 15,650 split, 391.25 each.
+// ─────────────────────────────────────────────────────────────────────────────
 
-test('schedule occurrences clamp the day to the month and honour the window', () => {
-	const year = {
-		every: 'YEAR',
-		month: 2,
-		day: 30,
-		when: '',
-		from_service_months: 0,
-		on_separation: false
-	} as const;
-	assert.deepEqual(scheduleOccurrences(year, { start: '2026-01-01', end: '2026-12-31' }), [
-		'2026-02-28'
-	]);
-	assert.deepEqual(scheduleOccurrences(year, { start: '2026-03-01', end: '2026-12-31' }), []);
-	const month = { ...year, every: 'MONTH', month: null, day: 31 } as const;
-	assert.deepEqual(scheduleOccurrences(month, { start: '2026-04-01', end: '2026-05-31' }), [
-		'2026-04-30',
-		'2026-05-31'
-	]);
-});
+const OPSPH006_ALLOWANCE = '1f36debb-0b79-4aab-966e-aae5251b1026';
 
-test('a separation row falls due on the exit date, once, and only inside the window that holds it', () => {
-	const row = {
-		id: 'row',
-		code: 'SEPARATION_PAY',
-		family: 'PAYMENT',
-		source: 'SCHEDULE',
-		schedule: {
-			every: 'SEPARATION',
-			month: null,
-			day: 1,
-			when: '',
-			from_service_months: 0,
-			on_separation: false
+function opsph006(period: string, cutoff: 'FIRST' | 'SPLIT' | 'LAST') {
+	const person = { key: 'OPSPH006', wage: 15_650, pay_frequency: 'SEMI_MONTHLY' as const };
+	return assessStatutory(
+		{ code: 'PH', period, payFrequency: 'SEMI_MONTHLY', people: [person] },
+		(world) => {
+			world.companies[0]!.semi_monthly_statutory_cutoff = cutoff;
+			world.allowances.push({
+				id: 'd2000000-0000-4000-8000-000000000001',
+				employment_id: world.employments[0]!.id,
+				catalogue_id: OPSPH006_ALLOWANCE,
+				// The sheet's monthly taxable allowances: 17,761.89 − 15,650.
+				amount: 2111.89,
+				effective_from: '2026-01-01',
+				effective_to: null,
+				reason: '',
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
 		}
-	} as never;
-	const owed = (exit: string | null, pinned: string[] = []) =>
-		scheduledPaymentRequests({
-			components: [row],
-			employment: { id: 'emp', effective_range: null },
-			hire: '2020-01-01',
-			exit,
-			window: { start: '2026-03-01', end: '2026-03-31' },
-			period: '2026-03',
-			person: () => ({}) as never,
-			pinned: new Set(pinned)
-		}).map((request) => [request.event_date, request.materialised?.values.schedule_key]);
-	assert.deepEqual(owed('2026-03-14'), [['2026-03-14', 'row:emp:2026-03-14']]);
-	assert.deepEqual(owed('2026-04-01'), []);
-	assert.deepEqual(owed(null), []);
-	assert.deepEqual(owed('2026-03-14', ['row:emp:2026-03-14']), []);
+	);
+}
+
+test('Philippines — OPSPH006, January 2026: the month’s premiums on the mid-month cut-off, none at the end of the month', () => {
+	const mid = opsph006('2026-01-1', 'FIRST');
+	// The month's compensation is the half's lines twice over: 7,825 + 1,055.95 (the half's share
+	// of 2,111.89, to the cent) × 2 — a cent above the sheet's own cell, inside the same bracket.
+	expectStatutoryBase(mid, 'OPSPH006', 'SSS', 17_761.9);
+	expectStatutory(mid, 'OPSPH006', 'SSS', 900, 1800);
+	expectStatutory(mid, 'OPSPH006', 'SSS_EC', 0, 30);
+	expectStatutory(mid, 'OPSPH006', 'PHIC', 391.25, 391.25);
+	expectStatutory(mid, 'OPSPH006', 'HDMF', 200, 200);
+	// The half's own taxable compensation, 8,880.95 less 1,491.25 of contributions, is under the
+	// semi-monthly table's first rung of ₱10,417: nothing withheld.
+	expectStatutory(mid, 'OPSPH006', 'WTAX', 0, 0);
+
+	const end = opsph006('2026-01-2', 'FIRST');
+	for (const code of ['SSS', 'SSS_EC', 'PHIC', 'HDMF'])
+		expectStatutory(end, 'OPSPH006', code, 0, 0);
+	expectStatutory(end, 'OPSPH006', 'WTAX', 0, 0);
+});
+
+test('Philippines — the entity may carry the month’s premiums on the end-month cut-off, or split them', () => {
+	// LAST: the mid-month cut-off carries nothing and the end-month one the whole month.
+	expectStatutory(opsph006('2026-01-1', 'LAST'), 'OPSPH006', 'SSS', 0, 0);
+	expectStatutory(opsph006('2026-01-2', 'LAST'), 'OPSPH006', 'SSS', 900, 1800);
+	// SPLIT: each half is priced on its own compensation, 8,880.95 → MSC 9,000.
+	expectStatutory(opsph006('2026-01-1', 'SPLIT'), 'OPSPH006', 'SSS', 450, 900);
+	expectStatutory(opsph006('2026-01-2', 'SPLIT'), 'OPSPH006', 'SSS', 450, 900);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Working time, the daily rate and leave: the law's numbers against the sealed regime.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const rankAndFile = personContext({
+	employee: null,
+	employment: { service_start: '2020-01-01' },
+	terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group: 'MONTHLY' },
+	week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
+	asOf: '2026-06-30'
+});
+
+/** One day priced on a version, on an hourly rate of 100 so an amount reads as hours × multiple. */
+function priceDay(
+	version: ReturnType<typeof settingsVersions>[number],
+	dayType: 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | 'SPECIAL_HOLIDAY',
+	workedHours: number
+) {
+	return priceWorkDay({
+		work: version.work_rules,
+		person: rankAndFile,
+		day: {
+			workDayId: 'd',
+			date: '2026-06-15',
+			dayType,
+			workedHours,
+			normalHours: 8,
+			overtimeHours: dayType === 'ORDINARY' ? workedHours - 8 : workedHours,
+			breakMinutes: 60,
+			rosterCode: 'AM',
+			holidayKind: '',
+			holidayName: '',
+			monthOvertimeHours: 0,
+			consecutiveHours: 4,
+			continuousAttendance: false
+		},
+		rates: { ordinaryHour: 100, ordinaryDay: 800, dayWage: 800 }
+	}).map((row) => [row.label, row.hours, Math.round(row.amount * 100) / 100]);
+}
+
+test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version', () => {
+	for (const version of settingsVersions('PH')) {
+		// Art.87: 25% on the hourly rate beyond eight hours.
+		assert.deepEqual(priceDay(version, 'ORDINARY', 10), [['OT-1.25X', 2, 250]]);
+		// Art.93(a): 130% for the first eight hours on a rest day; art.87 on top beyond: 169%.
+		assert.deepEqual(priceDay(version, 'REST_DAY', 10), [
+			['OT-1.3X', 8, 1040],
+			['OT-1.69X', 2, 338]
+		]);
+		// Art.94(b): 200% for work on a regular holiday; 260% beyond eight hours.
+		assert.deepEqual(priceDay(version, 'PUBLIC_HOLIDAY', 10), [
+			['OT-2.0X', 8, 1600],
+			['OT-2.6X', 2, 520]
+		]);
+		// Special (non-working) day: 130% and 169% (DOLE Handbook ch.3 §D.1, ch.4 §C.3).
+		assert.deepEqual(priceDay(version, 'SPECIAL_HOLIDAY', 10), [
+			['OT-1.3X', 8, 1040],
+			['OT-1.69X', 2, 338]
+		]);
+		// Art.82: managerial employees are outside Title I, so outside the premiums.
+		assert.equal(version.work_rules.overtime_when, 'employment.classification != "MANAGERIAL"');
+		// Art.94(b) over art.93: a regular holiday on a rest day is priced as the holiday.
+		assert.equal(version.work_rules.holiday_rest_precedence, 'PUBLIC_HOLIDAY');
+		// Art.83 and art.85: the eight-hour day and the unpaid hour for meals; art.91: one rest day
+		// in seven.
+		assert.deepEqual(
+			version.work_rules.limits.map((limit) => [limit.measure, limit.max_hours]),
+			[['NORMAL_HOURS', 8]]
+		);
+		assert.deepEqual(version.work_rules.breaks, [
+			{ when: 'true', owed_minutes: '60.0', counts_as_worked_time: false }
+		]);
+		assert.equal(version.work_rules.weekly_rest_rule.max_consecutive_work_days, 6);
+	}
+});
+
+test('Philippines — the DOLE daily-rate factors 365, 261 and 313', () => {
+	// Handbook ch.2 §E: a monthly-paid employee's daily rate is monthly × 12 ÷ 365; a daily-paid
+	// employee on a five-day week is ÷ 261 (21.75 a month), on a six-day week ÷ 313 (26.0833).
+	for (const version of settingsVersions('PH')) {
+		const divisor = (payroll_group: string, hours: number, days: number) =>
+			ordinaryDivisorDays({
+				expression: version.work_rules.ordinary_divisor_days,
+				person: personContext({
+					employee: null,
+					employment: { service_start: '2020-01-01' },
+					terms: { base_salary: { value: 30_000, currency: 'PHP' }, payroll_group },
+					week: { ordinary_hours_per_week: hours, working_days_per_week: days },
+					asOf: '2026-06-30'
+				})
+			});
+		assert.equal(divisor('MONTHLY', 40, 5), 30.4167);
+		assert.equal(divisor('', 40, 5), 21.75);
+		assert.equal(divisor('', 48, 6), 26.0833);
+		// An absent day on the 261 factor: ₱30,000 × 12 ÷ 261 = ₱1,379.31.
+		assert.equal(
+			absenceDayRate({
+				terms: {
+					base_salary: { value: 30_000, currency: 'PHP' },
+					pay_frequency: 'MONTHLY',
+					ordinary_hours_per_week: 40,
+					working_days_per_week: 5
+				},
+				work: version.work_rules,
+				period: { start: '2026-02-01', end: '2026-02-28' },
+				workingDaysIn: () => 20
+			}),
+			1379.31
+		);
+	}
+});
+
+test('Philippines — the statutory leave ladder on every version', () => {
+	// Labor Code art.95 (SIL 5 days after a year, rank and file), RA 11210 s.3 (maternity 105
+	// days, 120 for a solo parent), RA 8187 s.2 (paternity 7 days, married male), RA 8972 s.8 as
+	// amended by RA 11861 (solo parent 7 days after six months), RA 9262 s.43 (VAWC 10 days),
+	// RA 9710 s.18 (special leave for women 60 days after six months).
+	const expected: Record<string, [string, [string, number][]]> = {
+		ANNUAL_LEAVE: [
+			'employment.classification != "MANAGERIAL"',
+			[['employment.service_months >= 12', 5]]
+		],
+		MATERNITY_LEAVE: [
+			'employee.gender == "FEMALE"',
+			[
+				['employee.solo_parent', 120],
+				['', 105]
+			]
+		],
+		PATERNITY_LEAVE: [
+			'employee.gender == "MALE" && employee.marital_status == "MARRIED"',
+			[['', 7]]
+		],
+		SOLO_PARENT_LEAVE: ['employee.solo_parent', [['employment.service_months >= 6', 7]]],
+		VAWC_LEAVE: ['employee.gender == "FEMALE"', [['', 10]]],
+		SPECIAL_LEAVE_FOR_WOMEN: [
+			'employee.gender == "FEMALE"',
+			[['employment.service_months >= 6', 60]]
+		]
+	};
+	for (const version of settingsVersions('PH')) {
+		const rows = leaveCatalogue('PH').filter((row) => row.settings_id === version.id);
+		for (const [code, [eligibility, bands]] of Object.entries(expected)) {
+			const row = rows.find((candidate) => candidate.code === code);
+			assert.ok(row, `${code} on ${version.name}`);
+			assert.equal(row.eligibility, eligibility, `${code} eligibility`);
+			assert.deepEqual(
+				row.entitlement.bands.map((band) => [band.eligibility, band.days]),
+				bands,
+				`${code} bands`
+			);
+			assert.equal(row.is_npl, false, `${code} is paid`);
+		}
+	}
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The fixed factor caps the month, and "no work, no pay" reaches the allowance.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PH_2026 = 'bb5137fd-d7fd-4a26-8eae-77211521f892';
+
+test('Philippines — a salary change mid-month is one month of pay, never more (DOLE Handbook ch.2 §E)', () => {
+	// January 2026 holds 22 Monday-to-Friday working days — 17 to the 23rd and 5 from the 24th —
+	// against the DOLE factor of 21.75. Measured row by row against the factor, a raise on the 24th
+	// paid 20,000 × 17/21.75 + 21,000 × 5/21.75 = 20,459.77: 105.75% of a month to someone present
+	// for all of it (OPSPH026, January 2026). The factor is what a whole month is worth, so the two
+	// rows share it: 20,000 × 17/22 + 21,000 × 5/22 = 20,227.27, the month at the weighted rate.
+	const { slips } = buildStatutory(
+		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-RAISE', wage: 20_000 }] },
+		(world) => {
+			const term = world.employment_terms.find(
+				(row) => row.employment_id === world.employments[0]!.id
+			)!;
+			term.effective_range = { start: term.effective_range.start, end: '2026-01-23' };
+			world.employment_terms.push({
+				...term,
+				id: 'b0000000-0000-4000-8000-0000000000ff',
+				base_salary: { value: 21_000, currency: 'PHP' },
+				effective_range: { start: '2026-01-24', end: null }
+			});
+		}
+	);
+	const slip = slips.get('PH-RAISE')!;
+	assert.deepEqual(
+		slip.proration.map((row) => [
+			Math.round(row.days * 10_000) / 10_000,
+			row.denominator,
+			row.contract_amount,
+			row.prorated_amount
+		]),
+		[
+			[16.8068, 21.75, 20_000, 15_454.55],
+			[4.9432, 21.75, 21_000, 4772.72]
+		]
+	);
+	assert.equal(slip.gross, 20_227.27);
+});
+
+const PH_NPL = 'c1c1c1c1-0000-4000-8000-0000000000aa';
+/** A no-pay leave entry over `dates`, charged one day each. */
+const noPayLeave = (world: PayrollWorld, key: string, dates: readonly string[]) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+	world.leave_entries.push({
+		id: `e1000000-0000-4000-8000-${key
+			.replace(/[^0-9a-f]/gi, '0')
+			.padStart(12, '0')
+			.slice(-12)}`,
+		employment_id: employment.id,
+		catalogue_id: PH_NPL,
+		leave_code: 'LEAVE_WITHOUT_PAY',
+		reference: `LWOP-${key}`,
+		from_date: dates[0]!,
+		to_date: dates.at(-1)!,
+		half_day_start: false,
+		half_day_end: false,
+		days: dates.length,
+		effective_on: dates[0]!,
+		reason: 'no work, no pay',
+		allocations: [],
+		charges: dates.map((date) => ({
+			date,
+			days: 1,
+			catalogue_id: PH_NPL,
+			employment_term_id: term.id,
+			holiday_id: null,
+			shift_definition_id: null,
+			work_day_id: null
+		})),
+		approval_id: null
+	});
+};
+
+test('Philippines — an allowance loses the unpaid days of the window it covers, wherever the cut-off falls', () => {
+	// `payroll.allowance_npl_prorates` is true: "no work, no pay" reaches the allowance. The January
+	// run pays the 1–31 January salary and charges attendance from 21 December to 20 January, so
+	// the unpaid days that net a whole-month allowance are the ones this run charges — four days of
+	// leave without pay on 22–25 December (OPSPH035), and a rostered Tuesday with no punch and no
+	// leave on 6 January — not the ones dated inside the salary month that the next run will charge.
+	// A ₱2,175 allowance is ₱100 a day on the factor: 17.75 and 20.75 of 21.75.
+	const { slips, entries } = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			people: [
+				{ key: 'PH-LWOP', wage: 15_650 },
+				{ key: 'PH-ABSENT', wage: 15_650 },
+				{ key: 'PH-FULL', wage: 15_650 }
+			]
+		},
+		(world) => {
+			world.leave_catalogue.push({
+				id: PH_NPL,
+				settings_id: PH_2026,
+				code: 'LEAVE_WITHOUT_PAY',
+				name: 'Leave without pay',
+				eligibility: '',
+				evidence: 'NONE',
+				evidence_after_days: null,
+				entitlement: {
+					availability: 'UNLIMITED',
+					year_start_month: 1,
+					proration: 'NONE',
+					bands: []
+				},
+				is_npl: true,
+				can_encash: false,
+				bands: [],
+				approval_id: null
+			});
+			for (const [index, employment] of world.employments.entries())
+				world.allowances.push({
+					id: `d3000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: OPSPH006_ALLOWANCE,
+					amount: 2175,
+					effective_from: '2025-01-01',
+					effective_to: null,
+					reason: '',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			noPayLeave(world, 'PH-LWOP', ['2025-12-22', '2025-12-23', '2025-12-24', '2025-12-25']);
+			const absent = world.employments.find((row) => row.employee_number === 'PH-ABSENT')!;
+			world.work_days.push({
+				id: 'wd-PH-ABSENT-2026-01-06',
+				employment_id: absent.id,
+				work_date: '2026-01-06',
+				shift_definition_id: null,
+				worked_intervals: [],
+				approval_id: null
+			});
+		}
+	);
+	const facts = (key: string) => {
+		const entry = entries.get(key)![0]!;
+		return [
+			entry.values.days,
+			entry.values.denominator,
+			entry.values.unpaid_days,
+			entry.values.amount
+		];
+	};
+	assert.deepEqual(facts('PH-LWOP'), [17.75, 21.75, 4, 1775]);
+	assert.deepEqual(facts('PH-ABSENT'), [20.75, 21.75, 1, 2075]);
+	assert.deepEqual(facts('PH-FULL'), [21.75, 21.75, 0, 2175]);
+	// The days themselves come off the salary at the factor's day rate, 15,650 ÷ 21.75 = 719.54
+	// each, one line per charged day; the absent Tuesday the same.
+	const absences = (key: string) =>
+		slips
+			.get(key)!
+			.adjustments.filter((row) => row.bucket === 'ABSENCE')
+			.map((row) => [row.quantity, row.amount]);
+	assert.deepEqual(
+		absences('PH-LWOP'),
+		Array.from({ length: 4 }, () => [1, 719.54])
+	);
+	assert.deepEqual(absences('PH-ABSENT'), [[1, 719.54]]);
 });

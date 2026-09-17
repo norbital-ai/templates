@@ -83,7 +83,6 @@ const UNSEEDED_COLLECTIONS = new Set([
 	'claim_requests',
 	'loan_catalogue',
 	'loans',
-	'payment_requests',
 	'payroll_runs',
 	'payslips',
 	'rosters',
@@ -194,12 +193,11 @@ type Report = {
  */
 const SCOPE_FIELDS = ['settings_id', 'company_id'] as const;
 
-/** The five tables of Settings → Catalog, by the tab that opens each. */
+/** The four tables of Settings → Catalog, by the tab that opens each. */
 const CATALOGUE_TABS = [
 	'Leave catalogue',
 	'Claim catalogue',
 	'Allowance catalogue',
-	'Adhoc',
 	'Loan catalogue'
 ] as const;
 

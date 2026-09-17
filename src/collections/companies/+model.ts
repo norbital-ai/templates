@@ -1,4 +1,4 @@
-import { custom, defineModel, enums, integer, text } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, sql, text } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -26,6 +26,14 @@ export default defineModel(
 		 */
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY']).notNull().default('MONTHLY'),
 		/**
+		 * Where a `SEMI_MONTHLY` entity deducts the schemes its law assesses over the MONTH (SSS,
+		 * PhilHealth, Pag-IBIG). The premium is monthly on the month's compensation; the law leaves
+		 * the timing across cut-offs to the employer. `FIRST` takes the whole month on the mid-month
+		 * cut-off, `LAST` on the end-month one, `SPLIT` prices each half on its own base. Tax always
+		 * follows the pay period. Read by nobody at a monthly entity.
+		 */
+		semi_monthly_statutory_cutoff: enums(['FIRST', 'SPLIT', 'LAST']).notNull().default('FIRST'),
+		/**
 		 * The occupational risk group the entity is rated in, where its regime prices a contribution
 		 * by risk rather than by wage or age. Indonesia's JKK is published as a risk ladder
 		 * (a rule whose `when` reads `risk_class`), so `selectRule` filters the JKK rules on this column; a null risk
@@ -39,6 +47,14 @@ export default defineModel(
 		 * `company.region`. Empty where the jurisdiction states no regional wage.
 		 */
 		region: text(),
+		/**
+		 * The entity's recorded facts, keyed by the names its settings version declares: sector,
+		 * overtime consent, establishment tests. A rule reads one as `person.company.facts.<key>`;
+		 * an absent key reads 0, '' or false.
+		 */
+		facts: custom('entity_facts')
+			.notNull()
+			.default(sql`'{}'::jsonb`),
 		/**
 		 * The Google holiday calendar this entity's annual holiday drafts are read from.
 		 *

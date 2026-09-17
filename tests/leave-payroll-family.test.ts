@@ -10,7 +10,7 @@ import {
 import { leavePayItemsValueSchema } from '../src/datatypes/leave_pay_items/+definition.ts';
 import type { LeaveActivity } from '../src/lib/leave/pending.ts';
 import type { LeaveCharge } from '../src/datatypes/leave_charges/+definition.ts';
-import type { LeaveEvent } from '../src/datatypes/leave_event/+definition.ts';
+import type { LeaveEntryActivity } from '../src/lib/leave/activity-fields.ts';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const year = { start: '2026-01-01', end: '2026-12-31' };
@@ -24,9 +24,8 @@ const catalogue: PreparedLeavePayroll['catalogues'][number] = {
 	eligibility: '',
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
 	evidence_after_days: null,
-	paid: false,
-	destination: 'PAY',
-	direction: 'SUBTRACT'
+	is_npl: true,
+	can_encash: false
 };
 function charge(date: string, days: 0.5 | 1 = 1): LeaveCharge {
 	return {
@@ -39,40 +38,55 @@ function charge(date: string, days: 0.5 | 1 = 1): LeaveCharge {
 		work_day_id: null
 	};
 }
-function entry(n: number, event: LeaveEvent, charges: LeaveCharge[] = []): LeaveActivity {
+function entry(n: number, fields: LeaveEntryActivity, charges: LeaveCharge[] = []): LeaveActivity {
 	return {
 		id: id(n),
 		employment_id: id(6),
 		catalogue_id: id(1),
 		leave_code: 'UNPAID',
 		reference: `manual-${n}`,
-		event,
+		from_date: null,
+		to_date: null,
+		half_day_start: null,
+		half_day_end: null,
+		days: null,
+		encash_days: null,
+		as_adjustment_entry: false,
+		reversal_of_id: null,
+		effective_on: null,
+		due_on: null,
+		destination_from: null,
+		destination_to: null,
+		available_from: null,
+		expires_on: null,
+		reason: null,
+		...fields,
 		charges,
 		allocations: [],
-		approval_id: null
+		approval_id: null,
+		payslip_id: null
 	};
 }
 const timeOff = (n: number, charges: LeaveCharge[]) =>
 	entry(
 		n,
 		{
-			kind: 'TIME_OFF',
-			range: {
-				start: { date: charges[0]!.date, half: 'FIRST' },
-				end: { date: charges.at(-1)!.date, half: charges.at(-1)!.days === 1 ? 'SECOND' : 'FIRST' }
-			},
-			chargeable_days: charges.reduce((sum, row) => sum + row.days, 0),
+			from_date: charges[0]!.date,
+			to_date: charges.at(-1)!.date,
+			half_day_start: false,
+			half_day_end: charges.at(-1)!.days === 1,
+			days: charges.reduce((sum, row) => sum + row.days, 0),
+			effective_on: charges[0]!.date,
 			reason: 'Approved absence'
 		},
 		charges
 	);
-const cash = (n: number, value = 137.25) =>
+const cash = (n: number, days = 2) =>
 	entry(n, {
-		kind: 'ENCASHMENT',
-		source_window: year,
-		days: 2,
-		gross_amount: { currency: 'MYR', value },
-		rate: null,
+		from_date: year.start,
+		to_date: year.end,
+		days,
+		encash_days: days,
 		effective_on: '2027-01-02',
 		due_on: '2027-01-10',
 		reason: 'Agreed after departure'
@@ -97,7 +111,8 @@ const calculate = (facts: PreparedLeavePayroll, window = january, rate = 100) =>
 		window,
 		dueThrough: window.end,
 		currency: 'MYR',
-		absenceRate: () => rate
+		absenceRate: () => rate,
+		ordinaryDayRate: () => rate
 	});
 
 test('cross-year unpaid leave settles exact dated halves once, with each periodâ€™s rate', () => {
@@ -126,7 +141,7 @@ test('cross-year unpaid leave settles exact dated halves once, with each periodâ
 test('paid time off captures its exact dates even when no money is generated', () => {
 	const row = timeOff(10, [charge('2027-01-04')]);
 	const facts = prepared([row], {
-		catalogues: [{ ...catalogue, paid: true }]
+		catalogues: [{ ...catalogue, is_npl: false }]
 	});
 	const output = calculate(facts);
 	assert.equal(output.adjustments.length, 0);
@@ -139,20 +154,23 @@ test('paid time off captures its exact dates even when no money is generated', (
 	);
 });
 
-test('manual money stays due after departure and is never repriced from wages', () => {
+test('manual encashment stays due after departure and prices at the ordinary day wage', () => {
 	const row = cash(11);
 	assert.equal(hasLeavePayment(prepared([row]), '2027-01-09'), false);
 	assert.equal(hasLeavePayment(prepared([row]), '2027-02-28'), true);
 	const output = calculateLeavePayroll({
-		prepared: prepared([row]),
+		prepared: prepared([row], {
+			catalogues: [{ ...catalogue, is_npl: false, can_encash: true }]
+		}),
 		window: january,
 		dueThrough: january.end,
 		currency: 'MYR',
 		absenceRate: () => {
-			throw new Error('Unexpected valuation');
-		}
+			throw new Error('An encashment never reads the absence rate');
+		},
+		ordinaryDayRate: () => 68.625
 	});
-	assert.equal(output.adjustments[0]!.amount, 137.25);
+	assert.equal(output.adjustments[0]!.amount, 137.25, 'two days at the ordinary day wage');
 	assert.equal(output.captures[0]!.gross_amount.value, 137.25);
 	assert.equal(
 		hasLeavePayment(
@@ -167,16 +185,15 @@ test('a paid reversal preserves the original amounts and contribution direction'
 	const original = timeOff(10, [charge('2026-12-30', 0.5), charge('2026-12-31')]);
 	const paid = calculate(prepared([original]), december, 123.46);
 	const reversal = entry(12, {
-		kind: 'REVERSAL',
-		entry_id: original.id,
+		as_adjustment_entry: true,
+		reversal_of_id: original.id,
 		effective_on: '2027-01-04',
 		due_on: '2027-01-31',
-		days: 1.5,
-		gross_amount: { value: 185.19, currency: 'MYR' },
+		days: null,
 		reason: 'Approved correction'
 	});
 	const facts = prepared([original, reversal], {
-		catalogues: [{ ...catalogue, paid: true }],
+		catalogues: [{ ...catalogue, is_npl: false }],
 		captures: paid.captures.map((row) => ({ ...row, paid: true }))
 	});
 	const output = calculate(facts, january, 999);
@@ -187,7 +204,11 @@ test('a paid reversal preserves the original amounts and contribution direction'
 			['ABSENCE', -123.46, -1]
 		]
 	);
-	assert.equal(output.captures[0]!.gross_amount.value, 185.19);
+	assert.equal(
+		output.captures[0]!.gross_amount.value,
+		185.19,
+		'the computed negation is the whole of the reversal money'
+	);
 	assert.ok(output.adjustments.every((row) => row.bucket === 'ABSENCE'));
 	assert.equal(output.captures[0]!.charges.length, 0);
 });
@@ -195,12 +216,11 @@ test('a paid reversal preserves the original amounts and contribution direction'
 test('unpaid cancellation produces no compensating payment and pending money is ignored', () => {
 	const original = cash(11);
 	const reversal = entry(12, {
-		kind: 'REVERSAL',
-		entry_id: original.id,
+		as_adjustment_entry: true,
+		reversal_of_id: original.id,
 		effective_on: '2027-01-04',
 		due_on: null,
-		days: 2,
-		gross_amount: null,
+		days: null,
 		reason: 'Cancelled before payment'
 	});
 	assert.equal(calculate(prepared([original, reversal])).captures.length, 0);
@@ -222,15 +242,28 @@ test('coverage retains half-day quantities and refuses overlapping full-day cove
 	);
 });
 
-test('agreed money refuses a mismatched payroll currency', () => {
+test('a reversal refuses a payroll currency that differs from the money it negates', () => {
+	const original = timeOff(10, [charge('2026-12-30')]);
+	const paid = calculate(prepared([original]), december, 123.46);
+	const reversal = entry(12, {
+		as_adjustment_entry: true,
+		reversal_of_id: original.id,
+		effective_on: '2027-01-04',
+		due_on: '2027-01-31',
+		days: null,
+		reason: 'Approved correction'
+	});
 	assert.throws(
 		() =>
 			calculateLeavePayroll({
-				prepared: prepared([cash(11)]),
+				prepared: prepared([original, reversal], {
+					captures: paid.captures.map((row) => ({ ...row, paid: true }))
+				}),
 				window: january,
 				dueThrough: january.end,
 				currency: 'SGD',
-				absenceRate: () => 100
+				absenceRate: () => 100,
+				ordinaryDayRate: () => 100
 			}),
 		/currency differs/
 	);

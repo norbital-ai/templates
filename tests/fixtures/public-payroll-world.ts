@@ -14,9 +14,8 @@ export const TERMS_ID = '55555555-5555-4555-8555-555555555555';
 export const SHIFT_PATTERN_ID = '99999999-9999-4999-8999-999999999901';
 export const BASIC_ID = '66666666-6666-4666-8666-666666666666';
 export const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
-export const TRANSPORT_PAYMENT_ID = '77777777-7777-4777-8777-777777777778';
 export const STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
-export const PAYMENT_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
+export const ONE_OFF_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
 
 const RANGE = { start: '2020-01-01', end: null };
 const ROSTERED = {
@@ -75,7 +74,7 @@ const WORK_RULES = {
 };
 
 export type PublicPayrollWorldOptions = {
-	/** When true, a one-off PAYMENT sits beside the standing allowance. */
+	/** When true, a one-period allowance sits beside the standing allowance. */
 	readonly includePayment?: boolean;
 };
 
@@ -85,23 +84,26 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employment_id: EMPLOYMENT_ID,
 		catalogue_id: TRANSPORT_ID,
 		amount: 310,
-		// A standing allowance: its window is the recurrence itself, and it pays whole in every
-		// period the window covers rather than depleting across them. There is no date column here
-		// on purpose — the window already states the day it opens.
-		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: '2026-03-31' },
-		derived_from_id: null,
-		payslip_id: null,
+		// A standing allowance: a monthly amount in force across its window, priced whole in every
+		// period the window covers. There is no date column beside the window: the window is it.
+		effective_from: '2026-01-01',
+		effective_to: '2026-03-31',
+		reason: '',
+		evidence_file: null,
+		as_adjustment_entry: false,
 		approval_id: null
 	};
-	const payment = {
-		id: PAYMENT_ENTRY_ID,
+	const oneOff = {
+		id: ONE_OFF_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		catalogue_id: TRANSPORT_PAYMENT_ID,
+		catalogue_id: TRANSPORT_ID,
 		amount: 100,
-		effective_on: '2026-01-15',
-		pay_period: '2026-01',
+		// Paid once: a window of one period.
+		effective_from: '2026-01-01',
+		effective_to: '2026-01-31',
 		reason: 'one-off',
-		payslip_id: null,
+		evidence_file: null,
+		as_adjustment_entry: false,
 		approval_id: null
 	};
 	return {
@@ -131,7 +133,8 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				payroll: {
 					currency: 'MYR',
 					timezone: 'Asia/Kuala_Lumpur',
-					tax_year_start_month: 1
+					tax_year_start_month: 1,
+					allowance_npl_prorates: false
 				},
 				// No region is named, so the wages map is empty and a scheme's
 				// `minimum_wage(region)` has nothing to read.
@@ -144,12 +147,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		],
 		statutory_contributions: [],
 
-		/**
-		 * One code, two catalogues, two rows. A standing transport allowance and a one-off transport
-		 * payment are different events with different shapes, and after the split they cannot share a
-		 * catalogue row — the foreign key each request carries points at a different table. The code
-		 * is the same because the payslip line is the same thing to the person reading it.
-		 */
+		/** One code, one catalogue, one row; every allowance against it is standing. */
 		claim_catalogue: [],
 		allowance_catalogue: [
 			{
@@ -158,24 +156,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				code: 'TRANSPORT',
 				name: 'Transport allowance',
 				sequence: 50,
-				eligibility: '',
-				evidence: 'NONE',
-				destination: 'PAY',
-				direction: 'ADD',
-				recurring: true,
-				prorates: false,
-				on_day: null,
-				bands: [{ when: '', amount: 'entry.amount', limit: null }],
-				approval_id: null
-			}
-		],
-		payment_catalogue: [
-			{
-				id: TRANSPORT_PAYMENT_ID,
-				settings_id: JURISDICTION_ID,
-				code: 'TRANSPORT',
-				name: 'Transport allowance',
-				sequence: 51,
 				eligibility: '',
 				evidence: 'NONE',
 				destination: 'PAY',
@@ -247,6 +227,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				department: null,
 				job_title: 'Clerk',
 				payroll_group: null,
+				agreed_days_per_week: 6,
 				shift_pattern_id: SHIFT_PATTERN_ID,
 				effective_range: { start: '2021-06-01', end: null },
 				approval_id: null
@@ -254,8 +235,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		],
 		employment_statutory_facts: [],
 		claim_requests: [],
-		allowance_requests: [standing],
-		payment_requests: options.includePayment === true ? [payment] : [],
+		allowances: options.includePayment === true ? [standing, oneOff] : [standing],
 		loans: [],
 		loan_repayments: [],
 		work_days: rosteredWorkDays(),

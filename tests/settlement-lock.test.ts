@@ -16,8 +16,8 @@
  *   2. GRAPH — that the capture reaches the returned record as a junction row, and that every
  *      adjustment's `input` handle names a junction its own payslip holds.
  *   3. `sourceLock` — how a claim reads as a refusal. Pure, shared verbatim with the screens.
- *   4. `payroll_runs` `delete.before` — the refusal that makes a PAID run's captures permanent. The
- *      real authored handler, called directly.
+ *   4. the `payroll_runs` delete grant — the `authorize` that makes a PAID run's captures
+ *      permanent. The real authored decision, called directly.
  *   5. `+relationship.ts` — that the cascade hops a release depends on are declared.
  *
  * What is *not* exercised is the cascade itself, because Postgres performs it. What is checked is
@@ -29,7 +29,7 @@ import test from 'node:test';
 
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
 import { payrollRunGraph } from '../src/collections/payroll_runs/lib/graph.ts';
-import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
+import { payrollRunGrants } from '../src/lib/policy_grants.ts';
 import relationships from '../src/collections/+relationship.ts';
 import {
 	sourceLock,
@@ -56,7 +56,12 @@ const JURISDICTION = {
 	code: 'MY',
 	jurisdiction_code: 'MY',
 	name: 'Malaysia',
-	payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+	payroll: {
+		currency: 'MYR',
+		timezone: 'Asia/Kuala_Lumpur',
+		tax_year_start_month: 1,
+		allowance_npl_prorates: false
+	},
 	wages: { by_region: {} },
 	sources: { urls: [] },
 	work_rules: WORK,
@@ -123,6 +128,7 @@ function measure(overrides = {}) {
 				employment_id: 'emp-1',
 				base_salary: { value: 3451, currency: 'MYR' },
 				pay_frequency: 'MONTHLY',
+				agreed_days_per_week: 5,
 				shift_pattern_id: 'pattern-1',
 				statutory_work_category: 'NON_MANUAL',
 				work_classification: 'NON_MANUAL',
@@ -333,9 +339,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 					workDays: ['wd-1', 'wd-zero'],
 					// Each family is named even when it captured nothing: the graph emits one junction
 					// set per family, and an omitted key is a missing table rather than an empty one.
-					payRequests: Object.fromEntries(
-						['CLAIM', 'ALLOWANCE', 'PAYMENT'].map((family) => [family, []])
-					),
+					payRequests: Object.fromEntries(['CLAIM', 'ALLOWANCE'].map((family) => [family, []])),
 					leave: [
 						{
 							leave_entry_id: 'lr-1',
@@ -381,8 +385,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 	const capturedIds = new Set([
 		...captured.workDays,
 		...captured.claims,
-		...captured.payments,
-		...captured.allowances,
+		...captured.materialised.map((row) => row.sourceId),
 		...captured.leave,
 		...captured.loanRepayments
 	]);
@@ -470,57 +473,44 @@ test('a pending approval still answers first, because it is the platform\u2019s 
 		settledBy: { period: '2026-03' }
 	});
 	assert.equal(lock.kind, 'PENDING_APPROVAL');
-	// And the hooks leave it alone: a pending write is a 409 the platform raises, not a refusal.
+	// And the transforms leave it alone: a held row is the platform's hold, not a refusal.
 	assert.equal(sourceLockBlocksWrite(lock), false);
 });
 
 // ── 4. the refusal that makes a paid run's captures permanent ───────────────────────────────────
 
 /**
- * A run with no paid slips. Payment lives on the slip now, so the delete guard asks the slips
- * first — `paid` below is the run whose money has left the building.
+ * A run with no paid slips. Payment lives on the slip now, so the delete grant asks the slips
+ * first — `paid` below is the run whose money has left the building. The company has no other
+ * run, so the deletion-order rule does not fire.
  */
-const releaseApi = {
-	db: { payslips: { findMany: () => Effect.succeed([]), findFirst: () => Effect.succeed(null) } }
+const releaseDb = {
+	payslips: { findFirst: () => Effect.succeed(undefined) },
+	payroll_runs: { findMany: () => Effect.succeed([]) }
 };
-const paidApi = {
-	db: {
-		payslips: {
-			findMany: () => Effect.succeed([]),
-			findFirst: () => Effect.succeed({ id: 'slip-1' })
-		}
-	}
+const paidDb = {
+	payslips: { findFirst: () => Effect.succeed({ id: 'slip-1' }) },
+	payroll_runs: { findMany: () => Effect.succeed([]) }
 };
+const run = { id: 'run-1', company_id: 'co-1', period: '2026-03' };
+const authorize = payrollRunGrants().payroll_runs.delete.authorize;
 
 test('a PAID payroll run refuses deletion', () => {
-	assert.throws(
-		() =>
-			Effect.runSync(
-				payrollRunHooks.delete.perRecord.before.handler({
-					existing: { id: 'run-1', period: '2026-03', lifecycle: 'PAID' },
-					api: paidApi
-				})
-			),
-		(error) => {
-			assert.match(error.message, /2026-03/);
-			// The reason, not just the rule: deleting it would cascade its captured inputs away and
-			// reopen every record behind money that has already been paid. The rule is now stated
-			// where the money is — a run holding any paid payslip, which is what PAID means.
-			assert.match(error.message, /payslips that have been paid/);
-			assert.match(error.message, /component entry/);
-			return true;
-		}
-	);
+	assert.equal(Effect.runSync(authorize({ record: run }, { db: paidDb })), false);
 });
 
 test('a DRAFT payroll run may be deleted, which is the only release the lock has', () => {
-	assert.doesNotThrow(() =>
-		Effect.runSync(
-			payrollRunHooks.delete.perRecord.before.handler({
-				existing: { id: 'run-1', period: '2026-03', lifecycle: 'DRAFT' },
-				api: releaseApi
-			})
-		)
+	assert.equal(Effect.runSync(authorize({ record: run }, { db: releaseDb })), true);
+});
+
+test('a run below a later one is not deleted: lineages are unwound from the end', () => {
+	const laterDb = {
+		payslips: { findFirst: () => Effect.succeed(undefined) },
+		payroll_runs: { findMany: () => Effect.succeed([run, { id: 'run-2', period: '2026-04' }]) }
+	};
+	assert.throws(
+		() => Effect.runSync(authorize({ record: run }, { db: laterDb })),
+		/Delete payrolls newest first/
 	);
 });
 
@@ -558,13 +548,7 @@ test('deleting a payroll run releases its captures — the declarations that cas
 		'a payslip must cascade from its run, or deleting a run leaves orphan payslips'
 	);
 
-	for (const family of [
-		'claim_requests',
-		'allowance_requests',
-		'payment_requests',
-		'leave_entries',
-		'loan_repayments'
-	] as const)
+	for (const family of ['claim_requests', 'leave_entries', 'loan_repayments'] as const)
 		for (const [name, edge] of Object.entries(graph[family] ?? {}))
 			assert.equal(
 				typeof edge === 'object' && edge !== null && 'to' in (edge as object)

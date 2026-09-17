@@ -39,6 +39,8 @@ const scheme = (id: string, settingsId: string, code: string) => ({
 	name: `Public fixture ${code}`,
 	authority: 'Public fixture',
 	assessment_period: 'PAY_PERIOD',
+	assessment_scope: 'EMPLOYMENT',
+	elections: [],
 	employee_share_annual_cap: null,
 	shared_cap_group: null,
 	project_relief_annually: false,
@@ -50,7 +52,7 @@ const scheme = (id: string, settingsId: string, code: string) => ({
 		}
 	],
 	// Every work line, no catalogue row: a loan recovery feeds no base.
-	base: { salary: true, absence: true, overtime: true, night_premium: true, entries: [] },
+	assessed_on: 'BASE + OVERTIME + NIGHT_PREMIUM - ABSENCE',
 	approval_id: null
 });
 
@@ -73,7 +75,7 @@ function loanWorld(options: LoanWorldOptions = {}) {
 	const world = createPublicPayrollWorld();
 	// The standing transport allowance has no row under the second version, and this test is about
 	// a code that does; drop it so the only revision question is the loan's.
-	world.allowance_requests = [];
+	world.allowances = [];
 	// Punch every rostered day so the wage is not eaten by absence; this test is about the grid.
 	for (const day of world.work_days) {
 		day.worked_intervals = [

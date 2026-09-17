@@ -32,16 +32,15 @@ test(
 			assert.equal(liable.certificate_required, true);
 			assert.deepEqual(liable.issues, []);
 			const missingEvidence = await createLeave(session, {
-				id: crypto.randomUUID(),
 				reference: 'CALL-UP-ORDER',
 				employment_id: LIABLE_EMPLOYMENT,
 				catalogue_id: input.catalogue_id,
-				event: {
-					kind: 'TIME_OFF',
-					range: input.range,
-					chargeable_days: null,
-					reason: 'In-camp training'
-				}
+				from_date: input.range.start.date,
+				to_date: input.range.end.date,
+				half_day_start: input.range.start.half === 'SECOND',
+				half_day_end: input.range.end.half === 'FIRST',
+				days: null,
+				reason: 'In-camp training'
 			});
 			assert.match(JSON.stringify(missingEvidence.value), /certificate/i);
 			const foreign = await leavePreview(session, { ...input, employment_id: FOREIGN_EMPLOYMENT });

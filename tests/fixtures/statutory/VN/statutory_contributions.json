@@ -12,27 +12,21 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2340000.0",
-				"employee": "round_cent(2340000.0 * 8.0 / 100.0)",
-				"employer": "round_cent(2340000.0 * 17.5 / 100.0)"
+				"employee": "round_unit(2340000.0 * 8.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * 17.5 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
-				"employer": "round_cent((base) * 17.5 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_unit((base) * 17.5 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
-				"employee": "round_cent(3744000.0)",
-				"employer": "round_cent(8190000.0)"
+				"employee": "round_unit(3744000.0)",
+				"employer": "round_unit(8190000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "4cf6d212-8a40-59d3-bed9-6a531e58f0c0",
@@ -47,27 +41,21 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2340000.0",
-				"employee": "round_cent(2340000.0 * 1.5 / 100.0)",
-				"employer": "round_cent(2340000.0 * 3.0 / 100.0)"
+				"employee": "round_unit(2340000.0 * 1.5 / 100.0)",
+				"employer": "round_unit(2340000.0 * 3.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
-				"employer": "round_cent((base) * 3.0 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_unit((base) * 3.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
-				"employee": "round_cent(702000.0)",
-				"employer": "round_cent(1404000.0)"
+				"employee": "round_unit(702000.0)",
+				"employer": "round_unit(1404000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "4c7d29eb-b1a4-563b-819c-fe475dc2e46d",
@@ -81,18 +69,12 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0)",
-				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
-				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_unit(((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "21adb4da-a0cd-5a5b-9e75-3c4024232b0f",
@@ -107,34 +89,28 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2340000.0",
-				"employee": "round_cent(2340000.0 * 0.0 / 100.0)",
-				"employer": "round_cent(2340000.0 * 2.0 / 100.0)"
+				"employee": "round_unit(2340000.0 * 0.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * 2.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_cent((base) * 2.0 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
+				"employer": "round_unit((base) * 2.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
-				"employee": "round_cent(0.0)",
-				"employer": "round_cent(936000.0)"
+				"employee": "round_unit(0.0)",
+				"employer": "round_unit(936000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "34eb4f94-333c-56e7-90be-9212b41aa6c1",
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale; family deductions of 132,000,000 a year for the taxpayer and 52,800,000 a dependant under Resolution 954/2020/UBTVQH14.",
+		"authority": "Law on Personal Income Tax 04/2007/QH12 art.22 as amended — the seven-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI (art.7); family deductions of 11,000,000 a month for the taxpayer and 4,400,000 a dependant under Resolution 954/2020/UBTVQH14. A non-resident is withheld at the flat 20% of art.26 through the registration’s rate override.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -142,62 +118,11 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (132000000.0 + 52800000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 60000000.0, 3000000.0, 10.0, 120000000.0, 9000000.0, 15.0, 216000000.0, 23400000.0, 20.0, 384000000.0, 57000000.0, 25.0, 624000000.0, 117000000.0, 30.0, 960000000.0, 217800000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
-				"employer": "round_cent(0.0)"
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive(((base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (11000000.0 + 4400000.0 * person.employee.dependents_count) > 0.0 ? (base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (11000000.0 + 4400000.0 * person.employee.dependents_count) : 0.0), [0.0, 0.0, 5.0, 5000000.0, 250000.0, 10.0, 10000000.0, 750000.0, 15.0, 18000000.0, 1950000.0, 20.0, 32000000.0, 4750000.0, 25.0, 52000000.0, 9750000.0, 30.0, 80000000.0, 18150000.0, 35.0]))",
+				"employer": "round_unit(0.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": true,
-			"night_premium": false,
-			"entries": [
-				{
-					"family": "LEAVE",
-					"code": "ANNUAL_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "SICK_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "MATERNITY_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PATERNITY_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "MARRIAGE_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "CHILD_MARRIAGE_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "BEREAVEMENT_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "BEREAVEMENT_LEAVE_UNPAID"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PUBLIC_HOLIDAY"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PUBLIC_HOLIDAY_IN_LIEU"
-				},
-				{
-					"family": "LEAVE",
-					"code": "FOREIGN_NATIONAL_LEAVE"
-				}
-			]
-		}
+		"assessed_on": "BASE + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
 	},
 	{
 		"id": "5f4b1158-77e0-5029-a1ed-5c38e88550df",
@@ -212,27 +137,21 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2340000.0",
-				"employee": "round_cent(2340000.0 * 8.0 / 100.0)",
-				"employer": "round_cent(2340000.0 * 17.5 / 100.0)"
+				"employee": "round_unit(2340000.0 * 8.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * 17.5 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
-				"employer": "round_cent((base) * 17.5 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_unit((base) * 17.5 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
-				"employee": "round_cent(3744000.0)",
-				"employer": "round_cent(8190000.0)"
+				"employee": "round_unit(3744000.0)",
+				"employer": "round_unit(8190000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "8339c95d-77e8-5bea-b06e-d2fc88cd8dfc",
@@ -247,27 +166,21 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2340000.0",
-				"employee": "round_cent(2340000.0 * 1.5 / 100.0)",
-				"employer": "round_cent(2340000.0 * 3.0 / 100.0)"
+				"employee": "round_unit(2340000.0 * 1.5 / 100.0)",
+				"employer": "round_unit(2340000.0 * 3.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
-				"employer": "round_cent((base) * 3.0 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_unit((base) * 3.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
-				"employee": "round_cent(702000.0)",
-				"employer": "round_cent(1404000.0)"
+				"employee": "round_unit(702000.0)",
+				"employer": "round_unit(1404000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "92d096bf-8260-5adb-a7f9-6073199855d9",
@@ -281,18 +194,12 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0)",
-				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
-				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_unit(((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "bc474287-8417-5220-b244-f0f57bb4ae1f",
@@ -307,34 +214,28 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2340000.0",
-				"employee": "round_cent(2340000.0 * 0.0 / 100.0)",
-				"employer": "round_cent(2340000.0 * 2.0 / 100.0)"
+				"employee": "round_unit(2340000.0 * 0.0 / 100.0)",
+				"employer": "round_unit(2340000.0 * 2.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 46800000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_cent((base) * 2.0 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
+				"employer": "round_unit((base) * 2.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 46800000.0",
-				"employee": "round_cent(0.0)",
-				"employer": "round_cent(936000.0)"
+				"employee": "round_unit(0.0)",
+				"employer": "round_unit(936000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "4cdeeff7-9391-5bdd-bd0d-4af0d389c2dd",
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions of Resolution 110/2025/UBTVQH15 read into art.10. Law 04/2007's seven-rung scale governed December 2025 only.",
+		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI, with the 15,500,000 personal and 6,200,000 dependant monthly deductions of Resolution 110/2025/UBTVQH15 read into art.10. Law 04/2007’s seven-rung scale governed December 2025 only. A non-resident is withheld at the flat 20% through the registration’s rate override.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -342,62 +243,11 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
-				"employer": "round_cent(0.0)"
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive(((base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) > 0.0 ? (base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) : 0.0), [0.0, 0.0, 5.0, 10000000.0, 500000.0, 10.0, 30000000.0, 2500000.0, 20.0, 60000000.0, 8500000.0, 30.0, 100000000.0, 20500000.0, 35.0]))",
+				"employer": "round_unit(0.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": true,
-			"night_premium": false,
-			"entries": [
-				{
-					"family": "LEAVE",
-					"code": "ANNUAL_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "SICK_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "MATERNITY_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PATERNITY_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "MARRIAGE_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "CHILD_MARRIAGE_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "BEREAVEMENT_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "BEREAVEMENT_LEAVE_UNPAID"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PUBLIC_HOLIDAY"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PUBLIC_HOLIDAY_IN_LIEU"
-				},
-				{
-					"family": "LEAVE",
-					"code": "FOREIGN_NATIONAL_LEAVE"
-				}
-			]
-		}
+		"assessed_on": "BASE + OVERTIME + ENCASHMENT - ABSENCE - NO_PAY_LEAVE"
 	},
 	{
 		"id": "e54fc2da-828e-5f39-94eb-e829b152eab9",
@@ -412,27 +262,21 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2530000.0",
-				"employee": "round_cent(2530000.0 * 8.0 / 100.0)",
-				"employer": "round_cent(2530000.0 * 17.5 / 100.0)"
+				"employee": "round_unit(2530000.0 * 8.0 / 100.0)",
+				"employer": "round_unit(2530000.0 * 17.5 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
-				"employer": "round_cent((base) * 17.5 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 8.0 / 100.0)",
+				"employer": "round_unit((base) * 17.5 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
-				"employee": "round_cent(4048000.0)",
-				"employer": "round_cent(8855000.0)"
+				"employee": "round_unit(4048000.0)",
+				"employer": "round_unit(8855000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "ee7f7408-63d3-5eca-8ceb-92e5e10c0a88",
@@ -447,27 +291,21 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2530000.0",
-				"employee": "round_cent(2530000.0 * 1.5 / 100.0)",
-				"employer": "round_cent(2530000.0 * 3.0 / 100.0)"
+				"employee": "round_unit(2530000.0 * 1.5 / 100.0)",
+				"employer": "round_unit(2530000.0 * 3.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
-				"employer": "round_cent((base) * 3.0 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 1.5 / 100.0)",
+				"employer": "round_unit((base) * 3.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
-				"employee": "round_cent(759000.0)",
-				"employer": "round_cent(1518000.0)"
+				"employee": "round_unit(759000.0)",
+				"employer": "round_unit(1518000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "fe8a9888-288e-5254-be22-d94bbec833d3",
@@ -481,18 +319,12 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) > 0.0)",
-				"employee": "round_cent(((((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
-				"employer": "round_cent(((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)) * 1.0 / 100.0)"
+				"when": "(person.employee.citizenship != \"FOREIGNER\") && (((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) > 0.0)",
+				"employee": "round_unit(((((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 > 0.0 ? ((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) - 0.0 : 0.0)) * 1.0 / 100.0)",
+				"employer": "round_unit(((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)) * 1.0 / 100.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "11743132-ee52-510a-81a4-4daffc29f555",
@@ -507,34 +339,28 @@
 		"rules": [
 			{
 				"when": "base > 0.0 && base < 2530000.0",
-				"employee": "round_cent(2530000.0 * 0.0 / 100.0)",
-				"employer": "round_cent(2530000.0 * 2.0 / 100.0)"
+				"employee": "round_unit(2530000.0 * 0.0 / 100.0)",
+				"employer": "round_unit(2530000.0 * 2.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0 && (((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) <= 50600000.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
-				"employer": "round_cent((base) * 2.0 / 100.0)"
+				"employee": "round_unit((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 0.0 / 100.0)",
+				"employer": "round_unit((base) * 2.0 / 100.0)"
 			},
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 50600000.0",
-				"employee": "round_cent(0.0)",
-				"employer": "round_cent(1012000.0)"
+				"employee": "round_unit(0.0)",
+				"employer": "round_unit(1012000.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": []
-		}
+		"assessed_on": "person.period.working_days - period.days_employed >= 14.0 ? 0.0 : person.terms.basic_salary"
 	},
 	{
 		"id": "9657382b-d498-561e-b7b4-6015d946ae93",
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
-		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, with the 186,000,000 personal and 74,400,000 dependant deductions written into art.10. Decree 253/2026/NĐ-CP art.70 adjusts any 1 January–30 June 2026 withholding already made under the old scale in the 2026 annual finalisation.",
+		"authority": "Law on Personal Income Tax 109/2025/QH15 art.9 with art.29(2), salary rules applied from the 2026 tax period — the five-rung progressive scale, withheld month by month on the monthly table under Circular 111/2013/TT-BTC art.25(1)(b) over the month’s income net of the month’s SI, HI and UI, with the 15,500,000 personal and 6,200,000 dependant monthly deductions written into art.10. Art.4(8) exempts the overtime and night-work wage and the wage paid for untaken leave days, so neither OVERTIME nor ENCASHMENT is in the base from 1 July 2026 (Decree 253/2026/NĐ-CP). A non-resident is withheld at the flat 20% through the registration’s rate override.",
 		"assessment_period": "PAY_PERIOD",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -542,61 +368,10 @@
 		"rules": [
 			{
 				"when": "true",
-				"employee": "(rate_override > 0.0 ? round_cent((base) * rate_override / 100.0) : round_cent((((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) > 0.0 ? ((true ? progressive(((year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) > 0.0 ? (year_to_date.base + (base) * (1.0 + projection.future_equivalents) - ((produced.SI.employee + produced.HI.employee + produced.UI.employee) * (1.0 + projection.future_equivalents)) - (186000000.0 + 74400000.0 * person.employee.dependents_count)) : 0.0), [0.0, 0.0, 5.0, 120000000.0, 6000000.0, 10.0, 360000000.0, 30000000.0, 20.0, 720000000.0, 102000000.0, 30.0, 1200000000.0, 246000000.0, 35.0]) : 0.0) - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)))",
-				"employer": "round_cent(0.0)"
+				"employee": "scheme.rate_override > 0.0 ? round_unit((base) * scheme.rate_override / 100.0) : round_unit(progressive(((base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) > 0.0 ? (base) - (produced.SI.employee_this_period + produced.HI.employee_this_period + produced.UI.employee_this_period) - (15500000.0 + 6200000.0 * person.employee.dependents_count) : 0.0), [0.0, 0.0, 5.0, 10000000.0, 500000.0, 10.0, 30000000.0, 2500000.0, 20.0, 60000000.0, 8500000.0, 30.0, 100000000.0, 20500000.0, 35.0]))",
+				"employer": "round_unit(0.0)"
 			}
 		],
-		"base": {
-			"salary": true,
-			"absence": true,
-			"overtime": false,
-			"night_premium": false,
-			"entries": [
-				{
-					"family": "LEAVE",
-					"code": "ANNUAL_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "SICK_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "MATERNITY_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PATERNITY_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "MARRIAGE_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "CHILD_MARRIAGE_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "BEREAVEMENT_LEAVE"
-				},
-				{
-					"family": "LEAVE",
-					"code": "BEREAVEMENT_LEAVE_UNPAID"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PUBLIC_HOLIDAY"
-				},
-				{
-					"family": "LEAVE",
-					"code": "PUBLIC_HOLIDAY_IN_LIEU"
-				},
-				{
-					"family": "LEAVE",
-					"code": "FOREIGN_NATIONAL_LEAVE"
-				}
-			]
-		}
+		"assessed_on": "BASE - ABSENCE - NO_PAY_LEAVE"
 	}
 ]

@@ -16,6 +16,9 @@
 	import type { RepresentationProps, WorkspaceRow } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { Tabs } from '@norbital-ai/ui/tabs';
+	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
+	import { payRequestRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
@@ -66,18 +69,34 @@
 			? null
 			: client.db.employments.findMany({
 					where: { ...approved, employee_id: { eq: record.id } },
-					columns: {
-						id: true,
-						company_id: true,
-						employee_number: true,
-						contract_number: true,
-						effective_range: true
-					},
 					orderBy: { employee_number: 'asc' },
 					limit: 100
 				})
 	);
+	/** The stored rows, newest stint first: each is handed whole to its `ContractDetail`. */
+	const contracts = $derived(
+		(employmentsQuery?.current ?? []).toSorted((left, right) =>
+			(readRange(right.effective_range)?.start ?? '').localeCompare(
+				readRange(left.effective_range)?.start ?? ''
+			)
+		)
+	);
 	const employments = $derived((employmentsQuery?.current ?? []).map(resolveEmployment));
+	/** Every event on this page is one of this person's contracts. */
+	const employmentIds = $derived(employments.map((employment) => employment.id));
+	const byContract = $derived({ employment_id: { in: employmentIds } } as const);
+	/** What holds a money row: its approval, and the payslip that settled it. */
+	type CapturedRow = {
+		readonly approval_id: string | null;
+		readonly payslip_id: string | null;
+		readonly pay_period?: string | null;
+	};
+	const captureMetadata = (row: CapturedRow) =>
+		payRequestRecordMetadata(
+			row.approval_id,
+			row.payslip_id == null ? [] : [{ period: row.pay_period ?? '' }],
+			t
+		);
 	/**
 	 * The scope the profile hands to the forms its tables open (terms, statutory facts). A person
 	 * with one contract has it prefilled and hidden; with several, the picker offers the entity's
@@ -193,7 +212,7 @@
 	 * One rail per legal entity, newest event first: joined, every change of terms that followed,
 	 * and the exit when there is one. A promotion, a demotion, a new contract or a return all read
 	 * as one line — the terms summary states what changed — so the record is a history rather than
-	 * a set of bars whose overlap proves a hook. Each contract's number opens the contract itself.
+	 * a set of bars whose overlap proves a rule. Each contract's number opens the contract itself.
 	 */
 	const timeline = $derived.by(() => {
 		const byCompany = new Map<string, TimelineContract[]>();
@@ -435,8 +454,155 @@
 					</Stack>
 				</FormSection>
 			{/if}
+			{#each contracts as contract (contract.id)}
+				<FormSection
+					title={t('component.contract_heading', {
+						company:
+							timelineCompanyNames.get(String(contract.company_id)) ?? String(contract.company_id),
+						number: String(contract.employee_number ?? '—'),
+						contract: String(contract.contract_number ?? 1)
+					})}
+					hint={readRange(contract.effective_range)?.end == null
+						? t('component.timeline_active')
+						: t('component.timeline_last_ended', {
+								date: formatCalendarDate(
+									timelineDayKey(readRange(contract.effective_range)?.end) ?? ''
+								)
+							})}
+				>
+					<ContractDetail record={contract} />
+				</FormSection>
+			{/each}
 		</Stack>
 	{/if}
+{/snippet}
+
+<!--
+	The person's events, family by family, in the same sidebar the Events pages and the employee's
+	own app use: Work, Leave, Claim, Allowance and Loan, every row scoped to this person's contracts.
+-->
+{#snippet workEvents()}
+	<CollectionTable
+		{client}
+		collection="work_days"
+		view="employees:events:work"
+		title={t('family.work')}
+		query={{ where: byContract, orderBy: { work_date: 'desc' } }}
+	>
+		{#snippet columns({ Column: TableColumn })}
+			<TableColumn name="work_date" label={t('component.work_date')} card="title" />
+			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+			<TableColumn name="shift_definition_id" label={t('component.shift')} />
+			<TableColumn name="worked_intervals" label={t('component.attendance')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet leaveEvents()}
+	<CollectionTable
+		{client}
+		collection="leave_entries"
+		view="employees:events:leave"
+		title={t('family.leave')}
+		recordMetadata={() => [
+			{ kind: 'restriction', operations: ['update', 'delete'], reason: t('leave.immutable') }
+		]}
+		query={{ where: byContract, orderBy: { effective_on: 'desc' } }}
+	>
+		{#snippet columns({ Column: TableColumn })}
+			<TableColumn name="catalogue_id" label={t('component.catalogue_leave')} />
+			<TableColumn name="summary" label={t('leave.activity')} card="title" />
+			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+			<TableColumn name="reference" label={t('component.reference')} />
+			<TableColumn name="days" label={t('component.days')} />
+			<TableColumn name="encash_days" label={t('component.encash_days')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet claimEvents()}
+	<CollectionTable
+		{client}
+		collection="claim_requests"
+		view="employees:events:claims"
+		title={t('family.claim')}
+		recordMetadata={captureMetadata}
+		query={{ where: byContract, orderBy: { incurred_on: 'desc' } }}
+	>
+		{#snippet columns({ Column: TableColumn })}
+			<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
+			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+			<TableColumn name="amount" label={t('component.amount')} />
+			<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+			<TableColumn name="incurred_on" label={t('component.incurred_on')} />
+			<TableColumn name="evidence_file" label={t('component.evidence_file')} />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet allowanceEvents()}
+	<CollectionTable
+		{client}
+		collection="allowances"
+		view="employees:events:allowances"
+		title={t('family.allowance')}
+		query={{ where: byContract, orderBy: { effective_from: 'desc' } }}
+	>
+		{#snippet columns({ Column: TableColumn })}
+			<TableColumn name="catalogue_id" label={t('component.component')} card="title" />
+			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+			<TableColumn name="amount" label={t('component.amount')} />
+			<TableColumn name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+			<TableColumn name="effective_from" label={t('component.effective')} />
+			<TableColumn name="effective_to" />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet loanEvents()}
+	<CollectionTable
+		{client}
+		collection="loans"
+		view="employees:events:loans"
+		title={t('family.loan')}
+		query={{ where: byContract, orderBy: { effective_from: 'desc' } }}
+	>
+		{#snippet columns({ Column: TableColumn })}
+			<TableColumn name="reference" card="title" />
+			<TableColumn name="employment_id" label={t('component.employment')} card="subtitle" />
+			<TableColumn name="principal" label={t('component.principal')} />
+			<TableColumn name="effective_range" />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet events()}
+	<Tabs
+		animate={false}
+		layout="vertical"
+		config={[
+			{ name: 'work', label: t('family.work'), icon: 'lucide:calendar-clock', content: workEvents },
+			{
+				name: 'leave',
+				label: t('family.leave'),
+				icon: 'lucide:calendar-check',
+				content: leaveEvents
+			},
+			{
+				name: 'claim',
+				label: t('family.claim'),
+				icon: 'lucide:receipt-text',
+				content: claimEvents
+			},
+			{
+				name: 'allowance',
+				label: t('family.allowance'),
+				icon: 'lucide:hand-coins',
+				content: allowanceEvents
+			},
+			{ name: 'loan', label: t('family.loan'), icon: 'lucide:landmark', content: loanEvents }
+		] satisfies TabConfig[]}
+	/>
 {/snippet}
 
 {#snippet statutoryFacts()}
@@ -533,6 +699,12 @@
 						label: t('component.employments'),
 						icon: 'lucide:briefcase',
 						content: engagements
+					},
+					{
+						name: 'events',
+						label: t('component.events'),
+						icon: 'lucide:inbox',
+						content: events
 					},
 					{
 						name: 'statutory-facts',

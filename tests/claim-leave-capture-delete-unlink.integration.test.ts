@@ -5,10 +5,9 @@ import {
 	asRecord,
 	bearerHeaders,
 	commandSentence,
-	mutationPush,
-	postGuestCommand,
 	requireAccepted
 } from '@norbital-ai/test-utilities';
+import { createdIds, observedVersion, writeRows } from './helpers/write.ts';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 import {
 	ANNUAL_LEAVE_CATALOGUE_ID,
@@ -22,7 +21,6 @@ import {
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
-const MUTATE_COMMAND = 'collections.mutate';
 /** The public Claim catalogue entry used for the reimbursed taxi. */
 const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777701';
 
@@ -46,16 +44,7 @@ const create = async (
 	values: Readonly<Record<string, unknown>>,
 	headers: Readonly<Record<string, string>>
 ) => {
-	const response = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE_COMMAND,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection,
-			rows: [{ action: 'create', values }]
-		}),
-		headers
-	);
+	const response = await writeRows(session, collection, 'create', [values], headers);
 	assert.ok(
 		response.status >= 200 && response.status < 300,
 		`${collection} create returned ${response.status}: ${JSON.stringify(response.value)}`
@@ -73,37 +62,27 @@ const payrollDay = (value: unknown): string =>
 
 const fileTimeOff = (
 	session: Session,
-	id: string,
+	reference: string,
 	date: string,
 	headers: Readonly<Record<string, string>>
 ) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		MUTATE_COMMAND,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'leave_entries',
-			rows: [
-				{
-					action: 'create',
-					values: {
-						id,
-						employment_id: EMPLOYMENT_ID,
-						catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-						reference: `LEAVE-${id}`,
-						event: {
-							kind: 'TIME_OFF',
-							range: {
-								start: { date, half: 'FIRST' },
-								end: { date, half: 'SECOND' }
-							},
-							chargeable_days: null,
-							reason: 'Lane D chained absence'
-						}
-					}
-				}
-			]
-		}),
+	writeRows(
+		session,
+		'leave_entries',
+		'create',
+		[
+			{
+				employment_id: EMPLOYMENT_ID,
+				catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+				reference: `LEAVE-${reference}`,
+				from_date: date,
+				to_date: date,
+				half_day_start: false,
+				half_day_end: false,
+				days: null,
+				reason: 'Lane D chained absence'
+			}
+		],
 		headers
 	);
 
@@ -120,22 +99,13 @@ const updateTwo = async (
 		[ids]
 	)) as ReadonlyArray<{ readonly id: string; readonly row_version: number }>;
 	const versionById = new Map(found.map((row) => [row.id, row.row_version]));
-	const response = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE_COMMAND,
-		mutationPush(
-			session.schemaFingerprint,
-			{
-				action: 'mutate',
-				collection,
-				rows: rows.map((values) => ({ action: 'update', values }))
-			},
-			ids.map((id) => ({
-				row: { collection, recordId: id },
-				rowVersion: versionById.get(id)
-			}))
-		),
-		headers
+	const response = await writeRows(
+		session,
+		collection,
+		'update',
+		rows,
+		headers,
+		ids.map((id) => observedVersion(collection, id, versionById.get(id)!))
 	);
 	assert.ok(
 		response.status >= 200 && response.status < 300,
@@ -155,21 +125,9 @@ const refuseUpdate = async (
 	const versions = (await session.query(`select row_version from ${collection} where id = $1`, [
 		id
 	])) as ReadonlyArray<{ readonly row_version: number }>;
-	const response = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE_COMMAND,
-		mutationPush(
-			session.schemaFingerprint,
-			{ action: 'mutate', collection, rows: [{ action: 'update', values: { id, ...values } }] },
-			[
-				{
-					row: { collection, recordId: id },
-					rowVersion: versions[0]?.row_version
-				}
-			]
-		),
-		headers
-	);
+	const response = await writeRows(session, collection, 'update', [{ id, ...values }], headers, [
+		observedVersion(collection, id, versions[0]!.row_version)
+	]);
 	assert.equal(
 		asRecord(response.value, label).resolution,
 		'rejected',
@@ -188,7 +146,7 @@ const refuseUpdate = async (
  * unlinks both captures and deletes neither source.
  *
  * There is no draft roster and no publication: a roster row is an override, and the single-cell
- * refusal is the write-time conformance sentence (`work_days/+hooks.ts`), asserted loosely — the
+ * refusal is the write-time conformance sentence (`work_days/+collection.ts`), asserted loosely — the
  * pattern wording plus a count. The public catalogue is sealed with no UNPAID/ABSENCE component,
  * so the Tuesday absence charges exactly one leave day (`chargeable_days = 1`) rather than
  * pricing a monetary deduction line; the component-code line naming is proven on the claim's
@@ -206,42 +164,15 @@ test(
 
 			// 1. March takes explicit plans matching the pattern: Sat WORK, Sun REST, Mon/Tue WORK.
 			// A roster row is an override, so pattern-matching rows pass write-time conformance.
-			const planned = await postGuestCommand(
-				session.host.baseUrl,
-				MUTATE_COMMAND,
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'work_days',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: crypto.randomUUID(),
-								employment_id: EMPLOYMENT_ID,
-								work_date: SATURDAY,
-								shift_definition_id: SHIFT_WORK_ID
-							}
-						},
-						{
-							action: 'create',
-							values: {
-								id: crypto.randomUUID(),
-								employment_id: EMPLOYMENT_ID,
-								work_date: SUNDAY,
-								shift_definition_id: SHIFT_REST_ID
-							}
-						},
-						{
-							action: 'create',
-							values: {
-								id: crypto.randomUUID(),
-								employment_id: EMPLOYMENT_ID,
-								work_date: MONDAY,
-								shift_definition_id: SHIFT_WORK_ID
-							}
-						}
-					]
-				}),
+			const planned = await writeRows(
+				session,
+				'work_days',
+				'create',
+				[
+					{ employment_id: EMPLOYMENT_ID, work_date: SATURDAY, shift_definition_id: SHIFT_WORK_ID },
+					{ employment_id: EMPLOYMENT_ID, work_date: SUNDAY, shift_definition_id: SHIFT_REST_ID },
+					{ employment_id: EMPLOYMENT_ID, work_date: MONDAY, shift_definition_id: SHIFT_WORK_ID }
+				],
 				founder
 			);
 			assert.ok(
@@ -303,7 +234,6 @@ test(
 				session,
 				'jurisdiction_holidays',
 				{
-					id: crypto.randomUUID(),
 					company_id: '11111111-1111-4111-8111-111111111111',
 					date: HOLIDAY_TUESDAY,
 					name: 'Fixture holiday',
@@ -313,7 +243,7 @@ test(
 			);
 			requireAccepted(holiday, 'publish a holiday');
 			for (const date of [QUIET_SUNDAY, MONDAY, HOLIDAY_TUESDAY]) {
-				const noOp = await fileTimeOff(session, crypto.randomUUID(), date, controller);
+				const noOp = await fileTimeOff(session, `NOOP-${date}`, date, controller);
 				assert.equal(
 					asRecord(noOp.value, `leave on ${date}`).resolution,
 					'rejected',
@@ -327,25 +257,25 @@ test(
 			}
 
 			// 5. The Tuesday absence: filed, held, approved, stored — charging exactly one day.
-			const leaveId = crypto.randomUUID();
-			const applied = await fileTimeOff(session, leaveId, TUESDAY, controller);
+			const applied = await fileTimeOff(session, 'TUESDAY', TUESDAY, controller);
 			assert.ok(
 				applied.status >= 200 && applied.status < 300,
 				`leave file ${applied.status}: ${JSON.stringify(applied.value)}`
 			);
+			const held = asRecord(applied.value, 'leave file').pendingApproval;
 			assert.ok(
-				typeof asRecord(applied.value, 'leave file').pendingApproval === 'object',
+				typeof held === 'object',
 				`leave file must be held for approval: ${JSON.stringify(applied.value)}`
 			);
+			const leaveId = String(asRecord(held, 'held leave').id);
 			await approveLeave(session, applied.value);
-			const charged = (await session.query(
-				"select event ->> 'chargeable_days' as days from leave_entries where id = $1",
-				[leaveId]
-			)) as ReadonlyArray<{ readonly days: string | number }>;
+			const charged = (await session.query('select days from leave_entries where id = $1', [
+				leaveId
+			])) as ReadonlyArray<{ readonly days: string | number }>;
 			assert.equal(Number(charged[0]?.days), 1, 'the Tuesday absence charges one day');
 
 			// 6. The same Tuesday twice is an overlap, not a second day.
-			const overlap = await fileTimeOff(session, crypto.randomUUID(), TUESDAY, controller);
+			const overlap = await fileTimeOff(session, 'TUESDAY-AGAIN', TUESDAY, controller);
 			assert.equal(
 				asRecord(overlap.value, 'overlapping leave').resolution,
 				'rejected',
@@ -354,12 +284,10 @@ test(
 			assert.match(commandSentence(overlap), /overlap/i, JSON.stringify(overlap.value));
 
 			// 7. A claim is one write, landed directly — no approval, no second step.
-			const claimId = crypto.randomUUID();
 			const claim = await create(
 				session,
 				'claim_requests',
 				{
-					id: claimId,
 					employment_id: EMPLOYMENT_ID,
 					catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
@@ -374,16 +302,17 @@ test(
 				undefined,
 				`a claim must not wait: ${JSON.stringify(claim)}`
 			);
+			const [claimId] = createdIds(claim);
 
 			// 8. The March run captures both as inputs, pricing the claim onto a named line.
-			const runId = crypto.randomUUID();
 			const run = await create(
 				session,
 				'payroll_runs',
-				{ id: runId, company_id: COMPANY_ID, period: MARCH_2026 },
+				{ company_id: COMPANY_ID, period: MARCH_2026 },
 				manager
 			);
 			requireAccepted(run, 'payroll run create');
+			const [runId] = createdIds(run);
 			assert.equal(run.pendingApproval, undefined, `manager runs land: ${JSON.stringify(run)}`);
 			assert.equal(
 				await rowCount(
@@ -438,27 +367,15 @@ test(
 
 			// 9. Deleting the draft run releases both captures and deletes neither source.
 			const sourceBefore = await session.query(
-				'select event, charges, allocations from leave_entries where id = $1',
+				'select days, charges, allocations from leave_entries where id = $1',
 				[leaveId]
 			);
 			const versions = (await session.query('select row_version from payroll_runs where id = $1', [
 				runId
 			])) as ReadonlyArray<{ readonly row_version: number }>;
-			const deleted = await postGuestCommand(
-				session.host.baseUrl,
-				MUTATE_COMMAND,
-				mutationPush(
-					session.schemaFingerprint,
-					{ action: 'delete', collection: 'payroll_runs', ids: [runId] },
-					[
-						{
-							row: { collection: 'payroll_runs', recordId: runId },
-							rowVersion: versions[0]?.row_version
-						}
-					]
-				),
-				manager
-			);
+			const deleted = await writeRows(session, 'payroll_runs', 'delete', [{ id: runId }], manager, [
+				observedVersion('payroll_runs', runId, versions[0]!.row_version)
+			]);
 			requireAccepted(deleted.value, 'payroll run delete');
 			assert.equal(
 				await rowCount(session, 'select count(*)::int as n from payroll_runs where id = $1', [
@@ -499,7 +416,7 @@ test(
 				'deleting the run must not delete the leave request'
 			);
 			assert.deepEqual(
-				await session.query('select event, charges, allocations from leave_entries where id = $1', [
+				await session.query('select days, charges, allocations from leave_entries where id = $1', [
 					leaveId
 				]),
 				sourceBefore

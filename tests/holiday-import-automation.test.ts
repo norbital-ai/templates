@@ -43,11 +43,14 @@ const harness = (
 		},
 		db: {
 			companies: { findMany: () => Effect.succeed([company]) },
+			jurisdiction_holidays: { findMany: () => Effect.succeed(existing) }
+		},
+		collection: {
 			jurisdiction_holidays: {
-				findMany: () => Effect.succeed(existing),
-				mutate: (rows: Record<string, unknown>[]) =>
+				createMany: (rows: Record<string, unknown>[]) =>
 					Effect.sync(() => {
 						writes.push(...rows);
+						return rows;
 					})
 			}
 		}

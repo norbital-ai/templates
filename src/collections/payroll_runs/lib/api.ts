@@ -1,32 +1,21 @@
 /**
  * The database surface the engine runs against.
  *
- * The build happens in `mutate.prepare` and `mutate.before`, which hold **reads only**. That is not
- * a restriction the engine works around — it is the design. A payroll run writes exactly one thing,
- * the graph its `before` hook returns, and the runtime performs that write as part of the create.
- * An engine that cannot call `mutate` cannot have a side effect, so "no side effects" stops being a
- * rule somebody has to keep and becomes a type.
+ * The build happens in the run's transform, which holds **reads only**. That is not a restriction
+ * the engine works around — it is the design. A payroll run writes exactly one thing, the payload
+ * its transform returns, and the runtime performs that write as part of the create. An engine that
+ * cannot write cannot have a side effect, so "no side effects" stops being a rule somebody has to
+ * keep and becomes a type.
  *
- * Deriving the type from the hook signature rather than restating it keeps this honest — if the
- * platform narrows what a `before` hook may do, this stops compiling instead of failing at run time.
+ * The transform's `db` is budgeted to two read waves. The engine asks its questions in many
+ * dependent steps, so `preload.ts` reads everything a run can need in two concurrent waves and
+ * hands the engine an in-memory surface of the same shape (`lib/memory-reads.ts`).
  */
 
-import type { Hooks } from '../$types.js';
+import type { CollectionTransformDatabase } from '@norbital-ai/bolt/authoring';
 
-type MutateBeforeHook = NonNullable<
-	NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']
->['handler'];
-
-/**
- * Reads. There is no write half.
- *
- * This used to be `PayrollApi` — the elevated after-hook capability set, with `mutate` and
- * `delete` on every collection — and four functions in `persist.ts` used it. All four are gone: the
- * payslips, their lines and their settlement locks are children of the graph `create.before`
- * returns, and the arrears entries that were the only writes outside that graph are derived now
- * rather than carried forward.
- */
-export type PayrollReadApi = Parameters<MutateBeforeHook>[0]['api'];
+/** Reads. There is no write half. */
+export type PayrollReadApi = { readonly db: CollectionTransformDatabase };
 
 /** The largest page any single engine query will pull. A run that exceeds it is a run that lies. */
 export const PAGE_LIMIT = 20_000;
@@ -34,9 +23,9 @@ export const PAGE_LIMIT = 20_000;
 /**
  * Read accounting, for profiling.
  *
- * Every engine read is an RPC out of the tenant runtime container before it is a query, so the
- * count of reads matters as much as the rows they return. `assertComplete` wraps every one of
- * them, which makes it the one place that sees them all.
+ * Every engine read is answered from the preloaded world, so the count of reads is the count of
+ * questions the engine asked, and the rows are what each answer held. `assertComplete` wraps every
+ * one of them, which makes it the one place that sees them all.
  *
  * The accounting is scoped to one run (or one precheck) rather than module-lifetime: two builds
  * running concurrently must not append to one shared ledger, and an idle module must not keep
@@ -71,7 +60,7 @@ function createReadLog(): ReadLog {
 }
 
 /**
- * Bind a per-call read log to a capability set, so a caller passing a raw hook `api` hands every
+ * Bind a per-call read log to a capability set, so a caller passing a raw read `api` hands every
  * engine read the accounting **this entry point** owns and nobody else's rows leak into its log.
  */
 export function withReadLog<A extends PayrollReadApi>(api: A): A & { readonly reads: ReadLog } {

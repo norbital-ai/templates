@@ -3,7 +3,8 @@
 	 * One leave entry: the person, the leave it is taken as, the activity and its certificate.
 	 *
 	 * The type picker offers only the leaves whose eligibility holds for the person today
-	 * (`EligibleTypes`); the hook measures the same rule on every charged day.
+	 * (`EligibleTypes`); the transform measures the same rule on every charged day. The activity itself
+	 * is flat fields — no discriminator column — and `LeaveActivityEditor` owns all of them.
 	 */
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
@@ -13,19 +14,21 @@
 	import { client } from '../../lib/workspace-client.js';
 	import type { RepresentationProps } from './$types.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
-	import { defaultTimeOffEvent } from '../../datatypes/leave_event/+definition.js';
+	import { defaultTimeOffFields } from '../../lib/leave/activity-fields.js';
 	import { employmentRelationOptions, hrCreateScope } from '../../lib/ui/create-scope.js';
 	import EligibleTypes from '../../lib/ui/eligible-types.svelte';
 	import FormSection from '../../lib/ui/form-section.svelte';
+	import LeaveActivityEditor from '../../lib/ui/leave/leave-activity-editor.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 	const scope = hrCreateScope();
+	const selfService = $derived(scope?.employmentId != null);
 	const scopedEmploymentId = $derived(scope?.employmentId?.());
 	const defaultValues = $derived(
 		record ?? {
 			...(scopedEmploymentId == null ? {} : { employment_id: scopedEmploymentId }),
-			event: defaultTimeOffEvent(todayKey())
+			...defaultTimeOffFields(todayKey())
 		}
 	);
 </script>
@@ -44,15 +47,25 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field, form })}
+			{@const values = form.values()}
 			{@const employmentId =
-				scopedEmploymentId ?? (String(form.values().employment_id ?? '') || undefined)}
-			<!-- Resolved and frozen by the before hook; callers never supply them. -->
-			<Field name="leave_code" hidden />
-			<Field name="charges" hidden />
-			<Field name="allocations" hidden />
-			<!-- The payroll engine owns the capture lock; a correction is an event, not a flag. -->
-			<Field name="payslip_id" hidden />
+				scopedEmploymentId ?? (String(values.employment_id ?? '') || undefined)}
+			<!-- The activity fields are flat and the editor below owns every one of them. -->
 			<Field name="as_adjustment_entry" hidden />
+			<Field name="from_date" hidden />
+			<Field name="to_date" hidden />
+			<Field name="half_day_start" hidden />
+			<Field name="half_day_end" hidden />
+			<Field name="days" hidden />
+			<Field name="encash_days" hidden />
+			<Field name="reversal_of_id" hidden />
+			<Field name="effective_on" hidden />
+			<Field name="due_on" hidden />
+			<Field name="destination_from" hidden />
+			<Field name="destination_to" hidden />
+			<Field name="available_from" hidden />
+			<Field name="expires_on" hidden />
+			<Field name="reason" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first
@@ -92,7 +105,14 @@
 					title={t('leave.activity')}
 					hint={t('component.leave_entry_section_activity_hint')}
 				>
-					<Field name="event" />
+					<LeaveActivityEditor
+						{values}
+						{selfService}
+						disabled={record != null}
+						employmentId={employmentId ?? null}
+						catalogueId={typeof values.catalogue_id === 'string' ? values.catalogue_id : null}
+						onValuesChange={(patch) => form.setValues(patch)}
+					/>
 				</FormSection>
 
 				<FormSection

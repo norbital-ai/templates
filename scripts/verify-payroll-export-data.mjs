@@ -215,7 +215,7 @@ const WORK = {
 	holiday_rest_precedence: 'REST_DAY'
 };
 const FINAL_PAYMENT = {
-	id: 'payment:final',
+	id: 'allowance:final',
 	settings_id: RUN.settings_id,
 	code: 'FINAL_PAYMENT',
 	sequence: 50,
@@ -286,8 +286,8 @@ const PAYSLIPS = [
 		statutory: [],
 		adjustments: [
 			{
-				family: 'PAYMENT',
-				source_id: 'capture:final-payment',
+				family: 'ALLOWANCE',
+				source_id: 'capture:final-allowance',
 				component_code: FINAL_PAYMENT.code,
 				label: FINAL_PAYMENT.code,
 				bucket: 'EARNING',
@@ -345,8 +345,7 @@ Effect.runPromise(
 				jurisdiction_settings: [{ id: WORK.settings_id, work_rules: WORK }],
 				leave_catalogue: [],
 				claim_catalogue: [],
-				allowance_catalogue: [],
-				payment_catalogue: [FINAL_PAYMENT],
+				allowance_catalogue: [FINAL_PAYMENT],
 				employment_terms: TERMS,
 				work_days: WORK_DAYS,
 				employees: [
@@ -424,7 +423,11 @@ Effect.runPromise(
 			);
 			assert.equal(leaver.lines[1].bucket, 'EARNING');
 			assert.equal(leaver.lines[1].calculationSource, 'ENTRY');
-			assert.equal(leaver.lines[1].amount, 50, 'a settled Payment stays on its ended contract');
+			assert.equal(
+				leaver.lines[1].amount,
+				50,
+				'a settled one-off allowance stays on its ended contract'
+			);
 			assert.equal(
 				leaver.attendance.normalHours,
 				PATTERNED_WORK_DAYS.filter((date) => date <= '2026-03-05').length * DAY_PAID_HOURS,

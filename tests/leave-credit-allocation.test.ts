@@ -8,7 +8,7 @@ import {
 	type LeaveBalanceEntry,
 	type EntitlementAt
 } from '../src/lib/leave/balance.ts';
-import type { LeaveWindow } from '../src/datatypes/leave_event/+definition.ts';
+import type { LeaveWindow } from '../src/lib/leave/entitlement.ts';
 
 const previous = { start: '2026-01-01', end: '2026-12-31' };
 const window = { start: '2027-01-01', end: '2027-12-31' };
@@ -16,20 +16,17 @@ const carryId = '11111111-1111-4111-8111-111111111111';
 const carry: LeaveBalanceEntry = {
 	id: carryId,
 	approval_id: null,
-	event: {
-		kind: 'CARRY_FORWARD',
-		source_window: previous,
-		destination_window: window,
-		days: 5,
-		available_from: window.start,
-		expires_on: '2027-03-31',
-		effective_on: '2027-01-15',
-		reason: 'Approved transfer'
-	},
-	allocations: [
-		{ window: previous, date: previous.end, days: -5, credit_entry_id: null },
-		{ window, date: window.start, days: 5, credit_entry_id: carryId }
-	]
+	from_date: previous.start,
+	to_date: previous.end,
+	destination_from: window.start,
+	destination_to: window.end,
+	days: 5,
+	available_from: window.start,
+	expires_on: '2027-03-31',
+	effective_on: '2027-01-15',
+	reason: 'Approved transfer',
+	// The credit is the entry itself: only the source debit is an allocation.
+	allocations: [{ window: previous, date: previous.end, days: -5, credit_entry_id: null }]
 };
 const entitlement: EntitlementAt = () => ({ available: 12, earned: 12 });
 const usage = (
@@ -41,12 +38,12 @@ const usage = (
 ): LeaveBalanceEntry => ({
 	id,
 	approval_id: null,
-	event: {
-		kind: 'TIME_OFF',
-		range: { start: { date, half: 'FIRST' }, end: { date, half: 'SECOND' } },
-		chargeable_days: days,
-		reason: null
-	},
+	from_date: date,
+	to_date: date,
+	half_day_start: false,
+	half_day_end: false,
+	days,
+	reason: null,
 	allocations: allocateLeaveDays({
 		entries,
 		window: target,
@@ -169,15 +166,12 @@ test('reversing usage restores original credit validity and cannot revive expire
 	const reversed: LeaveBalanceEntry = {
 		id: 'reversal',
 		approval_id: null,
-		event: {
-			kind: 'REVERSAL',
-			entry_id: carryId,
-			effective_on: '2027-04-10',
-			due_on: null,
-			days: 3,
-			gross_amount: null,
-			reason: 'Correction'
-		},
+		as_adjustment_entry: true,
+		reversal_of_id: carryId,
+		effective_on: '2027-04-10',
+		due_on: null,
+		days: 3,
+		reason: 'Correction',
 		allocations: reverseLeaveAllocations(taken)
 	};
 	assert.equal(
@@ -205,15 +199,12 @@ test('spent carry cannot be reversed to restore the same days to the source', ()
 	const reversal: LeaveBalanceEntry = {
 		id: 'reverse-carry',
 		approval_id: null,
-		event: {
-			kind: 'REVERSAL',
-			entry_id: carryId,
-			effective_on: '2027-02-02',
-			due_on: null,
-			days: 5,
-			gross_amount: null,
-			reason: 'Correction'
-		},
+		as_adjustment_entry: true,
+		reversal_of_id: carryId,
+		effective_on: '2027-02-02',
+		due_on: null,
+		days: 5,
+		reason: 'Correction',
 		allocations: reverseLeaveAllocations(carry)
 	};
 	assert.doesNotThrow(() =>

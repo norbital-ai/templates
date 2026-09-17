@@ -19,14 +19,15 @@ export type ChangeTermsFacts = {
 	readonly job_title: string | null;
 	readonly payroll_group: string | null;
 	readonly grade: string | null;
+	readonly agreed_days_per_week: number;
 	readonly shift_pattern_id: string | null;
 };
 
 /**
- * The contract-change pair: the row in force closes the day before the successor starts. Both
- * rows ride one `employment_terms` batch; the hook's existing amendment rule refuses the close
- * when it would uncover consumed dates, and the model's exclusion refuses any overlap. No second
- * closing mechanism lives here.
+ * The contract-change pair: the row in force closes the day before the successor starts. The
+ * close is written first; the transform's amendment rule refuses it when it would uncover
+ * consumed dates, and the model's exclusion refuses any overlap. No second closing mechanism
+ * lives here.
  */
 export function buildChangeTermsWrites(options: {
 	readonly previousId: string;
@@ -37,18 +38,15 @@ export function buildChangeTermsWrites(options: {
 	readonly closeEnd: string;
 	/** The successor's start, as stored. */
 	readonly newStart: string;
-	/** Identity for the successor row. */
-	readonly newId: string;
 	readonly facts: ChangeTermsFacts;
 }): {
 	readonly close: { readonly id: string; readonly effective_range: { start: string; end: string } };
 	readonly create: ChangeTermsFacts & {
-		readonly id: string;
 		readonly employment_id: string;
 		readonly effective_range: { start: string; end: null };
 	};
 } {
-	const { previousId, employmentId, previousStart, closeEnd, newStart, newId, facts } = options;
+	const { previousId, employmentId, previousStart, closeEnd, newStart, facts } = options;
 	if (dateKey(newStart) <= dateKey(previousStart))
 		refuse('New terms must start after the terms in force began.');
 	if (previousDay(dateKey(newStart)) !== dateKey(closeEnd))
@@ -57,7 +55,6 @@ export function buildChangeTermsWrites(options: {
 		close: { id: previousId, effective_range: { start: previousStart, end: closeEnd } },
 		create: {
 			...facts,
-			id: newId,
 			employment_id: employmentId,
 			effective_range: { start: newStart, end: null }
 		}

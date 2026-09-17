@@ -13,6 +13,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { assessedOnMentions } from '../src/lib/expressions/compile.ts';
 import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { settingsVersions, contributionSchemes } from './fixtures/statutory-world.ts';
@@ -26,11 +27,11 @@ const person = personContext({
 const rates = { ordinaryHour: 100, ordinaryDay: 800, dayWage: 800 };
 
 /** A day priced on the lineage's latest sealed version. */
-function price(code, day) {
+function price(code, day, who = person) {
 	const version = settingsVersions(code).at(-1);
 	const rows = priceWorkDay({
 		work: version.work_rules,
-		person,
+		person: who,
 		day: {
 			workDayId: 'd',
 			date: '2026-06-15',
@@ -91,11 +92,20 @@ test('Malaysia and Singapore — a rest day worked for exactly half the normal h
 		// s.60A(3)(a): an ordinary day's overrun at one and a half times the hourly rate.
 		assert.deepEqual(price(code, ordinary(10)), [['WORKDAY-OT-1.5X', 2, 300]]);
 	}
-	// Singapore EA s.37(3): one day's basic pay up to half, two days' over half, 1.5× beyond.
-	assert.deepEqual(price('SG', restDay(4)), [['OT-1.0X', 4, 800]]);
-	assert.deepEqual(price('SG', restDay(4.5)), [['OT-2.0X', 4.5, 1600]]);
-	assert.deepEqual(price('SG', restDay(10)), [
-		['OT-2.0X', 8, 1600],
+	// Singapore EA s.37(3): one day's basic pay up to half, two days' over half, 1.5× beyond. The
+	// day's basic pay is Third Schedule item 2, priced by the band from the contract itself —
+	// 12 × 2,860 ÷ (52 × 5) = 132.00 — never from the hourly divisor (Fourth Schedule, 52 × 44).
+	const singaporean = personContext({
+		employee: null,
+		employment: { service_start: '2020-01-01' },
+		terms: { base_salary: { value: 2860, currency: 'SGD' } },
+		week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
+		asOf: '2026-06-30'
+	});
+	assert.deepEqual(price('SG', restDay(4), singaporean), [['OT-1.0X', 4, 132]]);
+	assert.deepEqual(price('SG', restDay(4.5), singaporean), [['OT-2.0X', 4.5, 264]]);
+	assert.deepEqual(price('SG', restDay(10), singaporean), [
+		['OT-2.0X', 8, 264],
 		['OT-1.5X', 2, 300]
 	]);
 });
@@ -123,6 +133,24 @@ test('Taiwan — 勞基法第24條 prices the first two extended hours at 4/3 an
 		['OT-1.0X', 8, 800],
 		[third, 2, 266.67],
 		[twoThirds, 1, 166.67]
+	]);
+});
+
+test('Vietnam — Labour Code art.98(1) prices 150% on a working day, 200% on a rest day, 300% on a holiday', () => {
+	// Art.98(1)(a): every hour beyond the normal day at 150% of the hourly wage.
+	assert.deepEqual(price('VN', ordinary(11)), [['OT-1.5X', 3, 450]]);
+	// Art.98(1)(b): every hour on the weekly rest day at 200%, the hours beyond a normal day too;
+	// a half day worked is priced for the hours worked, not fabricated to a full day.
+	assert.deepEqual(price('VN', restDay(4)), [['OT-2.0X', 4, 800]]);
+	assert.deepEqual(price('VN', restDay(10)), [
+		['OT-2.0X', 8, 1600],
+		['OT-2.0X', 2, 400]
+	]);
+	// Art.98(1)(c): every hour on a public holiday at 300%, on top of the holiday wage a monthly
+	// salary already carries.
+	assert.deepEqual(price('VN', holiday(10)), [
+		['OT-3.0X', 8, 2400],
+		['OT-3.0X', 2, 600]
 	]);
 });
 
@@ -187,6 +215,8 @@ test('Vietnam — from 1 July 2026 the overtime wage is outside personal income 
 	const pit = (version) =>
 		contributionSchemes('VN').find((row) => row.settings_id === version.id && row.code === 'PIT');
 	assert.equal(after.effective_range.start.slice(0, 10), '2026-07-01');
-	assert.equal(pit(after).base.overtime, false);
-	assert.equal(pit(before).base.overtime, true);
+	const chargesOvertime = (version) =>
+		assessedOnMentions(pit(version).assessed_on).reserved.includes('OVERTIME');
+	assert.equal(chargesOvertime(after), false);
+	assert.equal(chargesOvertime(before), true);
 });

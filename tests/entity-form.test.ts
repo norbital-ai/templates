@@ -35,6 +35,7 @@ test('the company form includes identity, payroll settings, payment account and 
 	assert.deepEqual(fieldNames(form), [
 		'disbursement_account',
 		'effective_range',
+		'facts',
 		'holiday_source',
 		'name',
 		'pay_cutoff_day',
@@ -79,6 +80,7 @@ test('the settings form declares lineage and jurisdiction identity while Work ow
 		'cloned_from_id',
 		'code',
 		'effective_range',
+		'facts',
 		'jurisdiction_code',
 		'name',
 		'payroll',
@@ -130,7 +132,6 @@ test('the Entities page opens one live query and the Settings page one per surfa
 	for (const [tab, collection] of [
 		['catalogueClaims', 'claim_catalogue'],
 		['catalogueAllowances', 'allowance_catalogue'],
-		['cataloguePayments', 'payment_catalogue'],
 		['catalogueLoans', 'loan_catalogue']
 	]) {
 		assert.deepEqual(registrations(snippet(settings, tab!)), [], tab);
@@ -184,7 +185,6 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 		'db.leave_catalogue.findMany',
 		'db.claim_catalogue.findMany',
 		'db.allowance_catalogue.findMany',
-		'db.payment_catalogue.findMany',
 		'db.loan_catalogue.findMany'
 	]);
 	assert.match(changes, /settings_id = \{ in: \[baseVersion\.id, compareVersion\.id\] \}/);
@@ -195,14 +195,16 @@ test('the Changes tab compares two snapshots and reads each catalogue by version
 
 /**
  * P6 of the HR family simplification: the contract forms are sections, their pickers read the
- * page's scope, and the columns only a hook or a flow may write are never offered.
+ * page's scope, and the columns only a transform may write are never offered.
  */
 const sectionTitles = (text: string): ReadonlyArray<string> =>
 	[...text.matchAll(/<FormSection[^>]*?title=\{t\('([a-z_.]+)'\)\}/gs)].map((match) => match[1]!);
 
-test('the terms form is Pay, Standing, Organisation and Period, scoped to the entity', () => {
-	const form = source('../src/collections/employment_terms/+representation.svelte');
-	assert.deepEqual(fieldNames(form), [
+test('the terms fields are Pay, Shift assignment, Standing, Organisation and Period, scoped to the entity', () => {
+	// One composition, shared by the terms record and the contract detail.
+	const fields = source('../src/lib/ui/contract/terms-fields.svelte');
+	assert.deepEqual(fieldNames(fields), [
+		'agreed_days_per_week',
 		'base_salary',
 		'department',
 		'effective_range',
@@ -218,29 +220,41 @@ test('the terms form is Pay, Standing, Organisation and Period, scoped to the en
 		'statutory_work_category',
 		'work_classification'
 	]);
-	assert.deepEqual(sectionTitles(form), [
+	assert.deepEqual(sectionTitles(fields), [
 		'component.terms_section_pay',
+		'component.shift_assignment',
 		'component.standing',
 		'component.terms_section_organisation',
 		'component.section_period'
 	]);
-	assert.match(form, /hrCreateScope\(\)/, 'the form reads the create scope');
-	assert.match(form, /employmentRelationOptions\(scopedCompanyId\)/, "people are the entity's own");
 	assert.match(
-		form,
-		/\{#if scopedEmploymentId != null\}\s*<Field name="employment_id" hidden \/>/,
+		fields,
+		/employmentRelationOptions\(scopedCompanyId\)/,
+		"people are the entity's own"
+	);
+	assert.match(
+		fields,
+		/\{#if employmentScoped\}\s*<Field name="employment_id" hidden \/>/,
 		'a scope naming the employment prefills and hides it'
 	);
 	assert.match(
-		form,
+		fields,
 		/where: \{ company_id: \{ eq: scopedCompanyId \} \}/,
 		"patterns are the entity's own"
 	);
-	assert.match(form, /name="department" label=\{t\('component\.department'\)\}/);
-	assert.doesNotMatch(form, /<Field name="[a-z_]+" \/>/, 'every label is set');
+	assert.match(fields, /name="department" label=\{t\('component\.department'\)\}/);
+	assert.doesNotMatch(fields, /<Field name="[a-z_]+" \/>/, 'every label is set');
+	const form = source('../src/collections/employment_terms/+representation.svelte');
+	assert.match(form, /hrCreateScope\(\)/, 'the form reads the create scope');
+	assert.match(form, /<TermsFields \{Field\} employmentScoped=\{scopedEmploymentId != null\}/);
+	// The contract shows the same composition, read-only until Edit, with no shorter read view.
+	const detail = source('../src/lib/ui/contract/contract-detail.svelte');
+	assert.match(detail, /<TermsFields \{Field\} employmentScoped \{scopedCompanyId\} \/>/);
+	assert.match(detail, /readonly=\{!editing\}/);
+	assert.doesNotMatch(detail, /\{#if !editing\}/, 'no separate read view');
 });
 
-test('the statutory fact form is Scheme, Registration and Period; the successor pointer is hook-owned', () => {
+test('the statutory fact form is Scheme, Registration and Period: exactly the declared input', () => {
 	const form = source('../src/collections/employment_statutory_facts/+representation.svelte');
 	// `employee_id` is declared once per arm (visible when unscoped, hidden when scoped); the
 	// arms are exclusive, so the form names each mutable field exactly once at runtime.
@@ -248,15 +262,13 @@ test('the statutory fact form is Scheme, Registration and Period; the successor 
 		'effective_range',
 		'employee_id',
 		'status',
-		'statutory_contribution_id',
-		'supersedes_fact_id'
+		'statutory_contribution_id'
 	]);
 	assert.deepEqual(sectionTitles(form), [
 		'component.fact_section_scheme',
 		'component.registration',
 		'component.section_period'
 	]);
-	assert.match(form, /<Field name="supersedes_fact_id" hidden \/>/);
 	assert.match(form, /hrCreateScope\(\)/);
 	assert.match(form, /\{#if scopedEmployeeId != null\}\s*<Field name="employee_id" hidden \/>/);
 	// The scheme picker reaches the version through its relation, under a quantifier, and only

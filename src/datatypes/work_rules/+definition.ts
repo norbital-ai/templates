@@ -3,6 +3,7 @@ import { Schema } from 'effect';
 import { nightPremiumValueSchema } from '../../lib/payroll/work-rules-values.js';
 import { compileExpression } from '../../lib/expressions/compile.js';
 import type { ExpressionSite, ExpressionType } from '../../lib/expressions/contexts.js';
+import { openKeyMentions } from '../../lib/expressions/contexts.js';
 import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
 
 /**
@@ -116,6 +117,24 @@ export const workRulesValueSchema = Schema.Struct({
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE'])
 }).check(
 	Schema.makeFilter((rules) => {
+		const limitKeys = new Set(rules.limits.map((limit) => limit.key));
+		const expressions = [
+			rules.ordinary_divisor_days,
+			rules.overtime_when,
+			...rules.bands.flatMap((band) => [
+				band.when,
+				band.take_hours,
+				band.price_amount,
+				band.funnel_above_hours ?? ''
+			]),
+			...rules.breaks.flatMap((brk) => [brk.when, brk.owed_minutes])
+		];
+		// `limits.<key>` is an open prefix: the key is a code of this version, and the version is
+		// this row, so a key no limit declares is refused here rather than read as zero at payroll.
+		for (const expression of expressions)
+			for (const key of openKeyMentions(expression, 'limits'))
+				if (!limitKeys.has(key))
+					return `Limits: the expression names limits.${key}, but this version declares no such limit.`;
 		const faults = [
 			faultIn(rules.ordinary_divisor_days, 'person', 'days', 'Ordinary divisor'),
 			faultIn(rules.overtime_when, 'person', 'boolean', 'Overtime eligibility'),

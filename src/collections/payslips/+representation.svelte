@@ -13,6 +13,7 @@
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { schemeLabel } from '../../lib/payroll/scheme-label.js';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { Button } from '@norbital-ai/ui/button';
@@ -224,8 +225,6 @@
 				return t('app.claims.title');
 			case 'ALLOWANCE':
 				return t('app.allowances.title');
-			case 'PAYMENT':
-				return t('app.payments.title');
 			case 'WORK_DAY':
 				return t('component.attendance');
 			case 'LEAVE':
@@ -413,7 +412,7 @@
 									<tr class="border-t border-border">
 										<td class="py-1 pr-3 whitespace-nowrap">
 											<Inline gap="xs" align="center">
-												<span>{charge.scheme_code}</span>
+												<span>{schemeLabel(charge.scheme_code)}</span>
 												<Tooltip
 													side="bottom"
 													align="start"
@@ -467,6 +466,12 @@
 																{t('renderer.payslip_statutory.base_amount')}:
 																{formatNumeric(charge.base_amount)}
 															</p>
+															{#if charge.directed_amount}
+																<p class="text-xs tabular-nums" data-directed-amount>
+																	{t('renderer.payslip_statutory.directed_amount')}:
+																	{formatNumeric(charge.directed_amount)}
+																</p>
+															{/if}
 															{#if detail != null && detail.inputs.length > 0}
 																<p class="text-meta">{t('component.flow_inputs')}</p>
 																<ul class="text-xs">
@@ -501,9 +506,14 @@
 												</Tooltip>
 											</Inline>
 										</td>
-										<td class="py-1 pr-3 text-right font-medium"
-											>{formatNumeric(charge.employee_amount)}</td
-										>
+										<td class="py-1 pr-3 text-right font-medium">
+											{formatNumeric(charge.employee_amount)}
+											{#if charge.employee_amount < 0}
+												<span class="text-xs font-normal text-muted-foreground" data-refund
+													>{t('renderer.payslip_statutory.refund')}</span
+												>
+											{/if}
+										</td>
 										<td class="py-1 text-right">{formatNumeric(charge.employer_amount)}</td>
 									</tr>
 								{/each}

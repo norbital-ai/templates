@@ -473,7 +473,7 @@ export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): s
  * A standing draft no longer blocks the next period. It used to: an unsettled January refused a
  * February run outright, so a month waiting on one person's correction froze the next month's
  * payroll for everybody. Runs may now stand in order, unpaid — what stays ordered is *payment*
- * (`+hooks.ts` refuses marking a run paid while an earlier one is still a draft) and *deletion*
+ * (the payslip transform refuses paying a slip while the person's earlier one is unpaid) and *deletion*
  * (only the latest run may be deleted, so a lineage is unwound from the end rather than punched
  * a hole through).
  *

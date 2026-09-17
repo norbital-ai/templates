@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, writeRows } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -29,7 +24,6 @@ type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
 const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
-const MUTATE = 'collections.mutate';
 
 const teamHeaders = (session: Session, team: string) => ({
 	...bearerHeaders(session.credential),
@@ -43,23 +37,15 @@ const signed = (row: Row): number => {
 };
 
 async function createRun(session: Session, period: string): Promise<string> {
-	const runId = crypto.randomUUID();
-	const created = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'payroll_runs',
-			rows: [{ action: 'create', values: { id: runId, company_id: COMPANY_ID, period } }]
-		}),
-		bearerHeaders(session.credential)
-	);
+	const created = await writeRows(session, 'payroll_runs', 'create', [
+		{ company_id: COMPANY_ID, period }
+	]);
 	assert.ok(
 		created.status >= 200 && created.status < 300,
 		`${period} create ${created.status}: ${JSON.stringify(created.value)}`
 	);
 	requireAccepted(created.value, `${period} create`);
-	return runId;
+	return createdIds(created.value)[0]!;
 }
 
 async function markPaid(session: Session, runId: string): Promise<void> {
@@ -81,26 +67,20 @@ async function payslipOf(session: Session, runId: string) {
 }
 
 const postReversal = (session: Session, headers: Readonly<Record<string, string>>) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		MUTATE,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'allowance_requests',
-			rows: [
-				{
-					action: 'create',
-					values: {
-						id: crypto.randomUUID(),
-						employment_id: EMPLOYMENT_ID,
-						catalogue_id: TRANSPORT_ID,
-						amount: 310,
-						recurrence: { kind: 'ONE_OFF', on: `${FEBRUARY_2026}-15` },
-						as_adjustment_entry: true
-					}
-				}
-			]
-		}),
+	writeRows(
+		session,
+		'allowances',
+		'create',
+		[
+			{
+				employment_id: EMPLOYMENT_ID,
+				catalogue_id: TRANSPORT_ID,
+				amount: 310,
+				effective_from: `${FEBRUARY_2026}-01`,
+				effective_to: `${FEBRUARY_2026}-28`,
+				as_adjustment_entry: true
+			}
+		],
 		headers
 	);
 

@@ -76,14 +76,14 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours > 6.0",
-					"owed_minutes": "30.0",
-					"counts_as_worked_time": false
-				},
-				{
-					"when": "consecutive_hours > 6.0 && continuous_attendance",
+					"when": "consecutive_hours >= 6.0 && continuous_attendance",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
+				},
+				{
+					"when": "consecutive_hours >= 6.0",
+					"owed_minutes": "30.0",
+					"counts_as_worked_time": false
 				}
 			],
 			"weekly_rest_rule": {
@@ -102,7 +102,8 @@
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {
@@ -199,14 +200,14 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours > 6.0",
-					"owed_minutes": "30.0",
-					"counts_as_worked_time": false
-				},
-				{
-					"when": "consecutive_hours > 6.0 && continuous_attendance",
+					"when": "consecutive_hours >= 6.0 && continuous_attendance",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
+				},
+				{
+					"when": "consecutive_hours >= 6.0",
+					"owed_minutes": "30.0",
+					"counts_as_worked_time": false
 				}
 			],
 			"weekly_rest_rule": {
@@ -225,7 +226,8 @@
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {
@@ -324,14 +326,14 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours > 6.0",
-					"owed_minutes": "30.0",
-					"counts_as_worked_time": false
-				},
-				{
-					"when": "consecutive_hours > 6.0 && continuous_attendance",
+					"when": "consecutive_hours >= 6.0 && continuous_attendance",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
+				},
+				{
+					"when": "consecutive_hours >= 6.0",
+					"owed_minutes": "30.0",
+					"counts_as_worked_time": false
 				}
 			],
 			"weekly_rest_rule": {
@@ -350,7 +352,8 @@
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {

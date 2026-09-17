@@ -1,16 +1,13 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * Public-fixture payroll golden. Creates 2026-01 through the real gather + create.before hook.
+ * Public-fixture payroll golden. Creates 2026-01 through the real gather + the run's transform.
  *
  * This package world is one person and has no sealed statutory schemes.
  * Hosted payroll acceptance is I1 (`public-seed-payroll.integration.test.ts`).
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
-import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
-import { settledBy } from './helpers/settlement.ts';
+import { createRun, payslipsOf, settledBy, storeRun } from './helpers/settlement.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -26,28 +23,16 @@ async function createJanuary() {
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
-	const api = memoryPayrollApi(world);
-	const prepared = await Effect.runPromise(
-		payrollRunHooks.mutate.prepare({
-			inputs: [{ company_id: COMPANY_ID, period: '2026-01' }],
-			api
-		})
-	);
-	assert.equal(prepared.size, 1);
-	const created = await Effect.runPromise(
-		payrollRunHooks.mutate.perRecord.before.handler({
-			input: { company_id: COMPANY_ID, period: '2026-01' },
-			existing: undefined,
-			prepared,
-			api
-		})
-	);
+	// The payload the runtime would commit, then stored the way the database would hold it: the
+	// pins the payslip links and the rows it materialises land on the world.
+	const created = await createRun(world, '2026-01');
+	storeRun(world, created);
 	return created;
 }
 
 test('public fixture January run: one payslip, observed fixture totals', async () => {
 	const created = await createJanuary();
-	const payslips = created.payslip_payroll_run;
+	const payslips = payslipsOf(created);
 	assert.equal(payslips.length, 1);
 	assert.equal(created.period, '2026-01');
 	assert.equal(created.company_id, COMPANY_ID);
@@ -56,15 +41,19 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 	assert.equal(payslip.currency, 'MYR');
 
-	const pinned = world.allowance_requests.filter((row) => row.payslip_id === payslip.id);
-	assert.equal(pinned.length, 1, 'the standing allowance materialises one period row');
+	const pinned = world.allowance_entries.filter((row) => row.payslip_id === payslip.id);
+	assert.equal(pinned.length, 1, 'the standing allowance materialises one entry');
 	assert.equal(
 		pinned[0].derived_from_id,
 		STANDING_ENTRY_ID,
-		'the period row says which standing allowance it repeats'
+		'the entry says which standing allowance it repeats'
+	);
+	assert.deepEqual(
+		[pinned[0].from, pinned[0].to, pinned[0].days, pinned[0].denominator, pinned[0].amount],
+		['2026-01-01', '2026-01-31', 31, 31, 310]
 	);
 	// And nothing from the families this month has no rows in.
-	for (const source of ['claim_requests', 'payment_requests'])
+	for (const source of ['claim_requests'])
 		assert.deepEqual(settledBy(world, source, payslip.id), [], source);
 	assert.equal(settledBy(world, 'work_days', payslip.id).length, 42);
 	assert.equal(settledBy(world, 'loan_repayments', payslip.id).length, 0);

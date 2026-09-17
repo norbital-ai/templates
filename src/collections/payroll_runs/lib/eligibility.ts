@@ -29,6 +29,8 @@ export type PersonContext = {
 	readonly employee: {
 		readonly gender: string;
 		readonly age: number;
+		/** Completed months; a band that moves the month after a birthday reads this. */
+		readonly age_months: number;
 		readonly citizenship: string;
 		readonly marital_status: string;
 		/** `NONE` | `WITHOUT_INCOME` | `WITH_INCOME` — whether a spouse has income of their own. */
@@ -38,12 +40,18 @@ export type PersonContext = {
 		readonly solo_parent: boolean;
 		readonly race: string;
 		readonly religion: string;
-		/** Completed months since `employment_terms.residency_since` on the rule date; 0 when unrecorded. */
+		/**
+		 * Whole calendar months since `employment_terms.residency_since` on the rule date; 0 when
+		 * unrecorded. Calendar months, like `age_months`: a residency ladder moves on the first day of
+		 * the month after an anniversary (CPF Board, SPR year 2 and 3), never on the anniversary's day.
+		 */
 		readonly residency_months: number;
 	};
 	readonly employment: {
 		readonly type: string;
 		readonly classification: string;
+		/** The entity's statutory risk class, or empty where the regime prices none. */
+		readonly risk_class: string;
 		readonly service_months: number;
 		/** Completed years of service on the rule date; separation payments count in these. */
 		readonly service_years: number;
@@ -86,7 +94,16 @@ export type PersonContext = {
 	};
 	readonly company: {
 		readonly region: string;
+		/** Active employments in the entity; the run supplies it where it knows one. */
+		readonly headcount: number;
+		/** Entity facts the version declares: sector, overtime consent, establishment tests. */
+		readonly facts: Readonly<Record<string, string | number | boolean>>;
 	};
+	/**
+	 * The region's minimum wage where the version's wages order covers this person, else 0.
+	 * The run supplies it; outside payroll it is 0 and no seeded predicate should match on it.
+	 */
+	readonly wage_floor: number;
 	/** The pay month, where a rate divisor turns on it; zero outside payroll. */
 	readonly period: { readonly working_days: number };
 };
@@ -107,6 +124,8 @@ type PersonInput = {
 		readonly service_start: string;
 		readonly exit_date?: string | null;
 		readonly exit_reason?: string | null;
+		/** The entity's statutory risk class, where a regime prices one. */
+		readonly risk_class?: string | null;
 	};
 	/** Standing PAY allowances in force on `asOf`, summed; see `fixedAllowancesOn`. */
 	readonly fixedAllowances?: number | null;
@@ -130,15 +149,29 @@ type PersonInput = {
 		readonly working_days_per_week?: number | null;
 	} | null;
 	/** The employing entity; `company.region` picks its minimum wage. Absent reads as no region. */
-	readonly company?: { readonly region?: string | null } | null;
+	readonly company?: {
+		readonly region?: string | null;
+		readonly headcount?: number | null;
+		readonly facts?: Readonly<Record<string, string | number | boolean>> | null;
+	} | null;
 	/** The statutory wage comparand this run derived, where one is known. */
 	readonly statutoryWages?: number | null;
+	/** The region's minimum wage where the wages order covers this person; 0 when it does not. */
+	readonly wageFloor?: number | null;
 	/** The pay month's scheduled working days, where a run knows them. */
 	readonly period?: { readonly working_days?: number | null } | null;
 	readonly children?: ReadonlyArray<{ readonly child_birthdate: string }>;
 	/** The rule date: service, age and children are measured on it. */
 	readonly asOf: string;
 };
+
+/** Whole calendar months between two days: the year and month difference, days ignored. */
+function wholeMonthsBetween(start: string, end: string): number {
+	return (
+		(Number(end.slice(0, 4)) - Number(start.slice(0, 4))) * 12 +
+		(Number(end.slice(5, 7)) - Number(start.slice(5, 7)))
+	);
+}
 
 /** The person context on one date, from approved contract and personal facts. */
 export function personContext(input: PersonInput): PersonContext {
@@ -157,6 +190,10 @@ export function personContext(input: PersonInput): PersonContext {
 		employee: {
 			gender: input.employee?.gender ?? '',
 			age: born === '' ? 0 : completedYears(born, input.asOf),
+			// Whole calendar months, not day-precise ones: a rate band that moves "in the month
+			// following" the birthday turns on the month, so a 31 January birth is at the next band
+			// for every February payroll.
+			age_months: born === '' ? 0 : wholeMonthsBetween(born, input.asOf),
 			// Effective contract terms hold jurisdiction-relative standing. A concurrent contract
 			// elsewhere may have different standing; nationality is not a substitute.
 			citizenship: input.terms?.residency_status ?? '',
@@ -168,12 +205,16 @@ export function personContext(input: PersonInput): PersonContext {
 			solo_parent: input.employee?.solo_parent === true,
 			race: input.employee?.race ?? '',
 			religion: input.employee?.religion ?? '',
+			// Calendar months, not anniversary-exact ones: CPF's SPR second year begins on the first
+			// day of the month after the first anniversary, so a 31 March conversion is in year two for
+			// every April payroll — day-exact counting held it in year one until May.
 			residency_months:
-				residency === '' || residency > input.asOf ? 0 : completedMonths(residency, input.asOf)
+				residency === '' || residency > input.asOf ? 0 : wholeMonthsBetween(residency, input.asOf)
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',
 			classification: input.terms?.work_classification ?? '',
+			risk_class: input.employment.risk_class ?? '',
 			service_months: start === '' ? 0 : completedMonths(start, input.asOf),
 			service_years: start === '' ? 0 : completedYears(start, input.asOf),
 			service_start: start,
@@ -194,7 +235,12 @@ export function personContext(input: PersonInput): PersonContext {
 			working_days_per_week: input.week?.working_days_per_week ?? 0
 		},
 		children: { count: ages.length, ages },
-		company: { region: input.company?.region ?? '' },
+		company: {
+			region: input.company?.region ?? '',
+			headcount: decodeNumber(input.company?.headcount ?? 1),
+			facts: input.company?.facts ?? {}
+		},
+		wage_floor: decodeNumber(input.wageFloor ?? 0),
 		period: { working_days: decodeNumber(input.period?.working_days ?? 0) }
 	};
 }

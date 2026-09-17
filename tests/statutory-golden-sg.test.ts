@@ -11,13 +11,19 @@
  * that date" — so the 2026-01 run below and the 2027-01 run at the end cover both versions.
  */
 
+import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	assessStatutory,
+	buildStatutory,
+	COMPANY_ID,
 	expectStatutory,
 	expectStatutorySkipped,
-	assertEveryVersionPriced
+	assertEveryVersionPriced,
+	leaveCatalogue,
+	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
+import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', () => {
 	const book = assessStatutory({
@@ -48,6 +54,22 @@ test('Singapore — CPF across the age ladder and the ordinary-wage ceiling', ()
 	// and 17% × 1,234.50 = 209.865, total 456.765 → $457. Employee rounds DOWN to $246; the
 	// employer takes 457 − 246 = $211 — a dollar more than an independently rounded 209.87.
 	expectStatutory(book, 'SG-1234-30', 'CPF', 246, 211);
+});
+
+test('Singapore — the CPF age band moves the month after the birthday, not in the birthday month', () => {
+	// CPF Act First Schedule: the higher rate applies "in the month following" the birthday. The
+	// rules read completed months, so a member born 31 January 1971 is in the 55-and-below band for
+	// the January 2026 payroll (55 years and 0 months at its end) and in the above-55 band from
+	// February (55 years and 1 month). Rates from 1 January 2026: 37% total / 20% employee to 55,
+	// 34% / 18% above 55.
+	const people = [
+		{ key: 'SG-BIRTHDAY', wage: 3000, birth_date: '1971-01-31', citizenship: 'CITIZEN' as const }
+	];
+	const birthdayMonth = assessStatutory({ code: 'SG', period: '2026-01', people });
+	expectStatutory(birthdayMonth, 'SG-BIRTHDAY', 'CPF', 600, 510);
+
+	const monthAfter = assessStatutory({ code: 'SG', period: '2026-02', people });
+	expectStatutory(monthAfter, 'SG-BIRTHDAY', 'CPF', 540, 480);
 });
 
 test('Singapore — the graduated $500-to-$750 CPF band is a monthly award on the period wage', () => {
@@ -107,6 +129,18 @@ test('Singapore — the SPR first- and second-year graduated ladders', () => {
 				age: 30,
 				citizenship: 'PERMANENT_RESIDENT',
 				residency_since: '2023-01-15'
+			},
+			{
+				// A first-year SPR and the employer may jointly elect full rates (CPF Act First
+				// Schedule Tables 4/5): the election is a fact of the employment under CPF.
+				key: 'SPR-Y1-ELECTED',
+				wage: 3000,
+				age: 30,
+				citizenship: 'PERMANENT_RESIDENT',
+				residency_since: '2025-06-15',
+				registrations: {
+					CPF: { kind: 'REGISTERED', elections: { spr_full_rate: true } }
+				}
 			}
 		]
 	});
@@ -118,6 +152,8 @@ test('Singapore — the SPR first- and second-year graduated ladders', () => {
 	expectStatutory(book, 'SPR-Y2', 'CPF', 450, 270);
 	// Third year onward the full Table 1 rates apply: 600 / 510.
 	expectStatutory(book, 'SPR-Y3', 'CPF', 600, 510);
+	// The elected first-year SPR takes the full Table 1 rates from the start.
+	expectStatutory(book, 'SPR-Y1-ELECTED', 'CPF', 600, 510);
 });
 
 test('Singapore — SDL and the self-help group funds', () => {
@@ -156,6 +192,32 @@ test('Singapore — SDL and the self-help group funds', () => {
 	// A fund the person's race or religion does not reach charges nothing at all.
 	expectStatutorySkipped(book, 'SG-780-30', 'SINDA');
 	expectStatutorySkipped(book, 'SG-3000-30', 'CDAC');
+});
+
+test('Singapore — an SHG opt-out turns the fund off for that employment', () => {
+	// An employee may opt out of a self-help fund by written application to the fund; the schedule
+	// is the default deduction. The election is a fact of the employment under that fund, read as
+	// `scheme.elections.shg_opt_out`.
+	const book = assessStatutory({
+		code: 'SG',
+		period: '2026-01',
+		people: [
+			{ key: 'SG-CHINESE', wage: 1500, age: 30, citizenship: 'CITIZEN', race: 'CHINESE' },
+			{
+				key: 'SG-OPTED-OUT',
+				wage: 1500,
+				age: 30,
+				citizenship: 'CITIZEN',
+				race: 'CHINESE',
+				registrations: {
+					CDAC: { kind: 'REGISTERED', elections: { shg_opt_out: true } }
+				}
+			}
+		]
+	});
+	// CDAC: $0.50 for wages over $0 up to $2,000.
+	expectStatutory(book, 'SG-CHINESE', 'CDAC', 0.5, 0);
+	expectStatutorySkipped(book, 'SG-OPTED-OUT', 'CDAC');
 });
 
 test('Singapore — a foreigner is outside CPF, and the cent above a ceiling is inside it', () => {
@@ -252,6 +314,372 @@ test('Singapore — the December 2025 version carries the 2025 CPF tables', () =
 	expectStatutory(book, 'SG-3000-62', 'CPF', 345, 360);
 	// The $7,400 ceiling: 37% of 7,400 = 2,738; employee 1,480; employer 1,258.
 	expectStatutory(book, 'SG-10000-30', 'CPF', 1480, 1258);
+});
+
+test('Singapore — the SPR year turns on the month after the anniversary, whatever its day', () => {
+	// CPF Board: "The second year begins on the first day of the month after the first anniversary
+	// of SPR conversion." A 31 March 2025 conversion has its anniversary in March 2026, so April
+	// 2026 is the first month of year two — Table 3, 55 and below: employer 9%, employee 15%,
+	// 450 / 270 on $3,000. A 30 April 2025 conversion is still in year one for April (Table 2,
+	// 150 / 120) and in year two from May. The count is calendar months, so the day of the
+	// conversion never holds a person back a month.
+	const people = [
+		{
+			key: 'SPR-MAR-31',
+			wage: 3000,
+			age: 30,
+			citizenship: 'PERMANENT_RESIDENT' as const,
+			residency_since: '2025-03-31'
+		},
+		{
+			key: 'SPR-APR-30',
+			wage: 3000,
+			age: 30,
+			citizenship: 'PERMANENT_RESIDENT' as const,
+			residency_since: '2025-04-30'
+		}
+	];
+	const april = assessStatutory({ code: 'SG', period: '2026-04', people });
+	expectStatutory(april, 'SPR-MAR-31', 'CPF', 450, 270);
+	expectStatutory(april, 'SPR-APR-30', 'CPF', 150, 120);
+	const may = assessStatutory({ code: 'SG', period: '2026-05', people });
+	expectStatutory(may, 'SPR-APR-30', 'CPF', 450, 270);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Employment Act 1968 Part 4 and Part 3: the pay side of the statute. The world's shift is
+// 09:00–18:00 with a sixty-minute break — eight normal hours, Monday to Friday, Saturday and
+// Sunday rest days — so every figure below is a hand derivation from the Fourth Schedule (hourly
+// basic rate = 12 × monthly ÷ (52 × 44)), Third Schedule item 2 (basic rate for one day =
+// 12 × monthly ÷ (52 × days required to work in a week)), s.38(4) (1.5× beyond the normal
+// hours), s.37(3) (rest day at the employer's request: one day's pay up to half the normal
+// hours, two days' up to the normal hours, 1.5× beyond them), s.88(4) (an extra day's salary at
+// the basic rate for work on a public holiday, 1.5× beyond the normal hours per MOM) and s.35
+// (Part 4 covers a workman at not more than $4,500 basic and a non-workman at not more than
+// $2,600). Wages are multiples of 2,288 = 52 × 44, so every rate is exact in cents.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+const holiday = (date: string, name: string) => ({
+	id: `holiday-${date}`,
+	company_id: COMPANY_ID,
+	date,
+	name,
+	replaces: null,
+	source: null,
+	published_at: '2025-12-01T00:00:00.000Z',
+	approval_id: null
+});
+/** A punch from `start` to `end` on `date`, in the jurisdiction's own +08:00 frame. */
+const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+	const employment = world.employments.find((row) => row.employee_number === key)!;
+	world.work_days.push({
+		id: `wd-${key}-${date}`,
+		employment_id: employment.id,
+		work_date: date,
+		shift_definition_id: null,
+		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		approval_id: null
+	});
+};
+/** The work-day lines one payslip carries, as `[date, label, hours, amount]`, in date order. */
+const workLines = (slip: BuiltPayslip) =>
+	slip.adjustments
+		.filter((row) => row.family === 'WORK_DAY')
+		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
+		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
+const scheme = (slip: BuiltPayslip, code: string) => {
+	const row = slip.statutory.find((charge) => charge.scheme_code === code)!;
+	return [row.base_amount, row.employee_amount, row.employer_amount] as const;
+};
+
+test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day, rest days and a holiday', () => {
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [
+				// A workman at $2,860: 12 × 2,860 ÷ 2,288 = 15.00 an hour; 12 × 2,860 ÷ (52 × 5) =
+				// 132.00 a day. Inside the $4,500 workman ceiling.
+				{
+					key: 'SG-WORKMAN',
+					wage: 2860,
+					citizenship: 'CITIZEN',
+					statutory_work_category: 'MANUAL_LABOUR'
+				},
+				// A non-workman at $2,288: 12.00 an hour, 105.60 a day. Inside the $2,600 ceiling.
+				{ key: 'SG-CLERK', wage: 2288, citizenship: 'CITIZEN' },
+				// The same $2,860 as a non-workman is over $2,600: s.35(b) takes Part 4 away.
+				{ key: 'SG-CLERK-OVER', wage: 2860, citizenship: 'CITIZEN' },
+				// A workman at $4,576 is over $4,500: s.35(a) takes it away too.
+				{
+					key: 'SG-WORKMAN-OVER',
+					wage: 4576,
+					citizenship: 'CITIZEN',
+					statutory_work_category: 'MANUAL_LABOUR'
+				}
+			]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(holiday('2026-01-01', "New Year's Day"));
+			for (const key of ['SG-WORKMAN', 'SG-CLERK', 'SG-CLERK-OVER', 'SG-WORKMAN-OVER']) {
+				punch(world, key, '2026-01-01', '09:00', '20:00'); // Thursday holiday: ten hours
+				punch(world, key, '2026-01-05', '09:00', '20:00'); // Monday: two hours past the shift
+				punch(world, key, '2026-01-10', '09:00', '13:00'); // Saturday rest day: four hours
+				punch(world, key, '2026-01-11', '09:00', '16:00'); // Sunday rest day: seven hours
+				punch(world, key, '2026-01-17', '09:00', '20:00'); // Saturday rest day: eleven hours
+			}
+		}
+	);
+
+	// s.88(4): an extra day's salary at the basic rate for the holiday, 132.00, and MOM's 1.5× for
+	// the 2 hours beyond the normal day: 2 × 15 × 1.5 = 45.00 (the shift's hour of break comes off
+	// a scheduled day's clock, so 09:00–20:00 is ten hours). s.38(4): 2 h × 15.00 × 1.5 = 45.00 on
+	// the Monday. s.37(3)(a): four hours does not exceed half of eight, one day's pay = 132.00.
+	// s.37(3)(b): seven hours is more than half but not more than eight, two days' = 264.00.
+	// s.37(3)(c): eleven hours on a rest day — two days' pay for the first eight (a rest day has no
+	// shift, so its whole clock is work), then 3 h × 15.00 × 1.5 = 67.50.
+	assert.deepEqual(workLines(slips.get('SG-WORKMAN')!), [
+		['2026-01-01', 'OT-1.0X', 8, 132],
+		['2026-01-01', 'OT-1.5X', 2, 45],
+		['2026-01-05', 'OT-1.5X', 2, 45],
+		['2026-01-10', 'OT-1.0X', 4, 132],
+		['2026-01-11', 'OT-2.0X', 7, 264],
+		['2026-01-17', 'OT-1.5X', 3, 67.5],
+		['2026-01-17', 'OT-2.0X', 8, 264]
+	]);
+	assert.equal(slips.get('SG-WORKMAN')!.gross, 2860 + 132 + 45 + 45 + 132 + 264 + 264 + 67.5);
+	// CPF Board: overtime is an Ordinary Wage. 3,809.50 × 20% = 761.90 → 761 (cents dropped);
+	// × 37% = 1,409.515 → 1,410 (nearest dollar, half up); employer 649. SDL 0.25% × 3,809.50 =
+	// 9.52 to the cent; the SDL Act rounds the employer's total remittance, not one employee.
+	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'CPF'), [3809.5, 761, 649]);
+	assert.deepEqual(scheme(slips.get('SG-WORKMAN')!, 'SDL'), [3809.5, 0, 9.52]);
+
+	// The clerk: the same days at 12.00 an hour and 105.60 a day.
+	assert.deepEqual(workLines(slips.get('SG-CLERK')!), [
+		['2026-01-01', 'OT-1.0X', 8, 105.6],
+		['2026-01-01', 'OT-1.5X', 2, 36],
+		['2026-01-05', 'OT-1.5X', 2, 36],
+		['2026-01-10', 'OT-1.0X', 4, 105.6],
+		['2026-01-11', 'OT-2.0X', 7, 211.2],
+		['2026-01-17', 'OT-1.5X', 3, 54],
+		['2026-01-17', 'OT-2.0X', 8, 211.2]
+	]);
+	assert.equal(slips.get('SG-CLERK')!.gross, 3047.6);
+
+	// s.35: outside Part 4 the same six days produce no line at all, on either ceiling.
+	assert.deepEqual(workLines(slips.get('SG-CLERK-OVER')!), []);
+	assert.equal(slips.get('SG-CLERK-OVER')!.gross, 2860);
+	assert.deepEqual(workLines(slips.get('SG-WORKMAN-OVER')!), []);
+	assert.equal(slips.get('SG-WORKMAN-OVER')!.gross, 4576);
+});
+
+test('Singapore — s.20A prices an incomplete month and an unpaid day on the month’s working days', () => {
+	// February 2026 opens on a Sunday and holds no public holiday: twenty working days.
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-02',
+			people: [
+				// Joined on Monday the 16th: ten of the twenty working days.
+				{ key: 'SG-JOINER', wage: 3300, hire_date: '2026-02-16', citizenship: 'CITIZEN' },
+				// A rostered Tuesday with no attendance and no leave: one day of absence without pay.
+				{ key: 'SG-ABSENT', wage: 3300, citizenship: 'CITIZEN' }
+			]
+		},
+		(world) => {
+			const absent = world.employments.find((row) => row.employee_number === 'SG-ABSENT')!;
+			world.work_days.push({
+				id: 'wd-SG-ABSENT-2026-02-03',
+				employment_id: absent.id,
+				work_date: '2026-02-03',
+				shift_definition_id: null,
+				worked_intervals: [],
+				approval_id: null
+			});
+		}
+	);
+
+	// s.20A(1)(a): monthly gross rate × days actually worked ÷ days required to work in the month
+	// = 3,300 × 10 ÷ 20 = 1,650.00. CPF on 1,650: 330 / 37% = 610.50 → 611, employer 281.
+	const joiner = slips.get('SG-JOINER')!;
+	assert.deepEqual(
+		joiner.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[[10, 20, 1650]]
+	);
+	assert.equal(joiner.gross, 1650);
+	assert.deepEqual(scheme(joiner, 'CPF'), [1650, 330, 281]);
+
+	// s.20A(1)(c): a day of leave of absence without pay is 3,300 ÷ 20 = 165.00 off the month
+	// (MOM: monthly gross ÷ working days in the month × days of no-pay leave). CPF sees 3,135:
+	// 627 / 37% = 1,159.95 → 1,160, employer 533.
+	const absent = slips.get('SG-ABSENT')!;
+	assert.deepEqual(
+		absent.adjustments.map((row) => [row.component_code, row.quantity, row.amount]),
+		[['ABSENCE', 1, 165]]
+	);
+	assert.equal(absent.gross, 3135);
+	assert.deepEqual(scheme(absent, 'CPF'), [3135, 627, 533]);
+});
+
+test('Singapore — s.20A counts a public holiday on a working day as a working day, worked or not', () => {
+	// MOM, "Salary for an incomplete month of work": the working days in the month "exclude rest
+	// days and non-working days, but include public holidays", and the days actually worked
+	// "include public holidays". January 2026 has 22 such days, New Year's Day (Thursday) among
+	// them. A joiner on Friday the 16th is required to work 11 of them; a leaver on Thursday the
+	// 15th worked 10 and is owed the holiday: 3,300 × 11 ÷ 22 = 1,650.00 for both. A holiday on a
+	// rest day is neither: a Saturday holiday leaves the count at 22.
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [
+				{ key: 'SG-JAN-JOINER', wage: 3300, hire_date: '2026-01-16', citizenship: 'CITIZEN' },
+				{ key: 'SG-JAN-LEAVER', wage: 3300, exit_date: '2026-01-15', citizenship: 'CITIZEN' }
+			]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(
+				holiday('2026-01-01', "New Year's Day"),
+				holiday('2026-01-24', 'A Saturday holiday')
+			);
+		}
+	);
+	for (const key of ['SG-JAN-JOINER', 'SG-JAN-LEAVER']) {
+		const slip = slips.get(key)!;
+		assert.deepEqual(
+			slip.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+			[[11, 22, 1650]],
+			key
+		);
+		assert.equal(slip.gross, 1650, key);
+	}
+});
+
+test('Singapore — a standing allowance is wages: prorated like the salary, and inside every statutory base', () => {
+	// CPF Act 1953 s.2: "wages" is all remuneration in money, allowances included; the SDL Order
+	// and the self-help-group schedules read total wages. March 2026 has 22 working days; a $440
+	// transport allowance is $20 a working day on the same WORKING_DAYS basis as the salary.
+	const SG_VERSION = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const TRANSPORT = 'c1c1c1c1-0000-4000-8000-000000000011';
+	const { slips, entries } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-03',
+			people: [
+				{ key: 'SG-ALW-WHOLE', wage: 3000, citizenship: 'CITIZEN', race: 'CHINESE' },
+				{ key: 'SG-ALW-JOINER', wage: 3000, citizenship: 'CITIZEN', hire_date: '2026-03-16' }
+			]
+		},
+		(world) => {
+			world.allowance_catalogue.push({
+				id: TRANSPORT,
+				settings_id: SG_VERSION,
+				code: 'TRANSPORT',
+				name: 'Transport',
+				eligibility: '',
+				evidence: 'NONE',
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				approval_id: null
+			});
+			for (const [index, employment] of world.employments.entries())
+				world.allowances.push({
+					id: `d0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+					employment_id: employment.id,
+					catalogue_id: TRANSPORT,
+					amount: 440,
+					effective_from: '2026-01-01',
+					effective_to: null,
+					reason: '',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+		}
+	);
+	const facts = (key: string) => {
+		const entry = entries.get(key)![0]!.values;
+		return [entry.contract_amount, entry.amount, entry.days, entry.denominator, entry.unpaid_days];
+	};
+	// The whole month: total wages 3,440. CPF 20% = 688; 37% = 1,272.80 → 1,273; employer 585.
+	// SDL 0.25% × 3,440 = 8.60. CDAC: 3,440 is inside the "over $2,000 up to $3,500" rung, $1.
+	assert.deepEqual(facts('SG-ALW-WHOLE'), [440, 440, 22, 22, 0]);
+	assert.equal(slips.get('SG-ALW-WHOLE')!.gross, 3440);
+	assert.deepEqual(scheme(slips.get('SG-ALW-WHOLE')!, 'CPF'), [3440, 688, 585]);
+	assert.deepEqual(scheme(slips.get('SG-ALW-WHOLE')!, 'SDL'), [3440, 0, 8.6]);
+	assert.deepEqual(scheme(slips.get('SG-ALW-WHOLE')!, 'CDAC'), [3440, 1, 0]);
+	// The joiner: 12 of 22 working days on both lines — 3,000 × 12/22 = 1,636.36 and 440 × 12/22
+	// = 240.00 — so the base is 1,876.36: CPF 375 (375.27 floored) / 37% = 694.25 → 694, employer 319.
+	assert.deepEqual(facts('SG-ALW-JOINER'), [440, 240, 12, 22, 0]);
+	assert.deepEqual(
+		slips
+			.get('SG-ALW-JOINER')!
+			.proration.map((row) => [row.days, row.denominator, row.prorated_amount]),
+		[[12, 22, 1636.36]]
+	);
+	assert.equal(slips.get('SG-ALW-JOINER')!.gross, 1876.36);
+	assert.deepEqual(scheme(slips.get('SG-ALW-JOINER')!, 'CPF'), [1876.36, 375, 319]);
+	assert.deepEqual(scheme(slips.get('SG-ALW-JOINER')!, 'SDL'), [1876.36, 0, 4.69]);
+});
+
+test('Singapore — the lineage carries a no-pay leave row, and a day of it comes off the month’s working days', () => {
+	// EA s.20A(1)(c): leave of absence without pay is priced at the monthly gross rate over the
+	// working days in the month. February 2026 has 20; one day of $3,300 is $165.00 off, and CPF
+	// reads the reduced wage (3,135: 627 / 1,159.95 → 1,160 / 533). The row is the bank's own
+	// `UNPAID_LEAVE`, one per sealed version, so no operator has to invent it.
+	const version = 'e363af9a-a034-59f7-84bf-5052f57ecae5';
+	const rows = leaveCatalogue('SG').filter((row) => row.settings_id === version);
+	const npl = rows.find((row) => row.code === 'UNPAID_LEAVE')!;
+	assert.ok(npl, 'the SG lineage carries an UNPAID_LEAVE row');
+	assert.equal(npl.is_npl, true);
+	assert.equal(npl.can_encash, false);
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-02',
+			people: [{ key: 'SG-NPL', wage: 3300, citizenship: 'CITIZEN' }]
+		},
+		(world) => {
+			world.leave_catalogue.push(...rows.map((row) => ({ ...row, approval_id: null })));
+			const employment = world.employments.find((row) => row.employee_number === 'SG-NPL')!;
+			const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-00000000np01',
+				employment_id: employment.id,
+				catalogue_id: npl.id,
+				leave_code: 'UNPAID_LEAVE',
+				reference: 'NPL-SG',
+				from_date: '2026-02-03',
+				to_date: '2026-02-03',
+				half_day_start: false,
+				half_day_end: false,
+				days: 1,
+				effective_on: '2026-02-03',
+				reason: 'Unpaid',
+				allocations: [],
+				charges: [
+					{
+						date: '2026-02-03',
+						days: 1,
+						catalogue_id: npl.id,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					}
+				],
+				approval_id: null
+			});
+		}
+	);
+	const slip = slips.get('SG-NPL')!;
+	assert.deepEqual(
+		slip.adjustments.map((row) => [row.family, row.quantity, row.amount, row.bucket]),
+		[['LEAVE', 1, 165, 'ABSENCE']]
+	);
+	assert.equal(slip.gross, 3135);
+	assert.deepEqual(scheme(slip, 'CPF'), [3135, 627, 533]);
 });
 
 test('every sealed version of `SG` is priced by a golden here', () => {

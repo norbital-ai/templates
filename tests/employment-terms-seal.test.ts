@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import termsHooks from '../src/collections/employment_terms/+hooks.ts';
-import workHooks from '../src/collections/work_days/+hooks.ts';
-import payslipHooks from '../src/collections/payslips/+hooks.ts';
+import terms from '../src/collections/employment_terms/+collection.ts';
+import workDays from '../src/collections/work_days/+collection.ts';
+import payslips from '../src/collections/payslips/+collection.ts';
+import { peopleGrants } from '../src/lib/policy_grants.ts';
+import { transformOne } from './helpers/transform.ts';
+import { workDayDb } from './helpers/work-day-db.ts';
 import { leaveRules } from '../src/lib/leave/context.ts';
 import { leaveTermsThrough } from '../src/lib/employment-contract.ts';
 import { dateKey } from '../src/lib/iso-day.ts';
@@ -14,7 +17,8 @@ import {
 	annualWindow,
 	id,
 	leaveContext,
-	leaveEntryHooks,
+	scheduleDb,
+	planLeaveBatch,
 	submission,
 	timeOff
 } from './helpers/manual-leave-context.ts';
@@ -27,45 +31,54 @@ const term = () => ({ ...leaveContext().terms[0]!, pay_frequency: 'MONTHLY', job
 const api = (
 	workThrough: string | null = null,
 	pendingWork: string | null = null,
-	leave: readonly { event: unknown; charges: unknown }[] = [],
+	leave: readonly { charges: unknown }[] = [],
 	payslipThrough: string | null = null
 ) => ({
-	db: {
-		employments: {
-			findFirst: () => Effect.succeed({ effective_range: { start: '2025-01-01', end: null } })
-		},
-		work_days: {
-			findFirst: () => Effect.succeed(workThrough == null ? undefined : { work_date: workThrough }),
-			findPending: () => Effect.succeed(pendingWork == null ? [] : [{ work_date: pendingWork }])
-		},
-		leave_entries: {
-			findMany: () => Effect.succeed(leave),
-			findPending: () => Effect.succeed([])
-		},
-		payslips: {
-			findFirst: () =>
-				Effect.succeed(payslipThrough == null ? undefined : { terms_through: payslipThrough })
-		}
+	...scheduleDb(),
+	employments: {
+		findMany: () =>
+			Effect.succeed([{ id: id(1), effective_range: { start: '2025-01-01', end: null } }])
+	},
+	work_days: {
+		findMany: () =>
+			Effect.succeed(
+				[
+					...(workThrough == null ? [] : [{ work_date: workThrough }]),
+					// A held proposal is a committed row stamped `approval_id`; its date protects too.
+					...(pendingWork == null ? [] : [{ work_date: pendingWork, approval_id: id(200) }])
+				].map((row) => ({ employment_id: id(1), ...row }))
+			)
+	},
+	leave_entries: {
+		findMany: () => Effect.succeed(leave.map((row) => ({ employment_id: id(1), ...row })))
+	},
+	payslips: {
+		findMany: () =>
+			Effect.succeed(
+				payslipThrough == null ? [] : [{ employment_id: id(1), terms_through: payslipThrough }]
+			)
 	}
 });
 const change = (input: Record<string, unknown>, through: string | null, existing = term()) =>
-	Effect.runSync(
-		termsHooks.mutate.perRecord.before.handler({ input, existing, api: api(through) } as never)
-	);
+	transformOne(terms, input, existing, api(through));
 const create = (input: Record<string, unknown>, through: string | null) =>
-	Effect.runSync(termsHooks.mutate.perRecord.before.handler({ input, api: api(through) } as never));
+	transformOne(terms, input, undefined, api(through));
+/** The delete grant's decision on a stored row, as the runtime asks it. */
+const deletable = (existing: Record<string, unknown>, through: string | null) =>
+	Effect.runSync(
+		peopleGrants('delete').employment_terms.delete.authorize(
+			{ record: existing },
+			{ db: api(through) }
+		)
+	);
 
 test('January approved leave protects January facts while a July salary/residency amendment remains possible', () => {
 	const context = leaveContext();
 	context.catalogues[0]!.entitlement.proration = 'CALENDAR_DAYS';
 	context.catalogues[0]!.eligibility = 'terms.basic_salary < 5000';
 	const input = submission(timeOff('2026-01-05'));
-	const approved = leaveEntryHooks.mutate.perRecord.before.handler({
-		input,
-		recordId: id(80),
-		prepared: { context, inputs: [input] }
-	} as never);
-	const through = leaveTermsThrough(approved.event, approved.charges, null)!;
+	const approved = planLeaveBatch(context, [input])[0]!;
+	const through = leaveTermsThrough(approved, approved.charges, null)!;
 	assert.equal(through, '2026-01-05');
 	const original = structuredClone(approved);
 	const closed = change({ effective_range: { start: '2025-01-01', end: '2026-06-30' } }, through);
@@ -108,21 +121,11 @@ test('January approved leave protects January facts while a July salary/residenc
 test('approved future time off consumes its actual dates, and shortening a term cannot uncover them', () => {
 	const context = leaveContext();
 	const input = submission(timeOff('2026-07-06', '2026-07-07'));
-	const approved = leaveEntryHooks.mutate.perRecord.before.handler({
-		input,
-		recordId: id(82),
-		prepared: { context, inputs: [input] }
-	} as never);
-	const consumed = api(null, null, [{ event: approved.event, charges: approved.charges }]);
-	assert.equal(leaveTermsThrough(approved.event, approved.charges, null), '2026-07-07');
+	const approved = planLeaveBatch(context, [input])[0]!;
+	const consumed = api(null, null, [approved]);
+	assert.equal(leaveTermsThrough(approved, approved.charges, null), '2026-07-07');
 	const amend = (end: string) =>
-		Effect.runSync(
-			termsHooks.mutate.perRecord.before.handler({
-				input: { effective_range: { start: '2025-01-01', end } },
-				existing: term(),
-				api: consumed
-			} as never)
-		);
+		transformOne(terms, { effective_range: { start: '2025-01-01', end } }, term(), consumed);
 	assert.throws(() => amend('2026-06-30'), /consumed dates must remain covered/);
 	assert.doesNotThrow(() => amend('2026-07-07'));
 });
@@ -136,16 +139,7 @@ test('historical gaps cannot acquire new terms, consumed rows cannot be deleted 
 			),
 		/historical gaps/
 	);
-	assert.throws(
-		() =>
-			Effect.runSync(
-				termsHooks.delete.perRecord.before.handler({
-					existing: term(),
-					api: api('2026-01-31')
-				} as never)
-			),
-		/cannot be deleted/
-	);
+	assert.equal(deletable(term(), '2026-01-31'), false, 'consumed terms are not deleted');
 	const closed = { ...term(), effective_range: { start: '2025-01-01', end: '2026-06-30' } };
 	assert.throws(
 		() => change({ effective_range: { start: '2025-01-01', end: null } }, '2026-01-31', closed),
@@ -154,48 +148,20 @@ test('historical gaps cannot acquire new terms, consumed rows cannot be deleted 
 	assert.doesNotThrow(() => change({}, '2026-01-31', closed));
 });
 
-test('unconsumed drafts and future terms remain correctable; nested creation keeps its enclosing contract', () => {
+test('unconsumed drafts and future terms remain correctable, and terms always name their contract', () => {
 	assert.doesNotThrow(() => change({ base_salary: { value: 4000, currency: 'MYR' } }, null));
 	const future = { ...term(), effective_range: { start: '2026-07-01', end: null } };
 	assert.doesNotThrow(() => change({ residency_status: 'CITIZEN' }, '2026-01-31', future));
-	assert.doesNotThrow(() =>
-		Effect.runSync(
-			termsHooks.delete.perRecord.before.handler({
-				existing: future,
-				api: api('2026-01-31')
-			} as never)
-		)
-	);
+	assert.equal(deletable(future, '2026-01-31'), true, 'unconsumed future terms may go');
 	const { employment_id: _employment, ...input } = term();
-	const parent = { collection: 'employments', id: id(1), column: 'employment_id', values: {} };
-	const result = Effect.runSync(
-		termsHooks.mutate.perRecord.before.handler({ input, parent, api: api() } as never)
-	);
-	assert.equal(result.employment_id, id(1));
-	assert.throws(
-		() =>
-			Effect.runSync(
-				termsHooks.mutate.perRecord.before.handler({
-					input: { ...input, employment_id: id(9) },
-					parent,
-					api: api()
-				} as never)
-			),
-		/enclosing employment/
-	);
+	assert.throws(() => create(input, null), /must reference an employment contract/);
+	assert.equal(create({ ...input, employment_id: id(1) }, null).employment_id, id(1));
 });
 
 test('pending consumer dates prevent conflicting amendments until their approval resolves', () => {
 	const input = { effective_range: { start: '2025-01-01', end: '2026-06-30' } };
 	assert.throws(
-		() =>
-			Effect.runSync(
-				termsHooks.mutate.perRecord.before.handler({
-					input,
-					existing: term(),
-					api: api('2026-01-31', '2026-07-07')
-				} as never)
-			),
+		() => transformOne(terms, input, term(), api('2026-01-31', '2026-07-07')),
 		/consumed dates/
 	);
 	assert.doesNotThrow(() => change(input, '2026-01-31'));
@@ -204,12 +170,11 @@ test('pending consumer dates prevent conflicting amendments until their approval
 test('a committed payslip consumes its terms through the settlement date', () => {
 	assert.throws(
 		() =>
-			Effect.runSync(
-				termsHooks.mutate.perRecord.before.handler({
-					input: { base_salary: { value: 4000, currency: 'MYR' } },
-					existing: term(),
-					api: api(null, null, [], '2026-01-31')
-				} as never)
+			transformOne(
+				terms,
+				{ base_salary: { value: 4000, currency: 'MYR' } },
+				term(),
+				api(null, null, [], '2026-01-31')
 			),
 		/consumed/
 	);
@@ -217,20 +182,20 @@ test('a committed payslip consumes its terms through the settlement date', () =>
 
 test('manual encashment and carry consume their actual source valuation, while credits and reversals do not advance it', () => {
 	const encashment = {
-		kind: 'ENCASHMENT',
-		source_window: annualWindow,
+		from_date: annualWindow.start,
+		to_date: annualWindow.end,
 		days: 1,
-		gross_amount: { value: 100, currency: 'MYR' },
-		rate: null,
+		encash_days: 1,
 		effective_on: '2027-02-01',
 		due_on: '2027-02-28',
 		reason: 'Agreed'
 	} as const;
 	assert.equal(leaveTermsThrough(encashment, [], '2026-10-31'), '2026-10-31');
 	const carry = {
-		kind: 'CARRY_FORWARD',
-		source_window: annualWindow,
-		destination_window: { start: '2027-01-01', end: '2027-12-31' },
+		from_date: annualWindow.start,
+		to_date: annualWindow.end,
+		destination_from: '2027-01-01',
+		destination_to: '2027-12-31',
 		days: 1,
 		effective_on: '2027-01-01',
 		available_from: '2027-01-01',
@@ -239,8 +204,8 @@ test('manual encashment and carry consume their actual source valuation, while c
 	} as const;
 	assert.equal(leaveTermsThrough(carry, [], null), '2026-12-31');
 	const adjustment = {
-		kind: 'ADJUSTMENT',
-		window: annualWindow,
+		from_date: annualWindow.start,
+		to_date: annualWindow.end,
 		days: 1,
 		effective_on: '2026-02-01',
 		reason: 'Credit'
@@ -250,13 +215,12 @@ test('manual encashment and carry consume their actual source valuation, while c
 	assert.equal(
 		leaveTermsThrough(
 			{
-				kind: 'REVERSAL',
-				entry_id: id(80),
+				as_adjustment_entry: true,
+				reversal_of_id: id(80),
 				effective_on: '2026-09-01',
 				reason: 'Correction',
-				days: 1,
-				due_on: null,
-				gross_amount: null
+				days: null,
+				due_on: null
 			},
 			[],
 			null
@@ -267,27 +231,8 @@ test('manual encashment and carry consume their actual source valuation, while c
 
 test('a Work day carries no holiday: moving it, editing it and deleting it touch no calendar', () => {
 	const date = '2026-02-05';
-	const prepared = {
-		companyByEmployment: new Map(),
-		windowsByCompany: new Map(),
-		leaveByEmployment: new Map(),
-		overlap: {
-			termsByEmployment: new Map(),
-			patternById: new Map(),
-			explicitByKey: new Map(),
-			codeById: new Map()
-		}
-	};
-	const workApi = {
-		db: {
-			employments: { findFirst: () => Effect.succeed({ company_id: id(3) }) },
-			// No `jurisdiction_holidays` here: a hook that still read or wrote the calendar would throw.
-			payroll_runs: { findMany: () => Effect.succeed([]) },
-			// No runs, so no payslips: the lock reads the slips inside a window, not the window.
-			payslips: { findMany: () => Effect.succeed([]) },
-			leave_entries: { findMany: () => Effect.succeed([]) }
-		}
-	};
+	// No `jurisdiction_holidays` here: a transform that still read or wrote the calendar would throw.
+	const workDb = workDayDb({ employees: [id(1)] });
 	const existing = {
 		id: id(10),
 		employment_id: id(1),
@@ -296,22 +241,11 @@ test('a Work day carries no holiday: moving it, editing it and deleting it touch
 		worked_intervals: null,
 		approval_id: null
 	};
-	const write = (input: Record<string, unknown>) =>
-		Effect.runSync(
-			workHooks.mutate.perRecord.before.handler({
-				input,
-				existing,
-				prepared,
-				api: workApi
-			} as never)
-		);
+	const write = (input: Record<string, unknown>) => transformOne(workDays, input, existing, workDb);
 	// The write passes through as the row it was given: the holiday on a date is the calendar's
-	// to say when the day is read, never a column the hook stamps or releases.
+	// to say when the day is read, never a column the transform stamps or releases.
 	assert.deepEqual(write({ work_date: date }), { work_date: date });
 	assert.deepEqual(write({ worked_intervals: [] }), { worked_intervals: [] });
-	assert.doesNotThrow(() =>
-		Effect.runSync(workHooks.delete.perRecord.before.handler({ existing, api: workApi } as never))
-	);
 });
 
 test('payroll writes the consumed terms date on the payslip; previews leave source data unchanged', async () => {
@@ -324,17 +258,9 @@ test('payroll writes the consumed terms date on the payslip; previews leave sour
 	const [payslip] = buildPayrollRun(prepared).payslip_payroll_run;
 	assert.ok(payslip);
 	assert.equal(dateKey(payslip.terms_through), '2026-01-31');
-	const parent = { collection: 'payroll_runs', id: id(40), column: 'payroll_run_id', values: {} };
-	// The handler is an Effect since a payslip gained its one editable column: recording payment
-	// has to read the run and the person's earlier slips, so the create path runs through the
-	// runtime like the edit path does.
-	assert.doesNotThrow(() =>
-		Effect.runSync(
-			payslipHooks.mutate.perRecord.before.handler({ input: payslip, parent } as never)
-		)
-	);
-	assert.throws(
-		() => Effect.runSync(payslipHooks.mutate.perRecord.before.handler({ input: payslip } as never)),
-		/payroll run/
-	);
+	// A payslip is born under its run: the collection exposes no create of its own, and its one
+	// editable half is the payment status.
+	assert.equal(payslips.create, undefined);
+	assert.deepEqual(Object.keys(payslips.update.input.columns), ['status', 'paid_at']);
+	assert.throws(() => transformOne(payslips, { status: 'ON_HOLD' }, undefined, {}), /payroll run/);
 });

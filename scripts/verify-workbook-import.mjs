@@ -261,9 +261,11 @@ const program = Effect.gen(function* () {
 			...(roster === undefined ? [] : [['Roster', [ROSTER_HEADERS, ...roster]]]),
 			...(attendance === undefined ? [] : [['Time entries', [TIME_ENTRY_HEADERS, ...attendance]]])
 		];
+		// The handler returns the days it creates and updates the restated ones through the
+		// collection; the checks below read both as the rows the import wrote.
 		const imported = (payload, stub = api()) =>
 			runHandler(workDayPipeline.import.handler({ input: payload }, stub)).pipe(
-				Effect.map((rows) => ({ rows, stub }))
+				Effect.map((rows) => ({ rows: [...rows, ...(stub.mutated.work_days ?? [])], stub }))
 			);
 		/** The workbook straight through to the handler, as one effect a refusal can catch. */
 		const importOf = (sheets, stub = api()) =>
@@ -527,13 +529,8 @@ const program = Effect.gen(function* () {
 		);
 		assert.deepEqual(
 			rosterOnly.rows.find((row) => row.id === 'day:attended'),
-			{
-				id: 'day:attended',
-				employment_id: 'employment:23',
-				work_date: '2026-05-21',
-				shift_definition_id: null
-			},
-			'the attended day keeps its punch and loses its plan'
+			{ id: 'day:attended', shift_definition_id: null },
+			'the attended day keeps its punch and loses its plan: an update names only the plan half'
 		);
 		assert.deepEqual(
 			rosterOnly.stub.deleted.work_days,

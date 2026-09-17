@@ -1,11 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
+import { writeRows } from './helpers/write.ts';
 import {
 	ANNUAL_LEAVE_ENTRY_ID,
 	ANNUAL_LEAVE_CATALOGUE_ID,
@@ -161,30 +157,23 @@ test(
 				'the row states who may take it: a man is refused a FEMALE-only type on the day'
 			);
 			const create = () =>
-				postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(session.schemaFingerprint, {
-						action: 'mutate',
-						collection: 'leave_entries',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									id: crypto.randomUUID(),
-									employment_id: unbookedEmploymentId,
-									catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-									reference: 'PREVIEW-CERTIFICATE-TEST',
-									event: {
-										kind: 'TIME_OFF',
-										range: input.range,
-										chargeable_days: 0.5,
-										reason: 'Validation fixture'
-									}
-								}
-							}
-						]
-					}),
+				writeRows(
+					session,
+					'leave_entries',
+					'create',
+					[
+						{
+							employment_id: unbookedEmploymentId,
+							catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+							reference: 'PREVIEW-CERTIFICATE-TEST',
+							from_date: input.range.start.date,
+							to_date: input.range.end.date,
+							half_day_start: input.range.start.half === 'SECOND',
+							half_day_end: input.range.end.half === 'FIRST',
+							days: null,
+							reason: 'Validation fixture'
+						}
+					],
 					hqHeaders
 				);
 			await session.query(

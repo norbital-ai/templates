@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import type { LeaveContext } from '../../src/lib/leave/context.ts';
 import { planLeaveActivity, type LeaveSubmission } from '../../src/lib/leave/activity.ts';
 import type { LeaveActivity } from '../../src/lib/leave/pending.ts';
@@ -36,6 +37,7 @@ export function leaveContext(): LeaveContext {
 				id: id(4),
 				employment_id: id(1),
 				effective_range: span,
+				agreed_days_per_week: 7,
 				shift_pattern_id: id(5),
 				employment_type: 'PERMANENT',
 				residency_status: null,
@@ -56,7 +58,12 @@ export function leaveContext(): LeaveContext {
 			{
 				id: id(6),
 				code: 'TEST',
-				payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+				payroll: {
+					currency: 'MYR',
+					timezone: 'Asia/Kuala_Lumpur',
+					tax_year_start_month: 1,
+					allowance_npl_prorates: false
+				},
 				jurisdiction_code: 'TEST-JUR',
 				sealed_at: span.start,
 				voided_at: null,
@@ -70,9 +77,8 @@ export function leaveContext(): LeaveContext {
 				settings_id: id(6),
 				code: 'ANNUAL',
 				name: 'Annual leave',
-				destination: 'PAY',
-				direction: 'ADD',
-				paid: true,
+				is_npl: false,
+				can_encash: true,
 				evidence_after_days: null,
 				eligibility: '',
 				entitlement: {
@@ -103,30 +109,45 @@ export function leaveContext(): LeaveContext {
 	};
 }
 
-export const timeOff = (from: string, to = from): LeaveSubmission['event'] => ({
-	kind: 'TIME_OFF',
-	range: { start: { date: from, half: 'FIRST' }, end: { date: to, half: 'SECOND' } },
-	chargeable_days: null,
+export const timeOff = (
+	from: string,
+	to = from
+): Omit<LeaveSubmission, 'employment_id' | 'catalogue_id' | 'reference'> => ({
+	from_date: from,
+	to_date: to,
+	half_day_start: false,
+	half_day_end: false,
+	days: null,
+	as_adjustment_entry: false,
 	reason: null
 });
 export const submission = (
-	event: LeaveSubmission['event'],
+	fields: Omit<LeaveSubmission, 'employment_id' | 'catalogue_id' | 'reference'>,
 	reference = 'TEST'
 ): LeaveSubmission => ({
 	employment_id: id(1),
 	catalogue_id: id(7),
 	reference,
-	event
+	...fields
 });
+/** The pattern and roster-code reads a terms transform makes, as the runtime's `db` answers them. */
+export function scheduleDb() {
+	const { patterns, shifts } = leaveContext();
+	return {
+		shift_patterns: { findMany: () => Effect.succeed(patterns) },
+		shift_definitions: { findMany: () => Effect.succeed(shifts) }
+	};
+}
+
 export function approve(
 	context: LeaveContext,
-	event: LeaveSubmission['event'],
+	fields: Omit<LeaveSubmission, 'employment_id' | 'catalogue_id' | 'reference'>,
 	number = 10
 ): LeaveActivity {
-	const plan = planLeaveActivity(context, submission(event, `TEST-${number}`), id(number));
+	const plan = planLeaveActivity(context, submission(fields, `TEST-${number}`), id(number));
 	const row: LeaveActivity = { ...plan, id: id(number), approval_id: null };
 	context.entries.push(row);
 	return row;
 }
 
-export { default as leaveEntryHooks } from '../../src/collections/leave_entries/+hooks.ts';
+export { planLeaveBatch } from '../../src/lib/leave/plan-batch.ts';

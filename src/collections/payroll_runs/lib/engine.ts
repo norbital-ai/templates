@@ -1,17 +1,15 @@
-import {
-	calculateFamilyAssessments,
-	finalizeFamilyConfiguration
-} from '../../../lib/payroll/families.js';
+import { calculateFamilyAssessments } from '../../../lib/payroll/families.js';
 /**
  * The payroll run — eight steps, the same eight for every country, split at the only line that
  * matters: **what reads, and what decides.**
  *
  * ```
- *  create.prepare ─┬─ 1 PICK       resolve the governing configuration → configuration_hash
+ *  gather         ─┬─ 1 PICK       resolve the governing configuration → configuration_hash
  *   the only I/O   └─ 3 GATHER     employments, terms, facts, component entries, loan repayments,
- *                                  leave, work days, and what earlier PAID runs already consumed
+ *   (two waves,                    leave, work days, and what earlier PAID runs already consumed
+ *    lib/preload.ts)
  *
- *  create.before  ─┬─ 2 VALIDATE   everything that can be wrong before a person is measured
+ *  build          ─┬─ 2 VALIDATE   everything that can be wrong before a person is measured
  *   pure           ├─ 4 MEASURE    in the family pipeline order: base, proration and adjustments
  *                  ├─ 5 ACCUMULATE every amount through the grid → contribution bases
  *                  ├─ 6 CONTRIBUTE each scheme in dependency order: base → employee and employer amounts
@@ -24,24 +22,19 @@ import {
  *
  * ## Why there is no `persist`
  *
- * A `before` hook's return **is** the record, and it may carry the records that belong to it. So the
- * run and its entire result are one write, performed by the runtime as part of the create — not by
- * the engine, which has no `mutate` to call. That is the whole of what this replaces:
+ * The run's transform returns the record, and the record carries the records that belong to it.
+ * So the run and its entire result are one write, performed by the runtime as part of the create —
+ * not by the engine, which has nothing to write with. That is the whole of what this replaces:
  *
- *  - `clearRunResults` — an included `many` relationship is the parent's complete desired state, so
- *    stating the payslips already removes the previous build's. A separate clear was a second
- *    statement doing what the first one does.
- *  - `persistPayslips` — the graph is returned, not written.
+ *  - `persistPayslips` — the payload is returned, not written.
  *  - `persistShortfalls` and `persistDeferrals` — one facility call **per employee**, and the reason
  *    a 290-person run took eight minutes. Both wrote arrears: a second copy of a debt the source
  *    already records. What is still owed is derived from what earlier PAID runs actually took.
- *  - `buildingRuns` / `isBuildingRun` — the engine used to persist from `create.after`, which landed
- *    on `payroll_runs` as an ordinary DRAFT update, which `update.after` read as "recalculate", which
- *    re-entered the engine until the host refused with `nesting_limit_exceeded`. There is no write to
- *    re-enter on, so there is nothing to guard.
+ *  - the capture writers — the pins on every consumed source are `link` actions on the payslip
+ *    that consumed it, committed in the same transaction as the run.
  *
  * Re-entry is idempotent by construction rather than by cleanup: the same approved inputs produce
- * the same graph, and stating that graph replaces whatever the last build produced.
+ * the same payload.
  */
 
 import { Clock, Effect } from 'effect';
@@ -72,12 +65,21 @@ import {
  */
 export const CALCULATION_VERSION = '2026-09-contract-payroll-families' as const;
 
-/** What one build produced, and what the run's `before` hook returns alongside its own columns. */
+/** What one build produced, and what the run's transform returns alongside its own columns. */
 type PayrollRunGraph = {
 	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>['rows'];
+	/** The COMPANY-assessed schemes' charges: one row for the run, on no payslip. */
+	readonly company_charges: readonly {
+		readonly scheme_code: string;
+		readonly authority: string | null;
+		readonly base_amount: number;
+		readonly employee_amount: number;
+		readonly employer_amount: number;
+		readonly rule_when: string | null;
+	}[];
 	/** How every charge was derived, stored whole on the run for the Flow screen. */
 	readonly calculation_trace: ReturnType<typeof payrollRunGraph>['calculationTrace'];
-	/** What each payslip settled; the run's `after` hook stamps the sources with it. */
+	/** What each payslip settled; `payrollRunPayload` turns it into the slip's relation actions. */
 	readonly captures: ReturnType<typeof payrollRunGraph>['captures'];
 	readonly payslipCount: number;
 	/** Inlined base entries plus the proration segments behind them. */
@@ -91,9 +93,7 @@ type PayrollRunGraph = {
 /**
  * Resolve the window and the governing configuration without reading a single employee.
  *
- * Module-local: `gatherPayrollRun` below is its only caller. The hook used to import it to derive
- * the run's own columns before the build; it now asks for the whole prepared run instead, so the
- * export had no consumer left — which `bolt audit` refuses (EXP1), and rightly.
+ * Module-local: `gatherPayrollRun` below is its only caller.
  */
 function preparePayrollRun(options: {
 	readonly api: PayrollReadApi;
@@ -152,11 +152,6 @@ export function gatherPayrollRun(options: {
 			configuration,
 			window
 		});
-		const { configuration: preparedConfiguration, gathered } = finalizeFamilyConfiguration(
-			configuration,
-			facts,
-			window
-		);
 		const done = yield* Clock.currentTimeMillis;
 		yield* Effect.log(
 			`[payroll-phase] ${options.period} pick=${pick - t0}ms gather=${done - pick}ms ` +
@@ -165,8 +160,8 @@ export function gatherPayrollRun(options: {
 		return {
 			period: options.period,
 			window,
-			configuration: preparedConfiguration,
-			gathered,
+			configuration,
+			gathered: facts,
 			readLog: api.reads
 		};
 	});
@@ -176,9 +171,6 @@ export function gatherPayrollRun(options: {
  * Turn prepared facts into the run's complete result. Pure: no database, no clock, no writes.
  *
  * Every refusal in here happens before anything is written, because there is nothing to write with.
- * That is a stronger guarantee than the one it replaces — the old build ran in `create.after`, where
- * a refusal left a DRAFT run with no payslips standing as a record of a calculation that never
- * happened, and every one of those had to be found and deleted by hand.
  */
 export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	const { configuration, gathered, window, period } = prepared;
@@ -198,6 +190,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	const {
 		measuredContracts,
 		chargesByEmployment,
+		companyCharges,
 		issues: familyIssues
 	} = calculateFamilyAssessments({ configuration, gathered, window, period });
 	issues.push(...familyIssues);
@@ -214,6 +207,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			base: measured.base,
 			adjustments: measured.adjustments,
 			charges,
+			currency: measured.currency,
 			employeeNumber: String(employment.employee_number)
 		});
 		const recovered = new Set(
@@ -263,6 +257,14 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	const { rows: graph, captures, calculationTrace } = payrollRunGraph({ pending, period });
 	return {
 		payslip_payroll_run: graph,
+		company_charges: companyCharges.map((charge) => ({
+			scheme_code: charge.contribution.row.code,
+			authority: charge.contribution.row.authority,
+			base_amount: charge.base,
+			employee_amount: charge.employee,
+			employer_amount: charge.employer,
+			rule_when: charge.ruleReference
+		})),
 		calculation_trace: calculationTrace,
 		captures,
 		payslipCount: pending.length,
@@ -279,8 +281,6 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				total +
 				capture.workDays.length +
 				capture.claims.length +
-				capture.payments.length +
-				capture.allowances.length +
 				capture.leave.length +
 				capture.loanRepayments.length +
 				capture.materialised.length,

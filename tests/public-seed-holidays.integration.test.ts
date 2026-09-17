@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, observedVersion, writeRows } from './helpers/write.ts';
 import {
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -31,26 +26,13 @@ test(
 				? await session.query(`select row_version from ${table} where id = $1`, [values.id])
 				: [];
 			const row = rows[0] == null ? null : asRecord(rows[0], 'row version');
-			return postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(
-					session.schemaFingerprint,
-					{
-						action: 'mutate',
-						collection: table,
-						rows: [{ action: update ? 'update' : 'create', values }]
-					},
-					row == null
-						? []
-						: [
-								{
-									row: { collection: table, recordId: String(values.id) },
-									rowVersion: Number(row.row_version)
-								}
-							]
-				),
-				headers
+			return writeRows(
+				session,
+				table,
+				update ? 'update' : 'create',
+				[values],
+				headers,
+				row == null ? [] : [observedVersion(table, String(values.id), Number(row.row_version))]
 			);
 		};
 		const stored = async (id: string) =>
@@ -71,31 +53,24 @@ test(
 				'a work day has no holiday column'
 			);
 
-			const draftId = crypto.randomUUID();
 			const holiday = {
 				company_id: '11111111-1111-4111-8111-111111111111',
 				date: '2026-02-03',
 				name: 'Festival'
 			};
-			requireAccepted(
-				(await write('jurisdiction_holidays', { id: draftId, ...holiday })).value,
-				'add'
-			);
+			const added = await write('jurisdiction_holidays', holiday);
+			requireAccepted(added.value, 'add');
+			const [draftId] = createdIds(added.value);
 			assert.equal((await stored(draftId)).published_at, null, 'a new holiday is unpublished');
 
 			// A work day on the date lands whether or not the holiday is published: it is a day.
-			const dayId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await write('work_days', {
-						id: dayId,
-						employment_id: EMPLOYMENT_ID,
-						work_date: holiday.date,
-						worked_intervals: []
-					})
-				).value,
-				'work day on the holiday date'
-			);
+			const punched = await write('work_days', {
+				employment_id: EMPLOYMENT_ID,
+				work_date: holiday.date,
+				worked_intervals: []
+			});
+			requireAccepted(punched.value, 'work day on the holiday date');
+			const [dayId] = createdIds(punched.value);
 
 			requireAccepted(
 				(
@@ -108,7 +83,7 @@ test(
 				'publish'
 			);
 			const duplicate = asRecord(
-				(await write('jurisdiction_holidays', { id: crypto.randomUUID(), ...holiday })).value,
+				(await write('jurisdiction_holidays', holiday)).value,
 				'second holiday on one day'
 			);
 			assert.ok(
@@ -132,21 +107,9 @@ test(
 			const current = await stored(draftId);
 			requireAccepted(
 				(
-					await postGuestCommand(
-						session.host.baseUrl,
-						'collections.mutate',
-						mutationPush(
-							session.schemaFingerprint,
-							{ action: 'delete', collection: 'jurisdiction_holidays', ids: [draftId] },
-							[
-								{
-									row: { collection: 'jurisdiction_holidays', recordId: draftId },
-									rowVersion: Number(current.row_version)
-								}
-							]
-						),
-						headers
-					)
+					await writeRows(session, 'jurisdiction_holidays', 'delete', [{ id: draftId }], headers, [
+						observedVersion('jurisdiction_holidays', draftId, Number(current.row_version))
+					])
 				).value,
 				'delete a holiday a work day sits on'
 			);

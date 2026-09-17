@@ -77,7 +77,7 @@ export const runHolidayImport = (
 				api,
 				googleHolidayRows(source.company_id, events)
 			);
-			if (inserts.length > 0) yield* api.db.jurisdiction_holidays.mutate([...inserts]);
+			if (inserts.length > 0) yield* api.collection.jurisdiction_holidays.createMany(inserts);
 			outcomes.push({
 				company_id: source.company_id,
 				year,

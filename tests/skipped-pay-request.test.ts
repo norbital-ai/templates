@@ -2,11 +2,11 @@
 /**
  * A request the run read and paid nothing for says so.
  *
- * The junction row is the settlement lock, so a request the run reads is consumed whether or not
- * it produces money. Every branch that decides to pay nothing therefore takes the entry out of the
- * operator's queue and leaves no payslip line to explain it: an approved allowance is simply gone
- * next time somebody looks. The measurement now reports each of those decisions, and the run
- * carries them as warnings — the arithmetic is right, and the operator has to be able to see it.
+ * The pin is the settlement lock, so a claim the run reads is consumed whether or not it produces
+ * money, and a standing allowance the run declines to price leaves no entry behind. Every branch
+ * that decides to pay nothing therefore leaves no payslip line to explain it: an approved allowance
+ * is simply absent next time somebody looks. The measurement reports each of those decisions, and
+ * the run carries them as warnings — the arithmetic is right, and the operator has to see it.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -36,9 +36,9 @@ test('an allowance paid is not reported as skipped', async () => {
 	assert.ok(slip.adjustments.some((row) => row.component_code === 'TRANSPORT'));
 });
 
-test('an allowance whose eligibility the person fails is captured, pays nothing and is reported', async () => {
+test('an allowance whose eligibility the person fails pays nothing, prices no entry, and is reported', async () => {
 	const world = createPublicPayrollWorld();
-	// A rule nobody satisfies. The entry is still read, so it is still consumed.
+	// A rule nobody satisfies. The standing allowance is read every period; nothing is priced.
 	world.allowance_catalogue[0].eligibility = 'employment.service_months >= 600';
 	const built = await build(world);
 	const slip = built.payslip_payroll_run[0];
@@ -49,14 +49,8 @@ test('an allowance whose eligibility the person fails is captured, pays nothing 
 	);
 	assert.equal(
 		built.captures[0].materialised.length,
-		1,
-		'and the request was captured all the same, which is why it has to be reported'
-	);
-	assert.equal(built.captures[0].allowances.length, 0, 'the source itself is not pinned');
-	assert.equal(
-		built.captures[0].materialised[0].sourceId,
-		world.allowance_requests[0].id,
-		'the captured row is the period’s materialisation of the standing allowance'
+		0,
+		'no entry is priced, so the payslip carries nothing to explain it — which is why it is reported'
 	);
 	const reported = built.warnings.filter((line) => line.includes('paid nothing'));
 	assert.equal(reported.length, 1);

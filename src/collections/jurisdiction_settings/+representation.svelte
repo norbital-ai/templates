@@ -134,6 +134,11 @@
 								label={t('component.minimum_wage_by_region')}
 								description={t('component.minimum_wage_by_region_hint')}
 							/>
+							<Field
+								name="facts"
+								label={t('component.entity_facts')}
+								description={t('component.entity_facts_hint')}
+							/>
 						</Grid>
 					</FormSection>
 
@@ -170,6 +175,7 @@
 				<Field name="wages" hidden />
 				<Field name="change_summary" hidden />
 				<Field name="sources" hidden />
+				<Field name="facts" hidden />
 			{/if}
 
 			{#if showWorkRules}

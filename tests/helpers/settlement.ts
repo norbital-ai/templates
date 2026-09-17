@@ -2,17 +2,66 @@
 /**
  * What a run settled, as the tests read it.
  *
- * A source row carries a nullable `payslip_id`; the run's `before` hook stamps it in the same
- * write that creates the payslips, and `buildPayrollRun` hands the same lists back as `captures`.
- * These helpers are the two ends of that: read what a build captured, and put a world into the
- * state a prior run would have left it in.
+ * A source row carries a nullable `payslip_id`; the run's transform pins it as a `link` action on
+ * the payslip in the same write that creates the payslips, and `buildPayrollRun` hands the same
+ * lists back as `captures`. These helpers are the two ends of that: read what a build captured,
+ * and put a world into the state a prior run would have left it in.
  */
+import { Effect } from 'effect';
+import payrollRuns from '../../src/collections/payroll_runs/+collection.ts';
+import { memoryPayrollApi } from '../fixtures/memory-payroll-api.ts';
+
+/** The run's transform over a world: the payload the runtime would commit, one run at a time. */
+export const createRun = (world, period, companyId = world.companies[0].id) =>
+	Effect.runPromise(
+		payrollRuns.transform([{ company_id: companyId, period }], {
+			existing: [undefined],
+			db: memoryPayrollApi(world).db
+		})
+	).then((payloads) => payloads[0]);
+
+/** The relation actions a payslip carries, keyed by the source family they pin or create. */
+const PIN_FAMILIES = {
+	work_day_payslip: 'work_days',
+	claim_request_payslip: 'claim_requests',
+	allowance_entry_payslip: 'allowance_entries',
+	leave_entry_payslip: 'leave_entries',
+	loan_repayment_payslip: 'loan_repayments'
+};
+
+/**
+ * Store a run's payload the way the database would hold it: the run row, its payslips, every
+ * pinned source stamped with its slip, and every materialised row created under it.
+ */
+export function storeRun(world, payload, runId = crypto.randomUUID()) {
+	const { payslip_payroll_run: nested, ...run } = payload;
+	const stored = { id: runId, ...run };
+	world.payroll_runs.push(stored);
+	for (const entry of nested?.create ?? []) {
+		const slip = { ...entry, payroll_run_id: runId };
+		for (const [relation, source] of Object.entries(PIN_FAMILIES)) {
+			const actions = slip[relation] ?? {};
+			delete slip[relation];
+			for (const { id } of actions.link ?? []) settle(world, source, id, slip.id);
+			for (const row of actions.create ?? [])
+				(world[source] ??= []).push({ approval_id: null, ...row, payslip_id: slip.id });
+		}
+		world.payslips.push({ approval_id: null, ...slip });
+	}
+	return stored;
+}
+
+/** The payslips of a payload, as rows without their relation actions. */
+export const payslipsOf = (payload) =>
+	(payload.payslip_payroll_run?.create ?? []).map((slip) => {
+		const row = { ...slip };
+		for (const relation of Object.keys(PIN_FAMILIES)) delete row[relation];
+		return row;
+	});
 
 export const NO_CAPTURES = {
 	workDays: [],
 	claims: [],
-	payments: [],
-	allowances: [],
 	leave: [],
 	loanRepayments: []
 };

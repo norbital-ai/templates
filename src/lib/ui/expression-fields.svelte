@@ -10,7 +10,7 @@
 	 * `popover` draws its own trigger; a caller that already owns a tooltip — a form field's
 	 * description — takes `members` and renders the list inside it. When the caller passes the
 	 * expression it is checking, a compile fault stays on the page as the same sentence the write
-	 * hook would refuse with.
+	 * transform would refuse with.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -51,6 +51,15 @@
 			<div class="grid grid-cols-[minmax(9rem,auto)_1fr] gap-2">
 				<dt class="font-mono">{field.path}</dt>
 				<dd class="text-muted-foreground">{field.description}</dd>
+			</div>
+		{/each}
+	</dl>
+	<p class="text-muted-foreground">{t('component.expression_functions')}</p>
+	<dl class="grid gap-1">
+		{#each context.functions as fn (fn.path)}
+			<div class="grid grid-cols-[minmax(9rem,auto)_1fr] gap-2">
+				<dt class="font-mono">{fn.path}</dt>
+				<dd class="text-muted-foreground">{fn.description}</dd>
 			</div>
 		{/each}
 	</dl>

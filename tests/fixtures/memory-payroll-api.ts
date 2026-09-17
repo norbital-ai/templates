@@ -1,9 +1,11 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import { Effect } from 'effect';
+import { matchWhere } from '../../src/lib/memory-reads.ts';
 
 /**
- * In-memory `api.db` for gather / create-before. Predicates match the engine's actual where
- * shapes (`eq`, `in`, `isNull`, `isNotNull`, inequalities, and one nested `input.kind` clause).
+ * In-memory `db` for the payroll gather and every transform a test drives. Predicates are the
+ * workspace's own in-memory evaluator (`src/lib/memory-reads.ts`); `with` resolves the relations a
+ * transform reads through.
  */
 
 export type PayrollRow = Record<string, unknown>;
@@ -15,7 +17,6 @@ export type PayrollWorld = {
 	readonly loan_catalogue: PayrollRow[];
 	readonly claim_catalogue: PayrollRow[];
 	readonly allowance_catalogue: PayrollRow[];
-	readonly payment_catalogue: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly shift_patterns: PayrollRow[];
 	readonly jurisdiction_holidays: PayrollRow[];
@@ -26,8 +27,9 @@ export type PayrollWorld = {
 	readonly employment_terms: PayrollRow[];
 	readonly employment_statutory_facts: PayrollRow[];
 	readonly claim_requests: PayrollRow[];
-	readonly allowance_requests: PayrollRow[];
-	readonly payment_requests: PayrollRow[];
+	readonly allowances: PayrollRow[];
+	/** The entries payroll priced from the standing allowances; a fresh world states none. */
+	readonly allowance_entries?: PayrollRow[];
 	readonly loans: PayrollRow[];
 	readonly loan_repayments: PayrollRow[];
 	readonly work_days: PayrollRow[];
@@ -37,94 +39,148 @@ export type PayrollWorld = {
 	readonly payslips: PayrollRow[];
 };
 
-const OPERATORS = ['eq', 'ne', 'in', 'isNull', 'isNotNull', 'lt', 'lte', 'gt', 'gte'] as const;
-
-function valuesEqual(left: unknown, right: unknown): boolean {
-	return left === right || (left == null && right == null);
-}
-
-function asOrderable(value: unknown): string | number | null {
-	if (typeof value === 'number') return value;
-	if (typeof value === 'string') return value;
-	if (value == null) return null;
-	return String(value);
-}
-
-function compare(left: unknown, right: unknown): number {
-	const a = asOrderable(left);
-	const b = asOrderable(right);
-	if (a == null || b == null) return 0;
-	return a < b ? -1 : a > b ? 1 : 0;
-}
-
-function matchPredicate(value: unknown, predicate: unknown): boolean {
-	if (predicate == null || typeof predicate !== 'object' || Array.isArray(predicate)) {
-		return valuesEqual(value, predicate);
-	}
-	const clause = predicate as Record<string, unknown>;
-	let sawOperator = false;
-	for (const operator of OPERATORS) {
-		if (!(operator in clause)) continue;
-		sawOperator = true;
-		switch (operator) {
-			case 'eq':
-				if (!valuesEqual(value, clause.eq)) return false;
-				break;
-			case 'ne':
-				if (valuesEqual(value, clause.ne)) return false;
-				break;
-			case 'in':
-				if (
-					!Array.isArray(clause.in) ||
-					!clause.in.some((candidate) => valuesEqual(value, candidate))
-				)
-					return false;
-				break;
-			case 'isNull':
-				if (Boolean(clause.isNull) !== (value == null)) return false;
-				break;
-			case 'isNotNull':
-				if (Boolean(clause.isNotNull) !== (value != null)) return false;
-				break;
-			case 'lt':
-				if (compare(value, clause.lt) >= 0) return false;
-				break;
-			case 'lte':
-				if (compare(value, clause.lte) > 0) return false;
-				break;
-			case 'gt':
-				if (compare(value, clause.gt) <= 0) return false;
-				break;
-			case 'gte':
-				if (compare(value, clause.gte) < 0) return false;
-				break;
-			default: {
-				const _exhaustive: never = operator;
-				throw new Error(`Unhandled where operator: ${String(_exhaustive)}`);
-			}
+/**
+ * The relations a transform reads through `with`, as the workspace declares them: the nested
+ * name, the target table, and which column on which side joins them.
+ */
+const RELATIONS: Record<
+	string,
+	Record<
+		string,
+		{
+			target: keyof PayrollWorld;
+			column: string;
+			parentColumn: string;
+			cardinality: 'one' | 'many';
+		}
+	>
+> = {
+	employments: {
+		employment_employee: {
+			target: 'employees',
+			column: 'employee_id',
+			parentColumn: 'id',
+			cardinality: 'one'
+		},
+		employment_company: {
+			target: 'companies',
+			column: 'company_id',
+			parentColumn: 'id',
+			cardinality: 'one'
+		},
+		term_employment: {
+			target: 'employment_terms',
+			column: 'employment_id',
+			parentColumn: 'id',
+			cardinality: 'many'
+		}
+	},
+	payroll_runs: {
+		payslip_payroll_run: {
+			target: 'payslips',
+			column: 'payroll_run_id',
+			parentColumn: 'id',
+			cardinality: 'many'
+		}
+	},
+	payslips: {
+		payslip_payroll_run: {
+			target: 'payroll_runs',
+			column: 'payroll_run_id',
+			parentColumn: 'id',
+			cardinality: 'one'
+		}
+	},
+	claim_requests: {
+		claim_request_employment: {
+			target: 'employments',
+			column: 'employment_id',
+			parentColumn: 'id',
+			cardinality: 'one'
+		}
+	},
+	allowances: {
+		allowance_employment: {
+			target: 'employments',
+			column: 'employment_id',
+			parentColumn: 'id',
+			cardinality: 'one'
+		}
+	},
+	allowance_entries: {
+		allowance_entry_employment: {
+			target: 'employments',
+			column: 'employment_id',
+			parentColumn: 'id',
+			cardinality: 'one'
 		}
 	}
-	if (sawOperator) return true;
-	if (value != null && typeof value === 'object' && !Array.isArray(value)) {
-		return matchWhere(value as Record<string, unknown>, predicate);
-	}
-	return false;
-}
+};
 
-function matchWhere(row: Record<string, unknown>, where: unknown): boolean {
+/**
+ * A relation predicate — `{ <relation>: { some: { … } } }` — against the target rows, the way the
+ * database answers it; every other key is the row's own and goes to `matchWhere`.
+ */
+function matchRow(
+	world: PayrollWorld,
+	name: keyof PayrollWorld,
+	row: PayrollRow,
+	where: unknown
+): boolean {
 	if (where == null || typeof where !== 'object') return true;
+	const own: Record<string, unknown> = {};
 	for (const [key, predicate] of Object.entries(where as Record<string, unknown>)) {
-		if (!matchPredicate(row[key], predicate)) return false;
+		const edge = RELATIONS[name]?.[key];
+		if (edge == null) {
+			own[key] = predicate;
+			continue;
+		}
+		const quantified = predicate as { some?: unknown };
+		const targets = (world[edge.target] ?? []).filter((target) =>
+			edge.cardinality === 'one'
+				? target[edge.parentColumn] === row[edge.column]
+				: target[edge.column] === row[edge.parentColumn]
+		);
+		if (
+			!targets.some((target) => matchRow(world, edge.target, target, quantified.some ?? predicate))
+		)
+			return false;
 	}
-	return true;
+	return matchWhere(row, own);
 }
 
-function select(rows: readonly PayrollRow[], query: { where?: unknown; limit?: number }) {
-	const matched = rows.filter((row) => matchWhere(row, query.where));
-	return query.limit == null ? matched : matched.slice(0, query.limit);
+type Query = { where?: unknown; limit?: number; with?: Record<string, Query | true> };
+
+function select(
+	world: PayrollWorld,
+	name: keyof PayrollWorld,
+	rows: readonly PayrollRow[],
+	query: Query
+): PayrollRow[] {
+	const matched = rows.filter((row) => matchRow(world, name, row, query.where));
+	const page = query.limit == null ? matched : matched.slice(0, query.limit);
+	if (query.with == null) return page;
+	return page.map((row) => {
+		const nested: PayrollRow = { ...row };
+		for (const [relation, spec] of Object.entries(query.with ?? {})) {
+			const edge = RELATIONS[name]?.[relation];
+			if (edge == null) throw new Error(`memory api: ${name} has no relation ${relation}`);
+			const children = select(
+				world,
+				edge.target,
+				world[edge.target] ?? [],
+				spec === true ? {} : spec
+			);
+			nested[relation] =
+				edge.cardinality === 'one'
+					? (children.find((child) => child[edge.parentColumn] === row[edge.column]) ?? null)
+					: children.filter((child) => child[edge.column] === row[edge.parentColumn]);
+		}
+		return nested;
+	});
 }
 
-/** A read-only hook `api` whose `db` is the given world. */
+/** A read-only `{ db }` whose `db` is the given world; `.db` is what a transform receives. */
 export function memoryPayrollApi(world: PayrollWorld) {
 	// A stored payslip always carries its `adjustments` array; a test that files one without it
 	// reads it back the way the database would.
@@ -133,35 +189,9 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			? world.payslips.map((row) => ({ adjustments: [], ...row }))
 			: (world[name] ?? []);
 	const collection = (name: keyof PayrollWorld) => ({
-		findPending: (query: { where?: unknown; limit?: number }) =>
-			Effect.succeed(
-				select(
-					rows(name).filter((row) => row.approval_id != null),
-					query
-				)
-			),
-		findMany: (query: { where?: unknown; limit?: number }) =>
-			Effect.succeed(select(rows(name), query)),
-		findFirst: (query: { where?: unknown; limit?: number }) =>
-			Effect.succeed(select(rows(name), query)[0] ?? null),
-		/** An id updates in place; no id appends and the runtime assigns the stored id. */
-		mutate: (values: readonly PayrollRow[]) =>
-			Effect.sync(() => {
-				for (const value of values) {
-					const stored =
-						value.id == null ? undefined : (world[name] ?? []).find((row) => row.id === value.id);
-					if (stored) Object.assign(stored, value);
-					else
-						((world as Record<string, PayrollRow[]>)[name] ??= []).push(
-							value.id == null ? { ...value, id: crypto.randomUUID() } : { ...value }
-						);
-				}
-			}),
-		delete: (ids: readonly string[]) =>
-			Effect.sync(() => {
-				const live = (world as Record<string, PayrollRow[]>)[name];
-				if (live) live.splice(0, live.length, ...live.filter((row) => !ids.includes(row.id)));
-			})
+		findMany: (query: Query) => Effect.succeed(select(world, name, rows(name), query)),
+		findFirst: (query: Query) => Effect.succeed(select(world, name, rows(name), query)[0]),
+		count: (query: Query) => Effect.succeed(select(world, name, rows(name), query).length)
 	});
 	return {
 		db: {
@@ -171,7 +201,6 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			loan_catalogue: collection('loan_catalogue'),
 			claim_catalogue: collection('claim_catalogue'),
 			allowance_catalogue: collection('allowance_catalogue'),
-			payment_catalogue: collection('payment_catalogue'),
 			shift_definitions: collection('shift_definitions'),
 			shift_patterns: collection('shift_patterns'),
 			jurisdiction_holidays: collection('jurisdiction_holidays'),
@@ -182,8 +211,8 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employment_terms: collection('employment_terms'),
 			employment_statutory_facts: collection('employment_statutory_facts'),
 			claim_requests: collection('claim_requests'),
-			allowance_requests: collection('allowance_requests'),
-			payment_requests: collection('payment_requests'),
+			allowances: collection('allowances'),
+			allowance_entries: collection('allowance_entries'),
 			loans: collection('loans'),
 			loan_repayments: collection('loan_repayments'),
 			work_days: collection('work_days'),
@@ -200,4 +229,60 @@ export function refusalMessage(error: unknown): string {
 		return String((error as { message: unknown }).message);
 	}
 	return String(error);
+}
+
+/**
+ * `{ db, collection }` over a world: the reads above, plus the declared writes a pipeline or a
+ * function makes, applied to the world's rows. Creates get an id; updates and deletes name theirs.
+ * No transform runs — this stands in for the runtime's write path, not for its rules.
+ */
+export function memoryWorkspaceApi(world: PayrollWorld) {
+	const api = memoryPayrollApi(world);
+	const rows = (name: string) => ((world as Record<string, PayrollRow[]>)[name] ??= []);
+	const writer = (name: string) => ({
+		create: (input: PayrollRow) =>
+			Effect.sync(() => {
+				const row = { id: crypto.randomUUID(), approval_id: null, ...input };
+				rows(name).push(row);
+				return row;
+			}),
+		createMany: (inputs: readonly PayrollRow[]) =>
+			Effect.sync(() =>
+				inputs.map((input) => {
+					const row = { id: crypto.randomUUID(), approval_id: null, ...input };
+					rows(name).push(row);
+					return row;
+				})
+			),
+		update: (id: string, input: PayrollRow) =>
+			Effect.sync(() => {
+				const stored = rows(name).find((row) => row.id === id);
+				if (stored == null) throw new Error(`${name} ${id} does not exist`);
+				Object.assign(stored, input);
+				return stored;
+			}),
+		updateMany: (inputs: readonly PayrollRow[]) =>
+			Effect.sync(() =>
+				inputs.map(({ id, ...input }) => {
+					const stored = rows(name).find((row) => row.id === id);
+					if (stored == null) throw new Error(`${name} ${String(id)} does not exist`);
+					Object.assign(stored, input);
+					return stored;
+				})
+			),
+		delete: (id: string) =>
+			Effect.sync(() => {
+				const live = rows(name);
+				live.splice(0, live.length, ...live.filter((row) => row.id !== id));
+			}),
+		deleteMany: (ids: readonly string[]) =>
+			Effect.sync(() => {
+				const live = rows(name);
+				live.splice(0, live.length, ...live.filter((row) => !ids.includes(row.id)));
+			})
+	});
+	return {
+		...api,
+		collection: new Proxy({}, { get: (_target, name: string) => writer(name) })
+	};
 }

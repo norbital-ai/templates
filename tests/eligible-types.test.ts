@@ -3,7 +3,7 @@
  * The type picker's offer: the engine's predicate grammar over the facts one browser query reads.
  *
  * What is pinned: the context is built from the joined employment row the same way the hook's
- * `capSubject` builds it (terms in force on the day, children alive on it, the entity's region),
+ * `capSubjects` builds it (terms in force on the day, children alive on it, the entity's region),
  * an empty rule offers everyone, and an offer of nothing is a predicate no row satisfies rather
  * than `in ()`, which is not SQL. No person yet means the in-force clause alone.
  */

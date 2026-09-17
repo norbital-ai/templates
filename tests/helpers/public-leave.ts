@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import {
 	asRecord,
 	bearerHeaders,
-	mutationPush,
 	postGuestCommand,
 	requireAccepted
 } from '@norbital-ai/test-utilities';
-import type { LeaveEvent } from '../../src/datatypes/leave_event/+definition.ts';
+import { writeRows } from './write.ts';
+import type { LeaveEntryActivity } from '../../src/lib/leave/activity-fields.ts';
 import type { LeaveBalanceSummaries } from '../../src/lib/leave/summary.ts';
 import type { LeavePreview, PreviewLeaveInput } from '../../src/lib/leave/preview.ts';
 import {
@@ -49,34 +49,29 @@ export async function leavePreview(session: Session, input: PreviewLeaveInput) {
 export function createLeave(
 	session: Session,
 	options: {
-		readonly id: string;
 		readonly reference: string;
-		readonly event: LeaveEvent;
 		readonly employment_id?: string;
 		readonly catalogue_id?: string;
-	},
+	} & LeaveEntryActivity,
 	headers = bearerHeaders(session.credential)
 ) {
-	return postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'leave_entries',
-			rows: [
-				{
-					action: 'create',
-					values: {
-						employment_id: EMPLOYMENT_ID,
-						catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-						...options
-					}
-				}
-			]
-		}),
+	// A create carries no id: the runtime allocates it, `createdLeaveId` reads it back.
+	const { id: _id, ...values } = options as typeof options & { readonly id?: string };
+	return writeRows(
+		session,
+		'leave_entries',
+		'create',
+		[{ employment_id: EMPLOYMENT_ID, catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID, ...values }],
 		headers
 	);
 }
+
+/** The id the runtime gave a created leave entry, read off the settlement. */
+export const createdLeaveId = (mutation: unknown): string => {
+	const records = asRecord(mutation, 'Leave submission').records;
+	const [row] = Array.isArray(records) ? records : [];
+	return String(asRecord(row, 'created leave entry').id);
+};
 
 export async function approveLeave(session: Session, mutation: unknown) {
 	requireAccepted(mutation, 'held Leave submission');
@@ -84,7 +79,12 @@ export async function approveLeave(session: Session, mutation: unknown) {
 		asRecord(mutation, 'Leave submission').pendingApproval,
 		'Leave approval'
 	);
-	const requestId = String(pending.requestId);
+	assert.equal(pending.collection, 'leave_entries');
+	return approveLeaveRequest(session, String(pending.requestId), String(pending.id));
+}
+
+/** The HR Manager approves one held Leave entry by its request, and the seal commits it once. */
+export async function approveLeaveRequest(session: Session, requestId: string, entryId: string) {
 	const headers = leaveTeamHeaders(session, 'HR Manager');
 	const status = await postGuestCommand(
 		session.host.baseUrl,
@@ -113,9 +113,8 @@ export async function approveLeave(session: Session, mutation: unknown) {
 	);
 	assert.equal(resumed.status, 200, JSON.stringify(resumed.value));
 	assert.deepEqual(resumed.value, { resumed: true, requestId });
-	assert.equal(pending.collection, 'leave_entries');
 	const stored = (await session.query('select id, approval_id from leave_entries where id = $1', [
-		pending.id
+		entryId
 	])) as { readonly id: string; readonly approval_id: string | null }[];
 	assert.equal(stored.length, 1, 'approval commits the submitted Leave entry exactly once');
 	assert.equal(stored[0]!.approval_id, null);

@@ -13,8 +13,9 @@
  	── WHAT THIS COMPONENT IS NOT ───────────────────────────────────────────────────────────────────
 	The plan picker and the interval editor are custom composition: they write their
 	columns through the internal `CollectionForm` (`work_days`) via `form.setValues`, and the
-	framework footer owns the native submit, so every write still goes through `client.db.*`
-	and every hook still runs. The form's default write carries the whole person-day row, which
+	framework footer owns the native submit, so every write still goes through
+	`client.collection.work_days` and the transform still runs. The form's write carries the declared
+	columns of the person-day row, which
 	is value-identical on the halves the operator did not touch.
 
  	`DaySheetChange` is gone with the `onSave` callback it travelled on. The plan and the
@@ -115,13 +116,13 @@
 		overlapWarning?: string | null;
 		canSwap?: boolean;
 		/**
-		 * INTEGRATION POINT — the rest-break badge (§4 of the proposal).
+		 * INTEGRATION POINT — the rest-break badge.
 		 *
 		 * A sibling module owns `src/lib/scheduling/rest-break.ts` and the `breaks` member of the
 		 * version's `work_rules`. A caller that renders `restBreakAssessment(...)` into this
 		 * snippet shows the shortfall, the citation, and whether an inter-interval gap already
 		 * satisfied the rule. Nothing here computes it, and nothing here should — the same numbers
-		 * have to reach the publish gate and the write hook, which is why it is a module and not a
+		 * have to reach the publish gate and the transform, which is why it is a module and not a
 		 * component.
 		 *
 		 * Until a caller renders it the slot shows nothing, which is the correct empty state: no
@@ -362,7 +363,7 @@
 	/**
 	 * Whether a save can be offered at all.
 	 *
-	 * Interval attendance is gated on the same assessment the hook will make. The two interval-free
+	 * Interval attendance is gated on the same assessment the transform will make. The two interval-free
 	 * states are intentional exceptions: `[]` is reviewed-no-work and `null` is explicit clearing,
 	 * neither of which should be rejected as a missing interval.
 	 */
@@ -406,7 +407,7 @@
 	/**
 	 * The guards the old Save button applied, as form validation.
 	 *
-	 * Interval attendance is gated on the same assessment the hook will make. The two interval-free
+	 * Interval attendance is gated on the same assessment the transform will make. The two interval-free
 	 * states are intentional exceptions: `[]` is reviewed-no-work and `null` is explicit clearing,
 	 * neither of which should be rejected as a missing interval. An untouched form is refused so a
 	 * create-mode submit cannot land an empty person-day row.
@@ -598,7 +599,6 @@
 							<Field name="work_date" hidden />
 							<Field name="shift_definition_id" hidden />
 							<Field name="worked_intervals" hidden />
-							<Field name="payslip_id" hidden />
 							<Stack gap="lg" class="pr-1">
 								<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
 								<Stack gap="sm">
@@ -613,7 +613,7 @@
 								This button used to be rendered only when `canSwap`, so in a published month — or a
 								month nobody has drafted yet — the affordance simply was not there, and the operator
 								was left to conclude that swapping shifts is not something this product does. It is:
-								a swap is two `work_days` writes, and `work_days/+hooks.ts` refuses both in
+								a swap is two `work_days` writes, and `work_days/+collection.ts` refuses both in
 								a month that is not a draft. That refusal is a fact worth stating, and the sentence
 								for it is already on screen — `planLockedReason` renders under the picker below and
 								names which of the two cases this is. A frozen day (payroll has taken it) disables it
@@ -934,7 +934,7 @@
 												: t('roster.day_sheet_lock_open'))}
 									</p>
 									<!--
-						SCOPED OUT — amendments to a published month (`docs/scheduling-leave-proposal.md`).
+						SCOPED OUT — amendments to a published month (`docs/scheduling.md`).
 						A single-cell write in a published month is refused whole today, and that stays true
 						until the decision is taken. When it is, this panel is where the amendment is offered
 						and `planLockedReason` is the sentence it replaces.
@@ -963,12 +963,7 @@
 						if (workDayId == null) return;
 						Effect.runFork(
 							submitCollectionMutation(() =>
-								client.db.work_days.mutate([
-									{
-										id: workDayId,
-										shift_definition_id: null
-									}
-								])
+								client.collection.work_days.update(workDayId, { shift_definition_id: null })
 							).pipe(
 								Effect.tap((submission) =>
 									Effect.sync(() => {

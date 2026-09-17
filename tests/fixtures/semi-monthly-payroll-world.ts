@@ -55,6 +55,11 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		name: 'Public fixture retirement fund',
 		authority: 'Public fixture',
 		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
+		// PUB-EPF charges the work lines and every money catalogue row of the version.
+		assessed_on:
+			"BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + catalog('CLAIM') + catalog('ALLOWANCE') + catalog('LOAN')",
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
@@ -67,21 +72,6 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		],
 		approval_id: null
 	});
-	// PUB-EPF charges the work lines and every money catalogue row of the version.
-	const pubEpf = world.statutory_contributions.find((row) => row.code === 'PUB-EPF');
-	if (pubEpf != null)
-		pubEpf.base = {
-			salary: true,
-			absence: true,
-			overtime: true,
-			night_premium: false,
-			entries: [
-				...world.claim_catalogue.map((row) => ({ family: 'CLAIM', code: row.code })),
-				...world.allowance_catalogue.map((row) => ({ family: 'ALLOWANCE', code: row.code })),
-				...world.payment_catalogue.map((row) => ({ family: 'PAYMENT', code: row.code })),
-				...world.loan_catalogue.map((row) => ({ family: 'LOAN', code: row.code }))
-			]
-		};
 
 	world.employees.push({
 		id: SEMI_MONTHLY_EMPLOYEE_ID,

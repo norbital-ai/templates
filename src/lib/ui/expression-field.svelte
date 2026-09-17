@@ -4,7 +4,7 @@
 	 * description tooltip, history and errors stay the form field's, exactly as for a text input.
 	 *
 	 * A matrix row is one fixed-height line and uses `expression-cell.svelte`; this one owns the
-	 * line under the control: the same sentence the write hook would refuse with. The Fields list a
+	 * line under the control: the same sentence the transform would refuse with. The Fields list a
 	 * writer needs is part of the field's description tooltip (`descriptionExtra`), not a link
 	 * under the input, so the control keeps one shape everywhere.
 	 */

@@ -1,12 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	rowsOf
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, postGuestCommand, rowsOf } from '@norbital-ai/test-utilities';
+import { observedVersion, writeRows } from './helpers/write.ts';
 import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -55,32 +50,13 @@ test(
 			assert.ok(typeof row.sealed_at === 'string');
 			assert.equal(typeof row.row_version, 'number', JSON.stringify(row));
 
-			const refused = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(
-					session.schemaFingerprint,
-					{
-						action: 'mutate',
-						collection: 'jurisdiction_settings',
-						rows: [
-							{
-								action: 'update',
-								values: {
-									id: JURISDICTION_ID,
-									change_summary: 'A sealed version cannot be edited.'
-								}
-							}
-						]
-					},
-					[
-						{
-							row: { collection: 'jurisdiction_settings', recordId: JURISDICTION_ID },
-							rowVersion: row.row_version
-						}
-					]
-				),
-				headers
+			const refused = await writeRows(
+				session,
+				'jurisdiction_settings',
+				'update',
+				[{ id: JURISDICTION_ID, change_summary: 'A sealed version cannot be edited.' }],
+				headers,
+				[observedVersion('jurisdiction_settings', JURISDICTION_ID, row.row_version)]
 			);
 			assert.ok(
 				refused.status >= 200 && refused.status < 500,

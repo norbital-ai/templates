@@ -1,4 +1,4 @@
-import { custom, defineModel, instant, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * A settings lineage versions the family catalogues used by its companies. The settings root
@@ -33,6 +33,13 @@ export default defineModel(
 		sources: custom('sources').notNull(),
 		/** Salary, overtime, incentive, limit and break rules; see `datatypes/work_rules`. */
 		work_rules: custom('work_rules').notNull(),
+		/**
+		 * The entity facts this version's rules read as `person.company.facts.<key>`, each key and
+		 * its type. The seal refuses an expression naming a key this version does not declare.
+		 */
+		facts: custom('fact_keys')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/**
 		 * What this version changes against its predecessor, in the operator's words: the instrument
 		 * that moved and the value it moved. Prose for the snapshot beside its sources; the engine

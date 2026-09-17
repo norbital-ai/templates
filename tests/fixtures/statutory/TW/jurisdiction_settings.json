@@ -69,7 +69,7 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS"
 				},
 				{
 					"key": "monthly_ot",
@@ -103,11 +103,14 @@
 		"payroll": {
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
-			"by_region": {},
-			"applies_when": ""
+			"by_region": {
+				"Taiwan": 28590
+			},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -190,7 +193,7 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS"
 				},
 				{
 					"key": "monthly_ot",
@@ -224,11 +227,14 @@
 		"payroll": {
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
-			"by_region": {},
-			"applies_when": ""
+			"by_region": {
+				"Taiwan": 29500
+			},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [
@@ -320,7 +326,7 @@
 					"period": "DAY",
 					"measure": "TOTAL_WORK_HOURS",
 					"max_hours": 12,
-					"unit": "CLOCK_HOURS"
+					"unit": "WORKED_HOURS"
 				},
 				{
 					"key": "monthly_ot",
@@ -354,11 +360,14 @@
 		"payroll": {
 			"currency": "TWD",
 			"timezone": "Asia/Taipei",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
-			"by_region": {},
-			"applies_when": ""
+			"by_region": {
+				"Taiwan": 29500
+			},
+			"applies_when": "employment.type != \"INTERN\""
 		},
 		"sources": {
 			"urls": [

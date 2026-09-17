@@ -1,10 +1,11 @@
 /**
  * How a statutory scheme's rules select and price a charge.
  *
- * The engine has no modes: the first rule whose `when` holds governs, its `employee`/`employer`
- * expressions produce the money, and every piece of arithmetic that used to be typed — base
- * transform, relief, household share, rounding, threshold, annualisation — is an expression the
- * rule carries. These tests pin the decisions the sources call out as expensive to get wrong:
+ * The engine has no modes: `assessed_on` states the wage, the first rule whose `when` holds
+ * governs, its `employee`/`employer` expressions produce the money, and every piece of arithmetic
+ * that used to be typed — base transform, relief, household share, rounding, threshold,
+ * annualisation — is an expression the rule carries. These tests pin the decisions the sources
+ * call out as expensive to get wrong:
  *
  *   E3   a wage band is chosen by its **ceiling**, because the published schedules read "wages
  *        exceeding X but not exceeding Y". A seeded rung is inclusive at its top (`base <= 4800.0`)
@@ -18,9 +19,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { selectRule } from '../src/collections/payroll_runs/lib/rules.ts';
-import { accumulateBases } from '../src/collections/payroll_runs/lib/accumulate.ts';
-import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
-import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import {
+	accumulatePayslip,
+	type AccumulatedPayslip,
+	type ReservedLine
+} from '../src/collections/payroll_runs/lib/accumulate.ts';
+import { contribute, contributeCompany } from '../src/collections/payroll_runs/lib/contribute.ts';
+import {
+	personContext,
+	type PersonContext
+} from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
 import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
 
@@ -53,6 +61,18 @@ const SINGLE = personContext({
 	asOf: '2026-03-31'
 });
 
+/** The same person in an entity of a given size, for a rule that reads `person.company.headcount`. */
+const withHeadcount = (headcount: number): PersonContext => ({
+	...NOBODY,
+	company: { ...NOBODY.company, headcount }
+});
+
+/** A person at a given age, for a rule that reads `person.employee.age`. */
+const atAge = (age: number): PersonContext => ({
+	...NOBODY,
+	employee: { ...NOBODY.employee, age }
+});
+
 type Band = ContributionConfig['rules'][number];
 const band = (when: string, employee: string, employer: string): Band => ({
 	when,
@@ -73,7 +93,7 @@ const LADDER = [
 	percent('base > 4800.0', 5, 6)
 ];
 
-/** One scheme as `contribute` reads it: a code and its rule ladder. */
+/** One scheme as `contribute` reads it: a code, its formula and its rule ladder. */
 const schemeOf = (
 	code: string,
 	rules: readonly Band[],
@@ -84,15 +104,40 @@ const schemeOf = (
 			id: `id-${code}`,
 			code,
 			assessment_period: 'PAY_PERIOD',
+			assessment_scope: 'EMPLOYMENT',
+			elections: [],
 			employee_share_annual_cap: null,
 			shared_cap_group: null,
 			project_relief_annually: false,
 			rules,
-			base: { salary: true, absence: true, overtime: true, night_premium: true, entries: [] },
+			assessed_on: 'BASE',
 			...over
 		},
 		rules
 	}) as unknown as ContributionConfig;
+
+/** A payslip whose only money is a salary of `base`. */
+const accumulationOf = (base: number): AccumulatedPayslip => {
+	const reserved: Record<ReservedLine, number> = {
+		BASE: base,
+		OVERTIME: 0,
+		NIGHT_PREMIUM: 0,
+		ABSENCE: 0,
+		NO_PAY_LEAVE: 0,
+		ENCASHMENT: 0
+	};
+	return { reserved, codes: new Map(), familyOf: new Map(), lines: [] };
+};
+
+const PERIOD = {
+	key: '2026-03',
+	start: '2026-03-01',
+	end: '2026-03-31',
+	index: 1,
+	instalments: 1,
+	monthlyOn: 'FIRST',
+	lastOfYear: false
+};
 
 const charge = (
 	schemes: readonly ContributionConfig[],
@@ -100,12 +145,13 @@ const charge = (
 	over: Partial<Parameters<typeof contribute>[0]> = {}
 ) =>
 	contribute({
-		bases: schemes.map((contribution) => ({ contribution, base, lines: [] })),
+		accumulation: accumulationOf(base),
+		contributions: schemes,
 		facts: new Map(),
 		yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
-		age: 40,
-		headcount: 10,
-		riskClass: null,
+		yearEarned: new Map(),
+		period: PERIOD,
+		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 3, days_employed: 90 },
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 		person: NOBODY,
 		minimumWage: null,
@@ -148,13 +194,23 @@ test('a wage no rule matches charges nothing, never the last rung', () => {
 
 test('an age condition filters before the wage', () => {
 	const aged = [
-		band('base >= 0.0 && age >= 0.0 && age < 60.0', 'base * 11.0 / 100.0', 'base * 13.0 / 100.0'),
-		band('base >= 0.0 && age >= 60.0', 'base * 6.5 / 100.0', 'base * 8.0 / 100.0')
+		band(
+			'base >= 0.0 && person.employee.age >= 0.0 && person.employee.age < 60.0',
+			'base * 11.0 / 100.0',
+			'base * 13.0 / 100.0'
+		),
+		band('base >= 0.0 && person.employee.age >= 60.0', 'base * 6.5 / 100.0', 'base * 8.0 / 100.0')
 	];
-	assert.equal(selectRule(aged, { base: 3000, age: 45 }, engine)?.employee, 'base * 11.0 / 100.0');
-	assert.equal(selectRule(aged, { base: 3000, age: 60 }, engine)?.employee, 'base * 6.5 / 100.0');
+	assert.equal(
+		selectRule(aged, { base: 3000, person: atAge(45) }, engine)?.employee,
+		'base * 11.0 / 100.0'
+	);
+	assert.equal(
+		selectRule(aged, { base: 3000, person: atAge(60) }, engine)?.employee,
+		'base * 6.5 / 100.0'
+	);
 	// The window is half-open — `[age_from, age_to)` — so a one-band ladder matches no year above it.
-	assert.equal(selectRule([aged[0]!], { base: 3000, age: 61 }, engine), null);
+	assert.equal(selectRule([aged[0]!], { base: 3000, person: atAge(61) }, engine), null);
 });
 
 test('a condition over the person is read exactly as written', () => {
@@ -162,7 +218,7 @@ test('a condition over the person is read exactly as written', () => {
 		band('person.employee.marital_status != "MARRIED"', 'base * 7.0 / 100.0', '0.0'),
 		band('person.employee.marital_status == "MARRIED"', 'base * 4.0 / 100.0', '0.0')
 	];
-	const nobody = { base: 3000, person: NOBODY, age: 40, headcount: 1, risk_class: '' };
+	const nobody = { base: 3000, person: NOBODY };
 	const married = { ...nobody, person: FOREIGNER };
 	assert.equal(selectRule(scale, nobody, engine)?.employee, 'base * 7.0 / 100.0');
 	assert.equal(selectRule(scale, married, engine)?.employee, 'base * 4.0 / 100.0');
@@ -209,8 +265,10 @@ test('a period-table progressive rung charges the cumulative constant and its em
 });
 
 test('minimum-wage floors and caps bound the base, and an unstated wage stops the run', () => {
-	const flooredBase = '(base < minimum_wage(region) ? minimum_wage(region) : base)';
-	const cappedBase = '(base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base)';
+	const flooredBase =
+		'(base < minimum_wage(person.company.region) ? minimum_wage(person.company.region) : base)';
+	const cappedBase =
+		'(base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base)';
 	const floorRule = (when: string, employee: string, employer: string): Band =>
 		band(
 			when,
@@ -264,14 +322,15 @@ test('a paired-share scheme rounds the total, floors the employee and gives the 
 });
 
 test('an annual scale projects, relieves, scales and spreads', () => {
-	const chargeable = 'year_to_date.base + base * (1.0 + projection.future_equivalents) - 9000.0';
+	const chargeable =
+		'scheme.year_to_date.base + base * (1.0 + scheme.projection.future_equivalents) - 9000.0';
 	const clamp = `(${chargeable} > 0.0 ? ${chargeable} : 0.0)`;
 	const tax = `progressive(${clamp}, [0.0, 0.0, 0.0, 5000.0, 0.0, 1.0, 20000.0, 150.0, 3.0])`;
-	const difference = `(${tax} - year_to_date.employee)`;
+	const difference = `(${tax} - scheme.year_to_date.employee)`;
 	const tax_RULES = [
 		band(
 			'true',
-			`truncate_cent(${difference} > 0.0 ? ${difference} / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0)`,
+			`truncate_cent(${difference} > 0.0 ? ${difference} / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0)`,
 			'0.0'
 		)
 	];
@@ -307,83 +366,228 @@ test('a scheme reads another scheme by mention, and the read is the relievable a
 	assert.equal(capped!.employee, 0, 'the relief is capped out; the base is fully relieved');
 });
 
-test('the calculation trace keeps each base line and the reads a charge made', () => {
-	// The flow stored on the run is copied from the charge: base lines in accumulation order, then
+test('the calculation trace keeps each selected line and the reads a charge made', () => {
+	// The flow stored on the run is copied from the charge: the lines the formula selected, then
 	// the produced reads the rule made. Nothing is recalculated for the reader.
-	const fund = schemeOf('FUND', [band('base >= 0.0', '100.0', '0.0')]);
-	// TAX admits one payment row and no work line, so only the BONUS line feeds it.
-	const tax = schemeOf('TAX', [band('base >= 0.0', 'produced.FUND.employee', '0.0')], {
-		base: {
-			salary: false,
-			absence: false,
-			overtime: false,
-			night_premium: false,
-			entries: [{ family: 'PAYMENT', code: 'BONUS' }]
-		}
+	const fund = schemeOf('FUND', [band('base >= 0.0', '100.0', '0.0')], {
+		assessed_on: 'BASE - ABSENCE'
 	});
-	const priced = (
-		label: string,
-		contribution: ContributionConfig,
-		effect: 'INCLUDE' | 'REDUCE',
-		amount: number
-	) =>
+	// TAX is assessed on one payment row and no work line, so only the BONUS line feeds it.
+	const tax = schemeOf('TAX', [band('base >= 0.0', 'produced.FUND.employee', '0.0')], {
+		assessed_on: "code('BONUS')"
+	});
+	const priced = (label: string, effect: 'INCLUDE' | 'REDUCE', amount: number) =>
 		({
-			// A work line the base admits by flag (BASIC by `salary`, an unpaid day by `absence`),
-			// or a payment row it names in `entries`.
+			// A work line the formula admits by reserved line (BASIC by `BASE`, an unpaid day by
+			// `ABSENCE`), or a payment row it names with `code`.
 			catalogueComponent:
 				label === 'BONUS'
-					? { code: label, family: 'PAYMENT' }
+					? { code: label, family: 'ALLOWANCE' }
 					: { code: label, family: 'WORK', output: label === 'BASIC' ? 'salary' : 'absence' },
 			bucket: effect === 'REDUCE' ? 'ABSENCE' : 'EARNING',
 			label,
 			amount
 		}) as never;
-	const bases = accumulateBases({
-		configuration: { contributions: [fund, tax] } as never,
+	const accumulation = accumulatePayslip({
 		items: [
-			priced('BASIC', fund, 'INCLUDE', 1000),
-			priced('UNPAID_LEAVE', fund, 'REDUCE', 200),
-			priced('BONUS', tax, 'INCLUDE', 500)
-		],
-		employeeNumber: 'X'
+			priced('BASIC', 'INCLUDE', 1000),
+			priced('UNPAID_LEAVE', 'REDUCE', 200),
+			priced('BONUS', 'INCLUDE', 500)
+		]
 	});
 	const charges = contribute({
-		bases,
+		accumulation,
+		contributions: [fund, tax],
 		facts: new Map(),
 		yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
-		age: 40,
-		headcount: 10,
-		riskClass: null,
+		yearEarned: new Map(),
+		period: PERIOD,
+		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 1, days_employed: 31 },
 		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 		person: NOBODY,
 		minimumWage: null
 	});
-	assert.deepEqual(charges[0]!.inputs, [
-		{ code: 'BASIC', label: 'BASIC', effect: 'INCLUDE', amount: 1000 },
-		{ code: 'UNPAID_LEAVE', label: 'UNPAID_LEAVE', effect: 'REDUCE', amount: 200 }
-	]);
-	assert.deepEqual(charges[1]!.inputs, [
-		{ code: 'BONUS', label: 'BONUS', effect: 'INCLUDE', amount: 500 }
-	]);
+	assert.deepEqual(
+		charges[0]!.inputs.map(({ code, effect, amount }) => ({ code, effect, amount })),
+		[
+			{ code: 'BASIC', effect: 'INCLUDE', amount: 1000 },
+			{ code: 'UNPAID_LEAVE', effect: 'REDUCE', amount: 200 }
+		]
+	);
+	assert.deepEqual(
+		charges[1]!.inputs.map(({ code, effect, amount }) => ({ code, effect, amount })),
+		[{ code: 'BONUS', effect: 'INCLUDE', amount: 500 }]
+	);
 	assert.deepEqual(charges[1]!.reads, [{ code: 'FUND', employee_amount: 100, employer_amount: 0 }]);
+});
+
+test('a directed instalment is added after the ladder and carried apart', () => {
+	// Form CP38 names one employee, an amount and a run of months; it is a fact of the employment
+	// under its scheme, never a formula's business.
+	const pcb = schemeOf('PCB', [band('base >= 0.0', 'round_cent(100.0)', '0.0')]);
+	const fact = {
+		kind: 'REGISTERED' as const,
+		reference_number: 'SG22974731000',
+		rate_override: null,
+		instalments: [
+			{ amount: 1115, from: '2026-01', to: '2026-01', reference: 'direction-1' },
+			{ amount: 1114.18, from: '2026-02', to: '2026-02', reference: 'direction-2' }
+		]
+	};
+	const charges = charge([pcb], 3000, {
+		facts: new Map([[pcb.row.id, fact]]),
+		period: { ...PERIOD, key: '2026-01' }
+	});
+	assert.equal(charges[0]!.employee, 1215, 'the ladder share plus January direction');
+	assert.equal(charges[0]!.directed, 1115);
+	assert.equal(charges[0]!.employer, 0);
+	// A period no direction covers adds nothing.
+	const february = charge([pcb], 3000, {
+		facts: new Map([[pcb.row.id, fact]]),
+		period: { ...PERIOD, key: '2026-03' }
+	});
+	assert.equal(february[0]!.employee, 100);
+	assert.equal(february[0]!.directed, 0);
+});
+
+test('a declared election reads the fact’s value, or the type’s empty value when the fact holds none', () => {
+	// PTKP is a string election: a married woman is TK/0 unless her fact says KI. A fact without
+	// the election reads '' — never null, never 0 — so a comparison against a code is simply false.
+	const tax = schemeOf(
+		'TAX',
+		[
+			band('scheme.elections.ptkp == "KI"', '200.0', '0.0'),
+			band('scheme.elections.ptkp == ""', '100.0', '0.0')
+		],
+		{ elections: [{ key: 'ptkp', type: 'string' }] }
+	);
+	const registered = { kind: 'REGISTERED' as const, reference_number: 'NPWP', rate_override: null };
+	assert.equal(
+		charge([tax], 1000, { facts: new Map([[tax.row.id, registered]]) })[0]!.employee,
+		100
+	);
+	assert.equal(
+		charge([tax], 1000, {
+			facts: new Map([[tax.row.id, { ...registered, elections: { ptkp: 'KI' } }]])
+		})[0]!.employee,
+		200
+	);
+	// A boolean election is false until elected; a number is 0.
+	const shg = schemeOf('SHG', [band('!scheme.elections.opt_out', 'scheme.elections.rate', '0.0')], {
+		elections: [
+			{ key: 'opt_out', type: 'boolean' },
+			{ key: 'rate', type: 'number' }
+		]
+	});
+	assert.equal(charge([shg], 1000)[0]!.employee, 0);
+	assert.equal(
+		charge([shg], 1000, {
+			facts: new Map([[shg.row.id, { ...registered, elections: { rate: 7 } }]])
+		})[0]!.employee,
+		7
+	);
+	assert.deepEqual(
+		charge([shg], 1000, {
+			facts: new Map([[shg.row.id, { ...registered, elections: { opt_out: true } }]])
+		}),
+		[]
+	);
+});
+
+test('a scheme registered since a day reads the day and the completed months on the scheme root', () => {
+	const socso = schemeOf('SOCSO', [
+		band('scheme.since_months >= 12', '12.0', '0.0'),
+		band('scheme.since == ""', '0.0', '0.0'),
+		band('true', 'scheme.since_months * 1.0', '0.0')
+	]);
+	const fact = { kind: 'REGISTERED' as const, reference_number: 'R', rate_override: null };
+	assert.equal(charge([socso], 1000)[0]!.employee, 0, 'unrecorded: since is empty');
+	assert.equal(
+		charge([socso], 1000, {
+			facts: new Map([[socso.row.id, { ...fact, since: '2025-12-15' }]])
+		})[0]!.employee,
+		3,
+		'2025-12-15 to 2026-03-31 is three completed months'
+	);
+	assert.equal(
+		charge([socso], 1000, {
+			facts: new Map([[socso.row.id, { ...fact, since: '2024-01-01' }]])
+		})[0]!.employee,
+		12
+	);
+});
+
+test('a formula may read produced.<code> of a scheme already charged', () => {
+	// An employer premium taxed as the employee's income: the base of one scheme reads the charge
+	// of another, so the formula is evaluated inside the ordered loop.
+	const jkk = schemeOf('JKK', [band('true', '0.0', 'round_cent(base * 1.0 / 100.0)')]);
+	const tax = schemeOf('TAX', [band('true', 'round_cent(base * 10.0 / 100.0)', '0.0')], {
+		assessed_on: 'BASE + produced.JKK.employer'
+	});
+	const [, row] = charge([jkk, tax], 1000);
+	assert.equal(row!.base, 1010, 'the salary plus the employer premium');
+	assert.equal(row!.employee, 101);
+});
+
+test('a company-assessed scheme is charged once on the run, and its employee expression must be 0.0', () => {
+	const levy = schemeOf('LEVY', [band('true', '0.0', 'round_cent(base * 2.0 / 100.0)')], {
+		assessment_scope: 'COMPANY'
+	});
+	const company = (contributions: readonly ContributionConfig[]) =>
+		contributeCompany({
+			accumulation: accumulationOf(3000),
+			contributions,
+			period: PERIOD,
+			year: { start: '2026-01-01', end: '2026-12-31', months_employed: 0, days_employed: 0 },
+			person: withHeadcount(5),
+			minimumWage: null,
+			projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 }
+		});
+	assert.deepEqual(
+		company([levy]).map((row) => [row.contribution.row.code, row.employee, row.employer]),
+		[['LEVY', 0, 60]]
+	);
+	// The levy is the employer's own; an employee leg on a company scheme is a written mistake.
+	const wrong = schemeOf('BAD', [band('true', '1.0', '0.0')], { assessment_scope: 'COMPANY' });
+	assert.throws(() => company([wrong]), /employee expression must be 0.0/);
+	// The per-employment loop skips COMPANY schemes; they are nobody's payslip.
+	assert.deepEqual(charge([levy], 3000), []);
+});
+
+test('the company context sums every payslip and reads the entity roots', () => {
+	const levy = schemeOf(
+		'LEVY',
+		[band('true', '0.0', 'round_cent((base + person.company.headcount * 10.0) * 1.0 / 100.0)')],
+		{ assessment_scope: 'COMPANY' }
+	);
+	const charges = contributeCompany({
+		accumulation: accumulationOf(3000),
+		contributions: [levy],
+		period: PERIOD,
+		year: { start: '2026-01-01', end: '2026-12-31', months_employed: 0, days_employed: 0 },
+		person: withHeadcount(5),
+		minimumWage: null,
+		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 }
+	});
+	assert.equal(charges[0]!.employer, 30.5, '1% of the salary fund plus the headcount test');
 });
 
 test('a MONTH-assessed scheme charges once, on the month wage, and nothing in the closing period', () => {
 	const monthly = schemeOf('MONTHLY', LADDER, { assessment_period: 'MONTH' });
 	const opening = charge([monthly], 2000, {
-		assessment: { periodsPerMonth: 2, periodIndex: 1 }
+		period: { ...PERIOD, key: '2026-03-1', index: 1, instalments: 2 }
 	})[0]!;
 	assert.equal(opening.base, 4000, 'the base is grossed to the month');
 	assert.equal(opening.employee, 120, '3% of 4,000');
 	assert.equal(opening.employer, 160, '4% of 4,000');
 
 	const closing = charge([monthly], 2000, {
-		assessment: { periodsPerMonth: 2, periodIndex: 2 }
+		period: { ...PERIOD, key: '2026-03-2', index: 2, instalments: 2 }
 	})[0]!;
 	assert.deepEqual([closing.base, closing.employee, closing.employer], [0, 0, 0]);
 
 	const perPeriod = charge([schemeOf('PERIOD', LADDER)], 1000, {
-		assessment: { periodsPerMonth: 2, periodIndex: 1 }
+		period: { ...PERIOD, key: '2026-03-1', index: 1, instalments: 2 }
 	})[0]!;
 	assert.equal(perPeriod.base, 1000);
 });

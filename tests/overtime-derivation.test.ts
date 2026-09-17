@@ -67,12 +67,21 @@ test('recorded ordinary hours price undertime once and exclude hours priced as o
 	assert.equal(ordinaryWorkedHours(short, DAY_SHIFT), 6);
 	const lateWithOvertime = entry({ worked_intervals: [interval('10:30', '19:30')] });
 	assert.equal(ordinaryWorkedHours(lateWithOvertime, DAY_SHIFT), 6);
-	assert.equal(deriveDailyOvertime(lateWithOvertime, scheduled())?.hours, 2);
+	// EA s.60A(3): overtime is work in excess of the normal hours. Two hours late and two hours
+	// past the end is eight hours worked — a normal day, and nothing beyond it. The clock-out
+	// overrun paid the two hours the person had not worked.
+	assert.equal(deriveDailyOvertime(lateWithOvertime, scheduled()), null);
+	assert.equal(
+		deriveDailyOvertime(entry({ worked_intervals: [interval('10:30', '21:30')] }), scheduled())
+			?.hours,
+		2,
+		'ten hours worked from a late start is two beyond the normal eight'
+	);
 	assert.equal(ordinaryWorkedHours(entry({ worked_intervals: [] }), DAY_SHIFT), 0);
 });
 
-test('an ordinary day is observed work outside the scheduled shift window', () => {
-	// Out at 20:45 — 3h15m outside the scheduled window, floored to 3h.
+test('an ordinary day is observed work in excess of the normal hours', () => {
+	// Out at 20:45 — 11h15m worked net of the break, 3h15m beyond the normal eight, floored to 3h.
 	const day = deriveDailyOvertime(
 		entry({ worked_intervals: [interval('08:30', '20:45')] }),
 		scheduled()
@@ -120,12 +129,20 @@ test('a rest day is overtime from the first minute, less the unpaid break', () =
 	assert.equal(day.normalHours, 8, 'the contracted day is still the band boundary');
 });
 
-test('all verified work on a rest day is overtime, including work before the usual start', () => {
+test('a rostered rest-day shift discards the early clock-in like any other day with a shift', () => {
+	// The day carries a shift, so the clock is measured from 08:30 on a rest day as on an ordinary
+	// one: 08:30–14:30 less the hour of break is five hours, all of them overtime.
 	const early = deriveDailyOvertime(
 		entry({ worked_intervals: [interval('06:00', '14:30')] }),
 		scheduled({ dayType: 'REST_DAY' })
 	);
-	assert.equal(early.hours, 7.5);
+	assert.equal(early.hours, 5);
+	// A rest day with no shift has no start to measure from: every verified hour is work.
+	const unrostered = deriveDailyOvertime(
+		entry({ worked_intervals: [interval('06:00', '14:30')], break_minutes: 0 }),
+		scheduled({ dayType: 'REST_DAY', shift: null, clampStart: null })
+	);
+	assert.equal(unrostered.hours, 8.5);
 });
 
 test('overlapping intervals cannot pay the same minute twice', () => {
@@ -156,7 +173,7 @@ const breakRule = (overrides) => ({
 	...overrides
 });
 
-/** 08:30–20:45 with nothing recorded as break: 3h15m of overrun, and a 12h15m consecutive run. */
+/** 08:30–20:45 with nothing recorded as break: 4h15m beyond the normal eight, a 12h15m run. */
 const longRun = (overrides = {}) =>
 	entry({ worked_intervals: [interval('08:30', '20:45')], break_minutes: 0, ...overrides });
 
@@ -165,7 +182,7 @@ test('a jurisdiction with no rest break rule computes exactly what it always com
 	// restored, and none of them may lose a minute of overtime to its arrival.
 	for (const rules of [undefined, null, []]) {
 		const day = deriveDailyOvertime(longRun(), scheduled(), rules);
-		assert.equal(day.hours, 3);
+		assert.equal(day.hours, 4);
 		assert.equal(day.restBreak, null);
 		assert.equal(day.restBreakDeductedHours, 0);
 	}
@@ -179,8 +196,8 @@ test('a silent statute is assessed, cited and priced at nothing', () => {
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreak.rule.counts_as_worked_time, null);
 	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 3, 'a silent statute prices nothing');
-	// The trigger is the consecutive run, not the overrun: 12h15m clocked against a 3h15m overrun.
+	assert.equal(day.hours, 4, 'a silent statute prices nothing');
+	// The trigger is the consecutive run, not the excess: 12h15m clocked against 4h15m beyond.
 	assert.equal(day.restBreak.longestRunHours, 12.25);
 });
 
@@ -191,7 +208,7 @@ test('a break the statute says is not working time deducts the shortfall', () =>
 	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreakDeductedHours, 0.5);
-	assert.equal(day.hours, 2.5, '3h15m less the 30-minute shortfall is 2h45m, floored to 2h30m');
+	assert.equal(day.hours, 3.5, '4h15m less the 30-minute shortfall is 3h45m, floored to 3h30m');
 });
 
 test('a break the statute counts as working time deducts nothing', () => {
@@ -199,36 +216,37 @@ test('a break the statute counts as working time deducts nothing', () => {
 	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 30);
 	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 3);
+	assert.equal(day.hours, 4);
 });
 
 test('the shortfall is deducted, never the requirement', () => {
 	// The arithmetic trap. `clockedWorkHours` has already taken the recorded break off the day, so a
 	// day that recorded its full statutory thirty minutes owes nothing further. Deducting the
-	// requirement again would charge that half hour twice and land the day on 2.5.
+	// requirement again would charge that half hour twice and land the day on 3.
 	const rules = [breakRule({ counts_as_worked_time: false })];
 	const day = deriveDailyOvertime(longRun({ break_minutes: 30 }), scheduled(), rules);
 	assert.equal(day.restBreak.takenMinutes, 30);
 	assert.equal(day.restBreak.shortfallMinutes, 0);
 	assert.equal(day.restBreakDeductedHours, 0);
-	assert.equal(day.hours, 3);
-	assert.notEqual(day.hours, 2.5, 'that would be the requirement charged a second time');
+	assert.equal(day.hours, 3.5, '11h45m worked is 3h45m beyond the normal eight, floored');
+	assert.notEqual(day.hours, 3, 'that would be the requirement charged a second time');
 });
 
 test('a partly taken break deducts only the part that was not taken', () => {
 	const rules = [breakRule({ counts_as_worked_time: false })];
 	const day = deriveDailyOvertime(longRun({ break_minutes: 10 }), scheduled(), rules);
 	assert.equal(day.restBreak.shortfallMinutes, 20);
-	assert.equal(day.hours, 2.5, '3h15m less 20 minutes is 2h55m, floored to 2h30m');
+	assert.equal(day.hours, 3.5, '4h05m beyond less 20 minutes is 3h45m, floored to 3h30m');
 	assert.equal(day.hours % 0.5, 0, 'payable overtime is always a half-hour multiple');
 });
 
 test('a day whose whole overrun is owed as unpaid break earns nothing at all', () => {
-	// 08:30–18:00 is thirty minutes of overrun on a nine-and-a-half hour consecutive run. The day
-	// must produce no entry rather than a zero one, exactly as a day that floors away does.
+	// 08:30–17:00 with no break is thirty minutes beyond the normal eight on an eight-and-a-half
+	// hour consecutive run. The day must produce no entry rather than a zero one, exactly as a day
+	// that floors away does.
 	const rules = [breakRule({ when: 'consecutive_hours > 4.0', counts_as_worked_time: false })];
 	const day = deriveDailyOvertime(
-		entry({ worked_intervals: [interval('08:30', '18:00')], break_minutes: 0 }),
+		entry({ worked_intervals: [interval('08:30', '17:00')], break_minutes: 0 }),
 		scheduled(),
 		rules
 	);
@@ -300,10 +318,10 @@ test('a night shift pays only the hours past its carried-forward end', () => {
 /**
  * Clocking in early is not work.
  *
- * Overtime on a scheduled day is the clock-out past the shift end; the hour before the shift is
- * discarded, and the day's total — what the twelve-hour ceiling is measured against — is counted
- * from the shift start. The owner's rule (2026-09-16): an employee who arrives early is not
- * working, and not paid, until their shift begins.
+ * The hour before the shift is discarded, and the day's total — what the normal day is measured
+ * against, and the twelve-hour ceiling too — is counted from the shift start. The owner's rule
+ * (2026-09-16): an employee who arrives early is not working, and not paid, until their shift
+ * begins.
  */
 test('clocking in early on a night shift is neither overtime nor total work hours', () => {
 	const day = deriveDailyOvertime(
@@ -323,7 +341,7 @@ test('clocking in early on a night shift is neither overtime nor total work hour
 		}),
 		nightScheduled()
 	);
-	assert.equal(late.hours, 0.5, 'only the clock-out past the shift end is overtime');
+	assert.equal(late.hours, 0.5, 'only the half hour beyond the normal eight is overtime');
 	assert.equal(late.totalWorkHours, 8.5, 'and the total is counted from the shift start');
 });
 

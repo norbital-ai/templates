@@ -65,6 +65,14 @@ export type WorkBandRates = {
 	readonly dayWage: number;
 };
 
+/**
+ * An OFF day is a working-week day the roster left unassigned, not a rest day: every hour worked
+ * on it is beyond the normal week, so the bands read it as ORDINARY overtime (the same reading
+ * `ruleDayType` and the monthly counter make). Left as its own type it matched no band and every
+ * OFF-day hour was priced at nothing.
+ */
+const isOrdinary = (day: WorkBandDay) => day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
+
 function contextOf(options: {
 	readonly person: PersonContext;
 	readonly day: WorkBandDay;
@@ -72,11 +80,7 @@ function contextOf(options: {
 	readonly limits: Record<string, number>;
 }): Record<string, unknown> {
 	const { day, rates, limits, person } = options;
-	// An OFF day is a working-week day the roster left unassigned, not a rest day: every hour
-	// worked on it is beyond the normal week, so the bands read it as ORDINARY overtime (the same
-	// reading `ruleDayType` and the monthly counter make). Left as its own type it matched no band
-	// and every OFF-day hour was priced at nothing.
-	const ordinary = day.dayType === 'ORDINARY' || day.dayType === 'OFF_DAY';
+	const ordinary = isOrdinary(day);
 	return {
 		person,
 		date: day.date,
@@ -127,17 +131,22 @@ export function priceWorkDay(options: {
 		readonly hours: number;
 		readonly cursor: number;
 	}[] = [];
+	// The consumption space is the payable hours, never the raw clock: on an ordinary day the
+	// bands price the overrun and the worked hours are only the boundary they read; on a rest day
+	// or a holiday the whole day is overtime, already floored and net of the unpaid statutory
+	// break, and a slice past that priced the break shortfall the statute says is not work.
+	const payable = isOrdinary(day) ? day.workedHours : day.overtimeHours;
 	let cursor = 0;
 	for (const band of work.bands) {
-		if (cursor >= day.workedHours) break;
+		if (cursor >= payable) break;
 		if (!evaluateBoolean(engine, band.when, context)) continue;
 		const take = Math.max(0, evaluateNumber(engine, band.take_hours, context));
-		const hours = Math.min(take, day.workedHours - cursor);
+		const hours = Math.min(take, payable - cursor);
 		if (hours <= 0) continue;
 		slices.push({ band, hours, cursor });
 		cursor += hours;
 	}
-	const base = Math.max(0, day.workedHours - cursor);
+	const base = Math.max(0, payable - cursor);
 	const rows: WorkBandRow[] = [];
 	for (const slice of slices) {
 		const priced = { ...context, hours: slice.hours };

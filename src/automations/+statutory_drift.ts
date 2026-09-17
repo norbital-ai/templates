@@ -181,12 +181,19 @@ const decodeEntitlement = Schema.decodeUnknownSync(leaveEntitlementValueSchema);
  * The draft write with the proposed rows in place of the cloned ones. The draft is born carrying
  * the proposal: one write, nothing edited afterwards, and a sealed row is never in reach.
  */
+type DraftScheme = NonNullable<
+	NonNullable<SettingsDraftWrite['contribution_settings']>['create']
+>[number];
+type DraftLeave = NonNullable<
+	NonNullable<SettingsDraftWrite['leave_catalogue_settings']>['create']
+>[number];
+
 export function applyProposedChanges(
 	write: SettingsDraftWrite,
 	changes: ReadonlyArray<StatutoryProposalChange>,
 	proposal: StatutoryProposal
 ): SettingsDraftWrite {
-	const schemes = (write.contribution_settings ?? []).map((scheme) => {
+	const schemes = (write.contribution_settings?.create ?? []).map((scheme: DraftScheme) => {
 		const ruleChanges = changes.filter(
 			(row) => row.collection === 'statutory_contributions' && row.code === scheme.code
 		);
@@ -205,7 +212,7 @@ export function applyProposedChanges(
 		}
 		return { ...scheme, rules };
 	});
-	const catalogueLeaves = (write.leave_catalogue_settings ?? []).map((type) => {
+	const catalogueLeaves = (write.leave_catalogue_settings?.create ?? []).map((type: DraftLeave) => {
 		const change = changes.find(
 			(row) => row.collection === 'leave_catalogue' && row.code === type.code
 		);
@@ -217,8 +224,8 @@ export function applyProposedChanges(
 		change_summary:
 			`Statutory drift: ${proposal.changes.length} change(s) proposed from ` +
 			`${proposal.source_version_id} on ${proposal.proposed_at}.`,
-		contribution_settings: schemes as SettingsDraftWrite['contribution_settings'],
-		leave_catalogue_settings: catalogueLeaves
+		contribution_settings: { create: schemes },
+		leave_catalogue_settings: { create: catalogueLeaves }
 	};
 }
 

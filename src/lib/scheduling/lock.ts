@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceRow } from '$bolt/types.js';
 import { dateKey } from '../iso-day.js';
@@ -10,7 +10,7 @@ import { dateKey } from '../iso-day.js';
  * settled), or inside a window whose payment has already happened (no *new* record may appear —
  * corrections arrive as adjustment entries in a later draft). Nothing about *this* is stored: the
  * day lock is arithmetic over `payroll_runs` windows and the payslips inside them, so the same
- * derived state drives the board's stripes and the write hooks' refusals, and the two can never
+ * derived state drives the board's stripes and the transforms' refusals, and the two can never
  * disagree.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ import { dateKey } from '../iso-day.js';
  * the second direction the old inference got wrong.
  *
  * `period` can name a whole month (`2026-08`) or half of one (`2026-08-1`, `2026-08-2`), matching
- * the company's pay grid. The board and the hooks only need the windows; they never interpret the
+ * the company's pay grid. The board and the transforms only need the windows; they never interpret the
  * grid itself.
  */
 
@@ -203,7 +203,7 @@ const sourceLockFactsSchema = Schema.Struct({
 	 * The settlement claim held over this record, or null/undefined when none is.
 	 *
 	 * Passed in rather than looked up, for the same reason every other input is: this module stays
-	 * pure so that the write hooks and the screens that grey the row out compute the identical lock
+	 * pure so that the transforms and the screens that grey the row out compute the identical lock
 	 * from the identical inputs. Each caller reads `payslip_adjustments` through its own typed api,
 	 * asking only whether a row names the record — never what that row is worth.
 	 */
@@ -221,7 +221,7 @@ type SourceLockFacts = Schema.Schema.Type<typeof sourceLockFactsSchema>;
  * recorded about a day that has passed — yesterday's clock-in, last week's missed swipe, a whole
  * month backfilled from a turnstile export. Freezing on a passed date there greys out every row a
  * controller has any reason to touch, which is the defect
- * `docs/scheduling-leave-proposal.md` names under locking.
+ * `docs/scheduling.md` names under locking.
  *
  * The shape is a named policy rather than a boolean, and the two arms carry different fields, for
  * one reason: a call site must not be able to read as ambiguous. `datePassed: 'IS_NOT_A_LOCK'`
@@ -289,7 +289,7 @@ export function sourceLockApplicationLocked(lock: SourceLock): boolean {
 	return lock.kind !== 'NONE' && !sourceLockSystemLocked(lock);
 }
 
-/** Domain freeze that hooks must refuse. Pending approval stays a platform 409. */
+/** Domain freeze that transforms must refuse. Pending approval stays a platform hold. */
 export function sourceLockBlocksWrite(lock: SourceLock): boolean {
 	return sourceLockApplicationLocked(lock);
 }
@@ -375,7 +375,7 @@ export function sourceLockReason(
  *
  * Pending approval deliberately produces no authored metadata: it is protected Bolt state and the
  * collection surfaces inject it directly from `approval_id`. This helper only adapts the
- * payroll application's own refusal, keeping the hook's lock calculation as the single source of
+ * payroll application's own refusal, keeping the transform's lock calculation as the single source of
  * truth without letting application code impersonate system metadata.
  */
 export function sourceLockRecordMetadata(
@@ -394,51 +394,33 @@ export function sourceLockRecordMetadata(
 	] as const;
 }
 
-/** The columns the payroll engine writes when it captures or releases a single-use source. */
-const SETTLEMENT_KEYS = new Set(['id', 'row_version', 'payslip_id']);
-
-/** Whether a write is the engine's capture or release — the one write a settled row accepts. */
-export function isSettlementWrite(input: Readonly<Record<string, unknown>>): boolean {
-	return Object.keys(input).every((key) => SETTLEMENT_KEYS.has(key));
-}
-
 /** The claim a settled source carries, read off its own row. The period is read through the slip. */
-export function settledClaim(row: {
+function settledClaim(row: {
 	readonly payslip_id?: string | null;
 }): { readonly period: string | null } | undefined {
 	return row.payslip_id == null ? undefined : { period: null };
 }
 
 /**
- * The shared settlement-lock read, for every source family's update and delete hooks.
+ * The shared settlement-lock decision, for every source family's update transform.
  *
- * Each hook supplies the settlement lookup over its own row — the generated client keeps its
- * per-collection query types — and this one decision turns whatever it finds into the same refusal
- * the screens compute from the same inputs. A pending approval still answers first (the platform's
- * 409, not ours); the pinned `payslip_id` names the slip that has to release the record, so this
- * refusal never needs a `payroll_runs` read grant.
+ * The pinned `payslip_id` names the slip that has to release the record, so this refusal never
+ * needs a `payroll_runs` read; a pending approval still answers first (the platform's hold, not
+ * ours). One decision turns the row into the same refusal the screens compute from the same
+ * inputs.
  */
-type RefuseIfCapturedOptions = {
-	readonly capture: Effect.Effect<{ readonly period: string | null } | undefined, never, never>;
-	readonly approvalId: string | null | undefined;
-	readonly action: string;
-};
-
-export function refuseIfCaptured(
-	options: RefuseIfCapturedOptions
-): Effect.Effect<void, never, never> {
-	return Effect.map(options.capture, (row) => {
-		const lock = sourceLock({
-			existing: true,
-			approvalId: options.approvalId,
-			dates: [],
-			settledBy: row == null ? null : { period: row.period },
-			datePassed: 'IS_NOT_A_LOCK'
-		});
-		if (sourceLockBlocksWrite(lock)) {
-			refuse(sourceLockMessage(lock, options.action));
-		}
+export function assertNotCaptured(
+	row: { readonly payslip_id?: string | null; readonly approval_id?: string | null },
+	action: string
+): void {
+	const lock = sourceLock({
+		existing: true,
+		approvalId: row.approval_id ?? null,
+		dates: [],
+		settledBy: settledClaim(row) ?? null,
+		datePassed: 'IS_NOT_A_LOCK'
 	});
+	if (sourceLockBlocksWrite(lock)) refuse(sourceLockMessage(lock, action));
 }
 
 /**

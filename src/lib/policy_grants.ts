@@ -1,6 +1,13 @@
-import { approveBy, noApproval } from '@norbital-ai/bolt/authoring';
+import { approveBy, noApproval, type PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Policy } from '../access/policies/$types.js';
+import { leaveActivityOf, type LeaveEntryActivity } from './leave/activity-fields.js';
+import { readRange } from '../collections/payroll_runs/lib/effective.js';
+import { dateKey } from './iso-day.js';
+import { capturingRuns } from './holiday-capture.js';
+import { consumedTermsThrough, contractReferences } from './employment-contract.js';
+import { producedMentions } from '../collections/payroll_runs/lib/mentions.js';
+import { assertPayrollRunDeletable } from '../collections/payroll_runs/lib/period.js';
 
 type Grants = Policy['grants'];
 type Collection = keyof Grants & string;
@@ -98,6 +105,159 @@ export const grantsOn = <const C extends Collection>(
 		}, {})
 	}) as Grants;
 
+/**
+ * ============================================================================
+ * DELETE DECISIONS
+ * ============================================================================
+ *
+ * A delete has no input and no transform: what may be removed is the grant's `authorize`, judged
+ * on the stored row with the workspace's reads. Every rule about removing a row lives
+ * here, once, and every policy that grants the delete names it.
+ */
+
+/** A settings version is history once sealed: never deleted, only voided. */
+const draftVersionOnly = ({ record }: { readonly record: { readonly sealed_at?: unknown } }) =>
+	record.sealed_at == null;
+
+/** A row of a sealed settings version is never deleted; a draft's rows go with the draft. */
+const draftSettingsRow = (
+	{ record }: { readonly record: { readonly settings_id: string } },
+	api: PolicyDecisionApi
+) =>
+	Effect.map(
+		api.db.jurisdiction_settings.findFirst({
+			where: { id: { eq: record.settings_id } },
+			columns: { sealed_at: true }
+		}),
+		(version) => version != null && version.sealed_at == null
+	);
+
+/** A scheme another scheme of its version still names as `produced.<code>` stays. */
+const unreferencedDraftScheme = (
+	{
+		record
+	}: {
+		readonly record: { readonly id: string; readonly settings_id: string; readonly code: string };
+	},
+	api: PolicyDecisionApi
+) =>
+	Effect.gen(function* () {
+		if (!(yield* draftSettingsRow({ record }, api))) return false;
+		const siblings = yield* api.db.statutory_contributions.findMany({
+			where: { settings_id: { eq: record.settings_id }, approval_id: { isNull: true } },
+			columns: { id: true, rules: true },
+			limit: 500
+		});
+		return !siblings.some(
+			(other) => other.id !== record.id && producedMentions(other.rules).includes(record.code)
+		);
+	});
+
+/** A holiday a payroll run's frozen snapshot captured is history. */
+const uncapturedHoliday = (
+	{ record }: { readonly record: { readonly id: string } },
+	api: PolicyDecisionApi
+) =>
+	Effect.map(
+		api.db.payroll_runs.findMany({
+			columns: { id: true, period: true, holidays: true },
+			limit: 20_000
+		}),
+		(runs) => capturingRuns(runs, record.id).length === 0
+	);
+
+/** A contract that anything references, or that an approval still names, stays. */
+const unreferencedContract = (
+	{ record }: { readonly record: { readonly id: string } },
+	api: PolicyDecisionApi
+) =>
+	Effect.map(contractReferences(api.db, [record.id]), (references) => {
+		const entry = references.get(record.id);
+		return entry == null || (entry.sealedBy == null && !entry.pending);
+	});
+
+/** Terms that supplied consumed contract history are retained, even after the consumer is removed. */
+const unconsumedTerms = (
+	{
+		record
+	}: { readonly record: { readonly employment_id: string; readonly effective_range: unknown } },
+	api: PolicyDecisionApi
+) =>
+	Effect.map(consumedTermsThrough(api.db, [record.employment_id]), (consumed) => {
+		const through = consumed.get(record.employment_id);
+		const range = readRange(record.effective_range);
+		return through == null || (range != null && dateKey(range.start) > through);
+	});
+
+/** A source a payslip settled is released by deleting that draft payslip, never directly. */
+const unpinned = ({ record }: { readonly record: { readonly payslip_id?: string | null } }) =>
+	record.payslip_id == null;
+
+/** A standing allowance a payslip has priced is money history: no delete takes it. */
+const unpriced = (
+	{ record }: { readonly record: { readonly id: string } },
+	api: PolicyDecisionApi
+) =>
+	Effect.map(
+		api.db.allowance_entries.findFirst({
+			where: { derived_from_id: { eq: record.id } },
+			columns: { id: true }
+		}),
+		(entry) => entry == null
+	);
+
+/** An agreement whose repayment a payslip settled is money history: the cascade must not take it. */
+const unsettledLoan = (
+	{ record }: { readonly record: { readonly id: string } },
+	api: PolicyDecisionApi
+) =>
+	Effect.map(
+		api.db.loan_repayments.findFirst({
+			where: { loan_id: { eq: record.id }, payslip_id: { isNotNull: true } },
+			columns: { id: true }
+		}),
+		(settled) => settled == null
+	);
+
+/** A run is deleted only while nobody in it has been paid, and only newest first. */
+const unpaidLatestRun = (
+	{
+		record
+	}: {
+		readonly record: { readonly id: string; readonly company_id: string; readonly period: string };
+	},
+	api: PolicyDecisionApi
+) =>
+	Effect.gen(function* () {
+		const [paid, siblings] = yield* Effect.all(
+			[
+				api.db.payslips.findFirst({
+					where: { payroll_run_id: { eq: record.id }, status: { eq: 'PAID' } },
+					columns: { id: true }
+				}),
+				api.db.payroll_runs.findMany({
+					where: { company_id: { eq: record.company_id } },
+					columns: { id: true, period: true },
+					limit: 20_000
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		if (paid != null) return false;
+		assertPayrollRunDeletable(
+			siblings.filter((run) => run.id !== record.id),
+			record.period
+		);
+		return true;
+	});
+
+/** A paid payslip is money that left the building. */
+const unpaidPayslip = ({
+	record
+}: {
+	readonly record: { readonly status: string; readonly paid_at?: unknown };
+}) => record.status !== 'PAID' && record.paid_at == null;
+
 const SUBJECT_EMAIL = { $subject: 'email' } as const;
 
 /** The employee row owning an employment, matched with the registered case-fold transform. */
@@ -170,9 +330,37 @@ export const peopleGrants = (
 ): Grants =>
 	mergeGrants(
 		grantsOn('employees', actions),
-		grantsOn('employments', actions),
-		grantsOn('employment_terms', actions),
+		grantsOn(
+			'employments',
+			actions.filter((action) => action !== 'delete')
+		),
+		grantsOn(
+			'employment_terms',
+			actions.filter((action) => action !== 'delete')
+		),
+		...(actions.includes('delete')
+			? [
+					grantOn('employments', 'delete', { authorize: unreferencedContract }),
+					grantOn('employment_terms', 'delete', { authorize: unconsumedTerms })
+				]
+			: []),
 		employmentStatutoryFactGrants(...actions)
+	);
+
+/** The money families and loans: every write, and a delete of anything no payslip settled. */
+export const requestGrants = (): Grants =>
+	mergeGrants(
+		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing']),
+		grantOn('claim_requests', 'delete', { authorize: unpinned }),
+		grantsOn('allowances', ['read', 'mutate.new', 'mutate.existing']),
+		grantOn('allowances', 'delete', { authorize: unpriced }),
+		// The lines a run priced from a standing allowance: read beside the source, written by no one.
+		grantsOn('allowance_entries', ['read']),
+		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing']),
+		grantOn('loans', 'delete', { authorize: unsettledLoan }),
+		// A repayment is written through its loan's schedule; the nested actions are judged here.
+		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing']),
+		grantOn('loan_repayments', 'delete', { authorize: unpinned })
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
@@ -194,11 +382,22 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
  *
  * A caller's cascade descends as the caller's: the `cascade(...)` edges from a run
  * to its payslips are authorized against the deleting person's own delete grant on the collection,
- * exactly as a nested row they submitted would be. The run's hook releases the pins it wrote in the
- * same transaction, so nothing else needs a grant here: the sources are only ever re-pinned by the
- * run's `before` hook, as the workspace.
+ * exactly as a nested row they submitted would be. A slip's allowance entries go with it the same
+ * way. The pins the run wrote are released with the slip, so nothing else needs a grant here: the
+ * sources are only ever re-pinned by the run's transform, as the workspace.
  */
-export const payrollRunCascadeGrants = (): Grants => grantsOn('payslips', ['delete']);
+export const payrollRunCascadeGrants = (): Grants =>
+	mergeGrants(
+		grantOn('payslips', 'delete', { authorize: unpaidPayslip }),
+		grantsOn('allowance_entries', ['delete'])
+	);
+
+/** Run payroll: create, and delete an unpaid run newest first. A run is never edited. */
+export const payrollRunGrants = (): Grants =>
+	mergeGrants(
+		grantsOn('payroll_runs', ['mutate.new']),
+		grantOn('payroll_runs', 'delete', { authorize: unpaidLatestRun })
+	);
 
 export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
@@ -209,7 +408,6 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('shift_patterns', actions),
 		grantsOn('claim_catalogue', actions),
 		grantsOn('allowance_catalogue', actions),
-		grantsOn('payment_catalogue', actions),
 		grantsOn('loan_catalogue', actions),
 		grantsOn('leave_catalogue', actions)
 	);
@@ -268,8 +466,8 @@ const draftOnly = ({
  * `'draft'` is the HR controller's: create and edit versions that stay drafts, delete drafts; a
  * write that would seal or void is refused outright, not held. `'seal'` is the HR Manager's and
  * Senior Management's: the same writes, plus sealing and voiding under approval. Neither is a way
- * around the hooks: the root's own hook freezes a sealed version and every child hook reads the
- * root as the workspace, so no policy can edit under a seal.
+ * around the seal: the root's transform freezes a sealed version and every child transform reads
+ * the root as the workspace, so no policy can edit under a seal.
  */
 export const settingsGrants = (authority: 'draft' | 'seal'): Grants =>
 	authority === 'draft'
@@ -281,28 +479,39 @@ export const settingsGrants = (authority: 'draft' | 'seal'): Grants =>
 		: mergeGrants(
 				grantOn('jurisdiction_settings', 'mutate.new', { approval: settingsSealApproval }),
 				grantOn('jurisdiction_settings', 'mutate.existing', { approval: settingsSealApproval }),
-				grantsOn('jurisdiction_settings', ['delete'])
+				grantOn('jurisdiction_settings', 'delete', { authorize: draftVersionOnly })
 			);
 
 /**
  * Settings authority over family catalogues and independent jurisdiction holiday inputs.
- * Catalogue hooks enforce their parent version's seal; holiday calendars enforce publication and
- * consumption seals. Holiday source configuration is editable independently of either lifecycle.
+ * Catalogue transforms enforce their parent version's seal on every write and the delete grants
+ * below on every delete; holiday calendars enforce publication and consumption seals.
  */
 export const settingsCatalogueGrants = (
 	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
 ): Grants => {
 	// Schemes and bands are read by every rank through `statutoryGrants`; only their writes are
 	// this group's, so the two groups never grant one coordinate twice.
-	const writes = actions.filter((action) => action !== 'read');
+	const writes = actions.filter((action) => action !== 'read' && action !== 'delete');
+	const others = actions.filter((action) => action !== 'delete');
+	const deletes = actions.includes('delete');
 	return mergeGrants(
 		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
-		grantsOn('leave_catalogue', actions),
-		grantsOn('claim_catalogue', actions),
-		grantsOn('allowance_catalogue', actions),
-		grantsOn('payment_catalogue', actions),
-		grantsOn('loan_catalogue', actions),
-		grantsOn('jurisdiction_holidays', actions)
+		grantsOn('leave_catalogue', others),
+		grantsOn('claim_catalogue', others),
+		grantsOn('allowance_catalogue', others),
+		grantsOn('loan_catalogue', others),
+		grantsOn('jurisdiction_holidays', others),
+		...(deletes
+			? [
+					grantOn('statutory_contributions', 'delete', { authorize: unreferencedDraftScheme }),
+					grantOn('leave_catalogue', 'delete', { authorize: draftSettingsRow }),
+					grantOn('claim_catalogue', 'delete', { authorize: draftSettingsRow }),
+					grantOn('allowance_catalogue', 'delete', { authorize: draftSettingsRow }),
+					grantOn('loan_catalogue', 'delete', { authorize: draftSettingsRow }),
+					grantOn('jurisdiction_holidays', 'delete', { authorize: uncapturedHoliday })
+				]
+			: [])
 	);
 };
 
@@ -394,7 +603,10 @@ const workDayExistingApproval: WorkDayExistingApproval = {
  * attendance write.
  */
 const attendanceOnlyRow: WorkDayDeleteAuthorize = ({ record }) =>
-	record.shift_definition_id == null;
+	record.shift_definition_id == null && unpinned({ record });
+
+/** A day a payroll run took into account is released by deleting that draft slip, never directly. */
+const unpinnedWorkDay: WorkDayDeleteAuthorize = ({ record }) => unpinned({ record });
 
 /**
  * Record attendance, never the schedule. The approval resolver above makes every write this mask
@@ -436,7 +648,7 @@ export const workDayWriteGrants = (): Grants =>
 			fields: WORK_DAY_FULL_WRITE_FIELDS,
 			approval: workDayExistingApproval
 		}),
-		grantsOn('work_days', ['delete'])
+		grantOn('work_days', 'delete', { authorize: unpinnedWorkDay })
 	);
 
 const leaveApproval = {
@@ -447,9 +659,23 @@ const leaveApproval = {
 const LEAVE_ENTRY_FIELDS = [
 	'employment_id',
 	'catalogue_id',
-	'event',
 	'reference',
-	'certificate_file'
+	'certificate_file',
+	'from_date',
+	'to_date',
+	'half_day_start',
+	'half_day_end',
+	'days',
+	'encash_days',
+	'as_adjustment_entry',
+	'reversal_of_id',
+	'effective_on',
+	'due_on',
+	'destination_from',
+	'destination_to',
+	'available_from',
+	'expires_on',
+	'reason'
 ] as const;
 
 /** One grant owns every HR Leave category; its approval route depends on the submitted activity. */
@@ -528,11 +754,9 @@ export const employeeWorkDayExistingGrant = (): Grants =>
 		approval: workDayExistingApproval
 	});
 
-/** Whether the write's candidate event is the one request an ordinary rank may raise. */
-function isLeaveTimeOffEvent(record: { readonly event?: unknown }): boolean {
-	const event = record.event;
-	if (event == null || typeof event !== 'object') return false;
-	return Reflect.get(event, 'kind') === 'TIME_OFF';
+/** Whether the write's candidate record is the one request an ordinary rank may raise. */
+function isLeaveTimeOffEvent(record: Record<string, unknown>): boolean {
+	return leaveActivityOf(record as LeaveEntryActivity) === 'TIME_OFF';
 }
 
 export const employeeLeaveRequestNewGrant = (): Grants =>
@@ -554,11 +778,11 @@ export const employeeSelfServiceGrants = (): Grants =>
 		}),
 		grantOn('claim_requests', 'mutate.new', {
 			// The one thing an ordinary rank may raise: a claim, about themselves. A standing
-			// allowance, a payment, an arrears settlement and an HR correction are authority the HR
-			// policies hold and this one never adds — and now that each is its own collection, that
-			// is a grant on a collection, which is what the access system is for. It used to be a
+			// allowance, an arrears settlement and an HR correction are authority the HR policies
+			// hold and this one never adds — and now that each is its own collection, that is a
+			// grant on a collection, which is what the access system is for. It used to be a
 			// `Reflect.get(event, 'kind') === 'CLAIM'` reach into a jsonb discriminator, because the
-			// five families shared one table and the grant had no other way to name one of them.
+			// families shared one table and the grant had no other way to name one of them.
 			authorize: ({ record }, api) => employmentBelongsToRequestor(record.employment_id, api),
 			approval: claimApproval
 		})

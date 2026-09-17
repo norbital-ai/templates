@@ -18,7 +18,7 @@ function mixedFamilies() {
 		];
 	}
 	world.claim_catalogue.push({
-		...world.payment_catalogue[0],
+		...world.allowance_catalogue[0],
 		id: 'claim-type',
 		code: 'EXPENSE',
 		bands: [
@@ -38,7 +38,7 @@ function mixedFamilies() {
 		approval_id: null
 	});
 	world.loan_catalogue.push({
-		...world.payment_catalogue[0],
+		...world.allowance_catalogue[0],
 		id: 'loan-type',
 		code: 'LOAN',
 		destination: 'NET',
@@ -75,10 +75,12 @@ async function calculate(world: ReturnType<typeof mixedFamilies>) {
 test('family preparation and calculation preserve mixed source capture and cross-family sequence', async () => {
 	const result = await calculate(mixedFamilies());
 	const payslip = result.payslip_payroll_run[0]!;
-	const amounts = new Map(payslip.adjustments.map((line) => [line.family, line.amount]));
+	const amounts = new Map<string, number>();
+	for (const line of payslip.adjustments)
+		amounts.set(line.family, (amounts.get(line.family) ?? 0) + line.amount);
 	assert.equal(amounts.get('CLAIM'), 300);
-	assert.equal(amounts.get('ALLOWANCE'), 310);
-	assert.equal(amounts.get('PAYMENT'), 100);
+	// The standing allowance and the one-off are one family now: 310 + 100.
+	assert.equal(amounts.get('ALLOWANCE'), 410);
 	assert.equal(amounts.get('LOAN_REPAYMENT'), 50);
 	assert.equal(payslip.base.find((line) => line.component_code === 'BASIC')?.amount, 3451);
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
@@ -92,7 +94,7 @@ test('payroll orchestration does not read family-owned source tables or interpre
 		);
 		assert.doesNotMatch(
 			source,
-			/\bdb\.(?:claim_requests|allowance_requests|payment_requests|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|payment_catalogue|loan_catalogue|leave_catalogue|statutory_contributions)\b/,
+			/\bdb\.(?:claim_requests|allowances|allowance_entries|loans|loan_repayments|work_days|leave_entries|employment_statutory_facts|claim_catalogue|allowance_catalogue|loan_catalogue|leave_catalogue|statutory_contributions)\b/,
 			name
 		);
 		assert.doesNotMatch(source, /definition\??\.source/, name);

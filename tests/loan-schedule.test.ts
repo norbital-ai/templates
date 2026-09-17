@@ -10,7 +10,7 @@ import {
 	loanScheduleImbalanced,
 	loanScheduleOrdered,
 	loanScheduleTotal,
-	loanScheduleWriteRows,
+	loanScheduleActions,
 	repaymentProgress
 } from '../src/lib/loan-schedule.ts';
 
@@ -44,10 +44,11 @@ test('keeps authored amounts on write and assigns a new line after the last sequ
 	const next = createLoanRepaymentDraft(stored[0]);
 	assert.equal(next.sequence, 2);
 	assert.equal(next.amount_due, null);
-	assert.deepEqual(loanScheduleWriteRows([...stored, next]), [
-		{ id: 'r1', due_date: '2026-01-15', amount_due: 700, sequence: 1 },
-		{ id: next.id, sequence: 2 }
-	]);
+	assert.deepEqual(loanScheduleActions([...stored, next], new Set(['r1', 'gone'])), {
+		create: [{ sequence: 2 }],
+		update: [{ id: 'r1', set: { due_date: '2026-01-15', amount_due: 700, sequence: 1 } }],
+		delete: [{ id: 'gone' }]
+	});
 });
 
 test('the plan is its date order: sequence is renumbered from the dates, never from typing order', () => {
@@ -65,7 +66,7 @@ test('the plan is its date order: sequence is renumbered from the dates, never f
 		]
 	);
 	assert.deepEqual(
-		loanScheduleWriteRows(typed).map((row) => row.sequence),
+		loanScheduleActions(typed, new Set()).create.map((row) => row.sequence),
 		[1, 2, 3]
 	);
 });

@@ -12,15 +12,37 @@ import { roundMoney } from '../../collections/payroll_runs/lib/rounding.js';
 import { childUnder } from './child-under.js';
 
 /**
- * What differs between two evaluations of the same expression: the region's minimum wage. It is
- * bound per call, not per engine, so one compiled environment serves every employee and every run.
- * Evaluation is synchronous, so the binding cannot interleave.
+ * What differs between two evaluations of the same expression: the region's minimum wage, and —
+ * on the assessment site — the payslip's own money. It is bound per call, not per engine, so one
+ * compiled environment serves every employee and every run. Evaluation is synchronous, so the
+ * binding cannot interleave.
+ *
+ * `code` and `catalog` read the code → signed amount map ACCUMULATE produced for this payslip; a
+ * scheme's `assessed_on` is the only expression that calls them.
  */
 export type ExpressionEngine = {
 	readonly minimumWage: (region: string) => number;
+	/** The signed total of one catalogue code this payslip, or 0 where the payslip has none. */
+	readonly code?: (code: string) => number;
+	/** `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', { pick } | { exclude })`, signed by each row. */
+	readonly catalog?: (
+		catalogue: string,
+		selection?: { readonly pick?: readonly string[]; readonly exclude?: readonly string[] }
+	) => number;
 };
 
 let bound: ExpressionEngine = { minimumWage: () => 0 };
+
+/** The second argument of `catalog`, as the AST hands it over: a `{ pick | exclude }` map. */
+function catalogSelection(value: unknown): { pick?: string[]; exclude?: string[] } {
+	const selection = value as { pick?: unknown; exclude?: unknown } | null | undefined;
+	const list = (candidate: unknown): string[] =>
+		Array.isArray(candidate) ? candidate.map(String) : [];
+	return {
+		...(selection?.pick == null ? {} : { pick: list(selection.pick) }),
+		...(selection?.exclude == null ? {} : { exclude: list(selection.exclude) })
+	};
+}
 
 const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['minimum_wage(string): double', (region) => Number(bound.minimumWage(String(region)))],
@@ -61,15 +83,39 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 		}
 	],
 	['map.under(int): int', childUnder],
-	['map.days(string): double', () => 0]
+	['map.days(string): double', () => 0],
+	['code(string): double', (catalogueCode) => Number(bound.code?.(String(catalogueCode)) ?? 0)],
+	[
+		'catalog(string): double',
+		(catalogue) => Number(bound.catalog?.(String(catalogue), undefined) ?? 0)
+	],
+	[
+		'catalog(string, dyn): double',
+		(catalogue, selection) =>
+			Number(bound.catalog?.(String(catalogue), catalogSelection(selection)) ?? 0)
+	],
+	[
+		'annual_exempt(dyn, dyn, dyn): double',
+		(amount, earnedBefore, cap) =>
+			Math.min(Number(amount), Math.max(0, Number(cap) - Number(earnedBefore)))
+	]
 ];
 
 export function runtimeExpressionEngine(
 	options: {
 		readonly minimumWage?: (region: string) => number;
+		readonly code?: (code: string) => number;
+		readonly catalog?: (
+			catalogue: string,
+			selection?: { readonly pick?: readonly string[]; readonly exclude?: readonly string[] }
+		) => number;
 	} = {}
 ): ExpressionEngine {
-	return { minimumWage: options.minimumWage ?? (() => 0) };
+	return {
+		minimumWage: options.minimumWage ?? (() => 0),
+		code: options.code,
+		catalog: options.catalog
+	};
 }
 
 /**

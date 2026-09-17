@@ -97,7 +97,8 @@
 		"payroll": {
 			"currency": "PHP",
 			"timezone": "Asia/Manila",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true
 		},
 		"wages": {
 			"by_region": {},
@@ -222,7 +223,8 @@
 		"payroll": {
 			"currency": "PHP",
 			"timezone": "Asia/Manila",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": true
 		},
 		"wages": {
 			"by_region": {},

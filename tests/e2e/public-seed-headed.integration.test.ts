@@ -18,6 +18,7 @@ import {
 	startPublicSeedHost,
 	templateManifestPath
 } from '../helpers/public-seed-host.ts';
+import { dateKey } from '../../src/lib/iso-day.ts';
 
 const S1_TENANT = 'hr-payroll-s1';
 const S1_EVALUATE_TIMEOUT_MS = 45_000;
@@ -1047,7 +1048,7 @@ it('HR self-host leave entry over first and second half of one day charges one d
 		/**
 		 * There is no entitlement to pick any more, and that is the point.
 		 *
-		 * `leave_requests/+hooks.ts` already derived the entitlement from the employment, the leave
+		 * The leave entry transform already derived the entitlement from the employment, the leave
 		 * code and the year (`leaveEntitlementIdFor`), so the picker was a question with exactly one
 		 * legal answer — and while nothing was selected in it, the range picker beneath stayed
 		 * disabled. The form no longer offers the field; the derivation is asserted against the
@@ -1176,18 +1177,20 @@ it('HR self-host leave entry over first and second half of one day charges one d
 		const deadline = Date.now() + 20_000;
 		let stored: Record<string, unknown> | undefined;
 		while (Date.now() < deadline && stored === undefined) {
-			[stored] = (await session.query('select event from leave_entries where reference = $1', [
-				'A3-HALF-DAY'
-			])) as Record<string, unknown>[];
+			[stored] = (await session.query(
+				'select from_date, to_date, half_day_start, half_day_end, days from leave_entries where reference = $1',
+				['A3-HALF-DAY']
+			)) as Record<string, unknown>[];
 			if (stored === undefined) await new Promise((resolve) => setTimeout(resolve, 250));
 		}
 		assert.ok(stored, 'the leave entry was not written');
-		const event = asRecord(stored.event, 'leave event');
-		assert.equal(event.chargeable_days, 1);
-		assert.deepEqual(asRecord(event.range, 'range'), {
-			start: { date: '2026-04-15', half: 'FIRST' },
-			end: { date: '2026-04-15', half: 'SECOND' }
-		});
+		const dayOf = (value: unknown) =>
+			dateKey(value instanceof Date ? value.toISOString() : String(value));
+		assert.equal(Number(stored.days), 1);
+		assert.equal(dayOf(stored.from_date), '2026-04-15');
+		assert.equal(dayOf(stored.to_date), '2026-04-15');
+		assert.equal(stored.half_day_start, false);
+		assert.equal(stored.half_day_end, false);
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();

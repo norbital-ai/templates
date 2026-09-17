@@ -1,22 +1,12 @@
 /**
  * What has to be true *before* a payroll run record exists.
  *
- * The split this file exists for is a platform semantic, not a payroll one. A `before` hook runs
- * ahead of the write and can refuse it: nothing is inserted, so there is nothing to undo. An `after`
- * hook runs once the row is a fact, and the database facility has no transaction primitive — every
- * statement is its own autocommitted call — so an `after` that throws cannot take the row back with
- * it. It never could; the difference is that the runtime now says so.
- *
- * That is what produced the orphaned draft. The whole engine ran in `create.after`: the run row was
- * committed, the build then refused because somebody had an unclosed clock, and what was left was a
- * DRAFT payroll run with no payslips under it — a record that says a period has been calculated,
- * sitting in the list, blocking the next period, describing a calculation that never happened.
- *
- * So the checks that can refuse a run on facts knowable before it is built move here, and the engine
- * keeps its own copies. That duplication is deliberate: these two run at different moments, and the
- * gap between them is real. A clock opened after this passes and before the build reaches it must
- * still stop the build — the engine's checks are what make the payslips right, and these are what
- * keep a refusal from leaving a record behind.
+ * The run's transform refuses ahead of the write: nothing is inserted, so there is nothing to
+ * undo. The checks that can refuse a run on facts knowable before it is built live here, and the
+ * engine keeps its own copies. That duplication is deliberate: these two run at different moments,
+ * and the gap between them is real. A clock opened after this passes and before the build reaches
+ * it must still stop the build — the engine's checks are what make the payslips right, and these
+ * are what keep a refusal from leaving a record behind.
  */
 
 import type { Configuration } from './configuration.js';
