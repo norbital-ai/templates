@@ -176,16 +176,13 @@ Provider: ________________________  Date: ____________
 				mime_type: uploaded.type
 			};
 
-			// client.db.collection.mutate treats any supplied id as an update target. Only include
-			// an id when one already exists (a loaded draft or a previously saved row for this
-			// project); otherwise omit it entirely so the platform generates a fresh row instead of
-			// us guessing a client-side id for a brand new document.
+			// A loaded draft or a previously saved row for this project is updated in place; otherwise
+			// the collection creates the row and allocates its id.
 			const savedDocs = sowDocsQuery?.current ?? [];
 			const settledId =
 				savedDocs.length > 0 && typeof savedDocs[0].id === 'string' ? savedDocs[0].id : null;
 			const existingId = currentDocId ?? settledId;
 			const values = {
-				...(existingId ? { id: existingId } : {}),
 				project_id: selectedProject,
 				kind: 'sow',
 				title: `${t('sow.title_prefix')} ${projectName}`,
@@ -194,13 +191,15 @@ Provider: ________________________  Date: ____________
 				status: 'draft'
 			};
 
-			// The mutation handle (not an array of rows) carries the settled row; capture its id
-			// here rather than indexing settlement as rows, so a create picks up the
-			// platform-generated id and an update keeps the id it already had.
+			// The mutation handle carries the row the tab holds; a create picks up the allocated id
+			// here and an update keeps the id it already had.
 			let submittedId: string | null = existingId;
+			const documents = documentsClient.collection.project_documents;
 			const outcome = await Effect.runPromise(
 				submitCollectionMutation(async () => {
-					const handle = await documentsClient.db.project_documents.mutate([values]);
+					const handle = existingId
+						? await documents.update(existingId, values)
+						: await documents.create(values);
 					const generatedId = handle.row?.id;
 					if (typeof generatedId === 'string') submittedId = generatedId;
 					return handle;

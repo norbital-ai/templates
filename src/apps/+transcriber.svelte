@@ -399,8 +399,7 @@
 				};
 			}
 
-			// New activity rows are always created, never updated: omit id and let the platform
-			// generate one, matching the corrected SOW settlement pattern.
+			// A transcript is always a new activity; the collection allocates its id.
 			const values = {
 				project_id: selectedProject,
 				kind: 'transcript',
@@ -410,10 +409,7 @@
 			};
 
 			const outcome = await Effect.runPromise(
-				submitCollectionMutation(async () => {
-					const handle = await activitiesClient.db.activities.mutate([values]);
-					return handle;
-				})
+				submitCollectionMutation(() => activitiesClient.collection.activities.create(values))
 			);
 
 			if (outcome.kind === 'committed') {

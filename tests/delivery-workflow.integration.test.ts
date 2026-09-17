@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+	asRecord,
 	mutationPush,
 	requireAccepted,
 	requireReleaseBundle,
+	rowsOf,
 	startSelfHostSession
 } from '@norbital-ai/test-utilities';
 
@@ -25,18 +26,19 @@ test(
 		});
 		try {
 			const create = async (collection: string, values: Record<string, unknown>) => {
-				const id = randomUUID();
 				const response = await session.guestCommand(
-					'collections.mutate',
-					mutationPush(schemaFingerprint, {
-						action: 'mutate',
-						collection,
-						rows: [{ action: 'create', values: { id, ...values } }]
-					}),
+					'collections.write',
+					mutationPush(schemaFingerprint, { collection, action: 'create', inputs: [values] }),
 					'bearer'
 				);
 				requireAccepted(response.value, `create ${collection}`);
-				return id;
+				// The committed change names the allocated id; `records` is the policy-masked readback.
+				const [change] = rowsOf(
+					asRecord(response.value, `create ${collection}`).changes,
+					collection
+				);
+				assert.equal(typeof change?.id, 'string', `create ${collection} named its row`);
+				return String(change.id);
 			};
 			const update = async (collection: string, id: string, values: Record<string, unknown>) => {
 				const [before] = await session.query(
@@ -44,14 +46,10 @@ test(
 					[id]
 				);
 				return session.guestCommand(
-					'collections.mutate',
+					'collections.write',
 					mutationPush(
 						schemaFingerprint,
-						{
-							action: 'mutate',
-							collection,
-							rows: [{ action: 'update', values: { id, ...values } }]
-						},
+						{ collection, action: 'update', inputs: [{ id, ...values }] },
 						[{ row: { collection, recordId: id }, rowVersion: before.row_version }]
 					),
 					'bearer'

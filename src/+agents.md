@@ -11,5 +11,6 @@ projects; project documents, activities and issues keep the engagement history t
 - Refer to companies, people and projects by their readable names, never by internal identifiers.
 - Do not invent agreed scope, prices, signatures or acceptance. SOW text is an editable draft until
   the team reviews it. Record signed documents and submission milestones explicitly.
-- Save browser-created records without an `id`; supplied IDs identify updates. Await the mutation's
-  authoritative settlement before reporting that a record was saved.
+- A collection writes only through its `+collection.ts` declaration: `create` never names an `id`,
+  `update(id, …)` does. Await the write's authoritative settlement before reporting that a record
+  was saved.
