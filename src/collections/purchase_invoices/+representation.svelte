@@ -29,29 +29,28 @@
 				? `${record.status ?? 'draft'}${record.supplier_name ? ` · ${record.supplier_name}` : ''}`
 				: undefined}
 		>
-			<Field name="supplier_id" hidden />
-			<Field name="supplier_code" hidden />
-			<Field name="supplier_name" hidden />
-			<Field name="currency" hidden />
-			<Field name="tax_inclusive" hidden />
-			<Field name="net" hidden />
-			<Field name="tax" hidden />
-			<Field name="gross" hidden />
-			<Field name="confirmed_at" hidden />
-			<Field name="cancelled_at" hidden />
-			<Field name="cancel_reason" hidden />
+			{#if record}
+				<Field name="net" hidden />
+				<Field name="tax" hidden />
+				<Field name="gross" hidden />
+				<Field name="cancel_reason" hidden />
+			{/if}
 			<Grid minimum="compact">
-				<Field name="doc_no" label={t('component.doc_no')} />
-				<Field
-					name="purchase_order_id"
-					label={t('component.purchase_order')}
-					relationOptions={{
-						label: (record) =>
-							record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
-						orderBy: { doc_no: 'desc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions}
-				/>
+				{#if record}
+					<Field name="doc_no" label={t('component.doc_no')} />
+				{/if}
+				{#if !record}
+					<Field
+						name="purchase_order_id"
+						label={t('component.purchase_order')}
+						relationOptions={{
+							label: (record) =>
+								record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
+							orderBy: { doc_no: 'desc' },
+							limit: 5000
+						} satisfies CollectionRelationOptions}
+					/>
+				{/if}
 				<Field name="invoice_reference" label={t('component.supplier_invoice_no')} />
 				<Field name="invoice_date" label={t('component.invoice_date')} />
 				<Field name="status" />

@@ -27,9 +27,7 @@
 			title={record?.doc_no ?? 'New goods receipt'}
 			subtitle={record?.received_date ?? undefined}
 		>
-			<Field name="received_at" hidden />
 			<Grid minimum="compact">
-				<Field name="doc_no" label={t('component.doc_no')} />
 				<Field
 					name="purchase_order_id"
 					label={t('component.purchase_order')}

@@ -42,14 +42,10 @@ test(
 				]);
 				return postGuestCommand(
 					session.baseUrl,
-					'collections.mutate',
+					'collections.write',
 					mutationPush(
 						schemaFingerprint,
-						{
-							action: 'mutate',
-							collection: 'contacts',
-							rows: [{ action: 'update', values: { id: before.id, ...values } }]
-						},
+						{ collection: 'contacts', action: 'update', inputs: [{ id: before.id, ...values }] },
 						[
 							{
 								row: { collection: 'contacts', recordId: String(before.id) },

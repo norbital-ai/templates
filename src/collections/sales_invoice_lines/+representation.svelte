@@ -29,40 +29,38 @@
 				? `Unit price ${record.unit_price} · Total ${record.line_total ?? '—'}`
 				: undefined}
 		>
-			<Field name="product_code" hidden />
-			<Field name="product_name" hidden />
-			<Field name="product_unit" hidden />
-			<Field name="net" hidden />
-			<Field name="tax" hidden />
 			<Grid minimum="compact">
-				<Field
-					name="sales_invoice_id"
-					label={t('component.sales_invoice')}
-					relationOptions={{
-						label: (record) =>
-							record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
-						orderBy: { doc_no: 'desc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions}
-				/>
-				<Field
-					name="quote_line_id"
-					label={t('component.quote_line')}
-					relationOptions={{
-						label: (record) => {
-							const name = record.product_name;
-							const quantity = record.quantity;
-							if (name && quantity != null) return `${name} × ${quantity}`;
-							return name != null && name !== '' ? String(name) : '—';
-						},
-						orderBy: { product_name: 'asc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions}
-				/>
+				{#if !record}
+					<Field
+						name="sales_invoice_id"
+						label={t('component.sales_invoice')}
+						relationOptions={{
+							label: (record) =>
+								record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
+							orderBy: { doc_no: 'desc' },
+							limit: 5000
+						} satisfies CollectionRelationOptions}
+					/>
+					<Field
+						name="quote_line_id"
+						label={t('component.quote_line')}
+						relationOptions={{
+							label: (record) => {
+								const name = record.product_name;
+								const quantity = record.quantity;
+								if (name && quantity != null) return `${name} × ${quantity}`;
+								return name != null && name !== '' ? String(name) : '—';
+							},
+							orderBy: { product_name: 'asc' },
+							limit: 5000
+						} satisfies CollectionRelationOptions}
+					/>
+				{/if}
 				<Field name="quantity" />
-				<Field name="unit_price" label={t('component.unit_price')} />
+				{#if record}
+					<Field name="unit_price" label={t('component.unit_price')} />
+				{/if}
 				<Field name="tax_rate" label={t('component.tax_rate')} />
-				<Field name="line_total" label={t('component.line_total')} />
 			</Grid>
 		</RecordShell>
 	{/snippet}

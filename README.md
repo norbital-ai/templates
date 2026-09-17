@@ -38,7 +38,7 @@ Four ideas carry the whole workspace:
   go the other way: confirming a quote or a purchase order hands it across the boundary, where the
   system of record books it.
 - **A document is a lifecycle, not a row.** Every document collection carries a status enum and a
-  hook that enforces a transition map. `draft` is the only editable state — lines, prices, and
+  `+collection.ts` transform that enforces a transition map. `draft` is the only editable state — lines, prices, and
   terms lock the moment a document leaves draft — and the terminal states are the ones the external
   system books, which is what makes their figures safe to hand across the boundary.
 - **History is snapshots.** Quote, order, and invoice lines snapshot the product code, name, unit,
@@ -175,28 +175,37 @@ src/
 │   ├── +relationship.ts      one-to-many and many-to-one relations; line collections cascade
 │   └── <collection>/
 │       ├── +model.ts         storage: columns, enums, indexes, recordLabel, icon
-│       ├── +hooks.ts         lifecycle enforcement: transitions, defaults, caps, rollups
+│       ├── +collection.ts    the write contract: what a caller may submit, and the transform that
+│       │                     numbers, defaults, prices, caps and polices it
 │       ├── +pipelines.ts     canonical import/export shaping for the integration
 │       ├── +integrations.ts  the erp connection: pull bindings, outbox send bindings
 │       └── +representation.svelte  create/edit form with human-readable relation labels
 ├── apps/                     the two app surfaces
-├── automations/              quote_expiry_watch
+├── automations/              quote_expiry_watch, and one line roll-up per line collection and event
 ├── functions/                the two on-demand query handlers above
 ├── access/policies/          narrow shared coordinate owners plus sales, procurement, and ERP writes
 ├── envoys/                   sales_desk
 ├── lib/
 │   ├── pricing.ts            the only place rounding is decided
+│   ├── document-lines.ts     document totals from lines; the allocation ledger behind every cap
+│   ├── document-rollup.ts    the line-to-document roll-up the automations run
 │   ├── document-numbers.ts   PREFIX-YYYY-NNNN document numbering
+│   ├── lifecycle.ts          transition maps, batch pairing, and the small shared refusals
+│   ├── erp-feed.ts           the mirror import every master feed lands through
 │   ├── desk-date.ts          calendar-day derivation in the desk's timezone
 │   └── clock.ts              the injected workflow clock
 ├── i18n/                     messages.en.json + messages.zh.json, identical key sets
 └── +env.ts                   EXTERNAL_SYSTEM_TOKEN, declared by name only
 ```
 
-- **Hooks** validate and return the accepted input, then make same-transaction reads. They own the
-  transition maps, document numbering, quantity caps (received and invoiced quantities can never
-  pass the ordered or quoted quantity), the credit gate, and the line-to-document rollup that keeps
-  `net` / `tax` / `gross` on every document equal to the sum of its printed lines.
+- **Collections** declare what a caller may submit — `doc_no`, snapshots and money columns are
+  never in the selection, the transform derives them — and their transform runs once per batch:
+  two read waves keyed by the inputs, then one decision per input. Transforms own the transition
+  maps, document numbering, quantity caps (received and invoiced quantities can never pass the
+  ordered or quoted quantity) and the credit gate. Lines are written on their own, so the
+  line-to-document roll-up that keeps `net` / `tax` / `gross` equal to the sum of the printed lines
+  is a change-triggered automation per line collection, acting under `document_rollup`, which may
+  write nothing but those three columns.
 - **Document numbering** (`lib/document-numbers.ts`) issues `QT-`, `PO-`, `SI-`, `PI-`, and `GRN-YYYY-NNNN`
   numbers by reading the highest number already issued in the series; the unique index on `doc_no`
   is what actually guarantees uniqueness, and the losing transaction fails and is retried.
