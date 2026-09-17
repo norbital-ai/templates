@@ -13,7 +13,8 @@ the starting point for building a workspace entirely from scratch with the works
 
 ## Building on it
 
-Author collections under `src/collections/<name>/+model.ts`, app surfaces under
+Author collections under `src/collections/<name>/+model.ts` (with their write contract in
+`+collection.ts`; a model without one is read-only), app surfaces under
 `src/apps/+<app>.svelte`, and automations under `src/automations/+<name>.ts`. The workspace agent can
 also do this through its Workbench source tools (`workspace_files`, `workspace_read`,
 `workspace_edit`, `workspace_apply`), which write private drafts a person previews and promotes.
