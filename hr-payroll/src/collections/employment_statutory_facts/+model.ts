@@ -5,11 +5,8 @@ export default defineModel(
 		employee_id: uuid().notNull(),
 		statutory_contribution_id: uuid().notNull(),
 		/**
-		 * The predecessor this row closes when it is submitted as an automated successor.
-		 *
-		 * Ordinary people-policy field masks exclude it. The statutory-successor static identity is the
-		 * only non-administrator that may supply it, and the create hook validates and stages the linked
-		 * predecessor update into the same reviewed graph.
+		 * The predecessor a successor row names. Nothing writes it today: no form or grant offers
+		 * it, and a successor closes its predecessor by an explicit edit of the predecessor's range.
 		 */
 		supersedes_fact_id: uuid(),
 		status: custom('statutory_fact_status').notNull(),

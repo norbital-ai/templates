@@ -1,10 +1,11 @@
 /**
  * Dependency edges between statutory schemes.
  *
- * A rule names another scheme's result as `produced.<code>.employee` or
- * `produced.<code>.employer`. That mention is the whole dependency declaration: there is no
- * sequence column and no relief junction. The engine reads the mentions out of the compiled rule
- * expressions, orders the schemes so every producer runs before its consumers, and refuses a loop.
+ * A rule or an `assessed_on` formula names another scheme's result as
+ * `produced.<code>.employee`, `produced.<code>.employee_this_period` or `produced.<code>.employer`. That mention is the whole dependency
+ * declaration: there is no sequence column and no relief junction. The engine reads the mentions
+ * out of the compiled expressions, orders the schemes so every producer runs before its consumer,
+ * and refuses a loop.
  *
  * The mentions are read from the CEL AST, never from the raw source: a string literal that happens
  * to spell a mention is not one, and a mention inside a branch is one whether the branch runs or
@@ -12,6 +13,7 @@
  * employees it charges.
  */
 
+import { memberChain } from '../../../lib/expressions/compile.js';
 import { programFor } from '../../../lib/expressions/evaluate.js';
 import type { ContributionRule } from './configuration.js';
 
@@ -23,25 +25,17 @@ type AstNode = {
 const isNode = (value: unknown): value is AstNode =>
 	typeof value === 'object' && value != null && 'op' in value;
 
-/** The property chain of a member access, or null where the node is not one. */
-function memberChain(node: unknown): readonly string[] | null {
-	if (!isNode(node)) return null;
-	if (node.op === 'id' && typeof node.args === 'string') return [node.args];
-	if (node.op !== '.' && node.op !== '.?') return null;
-	const [object, property] = node.args as [unknown, unknown];
-	if (typeof property !== 'string') return null;
-	const chain = memberChain(object);
-	return chain == null ? null : [...chain, property];
-}
-
 function walk(node: AstNode, mentions: string[]): void {
 	if (node.op === '.' || node.op === '.?') {
-		const [object, property] = node.args as [unknown, unknown];
-		if (property === 'employee' || property === 'employer') {
-			const chain = memberChain(object);
-			const code = chain != null && chain.length === 2 && chain[0] === 'produced' ? chain[1] : null;
-			if (code != null && !mentions.includes(code)) mentions.push(code);
-		}
+		const path = memberChain(node);
+		if (
+			path != null &&
+			path.length === 3 &&
+			path[0] === 'produced' &&
+			(path[2] === 'employee' || path[2] === 'employee_this_period' || path[2] === 'employer') &&
+			!mentions.includes(path[1]!)
+		)
+			mentions.push(path[1]!);
 	}
 	const args = Array.isArray(node.args) ? node.args : [node.args];
 	for (const arg of args) {
@@ -67,17 +61,36 @@ function mentionsIn(expression: string, mentions: string[]): void {
 	if (isNode(ast)) walk(ast, mentions);
 }
 
+/** The scheme codes one standalone expression names, in first-mention order. */
+export function producedMentionsOf(expression: string): readonly string[] {
+	const mentions: string[] = [];
+	mentionsIn(expression, mentions);
+	return mentions;
+}
+
 const cache = new WeakMap<readonly ContributionRule[], readonly string[]>();
 
-/** The scheme codes one scheme's rules name, in first-mention order. */
-export function producedMentions(rules: readonly ContributionRule[]): readonly string[] {
-	const cached = cache.get(rules);
-	if (cached != null) return cached;
-	const mentions: string[] = [];
-	for (const rule of rules)
-		for (const expression of [rule.when, rule.employee, rule.employer])
-			mentionsIn(expression, mentions);
-	cache.set(rules, mentions);
+/**
+ * The scheme codes one scheme's rules — and its `assessed_on` formula — name, in first-mention
+ * order. The formula is read too: a base that reads `produced.<code>` is a dependency exactly as
+ * a rule that reads it, and the ordered loop is what makes the read answerable.
+ */
+export function producedMentions(
+	rules: readonly ContributionRule[],
+	assessedOn?: string
+): readonly string[] {
+	let cached = cache.get(rules);
+	if (cached == null) {
+		const mentions: string[] = [];
+		for (const rule of rules)
+			for (const expression of [rule.when, rule.employee, rule.employer])
+				mentionsIn(expression, mentions);
+		cached = mentions;
+		cache.set(rules, cached);
+	}
+	if (assessedOn == null) return cached;
+	const mentions = [...cached];
+	mentionsIn(assessedOn, mentions);
 	return mentions;
 }
 
@@ -87,13 +100,19 @@ export function producedMentions(rules: readonly ContributionRule[]): readonly s
  */
 export function orderSchemes<
 	T extends {
-		readonly row: { readonly code: string; readonly rules: readonly ContributionRule[] };
+		readonly row: {
+			readonly code: string;
+			readonly rules: readonly ContributionRule[];
+			readonly assessed_on?: string | null;
+		};
 	}
 >(entries: readonly T[]): readonly T[] {
 	const byCode = new Map(entries.map((entry) => [entry.row.code, entry]));
 	const dependencies = new Map<string, ReadonlySet<string>>();
 	for (const entry of entries) {
-		const deps = producedMentions(entry.row.rules).filter((code) => code !== entry.row.code);
+		const deps = producedMentions(entry.row.rules, entry.row.assessed_on ?? undefined).filter(
+			(code) => code !== entry.row.code
+		);
 		for (const code of deps)
 			if (!byCode.has(code))
 				throw new Error(

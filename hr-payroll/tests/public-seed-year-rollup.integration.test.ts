@@ -1,11 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, writeRows } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -39,7 +35,7 @@ const statutoryLines = (value: unknown): StatutoryLine[] => {
  * HR3: twelve-month roll-up on public fixtures.
  *
  * Twelve REGULAR runs, each marked PAID before the next is created (the settlement
- * order the hooks enforce). December's year-to-date is a SUM over the twelve paid
+ * order the transforms enforce). December's year-to-date is a SUM over the twelve paid
  * payslips — YTD lives nowhere else — and the public schemes carry no annual cap,
  * so every month's 11%/13% PUB-EPF charge must stay linear to the cent across the
  * whole year: any clipped cap would break that line.
@@ -52,22 +48,15 @@ test(
 		try {
 			const headers = bearerHeaders(session.credential);
 			for (const period of MONTHS) {
-				const runId = crypto.randomUUID();
-				const created = await postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(session.schemaFingerprint, {
-						action: 'mutate',
-						collection: 'payroll_runs',
-						rows: [{ action: 'create', values: { id: runId, company_id: COMPANY_ID, period } }]
-					}),
+				const created = await writeRows(
+					session,
+					'payroll_runs',
+					'create',
+					[{ company_id: COMPANY_ID, period }],
 					headers
 				);
 				requireAccepted(created.value, `create ${period}`);
-				const [run] = (await session.query(`select row_version from payroll_runs where id = $1`, [
-					runId
-				])) as ReadonlyArray<{ readonly row_version: number }>;
-				await markRunPaid(session, runId);
+				await markRunPaid(session, createdIds(created.value)[0]!);
 			}
 
 			const runs = (await session.query(

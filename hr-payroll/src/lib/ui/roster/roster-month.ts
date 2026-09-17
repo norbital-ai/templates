@@ -289,7 +289,6 @@ function attendanceIntervals(day: WorkDayLike | undefined): readonly WorkedInter
 
 const leaveRequestLikeSchema = Schema.Struct({
 	employment_id: Schema.String,
-	kind: Schema.NullOr(Schema.String),
 	catalogue_id: Schema.String,
 	from_date: Schema.NullOr(calendarInstantSchema),
 	to_date: Schema.NullOr(calendarInstantSchema),
@@ -503,7 +502,6 @@ function buildDayIndexes(
 
 	const leave = new Map<string, { code: string; halfDay: boolean; days: number }>();
 	for (const request of options.leaveRequests) {
-		if (request.kind !== 'TIME_OFF') continue;
 		const code = options.leaveCodeById.get(request.catalogue_id) ?? 'LEAVE';
 		for (const charge of request.charges) {
 			if (charge.date < first || charge.date > last) continue;
@@ -519,7 +517,6 @@ function buildDayIndexes(
 	}
 	const pendingLeave = new Map<string, boolean>();
 	for (const request of options.pendingLeaveRequests) {
-		if (request.kind !== 'TIME_OFF') continue;
 		for (const charge of request.charges)
 			if (charge.date >= first && charge.date <= last)
 				pendingLeave.set(personDayKey(request.employment_id, charge.date), true);
@@ -1056,12 +1053,12 @@ export function intervalDrafts(
 }
 
 /**
- * Why a draft cannot be written, in the order `work_days/+hooks.ts` refuses it.
+ * Why a draft cannot be written, in the order `work_days/+collection.ts` refuses it.
  *
  * These are not new rules. Each one names a refusal `assertWorkedIntervals` already makes, and it is
  * restated here for one reason: a form that lets the operator press Save and then shows them the
- * hook's refusal has taught them nothing about which of the four things they did wrong, and it does
- * it after a round trip. The hook stays the authority — this is the same decision, taken early
+ * transform's refusal has taught them nothing about which of the four things they did wrong, and it does
+ * it after a round trip. The transform stays the authority — this is the same decision, taken early
  * enough to be useful.
  */
 const attendanceDraftProblemSchema = Schema.Literals([

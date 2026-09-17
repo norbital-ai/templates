@@ -3,7 +3,8 @@ import { Schema } from 'effect';
 
 /**
  * The payroll facts of one jurisdiction settings version: the currency wages are
- * stated in, the IANA zone the jurisdiction's wall clock sits at, and the month its tax year opens.
+ * stated in, the IANA zone the jurisdiction's wall clock sits at, the month its tax year opens and
+ * whether unpaid leave prorates a standing allowance.
  */
 export const payrollSettingsValueSchema = Schema.Struct({
 	currency: Schema.String.check(Schema.isMinLength(1)),
@@ -13,7 +14,14 @@ export const payrollSettingsValueSchema = Schema.Struct({
 	 * date — `offsetMinutesFor` derives it, so a daylight-saving jurisdiction needs no second column.
 	 */
 	timezone: Schema.String.check(Schema.isMinLength(1)),
-	tax_year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 }))
+	tax_year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
+	/**
+	 * Whether a standing allowance loses its unpaid-leave days. Joining or leaving inside the
+	 * period prorates an allowance everywhere, like basic salary; a day of unpaid leave comes off
+	 * it only where the jurisdiction says so — the Philippines does, Singapore, Malaysia, Taiwan,
+	 * Indonesia and Vietnam do not.
+	 */
+	allowance_npl_prorates: Schema.Boolean
 });
 
 export type PayrollSettings = Schema.Schema.Type<typeof payrollSettingsValueSchema>;
@@ -21,7 +29,7 @@ export type PayrollSettings = Schema.Schema.Type<typeof payrollSettingsValueSche
 export default defineCustomType({
 	name: 'payroll_settings',
 	description:
-		'The payroll facts of one jurisdiction settings version: its currency, its IANA timezone and the month its tax year opens.',
+		'The payroll facts of one jurisdiction settings version: its currency, its IANA timezone, the month its tax year opens and whether unpaid leave prorates a standing allowance.',
 	schema: Schema.toStandardSchemaV1(payrollSettingsValueSchema, {
 		parseOptions: { onExcessProperty: 'error' }
 	})

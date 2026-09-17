@@ -8,6 +8,8 @@ import { leaveBalanceAt } from '../src/lib/leave/balance.ts';
 import { leavePayrollInputs } from '../src/lib/leave/payroll.ts';
 import type { LeaveActivity } from '../src/lib/leave/pending.ts';
 
+type LeaveFields = Omit<LeaveSubmission, 'employment_id' | 'catalogue_id' | 'reference'>;
+
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const window = { start: '2026-01-01', end: '2026-12-31' };
 const next = { start: '2027-01-01', end: '2027-12-31' };
@@ -29,6 +31,7 @@ function facts(): LeaveContext {
 				id: id(4),
 				employment_id: id(1),
 				effective_range: span,
+				agreed_days_per_week: 5,
 				shift_pattern_id: id(5),
 				employment_type: 'PERMANENT',
 				residency_status: null,
@@ -44,7 +47,12 @@ function facts(): LeaveContext {
 			{
 				id: id(6),
 				code: 'TEST',
-				payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+				payroll: {
+					currency: 'MYR',
+					timezone: 'Asia/Kuala_Lumpur',
+					tax_year_start_month: 1,
+					allowance_npl_prorates: false
+				},
 				jurisdiction_code: 'TEST-JUR',
 				sealed_at: '2025-01-01',
 				voided_at: null,
@@ -58,10 +66,9 @@ function facts(): LeaveContext {
 				settings_id: id(6),
 				code: 'ANNUAL',
 				name: 'Annual leave',
-				paid: true,
+				is_npl: false,
+				can_encash: true,
 				evidence: 'NONE',
-				destination: 'PAY',
-				direction: 'ADD',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }],
 				eligibility: '',
 				entitlement: {
@@ -96,55 +103,52 @@ function facts(): LeaveContext {
 		]
 	};
 }
-const submission = (event: LeaveSubmission['event'], reference = 'test'): LeaveSubmission => ({
+const submission = (fields: LeaveFields, reference = 'test'): LeaveSubmission => ({
 	employment_id: id(1),
 	catalogue_id: id(7),
 	reference,
-	event
+	...fields
 });
-function approve(
-	context: LeaveContext,
-	event: LeaveSubmission['event'],
-	number = 10
-): LeaveActivity {
-	const planned = planLeaveActivity(context, submission(event, String(number)), id(number));
+function approve(context: LeaveContext, fields: LeaveFields, number = 10): LeaveActivity {
+	const planned = planLeaveActivity(context, submission(fields, String(number)), id(number));
 	const row: LeaveActivity = { ...planned, id: id(number), approval_id: null };
 	context.entries.push(row);
 	return row;
 }
-const cash = (days = 3): LeaveSubmission['event'] => ({
-	kind: 'ENCASHMENT',
-	source_window: window,
+const cash = (days = 3): LeaveFields => ({
+	from_date: window.start,
+	to_date: window.end,
 	days,
-	gross_amount: { value: days * 50, currency: 'MYR' },
-	rate: 50,
+	encash_days: days,
 	effective_on: '2026-08-01',
 	due_on: '2026-09-01',
 	reason: 'Agreed departure payment'
 });
-const carry = (): LeaveSubmission['event'] => ({
-	kind: 'CARRY_FORWARD',
-	source_window: window,
-	destination_window: next,
+const carry = (): LeaveFields => ({
+	from_date: window.start,
+	to_date: window.end,
+	destination_from: next.start,
+	destination_to: next.end,
 	days: 5,
 	available_from: next.start,
 	expires_on: '2027-03-31',
 	effective_on: '2027-01-15',
 	reason: 'Approved transfer'
 });
-const timeOff = (from: string, to = from): LeaveSubmission['event'] => ({
-	kind: 'TIME_OFF',
-	range: { start: { date: from, half: 'FIRST' }, end: { date: to, half: 'SECOND' } },
-	chargeable_days: null,
+const timeOff = (from: string, to = from): LeaveFields => ({
+	from_date: from,
+	to_date: to,
+	half_day_start: false,
+	half_day_end: false,
+	days: null,
 	reason: null
 });
-const reversal = (original: LeaveActivity): LeaveSubmission['event'] => ({
-	kind: 'REVERSAL',
-	entry_id: original.id,
+const reversal = (original: LeaveActivity): LeaveFields => ({
+	as_adjustment_entry: true,
+	reversal_of_id: original.id,
 	effective_on: '2027-04-01',
 	due_on: '2027-04-30',
-	days: 999,
-	gross_amount: { value: 99999, currency: 'MYR' },
+	days: null,
 	reason: 'Correction'
 });
 
@@ -163,12 +167,11 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 	const january = approve(
 		context,
 		{
-			kind: 'TIME_OFF',
-			range: {
-				start: { date: '2026-01-30', half: 'SECOND' },
-				end: { date: '2026-01-30', half: 'SECOND' }
-			},
-			chargeable_days: 99,
+			from_date: '2026-01-30',
+			to_date: '2026-01-30',
+			half_day_start: true,
+			half_day_end: false,
+			days: null,
 			reason: null
 		},
 		101
@@ -176,12 +179,11 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 	const february = approve(
 		context,
 		{
-			kind: 'TIME_OFF',
-			range: {
-				start: { date: '2026-02-01', half: 'FIRST' },
-				end: { date: '2026-02-02', half: 'FIRST' }
-			},
-			chargeable_days: 99,
+			from_date: '2026-02-01',
+			to_date: '2026-02-02',
+			half_day_start: false,
+			half_day_end: true,
+			days: null,
 			reason: null
 		},
 		102
@@ -197,8 +199,8 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 			['2026-02-02', 0.5]
 		]
 	);
-	assert.equal(january.event.kind === 'TIME_OFF' && january.event.chargeable_days, 0.5);
-	assert.equal(february.event.kind === 'TIME_OFF' && february.event.chargeable_days, 1.5);
+	assert.equal(january.days, 0.5);
+	assert.equal(february.days, 1.5);
 	const row = january;
 	const jan = leavePayrollInputs({
 		entries: context.entries,
@@ -240,24 +242,22 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 test('opposite half-days can be approved separately, but overlapping or duplicate activity refuses', () => {
 	const context = facts();
 	approve(context, {
-		kind: 'TIME_OFF',
-		range: {
-			start: { date: '2026-02-01', half: 'FIRST' },
-			end: { date: '2026-02-01', half: 'FIRST' }
-		},
-		chargeable_days: null,
+		from_date: '2026-02-01',
+		to_date: '2026-02-01',
+		half_day_start: false,
+		half_day_end: true,
+		days: null,
 		reason: null
 	});
 	assert.doesNotThrow(() =>
 		approve(
 			context,
 			{
-				kind: 'TIME_OFF',
-				range: {
-					start: { date: '2026-02-01', half: 'SECOND' },
-					end: { date: '2026-02-01', half: 'SECOND' }
-				},
-				chargeable_days: null,
+				from_date: '2026-02-01',
+				to_date: '2026-02-01',
+				half_day_start: true,
+				half_day_end: false,
+				days: null,
 				reason: null
 			},
 			11
@@ -279,25 +279,6 @@ test('ended employment retains manual encashment, agreed amounts and later settl
 	assert.equal(row.allocations[0]!.date, '2026-06-30');
 	assert.equal(row.allocations[0]!.days, -3);
 	assert.throws(() => approve(context, cash(4), 11), /Insufficient leave/);
-	assert.throws(
-		() =>
-			approve(
-				context,
-				{
-					...cash(),
-					kind: 'ENCASHMENT',
-					source_window: window,
-					days: 1,
-					gross_amount: { value: 20, currency: 'MYR' },
-					rate: 50,
-					effective_on: '2026-08-01',
-					due_on: '2026-09-01',
-					reason: null
-				},
-				12
-			),
-		/entered rate/
-	);
 	assert.equal(
 		leavePayrollInputs({
 			entries: context.entries,
@@ -313,7 +294,9 @@ test('ended employment retains manual encashment, agreed amounts and later settl
 		dueThrough: '2026-10-31',
 		captures: []
 	});
-	assert.deepEqual(due.monetary[0]!.amount, { value: 150, currency: 'MYR' });
+	// Leave carries no keyed money: the entry is selected with its days, and payroll prices them
+	// at the ordinary day wage when it settles.
+	assert.equal(due.monetary[0]!.entry.encash_days, 3);
 });
 
 test('a manually approved carry is available without a year job, and spent carry cannot be reversed', () => {
@@ -338,7 +321,8 @@ test('reversal restores original credits and cancels an uncaptured monetary obli
 	const context = facts();
 	const original = approve(context, cash());
 	const correction = approve(context, reversal(original), 11);
-	assert.equal(correction.event.kind === 'REVERSAL' && correction.event.gross_amount, null);
+	assert.equal(correction.as_adjustment_entry, true);
+	assert.equal(correction.due_on, null, 'no captured money means no due date');
 	assert.equal(correction.allocations[0]!.date, original.allocations[0]!.date);
 	assert.equal(correction.allocations[0]!.days, 3);
 	assert.equal(
@@ -353,7 +337,7 @@ test('reversal restores original credits and cancels an uncaptured monetary obli
 	assert.throws(() => approve(context, reversal(original), 12), /already reversed/);
 });
 
-test('a paid reversal uses captured money exactly; a draft holding the source must be resolved first', () => {
+test('a paid reversal negates the captured outputs exactly; a draft holding the source must be resolved first', () => {
 	const context = facts();
 	const original = approve(context, cash());
 	context.payslips.push({
@@ -362,8 +346,7 @@ test('a paid reversal uses captured money exactly; a draft holding the source mu
 		status: 'DRAFT',
 		paid_at: null,
 		currency: 'MYR',
-		// The settled lines are the frozen evidence now: the reversal reads its gross back off the
-		// payslip the entry is pinned to.
+		// The settled lines are the frozen evidence now: a paid reversal negates them exactly.
 		adjustments: [{ family: 'LEAVE', source_id: original.id, bucket: 'EARNING', amount: 150 }]
 	});
 	original.payslip_id = id(21);
@@ -373,15 +356,13 @@ test('a paid reversal uses captured money exactly; a draft holding the source mu
 	slip.paid_at = '2027-03-31';
 	slip.status = 'PAID';
 	const correction = approve(context, reversal(original), 11);
-	assert.deepEqual(correction.event.kind === 'REVERSAL' && correction.event.gross_amount, {
-		value: -150,
-		currency: 'MYR'
-	});
+	assert.equal(correction.as_adjustment_entry, true);
+	assert.equal(correction.due_on, '2027-04-30', 'a paid correction keeps its approved due date');
 	const due = leavePayrollInputs({
 		entries: context.entries,
 		salaryWindow: { start: '2027-04-01', end: '2027-04-30' },
 		dueThrough: '2027-04-30',
-		captures: [{ leave_entry_id: original.id }]
+		captures: [{ leave_entry_id: original.id, paid: true }]
 	});
 	assert.equal(due.monetary.length, 1);
 	assert.equal(due.monetary[0]!.entry.id, correction.id);
@@ -420,8 +401,8 @@ test('computed balance view reserves future time off, includes manual carry and 
 		context,
 		submission(
 			{
-				kind: 'ADJUSTMENT',
-				window: next,
+				from_date: next.start,
+				to_date: next.end,
 				days: 10,
 				effective_on: next.start,
 				reason: 'Awaiting review'
@@ -469,12 +450,11 @@ test('leave preview is JSON-safe and keeps the unused half available beside a ho
 		published_at: '2025-01-01T00:00:00.000Z'
 	});
 	approve(context, {
-		kind: 'TIME_OFF',
-		range: {
-			start: { date: '2026-01-26', half: 'FIRST' },
-			end: { date: '2026-01-26', half: 'FIRST' }
-		},
-		chargeable_days: null,
+		from_date: '2026-01-26',
+		to_date: '2026-01-26',
+		half_day_start: false,
+		half_day_end: true,
+		days: null,
 		reason: null
 	});
 	const preview = evaluateLeavePreview(context, {

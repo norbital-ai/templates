@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {
 	asRecord,
 	bearerHeaders,
-	mutationPush,
 	postGuestCommand,
 	requireAccepted,
 	rowsOf
 } from '@norbital-ai/test-utilities';
+import { observedVersion, writeRows } from './helpers/write.ts';
 import {
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -36,35 +36,14 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-i2-attendance');
 		try {
 			const headers = bearerHeaders(session.credential);
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(
-					session.schemaFingerprint,
-					{
-						action: 'mutate',
-						collection: 'work_days',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									id: crypto.randomUUID(),
-									employment_id: EMPLOYMENT_ID,
-									work_date: '2026-02-03'
-								}
-							},
-							{
-								action: 'create',
-								values: {
-									id: crypto.randomUUID(),
-									employment_id: EMPLOYMENT_ID,
-									work_date: '2026-02-04'
-								}
-							}
-						]
-					},
-					[]
-				),
+			const created = await writeRows(
+				session,
+				'work_days',
+				'create',
+				[
+					{ employment_id: EMPLOYMENT_ID, work_date: '2026-02-03' },
+					{ employment_id: EMPLOYMENT_ID, work_date: '2026-02-04' }
+				],
 				headers
 			);
 			assert.ok(
@@ -99,32 +78,13 @@ test(
 			assert.ok(untouched && typeof untouched.id === 'string');
 			assert.equal(typeof restDay.row_version, 'number', JSON.stringify(restDay));
 
-			const updated = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(
-					session.schemaFingerprint,
-					{
-						action: 'mutate',
-						collection: 'work_days',
-						rows: [
-							{
-								action: 'update',
-								values: {
-									id: restDay.id,
-									worked_intervals: []
-								}
-							}
-						]
-					},
-					[
-						{
-							row: { collection: 'work_days', recordId: restDay.id },
-							rowVersion: restDay.row_version
-						}
-					]
-				),
-				headers
+			const updated = await writeRows(
+				session,
+				'work_days',
+				'update',
+				[{ id: restDay.id, worked_intervals: [] }],
+				headers,
+				[observedVersion('work_days', restDay.id, restDay.row_version)]
 			);
 			assert.ok(
 				updated.status >= 200 && updated.status < 300,

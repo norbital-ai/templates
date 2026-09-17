@@ -60,7 +60,7 @@
 	icon="lucide:receipt-text"
 	title="Claims"
 	description="Expenses people paid for and are claiming back, with the payroll capture that settled each"
-	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/requests-banner.webp"
 >
 	<AppHeaderActions>
 		<CompanyScopeCombobox

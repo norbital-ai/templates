@@ -18,7 +18,7 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * 44.0 / 12.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= 4500.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= (terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -30,13 +30,13 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "2.0 * person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -48,7 +48,7 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -90,12 +90,13 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours."
 		},
 		"payroll": {
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {},
@@ -136,7 +137,7 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * 44.0 / 12.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= 4500.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= (terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -148,13 +149,13 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "2.0 * person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -166,7 +167,7 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -208,12 +209,13 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours."
 		},
 		"payroll": {
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {},
@@ -253,7 +255,7 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * 44.0 / 12.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= 4500.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= (terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -265,13 +267,13 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "2.0 * person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -283,7 +285,7 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -325,12 +327,13 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours."
 		},
 		"payroll": {
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {},
@@ -372,7 +375,7 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * 44.0 / 12.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
-			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= 4500.0",
+			"overtime_when": "employment.classification != \"MANAGERIAL\" && employment.classification != \"NON_EA\" && terms.basic_salary <= (terms.statutory_work_category == \"NON_MANUAL\" ? 2600.0 : 4500.0)",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -384,13 +387,13 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction <= 0.5",
 					"take_hours": "normal_hours / 2.0",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\" && hours_from_start_fraction > 0.5",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 2.0"
+					"price_amount": "2.0 * person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -402,7 +405,7 @@
 					"label": "OT-1.0X",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
-					"price_amount": "day_wage * 1.0"
+					"price_amount": "person.terms.basic_salary * 12.0 / (52.0 * person.terms.working_days_per_week)"
 				},
 				{
 					"label": "OT-1.5X",
@@ -444,12 +447,13 @@
 				"discharged_by": "REST"
 			},
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600."
+			"authority": "Employment Act 1968 Part 4. s.38(4) — work beyond normal hours is paid at not less than one and a half times the hourly basic rate of pay (in this form since 1 March 1996, Act 36 of 1995). s.38(5) 72 overtime hours a month; s.38(8) 12 hours in any one day. s.38(1)(a) a break after more than 6 consecutive hours; s.38(1)(c) at least 45 minutes in the aggregate where work requiring continual attendance runs 8 consecutive hours. s.36 one rest day a week, and where a monthly roster is drawn up not more than 12 days between two rest days. s.37(3) rest-day pay at the employer's request. s.88 a public holiday falling on a rest day is observed on the next working day. s.35 and the First Schedule: Part 4 applies to a workman earning a basic monthly salary of not more than SGD 4,500 and to a non-workman (other than a manager or executive) earning not more than SGD 2,600. `overtime_when` applies both ceilings: `terms.statutory_work_category == \"NON_MANUAL\"` is the non-workman (SGD 2,600); every other category is a workman (SGD 4,500). s.88(4) an extra day's salary at the basic rate of pay for work on a public holiday. Rates: Fourth Schedule, hourly basic rate = 12 × monthly basic ÷ (52 × 44), carried by `ordinary_divisor_days`; Third Schedule item 2, basic rate for one day = 12 × monthly basic ÷ (52 × days required to work in a week), which the day-wage bands price directly from `person.terms` because one divisor cannot yield both figures for a week under 44 hours."
 		},
 		"payroll": {
 			"currency": "SGD",
 			"timezone": "Asia/Singapore",
-			"tax_year_start_month": 1
+			"tax_year_start_month": 1,
+			"allowance_npl_prorates": false
 		},
 		"wages": {
 			"by_region": {},

@@ -12,7 +12,6 @@
  * all — which the `??` below already expresses, and is why the read is not filtered to planned rows.
  */
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
 import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
@@ -27,12 +26,8 @@ import {
 	overlappingWorkShifts,
 	type ValidationDay
 } from '../../../lib/scheduling/workforce-validation.js';
-import type { Api, WorkspaceRow } from '../$types.js';
-import type { Api as AuthoringApi } from '@norbital-ai/bolt/authoring';
-import type { WorkspaceSchema } from '$bolt/types';
+import type { WorkspaceRow } from '../$types.js';
 import { addDays } from '../../../lib/period.js';
-
-const QUERY_LIMIT = 20_000;
 
 type ExplicitEntry = Pick<
 	WorkspaceRow<'work_days'>,
@@ -56,12 +51,11 @@ type AssignmentChange = Pick<WorkspaceRow<'work_days'>, 'employment_id' | 'work_
 /**
  * Everything the overlap rule reads, for however many changes it is asked about at once.
  *
- * The rule is about one employment's three-day neighbourhood, but the *reads* are the same four
- * queries whether they answer for one row or three thousand — which is exactly the split `prepare`
- * exists for. A published month is written a whole month at a time, so asking per row cost four
- * round trips a row.
+ * The rule is about one employment's three-day neighbourhood, but the *reads* are the same
+ * whether they answer for one row or three thousand: the transform reads them once for the batch
+ * and this holds them.
  */
-export type OverlapData = {
+type OverlapData = {
 	readonly termsByEmployment: ReadonlyMap<
 		string,
 		ReadonlyArray<Pick<WorkspaceRow<'employment_terms'>, 'shift_pattern_id' | 'effective_range'>>
@@ -75,94 +69,37 @@ export type OverlapData = {
 	>;
 };
 
-/** The four reads. Data only — every refusal below is `assertNoOverlap`'s. */
-export function readOverlapData(
-	api: AuthoringApi<WorkspaceSchema, unknown>,
-	changes: readonly AssignmentChange[]
-): Effect.Effect<OverlapData, never, never> {
-	return Effect.gen(function* () {
-		const employmentIds = [...new Set(changes.map((change) => change.employment_id))];
-		const changedDates = changes.map((change) => dateKey(change.work_date));
-		const first = addDays(changedDates.toSorted()[0]!, -1);
-		const last = addDays(changedDates.toSorted().at(-1)!, 1);
-		const [employments, terms, existingEntries] = yield* Effect.all(
-			[
-				api.db.employments.findMany({
-					where: { id: { in: employmentIds } },
-					columns: { id: true, company_id: true },
-					// The lineage rides the employment, so the roster vocabulary read below is one
-					// round and one source, not a company query of its own.
-					with: { employment_company: { columns: { id: true, settings_code: true } } },
-					limit: Math.max(1, employmentIds.length)
-				}),
-				api.db.employment_terms.findMany({
-					where: { employment_id: { in: employmentIds } },
-					columns: { employment_id: true, shift_pattern_id: true, effective_range: true },
-					limit: QUERY_LIMIT
-				}),
-				api.db.work_days.findMany({
-					where: {
-						employment_id: { in: employmentIds },
-						work_date: { gte: first, lte: last }
-					},
-					columns: {
-						id: true,
-						employment_id: true,
-						work_date: true,
-						shift_definition_id: true
-					},
-					limit: QUERY_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		if (terms.length === QUERY_LIMIT || existingEntries.length === QUERY_LIMIT) {
-			refuse('This schedule is too large to validate safely in one write.');
-		}
-		const companyIds = [
-			...new Set(
-				employments.flatMap((employment) =>
-					employment.company_id == null ? [] : [employment.company_id]
-				)
-			)
-		];
-		const [codes, patterns] = yield* Effect.all(
-			[
-				api.db.shift_definitions.findMany({
-					where: { company_id: { in: companyIds } },
-					columns: { id: true, code: true, variant: true },
-					limit: QUERY_LIMIT
-				}),
-				api.db.shift_patterns.findMany({
-					where: { company_id: { in: companyIds } },
-					columns: { id: true, code: true, pattern: true, effective_range: true },
-					limit: QUERY_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		if (codes.length === QUERY_LIMIT || patterns.length === QUERY_LIMIT) {
-			refuse('This legal entity has too many roster codes or shift patterns to validate safely.');
-		}
-
-		const termsByEmployment = Map.groupBy(terms, (term) => term.employment_id);
-		return {
-			termsByEmployment,
-			patternById: new Map(patterns.map((pattern) => [pattern.id, pattern])),
-			explicitByKey: new Map(
-				existingEntries.map((entry) => [
-					`${entry.employment_id}:${dateKey(entry.work_date)}`,
-					{
-						id: entry.id,
-						employment_id: entry.employment_id,
-						work_date: dateKey(entry.work_date),
-						shift_definition_id: entry.shift_definition_id
-					}
-				])
-			),
-			codeById: new Map(codes.map((code) => [code.id, code]))
-		};
-	});
+/** The overlap data, built from rows the transform already holds. Data only — every refusal below is `assertNoOverlap`'s. */
+export function overlapDataFrom(rows: {
+	readonly terms: ReadonlyArray<
+		Pick<WorkspaceRow<'employment_terms'>, 'employment_id' | 'shift_pattern_id' | 'effective_range'>
+	>;
+	readonly entries: ReadonlyArray<
+		Pick<WorkspaceRow<'work_days'>, 'id' | 'employment_id' | 'work_date' | 'shift_definition_id'>
+	>;
+	readonly codes: ReadonlyArray<{
+		readonly id: string;
+		readonly code: string;
+		readonly variant: RosterCodeVariant;
+	}>;
+	readonly patterns: ReadonlyArray<ShiftPatternLike & { readonly id: string }>;
+}): OverlapData {
+	return {
+		termsByEmployment: Map.groupBy(rows.terms, (term) => term.employment_id),
+		patternById: new Map(rows.patterns.map((pattern) => [pattern.id, pattern])),
+		explicitByKey: new Map(
+			rows.entries.map((entry) => [
+				`${entry.employment_id}:${dateKey(entry.work_date)}`,
+				{
+					id: entry.id,
+					employment_id: entry.employment_id,
+					work_date: dateKey(entry.work_date),
+					shift_definition_id: entry.shift_definition_id
+				}
+			])
+		),
+		codeById: new Map(rows.codes.map((code) => [code.id, code]))
+	};
 }
 
 /** Reject a draft write that would make two WORK windows occupy the same real minute. */

@@ -13,10 +13,10 @@ Exactly one payroll is permitted per company and period. A draft can be deleted 
 a paid payroll is immutable. Late approved payments and corrections settle through a later regular
 period. There is no ad hoc payroll or second run for a settled period.
 
-The domain families are Work, Leave, Claim, Allowance, Adhoc, Loan and Contribution. Work's rules
-live on the settings version; every other family owns its catalogue and business entries. Adhoc
-uses one catalogue and one request collection for bonuses, notice pay, separation payments and
-corrections.
+The domain families are Work, Leave, Claim, Allowance, Loan and Contribution. Work's rules live on
+the settings version; every other family owns its catalogue and business entries. Bonuses, notice
+pay, separation payments and corrections are Allowance catalogue rows; there is no separate
+payment catalogue.
 
 ```mermaid
 flowchart LR
@@ -25,7 +25,7 @@ flowchart LR
     Holidays[Published entity holidays] --> Work[Work: schedules and attendance]
     Work --> Prepare
     Leave[Leave entries and computed entitlement] --> Prepare
-    Money[Claim, Allowance, Adhoc and Loan] --> Prepare
+    Money[Claim, Allowance and Loan] --> Prepare
     Prepare --> Calculate[Calculate family results]
     Calculate --> Contribution[Calculate contributions]
     Contribution --> Settle[Settle gross and net]
@@ -35,12 +35,17 @@ flowchart LR
 - **Work** owns salary, overtime and unexplained absence calculations.
 - **Leave** records time off, manual encashment, carry-forward, adjustments and reversals.
   Entitlement is computed from effective catalogue and employment facts; balances include recorded
-  activity and pending reservations. No annual account, ledger refresh or automatic departure
-  settlement is created. Encashment pays the approved amount without repricing it from salary.
-- **Claim, Allowance and Adhoc** provide approved monetary entries. A single-use entry is consumed
-  once, including a signed correction. Recurring allowances remain eligible across their range. A
-  type is offered only to the people its catalogue row names, and a receipt is required when the
-  row says so.
+  activity and pending reservations. No annual account or balance refresh job is created; closing a
+  contract raises the leaver's unused annual leave as a held encashment for the HR Manager.
+  Encashment pays the approved amount without repricing it from salary.
+- **Claim and Allowance** provide approved money. A claim is consumed once, including a signed
+  correction. An allowance is always standing: a catalogue item, a monthly amount and the window
+  it is in force over; every run that touches the window prices one `allowance_entries` row under
+  the payslip, prorated on the same basis as basic salary (a joiner or leaver takes the days
+  employed; unpaid leave comes off it only where the jurisdiction's `allowance_npl_prorates` says
+  so — the Philippines yes, Singapore, Malaysia, Taiwan, Indonesia and Vietnam no). A bonus paid
+  once is a window of one period. A type is offered only to the people its catalogue row names,
+  and a receipt is required when the row says so.
 - **Loan** owns agreements and repayment schedules. Each repayment row is recovered whole by one
   payslip; one the net-pay guard cannot carry waits, unlinked, for the next run.
 - **Contribution** evaluates statutory schemes against the opt-ins carried by calculated lines.
@@ -62,18 +67,25 @@ entity's Google calendar (`holiday_import`, each 1 October and on demand); every
 the entity already has and never publishes.
 
 Payroll writes `payroll_runs` and `payslips` (adjustments inlined) as one atomic graph, linking
-every consumed entry through its own nullable `payslip_id`; a recurring allowance materialises
-one per-period row per payslip. Payslips contain status,
-base, proration and statutory results; adjustments reference their causal entries. Payroll outputs
-are calculated rather than supplied as seed inputs.
+every consumed entry through its own nullable `payslip_id` and creating one `allowance_entries`
+row per standing allowance under the slip, carrying the days, divisor, basis and unpaid days it
+was priced on. Deleting a draft releases every pin and takes the entries with the slip. Payslips
+contain status, base, proration and statutory results; adjustments reference their causal
+entries. Payroll outputs are calculated rather than supplied as seed inputs.
 
-Only approved, committed source rows are payable. Held creates live in the platform approval
-queue. Leave includes their debit reservations when calculating available entitlement.
+A `SEMI_MONTHLY` entity states on `semi_monthly_statutory_cutoff` which cut-off carries the
+schemes its law assesses over the month (`FIRST`, `LAST`, or `SPLIT` each half on its own base):
+SSS, PhilHealth and Pag-IBIG premiums are monthly on monthly compensation and the law leaves
+their timing to the employer; withholding tax follows the pay period.
+
+Only approved source rows are payable. A create that needs review is committed provisionally
+and stamped `approval_id` until the hold closes; a refusal restores the pre-image. Leave includes
+held debit reservations when calculating available entitlement.
 
 ## Applications
 
 **Employee self-service** has Home, Events and Payslips. Events uses a family sidebar for Work,
-Leave, Claim, Allowance, Adhoc and Loan. Employees submit their own time-off requests; HR controls
+Leave, Claim, Allowance and Loan. Employees submit their own time-off requests; HR controls
 manual encashment, carry-forward, adjustments and reversals.
 
 **Controller** shares the selected legal entity across its pages:
@@ -82,7 +94,7 @@ manual encashment, carry-forward, adjustments and reversals.
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Entities           | Select the legal entity; its Holidays tab holds the entity's holidays and Google source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | People             | Profiles, contracts, departures, effective terms and statutory facts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Events             | Work, Leave, Claim, Allowance, Adhoc and Loan records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Events             | Work, Leave, Claim, Allowance and Loan records                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Payroll            | Create the regular period, review results, mark paid and export                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Settings → Catalog | Review family definitions within the settings lineage; a money catalogue row says who may raise it and up to what ceiling, and a leave row who earns how many days, as predicates over the person (standing, family, residency months), the contract's terms and `grade`, and the company's region; a scheme's rules state whom they cover and what they charge the same way; a leave is paid or not, with its bands carrying the statutory opt-ins; the work rules are the proration basis, the ordinary-rate rows, the ordered bands and their funnel, the limits and breaks schedules must respect, the night premium and one citation |
 | Settings → Compare | Diff two snapshots of the selected lineage: the settings fields and every catalogue row, leaf by leaf                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -101,15 +113,17 @@ policies remain authoritative.
 `statutory_drift` checks configured official research sources monthly. It proposes a draft settings
 revision with review notes; a person reviews and seals it. It never edits a sealed version or seals
 its own proposal. `holiday_import` uses the managed Google Calendar connection to fetch each
-entity's source pages and save review candidates; it cannot publish holidays. There are no automatic
-encashment, carry-forward or annual entitlement jobs.
+entity's source pages and save review candidates; it cannot publish holidays.
+`leave_encashment_on_exit` raises a held encashment of a leaver's unused annual leave when a
+contract closes; the HR Manager approves or rejects it. There are no carry-forward or annual
+entitlement jobs.
 
 ## Source layout
 
 ```text
 src/
 ├── apps/                     # employee, controller groups, kiosk
-├── collections/              # models, hooks, representations and import/export pipelines
+├── collections/              # models, collection declarations, representations and import/export pipelines
 │   └── payroll_runs/lib/     # preparation, calculation, settlement and output graph
 ├── datatypes/                # structured business values and renderers
 ├── access/                   # policies and teams
@@ -120,7 +134,7 @@ src/
 ```
 
 Models describe storage. `src/collections/+relationship.ts` declares the relation graph.
-Before hooks validate and return the complete write graph; a refusal leaves no partial payroll.
+Each `+collection.ts` declares what a write may carry and a `transform` that validates the whole batch; a refusal leaves no partial payroll.
 Representations own collection forms. Pipelines import roster/attendance workbooks and export payroll
 reports, bank files and payslips.
 
@@ -139,9 +153,10 @@ reviewed source for each entity.
 
 Acceptance tests use invented public fixtures under `tests/fixtures/seed/` and the isolated Bolt
 self-host. Confidential reconciliation inputs are not test fixtures. See
-[`docs/data.md`](docs/data.md), [`docs/architecture.md`](docs/architecture.md) and
-[`docs/leave.md`](docs/leave.md). What the engine captures, what the law owes that it does not,
-and what landed when is [`docs/gap-tracker.md`](docs/gap-tracker.md).
+[`docs/data.md`](docs/data.md), [`docs/architecture.md`](docs/architecture.md),
+[`docs/leave.md`](docs/leave.md) and [`docs/scheduling.md`](docs/scheduling.md). What the engine
+captures, what the law owes that it does not, and what landed when is
+[`docs/gap-tracker.md`](docs/gap-tracker.md).
 
 ```bash
 pnpm lint

@@ -41,7 +41,10 @@ export default {
 				const payload = Schema.decodeUnknownSync(importSchema)(input);
 				if ('publish' in payload) {
 					const publishedAt = payload.published ? new Date().toISOString() : null;
-					return payload.publish.map((id) => ({ id, published_at: publishedAt }));
+					yield* api.collection.jurisdiction_holidays.updateMany(
+						payload.publish.map((id) => ({ id, published_at: publishedAt }))
+					);
+					return [];
 				}
 				const companies = yield* api.db.companies.findMany({
 					columns: { id: true, name: true, registration_number: true },

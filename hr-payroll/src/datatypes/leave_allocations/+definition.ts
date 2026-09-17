@@ -1,7 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { calendarDay } from '../../lib/iso-day.js';
-import { leaveWindowSchema } from '../leave_event/+definition.js';
+import { leaveWindowSchema } from '../../lib/leave/entitlement.js';
 
 /** Immutable approval evidence: positive quantities create credits, negatives consume them. */
 export const leaveAllocationSchema = Schema.Struct({

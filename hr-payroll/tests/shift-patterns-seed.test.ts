@@ -24,6 +24,14 @@ test('every public term points at a pattern row of its own entity, and no term e
 	assert.ok(patterns.length >= 1);
 	for (const term of terms) {
 		assert.equal('work_pattern' in term, false, `${term.id} still embeds a work pattern`);
+		assert.ok(
+			Number.isInteger(term.agreed_days_per_week) &&
+				term.agreed_days_per_week >= 1 &&
+				term.agreed_days_per_week <= 7,
+			`${term.id} agrees ${term.agreed_days_per_week} days a week`
+		);
+		// A rostered term names no pattern; its schedule is its roster rows.
+		if (term.shift_pattern_id == null) continue;
 		const pattern = patternById.get(term.shift_pattern_id);
 		assert.ok(pattern, `${term.id} points at ${term.shift_pattern_id}, which is not seeded`);
 		const companyId = employments.get(term.employment_id)?.company_id;
@@ -62,7 +70,9 @@ test('the manifest covers current source collections and stages consumers after 
 				existsSync(new URL(`../src/collections/${entry.name}/+model.ts`, import.meta.url))
 		)
 		.map((entry) => entry.name);
-	const unseededPayrollCollections = ['payroll_runs', 'payslips'];
+	// Payroll output is calculated, never seeded: the runs, their slips and the allowance entries
+	// the slips priced.
+	const unseededPayrollCollections = ['payroll_runs', 'payslips', 'allowance_entries'];
 	assert.equal(manifest.counts.collections, collections.length);
 	for (const name of unseededPayrollCollections) assert.ok(collections.includes(name), name);
 	assert.equal(new Set(seeded).size, seeded.length, 'a collection must be seeded only once');
@@ -99,8 +109,7 @@ test('the manifest covers current source collections and stages consumers after 
 		// through `employment_terms`, and `jurisdiction_settings` precedes every catalogue here.
 		['leave_catalogue', 'leave_entries'],
 		['claim_catalogue', 'claim_requests'],
-		['allowance_catalogue', 'allowance_requests'],
-		['payment_catalogue', 'payment_requests'],
+		['allowance_catalogue', 'allowances'],
 		['loan_catalogue', 'loans']
 	]) {
 		before('jurisdiction_settings', catalogue);
@@ -112,8 +121,7 @@ test('the manifest covers current source collections and stages consumers after 
 		'work_days',
 		'leave_entries',
 		'claim_requests',
-		'allowance_requests',
-		'payment_requests',
+		'allowances',
 		'loans',
 		'loan_repayments'
 	]) {

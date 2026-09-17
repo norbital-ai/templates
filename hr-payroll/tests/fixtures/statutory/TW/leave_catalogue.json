@@ -6,7 +6,6 @@
 		"name": "Annual leave (特別休假)",
 		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -98,8 +97,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "6cce70cf-cc38-53b3-8f34-e3fcbb5c2957",
@@ -108,7 +107,6 @@
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
 		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -120,8 +118,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "1fc284f7-9314-5b2b-bddf-0f45fae11b8f",
@@ -130,7 +128,6 @@
 		"name": "Personal leave (事假)",
 		"authority": "勞工請假規則第7條 — not more than 14 days a year, unpaid; from 2026-01-01 it may be taken by the hour where it is used to care for a family member.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -142,8 +139,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "c6632860-501e-5b7d-9a2c-431f972bdaf3",
@@ -152,7 +149,6 @@
 		"name": "Marriage leave (婚假)",
 		"authority": "勞工請假規則第2條 — 8 days on full wages.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -164,8 +160,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "e3f7fb22-dd31-5445-ac9a-457ab8c2b3a8",
@@ -174,7 +170,6 @@
 		"name": "Bereavement leave (喪假)",
 		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -186,8 +181,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "ff27fe08-8ad2-5a5a-acc8-45497374cc17",
@@ -196,15 +191,14 @@
 		"name": "Occupational injury leave (公傷病假)",
 		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "dce28a8a-baf3-5705-b6c9-2169ad7fc230",
@@ -213,7 +207,6 @@
 		"name": "Maternity leave (產假)",
 		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -225,8 +218,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "8e05b3b6-2f9c-566f-bcca-02902fa8397b",
@@ -235,7 +228,6 @@
 		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
 		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -247,8 +239,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "c2df653f-a2c1-55d2-9dbd-70a61145e40c",
@@ -257,7 +249,6 @@
 		"name": "Prenatal check-up leave (產檢假)",
 		"authority": "性別平等工作法第15條第4項 — 7 days on full wages.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -269,8 +260,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "d2579d59-4ae6-5706-82e1-38e859fa8a1d",
@@ -279,7 +270,6 @@
 		"name": "Menstrual leave (生理假)",
 		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -291,8 +281,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "ffc8911e-0bad-5bdc-9339-23021f1f1cc8",
@@ -301,7 +291,6 @@
 		"name": "Family care leave (家庭照顧假)",
 		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -313,8 +302,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "30b5eb1d-4a1a-508a-84be-618062035a50",
@@ -323,7 +312,6 @@
 		"name": "Parental leave without pay (育嬰留職停薪)",
 		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple.",
 		"eligibility": "employment.service_months >= 6",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -335,8 +323,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "e68fa491-ca00-598a-a3f2-5a2480bfae2b",
@@ -345,15 +333,14 @@
 		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
 		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time.",
 		"eligibility": "children.under(2) >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "841da440-0fec-5216-85a4-3d894b10b38c",
@@ -362,7 +349,6 @@
 		"name": "Annual leave (特別休假)",
 		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -454,8 +440,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a43e72ab-e989-57d0-af5f-5772a2445293",
@@ -464,7 +450,6 @@
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
 		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -476,8 +461,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "00426d95-6082-575b-b15d-32b00ae495cc",
@@ -486,7 +471,6 @@
 		"name": "Personal leave (事假)",
 		"authority": "勞工請假規則第7條 — not more than 14 days a year, unpaid; from 2026-01-01 it may be taken by the hour where it is used to care for a family member.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -498,8 +482,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "3b6ce88a-c096-5ecd-9c76-5312a89058b5",
@@ -508,7 +492,6 @@
 		"name": "Marriage leave (婚假)",
 		"authority": "勞工請假規則第2條 — 8 days on full wages.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -520,8 +503,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "d5bb0987-7bb1-51dc-839e-6625f8243bdf",
@@ -530,7 +513,6 @@
 		"name": "Bereavement leave (喪假)",
 		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -542,8 +524,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a977372b-727f-5929-a9a1-9172ecfa89c7",
@@ -552,15 +534,14 @@
 		"name": "Occupational injury leave (公傷病假)",
 		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "01750a01-2c63-5d01-ba2e-07410caf5dd1",
@@ -569,7 +550,6 @@
 		"name": "Maternity leave (產假)",
 		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -581,8 +561,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "c8c04e77-8066-5736-91c6-d3be7948b8fb",
@@ -591,7 +571,6 @@
 		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
 		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -603,8 +582,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "b3ab8091-2030-525a-9904-51770338c523",
@@ -613,7 +592,6 @@
 		"name": "Prenatal check-up leave (產檢假)",
 		"authority": "性別平等工作法第15條第4項 — 7 days on full wages.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -625,8 +603,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "027a42e9-4217-54de-a2b3-b11aed841952",
@@ -635,7 +613,6 @@
 		"name": "Menstrual leave (生理假)",
 		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -647,8 +624,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "7941601d-d57d-5f64-9bc0-9ec481fde3c0",
@@ -657,7 +634,6 @@
 		"name": "Family care leave (家庭照顧假)",
 		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -669,8 +645,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "3de20385-72c8-55c9-b5d3-8e30a3cbd877",
@@ -679,7 +655,6 @@
 		"name": "Parental leave without pay (育嬰留職停薪)",
 		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple.",
 		"eligibility": "employment.service_months >= 6",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -691,8 +666,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "f20d7f87-5027-5527-8784-6a3fd70bf5b6",
@@ -701,15 +676,14 @@
 		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
 		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time.",
 		"eligibility": "children.under(2) >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "c80d0999-a976-4b7a-8560-7b3107cac9a8",
@@ -718,15 +692,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "97d3f5d4-a4c1-49d2-a895-13246a10b2b8",
@@ -735,15 +708,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "61709f1e-ae6d-573e-868d-2f44b5010f84",
@@ -752,7 +724,6 @@
 		"name": "Annual leave (特別休假)",
 		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -844,8 +815,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "2e8e5194-82fc-5b4b-b181-dd85edacfacb",
@@ -854,7 +825,6 @@
 		"name": "Ordinary injury or sickness leave (普通傷病假)",
 		"authority": "勞工請假規則第4條 — not more than 30 days a year where the worker is not hospitalised, at half wages; hospitalised leave is capped at one year within two years and 未住院傷病假 plus 住院傷病假 together at one year within two years.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -866,8 +836,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "bd212789-1381-52de-8f02-070a237377e6",
@@ -876,7 +846,6 @@
 		"name": "Personal leave (事假)",
 		"authority": "勞工請假規則第7條 — not more than 14 days a year, unpaid; from 2026-01-01 it may be taken by the hour where it is used to care for a family member.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -888,8 +857,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "0b85f046-2728-59f8-a40b-fe0836519e73",
@@ -898,7 +867,6 @@
 		"name": "Marriage leave (婚假)",
 		"authority": "勞工請假規則第2條 — 8 days on full wages.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -910,8 +878,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "5356a9a6-c8ce-563e-ae1a-a92ed88afc50",
@@ -920,7 +888,6 @@
 		"name": "Bereavement leave (喪假)",
 		"authority": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -932,8 +899,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "e4159bd4-c366-5abe-8b30-631c154ea733",
@@ -942,15 +909,14 @@
 		"name": "Occupational injury leave (公傷病假)",
 		"authority": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "24a76fe9-f541-59b3-9a8a-04b23765770f",
@@ -959,7 +925,6 @@
 		"name": "Maternity leave (產假)",
 		"authority": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -971,8 +936,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "278e44a0-e7cf-5d40-adcf-ae41a30ac0d8",
@@ -981,7 +946,6 @@
 		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
 		"authority": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -993,8 +957,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "edac0448-546d-5072-9555-66214db3f11a",
@@ -1003,7 +967,6 @@
 		"name": "Prenatal check-up leave (產檢假)",
 		"authority": "性別平等工作法第15條第4項 — 7 days on full wages.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1015,8 +978,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "4cf74103-ae9d-5f64-8120-c2969c55b319",
@@ -1025,7 +988,6 @@
 		"name": "Menstrual leave (生理假)",
 		"authority": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -1037,8 +999,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a0c1f56e-0dfd-5027-bb78-3f3eee02112f",
@@ -1047,7 +1009,6 @@
 		"name": "Family care leave (家庭照顧假)",
 		"authority": "性別平等工作法第20條 — 7 days a year, counted into the 14-day 事假 quota and therefore unpaid; from 2026-01-01 it may be taken by the hour (7 days = 56 hours).",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1059,8 +1020,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "77641e3c-1200-5003-a97d-21fa0f476ed1",
@@ -1069,7 +1030,6 @@
 		"name": "Parental leave without pay (育嬰留職停薪)",
 		"authority": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple.",
 		"eligibility": "employment.service_months >= 6",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1081,8 +1041,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "92397cef-111b-5bfe-9816-6c630ab29dce",
@@ -1091,15 +1051,14 @@
 		"name": "Breastfeeding and milk-expressing time (哺乳及集乳時間)",
 		"authority": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time.",
 		"eligibility": "children.under(2) >= 1",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a7b89929-df39-5ba5-9825-69e8cf9b5e24",
@@ -1108,14 +1067,13 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	}
 ]

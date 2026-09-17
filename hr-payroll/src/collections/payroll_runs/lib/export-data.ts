@@ -157,7 +157,7 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [employments, settingsVersions, leaves, claims, allowances, payments, terms, workDays] =
+		const [employments, settingsVersions, leaves, claims, allowances, terms, workDays] =
 			yield* Effect.all(
 				[
 					api.db.employments.findMany({
@@ -171,7 +171,6 @@ export function loadRunExports(
 					api.db.leave_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.claim_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.allowance_catalogue.findMany({ limit: PAGE_LIMIT }),
-					api.db.payment_catalogue.findMany({ limit: PAGE_LIMIT }),
 					api.db.employment_terms.findMany({
 						where: { employment_id: { in: employmentIds } },
 						limit: PAGE_LIMIT
@@ -193,8 +192,7 @@ export function loadRunExports(
 			settingsVersions,
 			leaves,
 			claims,
-			allowances,
-			payments
+			allowances
 		}))
 			readApi.reads.assertComplete<unknown>(rows, name);
 		readApi.reads.assertComplete(terms, 'employment terms');
@@ -268,18 +266,19 @@ export function loadRunExports(
 						family: item.family
 					});
 			for (const row of leaves.filter((row) => row.settings_id === run.settings_id)) {
-				const destination = row.destination as SettlementDestination;
+				// Leave carries no pricing and no landing: the engine prices both lines at the
+				// ordinary day wage, so the export states the landing each line's bucket means.
 				componentByCode.set(encashmentCode(row.code), {
 					calculationSource: 'DERIVED',
 					bucket: 'EARNING',
-					destination,
+					destination: 'PAY',
 					family: 'LEAVE'
 				});
-				if (!row.paid)
+				if (row.is_npl)
 					componentByCode.set(row.code, {
 						calculationSource: 'DERIVED',
 						bucket: 'ABSENCE',
-						destination,
+						destination: 'PAY',
 						family: 'LEAVE'
 					});
 			}
@@ -287,8 +286,7 @@ export function loadRunExports(
 			// `ENTRY` arm the run does.
 			for (const [family, rows] of [
 				['CLAIM', claims],
-				['ALLOWANCE', allowances],
-				['PAYMENT', payments]
+				['ALLOWANCE', allowances]
 			] as const)
 				for (const row of rows.filter((row) => row.settings_id === run.settings_id)) {
 					// The enum columns arrive as text at the database boundary; the models constrain

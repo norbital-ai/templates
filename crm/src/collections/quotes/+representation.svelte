@@ -36,16 +36,18 @@
 				? `${record.status ?? 'draft'}${record.currency ? ` · ${record.currency}` : ''}`
 				: undefined}
 		>
-			<Field name="net" hidden />
-			<Field name="tax" hidden />
-			<Field name="gross" hidden />
-			<Field name="confirmed_at" hidden />
-			<Field name="credit_acknowledged" hidden />
-			<Field name="cancelled_at" hidden />
-			<Field name="cancel_reason" hidden />
+			{#if record}
+				<Field name="net" hidden />
+				<Field name="tax" hidden />
+				<Field name="gross" hidden />
+				<Field name="credit_acknowledged" hidden />
+				<Field name="cancel_reason" hidden />
+			{/if}
 			{@const values = form.values()}
 			<Grid minimum="compact">
-				<Field name="doc_no" label={t('component.doc_no')} />
+				{#if record}
+					<Field name="doc_no" label={t('component.doc_no')} />
+				{/if}
 				<Field
 					name="account_id"
 					label={t('component.account')}

@@ -24,8 +24,18 @@ export const payslipStatutoryValueSchema = Schema.Struct({
 	authority: Schema.NullOr(Schema.String),
 	/** The wage the scheme was charged on. */
 	base_amount: Schema.Finite,
+	/**
+	 * What the scheme took from the employee. Negative in a year-end rung's refund month: the
+	 * annual reckoning found the year over-withheld, and the refund flows through net as it is.
+	 */
 	employee_amount: Schema.Finite,
 	employer_amount: Schema.Finite,
+	/**
+	 * The directed instalments the authority names, added after the ladder and already inside
+	 * `employee_amount`; 0 where none covers the period. Kept apart so the return shows the
+	 * scheme's own charge and the direction as the two things they are.
+	 */
+	directed_amount: Schema.optionalKey(Schema.Finite),
 	/** The `when` of the scheme's own rule the amounts were read from, where one governed. */
 	rule_when: Schema.NullOr(Schema.String)
 });
@@ -38,6 +48,6 @@ export const payslipStatutorySchema = Schema.toStandardSchemaV1(payslipStatutory
 export default defineCustomType({
 	name: 'payslip_statutory',
 	description:
-		'One statutory scheme charged on a payslip: the code and authority of the scheme, the wage it was charged on, what it took from the employee, what it cost the employer, and the rule condition it was read from.',
+		'One statutory scheme charged on a payslip: the code and authority of the scheme, the wage it was charged on, what it took from the employee (negative where a year-end rung refunds), what it cost the employer, the directed instalments inside the employee share, and the rule condition it was read from.',
 	schema: payslipStatutorySchema
 });

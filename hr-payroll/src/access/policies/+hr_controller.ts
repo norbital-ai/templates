@@ -6,6 +6,7 @@ import {
 	payrollGrants,
 	payrollRunApprovalFromController,
 	peopleGrants,
+	requestGrants,
 	referenceGrants,
 	settingsCatalogueGrants,
 	settingsGrants,
@@ -29,9 +30,9 @@ import type { Policy } from './$types.js';
  *     has not been agreed to.
  *   - no `payroll_runs.mutate.existing`, no `payroll_runs.delete` — a controller does not re-run a
  *     payroll and does not erase one.
- *   - nothing on payslips, adjustments or the `payslip_id` pins. The engine returns them
- *     from the run's `before` hook, and what a hook returns is the workspace's own work: a
- *     controller's own grant is the run.
+ *   - nothing on payslips, adjustments or the `payslip_id` pins. The run's transform returns
+ *     them, and what a transform returns is the workspace's own work: a controller's own grant is
+ *     the run.
  *
  * Kept generated, because the groups are what the policy actually says. `settingsGrants('draft')`
  * beside `settingsGrants('seal')` on the manager is a rule you can read — a controller prepares
@@ -77,7 +78,7 @@ export default {
 	grants: mergeGrants(
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		// The settings lineage: read every version, prepare drafts and their rows; sealing and
-		// voiding are the HR Manager's, and every hook refuses a write under a seal.
+		// voiding are the HR Manager's, and every transform refuses a write under a seal.
 		statutoryGrants('read'),
 		settingsGrants('draft'),
 		settingsCatalogueGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
@@ -104,11 +105,7 @@ export default {
 		 * for would leave every correction to a settled payslip waiting on a signature — which is the
 		 * situation corrections exist to get out of.
 		 */
-		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('payment_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		requestGrants(),
 
 		// Both sides of the person-day: publish the schedule, and record what happened against it.
 		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance

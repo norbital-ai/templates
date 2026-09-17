@@ -130,7 +130,7 @@
 		editable?: boolean;
 		/**
 		 * Whether the swap gesture is offered. Draft months only: a swap is two writes to
-		 * `work_days`, and `work_days/+hooks.ts` refuses every one of them in a published month.
+		 * `work_days`, and `work_days/+collection.ts` refuses every one of them in a published month.
 		 * Offering a gesture the write path will refuse is worse than not offering it.
 		 */
 		swappable?: boolean;
@@ -253,7 +253,7 @@
 		something: same person on two dates is a date-for-date swap, and two people on one date is a
 		person-for-person swap. A diagonal pair is four changes described as one, and nobody asked
 		for it. The board proposes the pair; the app checks payroll locks and submits both writes
-		in one transaction. The workday hooks enforce the authoritative schedule and leave checks.
+		in one transaction. The work day transform enforce the authoritative schedule and leave checks.
 	*/
 
 	/** Same row or same column, and not the cell itself. */
@@ -353,7 +353,7 @@
 	 *
 	 * This used to end with `component.lock_date_passed` on every past day that was not settled,
 	 * which said a day was locked for having gone by. That was never true of attendance and is the
-	 * exact false refusal `docs/scheduling-leave-proposal.md` set out to remove — a past
+	 * exact false refusal `docs/scheduling.md` set out to remove — a past
 	 * day is the *normal* day to be correcting a punch on. The lock line now comes from the ladder,
 	 * which answers the same question from the payroll runs rather than from the calendar.
 	 */

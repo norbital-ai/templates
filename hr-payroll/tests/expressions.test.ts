@@ -8,7 +8,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileExpression } from '../src/lib/expressions/compile.ts';
+import { compileExpression, assessedOnMentions } from '../src/lib/expressions/compile.ts';
 import { EXPRESSION_CONTEXTS } from '../src/lib/expressions/contexts.ts';
 import { evaluateNumber, runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
 
@@ -16,6 +16,7 @@ test('every site compiles expressions over its own context', () => {
 	const cases = [
 		['person', 'employment.service_months >= 12 && company.region == "I"', 'boolean'],
 		['person', 'children.under(7) >= 1', 'boolean'],
+		['person', "company.facts.sector == 'RETAIL'", 'boolean'],
 		['entry', 'entry.days * rates.ordinary_day', 'money'],
 		['entry', 'leave.days("ANNUAL_LEAVE") > 0 && entry.captures.remaining > 0', 'boolean'],
 		['entry', 'entry.amount * period.instalments', 'money'],
@@ -26,9 +27,21 @@ test('every site compiles expressions over its own context', () => {
 			'money'
 		],
 		['work_day', 'day_type == "PUBLIC_HOLIDAY" && break_minutes < 30', 'boolean'],
-		['scheme', 'base > 5000 && age >= 60', 'boolean'],
-		['scheme', 'year_to_date.employee + produced.EPF.employee', 'money'],
-		['scheme', 'minimum_wage(region) > 0 && headcount > 10', 'boolean']
+		['assessment', "BASE + catalog('ALLOWANCE', {'pick': ['SUA', 'BPAYBS']}) - ABSENCE", 'money'],
+		['assessment', "code('BPAYBS') + annual_exempt(100.0, 0.0, 90000.0)", 'money'],
+		['assessment', 'year.earned.BASIC + ENCASHMENT - NO_PAY_LEAVE', 'money'],
+		['scheme', 'base > 5000 && person.employee.age >= 60', 'boolean'],
+		['scheme', 'scheme.year_to_date.employee + produced.EPF.employee', 'money'],
+		[
+			'scheme',
+			'minimum_wage(person.company.region) > 0 && person.company.headcount > 10',
+			'boolean'
+		],
+		[
+			'scheme',
+			'scheme.elections.SHG == true && annual_exempt(base, year.earned.bonus, 90000.0) > 0',
+			'boolean'
+		]
 	] as const;
 	for (const [site, expression, type] of cases)
 		assert.equal(compileExpression({ expression, site, type }), null, `${site}: ${expression}`);
@@ -71,6 +84,10 @@ test('unknown members, undeclared identifiers, bad syntax and wrong types are re
 	assert.match(
 		compileExpression({ expression: 'base > 1', site: 'work_day', type: 'boolean' }) ?? '',
 		/base/
+	);
+	assert.match(
+		compileExpression({ expression: 'BASE > 1', site: 'scheme', type: 'boolean' }) ?? '',
+		/BASE/
 	);
 });
 
@@ -121,4 +138,42 @@ test('the runtime closures compute what the seeds name', () => {
 		}),
 		2
 	);
+});
+
+test('the assessment closures select catalogue rows and exempt annually', () => {
+	const engine = runtimeExpressionEngine({
+		code: (code) => (code === 'BPAYBS' ? 500 : code === 'ALPAY' ? 200 : 0),
+		catalog: (catalogue, selection) => {
+			assert.equal(catalogue, 'ALLOWANCE');
+			const rows: Record<string, number> = { SUA: 100, BPAYBS: 500, ADJ: 50 };
+			if (selection?.pick != null)
+				return selection.pick.reduce((sum, code) => sum + (rows[code] ?? 0), 0);
+			if (selection?.exclude != null)
+				return Object.entries(rows).reduce(
+					(sum, [code, amount]) => (selection.exclude!.includes(code) ? sum : sum + amount),
+					0
+				);
+			return Object.values(rows).reduce((sum, amount) => sum + amount, 0);
+		}
+	});
+	const run = (expression: string) => evaluateNumber(engine, expression, {});
+
+	assert.equal(run("code('BPAYBS') + code('ALPAY')"), 700);
+	assert.equal(run("catalog('ALLOWANCE', {'pick': ['SUA', 'BPAYBS']})"), 600);
+	assert.equal(run("catalog('ALLOWANCE', {'exclude': ['BPAYBS']})"), 150);
+	assert.equal(run("catalog('ALLOWANCE')"), 650);
+	assert.equal(run('annual_exempt(1000.0, 89500.0, 90000.0)'), 500);
+	assert.equal(run('annual_exempt(1000.0, 90000.0, 90000.0)'), 0);
+	assert.equal(run('annual_exempt(1000.0, 0.0, 90000.0)'), 1000);
+});
+
+test('the AST literal walk reads the version-bound mentions', () => {
+	const mentions = assessedOnMentions(
+		"code('BPAYBS') + catalog('ALLOWANCE', {'exclude': ['BACKPAY_ADD_WAGES']}) + year.earned.THIRTEENTH_MONTH_PAY"
+	);
+	assert.deepEqual(mentions.codes, ['BPAYBS']);
+	assert.deepEqual(mentions.catalogues, [
+		{ catalogue: 'ALLOWANCE', pick: [], exclude: ['BACKPAY_ADD_WAGES'] }
+	]);
+	assert.deepEqual(mentions.yearEarned, ['THIRTEENTH_MONTH_PAY']);
 });

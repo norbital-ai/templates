@@ -28,7 +28,7 @@ export { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
  *
  * This used to be `new Date().toISOString().slice(0, 10)`, which is the *UTC* day.
  * `dates-and-time.md` names that expression as forbidden for exactly this use: for eight hours of
- * every day it selects yesterday's rate row, so a server hook could price against a different day
+ * every day it selects yesterday's rate row, so a transform could price against a different day
  * than the client had displayed.
  */
 export function todayKey(now: Date = new Date()): string {

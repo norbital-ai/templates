@@ -1,13 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, graphOf, writeGraph } from './helpers/write.ts';
+import { leaveTeamHeaders } from './helpers/public-leave.ts';
 import {
 	startPublicSeedHost,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS
@@ -27,59 +23,49 @@ test(
 		const session = await startPublicSeedHost('contract-seal');
 		try {
 			const headers = bearerHeaders(session.credential);
-			const command = (
-				body: Parameters<typeof mutationPush>[1],
-				bases: Parameters<typeof mutationPush>[2] = []
-			) =>
-				postGuestCommand(
-					session.host.baseUrl,
-					'collections.mutate',
-					mutationPush(session.schemaFingerprint, body, bases),
-					headers
-				);
+			const command = (body: Parameters<typeof graphOf>[0], bases = []) =>
+				writeGraph(session, body, bases, headers);
 
-			const makeContract = (id: string, company_id = contracts[0].company_id) => ({
-				...contracts[0],
-				id,
+			// A new contract states the person, the entity and the range; its number is derived.
+			const { id: _seedId, contract_number: _seedNumber, ...seedContract } = contracts[0];
+			const makeContract = (company_id = contracts[0].company_id) => ({
+				...seedContract,
 				company_id,
 				effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
 			});
 			const overlap = await command({
 				action: 'mutate',
 				collection: 'employments',
-				rows: [{ action: 'create', values: makeContract(crypto.randomUUID()) }]
+				rows: [{ action: 'create', values: makeContract() }]
 			});
 			assert.notEqual(asRecord(overlap.value, 'same entity overlap').resolution, 'accepted');
 			assert.match(JSON.stringify(overlap.value), /active employment contract/i);
 			const companies = JSON.parse(
 				readFileSync(new URL('./fixtures/seed/companies.json', import.meta.url), 'utf8')
 			) as Record<string, unknown>[];
-			const otherCompanyId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'companies',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									...companies[0],
-									id: otherCompanyId,
-									name: 'Second Fixture Entity',
-									registration_number: 'PUB-CO-SECOND'
-								}
-							}
-						]
-					})
-				).value
-			);
+			const { id: _seedCompany, ...seedCompany } = companies[0];
+			const otherCompany = await command({
+				action: 'mutate',
+				collection: 'companies',
+				rows: [
+					{
+						action: 'create',
+						values: {
+							...seedCompany,
+							name: 'Second Fixture Entity',
+							registration_number: 'PUB-CO-SECOND'
+						}
+					}
+				]
+			});
+			requireAccepted(otherCompany.value);
+			const [otherCompanyId] = createdIds(otherCompany.value);
 			requireAccepted(
 				(
 					await command({
 						action: 'mutate',
 						collection: 'employments',
-						rows: [{ action: 'create', values: makeContract(crypto.randomUUID(), otherCompanyId) }]
+						rows: [{ action: 'create', values: makeContract(otherCompanyId) }]
 					})
 				).value
 			);
@@ -115,15 +101,11 @@ test(
 			const batched = await command({
 				action: 'mutate',
 				collection: 'employments',
-				rows: [crypto.randomUUID(), crypto.randomUUID()].map((id) => ({
-					action: 'create',
-					values: makeContract(id)
-				}))
+				rows: [makeContract(), makeContract()].map((values) => ({ action: 'create', values }))
 			});
 			assert.notEqual(asRecord(batched.value, 'overlapping batch').resolution, 'accepted');
-			const competingIds = [crypto.randomUUID(), crypto.randomUUID()];
 			const competing = await Promise.all(
-				competingIds.map((id, index) =>
+				[1, 2].map((day) =>
 					command({
 						action: 'mutate',
 						collection: 'employments',
@@ -131,40 +113,37 @@ test(
 							{
 								action: 'create',
 								values: {
-									...makeContract(id),
-									effective_range: { start: `2026-06-0${index + 1}T00:00:00.000Z`, end: null }
+									...makeContract(),
+									effective_range: { start: `2026-06-0${day}T00:00:00.000Z`, end: null }
 								}
 							}
 						]
 					})
 				)
 			);
-			const accepted = competing.flatMap((result, index) =>
-				asRecord(result.value, 'concurrent contract').resolution === 'accepted' ? [index] : []
+			const accepted = competing.filter(
+				(result) => asRecord(result.value, 'concurrent contract').resolution === 'accepted'
 			);
 			assert.equal(accepted.length, 1, JSON.stringify(competing.map((result) => result.value)));
-			const contractId = competingIds[accepted[0]];
+			const [contractId] = createdIds(accepted[0].value);
 
-			const termId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'employment_terms',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									...terms[0],
-									id: termId,
-									employment_id: contractId,
-									effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
-								}
-							}
-						]
-					})
-				).value
-			);
+			const { id: _seedTermId, ...seedTerms } = terms[0];
+			const term = await command({
+				action: 'mutate',
+				collection: 'employment_terms',
+				rows: [
+					{
+						action: 'create',
+						values: {
+							...seedTerms,
+							employment_id: contractId,
+							effective_range: { start: '2026-06-01T00:00:00.000Z', end: null }
+						}
+					}
+				]
+			});
+			requireAccepted(term.value);
+			const [termId] = createdIds(term.value);
 			const [contract] = await session.query('select * from employments where id = $1', [
 				contractId
 			]);
@@ -184,11 +163,13 @@ test(
 			);
 			assert.notEqual(asRecord(edit.value, 'sealed edit').resolution, 'accepted');
 			assert.match(JSON.stringify(edit.value), /sealed/i);
-			const [term] = await session.query('select * from employment_terms where id = $1', [termId]);
+			const [storedTerm] = await session.query('select * from employment_terms where id = $1', [
+				termId
+			]);
 			const termBase = [
 				{
 					row: { collection: 'employment_terms', recordId: termId },
-					rowVersion: Number(term.row_version)
+					rowVersion: Number(storedTerm.row_version)
 				}
 			];
 			const move = await command(
@@ -203,10 +184,13 @@ test(
 			);
 			assert.notEqual(asRecord(move.value, 'event move').resolution, 'accepted');
 			assert.match(JSON.stringify(move.value), /another employment contract/i);
-			// The term is the seal: while it stands the contract cannot go.
-			const remove = await command(
+			// The term is the seal: while it stands the contract cannot go. The delete grant decides
+			// it, so the request is made as the team the grant binds; the founder bypasses policy.
+			const remove = await writeGraph(
+				session,
 				{ action: 'delete', collection: 'employments', ids: [contractId] },
-				contractBase
+				contractBase,
+				leaveTeamHeaders(session, 'HR Manager')
 			);
 			assert.notEqual(asRecord(remove.value, 'sealed delete').resolution, 'accepted');
 			requireAccepted(
@@ -230,55 +214,54 @@ test(
 			const redeparture = await recordDeparture(contractId, '2026-08-15');
 			assert.notEqual(asRecord(redeparture.value, 'edit departure').resolution, 'accepted');
 			assert.match(JSON.stringify(redeparture.value), /cannot be reopened/i);
-			const nestedContractId = crypto.randomUUID();
-			const nestedTermId = crypto.randomUUID();
 			const { employment_id: _oldContract, id: _oldTerm, ...nestedTerms } = terms[0];
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'employments',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									...makeContract(nestedContractId),
-									effective_range: { start: '2026-08-01T00:00:00.000Z', end: null },
-									term_employment: [
-										{
-											...nestedTerms,
-											id: nestedTermId,
-											effective_range: { start: '2026-08-01T00:00:00.000Z', end: null }
-										}
-									]
-								}
+			const nested = await command({
+				action: 'mutate',
+				collection: 'employments',
+				rows: [
+					{
+						action: 'create',
+						values: {
+							...makeContract(),
+							effective_range: { start: '2026-08-01T00:00:00.000Z', end: null },
+							term_employment: {
+								create: [
+									{
+										...nestedTerms,
+										effective_range: { start: '2026-08-01T00:00:00.000Z', end: null }
+									}
+								]
 							}
-						]
-					})
-				).value
-			);
+						}
+					}
+				]
+			});
+			requireAccepted(nested.value);
+			const [nestedContractId] = createdIds(nested.value);
+			const [nestedTerm] = (await session.query(
+				'select id from employment_terms where employment_id = $1',
+				[nestedContractId]
+			)) as ReadonlyArray<{ readonly id: string }>;
+			assert.ok(nestedTerm, 'the nested terms were created under the contract');
+			const nestedTermId = nestedTerm.id;
 
 			// A committed Work date keeps term history sealed even after the source is removed.
-			const workId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'work_days',
-						rows: [
-							{
-								action: 'create',
-								values: {
-									id: workId,
-									employment_id: nestedContractId,
-									work_date: '2026-08-03',
-									worked_intervals: null
-								}
-							}
-						]
-					})
-				).value
-			);
+			const workDay = await command({
+				action: 'mutate',
+				collection: 'work_days',
+				rows: [
+					{
+						action: 'create',
+						values: {
+							employment_id: nestedContractId,
+							work_date: '2026-08-03',
+							worked_intervals: null
+						}
+					}
+				]
+			});
+			requireAccepted(workDay.value);
+			const [workId] = createdIds(workDay.value);
 			const updateTerms = async (values: Record<string, unknown>) => {
 				const [row] = await session.query(
 					'select row_version from employment_terms where id = $1',
@@ -329,10 +312,8 @@ test(
 					})
 				).value
 			);
-			const successorId = crypto.randomUUID();
 			const successor = (start: string) => ({
 				...nestedTerms,
-				id: successorId,
 				employment_id: nestedContractId,
 				residency_status: 'FOREIGNER',
 				effective_range: { start: `${start}T00:00:00.000Z`, end: null }

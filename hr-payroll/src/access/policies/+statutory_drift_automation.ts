@@ -16,8 +16,7 @@ export default {
 		leave_catalogue: { read: {}, mutate: { new: {} } },
 		loan_catalogue: { read: {}, mutate: { new: {} } },
 		claim_catalogue: { read: {}, mutate: { new: {} } },
-		allowance_catalogue: { read: {}, mutate: { new: {} } },
-		payment_catalogue: { read: {}, mutate: { new: {} } }
+		allowance_catalogue: { read: {}, mutate: { new: {} } }
 	},
 	limits: {
 		'collections.*': { window: '1 min', limit: 600, key: 'subject' }

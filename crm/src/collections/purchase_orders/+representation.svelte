@@ -36,30 +36,32 @@
 				? `${record.status ?? 'draft'} · ${record.supplier_name ?? 'no supplier'}`
 				: undefined}
 		>
-			<Field name="supplier_code" hidden />
-			<Field name="supplier_name" hidden />
-			<Field name="net" hidden />
-			<Field name="tax" hidden />
-			<Field name="gross" hidden />
-			<Field name="confirmed_at" hidden />
-			<Field name="cancelled_at" hidden />
-			<Field name="cancel_reason" hidden />
+			{#if record}
+				<Field name="net" hidden />
+				<Field name="tax" hidden />
+				<Field name="gross" hidden />
+				<Field name="cancel_reason" hidden />
+			{/if}
 			<Grid minimum="compact">
-				<Field name="doc_no" label={t('component.doc_no')} />
-				<Field
-					name="supplier_id"
-					label={t('component.supplier')}
-					relationOptions={{
-						label: (record) => {
-							const code = record.code;
-							const name = record.name;
-							if (code && name) return `${code} · ${name}`;
-							return name != null && name !== '' ? String(name) : '—';
-						},
-						orderBy: { name: 'asc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions}
-				/>
+				{#if record}
+					<Field name="doc_no" label={t('component.doc_no')} />
+				{/if}
+				{#if !record}
+					<Field
+						name="supplier_id"
+						label={t('component.supplier')}
+						relationOptions={{
+							label: (record) => {
+								const code = record.code;
+								const name = record.name;
+								if (code && name) return `${code} · ${name}`;
+								return name != null && name !== '' ? String(name) : '—';
+							},
+							orderBy: { name: 'asc' },
+							limit: 5000
+						} satisfies CollectionRelationOptions}
+					/>
+				{/if}
 				<Field name="status" />
 				<Field name="currency" />
 				<Field name="tax_inclusive" label={t('component.tax_inclusive')} />

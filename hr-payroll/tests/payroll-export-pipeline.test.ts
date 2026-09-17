@@ -15,9 +15,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import payrollRunPipelines from '../src/collections/payroll_runs/+pipelines.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+import { createRun, storeRun } from './helpers/settlement.ts';
 import {
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -40,7 +40,7 @@ const BANK = {
 /**
  * The public fixture's January, settled and stored the way a persisted run is read back.
  *
- * The create hook returns the run with its payslips nested; the export reads them from the
+ * The run's transform returns the run with its payslips nested; the export reads them from the
  * `payslips` table by `payroll_run_id`, so the nested write is unrolled into the world here exactly
  * as the database would hold it.
  */
@@ -52,30 +52,17 @@ async function januaryWorld({ bank = false, period = PERIOD, runId = RUN_ID, wor
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
-	const api = memoryPayrollApi(world);
-	const prepared = await Effect.runPromise(
-		payrollRunHooks.mutate.prepare({ inputs: [{ company_id: COMPANY_ID, period }], api })
-	);
-	const created = await Effect.runPromise(
-		payrollRunHooks.mutate.perRecord.before.handler({
-			input: { company_id: COMPANY_ID, period },
-			existing: undefined,
-			prepared,
-			api
-		})
-	);
+	const created = await createRun(world, period);
+	const stored = storeRun(world, created, runId);
 	const run = {
 		id: runId,
-		company_id: created.company_id,
-		settings_id: created.settings_id,
-		period: created.period,
-		pay_date: created.pay_date,
-		attendance_from: created.attendance_from,
-		attendance_to: created.attendance_to
+		company_id: stored.company_id,
+		settings_id: stored.settings_id,
+		period: stored.period,
+		pay_date: stored.pay_date,
+		attendance_from: stored.attendance_from,
+		attendance_to: stored.attendance_to
 	};
-	world.payroll_runs.push({ ...run, lifecycle: created.lifecycle });
-	for (const payslip of created.payslip_payroll_run)
-		world.payslips.push({ ...payslip, payroll_run_id: runId });
 	return { world, run };
 }
 

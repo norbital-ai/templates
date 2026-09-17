@@ -28,9 +28,9 @@
 	/**
 	 * The settlement lock, read per record.
 	 *
-	 * The screen and the write hook compute the same lock from the same inputs — that is the whole
+	 * The screen and the transform compute the same lock from the same inputs — that is the whole
 	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
-	 * Without it the panel would say a day is editable right up until the hook refused it.
+	 * Without it the panel would say a day is editable right up until the transform refused it.
 	 *
 	 * It reads the day's own `payslip_id`: a run that read this day pins it whether or not it
 	 * produced money, and the pin is the claim. The grant exposes the claim and never the amounts.
@@ -65,7 +65,6 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Field name="payslip_id" hidden />
 			<Stack gap="lg">
 				<Grid gap="sm" minimum="compact">
 					<Field

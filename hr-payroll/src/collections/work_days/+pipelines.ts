@@ -14,7 +14,7 @@
  * it changes or omits is a conflict, and the whole file is refused naming those days.
  *
  * Statutory limits — the weekly rest ceiling, hour ceilings, granted breaks, adjacent-shift
- * overlap — are the `work_days` write hook's, and refuse the write with person, day and rule.
+ * overlap — are the `work_days` transform's, and refuse the write with person, day and rule.
  * Holidays are never stored on a day; they are overlaid from the entity's calendar, so PH is not
  * a roster code: the cell names the shift the person would have worked.
  */
@@ -503,9 +503,7 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 
 		// ── the set: remove what the file does not name, write what it does ────────────────────────
 		const deletes: string[] = [];
-		const clears: Array<
-			{ id: string; employment_id: string; work_date: string } & Partial<PlanHalf & ClockHalf>
-		> = [];
+		const clears: Array<{ id: string } & Partial<PlanHalf & ClockHalf>> = [];
 		for (const [key, day] of existingByKey) {
 			if (fileDays.has(key)) continue;
 			const keepsOtherHalf =
@@ -518,14 +516,9 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 				deletes.push(day.id);
 				continue;
 			}
-			clears.push({
-				id: day.id,
-				employment_id: day.employment_id,
-				work_date: dateKey(day.work_date) ?? '',
-				...(carriesPlan ? blankPlan : blankClock)
-			});
+			clears.push({ id: day.id, ...(carriesPlan ? blankPlan : blankClock) });
 		}
-		if (deletes.length > 0) yield* api.db.work_days.delete(deletes);
+		if (deletes.length > 0) yield* api.collection.work_days.deleteMany(deletes);
 
 		// ── rosters of record: one per person the Roster sheet names; gone for those it drops ──────
 		if (carriesPlan) {
@@ -541,23 +534,30 @@ function importWorkbookMonth(payload: WorkbookImport, api: Api) {
 			const creates = [...wanted]
 				.filter((employmentId) => !present.has(employmentId))
 				.map((employmentId) => ({ employment_id: employmentId, period: month }));
-			if (creates.length > 0) yield* api.db.rosters.mutate(creates as never);
+			if (creates.length > 0) yield* api.collection.rosters.createMany(creates);
 			const dropped = rosters.filter((row) => !wanted.has(row.employment_id)).map((row) => row.id);
-			if (dropped.length > 0) yield* api.db.rosters.delete(dropped);
+			if (dropped.length > 0) yield* api.collection.rosters.deleteMany(dropped);
 		}
 
-		return [
-			...[...fileDays.entries()]
-				.filter(([key]) => !untouched.has(key))
-				.map(([key, day]) => ({
-					...(carriesPlan ? (day.plan ?? blankPlan) : {}),
-					...(carriesClock ? (day.clock ?? blankClock) : {}),
-					...(existingByKey.has(key) ? { id: existingByKey.get(key)!.id } : {}),
-					employment_id: day.employmentId,
-					work_date: day.workDate
-				})),
-			...clears
-		];
+		// Days the file restates are updated here; an import returns the days it creates.
+		const restated = [...fileDays.entries()]
+			.filter(([key]) => !untouched.has(key) && existingByKey.has(key))
+			.map(([key, day]) => ({
+				id: existingByKey.get(key)!.id,
+				...(carriesPlan ? (day.plan ?? blankPlan) : {}),
+				...(carriesClock ? (day.clock ?? blankClock) : {})
+			}));
+		const updates = [...restated, ...clears];
+		if (updates.length > 0) yield* api.collection.work_days.updateMany(updates);
+
+		return [...fileDays.entries()]
+			.filter(([key]) => !existingByKey.has(key))
+			.map(([, day]) => ({
+				...(carriesPlan ? (day.plan ?? blankPlan) : {}),
+				...(carriesClock ? (day.clock ?? blankClock) : {}),
+				employment_id: day.employmentId,
+				work_date: day.workDate
+			}));
 	});
 }
 

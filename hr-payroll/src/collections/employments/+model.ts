@@ -7,7 +7,7 @@ export default defineModel(
 		employee_number: text({ search: true }).notNull(),
 		/**
 		 * The stint's own rolling number for this person at this entity: 1 for the first contract,
-		 * 2 for the rehire. Assigned by the create hook, never typed, and frozen with the contract.
+		 * 2 for the rehire. Assigned by the transform, never typed, and frozen with the contract.
 		 */
 		contract_number: integer().notNull().default(1),
 		bank: custom('bank_account'),

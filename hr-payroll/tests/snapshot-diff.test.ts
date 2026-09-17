@@ -21,19 +21,21 @@ test('an unchanged root is no change; a moved divisor reads as its leaf', () => 
 	assert.match(changes[0]?.path ?? '', /ordinary_divisor_days$/);
 });
 
-test('a scheme whose base admits one more row reads as that entry', () => {
-	const scheme = (entries: readonly { family: string; code: string }[]) => [
-		{
-			code: 'EPF',
-			base: { salary: true, absence: true, overtime: false, night_premium: false, entries }
-		}
-	];
-	assert.equal(diffCollection('statutory_contributions', scheme([]), scheme([])), null);
+test('a scheme whose formula selects one more row reads as that change', () => {
+	const scheme = (assessedOn: string) => [{ code: 'EPF', assessed_on: assessedOn }];
+	assert.equal(
+		diffCollection(
+			'statutory_contributions',
+			scheme("BASE + catalog('LEAVE')"),
+			scheme("BASE + catalog('LEAVE')")
+		),
+		null
+	);
 	const moved = diffCollection(
 		'statutory_contributions',
-		scheme([]),
-		scheme([{ family: 'LEAVE', code: 'ANNUAL' }])
+		scheme('BASE'),
+		scheme("BASE + catalog('ALLOWANCE', {'pick': ['TRANSPORT']})")
 	);
 	assert.equal(moved?.rows[0]?.code, 'EPF');
-	assert.match(moved?.rows[0]?.changes[0]?.path ?? '', /^base\.entries\[0\]/);
+	assert.equal(moved?.rows[0]?.changes[0]?.path, 'assessed_on');
 });

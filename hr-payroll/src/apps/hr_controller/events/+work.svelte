@@ -387,7 +387,8 @@
 		return client.db.leave_entries.findMany({
 			where: {
 				employment_id: { in: monthEmploymentIds },
-				kind: { eq: 'TIME_OFF' },
+				// Time off is the activity whose charges are its dated days.
+				charges: { ne: [] },
 				leave_original_reversals: { none: { approval_id: { isNull: true } } },
 				from_date: { lte: monthEnd },
 				to_date: { gte: monthStart }
@@ -397,7 +398,6 @@
 				approval_id: true,
 				employment_id: true,
 				catalogue_id: true,
-				kind: true,
 				from_date: true,
 				to_date: true,
 				half_day_start: true,
@@ -409,7 +409,7 @@
 	});
 	/**
 	 * Pending leave is drawn on the board as uncommitted coverage: it never reads as a taken day,
-	 * but it warns an operator who plans work into it. The roster hook allows the assignment; the
+	 * but it warns an operator who plans work into it. The roster transform allows the assignment; the
 	 * conflict flag makes the approval a decision rather than a silent double-book.
 	 */
 	const leaveRequests = $derived(leaveQuery?.current ?? []);
@@ -780,7 +780,7 @@
 	/**
 	 * The plan half is editable on any day the payroll lock does not hold. There is no draft month
 	 * and no publication freeze: a plan write must leave the month's WORK-day count and paid
-	 * minutes equal to what the work pattern projects, and `work_days/+hooks.ts` refuses one that
+	 * minutes equal to what the work pattern projects, and `work_days/+collection.ts` refuses one that
 	 * does not. Consumed and paid days stay read-only through the payroll lock.
 	 */
 	const daySheetPlanLocked = $derived(!matrixMutationReady);
@@ -843,7 +843,7 @@
 	 *
 	 * The board checks exactly one thing before arming a swap: the payroll lock, because a frozen
 	 * day is a fact the board has already drawn and the gesture should not exist there. Everything
-	 * else — leave ownership, shift overlap, the month's pattern conformance — is the write hook's
+	 * else — leave ownership, shift overlap, the month's pattern conformance — is the transform's
 	 * to refuse. Running those checks here too was a second copy of the server's judgement that
 	 * could drift from it; the server's refusal names its cause in the failure toast, and the
 	 * single two-row mutation is what lets the server see the pair whole.
@@ -1057,22 +1057,43 @@
 
 						const fromExisting = workDayByKey.get(personDayKey(from.employmentId, from.date));
 						const toExisting = workDayByKey.get(personDayKey(to.employmentId, to.date));
+						// One batch when both cells are rows, or neither: the month is judged whole. A
+						// mixed pair is two writes, so a WORK/REST swap onto a missing cell is judged one
+						// cell at a time and may be refused by the month rule.
+						// ponytail: a mixed pair is two batches; one write needs a create+update graph
+						const swaps = [
+							{
+								existing: fromExisting,
+								employmentId: from.employmentId,
+								date: from.date,
+								code: toCodeId
+							},
+							{
+								existing: toExisting,
+								employmentId: to.employmentId,
+								date: to.date,
+								code: fromCodeId
+							}
+						];
+						const creates = swaps
+							.filter((cell) => cell.existing == null)
+							.map((cell) => ({
+								employment_id: cell.employmentId,
+								work_date: cell.date,
+								shift_definition_id: cell.code
+							}));
+						const updates = swaps
+							.filter((cell) => cell.existing != null)
+							.map((cell) => ({ id: cell.existing!.id, shift_definition_id: cell.code }));
 						Effect.runFork(
 							submitCollectionMutation(() =>
-								client.db.work_days.mutate([
-									{
-										...(fromExisting == null
-											? { employment_id: from.employmentId, work_date: from.date }
-											: { id: fromExisting.id }),
-										shift_definition_id: toCodeId
-									},
-									{
-										...(toExisting == null
-											? { employment_id: to.employmentId, work_date: to.date }
-											: { id: toExisting.id }),
-										shift_definition_id: fromCodeId
-									}
-								])
+								creates.length === 0
+									? client.collection.work_days.updateMany(updates)
+									: updates.length === 0
+										? client.collection.work_days.createMany(creates)
+										: client.collection.work_days
+												.createMany(creates)
+												.then(() => client.collection.work_days.updateMany(updates))
 							).pipe(
 								Effect.tap((submission) =>
 									Effect.sync(() => {

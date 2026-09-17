@@ -67,10 +67,10 @@ test(
 			await session.query(
 				`insert into leave_catalogue
 				   (id, settings_id, code, name, authority, eligibility,
-				    destination, direction, evidence, paid, evidence_after_days,
+				    evidence, is_npl, can_encash, evidence_after_days,
 				    entitlement, approval_id, created_at, updated_at)
 				 select $1, $2, code, name, authority, eligibility,
-				        destination, direction, evidence, paid, evidence_after_days,
+				        evidence, is_npl, can_encash, evidence_after_days,
 				        entitlement, null, created_at, updated_at
 				   from leave_catalogue where code = 'ANNUAL' and settings_id = $3`,
 				[OLD_ANNUAL_ID, OLD_VERSION_ID, JURISDICTION_ID]

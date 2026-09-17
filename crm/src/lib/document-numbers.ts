@@ -21,3 +21,20 @@ export function nextDocNo(
 	}
 	return `${seriesPrefix}${String(highest + 1).padStart(DOC_NO_SEQUENCE_WIDTH, '0')}`;
 }
+
+/**
+ * Hands out document numbers to one batch, each past the last: a transform that creates several
+ * documents in one call numbers them consecutively from what the series already holds.
+ */
+export function docNoSeries(
+	existingNumbers: readonly string[],
+	prefix: string,
+	year: number
+): () => string {
+	const issued = [...existingNumbers];
+	return () => {
+		const number = nextDocNo(issued, prefix, year);
+		issued.push(number);
+		return number;
+	};
+}

@@ -962,6 +962,15 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 			},
 			limit: MAX_RELATED_ROWS
 		});
+		// A photo is filed before its bytes are inspected; its facts land through the
+		// `inspect_photo_evidence` automation. Judging an assignment on an unhashed photo would read
+		// an empty fingerprint as evidence, so the assignment stays unchecked until the next run.
+		const uninspected = photos.find((photo) => photo.sha256 === '');
+		if (uninspected !== undefined) {
+			return yield* Effect.fail(
+				new Error(`Photo evidence ${uninspected.id} has not been inspected yet.`)
+			);
+		}
 		const communications = yield* api.db.communication_logs.findMany({
 			where: { job_assignment_id: { eq: assignment.id } },
 			columns: {
@@ -1038,52 +1047,56 @@ export function reviewAssignmentSuspicion(
 		lifecycle.inferenceSucceeded?.(assignment.id);
 		const reviewedAt = (yield* currentDate).toISOString();
 		/**
-		 * Write, then read the judgement back by the key that makes it unique.
+		 * Write, and on a lost race read the winner's judgement back by the key that makes it unique.
 		 *
-		 * `mutate` answers with nothing, so the row this wrote is found the same way a row an earlier
-		 * attempt wrote is found: `(job_assignment_id, basis_hash)` identifies exactly one review. The
-		 * write is allowed to fail for that reason — a concurrent attempt won the unique index — and
-		 * the read below then returns the winner's row, which is the same answer this call would have
-		 * produced. A read that finds nothing after either outcome is a real failure, not a race.
+		 * `create` answers with the committed row. The write is allowed to fail for one reason — a
+		 * concurrent attempt won the `(job_assignment_id, basis_hash)` unique index — and the read
+		 * below then returns the winner's row, which is the same answer this call would have
+		 * produced. A read that finds nothing after a failed write is a real failure, not a race.
 		 */
-		const reviewIdentity = {
-			where: {
-				job_assignment_id: { eq: assignment.id },
-				basis_hash: { eq: basisHash }
-			},
-			columns: {
-				id: true,
-				basis: true,
-				suspicious: true,
-				reason: true,
-				evidence_id: true
-			}
-		} as const;
 		let persistenceError: unknown;
-		const created = yield* api.db.suspicion_reviews
-			.mutate([
-				{
-					job_assignment_id: assignment.id,
-					basis_hash: basisHash,
-					basis,
-					suspicious: decision.suspicious,
-					reason: decision.reason,
-					evidence_id: decision.evidence_id,
-					model: SUSPICION_REVIEW_MODEL,
-					reviewed_at: reviewedAt,
-					source_key: reviewSourceKey(assignment.id, basisHash)
-				}
-			])
+		const created = yield* api.collection.suspicion_reviews
+			.create({
+				job_assignment_id: assignment.id,
+				basis_hash: basisHash,
+				basis,
+				suspicious: decision.suspicious,
+				reason: decision.reason,
+				evidence_id: decision.evidence_id,
+				model: SUSPICION_REVIEW_MODEL,
+				reviewed_at: reviewedAt,
+				source_key: reviewSourceKey(assignment.id, basisHash)
+			})
 			.pipe(
-				Effect.as(true as const),
+				Effect.map((row) => ({
+					id: row.id,
+					basis: row.basis,
+					suspicious: row.suspicious,
+					reason: row.reason,
+					evidence_id: row.evidence_id
+				})),
 				Effect.catch((error: unknown) =>
 					Effect.sync(() => {
 						persistenceError = error;
-						return false as const;
+						return undefined;
 					})
 				)
 			);
-		const review = yield* api.db.suspicion_reviews.findFirst(reviewIdentity);
+		const review =
+			created ??
+			(yield* api.db.suspicion_reviews.findFirst({
+				where: {
+					job_assignment_id: { eq: assignment.id },
+					basis_hash: { eq: basisHash }
+				},
+				columns: {
+					id: true,
+					basis: true,
+					suspicious: true,
+					reason: true,
+					evidence_id: true
+				}
+			}));
 		if (review == null) {
 			return yield* Effect.fail(
 				toError(
@@ -1095,17 +1108,9 @@ export function reviewAssignmentSuspicion(
 			);
 		}
 		lifecycle.reviewPersisted?.(assignment.id);
-		const persistedDecision = created
-			? {
-					basis,
-					suspicious: decision.suspicious,
-					reason: decision.reason,
-					evidence_id: decision.evidence_id
-				}
-			: review;
-		if (!persistedDecision.suspicious) {
+		if (!review.suspicious) {
 			return {
-				status: created ? ('clear' as const) : ('clear_existing' as const),
+				status: created !== undefined ? ('clear' as const) : ('clear_existing' as const),
 				review_id: review.id
 			};
 		}
@@ -1143,27 +1148,14 @@ export function reviewAssignmentSuspicion(
 			};
 		}
 
-		yield* api.db.suspicious_activity_logs.mutate([
-			{
-				job_assignment_id: assignment.id,
-				origin: 'automation',
-				basis: persistedDecision.basis,
-				review_id: review.id,
-				evidence_id: persistedDecision.evidence_id,
-				reason: persistedDecision.reason
-			}
-		]);
-		// One log per review, which is the query two branches above already rely on to decide that a
-		// log exists — so it is also how the log just written is identified.
-		const log = yield* api.db.suspicious_activity_logs.findFirst({
-			where: { review_id: { eq: review.id } },
-			columns: { id: true }
+		const log = yield* api.collection.suspicious_activity_logs.create({
+			job_assignment_id: assignment.id,
+			origin: 'automation',
+			basis: review.basis,
+			review_id: review.id,
+			...(review.evidence_id === null ? {} : { evidence_id: review.evidence_id }),
+			reason: review.reason
 		});
-		if (log == null) {
-			return yield* Effect.fail(
-				new Error('The suspicion log was written but could not be read back by its review id.')
-			);
-		}
 		return { status: 'suspicious' as const, review_id: review.id, log_id: log.id };
 	});
 }

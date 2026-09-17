@@ -139,19 +139,17 @@ export function prepareWorkCatalogue(options: {
 	});
 }
 
-/** Read current Work days, the monthly rosters of record over the span, and source-month allowance rosters. */
+/** Read current Work days and the monthly rosters of record over the span. */
 export function prepareWorkInputs(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly employmentIds: readonly string[];
 	readonly complianceSpan: PayRange;
-	readonly allowanceConfigurations: ReadonlyMap<string, Configuration>;
-	readonly allowanceMonthsByEmployment: ReadonlyMap<string, ReadonlySet<string>>;
 }): Effect.Effect<{
 	readonly workDaysByEmployment: ReadonlyMap<string, EmploymentBundle['workDays']>;
 	readonly rostersByEmployment: ReadonlyMap<string, EmploymentBundle['rosters']>;
 }> {
 	return Effect.gen(function* () {
-		const { complianceSpan, allowanceConfigurations, allowanceMonthsByEmployment } = options;
+		const { complianceSpan } = options;
 		const db = options.api.db;
 		const approved = { approval_id: { isNull: true } } as const;
 		const [workDayRows, rosterRows] = yield* Effect.all(
@@ -190,30 +188,7 @@ export function prepareWorkInputs(options: {
 			}),
 			(row) => row.employment_id
 		);
-		// A late allowance is measured on its source month's roster, so those rows are read too —
-		// only where the source month's law prorates by working days, because nothing else asks.
-		const historicalWorkDays: Array<EmploymentBundle['workDays'][number]> = [];
-		for (const [sourceMonth, source] of allowanceConfigurations) {
-			if (source.work.proration.by !== 'WORKING_DAYS') continue;
-			const span = monthBounds(sourceMonth);
-			const rows = yield* db.work_days.findMany({
-				where: {
-					employment_id: {
-						in: [...allowanceMonthsByEmployment]
-							.filter(([, months]) => months.has(sourceMonth))
-							.map(([id]) => id)
-					},
-					work_date: { gte: span.start, lt: addDays(span.end, 1) },
-					...approved
-				},
-				limit: PAGE_LIMIT
-			});
-			options.api.reads.assertComplete(rows, 'Allowance source-month work days');
-			historicalWorkDays.push(...live(rows));
-		}
-		const workDays = new Map(
-			[...live(workDayRows), ...historicalWorkDays].map((row) => [row.id, row])
-		);
+		const workDays = new Map(live(workDayRows).map((row) => [row.id, row]));
 		return {
 			workDaysByEmployment: Map.groupBy([...workDays.values()], (row) => row.employment_id),
 			rostersByEmployment: new Map(
@@ -267,6 +242,8 @@ function rosteredWorkload(options: {
 	readonly days: EmploymentBundle['workDays'];
 	readonly configuration: Configuration;
 	readonly window: PayRange;
+	/** The contract's `agreed_days_per_week`: the roster's normal week is its shift × these days. */
+	readonly daysPerWeek: number;
 }): PatternWorkload {
 	let workDays = 0;
 	let paidMinutes = 0;
@@ -295,11 +272,15 @@ function rosteredWorkload(options: {
 			reference_days: referenceDays,
 			average_weekly_paid_minutes: 0
 		};
+	// A rostered person's normal day is the shift's paid hours, and the normal week is that day
+	// over the contract's agreed days — never the minutes a month's roster happened to hold spread
+	// over its calendar, which priced the same salary at a different hourly rate every month
+	// (EA s.60I(1)(c): the ordinary rate over the normal hours of work).
 	return {
 		work_days: workDays,
 		paid_minutes: paidMinutes,
 		reference_days: referenceDays,
-		average_weekly_paid_minutes: (paidMinutes * 7) / referenceDays
+		average_weekly_paid_minutes: (paidMinutes / workDays) * options.daysPerWeek
 	};
 }
 
@@ -321,7 +302,8 @@ function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
 		rosteredWorkload({
 			days: options.workDays,
 			configuration: options.configuration,
-			window: options.window
+			window: options.window,
+			daysPerWeek: decodeNumber(options.terms.agreed_days_per_week)
 		})
 	);
 }
@@ -332,18 +314,22 @@ function asRateTerms(
 ): RateTerms {
 	const salary = baseSalaryOf(terms);
 	const frequency = payFrequency(terms.pay_frequency);
-	// Ad-hoc DAILY/HOURLY with no scheduled days has no weekly pattern to annualise from. Base
-	// pay is earned units and never touches this, so the fallback only resolves the overtime and
-	// day-wage rates against a neutral five-day, forty-hour week. Monthly staff never land here:
-	// a MONTHLY rostered zero is refused at precheck, and a patterned zero keeps the historical
-	// throw in `normalDailyHours`.
-	const adHocZero = workload.work_days <= 0 && (frequency === 'DAILY' || frequency === 'HOURLY');
-	const workingDaysPerWeek = adHocZero ? 5 : (workload.work_days * 7) / workload.reference_days;
+	// No scheduled days is no weekly pattern to annualise hours from: an ad-hoc DAILY or HOURLY
+	// month with no rows, or a deferred joiner priced through `measureArrears` over a window their
+	// roster does not reach. Base pay is earned units or a proration and never touches this, so
+	// the fallback only resolves the overtime and day-wage rates against a neutral forty-hour
+	// week — at any frequency, because a zero here is an infinite hourly rate and a run refused
+	// at the rounding step for an amount nobody can see.
+	//
+	// The days a week are the contract's own `agreed_days_per_week`, never counted off a pattern
+	// or a roster: a rostered person is not ad hoc, and a divisor read off the days a roster
+	// happened to hold priced the same salary at a different day rate every month.
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
 		pay_frequency: frequency,
-		ordinary_hours_per_week: adHocZero ? 40 : workload.average_weekly_paid_minutes / 60,
-		working_days_per_week: workingDaysPerWeek
+		ordinary_hours_per_week:
+			workload.work_days > 0 ? workload.average_weekly_paid_minutes / 60 : 40,
+		working_days_per_week: decodeNumber(terms.agreed_days_per_week)
 	};
 }
 
@@ -450,7 +436,16 @@ export function prepareWorkContext(
 			rosters: bundle.rosters,
 			configuration
 		});
-		const days = dates.filter((date) => prorationSchedule.get(date)?.dayType === 'ORDINARY').length;
+		// A public holiday that falls on a scheduled working day is a working day, in the numerator
+		// and the divisor alike (SG EA s.20A / MOM: the days required to work "include public
+		// holidays"; VN Decree 145/2020 art.54(1)(a) counts the same). One that falls on a rest day
+		// is neither.
+		const days = dates.filter((date) => {
+			const day = prorationSchedule.get(date);
+			return (
+				day?.dayType === 'ORDINARY' || (day?.dayType === 'PUBLIC_HOLIDAY' && day.shift != null)
+			);
+		}).length;
 		workingDaysCache.set(key, days);
 		return days;
 	};
@@ -603,7 +598,9 @@ export function calculateWorkAttendance(
 			workDayId: derived.workDayId,
 			date: derived.date,
 			dayType: derived.dayType,
-			workedHours: derived.totalWorkHours,
+			// Net of the unpaid statutory break the day owed and did not take: a rest-day clock the
+			// break is not working time on is priced from the start over the payable hours.
+			workedHours: derived.totalWorkHours - derived.restBreakDeductedHours,
 			normalHours: derived.normalHours,
 			overtimeHours: derived.hours,
 			breakMinutes: clocked.break_minutes,
@@ -704,7 +701,8 @@ export function calculateWorkAttendance(
 					catalogueComponents: configuration.catalogueComponents,
 					subject,
 					dayWage: absenceDayWage,
-					days: absentDays
+					days: absentDays,
+					currency: options.work.currency
 				});
 
 	// ── the night premium: the regime's window, priced per day on this run's attendance ────────
@@ -736,12 +734,14 @@ export function calculateWorkAttendance(
 			person: subject,
 			days: pricedBandDays,
 			rates: { ordinaryHour: hourlyRate, ordinaryDay: dayWage, dayWage },
-			catalogueComponents: configuration.catalogueComponents
+			catalogueComponents: configuration.catalogueComponents,
+			currency: options.work.currency
 		}),
 		days: pricedBandDays,
 		limits: configuration.limits,
 		prior: options.priorOvertimeHours ?? new Map(),
-		catalogueComponents: configuration.catalogueComponents
+		catalogueComponents: configuration.catalogueComponents,
+		currency: options.work.currency
 	});
 	for (const [month, hours] of capped.funnelledHours)
 		calendarMonthOvertimeHours.set(month, (calendarMonthOvertimeHours.get(month) ?? 0) - hours);
@@ -754,7 +754,8 @@ export function calculateWorkAttendance(
 					days: nightDays,
 					hourlyRate,
 					catalogueComponents: configuration.catalogueComponents,
-					subject
+					subject,
+					currency: options.work.currency
 				})),
 		...absentAdjustments
 	];
@@ -776,7 +777,9 @@ export function calculateWorkAttendance(
 		capturedWorkDayIds,
 		overtimeDays,
 		calendarMonthOvertimeHours,
-		nightShiftHours
+		nightShiftHours,
+		/** The rostered days with no punch and no leave, for an allowance that loses unpaid days. */
+		absentDays
 	};
 }
 
@@ -798,6 +801,7 @@ function measureWorkComponent(
 	if (definition == null)
 		throw new Error(`Component ${options.component.code} has no definition to measure.`);
 	const bucket = settlementBucket(options.component.destination, options.component.direction);
+	const currency = options.configuration.jurisdiction.payroll.currency;
 
 	/**
 	 * The terms covering one calendar day, clamped to the contracted span: days past the contract
@@ -883,12 +887,38 @@ function measureWorkComponent(
 		 * than being left as a cent nobody can account for. `payslip_proration` says the segments
 		 * sum; this is what makes that true rather than nearly true.
 		 */
-		const amount = cents(measured.reduce((total, entry) => total + entry.exact, 0));
+		/**
+		 * A fixed factor caps the MONTH (or the instalment), not each terms row. Two rows split on
+		 * the 24th measured 16 + 7 = 23 working days over 21.75 and paid 105.75% of a month; the
+		 * DOLE factor is what a whole month is worth, so the rows are scaled to it together and
+		 * the segments a payslip stores still sum to what was paid.
+		 */
+		const capped = ((): typeof measured => {
+			if (measured.length < 2 || measured.some((entry) => entry.segment.basis.by !== 'FIXED_DAYS'))
+				return measured;
+			const cap = measured[0]!.segment.denominator / (closingFrequency === 'SEMI_MONTHLY' ? 2 : 1);
+			const total = measured.reduce((sum, entry) => sum + entry.segment.days, 0);
+			if (total <= cap) return measured;
+			return measured.map((entry) => {
+				const days = (entry.segment.days * cap) / total;
+				return {
+					...entry,
+					segment: { ...entry.segment, days },
+					exact: entry.contract * (days / entry.segment.denominator)
+				};
+			});
+		})();
+		const amount = cents(
+			capped.reduce((total, entry) => total + entry.exact, 0),
+			currency
+		);
 		let allocated = 0;
-		const segments: PayslipProration[] = measured.map((entry, index) => {
+		const segments: PayslipProration[] = capped.map((entry, index) => {
 			const prorated =
-				index === measured.length - 1 ? cents(amount - allocated) : cents(entry.exact);
-			allocated = cents(allocated + prorated);
+				index === capped.length - 1
+					? cents(amount - allocated, currency)
+					: cents(entry.exact, currency);
+			allocated = cents(allocated + prorated, currency);
 			return {
 				term_key: entry.termKey,
 				from: entry.segment.from,
@@ -977,7 +1007,7 @@ function measureWorkComponent(
 			const rate = decodeNumber(baseSalaryOf(dayTerms).value);
 			exact += frequency === 'DAILY' ? rate * (hours / scheduledHours) : hours * rate;
 		}
-		const amount = cents(exact);
+		const amount = cents(exact, currency);
 		return {
 			amount,
 			base: [baseLine(options.component, bucket, amount)],
@@ -1016,6 +1046,7 @@ function measureAbsence(options: {
 	readonly subject: PersonContext;
 	readonly dayWage: number;
 	readonly days: readonly { readonly id: string; readonly date: string; readonly days: number }[];
+	readonly currency: string;
 }): MeasuredAdjustment[] {
 	if (options.days.length === 0) return [];
 	const dates = options.days
@@ -1043,7 +1074,7 @@ function measureAbsence(options: {
 		catalogueComponent: component,
 		bucket: settlementBucket(component.destination, component.direction),
 		label: component.code,
-		amount: cents(options.dayWage * day.days),
+		amount: cents(options.dayWage * day.days, options.currency),
 		quantity: day.days,
 		rate: cents(options.dayWage),
 		statutoryRuleKey: null
@@ -1065,6 +1096,7 @@ function measureNightPremium(options: {
 	readonly hourlyRate: number;
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly subject: PersonContext;
+	readonly currency: string;
 }): MeasuredAdjustment[] {
 	if (options.days.length === 0) return [];
 	const component = options.catalogueComponents.find(
@@ -1075,7 +1107,8 @@ function measureNightPremium(options: {
 	const { ordinary_add, overtime_add } = options.premium;
 	return options.days.flatMap((day) => {
 		const amount = cents(
-			options.hourlyRate * ((day.ordinary * ordinary_add + day.overtime * overtime_add) / 100)
+			options.hourlyRate * ((day.ordinary * ordinary_add + day.overtime * overtime_add) / 100),
+			options.currency
 		);
 		if (amount === 0) return [];
 		return [
@@ -1111,6 +1144,7 @@ function measureWorkBands(options: {
 		readonly dayWage: number;
 	};
 	readonly catalogueComponents: readonly CatalogueComponent[];
+	readonly currency: string;
 }): MeasuredAdjustment[] {
 	const byOutput = new Map(
 		options.catalogueComponents
@@ -1135,7 +1169,7 @@ function measureWorkBands(options: {
 				catalogueComponent: component,
 				bucket: settlementBucket(component.destination, component.direction),
 				label: row.label,
-				amount: cents(row.amount),
+				amount: cents(row.amount, options.currency),
 				quantity: row.hours,
 				rate: row.rate,
 				statutoryRuleKey: row.ruleKey
@@ -1157,6 +1191,7 @@ export function funnelMonthlyOvertime(options: {
 	readonly limits: Configuration['limits'];
 	readonly prior: ReadonlyMap<string, number>;
 	readonly catalogueComponents: readonly CatalogueComponent[];
+	readonly currency: string;
 }): { readonly rows: MeasuredAdjustment[]; readonly funnelledHours: ReadonlyMap<string, number> } {
 	const limit = options.limits.find(
 		(candidate) => candidate.period === 'MONTH' && candidate.measure === 'OVERTIME_HOURS'
@@ -1202,9 +1237,13 @@ export function funnelMonthlyOvertime(options: {
 		}
 		funnelled.set(month, (funnelled.get(month) ?? 0) + excess);
 		const incentive = incentiveFor(row.label);
-		const excessAmount = cents((row.amount * excess) / hours);
+		const excessAmount = cents((row.amount * excess) / hours, options.currency);
 		if (hours - excess > 0)
-			rows.push({ ...row, quantity: hours - excess, amount: cents(row.amount - excessAmount) });
+			rows.push({
+				...row,
+				quantity: hours - excess,
+				amount: cents(row.amount - excessAmount, options.currency)
+			});
 		rows.push({
 			...row,
 			catalogueComponent: incentive,

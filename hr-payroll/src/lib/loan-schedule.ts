@@ -5,7 +5,7 @@ import { startOfDayInstant } from './ui/calendar.js';
 
 /**
  * One repayment line on the loan form. The matrix owns this draft; submit maps it onto the
- * nested `repayment_loan` graph. Amounts are never rewritten here. A new line starts empty
+ * nested `repayment_loan` actions. Amounts are never rewritten here. A new line starts empty
  * (`null`), which the schedule balance refuses before the write can.
  *
  * `sequence` is a stored key — `unique(loan_id, sequence)`, and the engine recovers repayments in
@@ -54,7 +54,7 @@ type LoanScheduleRow = {
 
 /**
  * Everything wrong with a repayment schedule, in one pass — the one statement of what a loan's
- * plan has to be, shared by the loans form and the `loan_repayments` write hook.
+ * plan has to be, shared by the loans form and the `loan_repayments` transform.
  *
  * Three invariants, and they are the schedule's whole contract:
  *
@@ -71,7 +71,7 @@ type LoanScheduleRow = {
  * refusal that names one problem at a time is a write refusal an importer meets three times.
  *
  * `principal` and `effectiveRange` are each judged only when stated. A caller that does not know
- * one of them — the loans form before a principal is typed, a hook that cannot see the agreement —
+ * one of them — the loans form before a principal is typed, a transform that cannot see the agreement —
  * gets the invariants it *can* be told about rather than a refusal about a fact nobody supplied.
  */
 export function loanScheduleRefusals(input: {
@@ -197,18 +197,36 @@ export function loanScheduleFromRows(
 	];
 }
 
-export function loanScheduleWriteRows(rows: readonly LoanRepaymentDraft[]): ReadonlyArray<{
-	readonly id: string;
-	readonly due_date?: string;
-	readonly amount_due?: number;
-	readonly sequence: number;
-}> {
-	return loanScheduleOrdered(rows).map((row) => ({
-		id: row.id,
+/**
+ * The schedule as explicit relation actions (RFC §4.3): a line the agreement already stores is an
+ * `update`, a new line a `create` with no id, and a stored line the matrix dropped a `delete`.
+ * Nothing is deleted by omission — the caller says which ids it loaded.
+ */
+export function loanScheduleActions(
+	rows: readonly LoanRepaymentDraft[],
+	storedIds: ReadonlySet<string>
+): {
+	readonly create: ReadonlyArray<{ due_date?: string; amount_due?: number; sequence: number }>;
+	readonly update: ReadonlyArray<{
+		id: string;
+		set: { due_date?: string; amount_due?: number; sequence: number };
+	}>;
+	readonly delete: ReadonlyArray<{ id: string }>;
+} {
+	const ordered = loanScheduleOrdered(rows);
+	const values = (row: LoanRepaymentDraft) => ({
 		...(row.due_date == null ? {} : { due_date: row.due_date }),
 		...(row.amount_due == null ? {} : { amount_due: row.amount_due }),
 		sequence: row.sequence
-	}));
+	});
+	const named = new Set(ordered.map((row) => row.id));
+	return {
+		create: ordered.filter((row) => !storedIds.has(row.id)).map(values),
+		update: ordered
+			.filter((row) => storedIds.has(row.id))
+			.map((row) => ({ id: row.id, set: values(row) })),
+		delete: [...storedIds].filter((id) => !named.has(id)).map((id) => ({ id }))
+	};
 }
 
 // ── generation ──────────────────────────────────────────────────────────────────────────────

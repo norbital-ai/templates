@@ -20,7 +20,7 @@
 		loanScheduleRefusals,
 		loanScheduleTotal,
 		SCHEDULE_IMBALANCED,
-		loanScheduleWriteRows,
+		loanScheduleActions,
 		type LoanRepaymentDraft
 	} from '../../lib/loan-schedule.js';
 	import { Button } from '@norbital-ai/ui/button';
@@ -34,12 +34,11 @@
 	 * The loan agreement, and the repayment lines it owns.
 	 *
 	 * The matrix is the schedule. An unbalanced sum is highlighted and blocks submit; amounts are
-	 * never rewritten. Submit sends the matrix as `repayment_loan`, the loan's complete desired
-	 * set: a row dropped from the matrix is a stored repayment the cascade-owned relationship
-	 * deletes.
+	 * never rewritten. Submit sends the matrix as explicit `repayment_loan` actions: a stored line
+	 * is an update, a new line a create, and a stored line dropped from the matrix a delete.
 	 *
 	 * The line picker offers only the lines whose eligibility holds for the person today
-	 * (`EligibleTypes`); the hook holds the same rule on the day the agreement opens.
+	 * (`EligibleTypes`); the transform holds the same rule on the day the agreement opens.
 	 */
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -73,7 +72,7 @@
 
 	/**
 	 * The matrix shows the two facts the operator owns. `sequence` is not one of them: it is the
-	 * date order, renumbered on every write by `loanScheduleWriteRows`, and a column asking the
+	 * date order, renumbered on every write by `loanScheduleActions`, and a column asking the
 	 * operator to restate the sort is a column that can contradict it.
 	 */
 	const COLUMNS = [
@@ -120,11 +119,16 @@
 		form: { setValues: (values: Record<string, unknown>) => void }
 	) => {
 		schedule = [...rows];
-		form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
+		form.setValues({
+			repayment_loan: loanScheduleActions(
+				rows,
+				new Set((repaymentsQuery?.current ?? []).map((row) => row.id))
+			)
+		});
 	};
 
 	/**
-	 * Submit is blocked by the same function the write hook refuses with, and by every issue it
+	 * Submit is blocked by the same function the transform refuses with, and by every issue it
 	 * returns rather than the first — a schedule that is both a cent out and dated past the
 	 * agreement's end says so once, not across two round trips.
 	 *

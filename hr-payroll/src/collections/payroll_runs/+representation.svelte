@@ -3,7 +3,7 @@
 	 * Creating a payroll run is choosing two facts: which company, and which period.
 	 *
 	 * Everything else on the record — the attendance window, the pay date, the configuration hash,
-	 * the trace — is derived by the create hook, which is the only place that can see the
+	 * the trace — is derived by the collection's transform, which is the only place that can see the
 	 * whole governing configuration. The window shown here comes from the engine's own
 	 * `resolveWindow`, so the operator reads the same cutoff rule the run will be built with rather
 	 * than a second derivation of it.
@@ -11,7 +11,7 @@
 	 * The period is offered in the company's grammar. A monthly company picks a month from the
 	 * grid; a semi-monthly company picks a half ("Feb 2026 · 1–15" or "Feb 2026 · 16–28") from a
 	 * list, because a month grid has no cell for half of one. `resolveWindow` refuses the other
-	 * grammar, so the candidates it leaves are exactly the ones the hook would accept.
+	 * grammar, so the candidates it leaves are exactly the ones the transform would accept.
 	 *
 	 * A record opens on the run itself: the window it was built against and the payslips it
 	 * produced. The window, the configuration hash and the period are the engine's — they are shown,
@@ -38,7 +38,11 @@
 	import { Cluster, Cover, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { resolveWindow } from './lib/period.js';
-	import { formatCalendarDate, formatCalendarInstant } from '../../lib/ui/display-formatters.js';
+	import {
+		formatCalendarDate,
+		formatCalendarInstant,
+		formatNumeric
+	} from '../../lib/ui/display-formatters.js';
 	import { hrCreateScope } from '../../lib/ui/create-scope.js';
 	import {
 		companyPeriods,
@@ -229,6 +233,13 @@
 		payslipCount == null || payslipCount === 0 ? 0 : Math.round((paidCount / payslipCount) * 100)
 	);
 	const emptyDraft = $derived(record != null && payslipCount === 0);
+	/** The COMPANY-assessed schemes' employer total: the levy the run carries beside its payslips. */
+	const companyCharges = $derived(
+		(record?.company_charges ?? []).reduce(
+			(total, charge) => total + Number(charge.employer_amount),
+			0
+		)
+	);
 	/** What the engine noticed but did not refuse, one sentence per line, frozen with the run. */
 	const warnings = $derived(
 		typeof record?.warnings === 'string' && record.warnings !== ''
@@ -316,6 +327,14 @@
 						<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
 						<dd class="font-medium tabular-nums">{formatCalendarInstant(record.pay_date)}</dd>
 					</Stack>
+					{#if companyCharges > 0}
+						<Stack gap="xs">
+							<dt class="text-meta">{t('component.company_charges')}</dt>
+							<dd class="font-medium tabular-nums" data-company-charges>
+								{formatNumeric(companyCharges)}
+							</dd>
+						</Stack>
+					{/if}
 				</Grid>
 			</Stack>
 
@@ -381,7 +400,7 @@
 						getDisabledReason: paidSelected,
 						run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
 							submitCollectionMutation(() =>
-								client.db.payslips.mutate(statusRows(selectedRows, 'ON_HOLD'))
+								client.collection.payslips.updateMany(statusRows(selectedRows, 'ON_HOLD'))
 							).pipe(Effect.catch(slipActionFailed))
 					},
 					{
@@ -393,7 +412,7 @@
 						getDisabledReason: paidSelected,
 						run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
 							submitCollectionMutation(() =>
-								client.db.payslips.mutate(statusRows(selectedRows, 'DRAFT'))
+								client.collection.payslips.updateMany(statusRows(selectedRows, 'DRAFT'))
 							).pipe(Effect.catch(slipActionFailed))
 					},
 					{
@@ -405,7 +424,7 @@
 						getDisabledReason: paidSelected,
 						run: ({ selectedRows }: { selectedRows: readonly PayrollRunPayslipRow[] }) =>
 							submitCollectionMutation(() =>
-								client.db.payslips.mutate(statusRows(selectedRows, 'PAID'))
+								client.collection.payslips.updateMany(statusRows(selectedRows, 'PAID'))
 							).pipe(Effect.catch(slipActionFailed))
 					}
 				]}

@@ -59,17 +59,20 @@ site → jobs → job assignment → user (the assignee)
 
 ### The evidence integrity pipeline
 
-Every photo, from every entry path (workspace upload or channel), passes through the same
-the new-record branch of the `photo_evidence` mutate hooks:
+Every photo, from every entry path, passes through the same pipeline: the `photo_evidence`
+collection files it (exactly one parent, immutable provenance) and the `inspect_photo_evidence`
+automation, started on the row's `created` event, reads the bytes and writes the facts:
 
 1. **Ingest** — JPEG/PNG only, exactly one parent (assignment or variation), SHA-256 fingerprint,
    Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals. The
    selected asset, parent, and source provenance become immutable: correcting a filing requires new
-   evidence so every check runs again.
-2. **Duplicate check** — the mutate `after` hook compares the new photo against everything already
-   stored: exact SHA-256 matches, and perceptual near-duplicates via `findNearest` on a 256-dim 0/1
-   vector indexed with HNSW (L2 metric, threshold √31 ≈ PDQ Hamming 31). Matches are recorded as
-   `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
+   evidence so every check runs again. A row is born uninspected (empty hash) and the automation
+   fills it in; the suspicion review leaves an assignment unchecked until every photo on it carries
+   a hash.
+2. **Duplicate check** — the automation compares the new photo against everything already stored:
+   perceptual near-duplicates via `findNearest` on a 256-dim 0/1 vector indexed with HNSW (L2
+   metric, threshold √31 ≈ PDQ Hamming 31), recorded as a `visual_duplicate` flag with the matched
+   evidence ids; exact SHA-256 matches are reported by the review as `exact_duplicate`.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
 4. **Flags are evidence, not a verdict.** `metadata_anomaly`, `edited_metadata` and `low_quality`
@@ -169,8 +172,8 @@ stay live without a remote query handler or refresh control.
 src/
 ├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
 ├── envoys/                         +field_ops_whatsapp.ts
-├── access/policies/                the five policies and the variation approval flow
-├── collections/                    models, relationships, hooks, pipelines, representations
+├── access/policies/                the seven policies and the variation approval flow
+├── collections/                    models, relationships, write contracts (+collection.ts), pipelines, representations
 │   ├── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
 │   ├── suspicion_reviews/          the review ledger (controller-only)
 │   └── suspicious_activity_logs/   the suspicion judgements and their controller resolution
@@ -178,21 +181,25 @@ src/
 │   └── photo_source/               where a photo came from: workspace upload or an envoy message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/                            typed workspace client shared by server roles
-├── automations/                    +review_job_assignment_suspicion.ts and the shared suspicion-review.ts
+├── automations/                    the suspicion review, photo inspection, and the job-progress rollups
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
 its job scope, activity, variations, and photo evidence together; opening a site separates upcoming
-jobs from activity history. Hooks carry the domain rules so they apply to every client, function,
-and agent — not only the UI:
+jobs from activity history. Each collection's `+collection.ts` declares what a caller may submit
+and its transform carries the domain rules, so they apply to every client, function, and agent —
+not only the UI:
 
 - A job must reference an existing site; an assignment must reference an existing job and a real
   workspace user, and be unique per job.
 - `source_message_id` is an idempotency key for inbound assignments and variations.
-- Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance is
-  recorded as an evidence fact and never sets `suspect`; completion advances the job state.
-- Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded;
-  its asset, parent, and envoy provenance cannot be swapped after those checks settle.
+- Assignment identity is not an update input, so a dispatched assignment cannot be moved; a
+  reported location beyond the site tolerance is recorded as an evidence fact and never sets
+  `suspect`; completion is carried onto the job by the `job_assignments` change automations.
+- Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded by
+  the inspection automation; its asset, parent, and provenance cannot be swapped after filing.
+- Communication logs and suspicion reviews declare no `update` and no `delete`: immutable by
+  construction. A suspicion log's judgement is not an update input; only its resolution is.
 
 ### How photo integrity works
 

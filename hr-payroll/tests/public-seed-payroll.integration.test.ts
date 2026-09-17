@@ -4,10 +4,10 @@ import {
 	asRecord,
 	authoredSeedStages,
 	bearerHeaders,
-	mutationPush,
 	postGuestCommand,
 	requireAccepted
 } from '@norbital-ai/test-utilities';
+import { WRITE_COMMAND, createdIds, writeRows } from './helpers/write.ts';
 import {
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
@@ -20,7 +20,7 @@ import {
 	templateManifestPath
 } from './helpers/public-seed-host.ts';
 
-const CREATE_PAYROLL_COMMAND = 'collections.mutate';
+const CREATE_PAYROLL_COMMAND = WRITE_COMMAND;
 
 const statutoryLines = (value: unknown): ReadonlyArray<Readonly<Record<string, unknown>>> => {
 	if (typeof value === 'string') {
@@ -39,7 +39,7 @@ const statutoryLines = (value: unknown): ReadonlyArray<Readonly<Record<string, u
 
 /**
  * T4: public-seed integration creates a payroll run (N payslips, 0 orphans) on bolt-server.
- * Not the in-memory createPublicPayrollWorld + hooks path.
+ * Not the in-memory createPublicPayrollWorld + transform path.
  */
 test(
 	'public seed on bolt-server creates a payroll run with N payslips and no orphans',
@@ -56,7 +56,6 @@ test(
 				'leave_catalogue',
 				'claim_catalogue',
 				'allowance_catalogue',
-				'payment_catalogue',
 				'employees',
 				'shift_definitions',
 				'jurisdiction_holidays',
@@ -65,7 +64,7 @@ test(
 				'employment_statutory_facts',
 				'employment_terms',
 				'leave_entries',
-				'allowance_requests'
+				'allowances'
 			]
 		);
 
@@ -96,31 +95,15 @@ test(
 				`expected public non-citizen employee bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb4, got ${JSON.stringify(nonCitizen)}`
 			);
 
-			const payrollRunId = crypto.randomUUID();
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				CREATE_PAYROLL_COMMAND,
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'payroll_runs',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: payrollRunId,
-								company_id: COMPANY_ID,
-								period: JANUARY_2026
-							}
-						}
-					]
-				}),
-				{ authorization: `Bearer ${session.credential}` }
-			);
+			const created = await writeRows(session, 'payroll_runs', 'create', [
+				{ company_id: COMPANY_ID, period: JANUARY_2026 }
+			]);
 			assert.ok(
 				created.status >= 200 && created.status < 300,
 				`${CREATE_PAYROLL_COMMAND} returned ${created.status}: ${JSON.stringify(created.value)}`
 			);
 			requireAccepted(created.value, CREATE_PAYROLL_COMMAND);
+			const [payrollRunId] = createdIds(created.value);
 
 			const payslips = (await session.query(
 				`select id, employment_id, statutory from payslips where payroll_run_id = $1`,
@@ -163,9 +146,9 @@ test(
 );
 
 /**
- * H11: HQ Payroll HR may raise `payroll_runs.mutate.new`. create.before nests the payslips as the
- * workspace's own work, so the controller needs no grant on them and none is held; the run
- * itself stays held on the controller's approval route.
+ * H11: HQ Payroll HR may raise `payroll_runs.mutate.new`. The run's transform nests the payslips
+ * as the workspace's own work, so the controller needs no grant on them; the run and its slips
+ * are committed provisionally and held on the controller's approval route.
  */
 test(
 	'public seed HQ Payroll HR payroll create is held, not refused on payslip writes',
@@ -192,24 +175,11 @@ test(
 				true,
 				`H11 preview: ${JSON.stringify(preview.value)}`
 			);
-			const payrollRunId = crypto.randomUUID();
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				CREATE_PAYROLL_COMMAND,
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'payroll_runs',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: payrollRunId,
-								company_id: COMPANY_ID,
-								period: FEBRUARY_2026
-							}
-						}
-					]
-				}),
+			const created = await writeRows(
+				session,
+				'payroll_runs',
+				'create',
+				[{ company_id: COMPANY_ID, period: FEBRUARY_2026 }],
 				previewHeaders
 			);
 			assert.ok(
@@ -235,10 +205,14 @@ test(
 			const approval = asRecord(pending, 'H11 pendingApproval');
 			assert.equal(approval.collection, 'payroll_runs');
 			assert.equal(approval.action, 'create');
-			const inserted = (await session.query(`select id from payroll_runs where id = $1`, [
-				payrollRunId
-			])) as ReadonlyArray<{ readonly id: string }>;
-			assert.deepEqual(inserted, [], 'approval-gated payroll create must not insert the run');
+			// The proposal is committed provisionally under the hold: the run stands, stamped with
+			// the request, until the flow seals or restores it.
+			const inserted = (await session.query(
+				`select id, approval_id from payroll_runs where id = $1`,
+				[String(approval.id)]
+			)) as ReadonlyArray<{ readonly id: string; readonly approval_id: string | null }>;
+			assert.equal(inserted.length, 1, 'a gated create is committed provisionally');
+			assert.equal(inserted[0]?.approval_id, String(approval.requestId));
 		} finally {
 			await session.stop();
 		}
@@ -263,24 +237,11 @@ test(
 				...bearerHeaders(session.credential),
 				'x-colony-impersonated-team': 'HR Manager'
 			};
-			const payrollRunId = crypto.randomUUID();
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				CREATE_PAYROLL_COMMAND,
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'payroll_runs',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: payrollRunId,
-								company_id: COMPANY_ID,
-								period: FEBRUARY_2026
-							}
-						}
-					]
-				}),
+			const created = await writeRows(
+				session,
+				'payroll_runs',
+				'create',
+				[{ company_id: COMPANY_ID, period: FEBRUARY_2026 }],
 				controllerHeaders
 			);
 			const payload = asRecord(created.value, 'H11 approve create');
@@ -292,6 +253,7 @@ test(
 			const approval = asRecord(payload.pendingApproval, 'H11 approve pending');
 			assert.equal(typeof approval.requestId, 'string');
 			const requestId = String(approval.requestId);
+			const payrollRunId = String(approval.id);
 
 			const controllerDecide = await postGuestCommand(
 				session.host.baseUrl,
@@ -341,27 +303,26 @@ test(
 			);
 
 			const loadRun = () =>
-				session.query(`select id from payroll_runs where id = $1`, [payrollRunId]) as Promise<
-					ReadonlyArray<{ readonly id: string }>
-				>;
+				session.query(`select id, approval_id from payroll_runs where id = $1`, [
+					payrollRunId
+				]) as Promise<ReadonlyArray<{ readonly id: string; readonly approval_id: string | null }>>;
 			let inserted = await loadRun();
-			if (inserted.length === 0) {
+			assert.equal(inserted.length, 1, `held run missing: ${JSON.stringify(inserted)}`);
+			if (inserted[0]?.approval_id != null) {
+				// The seal clears the stamp; the host dispatches it as a task, so drive it here.
 				const resumed = await postGuestCommand(
 					session.host.baseUrl,
 					'collections.resume',
 					{ requestId },
 					managerHeaders
 				);
-				const alreadyLanded =
-					resumed.status === 422 &&
-					JSON.stringify(resumed.value).includes('identity is already in use');
 				assert.ok(
-					(resumed.status >= 200 && resumed.status < 300) || alreadyLanded,
+					resumed.status >= 200 && resumed.status < 300,
 					`collections.resume ${resumed.status}: ${JSON.stringify(resumed.value)}`
 				);
 				inserted = await loadRun();
 			}
-			assert.equal(inserted.length, 1, `approved run missing: ${JSON.stringify(inserted)}`);
+			assert.equal(inserted[0]?.approval_id, null, 'the seal clears the hold');
 			const payslips = (await session.query(
 				`select count(*)::int as n from payslips where payroll_run_id = $1`,
 				[payrollRunId]
@@ -387,7 +348,7 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-a3-approval');
 		try {
 			const before = (await session.query(
-				`select count(*)::int as n from leave_entries where employment_id = $1`,
+				`select count(*)::int as n from leave_entries where employment_id = $1 and approval_id is null`,
 				[EMPLOYMENT_ID]
 			)) as ReadonlyArray<{ readonly n: number }>;
 			const previewHeaders = {
@@ -421,33 +382,23 @@ test(
 				true,
 				`A3 explain create leave_entries: ${JSON.stringify(explained.value)}`
 			);
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				CREATE_PAYROLL_COMMAND,
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'leave_entries',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: crypto.randomUUID(),
-								employment_id: EMPLOYMENT_ID,
-								catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-								reference: 'PUBLIC-PENDING-2026-04-15',
-								event: {
-									kind: 'TIME_OFF',
-									range: {
-										start: { date: '2026-04-15', half: 'FIRST' },
-										end: { date: '2026-04-15', half: 'SECOND' }
-									},
-									chargeable_days: null,
-									reason: null
-								}
-							}
-						}
-					]
-				}),
+			const created = await writeRows(
+				session,
+				'leave_entries',
+				'create',
+				[
+					{
+						employment_id: EMPLOYMENT_ID,
+						catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
+						reference: 'PUBLIC-PENDING-2026-04-15',
+						from_date: '2026-04-15',
+						to_date: '2026-04-15',
+						half_day_start: false,
+						half_day_end: false,
+						days: null,
+						reason: null
+					}
+				],
 				previewHeaders
 			);
 			assert.ok(
@@ -469,11 +420,16 @@ test(
 			assert.equal(approval.collection, 'leave_entries');
 			assert.equal(approval.action, 'create');
 			assert.equal(typeof approval.requestId, 'string');
+			// Committed provisionally: one more row, stamped with the request, until the flow decides.
 			const after = (await session.query(
-				`select count(*)::int as n from leave_entries where employment_id = $1`,
+				`select count(*)::int as n from leave_entries where employment_id = $1 and approval_id is null`,
 				[EMPLOYMENT_ID]
 			)) as ReadonlyArray<{ readonly n: number }>;
-			assert.equal(after[0]?.n, before[0]?.n, 'approval-gated create must not insert the row');
+			assert.equal(after[0]?.n, before[0]?.n, 'a gated create is not in force until sealed');
+			const held = (await session.query(`select approval_id from leave_entries where id = $1`, [
+				String(approval.id)
+			])) as ReadonlyArray<{ readonly approval_id: string | null }>;
+			assert.equal(held[0]?.approval_id, String(approval.requestId));
 		} finally {
 			await session.stop();
 		}

@@ -39,7 +39,7 @@ type TermPatternLike = {
  * The named pattern behind one terms row, or null when the terms name none.
  *
  * Every schedule question goes through here rather than through a `work_pattern` column: the
- * board, the employee's calendar, the write hooks, the leave preview, the payroll engine and its
+ * board, the employee's calendar, the transforms, the leave preview, the payroll engine and its
  * export all resolve the same pointer the same way, so a term cannot project one base on the
  * board and another in a payslip.
  */
@@ -162,4 +162,48 @@ export function patternWorkload(
 		reference_days: referenceDays,
 		average_weekly_paid_minutes: (paidMinutes * 7) / referenceDays
 	};
+}
+
+/**
+ * The WORK days of each week of a day cycle, in cycle order; empty for an expectation or no
+ * pattern. A cycle is whole weeks (`shift_patterns` refuses anything else), so every entry is one
+ * calendar week of the projection; a fixture cycle that is not — one day repeating — is read as
+ * its weekly rate.
+ */
+export function patternWorkDaysPerWeek(
+	pattern: WorkPattern | null,
+	rosterCodeById: ReadonlyMap<string, RosterCodeLike>
+): number[] {
+	if (pattern == null || !('days' in pattern)) return [];
+	const weeks: number[] = [];
+	for (const [index, day] of pattern.days.entries()) {
+		const code = rosterCodeById.get(day.roster_code_id);
+		if (code == null)
+			throw new Error(`Work pattern names missing roster code ${day.roster_code_id}.`);
+		if (index % 7 === 0) weeks.push(0);
+		if (rosterCodeKind(code.variant) === 'WORK') weeks[weeks.length - 1]! += 1;
+	}
+	const length = pattern.days.length;
+	if (length % 7 !== 0) return [(weeks.reduce((sum, days) => sum + days, 0) * 7) / length];
+	return weeks;
+}
+
+/**
+ * Why a shift assignment is refused, or null when it holds: the agreed days are a whole number
+ * from 1 to 7, and a named cycle works exactly that many days in each of its weeks. The terms
+ * transform refuses with this sentence; the change-terms flow shows it before submitting.
+ */
+export function shiftAssignmentRefusal(options: {
+	readonly agreedDaysPerWeek: unknown;
+	readonly pattern: ShiftPatternLike | null;
+	readonly rosterCodeById: ReadonlyMap<string, RosterCodeLike>;
+}): string | null {
+	const agreed = options.agreedDaysPerWeek;
+	if (typeof agreed !== 'number' || !Number.isInteger(agreed) || agreed < 1 || agreed > 7)
+		return 'Agreed working days per week must be a whole number from 1 to 7.';
+	if (options.pattern == null) return null;
+	const weeks = patternWorkDaysPerWeek(options.pattern.pattern, options.rosterCodeById);
+	const off = weeks.find((days) => days !== agreed);
+	if (off === undefined) return null;
+	return `Shift pattern ${options.pattern.code} works ${off} days in a week; the contract agrees ${agreed}. Pick a pattern of ${agreed} working days a week, or leave the pattern empty and roster the person.`;
 }

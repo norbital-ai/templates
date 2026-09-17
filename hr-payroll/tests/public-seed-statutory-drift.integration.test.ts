@@ -380,11 +380,11 @@ test(
 				]
 			);
 			const draftChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
 				[draft.id]
 			)) as Row[];
 			const sourceChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from payment_catalogue where settings_id = $1)::int as payment_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from claim_catalogue where settings_id = $1)::int as claim_catalogue, (select count(*) from allowance_catalogue where settings_id = $1)::int as allowance_catalogue, (select count(*) from loan_catalogue where settings_id = $1)::int as loan_catalogue`,
 				[JURISDICTION_ID]
 			)) as Row[];
 			assert.deepEqual(draftChildren, sourceChildren, 'every child row was cloned');

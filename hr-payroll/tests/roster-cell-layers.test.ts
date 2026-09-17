@@ -52,6 +52,7 @@ const pattern = {
 
 const term = (employmentId, shiftPatternId, row) => ({
 	employment_id: employmentId,
+	agreed_days_per_week: 5,
 	shift_pattern_id: shiftPatternId,
 	term_shift_pattern: row,
 	effective_range: { start: '2026-01-01', end: null }

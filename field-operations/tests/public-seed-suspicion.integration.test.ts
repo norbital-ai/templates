@@ -20,7 +20,7 @@ import { hashPdq, pdqHashToHex } from '../src/collections/photo_evidence/pdq.js'
 import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed-guest.js';
 
 const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 120_000;
-const MUTATE_COMMAND = 'collections.mutate';
+const WRITE_COMMAND = 'collections.write';
 const START_COMMAND = 'automations.start';
 const SUSPICION_AUTOMATION = 'review_job_assignment_suspicion';
 
@@ -228,11 +228,11 @@ const pushMutation = async (
 	schemaFingerprint: string,
 	graph: Readonly<Record<string, unknown>>,
 	baseVersions: ReadonlyArray<Readonly<Record<string, unknown>>> = [],
-	label = 'collections.mutate'
+	label = 'collections.write'
 ): Promise<void> => {
 	const mutated = await postGuestCommand(
 		baseUrl,
-		MUTATE_COMMAND,
+		WRITE_COMMAND,
 		mutationPush(schemaFingerprint, graph, baseVersions),
 		sessionHeaders(credential)
 	);
@@ -261,8 +261,10 @@ const amberQuayLocation = {
 };
 
 /**
- * P2: near-duplicate photo with wrong capture date and off-site GPS yields three integrity flags,
- * then `review_job_assignment_suspicion` stamps `suspicion_checked_at`.
+ * P2: near-duplicate photo with wrong capture date and off-site GPS yields three integrity flags
+ * — written by the `inspect_photo_evidence` automation on the `created` event, which the write's
+ * SETTLE runs before answering — then `review_job_assignment_suspicion` stamps
+ * `suspicion_checked_at`.
  */
 test(
 	'public seed suspicion flags metadata, location, and visual duplicate then runs review',
@@ -306,11 +308,9 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'mutate',
 					collection: 'sites',
-					rows: [
-						{ action: 'update', values: { id: AMBER_QUAY_SITE_ID, location: amberQuayLocation } }
-					]
+					action: 'update',
+					inputs: [{ id: AMBER_QUAY_SITE_ID, location: amberQuayLocation }]
 				},
 				[
 					{ row: { collection: 'sites', recordId: AMBER_QUAY_SITE_ID }, rowVersion: siteRowVersion }
@@ -344,16 +344,13 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'mutate',
 					collection: 'photo_evidence',
-					rows: [
+					action: 'create',
+					inputs: [
 						{
-							action: 'create',
-							values: {
-								id: REFERENCE_PHOTO_ID,
-								job_assignment_id: REFERENCE_ASSIGNMENT_ID,
-								photo: photoDescriptor(REFERENCE_STORAGE_KEY, 'ref.jpg', referenceJpeg.byteLength)
-							}
+							id: REFERENCE_PHOTO_ID,
+							job_assignment_id: REFERENCE_ASSIGNMENT_ID,
+							photo: photoDescriptor(REFERENCE_STORAGE_KEY, 'ref.jpg', referenceJpeg.byteLength)
 						}
 					]
 				},
@@ -366,16 +363,13 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'mutate',
 					collection: 'photo_evidence',
-					rows: [
+					action: 'create',
+					inputs: [
 						{
-							action: 'create',
-							values: {
-								id: SUSPECT_PHOTO_ID,
-								job_assignment_id: PUBLIC_ASSIGNMENT_ID,
-								photo: photoDescriptor(SUSPECT_STORAGE_KEY, 'suspect.jpg', suspectJpeg.byteLength)
-							}
+							id: SUSPECT_PHOTO_ID,
+							job_assignment_id: PUBLIC_ASSIGNMENT_ID,
+							photo: photoDescriptor(SUSPECT_STORAGE_KEY, 'suspect.jpg', suspectJpeg.byteLength)
 						}
 					]
 				},
@@ -508,16 +502,13 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'mutate',
 					collection: 'photo_evidence',
-					rows: [
+					action: 'create',
+					inputs: [
 						{
-							action: 'create',
-							values: {
-								id: LOG_PHOTO_ID,
-								job_assignment_id: PUBLIC_ASSIGNMENT_ID,
-								photo: photoDescriptor(LOG_STORAGE_KEY, LOG_ASSET_NAME, photoJpeg.byteLength)
-							}
+							id: LOG_PHOTO_ID,
+							job_assignment_id: PUBLIC_ASSIGNMENT_ID,
+							photo: photoDescriptor(LOG_STORAGE_KEY, LOG_ASSET_NAME, photoJpeg.byteLength)
 						}
 					]
 				},

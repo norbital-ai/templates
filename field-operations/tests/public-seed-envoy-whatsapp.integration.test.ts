@@ -25,7 +25,7 @@ import { PUBLIC_ASSIGNMENT_ID, bootPublicSeedGuest } from './helpers/public-seed
  * outputs, no key, no network. Everything between those seams is real: sender resolution
  * against verified channels, the registration notice for an unknown sender, invite → code →
  * redeem linking, the inbound queue and its drain task, the envoy's agent turn under the
- * `field_ops_whatsapp` policy, the `write_collection` mutation through the assignment hooks,
+ * `field_ops_whatsapp` policy, the `write_collection` update through the assignment collection,
  * and the reply on the contractor's conversation.
  */
 /** The runtime writes the registration link into the notice; the claim id is its `claim` query. */

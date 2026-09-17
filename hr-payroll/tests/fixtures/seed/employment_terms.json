@@ -11,6 +11,7 @@
 		"statutory_work_category": "NON_MANUAL",
 		"employment_type": "PERMANENT",
 		"job_title": "Clerk",
+		"agreed_days_per_week": 6,
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
 			"start": "2021-06-01T00:00:00.000Z",
@@ -30,6 +31,7 @@
 		"statutory_work_category": "NON_MANUAL",
 		"employment_type": "PERMANENT",
 		"job_title": "Clerk",
+		"agreed_days_per_week": 6,
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
 			"start": "2026-01-01T00:00:00.000Z",
@@ -49,6 +51,7 @@
 		"statutory_work_category": "NON_MANUAL",
 		"employment_type": "PERMANENT",
 		"job_title": "Senior clerk",
+		"agreed_days_per_week": 6,
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
 			"start": "2018-01-01T00:00:00.000Z",
@@ -68,6 +71,7 @@
 		"statutory_work_category": "NON_MANUAL",
 		"employment_type": "PERMANENT",
 		"job_title": "Clerk",
+		"agreed_days_per_week": 6,
 		"shift_pattern_id": "99999999-9999-4999-8999-000000000001",
 		"effective_range": {
 			"start": "2025-06-01T00:00:00.000Z",

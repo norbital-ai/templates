@@ -7,6 +7,7 @@
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type ExcelJS from 'exceljs';
 import { Effect, Number as EffectNumber, Schema } from 'effect';
+import { bySchemeListing, schemeLabel } from '../../../lib/payroll/scheme-label.js';
 import {
 	IDENTITY_OUTPUT_IDS,
 	identityRow,
@@ -67,6 +68,7 @@ const HUMAN_HEADERS: Readonly<Record<string, string>> = {
 	eis_employee: 'EIS (Employee)',
 	eis_employer: 'EIS (Employer)',
 	tax_employee: 'PCB / Tax',
+	companyCost: 'Company cost',
 	// Spelled out because the id cannot be: `15x` beside `1x`, `2x` and `3x` reads as fifteen times
 	// the rate on a document a payroll clerk signs off. It means one and a half.
 	att_ot_15x_hours: 'ATT OT 1.5X Hours',
@@ -420,8 +422,8 @@ function addPeriodSheet(
 }
 
 /**
- * The catalogue-entries workbook: one sheet per period of allowances, claims, loans and payments
- * per employee, a per-row roll-up, and a SUM row under every money column. The payroll workbook
+ * The catalogue-entries workbook: one sheet per period of allowances, claims and loans per
+ * employee, a per-row roll-up, and a SUM row under every money column. The payroll workbook
  * minus salary, absence and statute.
  */
 function buildCatalogueWorkbook(sheets: readonly WorkbookSheet[]): ExcelJS.Workbook {
@@ -629,13 +631,16 @@ export function payslipPdf(options: {
 		),
 		'',
 		'Statutory | Employee | Employer',
-		...[...payslip.contributions].map(
-			([code, amounts]) =>
-				`${code} | ${amounts.employee.toFixed(2)} | ${amounts.employer.toFixed(2)}`
-		),
+		...[...payslip.contributions]
+			.toSorted(([a], [b]) => bySchemeListing(a, b))
+			.map(
+				([code, amounts]) =>
+					`${schemeLabel(code)} | ${amounts.employee.toFixed(2)} | ${amounts.employer.toFixed(2)}`
+			),
 		'',
 		`Gross: ${payslip.gross.toFixed(2)} ${payslip.currency}`,
 		`Total deductions: ${payslip.totalDeductions.toFixed(2)} ${payslip.currency}`,
-		`Net pay: ${payslip.net.toFixed(2)} ${payslip.currency}`
+		`Net pay: ${payslip.net.toFixed(2)} ${payslip.currency}`,
+		`Company cost: ${payslip.employerCost.toFixed(2)} ${payslip.currency}`
 	]);
 }

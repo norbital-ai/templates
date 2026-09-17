@@ -82,8 +82,8 @@ export default {
 		// would erase it — and now "not the fifth" is a grant that is absent rather than a
 		// predicate that has to keep being right.
 		grantsOn('claim_requests', ['read']),
-		grantsOn('allowance_requests', ['read']),
-		grantsOn('payment_requests', ['read']),
+		grantsOn('allowances', ['read']),
+		grantsOn('allowance_entries', ['read']),
 		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
 		// duplicate grant, which `mergeGrants` refuses.
 

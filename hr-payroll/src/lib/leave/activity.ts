@@ -1,16 +1,12 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
-import type {
-	LeaveEvent,
-	LeaveWindow,
-	TimeOffEvent
-} from '../../datatypes/leave_event/+definition.js';
+import type { LeaveActivity } from './pending.js';
 import type { LeaveAllocation } from '../../datatypes/leave_allocations/+definition.js';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
 import { daysBetween } from '../../collections/payroll_runs/lib/dates.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { dateKey } from '../iso-day.js';
-import { pointNumber } from '../half-day.js';
+import { pointNumber, type HalfDayRange } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
 import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
@@ -20,28 +16,44 @@ import {
 	assertLeaveBalanceIntegrity,
 	reverseLeaveAllocations
 } from './balance.js';
-import { assertLeaveWindow, leaveWindowOf } from './entitlement.js';
+import { assertLeaveWindow, leaveWindowOf, type LeaveWindow } from './entitlement.js';
 import { leaveRules, type LeaveContext } from './context.js';
-import type { LeaveActivity } from './pending.js';
+import {
+	emptyActivityFields,
+	leaveActivityOf,
+	type LeaveActivityKind,
+	type LeaveEntryActivity
+} from './activity-fields.js';
 
-export type LeaveSubmission = {
+export type LeaveSubmission = LeaveEntryActivity & {
 	readonly employment_id: string;
 	readonly catalogue_id: string;
 	readonly reference: string;
-	readonly event: LeaveEvent;
 };
+
+type FlatFields = Required<Omit<LeaveEntryActivity, 'charges'>>;
+
+/** The half-day points a flat time-off range states; null when the range is incomplete. */
+export function timeOffRangeOf(fields: LeaveEntryActivity): HalfDayRange | null {
+	if (fields.from_date == null || fields.to_date == null) return null;
+	return {
+		start: { date: fields.from_date, half: fields.half_day_start ? 'SECOND' : 'FIRST' },
+		end: { date: fields.to_date, half: fields.half_day_end ? 'FIRST' : 'SECOND' }
+	};
+}
 
 /** Actual approval dates consume history; annual availability remains a recomputable projection. */
 /** Approved reversals cancel coverage, while held reversals leave the original reservation intact. */
 export function activeTimeOff(entries: readonly LeaveActivity[]) {
 	const reversed = new Set(
 		entries.flatMap((row) =>
-			row.approval_id == null && row.event.kind === 'REVERSAL' ? [row.event.entry_id] : []
+			row.approval_id == null && row.as_adjustment_entry === true && row.reversal_of_id != null
+				? [row.reversal_of_id]
+				: []
 		)
 	);
 	return entries.filter(
-		(row): row is LeaveActivity & { event: TimeOffEvent } =>
-			row.event.kind === 'TIME_OFF' && !reversed.has(row.id)
+		(row) => leaveActivityOf(row) === 'TIME_OFF' && row.charges.length > 0 && !reversed.has(row.id)
 	);
 }
 
@@ -106,13 +118,11 @@ export function measureLeaveDay(
 		entries.filter((row) => row.employment_id === rules.employment.id)
 	)) {
 		if (!entry.charges.some((charge) => charge.date === date)) continue;
+		const range = timeOffRangeOf(entry);
+		if (range == null) continue;
 		for (const half of ['FIRST', 'SECOND'] as const) {
 			const point = pointNumber({ date, half });
-			if (
-				point >= pointNumber(entry.event.range.start) &&
-				point <= pointNumber(entry.event.range.end)
-			)
-				occupied.add(half);
+			if (point >= pointNumber(range.start) && point <= pointNumber(range.end)) occupied.add(half);
 		}
 	}
 	return {
@@ -125,6 +135,11 @@ export function measureLeaveDay(
 		catalogue: rules.catalogueOn(date),
 		labels: workWindowHalves(shift.variant)
 	};
+}
+
+function activityDateOf(entry: LeaveActivity): string | null {
+	if (leaveActivityOf(entry) === 'TIME_OFF') return entry.from_date;
+	return entry.effective_on;
 }
 
 /** Complete entry planning is pure over the guarded preparation reads, including batch reservations. */
@@ -145,7 +160,24 @@ export function planLeaveActivity(
 		)
 	)
 		refuse('A leave entry with this reference already exists or is awaiting approval.');
-	let event = input.event;
+	let fields: FlatFields = {
+		...emptyActivityFields(),
+		from_date: input.from_date ?? null,
+		to_date: input.to_date ?? null,
+		half_day_start: input.half_day_start ?? null,
+		half_day_end: input.half_day_end ?? null,
+		days: input.days ?? null,
+		encash_days: input.encash_days ?? null,
+		as_adjustment_entry: input.as_adjustment_entry ?? false,
+		reversal_of_id: input.reversal_of_id ?? null,
+		effective_on: input.effective_on ?? null,
+		due_on: input.due_on ?? null,
+		destination_from: input.destination_from ?? null,
+		destination_to: input.destination_to ?? null,
+		available_from: input.available_from ?? null,
+		expires_on: input.expires_on ?? null,
+		reason: input.reason ?? null
+	};
 	const charges: LeaveCharge[] = [];
 	const allocations: LeaveAllocation[] = [];
 	let certificateRequired = false;
@@ -158,7 +190,7 @@ export function planLeaveActivity(
 		assertLeaveWindow(window, rules.catalogueOn(date).entitlement);
 		allocations.push(
 			...allocateLeaveDays({
-				entries: [...sameLeave, { id, event, allocations, approval_id: 'planning' }],
+				entries: [...sameLeave, { id, allocations, approval_id: 'planning' }],
 				window,
 				date,
 				days,
@@ -167,9 +199,11 @@ export function planLeaveActivity(
 			})
 		);
 	};
-	switch (event.kind) {
+	const activity: LeaveActivityKind = leaveActivityOf(fields);
+	switch (activity) {
 		case 'TIME_OFF': {
-			const range = event.range;
+			const range = timeOffRangeOf(fields);
+			if (range == null) refuse('Time off needs a start and end date.');
 			if (pointNumber(range.end) < pointNumber(range.start))
 				refuse('Leave must end after it starts.');
 			if (range.start.date < rules.hire || (rules.exit != null && range.end.date > rules.exit))
@@ -208,93 +242,127 @@ export function planLeaveActivity(
 				)?.evidence_after_days;
 				return threshold != null && quantity > threshold;
 			});
-			event = { ...event, chargeable_days: quantity };
+			fields = {
+				...fields,
+				from_date: range.start.date,
+				to_date: range.end.date,
+				half_day_start: range.start.half === 'SECOND',
+				half_day_end: range.end.half === 'FIRST',
+				days: quantity,
+				effective_on: range.start.date
+			};
 			break;
 		}
 		case 'ENCASHMENT': {
-			if (event.effective_on < event.source_window.start || event.due_on < event.effective_on)
-				refuse('Encashment needs effective and due dates in order after the source window begins.');
-			const amount = event.gross_amount;
-			if (amount.value <= 0) refuse('An encashment needs a positive agreed gross amount.');
+			if (fields.from_date == null || fields.to_date == null)
+				refuse('Encashment needs a source window.');
+			const source: LeaveWindow = { start: fields.from_date, end: fields.to_date };
 			if (
-				event.rate != null &&
-				toMinorUnits(event.days * event.rate, amount.currency) !==
-					toMinorUnits(amount.value, amount.currency)
+				fields.encash_days == null ||
+				!Number.isFinite(fields.encash_days) ||
+				fields.encash_days <= 0
 			)
-				refuse('Days multiplied by the entered rate must equal the agreed gross amount.');
+				refuse('An encashment converts a positive number of days.');
+			if (
+				fields.effective_on == null ||
+				fields.due_on == null ||
+				fields.effective_on < source.start ||
+				fields.due_on < fields.effective_on
+			)
+				refuse('Encashment needs effective and due dates in order after the source window begins.');
+			const catalogue = context.catalogues.find((row) => row.id === input.catalogue_id);
+			if (catalogue == null) refuse('Encashment names a leave row that is not available.');
+			if (!catalogue.can_encash)
+				refuse(`${catalogue.code} is not encashable in this settings version.`);
 			const date = [
-				event.effective_on,
-				event.source_window.end,
+				fields.effective_on,
+				source.end,
 				...(rules.exit == null ? [] : [rules.exit])
 			].toSorted()[0]!;
-			if (date < event.source_window.start)
-				refuse('The source window falls after this employment ended.');
+			if (date < source.start) refuse('The source window falls after this employment ended.');
 			if (date < rules.hire) refuse('Encashment cannot consume leave before employment began.');
-			if (amount.currency !== rules.settingsOn(date).payroll.currency)
-				refuse('The agreed encashment currency must match the source jurisdiction currency.');
-			if (
-				Math.abs(
-					fromMinorUnits(toMinorUnits(amount.value, amount.currency), amount.currency) -
-						amount.value
-				) > 1e-9
-			)
-				refuse('The agreed encashment amount must use the currency’s supported decimal precision.');
-			debit(event.source_window, date, event.days, 'earned');
+			// Leave carries no pricing: the days are the entry's own quantity and payroll prices them
+			// at the ordinary day wage when the entry settles.
+			debit(source, date, fields.encash_days, 'earned');
+			fields = { ...fields, days: fields.encash_days };
 			break;
 		}
 		case 'CARRY_FORWARD': {
-			assertLeaveWindow(
-				event.destination_window,
-				rules.catalogueOn(event.available_from).entitlement
-			);
 			if (
-				event.destination_window.start <= event.source_window.end ||
-				event.available_from < event.destination_window.start ||
-				event.expires_on > event.destination_window.end ||
-				event.available_from > event.expires_on
+				fields.from_date == null ||
+				fields.to_date == null ||
+				fields.destination_from == null ||
+				fields.destination_to == null ||
+				fields.available_from == null ||
+				fields.expires_on == null
+			)
+				refuse('Carry-forward needs source and destination windows with validity dates.');
+			const source: LeaveWindow = { start: fields.from_date, end: fields.to_date };
+			const destination: LeaveWindow = {
+				start: fields.destination_from,
+				end: fields.destination_to
+			};
+			assertLeaveWindow(destination, rules.catalogueOn(fields.available_from).entitlement);
+			if (
+				destination.start <= source.end ||
+				fields.available_from < destination.start ||
+				fields.expires_on > destination.end ||
+				fields.available_from > fields.expires_on
 			)
 				refuse(
 					'Carry-forward needs a later destination window and validity dates inside that window.'
 				);
-			debit(event.source_window, event.source_window.end, event.days, 'earned');
-			allocations.push({
-				window: event.destination_window,
-				date: event.available_from,
-				days: event.days,
-				credit_entry_id: id
-			});
+			if (fields.days == null || !(fields.days > 0))
+				refuse('A carry-forward moves a positive number of days.');
+			debit(source, source.end, fields.days, 'earned');
 			break;
 		}
 		case 'ADJUSTMENT': {
-			assertLeaveWindow(event.window, rules.catalogueOn(event.effective_on).entitlement);
-			if (!event.reason?.trim()) refuse('A leave adjustment needs a reason.');
-			if (event.effective_on < event.window.start || event.effective_on > event.window.end)
+			if (fields.from_date == null || fields.to_date == null)
+				refuse('A leave adjustment needs its stated window.');
+			const window: LeaveWindow = { start: fields.from_date, end: fields.to_date };
+			if (fields.effective_on == null)
 				refuse('A leave adjustment must fall inside its stated window.');
-			if (event.days < 0) debit(event.window, event.effective_on, -event.days, 'available');
+			assertLeaveWindow(window, rules.catalogueOn(fields.effective_on).entitlement);
+			if (!fields.reason?.trim()) refuse('A leave adjustment needs a reason.');
+			if (fields.effective_on < window.start || fields.effective_on > window.end)
+				refuse('A leave adjustment must fall inside its stated window.');
+			if (fields.days == null || !Number.isFinite(fields.days) || fields.days === 0)
+				refuse('A leave adjustment must change the balance.');
+			if (fields.days < 0) debit(window, fields.effective_on, -fields.days, 'available');
 			else
 				allocations.push({
-					window: event.window,
-					date: event.effective_on,
-					days: event.days,
+					window,
+					date: fields.effective_on,
+					days: fields.days,
 					credit_entry_id: null
 				});
 			break;
 		}
 		case 'REVERSAL': {
-			const originalId = event.entry_id;
+			if (
+				(input.charges?.length ?? 0) > 0 ||
+				fields.encash_days != null ||
+				fields.destination_from != null ||
+				fields.destination_to != null
+			)
+				refuse('A reversal cannot also carry charges, encashed days or a carry destination.');
+			const originalId = fields.reversal_of_id;
 			const original = sameLeave.find((row) => row.id === originalId && row.approval_id == null);
 			if (!original)
 				refuse('A reversal must reference an approved entry for this employment and leave type.');
 			if (
-				sameLeave.some((row) => row.event.kind === 'REVERSAL' && row.event.entry_id === originalId)
+				sameLeave.some(
+					(row) => row.as_adjustment_entry === true && row.reversal_of_id === originalId
+				)
 			)
 				refuse('This leave entry is already reversed or has a pending reversal.');
-			if (!event.reason?.trim()) refuse('A reversal needs a reason.');
-			const originalDate =
-				original.event.kind === 'TIME_OFF'
-					? original.event.range.start.date
-					: original.event.effective_on;
-			if (event.effective_on < originalDate)
+			if (!fields.reason?.trim()) refuse('A reversal needs a reason.');
+			const originalDate = activityDateOf(original);
+			if (
+				fields.effective_on == null ||
+				(originalDate != null && fields.effective_on < originalDate)
+			)
 				refuse('A reversal cannot precede its original activity.');
 			let currency: string | null = null;
 			let total = 0n;
@@ -306,7 +374,7 @@ export function planLeaveActivity(
 				if (payslip == null || payslip.paid_at == null)
 					refuse('Delete or settle the draft payroll holding this leave before reversing it.');
 				// The settled lines are the frozen evidence, so the
-				// reversal's gross is read back off the payslip the entry is pinned to.
+				// reversal negates the gross it reads back off the payslip the entry is pinned to.
 				for (const line of payslip.adjustments) {
 					if (line.family !== 'LEAVE' || line.source_id !== original.id) continue;
 					if (currency != null && currency !== payslip.currency)
@@ -322,22 +390,27 @@ export function planLeaveActivity(
 				currency == null || total === 0n
 					? null
 					: { value: fromMinorUnits(-total, currency), currency };
-			if (gross != null && (event.due_on == null || event.due_on < event.effective_on))
+			if (gross != null && (fields.due_on == null || fields.due_on < fields.effective_on))
 				refuse('A paid leave correction needs a due date on or after its effective date.');
 			allocations.push(...reverseLeaveAllocations(original));
+			const originalActivity = leaveActivityOf(original);
 			const days =
-				original.event.kind === 'TIME_OFF'
-					? original.event.chargeable_days
-					: original.event.kind === 'REVERSAL'
+				originalActivity === 'TIME_OFF'
+					? original.days
+					: originalActivity === 'REVERSAL'
 						? null
-						: Math.abs(original.event.days);
-			event = { ...event, days, gross_amount: gross, due_on: gross == null ? null : event.due_on };
+						: Math.abs(original.days ?? 0);
+			fields = {
+				...fields,
+				days,
+				due_on: gross == null ? null : fields.due_on
+			};
 			break;
 		}
 	}
 	const windows = [...new Map(allocations.map((row) => [row.window.start, row.window])).values()];
 	assertLeaveBalanceIntegrity(
-		[...sameLeave, { id, event, allocations, approval_id: null }],
+		[...sameLeave, { id, ...fields, allocations, approval_id: null }],
 		windows,
 		rules.entitlementAt
 	);
@@ -346,11 +419,17 @@ export function planLeaveActivity(
 		catalogue_id: rules.selected.id,
 		leave_code: rules.selected.code,
 		reference: input.reference,
-		event,
+		...fields,
+		summary: leaveSummary(activity, fields),
 		charges,
 		allocations,
 		// A planned entry is not settled: the payroll stamps the pin when it consumes the row.
 		payslip_id: null,
 		certificateRequired
 	};
+}
+
+/** The record label the ledger and pickers read: the activity and the day it turns on. */
+function leaveSummary(kind: LeaveActivityKind, fields: LeaveEntryActivity): string {
+	return `${kind} · ${fields.from_date ?? fields.effective_on ?? ''}`;
 }

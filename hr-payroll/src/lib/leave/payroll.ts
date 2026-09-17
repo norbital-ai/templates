@@ -10,7 +10,7 @@ import { Effect } from 'effect';
 import type { WorkspaceRow } from '$bolt/types.js';
 import type { LeaveCharge } from '../../datatypes/leave_charges/+definition.js';
 import type { LeavePayItem } from '../../datatypes/leave_pay_items/+definition.js';
-import type { LeaveWindow } from '../../datatypes/leave_event/+definition.js';
+import type { LeaveWindow } from './entitlement.js';
 import type {
 	SettlementBucket,
 	SettlementDestination,
@@ -19,11 +19,13 @@ import type {
 } from '../payroll/family.js';
 import type { LeaveActivity } from './pending.js';
 import { activeTimeOff } from './activity.js';
+import { leaveActivityOf, normaliseLeaveDays } from './activity-fields.js';
 import type { LeaveContext } from './context.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { isEligible, personContext } from '../../collections/payroll_runs/lib/eligibility.js';
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import { encashmentCode } from './codes.js';
+import { cents } from '../../collections/payroll_runs/lib/rounding.js';
 
 export { encashmentCode } from './codes.js';
 
@@ -119,7 +121,21 @@ export function prepareLeavePayroll(options: {
 								catalogue_id: true,
 								leave_code: true,
 								reference: true,
-								event: true,
+								from_date: true,
+								to_date: true,
+								half_day_start: true,
+								half_day_end: true,
+								days: true,
+								encash_days: true,
+								as_adjustment_entry: true,
+								reversal_of_id: true,
+								effective_on: true,
+								due_on: true,
+								destination_from: true,
+								destination_to: true,
+								available_from: true,
+								expires_on: true,
+								reason: true,
 								charges: true,
 								allocations: true,
 								approval_id: true,
@@ -141,10 +157,12 @@ export function prepareLeavePayroll(options: {
 		const catalogues = catalogueRows as unknown as LeaveCatalogue[];
 		// A settled entry's frozen pay lines are read back only where something negates them: the
 		// approved reversals name their targets, and every other settled capture is just its pin.
-		const entries = entryRows as unknown as LeaveActivity[];
+		const entries = (entryRows as unknown as LeaveActivity[]).map(normaliseLeaveDays);
 		const reversedIds = new Set(
 			entries.flatMap((row) =>
-				row.approval_id == null && row.event.kind === 'REVERSAL' ? [row.event.entry_id] : []
+				row.approval_id == null && row.as_adjustment_entry === true && row.reversal_of_id != null
+					? [row.reversal_of_id]
+					: []
 			)
 		);
 		const settlingIds = [
@@ -220,7 +238,7 @@ export function withLeaveDeductionEligibility(
 		for (const charge of entry.charges) {
 			const catalogue = gathered.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved leave refers to a missing catalogue revision.');
-			if (catalogue.paid) continue;
+			if (!catalogue.is_npl) continue;
 			const term = options.terms.find((row) => row.id === charge.employment_term_id);
 			if (!term || !coversDate(term.effective_range, charge.date))
 				refuse('Approved leave has no effective captured employment terms.');
@@ -239,19 +257,25 @@ export function withLeaveDeductionEligibility(
 	return { ...gathered, deductionEligibility };
 }
 
-/** The Leave family selects its own approved sources; payroll receives date slices and agreed money. */
+/** The Leave family selects its own approved sources; payroll receives date slices and encashed days. */
 export function leavePayrollInputs(options: {
 	readonly entries: readonly LeaveActivity[];
 	readonly salaryWindow: { readonly start: string; readonly end: string };
 	readonly dueThrough: string;
 	/** Every settled entry reserves its whole self; the pin on the entry is that reservation. */
-	readonly captures: readonly { readonly leave_entry_id: string }[];
+	readonly captures: readonly {
+		readonly leave_entry_id: string;
+		/** Whether the payslip that froze this capture had been paid. */
+		readonly paid?: boolean;
+	}[];
 	/** Money-only callers (hasLeavePayment) do not judge whether a time-off entry straddles. */
 	readonly monetaryOnly?: boolean;
 }) {
 	const approved = options.entries.filter((row) => row.approval_id == null);
 	const reversed = new Set(
-		approved.flatMap((row) => (row.event.kind === 'REVERSAL' ? [row.event.entry_id] : []))
+		approved.flatMap((row) =>
+			row.as_adjustment_entry === true && row.reversal_of_id != null ? [row.reversal_of_id] : []
+		)
 	);
 	const settled = new Set(options.captures.map((row) => row.leave_entry_id));
 	const timeOff = options.monetaryOnly
@@ -274,13 +298,28 @@ export function leavePayrollInputs(options: {
 				return [{ entry, charges }];
 			});
 	const monetary = approved.flatMap((entry) => {
-		const event = entry.event;
 		if (settled.has(entry.id) || reversed.has(entry.id)) return [];
-		if (event.kind !== 'ENCASHMENT' && event.kind !== 'REVERSAL') return [];
-		if (event.gross_amount == null) return [];
-		if (event.due_on == null) refuse('A monetary Leave entry is missing its approved due date.');
-		if (event.due_on > options.dueThrough) return [];
-		return [{ entry, amount: event.gross_amount, dueOn: event.due_on }];
+		const activity = leaveActivityOf(entry);
+		if (activity !== 'ENCASHMENT' && activity !== 'REVERSAL') return [];
+		// A reversal with no due date never read captured money back off a paid payslip; it is a
+		// pending correction, not a monetary obligation.
+		if (entry.due_on == null) {
+			if (activity === 'REVERSAL') return [];
+			refuse('A monetary Leave entry is missing its approved due date.');
+		}
+		// A reversal negates the outputs of one paid source, and nothing else: with no paid capture
+		// of the entry it names, there is no money to negate.
+		if (
+			activity === 'REVERSAL' &&
+			!options.captures.some(
+				(row) => row.leave_entry_id === entry.reversal_of_id && row.paid === true
+			)
+		)
+			return [];
+		if (entry.due_on > options.dueThrough) return [];
+		// An encashment has no keyed amount: the engine prices its days at the ordinary day wage.
+		// A reversal negates the outputs it named when it was approved.
+		return [{ entry, dueOn: entry.due_on }];
 	});
 	return { timeOff, monetary };
 }
@@ -322,6 +361,24 @@ export function leaveCoverage(prepared: PreparedLeavePayroll, window: LeaveWindo
 	return { days, byCode };
 }
 
+/**
+ * The unpaid-leave days a jurisdiction may take off a standing allowance: every eligible `is_npl`
+ * charge inside the window, in days. Eligibility was prepared with the deduction, so a day the
+ * catalogue's rule excuses is not counted here either.
+ */
+export function unpaidLeaveDays(prepared: PreparedLeavePayroll, window: LeaveWindow): number {
+	let days = 0;
+	for (const entry of activeTimeOff(prepared.entries))
+		for (const charge of entry.charges) {
+			if (charge.date < window.start || charge.date > window.end) continue;
+			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
+			if (catalogue == null || !catalogue.is_npl) continue;
+			if (prepared.deductionEligibility[`${entry.id}/${charge.date}`] !== true) continue;
+			days += charge.days;
+		}
+	return days;
+}
+
 function leaveCaptureAmount(items: readonly LeavePayItem[], currency: string): MoneyValue {
 	const minor = items.reduce(
 		(sum, item) =>
@@ -331,14 +388,19 @@ function leaveCaptureAmount(items: readonly LeavePayItem[], currency: string): M
 	return { currency, value: fromMinorUnits(minor, currency) };
 }
 
-/** Pure Leave calculation: Work supplies withheld-day rates; agreed money is never repriced. */
+/** Pure Leave calculation: Work supplies withheld-day rates; the engine prices encashed days. */
 export function calculateLeavePayroll(options: {
 	readonly prepared: PreparedLeavePayroll;
 	readonly window: LeaveWindow;
 	readonly dueThrough: string;
 	readonly currency: string;
 	readonly absenceRate: (charge: LeaveCharge) => number;
-	/** Deferred salary replay includes dated leave only; agreed money settles in the regular pass. */
+	/**
+	 * The ordinary day wage the engine prices an encashed day at. A thunk: an ended contract's
+	 * Work context resolves a schedule, and no run should pay for that unless an encashment settles.
+	 */
+	readonly ordinaryDayRate: () => number;
+	/** Deferred salary replay includes dated leave only; encashed days settle in the regular pass. */
 	readonly includeMonetary?: boolean;
 }) {
 	const { prepared, currency } = options;
@@ -366,7 +428,7 @@ export function calculateLeavePayroll(options: {
 		for (const charge of charges) {
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved Leave has no captured catalogue revision.');
-			if (catalogue.paid) continue;
+			if (!catalogue.is_npl) continue;
 			const eligible = prepared.deductionEligibility[`${entry.id}/${charge.date}`];
 			if (eligible == null) refuse('The Leave deduction eligibility was not prepared.');
 			if (!eligible) continue;
@@ -388,13 +450,15 @@ export function calculateLeavePayroll(options: {
 		}
 		add(entry.id, charges, items);
 	}
-	for (const { entry, amount } of options.includeMonetary === false ? [] : selected.monetary) {
-		if (amount.currency !== currency)
-			refuse('The agreed Leave currency differs from this payroll.');
-		const event = entry.event;
-		if (event.kind === 'ENCASHMENT') {
+	for (const { entry } of options.includeMonetary === false ? [] : selected.monetary) {
+		const activity = leaveActivityOf(entry);
+		if (activity === 'ENCASHMENT') {
 			const catalogue = prepared.catalogues.find((row) => row.id === entry.catalogue_id);
 			if (!catalogue) refuse('The agreed encashment catalogue revision is missing.');
+			if (!catalogue.can_encash)
+				refuse(`${catalogue.code} is not encashable in this settings version.`);
+			const rate = options.ordinaryDayRate();
+			const encashDays = entry.encash_days ?? 0;
 			add(
 				entry.id,
 				[],
@@ -405,15 +469,17 @@ export function calculateLeavePayroll(options: {
 						settings_id: catalogue.settings_id,
 						bucket: 'EARNING',
 						date: null,
-						amount: amount.value,
-						quantity: event.days,
-						rate: event.rate
+						amount: cents(rate * encashDays),
+						quantity: encashDays,
+						rate
 					}
 				]
 			);
-		} else if (event.kind === 'REVERSAL') {
+		} else if (activity === 'REVERSAL') {
+			// Leave carries no entered money: the reversal negates exactly the frozen outputs of the
+			// paid source it names.
 			const sources = prepared.captures.filter(
-				(row) => row.leave_entry_id === event.entry_id && row.paid
+				(row) => row.leave_entry_id === entry.reversal_of_id && row.paid
 			);
 			if (sources.some((row) => row.gross_amount.currency !== currency))
 				refuse('Reversed Leave currency differs from this payroll.');
@@ -424,11 +490,6 @@ export function calculateLeavePayroll(options: {
 					quantity: item.quantity == null ? null : -item.quantity
 				}))
 			);
-			if (
-				toMinorUnits(leaveCaptureAmount(items, currency).value, currency) !==
-				toMinorUnits(amount.value, currency)
-			)
-				refuse('The approved reversal does not match its original paid Leave outputs.');
 			add(entry.id, [], items);
 		}
 	}
@@ -438,17 +499,17 @@ export function calculateLeavePayroll(options: {
 			if (!catalogue)
 				refuse('A settled Leave line names a catalogue revision that is not available.');
 			// The frozen pay item states its own bucket: an unpaid day is the ABSENCE arm, an
-			// encashment the EARNING arm, whatever the one catalogue row's destination says.
+			// encashment the EARNING arm; the metadata spells the landing that bucket means.
 			const bucket: SettlementBucket = item.bucket;
 			const catalogueComponent: FamilyPayItem = {
 				id: `${item.catalogue_id}:${item.code}`,
 				catalogue_id: item.catalogue_id,
 				settings_id: item.settings_id,
 				code: item.code,
-				// The enum columns arrive as text at the database boundary; the model constrains them
-				// to the landing vocabulary.
-				destination: catalogue.destination as SettlementDestination,
-				direction: catalogue.direction as SettlementDirection | null,
+				// Leave carries no pricing and no landing: the frozen bucket is the truth, so the
+				// metadata states the landing that bucket already means.
+				destination: 'PAY' as SettlementDestination,
+				direction: (item.bucket === 'ABSENCE' ? 'SUBTRACT' : 'ADD') as SettlementDirection,
 				bands: [],
 				eligibility: catalogue.eligibility,
 				family: 'LEAVE'

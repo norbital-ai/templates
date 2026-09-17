@@ -13,9 +13,22 @@
 				"amount": "entry.amount",
 				"limit": null
 			}
-		],
-		"recurring": true,
-		"prorates": false,
-		"on_day": null
+		]
+	},
+	{
+		"id": "77777777-7777-4777-8777-777777777778",
+		"settings_id": "22222222-2222-4222-8222-222222222222",
+		"code": "SEPARATION",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
 	}
 ]

@@ -1,3 +1,4 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { Schema } from 'effect';
@@ -12,7 +13,7 @@ const linePricingSchema = Schema.Struct({
 	currency: Schema.NonEmptyString
 });
 
-export type LinePricing = Schema.Schema.Type<typeof linePricingSchema>;
+type LinePricing = Schema.Schema.Type<typeof linePricingSchema>;
 
 /** The derived-money outcome for a document line or a whole document. */
 const lineAmountsSchema = Schema.Struct({
@@ -74,6 +75,24 @@ type DocumentLineCells = {
 };
 
 /**
+ * Refuses a line whose cells cannot be priced.
+ *
+ * Quote, order and invoice lines ask the same four questions of a row; `price` names the column the
+ * sentence talks about (`Unit price` on the sell side, `Unit cost` on the buy side).
+ */
+export function validateLineCells(line: DocumentLineCells, price = 'Unit price'): void {
+	const quantity = decodeNumber(line.quantity ?? Number.NaN);
+	if (Number.isNaN(quantity) || quantity <= 0) refuse('Quantity must be greater than zero.');
+	const unitPrice = decodeNumber(line.unit_price ?? Number.NaN);
+	if (Number.isNaN(unitPrice)) refuse(`${price} is required.`);
+	if (unitPrice < 0) refuse(`${price} cannot be negative.`);
+	const discount = decodeNumber(line.discount_pct ?? 0);
+	if (discount < 0 || discount > 100) refuse('Discount percentage must be between 0 and 100.');
+	const taxRate = decodeNumber(line.tax_rate ?? 0);
+	if (taxRate < 0 || taxRate > 100) refuse('Tax rate must be between 0 and 100.');
+}
+
+/**
  * One line's net, tax and gross, priced against the document that owns it.
  *
  * Quote lines, order lines and invoice lines all price the same way and differ only in which column
@@ -108,4 +127,27 @@ export function documentTotals(lines: readonly LineAmounts[], currency: string):
 		tax: fromMinorUnits(tax, currency),
 		gross: fromMinorUnits(gross, currency)
 	};
+}
+
+/** A buy-side line's cells, as order and purchase invoice lines carry them. */
+type CostLineCells = {
+	readonly quantity?: number | null;
+	readonly unit_cost?: number | null;
+	readonly tax_rate?: number | null;
+};
+
+/**
+ * A buy-side line's money columns, priced against the document that owns it.
+ *
+ * The cost column is the unit price of the buy side; the checks and the rounding are the same as
+ * a sell-side line's, so only the column name differs here.
+ */
+export function costLineColumns(
+	document: PricedDocument,
+	line: CostLineCells
+): { readonly net: number; readonly tax: number; readonly line_total: number } {
+	const cells = { quantity: line.quantity, unit_price: line.unit_cost, tax_rate: line.tax_rate };
+	validateLineCells(cells, 'Unit cost');
+	const amounts = documentLineAmounts(document, cells);
+	return { net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
 }

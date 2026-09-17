@@ -13,13 +13,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import payslipHooks from '../src/collections/payslips/+hooks.ts';
+import payslips from '../src/collections/payslips/+collection.ts';
+import { payrollRunCascadeGrants } from '../src/lib/policy_grants.ts';
+import { transform } from './helpers/transform.ts';
 import { refusalMessage } from './fixtures/memory-payroll-api.ts';
 
 const RUN = { id: 'run-feb', company_id: 'co-1', period: '2026-02' };
 const EARLIER = { id: 'run-jan', company_id: 'co-1', period: '2026-01' };
 
-/** A world of runs and slips, answering only the queries these hooks make. */
+/** A world of runs and slips, answering only the queries the transform makes, nested run included. */
 function world(runs, slips) {
 	const match = (row, where = {}) =>
 		Object.entries(where).every(([column, condition]) => {
@@ -32,48 +34,26 @@ function world(runs, slips) {
 			if ('isNotNull' in condition) return condition.isNotNull === (value != null);
 			return true;
 		});
-	const table = (rows) => ({
-		findMany: ({ where }) => Effect.succeed(rows.filter((row) => match(row, where))),
-		findFirst: ({ where }) => Effect.succeed(rows.find((row) => match(row, where)) ?? null)
+	const table = (rows, nest = (row) => row) => ({
+		findMany: ({ where }) => Effect.succeed(rows.filter((row) => match(row, where)).map(nest)),
+		findFirst: ({ where }) => Effect.succeed(rows.find((row) => match(row, where)))
 	});
-	const empty = table([]);
 	return {
 		api: {
-			db: {
-				payroll_runs: table(runs),
-				payslips: table(slips),
-				work_days: empty,
-				claim_requests: empty,
-				payment_requests: empty,
-				allowance_requests: empty,
-				leave_entries: empty,
-				loan_repayments: empty
-			}
+			payroll_runs: table(runs),
+			payslips: table(slips, (row) => ({
+				...row,
+				payslip_payroll_run: runs.find((run) => run.id === row.payroll_run_id) ?? null
+			}))
 		}
 	};
 }
 
+const write = (db, existing, input) =>
+	transform(payslips, [input], { existing: [existing], db }).then((payloads) => payloads[0]);
 const pay = (api, existing, paid_at = '2026-02-28') =>
-	Effect.runPromise(
-		Effect.gen(function* () {
-			return yield* payslipHooks.mutate.perRecord.before.handler({
-				input: { id: existing.id, status: 'PAID', paid_at },
-				existing,
-				api
-			});
-		})
-	);
-
-const hold = (api, existing, status) =>
-	Effect.runPromise(
-		Effect.gen(function* () {
-			return yield* payslipHooks.mutate.perRecord.before.handler({
-				input: { id: existing.id, status },
-				existing,
-				api
-			});
-		})
-	);
+	write(api, existing, { status: 'PAID', paid_at });
+const hold = (api, existing, status) => write(api, existing, { status });
 
 const refusalOf = async (run) => {
 	try {
@@ -97,8 +77,8 @@ test('one person is paid while a colleague is held, and nothing about the run mo
 	const slips = [slip('slip-a', RUN, 'emp-a'), slip('slip-b', RUN, 'emp-b')];
 	const { api } = world([RUN], slips);
 	await pay(api, slips[0]);
-	// The hook is a validator: it hands the caller's write back, and the store records it. The
-	// colleague is untouched by it.
+	// The transform is a validator: it hands the caller's write back, and the store records it.
+	// The colleague is untouched by it.
 	assert.equal(slips[1].status, 'DRAFT');
 	assert.equal(slips[1].paid_at, null);
 	await pay(api, slips[1]);
@@ -149,75 +129,31 @@ test('paid_at travels only with PAID', async () => {
 	const draft = slip('slip-a', RUN, 'emp-a');
 	const { api } = world([RUN], [draft]);
 	assert.match(
-		await refusalOf(() =>
-			Effect.runPromise(
-				Effect.gen(function* () {
-					return yield* payslipHooks.mutate.perRecord.before.handler({
-						input: { id: draft.id, status: 'ON_HOLD', paid_at: '2026-02-28' },
-						existing: draft,
-						api
-					});
-				})
-			)
-		),
+		await refusalOf(() => write(api, draft, { status: 'ON_HOLD', paid_at: '2026-02-28' })),
 		/records the day it was paid only when it is paid/,
 		'a day alone is not a state change'
 	);
 });
 
-test('every other column is still engine output', async () => {
-	const draft = slip('slip-a', RUN, 'emp-a');
-	const { api } = world([RUN], [draft]);
-	assert.match(
-		await refusalOf(() =>
-			Effect.runPromise(
-				Effect.gen(function* () {
-					return yield* payslipHooks.mutate.perRecord.before.handler({
-						input: { id: draft.id, net: 1 },
-						existing: draft,
-						api
-					});
-				})
-			)
-		),
-		/engine output and cannot be edited/
-	);
+test('every other column is still engine output: the update input is the payment state alone', () => {
+	assert.deepEqual(Object.keys(payslips.update.input.columns), ['status', 'paid_at']);
 });
 
 test('a slip is created by its run, never standing alone', async () => {
+	assert.equal(payslips.create, undefined, 'no create input: a slip is born under its run');
 	const { api } = world([RUN], []);
 	assert.match(
-		await refusalOf(() =>
-			Effect.runPromise(
-				Effect.gen(function* () {
-					return yield* payslipHooks.mutate.perRecord.before.handler({
-						input: { id: 'slip-new' },
-						parent: undefined,
-						api
-					});
-				})
-			)
-		),
+		await refusalOf(() => write(api, undefined, { status: 'ON_HOLD' })),
 		/must be created by its payroll run/
 	);
 });
 
 test('a paid slip cannot be deleted, whatever its run reports', () => {
-	const remove = (api, existing) => {
-		try {
-			Effect.runSync(payslipHooks.delete.perRecord.before.handler({ existing, api }));
-			return '';
-		} catch (error) {
-			return refusalMessage(error);
-		}
-	};
-	assert.match(
-		remove(
-			world([RUN], []).api,
-			slip('slip-a', RUN, 'emp-a', { status: 'PAID', paid_at: '2026-02-28' })
-		),
-		/has been paid and cannot be deleted/
+	const authorize = payrollRunCascadeGrants().payslips.delete.authorize;
+	assert.equal(
+		authorize({ record: slip('slip-a', RUN, 'emp-a', { status: 'PAID', paid_at: '2026-02-28' }) }),
+		false
 	);
 	// An unpaid slip still leaves with its draft recalculation.
-	assert.equal(remove(world([RUN], []).api, slip('slip-a', RUN, 'emp-a')), '');
+	assert.equal(authorize({ record: slip('slip-a', RUN, 'emp-a') }), true);
 });

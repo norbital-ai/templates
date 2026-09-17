@@ -10,7 +10,6 @@ import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
 import { addDays } from '../../collections/payroll_runs/lib/dates.js';
-import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -136,19 +135,6 @@ export function formatSettingsRange(value: unknown): string {
 	const endDay = calendarDateInTimeZone(new Date(end), PAYROLL_TIME_ZONE);
 	if (endDay.startsWith('9999')) return `${start} – open`;
 	return `${start} – ${formatCalendarDate(addDays(endDay, -1))}`;
-}
-
-/**
- * The half-day-stepped range of a leave event, as one line.
- *
- * Two app pages print the same leave column, and a range that reads differently on the employee's
- * page and the controller's is two answers to one question.
- */
-export function formatLeaveRange(event: LeaveEvent | null | undefined, t: Translator): string {
-	if (event == null || event.kind !== 'TIME_OFF') return '—';
-	const half = (part: 'FIRST' | 'SECOND') =>
-		part === 'FIRST' ? t('component.first_half') : t('component.second_half');
-	return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 }
 
 export function formatStatutoryFactStatus(value: unknown, t: Translator): string {

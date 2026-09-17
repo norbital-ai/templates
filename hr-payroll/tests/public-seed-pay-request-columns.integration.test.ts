@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bearerHeaders, mutationPush, postGuestCommand } from '@norbital-ai/test-utilities';
+import { writeRows } from './helpers/write.ts';
 import {
 	EMPLOYMENT_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -8,12 +8,8 @@ import {
 } from './helpers/public-seed-host.ts';
 
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
-const MUTATE = 'collections.mutate';
 
-const componentFor = async (
-	session: Session,
-	family: 'claim' | 'allowance' | 'payment'
-): Promise<string> => {
+const componentFor = async (session: Session, family: 'claim' | 'allowance'): Promise<string> => {
 	const rows = (await session.query(
 		`select id from ${family}_catalogue limit 1`
 	)) as ReadonlyArray<{ readonly id: string }>;
@@ -22,16 +18,7 @@ const componentFor = async (
 };
 
 const write = (session: Session, collection: string, values: Readonly<Record<string, unknown>>) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		MUTATE,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection,
-			rows: [{ action: 'create', values: { id: crypto.randomUUID(), ...values } }]
-		}),
-		bearerHeaders(session.credential)
-	);
+	writeRows(session, collection, 'create', [values]);
 
 const accepted = (response: { status: number; value: unknown }) =>
 	response.status >= 200 &&
@@ -45,15 +32,14 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-pay-request-columns');
 		try {
 			const claimComponent = await componentFor(session, 'claim');
-			const paymentComponent = await componentFor(session, 'payment');
 			const allowanceComponent = await componentFor(session, 'allowance');
 			assert.ok(
-				claimComponent && paymentComponent && allowanceComponent,
+				claimComponent && allowanceComponent,
 				'the public catalogue declares a component per family'
 			);
 
 			// A claim with no incurred day. This was "A claim must say the day it was incurred", a
-			// sentence in a hook over a jsonb path.
+			// sentence in authored code over a jsonb path.
 			const undatedClaim = await write(session, 'claim_requests', {
 				employment_id: EMPLOYMENT_ID,
 				catalogue_id: claimComponent,
@@ -72,52 +58,32 @@ test(
 				`and one that says so lands: ${JSON.stringify(datedClaim.value)}`
 			);
 
-			for (const missing of ['employment_id', 'effective_on', 'reason']) {
-				const payment: Record<string, unknown> = {
-					employment_id: EMPLOYMENT_ID,
-					catalogue_id: paymentComponent,
-					amount: 100,
-					effective_on: '2026-04-02',
-					reason: 'Reviewed departure payment'
-				};
-				delete payment[missing];
-				const response = await write(session, 'payment_requests', payment);
-				assert.equal(accepted(response), false, `${missing}: ${JSON.stringify(response.value)}`);
-			}
-			const payment = await write(session, 'payment_requests', {
-				employment_id: EMPLOYMENT_ID,
-				catalogue_id: paymentComponent,
-				amount: 100,
-				effective_on: '2026-04-02',
-				reason: 'Reviewed departure payment'
-			});
-			assert.ok(accepted(payment), JSON.stringify(payment.value));
-
-			// An allowance with no recurrence: the arm that used to be empty, whose window was a
-			// nullable column three other arms had to be refused for setting.
-			const windowless = await write(session, 'allowance_requests', {
+			// An allowance is a window: one with no opening day is refused by the column itself.
+			const windowless = await write(session, 'allowances', {
 				employment_id: EMPLOYMENT_ID,
 				catalogue_id: allowanceComponent,
 				amount: 100
 			});
 			assert.equal(accepted(windowless), false, JSON.stringify(windowless.value));
 
-			const windowed = await write(session, 'allowance_requests', {
+			const windowed = await write(session, 'allowances', {
 				employment_id: EMPLOYMENT_ID,
 				catalogue_id: allowanceComponent,
 				amount: 100,
-				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
+				effective_from: '2026-04-01',
+				effective_to: '2026-04-30',
+				reason: 'Reviewed departure payment'
 			});
 			assert.ok(accepted(windowed), `a stated window lands: ${JSON.stringify(windowed.value)}`);
 
-			// And a shape that is simply unsayable: an allowance cannot claim an incurred day, because
-			// the column does not exist on it.
-			const datedAllowance = await write(session, 'allowance_requests', {
+			// And a shape that is simply unsayable: an allowance carries no recurrence — the window
+			// is two columns — and an unknown column is refused, not stripped.
+			const datedAllowance = await write(session, 'allowances', {
 				employment_id: EMPLOYMENT_ID,
 				catalogue_id: allowanceComponent,
 				amount: 100,
-				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' },
-				incurred_on: '2026-04-02'
+				effective_from: '2026-04-01',
+				recurrence: { kind: 'ONE_OFF', on: '2026-04-15' }
 			});
 			assert.equal(
 				accepted(datedAllowance),

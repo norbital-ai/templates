@@ -1,11 +1,11 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { LeaveAllocation } from '../../datatypes/leave_allocations/+definition.js';
-import type { LeaveEvent, LeaveWindow } from '../../datatypes/leave_event/+definition.js';
+import type { LeaveWindow } from './entitlement.js';
+import type { LeaveEntryActivity } from './activity-fields.js';
 
 /** Only approved manual activity and held debit reservations enter the balance query. */
-export type LeaveBalanceEntry = {
+export type LeaveBalanceEntry = LeaveEntryActivity & {
 	readonly id: string;
-	readonly event: LeaveEvent;
 	readonly allocations: readonly LeaveAllocation[];
 	readonly approval_id: string | null;
 };
@@ -19,16 +19,39 @@ export type EntitlementAt = (
 const sameWindow = (a: LeaveWindow, b: LeaveWindow): boolean =>
 	a.start === b.start && a.end === b.end;
 
-type Credit = { readonly id: string | null; readonly available: string; readonly expires: string };
+/**
+ * A carry-forward is its own credit: the approved entry's days, available and expiring on its own
+ * dates. It never allocates to itself — a row cannot name its id before it is stored — so its
+ * allocations hold only the source debit, and a reversal negates the credit by naming the entry.
+ */
+type Credit = {
+	readonly id: string | null;
+	readonly days: number;
+	readonly available: string;
+	readonly expires: string;
+};
+const carryCredit = (
+	entry: LeaveBalanceEntry
+): (Credit & { readonly window: LeaveWindow }) | null =>
+	entry.destination_from != null &&
+	entry.destination_to != null &&
+	entry.available_from != null &&
+	entry.expires_on != null
+		? {
+				id: entry.id,
+				// A stored numeric arrives as a string; the credit adds it to consumed days.
+				days: Number(entry.days ?? 0),
+				available: entry.available_from,
+				expires: entry.expires_on,
+				window: { start: entry.destination_from, end: entry.destination_to }
+			}
+		: null;
 const creditsFor = (entries: readonly LeaveBalanceEntry[], window: LeaveWindow): Credit[] => [
-	...entries.flatMap((entry): Credit[] =>
-		entry.approval_id == null &&
-		entry.event.kind === 'CARRY_FORWARD' &&
-		sameWindow(entry.event.destination_window, window)
-			? [{ id: entry.id, available: entry.event.available_from, expires: entry.event.expires_on }]
-			: []
-	),
-	{ id: null, available: window.start, expires: window.end }
+	...entries.flatMap((entry): Credit[] => {
+		const credit = entry.approval_id == null ? carryCredit(entry) : null;
+		return credit != null && sameWindow(credit.window, window) ? [credit] : [];
+	}),
+	{ id: null, days: 0, available: window.start, expires: window.end }
 ];
 
 function allocationsIn(entries: readonly LeaveBalanceEntry[], window: LeaveWindow) {
@@ -49,7 +72,7 @@ function creditQuantity(
 	entitlementAt: EntitlementAt,
 	basis: 'available' | 'earned' = 'available'
 ): number {
-	const base = credit.id === null ? entitlementAt(window, date)[basis] : 0;
+	const base = credit.id === null ? entitlementAt(window, date)[basis] : credit.days;
 	if (base == null) return Infinity;
 	return (
 		base +
@@ -194,7 +217,20 @@ export function assertLeaveBalanceIntegrity(
 
 /** A full reversal restores the exact windows, dates and credits; it never resets expiry. */
 export function reverseLeaveAllocations(entry: LeaveBalanceEntry): LeaveAllocation[] {
-	if (entry.event.kind === 'REVERSAL')
+	if (entry.as_adjustment_entry === true)
 		refuse('Reverse the original activity once; use a new entry for a replacement.');
-	return entry.allocations.map((allocation) => ({ ...allocation, days: -allocation.days }));
+	const credit = carryCredit(entry);
+	return [
+		...entry.allocations.map((allocation) => ({ ...allocation, days: -allocation.days })),
+		...(credit == null || credit.days === 0
+			? []
+			: [
+					{
+						window: credit.window,
+						date: credit.available,
+						days: -credit.days,
+						credit_entry_id: entry.id
+					}
+				])
+	];
 }

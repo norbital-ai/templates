@@ -11,11 +11,11 @@ import {
 /**
  * One revision of a leave definition.
  *
- * The shared catalogue spine: availability and entitlement are computed on demand, and
- * destination/direction say how a money line settles. An unpaid day is priced by the Work rules'
- * proration; which schemes it reduces and which charge an encashment is each scheme's own
- * declaration. Leave adds its own facts: whether a day is paid and after how many days
- * evidence is owed.
+ * The shared catalogue spine: availability and entitlement are computed on demand. Leave carries
+ * no pricing: an unpaid day is priced at the ordinary day wage as `NO_PAY_LEAVE`, and an encashed
+ * day at the same rate as `ENCASHMENT`, by the engine. Which schemes read either is each scheme's
+ * own `assessed_on` formula. Leave adds its own facts: whether a day is unpaid and after how many
+ * days evidence is owed, and whether the row may be encashed at all.
  */
 export default defineModel(
 	{
@@ -30,23 +30,22 @@ export default defineModel(
 		 * has no computed entitlement while ineligible, and an unpaid day of it is not deducted.
 		 */
 		eligibility: text().notNull().default(''),
-		/**
-		 * Where the line settles: `PAY` with `SUBTRACT` is the unpaid day that reduces gross,
-		 * `PAY` with `ADD` the encashment that earns. The engine settles per entry as §9 states.
-		 */
-		destination: enums(['PAY', 'NET', 'EMPLOYER', 'DISPLAY']).notNull().default('PAY'),
-		direction: enums(['ADD', 'SUBTRACT']),
 		/** Whether an entry against this line must, may or need not attach proof. */
 		evidence: enums(['NONE', 'OPTIONAL', 'REQUIRED']).notNull().default('NONE'),
-		/** An unpaid day is deducted under this leave's code. */
-		paid: boolean().notNull().default(true),
-		/** From this many charged days a certificate is required and checked by the entry hook. */
+		/** An unpaid day is deducted at the ordinary day wage as `NO_PAY_LEAVE`. */
+		is_npl: boolean().notNull().default(false),
+		/**
+		 * Whether the remaining balance of this row may be encashed. A statute that makes a row
+		 * non-convertible says so here; an `is_npl` row is never encashable.
+		 */
+		can_encash: boolean().notNull().default(true),
+		/** From this many charged days a certificate is required and checked by the entry transform. */
 		evidence_after_days: integer(),
 		entitlement: custom('leave_entitlement').notNull()
 	},
 	{
 		description:
-			'One leave definition: eligibility, computed entitlement, whether a day is paid and the evidence it demands. Manual entries decide carry-forward and encashment.',
+			'One leave definition: eligibility, computed entitlement, whether a day is unpaid, whether it may be encashed and the evidence it demands. Manual entries decide carry-forward and encashment.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:calendar-days',
 		indexes: [{ columns: ['settings_id', 'code'], unique: true }]

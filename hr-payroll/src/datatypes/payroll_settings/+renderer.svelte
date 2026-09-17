@@ -1,9 +1,9 @@
 <script lang="ts">
 	/**
-	 * The payroll facts of one settings version: currency, the IANA zone its wall
-	 * clock sits at, and the month its tax year opens. Machine facts, not prose: each is a real
-	 * field here so the drift automation and the engine read the same value the operator typed.
-	 * One compact row, three columns.
+	 * The payroll facts of one settings version: currency, the IANA zone its wall clock sits at,
+	 * the month its tax year opens and whether unpaid leave prorates a standing allowance. Machine
+	 * facts, not prose: each is a real field here so the drift automation and the engine read the
+	 * same value the operator typed. One compact row, four columns.
 	 */
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -42,6 +42,12 @@
 			<span class="text-muted-foreground">{t('component.tax_year_start_month')}</span>
 			<span class="text-sm">
 				{current == null ? '—' : monthName(current.tax_year_start_month)}
+			</span>
+		</div>
+		<div class="flex flex-col gap-0.5 text-xs">
+			<span class="text-muted-foreground">{t('component.allowance_npl_prorates')}</span>
+			<span class="text-sm">
+				{current == null ? '—' : current.allowance_npl_prorates ? t('common.yes') : t('common.no')}
 			</span>
 		</div>
 	</Grid>
@@ -87,6 +93,19 @@
 							...current,
 							tax_year_start_month: numberFrom(event.currentTarget.value, 1)
 						})}
+				/>
+			</Stack>
+		</label>
+		<label class="text-xs">
+			<Stack gap="xs">
+				<span class="text-muted-foreground">{t('component.allowance_npl_prorates')}</span>
+				<input
+					type="checkbox"
+					class="h-4 w-4"
+					checked={current.allowance_npl_prorates}
+					{disabled}
+					onchange={(event) =>
+						emit({ ...current, allowance_npl_prorates: event.currentTarget.checked })}
 				/>
 			</Stack>
 		</label>

@@ -5,7 +5,7 @@
 	 *
 	 * Every field is a column of `claim_requests`; the family is the table, so the type picker reads
 	 * `claim_catalogue` and nothing else. It offers only the types whose eligibility holds for the
-	 * person today (`EligibleTypes`), and the hook holds the same rule on the event date.
+	 * person today (`EligibleTypes`), and the transform holds the same rule on the event date.
 	 *
 	 * Self-service opens this same form. `employment_id` is prefilled and hidden when the create
 	 * scope names the person, because an employee raising their own claim is not choosing whose it
@@ -75,7 +75,6 @@
 		{#snippet children({ Field, form })}
 			{@const employmentId =
 				scopedEmploymentId ?? (String(form.values().employment_id ?? '') || undefined)}
-			<Field name="payslip_id" hidden />
 			<Stack gap="lg">
 				<FormSection
 					first

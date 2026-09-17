@@ -9,18 +9,21 @@
  * publishes exactly one row through the browser and asserts nothing about unpublishing.
  *
  * The last case is the wall on the other side: a holiday payroll has already taken cannot be
- * unpublished, whatever the table's bulk action answers with. It is asserted through the hook,
- * because the hook is where the refusal lives for every writer — the pipeline, the form and the
+ * unpublished, whatever the table's bulk action answers with. It is asserted through the transform,
+ * because the transform is where the refusal lives for every writer — the pipeline, the form and the
  * table alike.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import holidayHooks from '../src/collections/jurisdiction_holidays/+hooks.ts';
+import holidays from '../src/collections/jurisdiction_holidays/+collection.ts';
+import { transform } from './helpers/transform.ts';
 import holidayPipelines from '../src/collections/jurisdiction_holidays/+pipelines.ts';
 
 /** The one entity the sheet may name, and the days it already has. */
 const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
+/** What the publication arm wrote through `api.collection`, for the test to read back. */
+let published: Array<{ id: string; published_at: string | null }> = [];
 const api = (existing: ReadonlyArray<{ company_id: string; date: string }> = []) =>
 	({
 		db: {
@@ -31,13 +34,25 @@ const api = (existing: ReadonlyArray<{ company_id: string; date: string }> = [])
 					])
 			},
 			jurisdiction_holidays: { findMany: () => Effect.succeed(existing) }
+		},
+		collection: {
+			jurisdiction_holidays: {
+				updateMany: (rows: typeof published) =>
+					Effect.sync(() => {
+						published = [...rows];
+						return rows;
+					})
+			}
 		}
 	}) as never;
 
 const runImport = (
 	input: unknown,
 	existing?: ReadonlyArray<{ company_id: string; date: string }>
-) => Effect.runPromise(holidayPipelines.import.handler({ input }, api(existing)));
+) => {
+	published = [];
+	return Effect.runPromise(holidayPipelines.import.handler({ input }, api(existing)));
+};
 
 const row = (date: string, name = 'Festival', legal_entity = 'Public Fixture Co') => ({
 	legal_entity,
@@ -47,9 +62,10 @@ const row = (date: string, name = 'Festival', legal_entity = 'Public Fixture Co'
 	source: null
 });
 
-test('publishing the selected rows answers one stamped row per id', async () => {
+test('publishing the selected rows writes one stamped row per id and creates nothing', async () => {
 	const before = Date.now();
-	const answered = await runImport({ publish: ['holiday-a', 'holiday-b'], published: true });
+	assert.deepEqual(await runImport({ publish: ['holiday-a', 'holiday-b'], published: true }), []);
+	const answered = published;
 	const after = Date.now();
 
 	assert.deepEqual(
@@ -67,11 +83,12 @@ test('publishing the selected rows answers one stamped row per id', async () => 
 	assert.equal(new Set(answered.map((written) => written.published_at)).size, 1);
 });
 
-test('unpublishing the selected rows answers the same rows with no stamp', async () => {
-	const answered = await runImport({ publish: ['holiday-a'], published: false });
-	assert.deepEqual(answered, [{ id: 'holiday-a', published_at: null }]);
+test('unpublishing the selected rows writes the same rows with no stamp', async () => {
+	await runImport({ publish: ['holiday-a'], published: false });
+	assert.deepEqual(published, [{ id: 'holiday-a', published_at: null }]);
 	// Nothing selected is nothing written, rather than a write of the whole table.
-	assert.deepEqual(await runImport({ publish: [], published: true }), []);
+	await runImport({ publish: [], published: true });
+	assert.deepEqual(published, []);
 });
 
 test('the spreadsheet arm still skips a day the entity already has', async () => {
@@ -97,8 +114,8 @@ test('a document that is neither a spreadsheet nor a publication is refused', as
  * A holiday payroll has taken is frozen where it is read, not where it is stored.
  *
  * The row carries no stamp: "payroll has taken this holiday" is a live reference — a run whose
- * frozen `holidays` snapshot names it. So the fixture is the api the hook reads, not a column on
- * the row, and the expectation is the one this test has always made.
+ * frozen `holidays` snapshot names it. So the fixture is the db the transform reads, not a column
+ * on the row, and the expectation is the one this test has always made.
  */
 const holiday = {
 	id: 'festival',
@@ -113,13 +130,8 @@ const holiday = {
 /** Runs of the workspace, and the work days pinning the holiday: what the freeze is derived from. */
 const references = (runs = [], pins = []) =>
 	({
-		db: {
-			payroll_runs: { findMany: () => Effect.succeed(runs) },
-			work_days: {
-				findMany: () => Effect.succeed(pins),
-				mutate: () => Effect.void
-			}
-		}
+		payroll_runs: { findMany: () => Effect.succeed(runs) },
+		work_days: { findMany: () => Effect.succeed(pins) }
 	}) as never;
 
 const takenByPayroll = references([
@@ -127,14 +139,8 @@ const takenByPayroll = references([
 ]);
 
 test('a holiday payroll has taken refuses being unpublished', async () => {
-	const unpublish = (api: unknown) =>
-		Effect.runPromise(
-			holidayHooks.mutate.perRecord.before.handler({
-				input: { published_at: null },
-				existing: holiday,
-				api
-			} as never)
-		);
+	const unpublish = (db: unknown) =>
+		transform(holidays, [{ published_at: null }], { existing: [holiday], db });
 
 	await assert.rejects(() => unpublish(takenByPayroll), /cannot be unpublished/);
 	// The same write on a holiday nothing has read is allowed: the refusal is about consumption.

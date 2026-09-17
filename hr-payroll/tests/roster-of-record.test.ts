@@ -6,11 +6,11 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import { resolveSchedule } from '../src/collections/payroll_runs/lib/schedule.ts';
 import { payrollRunPrecheck } from '../src/collections/payroll_runs/lib/precheck.ts';
-import rosterHooks from '../src/collections/rosters/+hooks.ts';
-import patternHooks from '../src/collections/shift_patterns/+hooks.ts';
+import rosters from '../src/collections/rosters/+collection.ts';
+import patterns from '../src/collections/shift_patterns/+collection.ts';
+import { transform } from './helpers/transform.ts';
 
 const range = { start: '2020-01-01', end: null };
 const DAY_ID = '00000000-0000-4000-8000-000000000001';
@@ -139,9 +139,7 @@ test('days with no roster at all are the pattern’s business, not the roster ch
 });
 
 const rosterBefore = (input, existing = undefined) =>
-	Effect.runPromise(
-		rosterHooks.mutate.perRecord.before.handler({ input, existing, api: { db: {} } })
-	);
+	transform(rosters, [input], { existing: [existing] }).then((payloads) => payloads[0]);
 
 test('a roster is one employment over one calendar month, and nothing else is stored', async () => {
 	assert.deepEqual(await rosterBefore({ employment_id: 'e', period: '2026-01' }), {
@@ -159,17 +157,10 @@ test('a roster stays on the employment and month it was created for', async () =
 });
 
 test('a shift pattern cycle is whole weeks', async () => {
-	const handler = patternHooks.mutate.perRecord.before.handler;
 	await assert.rejects(
-		Effect.runPromise(
-			handler({
-				input: {
-					pattern: { days: Array.from({ length: 10 }, () => ({ roster_code_id: DAY_ID })) }
-				},
-				existing: undefined,
-				api: { db: {} }
-			})
-		),
+		transform(patterns, [
+			{ pattern: { days: Array.from({ length: 10 }, () => ({ roster_code_id: DAY_ID })) } }
+		]),
 		/whole weeks; this one has 10 days/
 	);
 });

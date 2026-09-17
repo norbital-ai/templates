@@ -25,6 +25,7 @@
 	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
+	import ContractDetail from '../lib/ui/contract/contract-detail.svelte';
 	import { employeeMissingPunchReportable } from '../lib/ui/roster/employee-reportability.js';
 	import DaySheet, { type DaySheetPerson } from '../lib/ui/roster/day-sheet.svelte';
 	import {
@@ -130,6 +131,10 @@
 	const activeEmployment = $derived(
 		activeEmployments.find((employment) => employment.id === employmentId)
 	);
+	/** The active contract as stored, whole: the Home tab shows every one of its fields. */
+	const activeContract = $derived(
+		(employmentsQuery?.current ?? []).find((employment) => employment.id === employmentId)
+	);
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		employmentId: () => employmentId,
 		companyId: () => activeEmployment?.company_id,
@@ -203,7 +208,7 @@
 	/**
 	 * What holds one attendance record — and, deliberately, nothing about what day it falls on.
 	 *
-	 * This is the §2.2/§8.4 correction, and it is the same call `work_days/+hooks.ts` makes on
+	 * This is the §2.2/§8.4 correction, and it is the same call `work_days/+collection.ts` makes on
 	 * its update and delete paths, argument for argument, so the screen and the write path cannot
 	 * disagree about a row:
 	 *
@@ -330,7 +335,8 @@
 					where: {
 						...approved,
 						employment_id: { eq: employmentId },
-						kind: { eq: 'TIME_OFF' },
+						// Time off is the activity whose charges are its dated days.
+						charges: { ne: [] },
 						leave_original_reversals: { none: { approval_id: { isNull: true } } },
 						from_date: { lte: scheduleMonthEnd },
 						to_date: { gte: scheduleMonthStart }
@@ -346,7 +352,7 @@
 					where: {
 						approval_id: { isNotNull: true },
 						employment_id: { eq: employmentId },
-						kind: { eq: 'TIME_OFF' },
+						charges: { ne: [] },
 						leave_original_reversals: { none: { approval_id: { isNull: true } } },
 						from_date: { lte: scheduleMonthEnd },
 						to_date: { gte: scheduleMonthStart }
@@ -602,7 +608,7 @@
 	 *   - already pending     — the platform holds their first report; a second would queue behind it
 	 *   - already settled     — the readable settlement claim says payroll consumed this exact row
 	 *   - full-day leave      — `assertDayNotOwnedByLeave`: one writer wins the day. A HALF day is
-	 *                           still reportable, because the hook only refuses full coverage
+	 *                           still reportable, because the transform only refuses full coverage
 	 *
 	 * A roster-only person-day is deliberately NOT a blocker. The employee `mutate.existing` grant is
 	 * scoped to their own employment and masked to `worked_intervals`, so a report
@@ -610,7 +616,7 @@
 	 *
 	 * ONE REFUSAL IS DELIBERATELY NOT PRE-CHECKED HERE, AND MUST NOT BE ADDED.
 	 *
-	 * `assertDayHasNoPaidSilence` in `work_days/+hooks.ts` refuses a punch reported on a day a
+	 * `assertNotSettled` in `work_days/+collection.ts` refuses a punch reported on a day a
 	 * paid run has already priced as silence. Deciding that on the client needs the run's window,
 	 * and an employee has no `read` grant on `payroll_runs` — by ruling, not by omission. There is no
 	 * honest way to pre-disable this button, and every dishonest way is worse than not trying:
@@ -718,7 +724,7 @@
 	 * Employee mode's one write, handed back from the drawer's Save.
 	 *
 	 * The sheet assessed the draft already, so this only carries
-	 * the create or update across the same hooks every other attendance write crosses. A roster-only
+	 * the create or update across the same transform every other attendance write crosses. A roster-only
 	 * day carries its existing id and is updated; a day with no row carries employment and date and
 	 * is created. Either write is immediately held under `approval_id`, which the platform's mutation
 	 * boundary presents rather than letting this component invent a second result state.
@@ -748,7 +754,7 @@
 
 	/**
 	 * What a report would actually write, assessed by the same function the day sheet uses and
-	 * against the same rules `work_days/+hooks.ts` enforces. The break is derived from the punches
+	 * against the same rules `work_days/+collection.ts` enforces. The break is derived from the punches
 	 * against the shift's granted break, and the preview states it so a short call-in is not a
 	 * surprise on the payslip.
 	 */
@@ -957,6 +963,20 @@
 							</Stack>
 						</Grid>
 					</section>
+					<!-- The contract, terms in force and revisions, read-only: HR edits, the person reads. -->
+					{#if activeContract != null}
+						<section
+							class="rounded-lg border bg-card p-5 shadow-card"
+							aria-labelledby="my-contract-heading"
+						>
+							<Stack gap="md">
+								<h2 id="my-contract-heading" class="text-heading">
+									{t('app.hr_employee.my_contract')}
+								</h2>
+								<ContractDetail record={activeContract} editable={false} />
+							</Stack>
+						</section>
+					{/if}
 				{/if}
 			</Stack>
 		</Scroll>
@@ -1109,9 +1129,10 @@
 				>
 					{#snippet columns({ Column })}
 						<Column name="catalogue_id" label={t('component.catalogue_leave')} />
-						<Column name="event" label={t('leave.activity')} card="title" />
+						<Column name="summary" label={t('leave.activity')} card="title" />
 						<Column name="reference" label={t('component.reference')} />
 						<Column name="days" label={t('component.days')} />
+						<Column name="encash_days" label={t('component.encash_days')} />
 					{/snippet}
 				</CollectionTable>
 			</Stack>
@@ -1148,50 +1169,25 @@
 {#snippet myAllowances()}
 	<CollectionTable
 		{client}
-		collection="allowance_requests"
+		collection="allowances"
 		features={{ create: false }}
 		view="hr_employee:allowances"
 		title={t('app.hr_employee.my_allowances_title')}
 		description={t('app.hr_employee.my_allowances_description')}
 		disabled={!employmentId}
-		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(row.approval_id, capturesOf(row), t)}
+		recordMetadata={(row: { approval_id: string | null }) =>
+			payRequestRecordMetadata(row.approval_id, [], t)}
 		query={{
 			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-			orderBy: { created_at: 'desc' }
+			orderBy: { effective_from: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column })}
 			<Column name="catalogue_id" label={t('component.component')} card="title" />
 			<Column name="amount" label={t('component.amount')} />
+			<Column name="effective_from" card="subtitle" label={t('component.effective_from')} />
+			<Column name="effective_to" label={t('component.effective_to')} />
 			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-			<Column name="recurrence" card="subtitle" label={t('component.entry_cadence')} />
-		{/snippet}
-	</CollectionTable>
-{/snippet}
-
-{#snippet myPayments()}
-	<CollectionTable
-		{client}
-		collection="payment_requests"
-		features={{ create: false }}
-		view="hr_employee:payments"
-		title={t('app.hr_employee.my_payments_title')}
-		description={t('app.hr_employee.my_payments_description')}
-		disabled={!employmentId}
-		recordMetadata={(row: CapturedPayRequest) =>
-			payRequestRecordMetadata(row.approval_id, capturesOf(row), t)}
-		query={{
-			where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-			orderBy: { effective_on: 'desc' }
-		}}
-	>
-		{#snippet columns({ Column })}
-			<Column name="catalogue_id" label={t('component.component')} card="title" />
-			<Column name="amount" label={t('component.amount')} />
-			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-			<Column name="effective_on" label={t('component.effective_on')} />
-			<Column name="reason" card="subtitle" label={t('component.payment_reason')} />
 		{/snippet}
 	</CollectionTable>
 {/snippet}
@@ -1205,7 +1201,6 @@
 
 {#snippet claimEvents()}{@render eventTable(myClaims)}{/snippet}
 {#snippet allowanceEvents()}{@render eventTable(myAllowances)}{/snippet}
-{#snippet paymentEvents()}{@render eventTable(myPayments)}{/snippet}
 
 {#snippet events()}
 	<Tabs
@@ -1225,12 +1220,6 @@
 				label: t('family.allowance'),
 				icon: 'lucide:calendar-clock',
 				content: allowanceEvents
-			},
-			{
-				name: 'payment',
-				label: t('family.payment'),
-				icon: 'lucide:wallet',
-				content: paymentEvents
 			},
 			{ name: 'loan', label: t('family.loan'), icon: 'lucide:landmark', content: loans }
 		] satisfies TabConfig[]}
@@ -1386,7 +1375,6 @@
 					<Field name="work_date" hidden />
 					<Field name="shift_definition_id" hidden />
 					<Field name="worked_intervals" hidden />
-					<Field name="payslip_id" hidden />
 					<Stack gap="sm">
 						<Inline gap="sm" align="end">
 							<label class="flex-1 text-sm font-medium">
@@ -1395,7 +1383,7 @@
 									<Input
 										type="time"
 										value={report.startClock}
-										disabled={client.db.work_days.pending > 0}
+										disabled={client.collection.work_days.pending > 0}
 										oninput={(event) => {
 											report.startClock = event.currentTarget.value;
 											presetReport(form);
@@ -1409,7 +1397,7 @@
 									<Input
 										type="time"
 										value={report.endClock}
-										disabled={client.db.work_days.pending > 0}
+										disabled={client.collection.work_days.pending > 0}
 										oninput={(event) => {
 											report.endClock = event.currentTarget.value;
 											presetReport(form);

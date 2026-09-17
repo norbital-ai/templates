@@ -59,6 +59,16 @@ obligation to a rehire contract or combine two entities' payouts. Contribution m
 person's settled amounts across contracts within the same entity/year when its scheme requires it;
 that does not merge their leave balances or source obligations.
 
+A contract owns its dated terms: `employment_terms` rows, one in force on any date, carry the
+engagement's pay (`base_salary`, `pay_frequency`), standing (`residency_status`, `residency_since`,
+`work_classification`, `statutory_work_category`, `employment_type`, `grade`), organisation
+(`department`, `job_title`, `payroll_group`) and shift assignment. The contract is the unit the
+profile shows and the engine reads; a revision is a new dated row under the same contract, never a
+second contract. The shift assignment is `employment_terms.agreed_days_per_week` (integer 1–7,
+required — the proration divisor `src/lib/payroll/work.ts` / `proration.ts` read) and the optional
+`employment_terms.shift_pattern_id`; a named cycle must work `agreed_days_per_week` days in each of
+its weeks, and a term with no pattern must be rostered for every period payroll prices.
+
 Jurisdiction-relative residency status belongs to effective employment terms, with the day that
 standing began (`residency_since`). Move an existing status only when its contract's jurisdiction
 is evidenced; a profile shared across jurisdictions must not propagate one global status to every
@@ -67,9 +77,12 @@ contract. Unknown remains unknown and does not satisfy citizenship eligibility.
 The predicate facts a statute keys on are columns: `employees.marital_status` (`SINGLE` or
 `MARRIED`), `employees.spouse_status` (`NONE` | `WITHOUT_INCOME` | `WITH_INCOME`),
 `employees.solo_parent`, `employees.race` and `employees.religion` (only where a fund is
-selected by them), `employment_terms.residency_since`, and `companies.region`, which names the row of
-`jurisdiction_settings.wages.by_region` a scheme's floor or cap reads. A fact that is unrecorded is
-never inferred from another.
+selected by them), `employment_terms.residency_since`, `companies.region`, which names the row of
+`jurisdiction_settings.wages.by_region` a scheme's floor or cap reads, and `companies.facts`, the
+entity facts under the keys its settings version declares. What an employment has elected or
+been directed under one scheme is on its `employment_statutory_facts` row: `since`, `elections`
+under the keys the scheme row declares, and the authority's `instalments`. A fact that is
+unrecorded is never inferred from another.
 
 The first committed reference seals the contract, and the consumers themselves are the evidence:
 actual Work dates, approved Leave charges or debit valuations and each payslip's `terms_through`
@@ -77,7 +90,8 @@ protect the effective terms through those dates. Future entitlement projections 
 them. There is no separate seal log to import.
 
 Departure is the contract's own `exit_date`, `exit_reason` and `exit_note`, recorded once and
-immutable afterwards. It preserves the signed contract and does not generate any payment. A missing
+immutable afterwards. It preserves the signed contract; the only thing it generates is the held
+departure encashment ([leave.md](leave.md#encashment-on-departure)). A missing
 departure reason remains unresolved.
 
 | Family       | Source inputs                                                                                                                                                        | Preservation requirement                                                                            |
@@ -85,29 +99,31 @@ departure reason remains unresolved.
 | Work         | Work rules on the settings version (ordinary rate, bands with their funnel, limits, breaks, one citation), effective terms, shifts, schedules and dated Work entries | Preserve the actual dated assignment and attendance evidence; never apply a later pattern backwards |
 | Leave        | Leave catalogue and manual `leave_entries`                                                                                                                           | Preserve event category, exact dated charges, credit allocations, reference and approval evidence   |
 | Claim        | Claim catalogue and approved claims                                                                                                                                  | Preserve entered amount, original dates, receipts, band entitlements and the entry's pay link       |
-| Allowance    | Allowance catalogue and approved awards or recurring assignments                                                                                                     | Preserve recurrence, amount and the original eligibility window                                     |
-| Payment      | Payment catalogue and approved one-off payments or deductions                                                                                                        | Preserve source and catalogue IDs, entered amount, effective date, reason and receipt               |
+| Allowance    | Allowance catalogue and standing allowances (a one-period window for a one-off award)                                                                                | Preserve the window, amount, reason and the original eligibility window                             |
 | Loan         | Loan catalogue, agreement and `loan_repayments`                                                                                                                      | Preserve principal, instalment sequence, due dates and each instalment's contract identity          |
-| Contribution | Scheme catalogues, rules and contract facts                                                                                                                          | Preserve effective applicability and each scheme's declared base over the source-family outputs     |
+| Contribution | Scheme catalogues, rules, `assessed_on` formulas and contract facts (registration, `since`, elections, directed instalments)                                         | Preserve effective applicability and each scheme's formula over the source-family outputs           |
 
-Bonuses, notice pay and separation payments are Payment catalogue definitions. Who may raise a
-claim, allowance or payment and up to what ceiling is the catalogue row's `eligibility` and
+Bonuses, notice pay and separation payments are Allowance catalogue definitions. Who may raise a
+claim or allowance and up to what ceiling is the catalogue row's `eligibility` and
 entitlement matrix, judged against the contract terms in force on the event date; `grade` on the
 terms is the tier those predicates read. Every event form's type picker offers only the rows whose
 predicate holds for the person today, so an ineligible type is not offered rather than refused; the
-hook refuses it anyway on the event date. A receipt (`evidence_file`) is a column on all three
+transform refuses it anyway on the event date. A receipt (`evidence_file`) is a column on all three
 money families and is required when the catalogue row's `evidence` says so. A leave row grants days
-the same way: its entitlement bands are `{eligibility, days}` rows read top-down, `paid` says
-whether a day earns, and each scheme's base declaration says whether an unpaid or encashed day enters it.
-Encashment and carry-forward remain manual Leave categories. No annual account rows, accrual
-scheduler, automatic departure payments or automatic carry-forward policies are seeded.
+the same way: its entitlement bands are `{eligibility, days}` rows read top-down, `is_npl` says
+whether a day is unpaid, `can_encash` whether it may be converted, and each scheme's `assessed_on`
+formula says whether an unpaid or encashed day enters it.
+Carry-forward is a manual Leave activity; an encashment is manual or raised at departure, carries
+`encash_days` and no amount, and the engine prices the days at the ordinary day wage. No annual
+account rows, accrual scheduler or automatic carry-forward policies are seeded.
 
 ## Leave and holiday evidence
 
 Consecutive Leave dates may be collapsed only when contract, leave type, reason, approval context
 and other source metadata agree, with no missing dates or half-days. Preserve total charges and
-source identity. A range crossing payroll periods retains each dated charge so each period captures
-only its own dates. Approved activity must not be rewritten to fit today's schedule or entitlement.
+source identity. A range that would straddle two payroll periods is entered as one entry per
+period: an entry settles whole on one payslip, and the run refuses a straddling one. Approved
+activity must not be rewritten to fit today's schedule or entitlement.
 
 A TIME_OFF entry retains the exact catalogue, employment term, shift, calendar and optional Work
 assignment supporting every charged date. Historical Work overrides must come from source evidence

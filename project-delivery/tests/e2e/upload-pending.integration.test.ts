@@ -14,7 +14,7 @@ test(
 	async () => {
 		const { bundlePath } = requireReleaseBundle(
 			fileURLToPath(new URL('../../.norbital/artifact/', import.meta.url)),
-			['ai', 'connector', 'database', 'tasks']
+			['ai', 'database', 'tasks']
 		);
 		const session = await startSelfHostSession({ bundlePath, tenantId: 'project-upload-pending' });
 		const gateway = await startSessionGateway({
@@ -47,8 +47,10 @@ test(
 		});
 		let browser: Awaited<ReturnType<typeof launchChromiumOrSkip>>;
 		try {
+			// "ResizeObserver loop completed with undelivered notifications." is Chromium's benign
+			// same-frame relayout notice, not a page fault.
 			browser = await launchChromiumOrSkip(`window.testErrors = [];
-			addEventListener('error', e => window.testErrors.push(e.message));
+			addEventListener('error', e => { if (!e.message.startsWith('ResizeObserver loop')) window.testErrors.push(e.message); });
 			addEventListener('unhandledrejection', e => window.testErrors.push(String(e.reason)));`);
 			assert.ok(browser, 'Chromium is required; this test cannot pass without a browser');
 			const page = await browser.openPage(`http://127.0.0.1:${gateway.address.port}/app/crm`);

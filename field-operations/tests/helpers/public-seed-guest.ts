@@ -14,7 +14,7 @@ const templateManifestPath = fileURLToPath(
 	new URL('../../norbital.template.json', import.meta.url)
 );
 
-/** Variant nibble 8 so `collections.mutate` accepts the row as a client-minted UUIDv7. */
+/** Variant nibble 8 so `collections.write` accepts the row as a client-minted UUIDv7. */
 export const PUBLIC_ASSIGNMENT_ID = '01990000-0000-7000-8005-000000000001';
 export const DISTINCTIVE_SITE_ID = '01990000-0000-7000-8003-000000000001';
 export const DISTINCTIVE_SITE_TOKEN = 'PUB-SITE-AMBER-QUAY';

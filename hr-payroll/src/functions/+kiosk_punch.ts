@@ -66,7 +66,7 @@ export default defineCommandHandler({
 			 * any day at all — a rest day, a public holiday, somebody else's shift. The plan is
 			 * resolvable, and by the rule the rest of this workspace already uses: an explicit roster
 			 * assignment on the row wins, and otherwise the employment terms' shift pattern projects
-			 * the day's code (`explicitId ?? projectedId`, as in `work_days/+hooks.ts`).
+			 * the day's code (`explicitId ?? projectedId`, as in `work_days/+collection.ts`).
 			 *
 			 * Nothing is stamped onto the row. Writing the projected code as an explicit assignment
 			 * would freeze it, and the day would stop following its own pattern; the plan is read to
@@ -90,9 +90,8 @@ export default defineCommandHandler({
 							where: { id: { eq: term.shift_pattern_id } },
 							columns: { id: true, pattern: true, effective_range: true }
 						});
-			// `patternRosterCodeId` throws on a pattern it cannot measure, and nothing stops such a row
-			// being stored: `shift_patterns` has no write hook. A projection that cannot be computed
-			// is "no base", exactly as `work_days/+hooks.ts` treats it — so a malformed pattern makes
+			// `patternRosterCodeId` throws on a pattern it cannot measure. A projection that cannot be
+			// computed is "no base", exactly as `work_days/+collection.ts` treats it — so a malformed pattern makes
 			// the punch fall through to the plain "no shift scheduled today" refusal instead of
 			// failing the command with an error nobody at a tablet can act on.
 			let projectedCodeId: string | null = null;
@@ -145,24 +144,19 @@ export default defineCommandHandler({
 			const outcome: PunchOutcome = nextPunch(intervals, now, employee.face_last_match_at);
 			if (outcome.kind === 'blocked') return { status: 'blocked', ...outcome, kind } as const;
 			if (stored === undefined) {
-				yield* api.db.work_days.mutate([
-					{
-						employment_id,
-						work_date: workDate,
-						worked_intervals: outcome.intervals
-					}
-				]);
+				yield* api.collection.work_days.create({
+					employment_id,
+					work_date: workDate,
+					worked_intervals: outcome.intervals
+				});
 			} else {
-				yield* api.db.work_days.mutate([{ id: stored.id, worked_intervals: outcome.intervals }]);
+				yield* api.collection.work_days.update(stored.id, { worked_intervals: outcome.intervals });
 			}
 			if (kind === 'FACE')
-				yield* api.db.employees.mutate([
-					{
-						id: employee.id,
-						face_last_match_at: now,
-						face_match_count: (employee.face_match_count ?? 0) + 1
-					}
-				]);
+				yield* api.collection.employees.update(employee.id, {
+					face_last_match_at: now,
+					face_match_count: (employee.face_match_count ?? 0) + 1
+				});
 			return {
 				status: outcome.kind,
 				kind,

@@ -66,16 +66,16 @@ document, site location, and job belongs to a project.
 
 ### Job assignment compliance
 
-`job_assignments/+hooks.ts` validates create and update:
+The `transform` in `job_assignments/+collection.ts` validates create and update in two read waves:
 
-1. Load the worker's active permits (via `permits_to_work_workers` + `permits_to_work`) and collect
-   the certification ids they cover.
-2. Load the jobs linked to the assignment's site location (via `jobs_site_locations` + `jobs`) with
-   their required certifications.
+1. Wave 1, keyed by the inputs: the worker's permit links (`permits_to_work_workers`) and the jobs
+   linked to the site location (`jobs_site_locations`), read concurrently.
+2. Wave 2, keyed by those ids: the permits, the certifications each permit covers, and the
+   certifications each site job requires, read concurrently.
 3. Require at least one site job whose required certifications are all covered by an active,
-   in-validity permit.
+   in-validity permit; otherwise refuse the whole batch.
 
-The rule is enforced in both create and update hooks, not just in the assignment UI. Empty
+The rule runs on the server for every create and update, not just in the assignment UI. Empty
 requirements do not pass the guard: every assignment requires a site-location job with an explicit
 qualification set.
 
@@ -130,8 +130,8 @@ under `.norbital/`.
 ```text
 src/apps/                              the three applications (+<app>.svelte)
 src/access/policies/                   one shared read authority, one per application, and the reports integration (+<name>.ts)
-src/collections/                       models (+model.ts), relations (+relationship.ts),
-                                       the compliance hook, and form/detail representations
+src/collections/                       models (+model.ts), write contracts (+collection.ts),
+                                       relations (+relationship.ts), and form/detail representations
 src/automations/                       the four daily review watches (+<name>.ts)
 src/datatypes/                         project address, site coordinates,
                                        emergency contact, permit signatures (+definition.ts + renderer)
@@ -168,7 +168,7 @@ allowedCurrencies })` from `@norbital-ai/bolt/authoring`.
   `/__bolt/request/api/template-seed-assets/construction/...`, which is what the project record's
   viewer uses.
 
-Use collection hooks for non-negotiable server rules, a custom type when a reusable field needs its
+Use a collection transform for non-negotiable server rules, a custom type when a reusable field needs its
 own validation and renderer, and a collection representation only when schema-derived UI is
 insufficient. Keep large BIM artefacts in a file-storage facility; the `bim_reference_matrix` is
 the reference and baseline model, not a replacement for native BIM files.

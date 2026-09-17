@@ -6,7 +6,6 @@ export const ADJUSTMENT_FAMILIES = [
 	'WORK_DAY',
 	'CLAIM',
 	'ALLOWANCE',
-	'PAYMENT',
 	'LEAVE',
 	'LOAN_REPAYMENT'
 ] as const;

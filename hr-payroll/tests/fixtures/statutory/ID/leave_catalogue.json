@@ -6,7 +6,6 @@
 		"name": "Joint leave (cuti bersama)",
 		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -18,8 +17,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "524e3f9b-916b-4f4d-8f4c-f6511ea082e1",
@@ -28,15 +27,14 @@
 		"name": "Work from home (attendance marker)",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "3a4b1a1a-02bd-4d0d-a85b-0138b27778c5",
@@ -45,7 +43,6 @@
 		"name": "Annual leave",
 		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
 		"eligibility": "employment.service_months >= 12",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -57,8 +54,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "9867a7b6-93a0-4196-977a-8e9d9c027a3f",
@@ -67,15 +64,14 @@
 		"name": "Unpaid leave",
 		"authority": null,
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "51c12cd1-8757-4365-ae5a-81897b0ef135",
@@ -84,7 +80,6 @@
 		"name": "Medical leave",
 		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -92,8 +87,8 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "d6193d8d-bda9-4ef4-a377-c16f2b315869",
@@ -102,7 +97,6 @@
 		"name": "Maternity leave",
 		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -114,8 +108,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a5f11d3e-c8be-472c-8741-79031030d3c7",
@@ -124,7 +118,6 @@
 		"name": "Paternity leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
 		"eligibility": "employee.gender == \"MALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -136,8 +129,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "d44882c7-d490-407e-87c2-e35260fd8a5e",
@@ -146,7 +139,6 @@
 		"name": "Marriage leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -158,8 +150,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "33e73ae2-0b5b-4bd8-a19d-21fe4ffefebb",
@@ -168,7 +160,6 @@
 		"name": "Child's marriage leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -180,8 +171,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "e0673075-aac4-47f1-92a7-b6bf5adfdc23",
@@ -190,7 +181,6 @@
 		"name": "Child's circumcision leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -202,8 +192,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "e7be2087-db51-4e35-93cf-745a6f5f9f01",
@@ -212,7 +202,6 @@
 		"name": "Child's baptism leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -224,8 +213,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "7a389dd3-96c3-42d0-82d2-1d1c2b535184",
@@ -234,7 +223,6 @@
 		"name": "Bereavement leave (immediate family)",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -246,8 +234,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "d7c7bbad-2242-4f9d-91a4-07378722a726",
@@ -256,7 +244,6 @@
 		"name": "Bereavement leave (household member)",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -268,8 +255,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "5231bdca-5607-4fdc-8683-07e1f6c35877",
@@ -278,7 +265,6 @@
 		"name": "Menstrual leave",
 		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -290,8 +276,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "51de7566-4853-4df3-98a5-e59d99bfd72f",
@@ -300,7 +286,6 @@
 		"name": "Miscarriage leave",
 		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -313,8 +298,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "95fae748-e6f8-4a8c-bcb3-87d89a5f3c37",
@@ -323,7 +308,6 @@
 		"name": "Joint leave (cuti bersama)",
 		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -335,8 +319,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "4230c74f-0b04-4e1d-8878-d631bc7fb20b",
@@ -345,15 +329,14 @@
 		"name": "Work from home (attendance marker)",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "76cd59d9-0194-46c7-bf87-6072b1a62f2b",
@@ -362,7 +345,6 @@
 		"name": "Annual leave",
 		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
 		"eligibility": "employment.service_months >= 12",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -374,8 +356,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "1cdab603-e370-4300-99ae-f0c4a9b49e38",
@@ -384,15 +366,14 @@
 		"name": "Unpaid leave",
 		"authority": null,
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "d4bd84c8-694a-4ba0-a5cd-0a932f72f838",
@@ -401,7 +382,6 @@
 		"name": "Medical leave",
 		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -409,8 +389,8 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "b50c4185-e684-4b02-952a-da6c97ba2290",
@@ -419,7 +399,6 @@
 		"name": "Maternity leave",
 		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -431,8 +410,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "e296f940-368f-4228-a84a-97c2a4417e0f",
@@ -441,7 +420,6 @@
 		"name": "Paternity leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
 		"eligibility": "employee.gender == \"MALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -453,8 +431,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "c4b3195d-21a9-4c3a-8016-71a31594378e",
@@ -463,7 +441,6 @@
 		"name": "Marriage leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -475,8 +452,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "f58854a8-a85f-4a5b-93f1-aa326993a1a7",
@@ -485,7 +462,6 @@
 		"name": "Child's marriage leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -497,8 +473,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "0570ada3-6da2-4c70-8abd-d6d87c4f4858",
@@ -507,7 +483,6 @@
 		"name": "Child's circumcision leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -519,8 +494,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "9c2f86db-71cf-4d84-a512-acceb19b8680",
@@ -529,7 +504,6 @@
 		"name": "Child's baptism leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -541,8 +515,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "d2463866-cdb0-42f8-83d1-0d8681358a79",
@@ -551,7 +525,6 @@
 		"name": "Bereavement leave (immediate family)",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -563,8 +536,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "452f491d-85c5-4f03-9d19-62366c3e9e7c",
@@ -573,7 +546,6 @@
 		"name": "Bereavement leave (household member)",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -585,8 +557,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "6028b976-a06f-4e94-8cbd-0e0416918fc1",
@@ -595,7 +567,6 @@
 		"name": "Menstrual leave",
 		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -607,8 +578,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "17ce3fe9-7aa5-46c2-bc79-35b5b2301869",
@@ -617,7 +588,6 @@
 		"name": "Miscarriage leave",
 		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -630,8 +600,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "4c767bd3-4325-4a8c-b2ab-a0129de691b1",
@@ -640,7 +610,6 @@
 		"name": "Joint leave (cuti bersama)",
 		"authority": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -652,8 +621,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "eabafd61-8b3a-4b95-8ed0-a0474018bc4e",
@@ -662,15 +631,14 @@
 		"name": "Work from home (attendance marker)",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "b469a1c1-4096-4095-9335-2aef5a0e5dab",
@@ -679,7 +647,6 @@
 		"name": "Annual leave",
 		"authority": "Law 13/2003 Art. 79(3) as amended by Law 6/2023",
 		"eligibility": "employment.service_months >= 12",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -691,8 +658,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "47c8c102-b081-4352-aa55-75cff3392522",
@@ -701,15 +668,14 @@
 		"name": "Unpaid leave",
 		"authority": null,
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "1c5fe7f9-a04d-423d-8441-dbef4d54c7c9",
@@ -718,7 +684,6 @@
 		"name": "Medical leave",
 		"authority": "Law 13/2003 Art. 93(2)(a) and 93(3)",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
@@ -726,8 +691,8 @@
 			"bands": []
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "256a5d70-efc3-44de-b1a7-a330413c7580",
@@ -736,7 +701,6 @@
 		"name": "Maternity leave",
 		"authority": "Law 13/2003 Art. 82(1); Law 4/2024 (KIA) Art. 4(2)(a) and 4(3) — a further 3 months on a doctor's certificate, paid 100% to month 4 and 75% for months 5-6",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -748,8 +712,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "6c5b6a07-0ec4-4051-ba5d-31c6c90545f0",
@@ -758,7 +722,6 @@
 		"name": "Paternity leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(e); Law 4/2024 (KIA) Art. 6(2)(a) allows up to 3 further days",
 		"eligibility": "employee.gender == \"MALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -770,8 +733,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "59adf75b-9e2d-4dd2-b172-f60c1b0bac87",
@@ -780,7 +743,6 @@
 		"name": "Marriage leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(a) — the worker marries",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -792,8 +754,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "8f024bca-35c4-4d16-b800-99d5e7d426c8",
@@ -802,7 +764,6 @@
 		"name": "Child's marriage leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(b) — the worker's child marries",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -814,8 +775,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "5020f0a0-b39d-4863-99cb-89cf53ef0213",
@@ -824,7 +785,6 @@
 		"name": "Child's circumcision leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(c) — the worker's child is circumcised",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -836,8 +796,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "0861b5c9-e3ce-4a39-8795-6225e8fab410",
@@ -846,7 +806,6 @@
 		"name": "Child's baptism leave",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(d) — the worker's child is baptised",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -858,8 +817,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "4c7b1f63-9faa-49df-bc1f-fde6b646a2fb",
@@ -868,7 +827,6 @@
 		"name": "Bereavement leave (immediate family)",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(f) — the worker's spouse, parent, parent-in-law, child or child-in-law dies",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -880,8 +838,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "9167b882-dd84-463f-927d-b55a06b54a78",
@@ -890,7 +848,6 @@
 		"name": "Bereavement leave (household member)",
 		"authority": "Law 13/2003 Art. 93(2)(c) and 93(4)(g) — another member of the worker's household dies",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -902,8 +859,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "19c0607c-dac6-47ac-a766-44637fdd24c0",
@@ -912,7 +869,6 @@
 		"name": "Menstrual leave",
 		"authority": "Law 13/2003 Art. 81(1) — a female worker in pain during menstruation who notifies the employer is not obliged to work on the first and second day",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "MONTHLY",
 			"year_start_month": 1,
@@ -924,8 +880,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a2ee7055-1c65-4920-9f4a-fb343b0da1e2",
@@ -934,7 +890,6 @@
 		"name": "Miscarriage leave",
 		"authority": "Law 13/2003 Art. 82(2) — 1.5 months' rest on a doctor's or midwife's certificate; Law 4/2024 (KIA) Art. 4(2)(b)",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -947,8 +902,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "fd8bbd89-6dcc-4a98-b075-bf04ec71a3ab",
@@ -957,15 +912,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "6a8b164e-06fe-48ac-9048-25f07c4b1b01",
@@ -974,15 +928,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "f9b277e1-ccd3-4f08-80a3-5a2a388b3bde",
@@ -991,14 +944,13 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	}
 ]

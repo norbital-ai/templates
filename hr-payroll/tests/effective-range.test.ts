@@ -29,18 +29,12 @@ test('an inclusive range resolves each bound in the payroll zone, not by slicing
 	assert.equal(coversDate(null, '2026-09-01'), false);
 });
 
-test('statutory facts block overlaps inclusively and close the predecessor the day before', () => {
+test('statutory facts block overlaps inclusively', () => {
 	const model = source('../src/collections/employment_statutory_facts/+model.ts');
 	assert.match(
 		model,
 		/daterange\(lower\(bolt_daterange\(effective_range - 'end'\)\), upper\(bolt_daterange\(effective_range - 'start'\)\), '\[\]'\)/,
 		'a half-open constraint would let a successor begin on its predecessor’s last day'
-	);
-	const hooks = source('../src/collections/employment_statutory_facts/+hooks.ts');
-	assert.match(
-		hooks,
-		/Date\.parse\(successorRange\.start\) - 86_400_000/,
-		'the predecessor closes on the day before the successor begins'
 	);
 });
 

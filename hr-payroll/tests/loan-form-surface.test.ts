@@ -14,21 +14,17 @@ test('loan form nests repayments in a matrix and blocks an unbalanced schedule w
 	assert.match(representation, /data-loan-schedule/);
 	assert.match(representation, /data-invalid=\{imbalanced \? 'true' : undefined\}/);
 	assert.match(representation, /loanScheduleImbalanced/);
-	// The canonical write path: the form's default write carries the matrix, pushed into the
-	// form's state as the relationship key — no onSubmit override, no inline mutation.
+	// The canonical write path: the form's default write carries the matrix as explicit relation
+	// actions, pushed into the form's state as the relationship key — no onSubmit override.
 	assert.match(representation, /CollectionFormSemantic/);
-	assert.match(representation, /repayment_loan: loanScheduleWriteRows\(rows\)/);
-	assert.match(
-		representation,
-		/form\.setValues\(\{ repayment_loan: loanScheduleWriteRows\(rows\) \}\)/
-	);
+	assert.match(representation, /repayment_loan: loanScheduleActions\(/);
 	assert.doesNotMatch(representation, /onSubmit/);
-	assert.doesNotMatch(representation, /loans\.mutate\(\[/);
+	assert.doesNotMatch(representation, /client\.collection\.loans\./);
 	assert.doesNotMatch(representation, /amount_due\s*=/);
 	assert.match(schedule, /Amounts are never rewritten here/);
 	// The write is the ordered plan: every path out of the module renumbers `sequence` from the
 	// dates, so the form can drop the column without the stored key drifting from the schedule.
-	assert.match(schedule, /return loanScheduleOrdered\(rows\)\.map\(/);
+	assert.match(schedule, /const ordered = loanScheduleOrdered\(rows\);/);
 });
 
 test('the schedule matrix asks for the two facts the operator owns, and not for the sort', () => {

@@ -5,10 +5,10 @@ balances. Payroll consumes the family's prepared outputs and links every consume
 
 ## Records and ownership
 
-| Record            | Responsibility                                                                                                                                                                                                                                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `leave_catalogue` | A stable leave code within a sealed settings revision: eligibility, the computed entitlement, whether a day is `paid`, the evidence threshold and the ordered bands that price an entry                                                                                                                             |
-| `leave_entries`   | An approved or pending manual transaction against one employment contract, with a supporting reference. Approval freezes dated charges and credit allocations; the entry carries the nullable `payslip_id` the run sets when it consumes it, and a per-period Leave slice materialises as its own per-period entry. |
+| Record            | Responsibility                                                                                                                                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `leave_catalogue` | A stable leave code within a sealed settings revision: eligibility, the computed entitlement, whether a day is `is_npl`, whether it `can_encash`, and the evidence threshold                                                                         |
+| `leave_entries`   | An approved or held manual transaction against one employment contract, with a supporting reference. The transform freezes dated charges and credit allocations; the entry carries the nullable `payslip_id` the run sets when it consumes it whole. |
 
 `employment_id` identifies one contract with one legal entity. Entitlement, service bands, usage,
 reservations, carry and encashment remain within that contract. A rehire creates another contract
@@ -17,8 +17,8 @@ their leave pools and payouts remain separate. Contracts for the same employee a
 overlap.
 
 A linked input seals the employment contract. Recording departure separately bounds its service
-without rewriting the signed contract. Ending employment does not create a leave transaction,
-encashment request or separation payment.
+without rewriting the signed contract. Closing a contract raises the leaver's encashment through
+the `leave_encashment_on_exit` automation (below); it creates no separation payment.
 
 ## Catalogue and entitlement
 
@@ -46,12 +46,14 @@ Encashment and outgoing carry validate earned quantities, including existing com
 An empty eligibility expression includes everyone. Expressions use the shared person context:
 
 ```text
-employee.gender  employee.age  employee.citizenship  employee.spouse_status
-employment.type  employment.classification  employment.service_months  employment.hire_date
-terms.basic_salary  terms.workman  terms.department  terms.payroll_group
+employee.gender  employee.age  employee.age_months  employee.citizenship  employee.spouse_status
+employment.type  employment.classification  employment.service_months  employment.service_start
+terms.basic_salary  terms.workman  terms.department  terms.payroll_group  terms.grade
 terms.ordinary_hours_per_week  terms.working_days_per_week
-children.count  children.under(age)
+children.count  children.under(n)  company.region  company.headcount  company.facts.<key>
 ```
+
+The full list is the `person` site in [architecture.md](architecture.md#statutory-grammar).
 
 Malformed expressions are refused when the catalogue is written.
 
@@ -87,17 +89,20 @@ selecting an uncovered date still refuses submission.
 
 ## Manual activity
 
-Every entry requires `employment_id`, `leave_catalogue_id`, `event` and a `reference` unique within
-that contract. The server resolves the stable leave code and derives `charges` and `allocations`;
-callers cannot substitute those approval inputs.
+Every entry requires `employment_id`, `catalogue_id` and a `reference` unique within that
+contract. There is no activity column: which activity an entry is, is the presence of its fields
+(`lib/leave/activity-fields.ts`) — a charged range is time off, `encash_days` an encashment, a
+destination window a carry-forward, stated `days` an adjustment, `reversal_of_id` a reversal. The
+server resolves the stable leave code and derives `charges` and `allocations`; callers cannot
+substitute those approval inputs.
 
-| Category        | Entered facts                                                                                              | Effect                                                               |
-| --------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `TIME_OFF`      | Start/end dates and halves, optional reason and required certificate.                                      | Charges scheduled work time on exact dates.                          |
-| `ENCASHMENT`    | Source window, days, agreed gross amount and currency, optional explanatory rate, effective and due dates. | Reserves earned leave and creates an agreed monetary obligation.     |
-| `CARRY_FORWARD` | Source/destination windows, days, availability date and expiry.                                            | Debits the source and creates an expiring credit in the destination. |
-| `ADJUSTMENT`    | Window, signed days, effective date and reason.                                                            | Applies a documented exceptional change to the balance.              |
-| `REVERSAL`      | Original entry, effective date, reason and a due date when reversing paid money.                           | Reverses the original allocations and any paid outputs exactly.      |
+| Category        | Entered facts                                                                    | Effect                                                                    |
+| --------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `TIME_OFF`      | Start/end dates and halves, optional reason and required certificate.            | Charges scheduled work time on exact dates.                               |
+| `ENCASHMENT`    | Source window, `encash_days`, effective and due dates; a `can_encash` row only.  | Reserves earned leave; payroll prices the days at the ordinary day wage.  |
+| `CARRY_FORWARD` | Source/destination windows, days, availability date and expiry.                  | Debits the source; the approved entry is the expiring destination credit. |
+| `ADJUSTMENT`    | Window, signed days, effective date and reason.                                  | Applies a documented exceptional change to the balance.                   |
+| `REVERSAL`      | Original entry, effective date, reason and a due date when reversing paid money. | Reverses the original allocations and any paid outputs exactly.           |
 
 Employees submit their own time off. Time off is reviewed by an eligible L1 Manager, HR Manager or
 Senior Management approver. Other manual categories are HR actions; controller submissions require
@@ -111,9 +116,10 @@ terms, work patterns, roster overrides, observed entity holidays, occupied halve
 payroll windows, available credit and certificate requirements.
 
 A multi-day range retains each chargeable date. Holidays and rest/off days are excluded. Two
-opposite half-day entries may share a date; overlapping approved or pending halves are refused.
-Cross-month or cross-year ranges allocate each charge to its own annual window and payroll date.
-The submitted `chargeable_days` is replaced by the measured quantity.
+opposite half-day entries may share a date; overlapping approved or held halves are refused.
+Cross-month or cross-year ranges allocate each charge to its own annual window; a range that would
+straddle two payroll periods is refused at payroll and entered as one entry per period. The
+entry's `days` is the measured quantity, whatever the caller stated.
 
 ```mermaid
 flowchart LR
@@ -126,9 +132,9 @@ flowchart LR
     Family --> Payroll[Regular payroll and entry links]
 ```
 
-Batch approval validates the whole contract batch deterministically. Replay excludes its own held
-proposals while retaining reservations from other batches. The entry, dated evidence and contract
-seal commit in the same graph. Consumed holiday evidence remains sealed if its original consumer
+The transform validates the whole contract batch deterministically. Replay excludes the batch's
+own held rows while retaining reservations from other batches. The entry, dated evidence and
+contract seal commit in the same graph. Consumed holiday evidence remains sealed if its original consumer
 is later removed; calendar amendments cannot shift a linked observation or add a holiday that
 would change an already consumed date.
 
@@ -156,9 +162,10 @@ first been resolved. An original entry can be reversed only once.
 ### Carry-forward example
 
 HR approves a five-day transfer from the 2026 window into 2027, available January 1 and expiring
-March 31. The single `CARRY_FORWARD` entry contains a five-day source debit dated December 31 and a
-five-day destination credit dated January 1. Approval may occur in January; the named windows and
-allocation dates determine both balances.
+March 31. The single `CARRY_FORWARD` entry contains a five-day source debit dated December 31 and is
+itself the five-day destination credit, available January 1: the engine names the row, so the entry
+never allocates to its own id, and a reversal negates the credit by naming the entry. Approval may
+occur in January; the named windows and allocation dates determine both balances.
 
 With twelve upfront days in 2027, the opening available quantity is seventeen. Three days used in
 February consume carry first. On April 1 the unused two carried days expire in the query, leaving
@@ -170,14 +177,15 @@ Carry-forward is always an explicit HR transaction. Calendar rollover and depart
 
 `lib/leave/payroll.ts` owns preparation, source selection, approved date coverage and calculation.
 The payroll engine receives prepared Leave data for each contract. Work supplies date-specific
-absence rates; Leave returns its frozen pay items for payroll settlement; each scheme's base declaration
+absence rates; Leave returns its frozen pay items for payroll settlement; each scheme's `assessed_on` formula
 says which of them it charges.
 
 - Paid time off supplies approved coverage and a zero-money link.
 - Unpaid time off supplies reductions for its exact linked dates, using Work's applicable rate and
-  the schemes whose base admits an absence; the deduction covers whom the leave covers.
-- Encashment supplies the entered gross amount. An optional entered rate must reconcile to that
-  amount; payroll does not derive or replace it from salary.
+  the reserved `NO_PAY_LEAVE` line each scheme's formula subtracts or ignores; the deduction
+  covers whom the leave covers.
+- Encashment supplies its days; payroll prices them at the ordinary day wage as `ENCASHMENT`.
+  Leave carries no pricing of its own, so nothing is entered and nothing is repriceable.
 - Carry and adjustments change quantities without directly creating payroll money.
 - A paid reversal negates the original linked amount and economic direction. A
   draft link must first be deleted or settled before its source can be reversed.
@@ -186,16 +194,30 @@ Standing links prevent the same dated slice or single monetary obligation being 
 A time-off entry settles whole in the one period that contains all of its days; a range that would
 straddle periods is refused at payroll and entered as one entry per period. The entry's own `payslip_id` is the link, and
 its frozen pay items retain the exact catalogue/settings identifiers, quantity, rate and signed
-gross amount.
+amount, priced by the engine at the ordinary day wage.
 
 There is one regular payroll per entity and period. Late approved encashment and monetary
 corrections settle in a later regular period. Outstanding Leave money can include an ended
 contract without restoring its salary, roster or overtime. Other separation payments are explicit
-Payment-family entries.
+Allowance-family entries.
 
-A departure reason, including misconduct, never decides encashment automatically. HR records the
-actual departure, reviews the contract's balance and any settlement agreement, and submits the
-agreed transactions. There is no encashment eligibility matrix, automatic valuation or exit policy.
+### Encashment on departure
+
+Closing a contract (recording its last day) trips `automations/+leave_encashment_on_exit.ts`. It
+reads the leaver's balances on the last day and, when the annual leave row (the code beginning
+`ANNUAL`, `lib/leave/codes.ts`) is `can_encash` and has days left, submits one `ENCASHMENT` entry
+for the whole balance, settling on the last day and referenced `exit:<employment_id>:<code>`. No
+other row is paid out at departure, whatever its `can_encash` says: that flag only admits a manual
+encashment. The entry goes through the ordinary HR leave door under the
+automation's own policy, so it lands held for the HR Manager or Senior Management: the collection's
+`approvalStepRequested` rule puts an `inbox` notification in front of every member of those teams in
+the same statement that holds the row, and their decision is the review — approve and the next regular payroll prices
+the days at the ordinary day wage; reject and HR enters the agreed figure by hand. The reference is
+the idempotency key: a re-run, a later departure-note edit or an entry HR posted first raises
+nothing more. A zero balance raises nothing. An `exit_reason` of `DISMISSAL` raises nothing — every
+jurisdiction's payout carries a misconduct exception and the engine carries no jurisdiction, so a
+dismissed leaver's encashment, if owed, is HR's manual entry. Beyond that there is no encashment
+eligibility matrix or exit policy.
 
 ## Implementation entry points
 
@@ -205,10 +227,12 @@ agreed transactions. There is no encashment eligibility matrix, automatic valuat
 | `lib/leave/entitlement.ts`                                | Pure annual/fiscal entitlement calculation.                   |
 | `lib/leave/balance.ts`                                    | Credit allocation, expiry and reservations.                   |
 | `lib/leave/activity.ts`                                   | Pure planning of manual activity and its dated evidence.      |
-| `collections/leave_entries/+hooks.ts`                     | Approval validation, immutable entries and nested seals.      |
+| `collections/leave_entries/+collection.ts`                | Declared create selection; the transform plans the batch.     |
 | `lib/leave/preview.ts`                                    | The shared calendar and selection preview.                    |
 | `lib/leave/summary.ts` and `functions/+leave_balances.ts` | Computed balance projection.                                  |
 | `lib/leave/payroll.ts`                                    | Leave-owned payroll preparation, outputs and entry links.     |
+| `lib/leave/exit-encashment.ts`                            | Pure planning of the departure encashment.                    |
+| `automations/+leave_encashment_on_exit.ts`                | Raises it, held for the HR Manager, when a contract closes.   |
 
 Controller → Events → Leave shows the entity's manual activity. Employee → Events → Leave shows
 computed balances and the selected contract's entries. Settings → Catalog → Leave owns definitions;

@@ -8,10 +8,10 @@ import {
 	asRecord,
 	bearerHeaders,
 	commandSentence,
-	mutationPush,
 	postGuestCommand,
 	requireAccepted
 } from '@norbital-ai/test-utilities';
+import { writeRows } from './helpers/write.ts';
 import { workbookGrids, WorkbookImportError } from '../src/lib/workbook-rows.ts';
 import { schedulingImportPayload } from '../src/collections/work_days/lib/import-workbook.ts';
 import {
@@ -234,23 +234,11 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-t18-lock');
 		try {
 			const headers = bearerHeaders(session.credential);
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'payroll_runs',
-					rows: [
-						{
-							action: 'create',
-							values: {
-								id: crypto.randomUUID(),
-								company_id: COMPANY_ID,
-								period: JANUARY_2026
-							}
-						}
-					]
-				}),
+			const created = await writeRows(
+				session,
+				'payroll_runs',
+				'create',
+				[{ company_id: COMPANY_ID, period: JANUARY_2026 }],
 				headers
 			);
 			assert.ok(

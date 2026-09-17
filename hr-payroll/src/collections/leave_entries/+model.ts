@@ -5,7 +5,6 @@ import {
 	file,
 	instant,
 	numeric,
-	sql,
 	text,
 	uuid
 } from '@norbital-ai/bolt/authoring';
@@ -17,35 +16,52 @@ export default defineModel(
 		catalogue_id: uuid().notNull(),
 		/** Stable leave identity, resolved from the catalogue and retained across its revisions. */
 		leave_code: text().notNull(),
-		event: custom('leave_event').notNull(),
 		reference: text().notNull(),
 		certificate_file: file(),
 		/** Approval evidence; callers cannot supply quantities or substitute calendar inputs. */
 		charges: custom('leave_charges').notNull(),
 		allocations: custom('leave_allocations').notNull(),
-		/** A direction correction against the same catalogue and line; sign -1. */
+		/**
+		 * The reversal marker: `true` means this entry reverses the entry named by `reversal_of_id`.
+		 *
+		 * A reversal carries no entered money. It negates the paid outputs of its source exactly.
+		 */
 		as_adjustment_entry: boolean().notNull().default(false),
-		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),
-		effective_on: instant({ precision: 'day' }).generatedAlwaysAs(
-			sql`bolt_instant(coalesce(event ->> 'effective_on', event #>> '{range,start,date}'))`
-		),
-		due_on: instant({ precision: 'day' }).generatedAlwaysAs(sql`bolt_instant(event ->> 'due_on')`),
-		from_date: instant({ precision: 'day' }).generatedAlwaysAs(
-			sql`bolt_instant(event #>> '{range,start,date}')`
-		),
-		to_date: instant({ precision: 'day' }).generatedAlwaysAs(
-			sql`bolt_instant(event #>> '{range,end,date}')`
-		),
-		days: numeric().generatedAlwaysAs(
-			sql`coalesce(event ->> 'chargeable_days', event ->> 'days')::numeric`
-		),
-		half_day_start: boolean().generatedAlwaysAs(sql`(event #>> '{range,start,half}') = 'SECOND'`),
-		half_day_end: boolean().generatedAlwaysAs(sql`(event #>> '{range,end,half}') = 'FIRST'`),
-		reason: text().generatedAlwaysAs(sql`event ->> 'reason'`),
-		reversal_of_id: uuid().generatedAlwaysAs(sql`(event ->> 'entry_id')::uuid`),
-		summary: text({ search: true }).generatedAlwaysAs(
-			sql`(event ->> 'kind') || ' · ' || coalesce(event #>> '{range,start,date}', event ->> 'effective_on')`
-		),
+		/** Time off: the range start. Encashment and adjustment: the valuation day. */
+		from_date: instant({ precision: 'day' }),
+		/** Time off: the range end. Encashment: the source window end. */
+		to_date: instant({ precision: 'day' }),
+		/** Time off: the start half is the second. */
+		half_day_start: boolean(),
+		/** Time off: the end half is the first. */
+		half_day_end: boolean(),
+		/**
+		 * Time off: the chargeable total approval computed from the range. Encashment: mirrors
+		 * `encash_days`. Adjustment: signed and non-zero — positive credits, negative debits.
+		 * Reversal: the days of the source entry, nullable.
+		 */
+		days: numeric(),
+		/**
+		 * The days an encashment entry converts to money; null on every other activity. The engine
+		 * prices them at the ordinary day wage as `ENCASHMENT`.
+		 */
+		encash_days: numeric(),
+		/** The approved entry this reversal cancels; unique, so a source reverses once. */
+		reversal_of_id: uuid(),
+		/** The day the activity is valued on. */
+		effective_on: instant({ precision: 'day' }),
+		/** The day a monetary entry is due; null when nothing is owed. */
+		due_on: instant({ precision: 'day' }),
+		/** Carry-forward: the window the days land in. */
+		destination_from: instant({ precision: 'day' }),
+		destination_to: instant({ precision: 'day' }),
+		/** Carry-forward: the first day the carried days are spendable. */
+		available_from: instant({ precision: 'day' }),
+		/** Carry-forward: the last day they remain valid. */
+		expires_on: instant({ precision: 'day' }),
+		reason: text(),
+		/** The activity and the day it turns on, composed by the planner; the ledger's record label. */
+		summary: text({ search: true }),
 		/**
 		 * The payslip that settled this row. Set by the payroll engine when a run captures the row,
 		 * cleared when the draft run is deleted; while set, the row is frozen.
@@ -54,7 +70,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'An approved manual Leave activity with dated charges and credit allocations. Entitlement is computed; approval never creates a second usage movement. Payroll links the entry that settled it through `payslip_id`.',
+			'An approved manual Leave activity: time off with dated charges, an encashment, a carry-forward, a signed adjustment, or a reversal that negates its source. Entitlement is computed; approval never creates a second usage movement. Payroll links the entry that settled it through `payslip_id`.',
 		recordLabel: 'summary',
 		icon: 'lucide:calendar-days',
 		indexes: [

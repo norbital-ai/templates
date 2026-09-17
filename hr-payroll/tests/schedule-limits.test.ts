@@ -1,7 +1,7 @@
 /**
  * The schedule-time limit gate: `work_rules.limits` refuse a plan, payroll only
- * reports an overrun. These drive the pure decision the `work_days` and `shift_patterns` hooks
- * quote, with the CLOCK evaluation the priced work-day context shares.
+ * reports an overrun. These drive the pure decision the `work_days` and `shift_patterns`
+ * transforms quote, with the CLOCK evaluation the priced work-day context shares.
  */
 
 import assert from 'node:assert/strict';

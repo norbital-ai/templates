@@ -4,7 +4,6 @@ import test from 'node:test';
 import { leaveCoverage } from '../src/lib/scheduling/leave-coverage.ts';
 
 const fullWeek = {
-	kind: 'TIME_OFF',
 	from_date: '2026-08-03',
 	to_date: '2026-08-07',
 	half_day_start: false,
@@ -12,7 +11,6 @@ const fullWeek = {
 };
 
 const halfBoundary = {
-	kind: 'TIME_OFF',
 	from_date: '2026-08-03',
 	to_date: '2026-08-05',
 	half_day_start: true,

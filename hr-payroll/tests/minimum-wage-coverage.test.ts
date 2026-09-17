@@ -8,26 +8,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
+import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import { minimumWageCovers, minimumWageIssues } from '../src/lib/payroll/contribution.ts';
 import { compileExpression } from '../src/lib/expressions/compile.ts';
 
+/** A payslip whose only money is a salary of `base`. */
+const accumulationOf = (base: number) => {
+	const accumulated = accumulatePayslip({ items: [] });
+	return {
+		...accumulated,
+		reserved: { ...accumulated.reserved, BASE: base }
+	};
+};
+
 const FLOORED = {
 	when: 'base >= 0.0',
-	employee: 'round_cent((base < wage_floor ? wage_floor : base) * 1.0 / 100.0)',
+	employee: 'round_cent((base < person.wage_floor ? person.wage_floor : base) * 1.0 / 100.0)',
 	employer:
-		'round_cent((base > 20.0 * minimum_wage(region) ? 20.0 * minimum_wage(region) : base) * 4.0 / 100.0)'
+		'round_cent((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base) * 4.0 / 100.0)'
 };
 const scheme = {
 	row: {
 		id: 'id-BPJS',
 		code: 'BPJS',
 		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
 		rules: [FLOORED],
-		base: { salary: true, absence: true, overtime: true, night_premium: true, entries: [] }
+		assessed_on: 'BASE + OVERTIME + NIGHT_PREMIUM - ABSENCE'
 	},
 	rules: [FLOORED]
 };
@@ -41,16 +53,24 @@ const person = (employmentType: string) =>
 	});
 const charge = (employmentType: string, applies: boolean) =>
 	contribute({
-		bases: [{ contribution: scheme, base: 3_000_000, lines: [] }],
+		accumulation: accumulationOf(3_000_000),
+		contributions: [scheme],
 		facts: new Map(),
 		yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
-		age: 36,
-		headcount: 10,
-		riskClass: null,
+		yearEarned: new Map(),
+		period: {
+			key: '2026-01',
+			start: '2026-01-01',
+			end: '2026-01-31',
+			index: 1,
+			instalments: 1,
+			monthlyOn: 'FIRST',
+			lastOfYear: false
+		},
+		year: { start: '2025-01-01', end: '2025-12-31', months_employed: 12, days_employed: 365 },
 		projection: { payslipsRemaining: 12, futurePayslipEquivalents: 0 },
-		person: person(employmentType),
-		minimumWage: 5_729_876,
-		minimumWageApplies: applies
+		person: { ...person(employmentType), wage_floor: applies ? 5_729_876 : 0 },
+		minimumWage: 5_729_876
 	})[0];
 
 test('the floor reads the minimum wage for a covered person and 0 for one the order excludes', () => {

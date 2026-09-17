@@ -5,9 +5,9 @@ activity and calculation rules. Payroll combines monetary results, applies Contr
 one result graph. Catalogue content is the policy; there is no separate policy object for each
 business action.
 
-This document describes the implemented family source boundary. The combined contract and Payment
-changes are verified locally by artifact sync, generated migrations, type checks, full-suite checks
-and browser acceptance. No deployment status is implied.
+This document describes the implemented family source boundary. The combined contract, catalogue
+and contribution changes are verified locally by artifact sync, generated migrations, type checks,
+full-suite checks and browser acceptance. No deployment status is implied.
 
 ## Identity and family ownership
 
@@ -21,12 +21,13 @@ contracts in other entities, each with its own pay and entitlement. Rehire start
 old activity and unpaid obligations stay on the old contract.
 
 The first committed reference seals the contract: while any employee event, term, loan or payslip
-names it, it cannot be edited, reassigned, reopened or deleted, and a pending reference guards it the
-same way. There is no separate seal log; a contract whose every consumer has been removed is editable
+names it, it cannot be edited, reassigned, reopened or deleted, and a held (provisionally
+committed) reference guards it the same way. There is no separate seal log; a contract whose every consumer has been removed is editable
 again. Consumed term dates are read off the consumers (`work_days.work_date`, approved Leave charges,
 `payslips.terms_through`). Departure is recorded once on the contract (`exit_date`, `exit_reason`, `exit_note`);
-once set, those three columns are immutable and the sealed contract terms stay unchanged. It
-generates no encashment, carry or departure package.
+once set, those three columns are immutable and the sealed contract terms stay unchanged. Closing
+the range raises the leaver's encashment, held for review ([leave.md](leave.md#encashment-on-departure));
+it generates no carry or departure package.
 
 Effective terms amendments belong to the same stint and do not reset service. Contribution retains
 any person/entity/year aggregation required by its scheme; a new contract does not erase paid YTD.
@@ -36,23 +37,22 @@ contracts in different jurisdictions can therefore have different standings. Eli
 the term effective on the date being evaluated. An unrecorded standing remains unknown; it is not
 inferred from nationality or a shared employee-profile value.
 
-| Family       | Catalogue                                      | Contract inputs                                                                 | Results                                                                                      |
-| ------------ | ---------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Work         | `settings.work_rules`                          | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage | Salary, the overtime classes, incentive and unexplained absence                              |
-| Leave        | `leave_catalogue`                              | Contract history and `leave_entries`                                            | Paid/unpaid absence coverage, reductions, entered encashment                                 |
-| Claim        | `claim_catalogue`                              | `claim_requests`                                                                | Reimbursements                                                                               |
-| Allowance    | `allowance_catalogue`                          | `allowance_requests`                                                            | One-off or recurring allowances                                                              |
-| Payment      | `payment_catalogue`                            | `payment_requests`                                                              | Bonuses, notice pay, separation payments and corrections; the family keeps its storage names |
-| Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                   | Recovery deductions                                                                          |
-| Contribution | `statutory_contributions` (with their `rules`) | Person statutory facts and source-family results                                | Employee deductions and employer costs                                                       |
+| Family       | Catalogue                                      | Contract inputs                                                                        | Results                                                                                                                |
+| ------------ | ---------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Work         | `settings.work_rules`                          | Terms, patterns, roster codes, `work_days`, holiday inputs and absence coverage        | Salary, the overtime classes, incentive and unexplained absence                                                        |
+| Leave        | `leave_catalogue`                              | Contract history and `leave_entries`                                                   | Paid/unpaid absence coverage, reductions, engine-priced encashment                                                     |
+| Claim        | `claim_catalogue`                              | `claim_requests`                                                                       | Reimbursements                                                                                                         |
+| Allowance    | `allowance_catalogue`                          | `allowances` (the standing sources) and `allowance_entries` (what each payslip priced) | Standing allowances, prorated like basic salary: transport, housing, a bonus keyed as a one-period window, corrections |
+| Loan         | `loan_catalogue`                               | `loans` and `loan_repayments`                                                          | Recovery deductions                                                                                                    |
+| Contribution | `statutory_contributions` (with their `rules`) | Person statutory facts and source-family results                                       | Employee deductions and employer costs                                                                                 |
 
 Different business inputs retain typed collections. A family interface does not require a universal
 entry table. `lib/payroll/family.ts` carries the shared pay-item metadata: every catalogue row and
 every engine-priced Work line states its `destination` (`PAY`, `NET`, `EMPLOYER`, `DISPLAY`) and
 `direction` (`ADD`/`SUBTRACT`), which is the §9 table the settlement reads. Work is not a catalogue:
 its lines live on `settings.work_rules`, priced by `bands` in declaration order. Leave
-declares the metadata of its distinct monetary outputs. Contribution reads each scheme's own base
-declaration rather than inspecting the activity that produced a line.
+declares the metadata of its distinct monetary outputs. Contribution reads each scheme's own `assessed_on`
+formula over the settled lines rather than inspecting the activity that produced a line.
 
 ## Catalogue revisions and holidays
 
@@ -78,8 +78,8 @@ start day up to, but not including, its end; the end is the first day its succes
 display prints the last governed day. `change_summary` records, in the operator's words, what the
 version changes against its predecessor; the engine never reads it. The Settings app's **Compare
 snapshots** tab diffs two versions of one lineage: the settings fields (`payroll`, `wages`,
-`work_rules`, `sources`) and every catalogue that hangs off a version — Contribution, Leave, Claim,
-Allowance, Payment and Loan — matched by `code` with leaf-level changes, additions and removals.
+`work_rules`, `sources`, `facts`) and every catalogue that hangs off a version — Contribution,
+Leave, Claim, Allowance and Loan — matched by `code` with leaf-level changes, additions and removals.
 Holidays are entity-owned, so they are not part of a lineage diff.
 
 **Holidays are entity-owned. There is no per-jurisdiction holiday concept.** `jurisdiction_holidays`
@@ -126,9 +126,9 @@ flowchart TD
     Contracts --> Prepare[Prepare family inputs for each contract]
     Prepare --> Work[Work: resolve schedule]
     Work --> Leave[Leave: charges and absence coverage]
-    Leave --> Calculate[Calculate Work, Leave, Claim, Allowance, Payment and Loan]
+    Leave --> Calculate[Calculate Work, Leave, Claim, Allowance and Loan]
     Calculate --> Results[Amounts, destination, direction and frozen entry evidence]
-    Results --> Contribution[Contribution: each scheme’s declared base, rules and YTD]
+    Results --> Contribution[Contribution: each scheme’s assessed_on formula, rules and YTD]
     Contribution --> Settle[Gross, deductions, net and employer cost]
     Results --> Settle
     Settle --> Commit[Atomically write run, contract payslips and entry links]
@@ -155,7 +155,7 @@ The family processing boundary has four responsibilities:
 | `calculateFamilies`           | Coordinate source-family calculations in dependency order                          |
 | `calculateFamilyAssessments`  | Validate family inputs/results and assess grouped Contribution                     |
 
-The owners are `lib/payroll/work.ts` for Work, `money.ts` for the shared Claim/Allowance/Payment
+The owners are `lib/payroll/work.ts` for Work, `money.ts` for the shared Claim/Allowance
 implementation, `loan.ts` for Loan, `contribution.ts` for Contribution and `lib/leave/payroll.ts`
 for Leave. The family modules own their source/catalogue reads and definition dispatch. The
 coordinator preserves cross-family ordering and the Work/Leave dependency without creating another
@@ -167,7 +167,7 @@ family assessments, applies common settlement and passes the result to `graph.ts
 prepared facts without database writes. The run core does not query family-owned source/catalogue
 tables or dispatch their calculation definitions.
 
-The money catalogues (Claim, Allowance, Payment) share the catalogue spine — code, destination and
+The three money catalogues (Claim, Allowance, Loan) share the catalogue spine — code, destination and
 direction, an optional ordered band table with each band's amount and entitlement limit, and the
 `evidence` it demands — which `money.ts` lifts into the engine's `ENTRY` definition. Bands are read
 in order: the first band whose `when` holds for the entry supplies its amount and its ceiling; a
@@ -175,47 +175,81 @@ row with no bands settles the entry's own amount; no band holding means no entit
 when the request is written and paid nothing by the run. A Loan catalogue row adds the two facts only a debt has: `loan_type` (`STAFF`,
 `GOVERNMENT`, `FESTIVE`) and `minimum_repayment`. A `GOVERNMENT` advance is owed to the authority
 rather than the employer, so the final payslip does not settle it and the balance survives the
-contract; the other two end with the employment like any deduction. The Allowance row adds its
-recurrence facts (`recurring`, `prorates`, `on_day`), and Leave its `paid`, `evidence_after_days`
-and the bands that price an entry. `employment_terms.grade` is the contract's benefit tier; the entry
+contract; the other two end with the employment like any deduction. The Allowance row carries no
+cadence: every allowance is standing — a monthly amount over an effective window — and a 13th
+month, a THR or a bonus is a row HR keys for the month it is paid in, priced by the row's band
+over the person and the year as they stand when the window opens. A bonus, a back payment of basic
+or a correction of an earlier period's engine-priced line is an allowance row (`ADJ` for basic and
+allowances, `BACKPAY_ADD_WAGES` for overtime and other additional wages, excluded wherever
+overtime is); there is no payment catalogue. Leave is the one catalogue with no
+money: `is_npl`, `can_encash`, `evidence_after_days` and the entitlement bands. `employment_terms.grade` is the contract's benefit tier; the entry
 context reads it as `terms.grade` beside department, service months and the rest.
 
 ### Statutory grammar
 
-One expression language, CEL, is what every catalogue row, band and rate speaks, and each site has
-one documented context compiled at write time by `lib/expressions`: `person` (catalogue
-eligibility), `entry` (catalogue bands and entitlements), `work_day`
-(`rates.bands`, limits and breaks), `scheme` (scheme rules and the relief pool) and `schedule`
-(limit and break enforcement). An unknown member or a wrong result type is refused when the row is
-written, never at payroll.
+One expression language, CEL, is what every catalogue row, band, rate and scheme speaks, and each
+site has one documented context compiled at write time by `lib/expressions` (`contexts.ts` is the
+one source; the Fields panel renders it). **Five sites, one subject each:** `person` (catalogue
+eligibility, a scheme's person conditions, `wages.applies_when`, `catalogue_schedule.when`),
+`entry` (catalogue bands and entitlement amounts), `work_day` (work bands, breaks, limits, the
+night premium, `overtime_when`), `assessment` (`statutory_contributions.assessed_on`) and `scheme`
+(contribution rules). **Six roots, one meaning each,** with the same members on every site that
+carries them: `person` (the employee, contract and employer on the rule date), `period` (key, start,
+end, index, instalments, last_of_year, days_employed — the pay month's days the employment covered
+on the proration basis, the payslip's segments summed — and days_in_month), `year` (the tax year:
+start, end, months_employed,
+days_employed, `earned.<code>` over earlier PAID payslips), `scheme` (code, assessment_period,
+year_to_date.\*, projection.\*, rate_override, since, since_months, `elections.<key>`),
+`produced` (`<code>.employee`, `<code>.employee_this_period`, `<code>.employer` of every scheme already charged) and `limits`
+(the version's evaluated hour ceilings). A site's subject is bare — the person object on `person`,
+the day on `work_day`, `base` on `scheme`, the six reserved money lines on `assessment` — and
+everything else is rooted; on every site but `person` the person sits under `person.`.
 
-The `person` facts: `employee.gender`, `employee.age`, `employee.citizenship`,
-`employee.marital_status`, `employee.spouse_status`, `employee.solo_parent`, `employee.race`,
-`employee.religion`, `employee.residency_months` (completed months since
-`employment_terms.residency_since`, 0 when unrecorded), `employment.type`,
-`employment.classification`, `employment.service_months`, `employment.hire_date`,
-`terms.basic_salary`, `terms.workman`, `terms.department`, `terms.payroll_group`, `terms.grade`,
-`terms.ordinary_hours_per_week`, `terms.working_days_per_week`, `children.count`,
-`children.under(age)` and `company.region`. Empty is everyone; an unrecorded fact reads as empty,
-false or zero and never claims anything. Hooks compile every predicate when the row is written.
-Race and religion are captured only where a statutory fund is selected by them.
+The `person` root: `employee.gender`, `age`, `age_months`, `citizenship`, `marital_status`,
+`spouse_status`, `dependents_count`, `solo_parent`, `race`, `religion`, `residency_months`;
+`employment.type`, `classification`, `risk_class`, `service_months`, `service_years`,
+`service_start`, `exit_date`, `exit_reason`; `terms.basic_salary`, `fixed_allowances`,
+`monthly_wage`, `statutory_wages`, `workman`, `statutory_work_category`, `department`,
+`payroll_group`, `grade`, `ordinary_hours_per_week`, `working_days_per_week`; `children.count`,
+`children.under(n)`; `company.region`, `company.headcount`, `company.facts.<key>`; `wage_floor`;
+`period.working_days`. Empty is everyone; an unrecorded fact reads as empty, false or zero — there
+is no null — and never claims anything. Race and religion are captured only where a statutory fund
+is selected by them.
+
+Open prefixes are data, not schema: `limits.<key>`, `year.earned.<code>`, `produced.<code>`,
+`scheme.elections.<key>`, `person.company.facts.<key>`. The compiler checks the prefix; the version
+supplies the keys — a scheme row declares the election keys it reads (`elections: [{key, type}]`)
+and a settings version the entity facts (`facts`), so a write refuses an undeclared key and the
+fact editors offer the declared type's control. Every other member is refused at write when the
+site does not declare it, as is a wrong result type; nothing is discovered at payroll. The
+functions: `round_cent`, `truncate_cent`, `up_5_cents`, `round_unit`, `floor_unit`, `up_to_unit`,
+`bracket`, `ladder` and `progressive` on every site; `minimum_wage(region)` on `person`,
+`assessment` and `scheme`; `leave.days(code)` on `entry`; `code('X')` and
+`catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', {pick | exclude})` on `assessment`; `annual_exempt(amount,
+earned_before, cap)` on `assessment` and `scheme`.
 
 The event forms speak it too. `lib/ui/eligible-types.svelte` reads the chosen employment with its
 person, terms and entity in one query, builds the same context as of today (`lib/eligible-types.ts`)
 and narrows the type picker to the catalogue rows whose predicate holds; with no person chosen it
-offers every row in force. The write hooks hold the same rule on the event date, so a write that
+offers every row in force. The collection transforms hold the same rule on the event date, so a write that
 bypassed the form is refused with the same sentence. An event carries no entitlement of its own:
-a claim, allowance or payment is a type, an amount, a date, a receipt when the type demands one,
-and whether it claws an earlier line back.
+a claim or allowance is a type, an amount, a date, a receipt when the type demands one, and
+whether it claws an earlier line back.
 
 The engine phases are PICK, VALIDATE, GATHER, MEASURE, ACCUMULATE, CONTRIBUTE, SETTLE and GRAPH.
-Preparation gathers the input snapshot once. Validation refuses a rate band with no pay item, required facts, open clocks, missing calendar
+ACCUMULATE folds one payslip's priced lines into the six reserved magnitudes and a
+`code → signed amount` map once; CONTRIBUTE evaluates each scheme's formula and ladder over them in
+dependency order. Preparation gathers the input snapshot once. Validation refuses a rate band with no pay item, required facts, open clocks, missing calendar
 coverage, invalid references and truncated reads. Nothing is persisted until all contracts have a
 valid result graph.
 
 Paid time off provides Work with absence coverage and does not add a second salary payment. Unpaid
-time off produces one Leave reduction and is excluded from unexplained absence in Work. For daily
-and hourly wages, paid and unpaid leave coverage must preserve the same no-double-charge rule.
+time off (`is_npl`) produces one Leave reduction at the ordinary day wage — the reserved
+`NO_PAY_LEAVE` line — and is excluded from unexplained absence in Work; an encashment's
+`encash_days` earn at the same rate as `ENCASHMENT`. A paid day taken is a quantity on the
+entitlement and no money at all. Every approved entry is pinned to the payslip of the period it
+falls in, so the entitlement it charged is sealed with the run. For daily and hourly wages, paid
+and unpaid leave coverage must preserve the same no-double-charge rule.
 
 ### Run lifecycle and entry links
 
@@ -263,7 +297,10 @@ person's correction used to freeze the next month's payroll for everybody.
 one contract and holds its `status`, base, proration, statutory and adjustment arrays; an
 adjustment names its causal input by family and source id. Every entry collection carries a
 nullable `payslip_id`: the run sets it on consumption, and deleting a `DRAFT` or `ON_HOLD` slip
-clears it. A recurring allowance materialises one per-period row per payslip; a Leave entry settles
+clears it — as an update the runtime names, so history, sync capture and every replica see the
+release. A standing allowance is never pinned: the run creates one `allowance_entries` row per
+period under the payslip (`derived_from_id` → the allowance; the days, divisor, basis, unpaid
+days and amount it was priced on), and the entry dies with a draft slip; a Leave entry settles
 whole in the one period that contains all of its days (a range that straddles periods is refused
 and entered as one entry per period); a loan repayment row is recovered whole by one payslip. One
 entry is one line on one payslip, so the pin is always the whole lock and there are no capture
@@ -279,7 +316,7 @@ What the net-pay guard could not take is reported rather than absorbed. A recove
 raises `LOAN_REPAYMENT_SHORT` as a warning — the row stays unlinked and the next run recovers it —
 and a month that recovers less than the catalogue row's `minimum_repayment` raises
 `LOAN_REPAYMENT_BELOW_MINIMUM`, which blocks: the operator resolves the deduction or holds that
-person's slip. The same rule governs money requests. A claim, allowance or payment the run read and
+person's slip. The same rule governs money requests. A claim or allowance the run read and
 priced at nothing is still linked, and every such decision — an eligibility rule the person fails,
 a band no `when` of which covers them, a period the employment did not touch — raises
 `PAY_REQUEST_SKIPPED` naming the entry and the reason, because the link removes it from the
@@ -322,14 +359,16 @@ recurring allowances or entitlement.
 
 ### Manual departure package
 
-Recording resignation, misconduct or another departure reason creates no monetary request. HR
-submits the approved items independently through their owning families.
+Recording a departure creates one thing: the `leave_encashment_on_exit` automation raises a held
+`ENCASHMENT` for the leaver's unused annual leave, when that row is `can_encash`, for the HR Manager to approve or reject
+(none for a `DISMISSAL`). Every other item HR submits independently through its owning family.
 
 For example, a contract ending 30 June has six days of computed final entitlement and four used days.
-HR enters a Leave `ENCASHMENT` for the remaining two days, an agreed rate of 100 and gross amount of 200. Leave validates the available quantity and arithmetic. Approval consumes those two days and
-makes the entered amount due; payroll does not calculate a resignation-specific price.
+The automation submits a Leave `ENCASHMENT` for the remaining two days, effective and due 30 June.
+Leave validates the available quantity; approval consumes those two days and the next regular
+payroll prices them at the ordinary day wage. Payroll does not calculate a resignation-specific price.
 
-A separate approved separation payment belongs to Payment. An outstanding expense belongs to Claim;
+A separate approved separation payment belongs to Allowance. An outstanding expense belongs to Claim;
 contracted wages belong to Work; repayment belongs to Loan. A shared supporting reference can group
 the package without creating a duplicate lump sum. HR determines its completeness. A later regular
 payroll settles unlinked obligations against the original contract, even after a rehire.
@@ -361,7 +400,7 @@ Balances and source allocations must be revalidated at approval and under concur
 
 A manual carry entry names both source and destination windows, quantity and credit validity. Its
 creation date does not decide which year receives it. Encashment names its quantity and approved
-monetary terms. Neither action is automatically generated at year end or departure.
+monetary terms. Carry is never generated automatically; encashment is generated, held, at departure.
 
 Time off preserves a contiguous half-day range and its exact dated charges and calendar/schedule
 provenance. Each payroll settles only its own dates in that range. A reversal restores the original
@@ -373,9 +412,10 @@ destination. See [Leave](leave.md) for the full validation and correction contra
 
 ### Schedule, overrides and observed time
 
-A named `shift_patterns` row is referenced by effective employment terms. `PATTERNED` projects a
-cycle from an anchor, including phased rotations. `ROSTERED` expresses a contractual workload where
-HR supplies assignments. No pattern means rostered as assigned.
+Effective employment terms carry the shift assignment: `agreed_days_per_week` (1–7, always set —
+the proration divisor) and an optional named `shift_patterns` row whose cycle projects from its
+anchor and works the agreed days in each of its weeks. No pattern means rostered: every priced day
+needs a roster row with a shift, and the run refuses the person by name and period otherwise.
 
 A `work_days` row belongs to one contract and date. Its planned roster code overrides that date's
 assignment; its actual side contains worked intervals and break minutes. An attendance-only row
@@ -435,11 +475,11 @@ of the divisor. None is inferred from an output workbook.
 ### Time off in lieu
 
 **Nothing is issued automatically.** Whether a worked premium day is paid or banked is a
-conversation with the person, and it is recorded entirely by hand in the leave ledger, under the
+conversation with the person, and it is recorded entirely by hand in `leave_entries`, under the
 `PUBLIC_HOLIDAY_IN_LIEU` leave code: an `ADJUSTMENT` grants the day, a `TIME_OFF` on a fixed date
 takes it, a candidate `TIME_OFF` leaves the choice to the person, and a `REVERSAL` returns the
 credit. Nothing is minted by the engine and no day carries a paid-or-banked compensation column, so
-the ledger is the whole balance and a credit already spent refuses reversal.
+the entries are the whole balance and a credit already spent refuses reversal.
 
 ### Overtime classes and the incentive funnel
 
@@ -472,25 +512,41 @@ allowance from other earnings.
 
 ## Contribution calculation and audit
 
-Each scheme declares its own base. `statutory_contributions.base` states whether
-salary, absence, the overtime classes (the incentive funnel included) and the night premium are in
-it, and which catalogue rows of its version are (`entries`, by family and code). A line the
-declaration admits joins the base with the sign of its own landing — an earning, non-wage payment
-or employer cost adds, an absence or deduction subtracts — so a scheme whose base admits nothing
-charges nothing, and no line names a scheme. An unpaid leave day is an absence; a leave row in
-`entries` is its encashment. The write refuses an entry naming a row the version does not carry
-and the seal refuses a scheme that admits nothing. A scheme carries no `eligibility` field:
-ineligibility is a rule whose `when` nobody matches, and a person who matches no rule is charged
-nothing and appears on no payslip.
+Each scheme states what it is assessed on as one expression. `statutory_contributions.assessed_on`
+is CEL over the `assessment` site: the six reserved lines (`BASE`, `OVERTIME`, `NIGHT_PREMIUM`,
+`ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT` — the engine's own money, never catalogue rows), the
+version's catalogue rows (`code('X')`, `catalog('ALLOWANCE' | 'CLAIM' | 'LOAN', {'pick' | 'exclude':
+[...]})`), `year.earned.<code>`, `annual_exempt(amount, earned_before, cap)` and the shared roots
+(`person`, `period`, `year`, `scheme`, `produced`). The reserved lines are magnitudes and the
+formula writes their sign; a catalogue row carries its own landing signed (an earning adds, a
+deduction reduces), so a selection is written with `+` and `-` appears only on reserved lines and
+in arithmetic. The result is clamped at zero. An Act defined by inclusion is written with `pick`,
+one defined by exclusion with `exclude`, so a new row lands where the Act would put it. The write
+compiles the formula, walks its literals and refuses a catalogue that is not one of the three, a
+code that is not a row of the scheme's version or one that two catalogues carry, and an empty
+formula; the seal repeats every check. An unpaid leave day is the `NO_PAY_LEAVE` line; an
+encashed day is `ENCASHMENT`. A scheme carries no `eligibility` field: ineligibility is a rule
+whose `when` nobody matches, and a person who matches no rule is charged nothing and appears on
+no payslip. The formula is evaluated inside the ordered loop, so it may read `produced.<code>` of
+the schemes already charged (an employer premium taxed as the employee's income).
+
+`assessment_scope` is `EMPLOYMENT` (one charge per employment, on its payslip) or `COMPANY`: the
+employer's own levy on the salary fund, evaluated once over the sum of every payslip's reserved
+magnitudes and code map after the employment schemes, with an employee expression that must be
+`0.0`, landing on the run as `company_charges` and on no payslip.
 
 A scheme's `rules` are `{when, employee, employer}` expressions over the `scheme` context (`base`,
-`assessment_period`, `period`, `year_to_date`, `projection`, `person`, `region`,
-`minimum_wage(region)` and the rest), read in declaration order; the first `when` that holds
-governs. Every piece of arithmetic that used to be typed — base transform, relief, household share,
+the result of `assessed_on`; `person.*`; the eight-member `period.*`; `year.*`; `scheme.*` carrying
+`code`, `assessment_period`, `year_to_date`, `projection`, `rate_override`, `since` and
+`elections`; `produced.<code>.*`; `minimum_wage(person.company.region)` and the rest), read in
+declaration order; the first `when` that holds governs. A year-end reckoning is the first rung,
+guarded by `period.last_of_year`, charging the annual scale less the year's withholding; a rung may
+charge a negative employee amount, which settles through net as a refund, the payslip prints it as
+one, and a relief read of a scheme in its refund month is floored at zero. Every piece of arithmetic that used to be typed — base transform, relief, household share,
 rounding, threshold, annualisation — is a call to a registered helper (`round_cent`, `round_unit`,
 `bracket`, `ladder`, `progressive`, `up_to_unit`, …) or a plain expression inside a rule; a
 progressive rung is just `when base > x && base <= y`, `employee: constant + (base - x) * rate`. A
-rule that names `produced.<code>.employee|employer` declares its dependency: the engine reads the
+rule that names `produced.<code>.employee|employee_this_period|employer` declares its dependency: the engine reads the
 mentions from the compiled expression, computes the producers first (ties by code), and refuses an
 unknown producer or a loop when the rule is written. There is no `sequence` column and no
 `scheme_reliefs` junction. The three relief-pool columns (`employee_share_annual_cap`,
@@ -499,15 +555,27 @@ producers is pool state read at the mention, not an order to declare. `minimum_w
 the company's region's wage in `jurisdiction_settings.wages.by_region`; a company in a region the
 version names no wage for stops the run under such a scheme.
 
+The employment's standing with a scheme is one `employment_statutory_facts` row: `NOT_REGISTERED`
+with a reason (charges zero, feeds no relief) or `REGISTERED` with the reference number, an
+optional `rate_override`, the day the employment registered (`since`, read as `scheme.since` and
+`scheme.since_months`), the authority's directed `instalments` (`{amount, from, to, reference}` —
+a Form CP38 direction, added after the ladder to the employee charge and carried apart as the
+payslip's `directed_amount`; no formula ever sees it) and the employment's `elections` under the
+scheme (`{key: value}`, read as `scheme.elections.<key>`; an SHG opt-out, an SPR full-rate
+standing, a PCB disabled relief, a PTKP status). The scheme row declares the keys and types it
+reads; the fact write refuses an undeclared key or a value of another type, the scheme write
+refuses a rule reading a key the row does not declare, and a declared key the fact leaves out reads
+as the type's empty value.
+
 A shared code survives catalogue revisions. Historical approved entries retain their source
 catalogue metadata; the current run resolves the applicable Contribution scheme and rules, and the
-version in force decides by code which settled lines are in each scheme's base.
-The payslip persists the base, employee and employer amounts and the governing rule's `when` as
-`rule_when`, so an amount-only reconciliation cannot hide an incorrect base. The run also keeps the
-whole derivation as `calculation_trace`: per payslip, each charged scheme's base lines, producer
-reads, governing rule and shares: read by the payslip's derivation affordance and drawn as the
-scheme card's flow, and consumed by no
-calculation.
+version in force decides by code which settled lines each scheme's formula selects.
+The payslip persists the base, employee and employer amounts, the directed instalment inside the
+employee share and the governing rule's `when` as `rule_when`, so an amount-only reconciliation
+cannot hide an incorrect base. The run also keeps the whole derivation as `calculation_trace`:
+per payslip, each charged scheme's selected lines, producer reads, governing rule and shares, and
+as `company_charges` the COMPANY-scoped schemes' one row for the run; read by the payslip's
+derivation affordance and drawn as the scheme card's flow, and consumed by no calculation.
 
 `lib/payroll/contribution.ts` groups the run's contract calculations by employee and legal entity.
 For compatible assessment intervals, it combines the scheme bases before assessing charges once.
@@ -529,7 +597,7 @@ the original output and contract. Paid configuration, links and output remain un
 family catalogue revision ──→ frozen run configuration
 contract + approved entry ──→ entry payslip_id ──→ payslip adjustment
 contract and effective terms ────────────────→ payslip base/proration
-source-family amounts + base declarations ────────────→ contribution results
+source-family amounts + assessed-on formulas ────────→ contribution results
 ```
 
 The run retains actual configuration values, applicable holiday snapshots and calculation version.
@@ -540,7 +608,7 @@ draft links.
 ## Applications and authoring boundaries
 
 Controller uses a shared entity selection. People holds profiles, contracts, terms, statutory facts
-and departures. Events has Work, Leave, Claim, Allowance, Payment and Loan pages. Settings → Catalog
+and departures. Events has Work, Leave, Claim, Allowance and Loan pages. Settings → Catalog
 holds family definitions, including Contribution; the entity's Holidays tab owns import, review and
 publication. Employee Events presents the same family navigation scoped to the selected contract.
 
@@ -551,12 +619,27 @@ approved committed inputs; held creates reserve eligible quantities without beco
 
 The kiosk writes ordinary Work events against a contract. Its camera assets resolve relative to the
 versioned artifact, and manual entry remains available when camera recognition is unavailable. See
-[Scheduling and attendance](scheduling-leave-proposal.md) for the operational layers and current
-integration boundaries.
+[Scheduling and attendance](scheduling.md) for the operational layers and current integration
+boundaries.
 
 Models live in `src/collections`, relationships in `src/collections/+relationship.ts`, representations
 with their collections and family preparation/calculation in `src/lib/payroll` and `src/lib/leave`.
 Shared calculation primitives and run orchestration remain in `src/collections/payroll_runs/lib`.
+
+Every collection is declared in its `+collection.ts`: the `create` and `update` selections name
+exactly the columns a caller may state (a form registers the same fields, nothing hidden), a
+`with` selection admits the nested children a write may carry (an employee's first contract, a
+contract's first terms, a loan's repayment lines, a settings version's catalogues), and `delete`
+is a declaration with no input. A `transform` receives the whole batch with each row's stored
+pre-image and returns model-shaped payloads, reading through the workspace in at most two
+concurrent waves: it derives what the caller does not state (contract numbers, allocations,
+charges, the settled schedule), refuses in one sentence what the rules forbid (a sealed version,
+a captured source, an overdrawn credit, an overlapping contract), and names rows the caller did
+not — a payroll run's payslips are nested creates that `link` the sources they consume, so the
+pin and the slip commit together. What the transform cannot decide, the delete grant's
+`authorize` decides on the stored row (`src/lib/policy_grants.ts`); an admin bypasses grants,
+not transforms. Server code writes through `api.collection.<name>` with the same grammar; the
+kiosk, the holiday import and the workbook import pipeline are its callers.
 Generated types, artifacts and migrations come from Bolt tooling and are not authored by hand.
 Public acceptance fixtures contain invented data; private reconciliation evidence is described in
 [Data](data.md) and is not copied into the template.

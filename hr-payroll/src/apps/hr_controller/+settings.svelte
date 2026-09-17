@@ -13,7 +13,7 @@
 	 * rather than a family of entries, and the schemes are read as a set with their own reliefs.
 	 * Work rules are the version's, not a catalogue, and roster codes and patterns belong to the
 	 * employing entity rather than the lineage — each is hoisted so no surface has to be read
-	 * through another. Catalog keeps the five families only.
+	 * through another. Catalog keeps the money families only.
 	 *
 	 * Layout is one `AppShell` (variant `full`) and no page scroll: a tab panel never scrolls, the
 	 * thing inside it does. The version forms own a `Scroll` of their own; every catalogue table is
@@ -135,14 +135,14 @@
 {/snippet}
 
 {#snippet catalogueTable(
-	collection: 'claim_catalogue' | 'allowance_catalogue' | 'payment_catalogue' | 'loan_catalogue',
+	collection: 'claim_catalogue' | 'allowance_catalogue' | 'loan_catalogue',
 	title: string,
 	description: string
 )}
 	<!--
-		Four catalogues, one table. They share one spine — a code, its destination and direction,
+		Three catalogues, one table. They share one spine — a code, its destination and direction,
 		its place in the reduction order and who it covers — and the family is the table rather than
-		a column on it. Four copies of this markup would be four places for the order column to go
+		a column on it. Three copies of this markup would be three places for the order column to go
 		missing from one. `leave_catalogue` is not one of them: its row is a leave first and a pay
 		line second, so it has its own snippet below.
 	-->
@@ -198,14 +198,6 @@
 	)}
 {/snippet}
 
-{#snippet cataloguePayments()}
-	{@render catalogueTable(
-		'payment_catalogue',
-		t('app.settings.payment_catalogue'),
-		t('app.settings.payment_catalogue_description')
-	)}
-{/snippet}
-
 {#snippet catalogueLoans()}
 	{@render catalogueTable(
 		'loan_catalogue',
@@ -231,7 +223,7 @@
 			{#snippet columns({ Column })}
 				<Column name="code" label={t('component.code')} card="title" />
 				<Column name="name" label={t('component.name')} card="subtitle" />
-				<Column name="paid" label={t('component.paid')} />
+				<Column name="is_npl" label={t('component.is_npl')} />
 				<Column name="eligibility" label={t('component.who_may_take_it')} />
 			{/snippet}
 		</CollectionTable>
@@ -268,12 +260,6 @@
 				label: t('app.settings.allowance_catalogue'),
 				icon: 'lucide:calendar-clock',
 				content: catalogueAllowances
-			},
-			{
-				name: 'payment_catalogue',
-				label: t('app.settings.payment_catalogue'),
-				icon: 'lucide:gift',
-				content: cataloguePayments
 			},
 			{
 				name: 'loan_catalogue',

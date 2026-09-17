@@ -10,9 +10,9 @@
  *
  * A work day stores only observed work intervals and one actual unpaid-break total. There is no
  * overtime punch, overtime state or payable overtime field to drift from those observations. On an
- * ordinary day, overtime is the observed work outside the scheduled WORK-code window. On a REST,
- * OFF or observed public holiday, every observed worked hour is overtime. The result is floored to
- * the half hour below, with no one-hour minimum.
+ * ordinary day, overtime is the observed work, measured from the shift start, in excess of the
+ * contract's normal hours. On a REST, OFF or observed public holiday, every observed worked hour is
+ * overtime. The result is floored to the half hour below, with no one-hour minimum.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * REST-DAY AND PUBLIC-HOLIDAY WORK IS PRICED BY STATUTE, FROM THE SEEDED RULES.
@@ -127,7 +127,7 @@ const IntervalSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number 
 type Interval = Schema.Schema.Type<typeof IntervalSchema>;
 
 /**
- * Parse and union the observed intervals. Overlap is rejected by the write hook, but unioning here
+ * Parse and union the observed intervals. Overlap is refused by the work day transform, but unioning here
  * makes payroll safe against historical/imported duplicates: the same minute can never be paid
  * twice. A missing end is the sole representation of an open clock and blocks the run.
  */
@@ -178,13 +178,7 @@ function clockedWorkHours(entry: WorkDayLike, from: number = Number.NEGATIVE_INF
 	return Math.max(0, elapsed - Math.max(0, decodeNumber(entry.break_minutes ?? 0)) / 60);
 }
 
-/**
- * Hours clocked out after the scheduled end of the shift.
- *
- * An overnight shift ends on the following calendar day, so its end is carried forward whenever it
- * is not after its start. This depends only on the clock-out: arriving late is undertime, deducted
- * separately, and never shortens the overtime earned (decision E4).
- */
+/** The hours of the intervals inside `[start, end)`. */
 function overlapHours(intervals: readonly Interval[], start: number, end: number): number {
 	return intervals.reduce(
 		(total, interval) =>
@@ -306,28 +300,29 @@ export function deriveDailyOvertime(
 	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
 ): DailyOvertime | null {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
-	const intervals = normalizedWorkedIntervals(entry);
-	let totalWorkHours = clockedWorkHours(entry);
-	let raw = totalWorkHours;
-	if (day.dayType === 'ORDINARY') {
-		if (day.shift == null) return null;
-		const startMinutes = clockMinutes(day.shift.start_time);
-		let endMinutes = clockMinutes(day.shift.end_time);
-		if (day.shift.crosses_midnight || endMinutes <= startMinutes) endMinutes += 1440;
-		const shiftStart = midnight(workDate, utcOffsetMinutes) + startMinutes * MINUTE_MS;
-		const shiftEnd = midnight(workDate, utcOffsetMinutes) + endMinutes * MINUTE_MS;
-		// An early clock-in is not work: overtime on a scheduled day is the clock-out past the
-		// shift end, and the day's total is measured from the shift start (owner's rule, 2026-09-16).
-		totalWorkHours = clockedWorkHours(entry, shiftStart);
-		raw = overlapHours(intervals, shiftEnd, Number.POSITIVE_INFINITY);
-	}
+	if (day.dayType === 'ORDINARY' && day.shift == null) return null;
+	// An early clock-in is not work on any day that carries a shift: the day's total is measured
+	// from the shift start (owner's rule, 2026-09-16), on a rostered rest day or holiday as on an
+	// ordinary one.
+	const shiftStart =
+		day.shift == null
+			? Number.NEGATIVE_INFINITY
+			: midnight(workDate, utcOffsetMinutes) + clockMinutes(day.shift.start_time) * MINUTE_MS;
+	const totalWorkHours = clockedWorkHours(entry, shiftStart);
+	// Overtime on an ordinary day is work in excess of the normal hours (EA s.60A(3), and every
+	// other regime's "beyond the normal day"), not the clock-out past the shift end: a two-hour-late
+	// arrival that stays two hours late worked a normal day and earns nothing beyond it, where the
+	// overrun paid the two hours the person had not worked. On a rest day or holiday every hour
+	// is overtime.
+	const raw =
+		day.dayType === 'ORDINARY' ? Math.max(0, totalWorkHours - day.normalHours) : totalWorkHours;
 
 	/**
 	 * The rest break is assessed from the punches and deducted **before** the half-hour floor.
 	 *
 	 * The assessment reads `worked_intervals`, not `raw`: the trigger is consecutive hours, and the
-	 * overrun this function computes is a different quantity that discards everything inside the
-	 * scheduled window. A day of 08:00–19:00 with a 20-minute pause crosses Malaysia's five
+	 * excess this function computes is a different quantity that discards the normal day. A day of
+	 * 08:00–19:00 with a 20-minute pause crosses Malaysia's five
 	 * consecutive hours whether or not any of it was overtime — measuring the trigger off `raw` would
 	 * make the rule fire on the tail of a shift instead of on the stretch the statute describes.
 	 *

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import hooks from '../src/collections/employments/+hooks.ts';
+import employments from '../src/collections/employments/+collection.ts';
+import { transformSync } from './helpers/transform.ts';
 import {
 	assertContractDoesNotOverlap,
 	nextContractNumber,
@@ -111,41 +112,33 @@ test('every event names its contract and an existing event cannot change contrac
 	assert.deepEqual(boundToContract({}, { employment_id: 'a' }), {});
 });
 
-test('nested contracts bind their employee before checking existing and sibling contracts', () => {
-	const { employee_id: _employee, id: _id, ...input } = contract();
-	const parent = { collection: 'employees', column: 'employee_id', id: 'person', values: {} };
+test('a new contract is checked against stored and sibling contracts and takes its rolling number', () => {
+	const { id: _id, ...input } = contract();
 	const run = (inputs: ContractCandidate[], stored: ContractCandidate[] = []) => {
-		const api = {
-			db: {
-				employments: {
-					findMany: ({ where }) =>
-						Effect.succeed(
-							stored.filter(
-								(row) =>
-									(where.employee_id == null || where.employee_id.in.includes(row.employee_id)) &&
-									(where.company_id == null || where.company_id.in.includes(row.company_id))
-							)
-						),
-					findPending: () => Effect.succeed([])
-				}
+		const db = {
+			employments: {
+				findMany: ({ where }) =>
+					Effect.succeed(stored.filter((row) => where.employee_id.in.includes(row.employee_id)))
 			}
 		};
-		const prepared = Effect.runSync(hooks.mutate.prepare({ inputs, api }));
-		return Effect.runSync(
-			hooks.mutate.perRecord.before.handler({
-				input: inputs[0],
-				existing: undefined,
-				recordId: 'new-contract',
-				parent,
-				prepared,
-				api
-			})
-		);
+		return transformSync(employments, inputs, { db });
 	};
-	assert.equal(run([input]).employee_id, parent.id);
+	assert.equal(run([input])[0].contract_number, 1);
 	assert.throws(() => run([input], [contract()]), /already has an active/);
-	assert.throws(() => run([input, { ...input, id: 'second' }]), /already has an active/);
-	assert.throws(() => run([{ ...input, employee_id: 'different-person' }]), /enclosing/);
+	assert.throws(() => run([input, { ...input }]), /already has an active/);
+	assert.equal(
+		run(
+			[input],
+			[
+				contract({
+					id: 'z',
+					effective_range: { start: '2020-01-01T00:00:00.000Z', end: '2020-12-31T00:00:00.000Z' },
+					contract_number: 4
+				})
+			]
+		)[0].contract_number,
+		5
+	);
 });
 
 test('a rehire takes the next rolling contract number for the same person and entity', () => {

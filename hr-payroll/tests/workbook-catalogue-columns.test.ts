@@ -30,7 +30,7 @@ const line = (overrides) => ({
 				: overrides.bucket === 'ABSENCE'
 					? 'WORK_DAY'
 					: overrides.bucket === 'DEDUCTION'
-						? 'PAYMENT'
+						? 'ALLOWANCE'
 						: 'ALLOWANCE',
 	...overrides
 });
@@ -86,10 +86,20 @@ test('three allowances are three columns, not one lump', () => {
 		);
 });
 
-test('sections read in the clerk’s order: basic, allowances, overtime, absence, gross, statutory, deductions, payments, net', () => {
+test('sections read in the clerk’s order: basic, allowances, overtime, absence, gross, statutory, deductions, payments, net, company cost', () => {
 	assert.deepEqual(
 		groups().map((group) => group.name),
-		['Basic', 'Allowances', 'Overtime', 'Absence', 'Gross', 'Deductions', 'Payments', 'Net']
+		[
+			'Basic',
+			'Allowances',
+			'Overtime',
+			'Absence',
+			'Gross',
+			'Deductions',
+			'Payments',
+			'Net',
+			'Company cost'
+		]
 	);
 	assert.deepEqual(section('Basic').outputIds, ['BASIC']);
 	// Within a section, code order: the inferred catalogue order.
@@ -98,8 +108,11 @@ test('sections read in the clerk’s order: basic, allowances, overtime, absence
 	assert.equal(
 		section('Totals & bases'),
 		undefined,
-		'the deduction total, employer cost and statutory totals are not columns'
+		'the deduction total and the statutory totals are not columns'
 	);
+	// The one total that is: what the person cost the entity, and it is the last column.
+	assert.deepEqual(section('Company cost').outputIds, ['companyCost']);
+	assert.equal(groups().at(-1)?.name, 'Company cost');
 });
 
 test('a component is filed under the bucket it settled as', () => {

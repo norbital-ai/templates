@@ -1,0 +1,242 @@
+[
+	{
+		"id": "990cca82-a2f7-5e31-9eb7-053d35b7c7f5",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "SUA",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "129b6012-34b2-5058-827f-538f6613dcce",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "0247f143-27d8-5725-879b-ec6daf6d21be",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "ONCALL",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "81277ef9-a189-5899-9715-f2f45e7c26dd",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "497ad32c-b463-523b-bd62-a65dcb551fb9",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "SUA",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "f562deb3-3c28-527b-9507-b52e9f957acc",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "14f8f2c0-e531-5303-a7e4-2b2b1acd5dff",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "ONCALL",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "6891a62b-a528-5d83-86de-f6bb062855cf",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "4fd08c8d-4531-5576-b16a-f16bbdc871e5",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "SUA",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "0bdc1e3b-0c90-5f9b-8780-1d09077ab840",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "BPAYBS",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "98f2b585-059b-5906-a1d2-5006f6d704f3",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "ONCALL",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "18815b85-b148-5744-b219-3bc7c39f6562",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "ADJ",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "6079a9bf-a843-5d85-9f68-4c4faaf05aa8",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "5c2bf993-2791-52da-aad0-818d645dfb5a",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "e0a7077d-a559-50e7-9a87-f76cc91b5d42",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "BACKPAY_ADD_WAGES",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	}
+]

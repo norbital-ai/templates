@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { paymentRequest, claimRequest, requestPayPeriod } from '../src/lib/payroll/money.ts';
+import { claimRequest, requestPayPeriod } from '../src/lib/payroll/money.ts';
 import { calculateFamilies } from '../src/lib/payroll/families.ts';
 
 const APRIL = { start: '2026-04-01', end: '2026-04-30' };
@@ -36,9 +36,8 @@ const NPL = {
 	evidence: 'NONE',
 	evidence_after_days: null,
 	entitlement: { availability: 'UNLIMITED', year_start_month: 1, proration: 'NONE', bands: [] },
-	paid: false,
-	destination: 'PAY',
-	direction: 'SUBTRACT',
+	is_npl: true,
+	can_encash: false,
 	bands: [{ when: '', amount: 'entry.amount', limit: null }]
 };
 const TERM = {
@@ -46,6 +45,7 @@ const TERM = {
 	employment_id: 'employment-1',
 	base_salary: { value: 3000, currency: 'MYR' },
 	pay_frequency: 'MONTHLY',
+	agreed_days_per_week: 5,
 	shift_pattern_id: 'pattern-1',
 	statutory_work_category: 'NON_MANUAL',
 	employment_type: 'PERMANENT',
@@ -70,15 +70,13 @@ function leaveEntry(id, dates) {
 		catalogue_id: NPL.id,
 		leave_code: NPL.code,
 		reference: id,
-		event: {
-			kind: 'TIME_OFF',
-			range: {
-				start: { date: dates[0], half: 'FIRST' },
-				end: { date: dates.at(-1), half: 'SECOND' }
-			},
-			chargeable_days: dates.length,
-			reason: 'Approved absence'
-		},
+		from_date: dates[0],
+		to_date: dates.at(-1),
+		half_day_start: false,
+		half_day_end: true,
+		days: dates.length,
+		effective_on: dates[0],
+		reason: 'Approved absence',
 		charges,
 		allocations: [],
 		approval_id: null
@@ -136,7 +134,12 @@ function measure(entries) {
 			jurisdiction: {
 				id: 'settings',
 				code: 'TEST',
-				payroll: { currency: 'MYR', timezone: 'Asia/Kuala_Lumpur', tax_year_start_month: 1 },
+				payroll: {
+					currency: 'MYR',
+					timezone: 'Asia/Kuala_Lumpur',
+					tax_year_start_month: 1,
+					allowance_npl_prorates: false
+				},
 				wages: { by_region: {} },
 				effective_range: { start: '2020-01-01', end: null }
 			},
@@ -259,7 +262,7 @@ test('without approved unpaid dates Leave produces neither money nor captures', 
 	);
 });
 
-test('Claim uses its incurred day and Payment its effective day to select the default period', () => {
+test('a claim uses its incurred day to select the default period, and a stated period wins', () => {
 	const core = { id: 'request', employment_id: 'employment-1', amount: 42, pay_period: null };
 	const claim = claimRequest({
 		...core,
@@ -269,13 +272,13 @@ test('Claim uses its incurred day and Payment its effective day to select the de
 	});
 	assert.equal(claim.event_date, '2026-04-10');
 	assert.equal(requestPayPeriod(claim, 21), '2026-04');
-	const payment = paymentRequest({
+	const late = claimRequest({
 		...core,
-		payment_catalogue_id: 'payment',
-		effective_on: '2026-04-25',
-		reason: 'Agreed payment'
+		claim_catalogue_id: 'claim',
+		incurred_on: '2026-04-25',
+		description: null
 	});
-	assert.equal(payment.event_date, '2026-04-25');
-	assert.equal(requestPayPeriod(payment, 21), '2026-05');
-	assert.equal(requestPayPeriod({ ...payment, pay_period: '2026-04' }, 21), '2026-04');
+	assert.equal(late.event_date, '2026-04-25');
+	assert.equal(requestPayPeriod(late, 21), '2026-05');
+	assert.equal(requestPayPeriod({ ...late, pay_period: '2026-04' }, 21), '2026-04');
 });

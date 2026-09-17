@@ -1,9 +1,9 @@
 /**
  * A record created through the form, by the interaction a dispatcher performs.
  *
- * Everything else in this workspace creates rows over `collections.mutate`, which skips the whole
- * of `CollectionForm` — its relation pickers, its validators, its submit path, and the create hook
- * that derives `search_text` and stamps `dispatched_at` from the chosen job. "Assign contractor"
+ * Everything else in this workspace creates rows over `collections.write`, which skips the whole
+ * of `CollectionForm` — its relation pickers, its validators, its submit path, and the collection
+ * transform that derives `search_text` and stamps `dispatched_at` from the chosen job. "Assign contractor"
  * appears in the headed suite only as a sentinel string proving the app painted; nothing had ever
  * clicked it. So the sheet in `+field_ops_controller.svelte` was unreachable from any test, in a
  * workspace whose whole purpose is dispatching work.
@@ -126,23 +126,20 @@ it('the assign-contractor form refuses an empty submit and a taken job, then cre
 
 		const mutated = await postGuestCommand(
 			session.baseUrl,
-			'collections.mutate',
+			'collections.write',
 			mutationPush(session.schemaFingerprint, {
-				action: 'mutate',
 				collection: 'jobs',
-				rows: [
+				action: 'create',
+				inputs: [
 					{
-						action: 'create',
-						values: {
-							id: FREE_JOB_ID,
-							external_ref: 'PUB-JOB-0900',
-							site_id: AMBER_QUAY_SITE_ID,
-							title: FREE_JOB_TITLE,
-							nature: 'public-fixture-inspect',
-							scheduled_for: '2026-09-08T00:00:00.000Z',
-							status: 'unassigned',
-							description: 'Invented job for the assign-contractor form walk.'
-						}
+						id: FREE_JOB_ID,
+						external_ref: 'PUB-JOB-0900',
+						site_id: AMBER_QUAY_SITE_ID,
+						title: FREE_JOB_TITLE,
+						nature: 'public-fixture-inspect',
+						scheduled_for: '2026-09-08T00:00:00.000Z',
+						status: 'unassigned',
+						description: 'Invented job for the assign-contractor form walk.'
 					}
 				]
 			}),

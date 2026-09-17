@@ -9,10 +9,10 @@ import { custom, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
  * payroll all read the same day cycle through `employment_terms.shift_pattern_id`. A `work_days`
  * row is an override of what this row projects; a day with no row is the base, worked to plan.
  *
- * The value is the same `work_pattern` type the terms carried: PATTERNED repeats one or more day
- * cycles of roster codes from an anchor date, and ROSTERED states the expectation a company wants
- * named for people whose days are assigned roster by roster. Terms with no pattern at all are
- * rostered as assigned, with nothing to project and nothing to guarantee.
+ * The value is the same `work_pattern` type the terms carried: a repeating day cycle of roster
+ * codes from an anchor date, working `employment_terms.agreed_days_per_week` days in each of its
+ * weeks (the terms transform refuses a mismatch). Terms with no pattern are rostered: their roster
+ * rows are the schedule, and payroll refuses a period they leave uncovered.
  */
 export default defineModel(
 	{

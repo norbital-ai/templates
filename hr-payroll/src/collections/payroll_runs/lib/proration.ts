@@ -7,7 +7,7 @@
  * branch on a component's name.
  *
  * What prorates is a component's **cadence**, not its kind: basic salary and a recurring allowance
- * do, a one-off claim, a payment and a loan instalment do not. Keying on cadence is what removes the
+ * do, a one-off claim, a one-off allowance and a loan instalment do not. Keying on cadence is what removes the
  * type-name branch the plan itself worries about (decision E7 / E22).
  *
  * The denominator is the whole calendar **month** measured on the basis's own units — the month's
@@ -36,7 +36,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 const DayWindowSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
 type DayWindow = Schema.Schema.Type<typeof DayWindowSchema>;
 
-/** What `prorationFraction` needs: the work's basis, the period and the span covered. */
+/** What `prorationSegment` needs: the work's basis, the period and the span covered. */
 type ProrationFractionOptions = {
 	readonly work: Work;
 	readonly period: DayWindow;
@@ -52,25 +52,13 @@ type ProrationFractionOptions = {
 };
 
 /**
- * The fraction of a pay period a span of employment covers.
- *
- * `workingDaysIn` is consulted for a `WORKING_DAYS` work and for a part period of a `FIXED_DAYS`
- * one — both count working days — and is supplied by the caller because only the schedule knows
- * which days those are (public holidays excluded — decision E20).
- */
-export function prorationFraction(options: ProrationFractionOptions): number {
-	const segment = prorationSegment(options);
-	return segment == null || segment.denominator <= 0 ? 0 : segment.days / segment.denominator;
-}
-
-/**
  * The same arithmetic, with its working shown.
  *
  * A payslip stores `payslip_proration` entries, and every input to the fraction is stored beside
  * its result there — the days, the divisor they were taken over and the basis that counted them —
  * because a payslip has to be re-readable years after a work changed how it prorates.
- * `prorationFraction` is this function's numerator over its denominator and nothing else, so the
- * figure a segment records and the figure the money was computed from cannot drift.
+ * Every caller divides the numerator by the denominator and nothing else, so the figure a
+ * segment records and the figure the money was computed from cannot drift.
  *
  * `null` means the span does not touch the period at all, which is not the same as a fraction of
  * zero: there is no segment to record, rather than a segment that paid nothing.

@@ -5,12 +5,14 @@ import { Effect } from 'effect';
 /**
  * The attendance write path these locks govern.
  *
- * `time_entries` and `roster_entries` are one collection now, so the hooks that refuse a punch on a
+ * `time_entries` and `roster_entries` are one collection now, so the transform that refuses a punch on a
  * settled day live on `work_days`. This file owns the lock arithmetic; the cases below are here
  * because a lock nothing enforces is a lock nobody has, and they are the only place the two halves
  * are asserted together.
  */
-import workDayHooks from '../src/collections/work_days/+hooks.ts';
+import workDays from '../src/collections/work_days/+collection.ts';
+import { transformOne } from './helpers/transform.ts';
+import { workDayDb } from './helpers/work-day-db.ts';
 import {
 	payrollWindows,
 	dayLockKey,
@@ -27,7 +29,7 @@ import {
 /**
  * Two runs of one company, in the shape the real read returns them.
  *
- * `company_id` is not decoration: `mutate.prepare` selects it and groups the windows by it, because
+ * `company_id` is not decoration: the transform selects it and groups the windows by it, because
  * company is the key a record can reach on its own (employment → company). Without it every window
  * landed under `undefined`, the lookup for `co-1` found nothing, and the paid-window refusal below
  * silently did not fire — a fixture describing a response the api does not return.
@@ -238,7 +240,7 @@ test('only application locks become authored record metadata', () => {
 });
 
 /**
- * `docs/scheduling-leave-proposal.md` (locking), which is the contract these cover:
+ * `docs/scheduling.md` (locking), which is the contract these cover:
  * a record is governed by the claim held over it, and a day with no record by the window. A passed
  * date governs nothing on attendance; a paid window never governs an existing record at all.
  */
@@ -304,64 +306,6 @@ test('a claim refuses whatever the run’s lifecycle, and whatever the windows s
 	}
 });
 
-/**
- * A database double whose surface is exactly the reads the attendance hooks make.
- *
- * The last two cases below are about which guard runs on which path, and that is a property of the
- * hook rather than of this module — asking `sourceLock` on its own would only re-assert the inputs
- * the test itself chose. So the real authored handlers are called, and the double is kept narrow
- * for the reason `payslip-sources-lock.test.ts` keeps its narrow: a broader fake is a second,
- * silently divergent description of the authoring api.
- */
-function fakeHookApi({ runs = [], captures = [], payslips = monthlySlips } = {}) {
-	return {
-		db: {
-			employments: {
-				findFirst: () => Effect.succeed({ company_id: 'co-1' }),
-				// `mutate.prepare` asks for the whole batch's employments at once, where the
-				// per-record path asked one at a time. The double kept only `findFirst`, so
-				// `yield* undefined(...)` threw before any guard ran and the refusal assertion
-				// below was passing on a `TypeError`. Same company, stated once for both shapes.
-				findMany: ({ where }) =>
-					Effect.succeed(
-						(where?.id?.in ?? ['emp-1']).map((id) => ({
-							id,
-							company_id: 'co-1'
-						}))
-					)
-			},
-			employment_terms: { findMany: () => Effect.succeed([]) },
-			work_days: { findMany: () => Effect.succeed([]) },
-			rosters: { findMany: () => Effect.succeed([]) },
-			shift_definitions: { findMany: () => Effect.succeed([]) },
-			shift_patterns: { findMany: () => Effect.succeed([]) },
-			// A published, reviewed-empty calendar supplies the jurisdiction input independently of
-			// the payroll windows and captures whose lock behavior these cases exercise.
-			companies: { findMany: () => Effect.succeed([{ id: 'co-1', settings_code: 'TEST' }]) },
-			jurisdiction_settings: {
-				findMany: () =>
-					Effect.succeed([
-						{
-							id: 'settings-1',
-							code: 'TEST',
-							jurisdiction_code: 'TEST-JUR',
-							sealed_at: '2020-01-01T00:00:00.000Z',
-							voided_at: null,
-							approval_id: null,
-							effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
-						}
-					])
-			},
-			payroll_runs: { findMany: () => Effect.succeed(runs) },
-			// The lock is the payslip's; the windows above are only where to look.
-			payslips: { findMany: () => Effect.succeed(payslips) },
-			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
-			// keeps its own tests.
-			leave_entries: { findMany: () => Effect.succeed([]) }
-		}
-	};
-}
-
 const punch = (overrides = {}) => ({
 	id: 'wd-1',
 	employment_id: 'emp-1',
@@ -374,8 +318,8 @@ const punch = (overrides = {}) => ({
 /** The same day's clock, corrected by a few minutes: the ordinary attendance edit. */
 const CORRECTED = [{ start: '2026-07-01T00:16:00Z', end: '2026-07-01T09:15:00Z' }];
 
-/** Run the unified mutation hook exactly as the runtime does: prepare once, then decide one row. */
-function runMutateBefore({ changes, existing, api }) {
+/** Run the transform exactly as the runtime does: one batch, the stored row beside its patch. */
+function runTransform({ changes, existing, api }) {
 	const input =
 		existing == null
 			? changes
@@ -384,24 +328,20 @@ function runMutateBefore({ changes, existing, api }) {
 					work_date: existing.work_date,
 					shift_definition_id: existing.shift_definition_id ?? null,
 					worked_intervals: existing.worked_intervals,
-					...changes,
-					id: existing.id
+					...changes
 				};
-	const prepared = Effect.runSync(workDayHooks.mutate.prepare({ inputs: [input], api }));
-	return Effect.runSync(
-		workDayHooks.mutate.perRecord.before.handler({ input, existing, prepared, api })
-	);
+	return transformOne(workDays, input, existing, api);
 }
+const fakeApi = ({ runs = [], payslips = monthlySlips } = {}) => workDayDb({ runs, payslips });
 
 test('a create inside a paid window is refused: that day’s silence is already priced', () => {
-	const api = fakeHookApi({ runs: monthly });
-	// `mutate` is two stages, and the second cannot answer without the first. `prepare` runs once
-	// per batch and gathers the employment→company and company→window maps; `perRecord.before`
-	// reads them. The helper above deliberately runs both stages through their Effects, so this
-	// assertion can only pass on the authored refusal rather than on a stale namespace TypeError.
+	const api = fakeApi({ runs: monthly });
+	// The transform gathers the employment→company and company→window maps for the batch and
+	// decides each row against them; the helper runs it through its Effect, so this assertion can
+	// only pass on the authored refusal rather than on a stale namespace TypeError.
 	const create = (overrides = {}) => {
 		const { id: _id, approval_id: _approvalId, ...changes } = punch(overrides);
-		return runMutateBefore({ changes, existing: undefined, api });
+		return runTransform({ changes, existing: undefined, api });
 	};
 	assert.throws(() => create(), /inside paid payroll 2026-07/);
 	// The same create one window along, where the run is still a draft, lands.
@@ -412,10 +352,10 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// The one open locking decision, decided. A punch keyed in after 2026-07 was paid: no payslip ever
 	// took it, so nothing has been paid on it, so it may be corrected and priced in a later run.
 	// The board badges the day; the write path permits it.
-	const api = fakeHookApi({ runs: monthly });
+	const api = fakeApi({ runs: monthly });
 	const existing = punch();
 	assert.doesNotThrow(() =>
-		runMutateBefore({ changes: { worked_intervals: CORRECTED }, existing, api })
+		runTransform({ changes: { worked_intervals: CORRECTED }, existing, api })
 	);
 	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
 	// record appearing on that day. Two answers, because two questions.
@@ -428,10 +368,10 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	const settled = { ...existing, payslip_id: 'slip-1' };
 	assert.throws(
 		() =>
-			runMutateBefore({
+			runTransform({
 				changes: { worked_intervals: CORRECTED },
 				existing: settled,
-				api: fakeHookApi({ runs: monthly })
+				api: fakeApi({ runs: monthly })
 			}),
 		/ already taken this record into account/
 	);
@@ -440,10 +380,10 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 test('re-dating a record into a paid window is a create onto that day, and is refused', () => {
 	// The create guard would be two writes away from decorative otherwise: record an open day, then
 	// move it into the paid period. An in-place edit of the same record is untouched by this.
-	const api = fakeHookApi({ runs: monthly });
+	const api = fakeApi({ runs: monthly });
 	assert.throws(
 		() =>
-			runMutateBefore({
+			runTransform({
 				changes: { work_date: '2026-07-02' },
 				existing: punch({ work_date: '2026-08-02' }),
 				api
@@ -451,7 +391,7 @@ test('re-dating a record into a paid window is a create onto that day, and is re
 		/inside paid payroll 2026-07/
 	);
 	assert.doesNotThrow(() =>
-		runMutateBefore({
+		runTransform({
 			changes: { work_date: '2026-08-03' },
 			existing: punch({ work_date: '2026-08-02' }),
 			api

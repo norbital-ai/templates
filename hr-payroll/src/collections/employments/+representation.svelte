@@ -1,9 +1,17 @@
 <script lang="ts">
+	/**
+	 * The contract record: the whole contract (`ContractDetail` — stint, terms in force, revisions,
+	 * one Edit toggle) and the person's statutory registrations beneath it. Off-boarding and
+	 * Change terms open from here and nowhere else: both write the sealed contract's departure or
+	 * terms, so they stay beside the contract they settle. A new contract is the same form, empty.
+	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Button } from '@norbital-ai/ui/button';
@@ -11,8 +19,11 @@
 	import Icon from '@iconify/svelte';
 	import OffboardingFlow from '../../lib/ui/offboarding/offboarding-flow.svelte';
 	import ChangeTermsFlow from '../../lib/ui/offboarding/change-terms-flow.svelte';
+	import ContractDetail from '../../lib/ui/contract/contract-detail.svelte';
 	import { readRange } from '../payroll_runs/lib/effective.js';
-	import { hrCreateScope } from '../../lib/ui/create-scope.js';
+	import { HR_CREATE_SCOPE, hrCreateScope, type HrCreateScope } from '../../lib/ui/create-scope.js';
+	import { setContext } from 'svelte';
+	import { formatStatutoryFactStatus } from '../../lib/ui/display-formatters.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
@@ -24,52 +35,18 @@
 	 */
 	const createScope = hrCreateScope();
 	const scopedCompanyId = $derived(createScope?.companyId());
-	const defaults = $derived(
-		record ?? (scopedCompanyId == null ? undefined : { company_id: scopedCompanyId })
-	);
 	/**
-	 * Off-boarding and contract changes open from here and nowhere else: both write the sealed
-	 * contract's departure or terms, so they stay beside the departure section they settle.
+	 * The scope the forms this record opens read (a statutory fact from the table below): this
+	 * contract, its person and its entity, and the lineage the page already resolved.
 	 */
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		employmentId: () => record?.id,
+		employeeId: () => record?.employee_id,
+		companyId: () => record?.company_id ?? scopedCompanyId,
+		settingsCode: () => createScope?.settingsCode()
+	});
 	let offboardOpen = $state(false);
 	let changeTermsOpen = $state(false);
-	/**
-	 * The contract opens read-only and is edited only after Edit is pressed.
-	 *
-	 * A record an operator opens to read is not an editor; treating it as one asks every field
-	 * whether it should have been touched. Save leaves edit mode with the form's committed values
-	 * still mounted, so the read-only view never goes stale. Cancel is the one path that does not
-	 * commit, so it bumps an epoch and remounts the form from the record as it stands.
-	 */
-	let editing = $state(false);
-	let formEpoch = $state(0);
-	function cancelEdit(): void {
-		editing = false;
-		formEpoch += 1;
-	}
-	// A contract is sealed by the rows that reference it; the hook is the guard, this is the hint.
-	const consumers = $derived(
-		record == null
-			? []
-			: [
-					client.db.employment_terms,
-					client.db.claim_requests,
-					client.db.allowance_requests,
-					client.db.payment_requests,
-					client.db.loans,
-					client.db.loan_repayments,
-					client.db.leave_entries,
-					client.db.work_days,
-					client.db.payslips
-				].map((collection) =>
-					collection.findFirst({
-						where: { employment_id: { eq: record.id } },
-						columns: { id: true }
-					})
-				)
-	);
-	const sealed = $derived(consumers.some((query) => query.current != null));
-	const sealQuery = $derived(consumers.find((query) => query.loading) ?? null);
 	/** A closed range is a departed contract: only comments stay writable, and the flows hide. */
 	const departed = $derived(readRange(record?.effective_range)?.end != null);
 	const rangeStart = $derived(readRange(record?.effective_range)?.start ?? '');
@@ -83,18 +60,8 @@
 </svelte:head>
 
 {#snippet contractActions()}
-	<div class="flex gap-2">
-		{#if editing}
-			<Button variant="outline" size="sm" onclick={cancelEdit}>
-				{t('common.cancel')}
-			</Button>
-		{:else}
-			<Button variant="outline" size="sm" onclick={() => (editing = true)}>
-				<Icon icon="lucide:pencil" class="size-4" />
-				{t('common.edit')}
-			</Button>
-		{/if}
-		{#if !departed}
+	{#if !departed}
+		<div class="flex gap-2">
 			<Button variant="outline" size="sm" onclick={() => (changeTermsOpen = true)}>
 				<Icon icon="lucide:file-signature" class="size-4" />
 				{t('offboarding.change_terms')}
@@ -103,16 +70,11 @@
 				<Icon icon="lucide:log-out" class="size-4" />
 				{t('offboarding.open')}
 			</Button>
-		{/if}
-	</div>
+		</div>
+	{/if}
 {/snippet}
 
-<RecordShell
-	icon={sealed ? 'lucide:lock-keyhole' : undefined}
-	badge={sealed ? t('recordMetadata.readOnly') : undefined}
-	hint={sealed ? t('component.employment_sealed') : undefined}
-	actions={record != null ? contractActions : undefined}
->
+<RecordShell actions={record != null ? contractActions : undefined}>
 	<Stack gap="md">
 		{#if record != null && !departed}
 			<Dialog.Root bind:open={changeTermsOpen}>
@@ -153,22 +115,47 @@
 				</Dialog.Content>
 			</Dialog.Root>
 		{/if}
-		{#key formEpoch}
+		{#if record != null}
+			<ContractDetail {record} {scopedCompanyId} />
+			<CollectionTable
+				{client}
+				collection="employment_statutory_facts"
+				view="employments:statutory-facts"
+				title={t('component.statutory_registrations')}
+				description={t('component.statutory_registrations_description')}
+				query={{
+					where: { employee_id: { eq: record.employee_id } },
+					orderBy: { created_at: 'desc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn
+						name="statutory_contribution_id"
+						label={t('component.contribution')}
+						card="title"
+					/>
+					<TableColumn
+						name="status"
+						label={t('component.registration')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ value }) => formatStatutoryFactStatus(value, t) }}
+					/>
+					<TableColumn name="effective_range" label={t('component.effective')} />
+				{/snippet}
+			</CollectionTable>
+		{:else}
 			<CollectionForm
 				{client}
 				collection="employments"
-				disabled={sealQuery?.loading ?? false}
-				readonly={record != null && !editing}
-				defaultValues={defaults}
-				submitLabel={record ? t('component.save_employment') : t('component.create_employment')}
-				onAfterSubmit={record != null ? () => (editing = false) : close}
+				defaultValues={scopedCompanyId == null ? undefined : { company_id: scopedCompanyId }}
+				submitLabel={t('component.create_employment')}
+				onAfterSubmit={close}
 			>
 				{#snippet children({ Field })}
 					<Grid gap="md" minimum="panel">
 						<Field
 							name="employee_id"
 							label={t('component.person')}
-							disabled={sealed}
 							relationOptions={{
 								label: (person) =>
 									person.name != null && person.name !== '' ? String(person.name) : '—',
@@ -182,7 +169,6 @@
 							<Field
 								name="company_id"
 								label={t('component.legal_entity')}
-								disabled={sealed}
 								relationOptions={{
 									label: (company) =>
 										company.name != null && company.name !== '' ? String(company.name) : '—',
@@ -191,38 +177,16 @@
 								}}
 							/>
 						{/if}
-						<Field
-							name="employee_number"
-							label={t('component.employee_number')}
-							disabled={sealed}
-						/>
-						{#if record == null}
-							<Field name="contract_number" hidden />
-						{:else}
-							<Field name="contract_number" label={t('component.contract_number')} disabled />
-						{/if}
-						<Column span="all"
-							><Field
-								name="bank"
-								label={t('component.pay_destination')}
-								disabled={sealed}
-							/></Column
-						>
-						<Column span="all"
-							><Field
-								name="effective_range"
-								label={t('component.effective_period')}
-								disabled={sealed}
-							/></Column
-						>
-						<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
-						<Column span="all"
-							><Field name="exit_reason" label={t('component.exit_reason')} /></Column
-						>
-						<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
+						<Field name="employee_number" label={t('component.employee_number')} />
+						<Column span="all"><Field name="bank" label={t('component.pay_destination')} /></Column>
+						<Column span="all">
+							<Field name="effective_range" label={t('component.effective_period')} />
+						</Column>
+						<Field name="exit_reason" hidden />
+						<Field name="comments" hidden />
 					</Grid>
 				{/snippet}
 			</CollectionForm>
-		{/key}
+		{/if}
 	</Stack>
 </RecordShell>

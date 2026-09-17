@@ -1,5 +1,5 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { decodeNumber } from '@norbital-ai/std/json';
-import { Effect } from 'effect';
 import { documentTotals, requireCurrency, type LineAmounts } from './pricing.js';
 
 /** The money cells a document roll-up reads off one stored line. */
@@ -9,43 +9,53 @@ interface RollupLineCells {
 	readonly line_total?: number | null;
 }
 
-interface RollupDocumentSource {
-	readonly document: Effect.Effect<{ readonly currency: string | null } | undefined>;
-	readonly lines: Effect.Effect<readonly RollupLineCells[]>;
-	readonly write: (totals: LineAmounts) => Effect.Effect<unknown>;
+/**
+ * One document's net, tax and gross from its stored lines.
+ *
+ * Quotes, purchase orders, purchase invoices and sales invoices roll up the same way — sum the
+ * already-rounded lines in the document's currency — so the shape is owned here and each roll-up
+ * automation supplies only the reads that name its own tables.
+ */
+export function totalsOfLines(
+	lines: readonly RollupLineCells[],
+	currency: string | null
+): LineAmounts {
+	return documentTotals(
+		lines.map((line) => ({
+			net: decodeNumber(line.net ?? 0),
+			tax: decodeNumber(line.tax ?? 0),
+			gross: decodeNumber(line.line_total ?? 0)
+		})),
+		requireCurrency(currency)
+	);
 }
 
 /**
- * Re-total one document from its own lines.
- *
- * Quotes, purchase orders, purchase invoices and sales invoices roll up the same way — read the
- * header, read its lines, write the summed net, tax and gross back — so the shape is owned here and
- * each line collection supplies only the two reads and the write that name its own tables.
+ * What a batch may still claim of each source line: the quantity already billed, received or
+ * invoiced against it, advanced as the batch claims its own — so two lines of one call cannot each
+ * fit under the cap alone and overflow it together.
  */
-export function rollupDocument(source: RollupDocumentSource): Effect.Effect<void> {
-	return Effect.gen(function* () {
-		const document = yield* source.document;
-		if (!document) return;
-
-		const lines = yield* source.lines;
-		const totals = documentTotals(
-			lines.map((line) => ({
-				net: decodeNumber(line.net ?? 0),
-				tax: decodeNumber(line.tax ?? 0),
-				gross: decodeNumber(line.line_total ?? 0)
-			})),
-			requireCurrency(document.currency)
-		);
-
-		yield* source.write(totals);
-	});
-}
-
-/** The quantity a selection of lines accounts for, whatever selected them. */
-export function sumQuantity(
-	lines: Effect.Effect<readonly { readonly quantity?: number | null }[]>
-): Effect.Effect<number> {
-	return Effect.map(lines, (rows) =>
-		rows.reduce((sum, row) => sum + decodeNumber(row.quantity ?? 0), 0)
-	);
+export function allocationLedger<Row>(
+	prior: readonly Row[],
+	key: (row: Row) => string,
+	quantity: (row: Row) => number | null | undefined
+): {
+	readonly claim: (
+		id: string,
+		amount: number,
+		cap: number,
+		refusal: (claimed: number, cap: number) => string
+	) => void;
+} {
+	const claimed = new Map<string, number>();
+	for (const row of prior) {
+		claimed.set(key(row), (claimed.get(key(row)) ?? 0) + decodeNumber(quantity(row) ?? 0));
+	}
+	return {
+		claim: (id, amount, cap, refusal) => {
+			const soFar = claimed.get(id) ?? 0;
+			if (soFar + amount > cap) refuse(refusal(soFar, cap));
+			claimed.set(id, soFar + amount);
+		}
+	};
 }

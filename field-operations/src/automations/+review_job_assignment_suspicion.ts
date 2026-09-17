@@ -150,12 +150,9 @@ export default defineAutomation(
 							}
 							const stamped = yield* currentDate.pipe(
 								Effect.flatMap((checkedAt) =>
-									api.db.job_assignments.mutate([
-										{
-											id: assignment.id,
-											suspicion_checked_at: checkedAt.toISOString()
-										}
-									])
+									api.collection.job_assignments.update(assignment.id, {
+										suspicion_checked_at: checkedAt.toISOString()
+									})
 								),
 								Effect.map(() => true as const),
 								Effect.catch(() => Effect.succeed(false as const))

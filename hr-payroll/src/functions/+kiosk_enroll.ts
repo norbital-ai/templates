@@ -61,54 +61,43 @@ export default defineCommandHandler({
 						'HR must review this pending or suspended face enrollment before it can be replaced.'
 					);
 				}
-				yield* api.db.employees.mutate([
-					{
-						id: employee_id,
-						face_embedding: [...face_embedding],
-						...(face_photo === undefined ? {} : { face_photo }),
-						face_enrollment_status: 'APPROVED',
-						face_consent_at: consent_at,
-						face_enrolled_at: now
-					}
-				]);
+				yield* api.collection.employees.update(employee_id, {
+					face_embedding: [...face_embedding],
+					...(face_photo === undefined ? {} : { face_photo }),
+					face_enrollment_status: 'APPROVED',
+					face_consent_at: consent_at,
+					face_enrolled_at: now
+				});
 				return { employee_id, status: 'APPROVED' } as const;
 			}
 			if (new_person === undefined) refuse('Pass an employee or a new person.');
-			const employmentId = crypto.randomUUID();
-			const employeeNumber = new_person.employee_number?.trim() || `KIOSK-${employmentId}`;
+			const employeeNumber = new_person.employee_number?.trim() || `KIOSK-${crypto.randomUUID()}`;
 			if (new_person.name.trim().length === 0) refuse('A new person needs a name.');
 			const todayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
 			const hireDate = startOfDayInstant(todayKey, PAYROLL_TIME_ZONE);
-			// The nested employment and person commit together. Its minted child identity gives
-			// readback an exact key; names and timestamps cannot safely identify a new person.
-			yield* api.db.employees.mutate([
-				{
-					name: new_person.name.trim(),
-					...(new_person.email === undefined ? {} : { email: new_person.email }),
-					...(new_person.phone === undefined ? {} : { phone: new_person.phone }),
-					face_embedding: [...face_embedding],
-					...(face_photo === undefined ? {} : { face_photo }),
-					face_enrollment_status: 'PENDING',
-					face_consent_at: consent_at,
-					face_enrolled_at: now,
-					employment_employee: [
+			// The person and their employment commit together; the committed row carries the id.
+			const created = yield* api.collection.employees.create({
+				name: new_person.name.trim(),
+				...(new_person.email === undefined ? {} : { email: new_person.email }),
+				...(new_person.phone === undefined ? {} : { phone: new_person.phone }),
+				face_embedding: [...face_embedding],
+				...(face_photo === undefined ? {} : { face_photo }),
+				face_enrollment_status: 'PENDING',
+				face_consent_at: consent_at,
+				face_enrolled_at: now,
+				employment_employee: {
+					create: [
 						{
-							id: employmentId,
 							company_id: new_person.company_id,
 							employee_number: employeeNumber,
 							effective_range: { start: hireDate, end: null }
 						}
 					]
 				}
-			]);
-			const created = yield* api.db.employments.findFirst({
-				where: { id: { eq: employmentId } },
-				columns: { employee_id: true }
 			});
-			if (created === undefined) refuse('Person creation did not persist.');
 			return {
 				status: 'PENDING',
-				employee_id: created.employee_id,
+				employee_id: created.id,
 				company_id: new_person.company_id,
 				employee_number: employeeNumber
 			} as const;

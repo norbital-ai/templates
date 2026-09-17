@@ -31,7 +31,7 @@ export type Work = Jurisdiction['work_rules'] & {
 };
 
 /**
- * How a component produces its amount. Engine-internal: the four money catalogues store flat
+ * How a component produces its amount. Engine-internal: the money catalogues store flat
  * columns and are lifted into the `ENTRY` arm when loaded; Work synthesizes the rest.
  *
  * - `ENTRY`            — a catalogue band prices the entry through the entry context.
@@ -288,7 +288,7 @@ function configurationSnapshot(
 			observation: configuration.holidays.get(date) ?? null
 		})),
 		leave_catalogue: configuration.catalogueLeaves
-			.map((row) => [row.code, row.entitlement, row.paid])
+			.map((row) => [row.code, row.entitlement, row.is_npl, row.can_encash])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// Codes are configuration because their polymorphic variant decides whether a scheduled day
 		// is work, protected rest or another off day, and a WORK code owns its clock window.

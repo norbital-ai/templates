@@ -137,7 +137,13 @@ export function evaluateLeavePreview(
 					employment_id: input.employment_id,
 					catalogue_id: input.catalogue_id,
 					reference,
-					event: { kind: 'TIME_OFF', range: input.range, chargeable_days: null, reason: null }
+					from_date: input.range.start.date,
+					to_date: input.range.end.date,
+					half_day_start: input.range.start.half === 'SECOND',
+					half_day_end: input.range.end.half === 'FIRST',
+					days: null,
+					as_adjustment_entry: false,
+					reason: null
 				},
 				'00000000-0000-4000-8000-000000000000',
 				entries

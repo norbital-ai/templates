@@ -3,7 +3,7 @@
  *
  * Four artefacts, each tagged with its `metadata.kind` so the app can route them:
  * `payroll-report-xlsx`, `bank-files`, `payslip-pdfs`, and `catalogue-entries-xlsx` — the
- * allowances, claims, loans and payments alone, with totals, for the periods that settled any.
+ * allowances, claims and loans alone, with totals, for the periods that settled any.
  *
  * The workbook's column vocabulary lives in `lib/report.ts` — in the export path, never as a column
  * on a model. A component knows its code, its type and how it is measured; what a spreadsheet
@@ -19,7 +19,7 @@ import { bankFileFor } from './lib/bank-formats.js';
 export default {
 	export: {
 		description:
-			'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment CSV, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims, loans and payments only, with totals).',
+			'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment CSV, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals).',
 		handler: ({ records }, api) =>
 			Effect.gen(function* () {
 				const {

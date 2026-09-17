@@ -13,16 +13,13 @@ import { evaluateBoolean } from '../../../lib/expressions/evaluate.js';
 import type { ExpressionEngine } from '../../../lib/expressions/evaluate.js';
 import type { ContributionRule } from './configuration.js';
 
-/** The scheme context a rule's expressions are evaluated against; see `lib/expressions`. */
-export type RuleContext = Record<string, unknown>;
-
 /**
  * Pick the one rule that governs, or null when none does. The caller evaluates the matched rule's
  * `employee` and `employer` expressions against the same context.
  */
 export function selectRule(
 	rules: readonly ContributionRule[],
-	context: RuleContext,
+	context: Record<string, unknown>,
 	engine: ExpressionEngine
 ): ContributionRule | null {
 	for (const rule of rules) if (evaluateBoolean(engine, rule.when, context)) return rule;

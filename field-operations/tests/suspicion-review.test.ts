@@ -31,13 +31,8 @@ import {
 	validDecisionEvidenceId,
 	type SuspicionReviewFacts
 } from '../src/automations/suspicion-review.js';
-import { assertCommunicationUnchanged } from '../src/collections/communication_logs/+hooks.js';
-import {
-	assertJudgementReferences,
-	assertOpenJudgement,
-	assertResolutionTransition,
-	normalizeOpenJudgement
-} from '../src/collections/suspicious_activity_logs/+hooks.js';
+import communicationLogs from '../src/collections/communication_logs/+collection.js';
+import suspiciousActivityLogs from '../src/collections/suspicious_activity_logs/+collection.js';
 
 type Assignment = SuspicionReviewFacts['assignment'];
 
@@ -135,13 +130,8 @@ function automationHarness(options: {
 				};
 			}).pipe(Effect.ensuring(Effect.sync(() => (activeInferences -= 1)))),
 		/**
-		 * The database double, in the shape the authored api now has.
-		 *
-		 * There is no `query` half and no `create`/`update` half: a collection carries its reads and
-		 * its one declarative `mutate`. `mutate` answers with nothing, so the rows it accepts have to
-		 * become visible to the `findFirst` that reads them back — which is exactly what the real
-		 * runtime does, and what a double that returned the written row would have let the code under
-		 * test skip.
+		 * The read double, in the shape the authored api now has: reads only. Writes are under
+		 * `collection` below.
 		 */
 		db: {
 			job_assignments: {
@@ -165,12 +155,6 @@ function automationHarness(options: {
 						)
 						.sort((left, right) => left.id.localeCompare(right.id));
 					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
-				},
-				mutate: (rows: ReadonlyArray<{ readonly id: string }>) => {
-					if (rows.some(({ id }) => options.stampFailures?.has(id)))
-						return Effect.fail(new Error('Assignment already checked by another run'));
-					for (const values of rows) updates.push(values.id);
-					return Effect.void;
 				}
 			},
 			jobs: {
@@ -224,28 +208,7 @@ function automationHarness(options: {
 			suspicion_reviews: {
 				findFirst: (input: {
 					readonly where: { readonly job_assignment_id: { readonly eq: string } };
-				}) => Effect.succeed(existingReviews[input.where.job_assignment_id.eq]),
-				mutate: ([values]: ReadonlyArray<{
-					readonly job_assignment_id: string;
-					readonly basis: string;
-					readonly suspicious: boolean;
-					readonly reason: string;
-					readonly evidence_id: string | null;
-				}>) => {
-					if (values === undefined) return Effect.fail(new Error('mutate takes one review'));
-					reviewCreateAttempts.push(values.job_assignment_id);
-					if (options.reviewPersistenceFailures?.has(values.job_assignment_id) === true) {
-						return Effect.fail(new Error('review persistence failed'));
-					}
-					if (existingReviews[values.job_assignment_id] != null) {
-						return Effect.fail(new Error('duplicate review basis'));
-					}
-					existingReviews[values.job_assignment_id] = {
-						...values,
-						id: `review-${values.job_assignment_id}`
-					};
-					return Effect.void;
-				}
+				}) => Effect.succeed(existingReviews[input.where.job_assignment_id.eq])
 			},
 			suspicious_activity_logs: {
 				findFirst: (input: {
@@ -259,15 +222,49 @@ function automationHarness(options: {
 					const assignmentId = input.where.job_assignment_id?.eq;
 					const id = assignmentId == null ? undefined : options.openSuspicionIds?.[assignmentId];
 					return Effect.succeed(id == null ? undefined : { id });
-				},
-				mutate: (
-					rows: ReadonlyArray<{ readonly job_assignment_id: string; readonly review_id: string }>
-				) => {
-					for (const values of rows) {
-						logCreates.push(values.job_assignment_id);
-						logsByReview[values.review_id] = { id: `log-${values.job_assignment_id}` };
+				}
+			}
+		},
+		/**
+		 * The declared write surface, in the shape the authored api now has: `create` answers with
+		 * the committed row, and a row it accepts becomes visible to the `findFirst` that reads it
+		 * back on a lost race — which is exactly what the real runtime does.
+		 */
+		collection: {
+			job_assignments: {
+				update: (id: string) => {
+					if (options.stampFailures?.has(id))
+						return Effect.fail(new Error('Assignment already checked by another run'));
+					updates.push(id);
+					return Effect.succeed({ id });
+				}
+			},
+			suspicion_reviews: {
+				create: (values: {
+					readonly job_assignment_id: string;
+					readonly basis: string;
+					readonly suspicious: boolean;
+					readonly reason: string;
+					readonly evidence_id: string | null;
+				}) => {
+					reviewCreateAttempts.push(values.job_assignment_id);
+					if (options.reviewPersistenceFailures?.has(values.job_assignment_id) === true) {
+						return Effect.fail(new Error('review persistence failed'));
 					}
-					return Effect.void;
+					if (existingReviews[values.job_assignment_id] != null) {
+						return Effect.fail(new Error('duplicate review basis'));
+					}
+					const row = { ...values, id: `review-${values.job_assignment_id}` };
+					existingReviews[values.job_assignment_id] = row;
+					return Effect.succeed(row);
+				}
+			},
+			suspicious_activity_logs: {
+				create: (values: { readonly job_assignment_id: string; readonly review_id: string }) => {
+					logCreates.push(values.job_assignment_id);
+					const row = { id: `log-${values.job_assignment_id}` };
+					logsByReview[values.review_id] = row;
+					return Effect.succeed(row);
 				}
 			}
 		}
@@ -1566,127 +1563,163 @@ test('creates a suspicion log only from an affirmative inference judgement', () 
 	);
 });
 
-test('enforces immutable open facts and one atomic resolution transition', () => {
-	assert.doesNotThrow(() => assertOpenJudgement({}));
-	assert.throws(
-		() => assertOpenJudgement({ resolution: 'Fine', resolved_at: null, resolved_by: null }),
-		/must start unresolved/
+type Transform = (
+	inputs: ReadonlyArray<Readonly<Record<string, unknown>>>,
+	context: {
+		readonly existing: ReadonlyArray<Readonly<Record<string, unknown>> | undefined>;
+		readonly db: unknown;
+	}
+) => Effect.Effect<ReadonlyArray<Readonly<Record<string, unknown>>>, unknown>;
+
+const judgementTransform = suspiciousActivityLogs.transform as unknown as Transform;
+
+/** What the transform reads: one assignment, one review and one photo on it. */
+const judgementDb = {
+	job_assignments: { findMany: () => Effect.succeed([{ id: 'assignment-a' }]) },
+	suspicion_reviews: {
+		findMany: () => Effect.succeed([{ id: 'review-a', job_assignment_id: 'assignment-a' }])
+	},
+	photo_evidence: {
+		findMany: () =>
+			Effect.succeed([
+				{ id: 'photo-a', job_assignment_id: 'assignment-a', variation_request_id: null },
+				{ id: 'photo-b', job_assignment_id: 'assignment-b', variation_request_id: null }
+			])
+	},
+	variation_requests: { findMany: () => Effect.succeed([]) }
+};
+
+const judge = (
+	input: Readonly<Record<string, unknown>>,
+	existing?: Readonly<Record<string, unknown>>
+) =>
+	Effect.runPromise(judgementTransform([input], { existing: [existing], db: judgementDb })).then(
+		(payloads) => payloads[0]
 	);
 
-	const existing = {
-		job_assignment_id: 'assignment-a',
-		source_key: 'human:one',
-		origin: 'human',
-		basis: '{}',
-		review_id: null,
-		evidence_id: null,
-		reason: 'Needs review',
-		resolution: null,
-		resolved_at: null,
-		resolved_by: null
-	};
-	assert.doesNotThrow(() =>
-		assertResolutionTransition(
-			{
-				resolution: 'Reviewed and accepted',
-				resolved_at: '2026-08-24T02:00:00.000Z',
-				resolved_by: 'controller-a'
-			},
-			existing
-		)
+const openLog = {
+	id: 'log-a',
+	job_assignment_id: 'assignment-a',
+	source_key: 'human:one',
+	origin: 'human',
+	basis: '{}',
+	review_id: null,
+	evidence_id: null,
+	reason: 'Needs review',
+	resolution: null,
+	resolved_at: null,
+	resolved_by: null
+};
+
+test('a new judgement starts unresolved by construction and resolves once, atomically', async () => {
+	// The create selection carries no resolution columns, so a judgement cannot be born resolved.
+	assert.equal('resolution' in (suspiciousActivityLogs.create.input.columns ?? {}), false);
+	// The update selection carries only the resolution columns, so a judgement cannot be rewritten.
+	assert.deepEqual(Object.keys(suspiciousActivityLogs.update.input.columns ?? {}), [
+		'resolution',
+		'resolved_at',
+		'resolved_by'
+	]);
+
+	const resolved = await judge(
+		{
+			id: openLog.id,
+			resolution: 'Reviewed and accepted',
+			resolved_at: '2026-08-24T02:00:00.000Z',
+			resolved_by: 'controller-a'
+		},
+		openLog
 	);
-	assert.throws(
-		() => assertResolutionTransition({ resolution: 'Partial' }, existing),
+	assert.equal(resolved?.resolution, 'Reviewed and accepted');
+	await assert.rejects(
+		judge({ id: openLog.id, resolution: 'Partial' }, openLog),
 		/must be written together/
 	);
-	assert.throws(
-		() => assertResolutionTransition({ reason: 'Changed reason' }, existing),
-		/immutable/
+	await assert.rejects(
+		judge(
+			{
+				id: openLog.id,
+				resolution: 'Again',
+				resolved_at: '2026-08-25T00:00:00.000Z',
+				resolved_by: 'controller-b'
+			},
+			{
+				...openLog,
+				resolution: 'Done',
+				resolved_at: '2026-08-24T02:00:00.000Z',
+				resolved_by: 'controller-a'
+			}
+		),
+		/cannot be reopened or rewritten/
 	);
 });
 
-test('stamps authorized-human judgement internals without exposing them as form fields', () => {
-	const normalized = normalizeOpenJudgement({
+test('stamps authorized-human judgement internals without exposing them as form fields', async () => {
+	const normalized = await judge({
 		job_assignment_id: 'assignment-a',
 		reason: 'The contractor reported a conflicting unit number.',
 		evidence_id: null
 	});
-	assert.equal(normalized.origin, 'human');
-	assert.deepEqual(JSON.parse(normalized.basis), {
+	assert.equal(normalized?.origin, 'human');
+	assert.deepEqual(JSON.parse(String(normalized?.basis)), {
 		kind: 'human_judgement',
 		reason: 'The contractor reported a conflicting unit number.',
 		evidence_id: null
 	});
-	assert.throws(
-		() => normalizeOpenJudgement({ reason: 'AI says suspicious', origin: 'automation' }),
+	await assert.rejects(
+		judge({
+			job_assignment_id: 'assignment-a',
+			reason: 'AI says suspicious',
+			origin: 'automation'
+		}),
 		/must supply its reviewed evidence basis/
 	);
 });
 
-test('keeps automated review and evidence links on the judged assignment', () => {
-	const prepared = {
-		assignmentIds: new Set(['assignment-a']),
-		assignmentByReviewId: new Map([['review-a', 'assignment-a']]),
-		assignmentByEvidenceId: new Map([['photo-a', 'assignment-a']])
-	};
-	assert.doesNotThrow(() =>
-		assertJudgementReferences(
-			{
-				job_assignment_id: 'assignment-a',
-				origin: 'automation',
-				review_id: 'review-a',
-				evidence_id: 'photo-a'
-			},
-			prepared
-		)
+test('keeps automated review and evidence links on the judged assignment', async () => {
+	await assert.doesNotReject(
+		judge({
+			job_assignment_id: 'assignment-a',
+			origin: 'automation',
+			basis: '{}',
+			review_id: 'review-a',
+			evidence_id: 'photo-a',
+			reason: 'Reused photo'
+		})
 	);
-	assert.throws(
-		() =>
-			assertJudgementReferences(
-				{ job_assignment_id: 'assignment-a', origin: 'automation', review_id: null },
-				prepared
-			),
+	await assert.rejects(
+		judge({ job_assignment_id: 'assignment-a', origin: 'automation', basis: '{}', reason: 'x' }),
 		/must reference its inference review/
 	);
-	assert.throws(
-		() =>
-			assertJudgementReferences(
-				{
-					job_assignment_id: 'assignment-a',
-					origin: 'human',
-					review_id: 'review-a'
-				},
-				prepared
-			),
+	await assert.rejects(
+		judge({
+			job_assignment_id: 'assignment-a',
+			origin: 'human',
+			review_id: 'review-a',
+			reason: 'x'
+		}),
 		/cannot claim an automated inference review/
 	);
-	assert.throws(
-		() =>
-			assertJudgementReferences(
-				{
-					job_assignment_id: 'assignment-a',
-					origin: 'human',
-					evidence_id: 'photo-b'
-				},
-				prepared
-			),
+	await assert.rejects(
+		judge({
+			job_assignment_id: 'assignment-a',
+			origin: 'human',
+			evidence_id: 'photo-b',
+			reason: 'x'
+		}),
 		/evidence belongs to another/
+	);
+	await assert.rejects(
+		judge({ job_assignment_id: 'assignment-z', reason: 'x' }),
+		/must reference an existing job assignment/
 	);
 });
 
 test('keeps captured contractor communications immutable', () => {
-	const existing = {
-		job_assignment_id: 'assignment-a',
-		message: 'Arrived on site',
-		sent_at: '2026-08-24T00:00:00.000Z',
-		sender: 'contractor-a',
-		source_message_id: 'message-a'
-	};
-	assert.doesNotThrow(() => assertCommunicationUnchanged({ message: existing.message }, existing));
-	assert.throws(
-		() => assertCommunicationUnchanged({ message: 'Edited transcript' }, existing),
-		/immutable/
-	);
+	// No update and no delete endpoint: a received message can only ever be read.
+	assert.equal(communicationLogs.update, undefined);
+	assert.equal(communicationLogs.delete, undefined);
+	assert.notEqual(communicationLogs.create, undefined);
 });
 
 test('the inference schema is one the structured-output provider will accept', () => {

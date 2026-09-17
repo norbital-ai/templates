@@ -69,7 +69,7 @@ const fieldsNamed = (text: string, column: string): string[] =>
 		.filter((tag) => new RegExp(`name="${column}"`).test(tag));
 
 test('a catalogue predicate reaches its version under a quantifier', () => {
-	for (const relation of ['leave_catalogue_settings', 'payment_catalogue_settings'] as const) {
+	for (const relation of ['leave_catalogue_settings', 'allowance_catalogue_settings'] as const) {
 		const predicate = inForceCatalogue(relation, 'PUB', '2026-03-10');
 		assert.ok(predicate !== undefined, `${relation} produced no predicate for a scoped page`);
 		const keys = Object.keys(predicate);
@@ -95,7 +95,7 @@ test('an unscoped page narrows nothing rather than showing nothing', () => {
 	// A form opened outside a scoped page — a finder result, a link — must keep working. Returning
 	// an empty predicate instead of `undefined` would filter the picker down to nothing at all.
 	assert.equal(inForceCatalogue('leave_catalogue_settings', undefined), undefined);
-	assert.equal(inForceCatalogue('payment_catalogue_settings', undefined), undefined);
+	assert.equal(inForceCatalogue('allowance_catalogue_settings', undefined), undefined);
 	const unscoped = employmentRelationOptions(undefined);
 	assert.equal(
 		Object.hasOwn(unscoped, 'where'),
@@ -123,7 +123,6 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		'src/apps/hr_controller/events/+loans.svelte',
 		'src/apps/hr_controller/events/+claims.svelte',
 		'src/apps/hr_controller/events/+allowances.svelte',
-		'src/apps/hr_controller/events/+payments.svelte',
 		'src/apps/hr_controller/events/+work.svelte'
 	]) {
 		const text = source(page);
@@ -137,8 +136,7 @@ test('every controller page sets the scope, and every form it opens reads it', (
 		'src/collections/leave_entries/+representation.svelte',
 		'src/collections/loans/+representation.svelte',
 		'src/collections/claim_requests/+representation.svelte',
-		'src/collections/allowance_requests/+representation.svelte',
-		'src/collections/payment_requests/+representation.svelte'
+		'src/collections/allowances/+representation.svelte'
 	]) {
 		const text = source(representation);
 		assert.match(text, /hrCreateScope\(\)/, `${representation} does not read the create scope`);

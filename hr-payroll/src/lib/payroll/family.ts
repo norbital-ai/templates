@@ -1,5 +1,4 @@
 import type { CatalogueBand } from '../../datatypes/catalogue_band/+definition.js';
-import type { CatalogueSchedule } from '../../datatypes/catalogue_schedule/+definition.js';
 
 /** Where a line settles. `EMPLOYER` and `DISPLAY` carry no direction. */
 export type SettlementDestination = 'PAY' | 'NET' | 'EMPLOYER' | 'DISPLAY';
@@ -45,10 +44,7 @@ export type FamilyPayItem = {
 	/** The ordered bands a catalogue prices its entries with; empty for engine-priced Work lines. */
 	readonly bands: readonly CatalogueBand[];
 	readonly eligibility: string;
-	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'PAYMENT' | 'LOAN';
-	/** Where a payment row's entries come from; keyed unless it says SCHEDULE. */
-	readonly source?: 'ENTRY' | 'SCHEDULE';
-	readonly schedule?: CatalogueSchedule | null;
+	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ALLOWANCE' | 'LOAN';
 };
 
 import type {
@@ -166,7 +162,7 @@ type CapturedInputs = {
 	readonly payRequests: Readonly<Record<PayRequestFamily, readonly string[]>>;
 	readonly leave: readonly SettledLeaveCapture[];
 	readonly loanRepayments: readonly string[];
-	/** Per-period rows the run materialised from standing sources, ready to create and link. */
+	/** The allowance entries the run materialised from standing allowances, ready to create. */
 	readonly materialised: readonly MaterialisedMoney[];
 };
 
@@ -210,6 +206,8 @@ export type MeasuredEmployment = {
 	readonly calendarMonthOvertimeHours: ReadonlyMap<string, number>;
 	readonly currency: string;
 	readonly schedule: ReadonlyMap<IsoDate, ScheduledDay>;
+	/** The pay month's scheduled working days — what `person.period.working_days` reads. */
+	readonly periodWorkingDays: number;
 };
 
 /** The window-shaped arguments `measureEmployment` hands its helpers. */
@@ -238,9 +236,11 @@ export type Measurement = {
 	readonly base: readonly MeasuredBase[];
 	readonly proration: readonly PayslipProration[];
 	readonly adjustments: readonly MeasuredAdjustment[];
+	/** The entry a standing allowance's measurement creates under the payslip, facts and money. */
+	readonly allowanceEntry?: MaterialisedMoney;
 };
 
-/** The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does. */
+/** The cap rule lives in `./entry-cap.ts` so the transform enforces the same ceiling this does. */
 /**
  * The year axis every entry expression reads: the tax year the period sits in, how
  * much of it this employment covers, what has been earned in it so far by component code — prior
@@ -270,7 +270,10 @@ export type MeasureComponentOptions = {
 	readonly consumedEntries: ReadonlyMap<string, number>;
 	readonly period: string;
 	readonly workingDaysIn: (window: PayRange) => number;
-	readonly allowanceWorkingDaysIn: (sourceMonth: string, window: PayRange) => number;
+	/** Eligible unpaid-leave days inside a window, for the jurisdictions that prorate on them. */
+	readonly unpaidDaysIn: (window: PayRange) => number;
+	/** How many instalments of the month this period is one of: 2 on semi-monthly terms, else 1. */
+	readonly instalments: number;
 	/** The day and hour rates the entry context exposes to a catalogue band. */
 	readonly rates: {
 		readonly ordinaryDay: number;

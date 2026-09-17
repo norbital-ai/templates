@@ -52,7 +52,6 @@ test('dense cells expose a compact AM/PM time axis', () => {
 test('the roster draws dated leave charges, combining separate halves without filling uncharged dates', () => {
 	const leave = (catalogue, charges) => ({
 		employment_id: 'employment-1',
-		kind: 'TIME_OFF',
 		catalogue_id: catalogue,
 		from_date: '2026-08-03',
 		to_date: '2026-08-06',

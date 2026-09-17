@@ -837,13 +837,13 @@ it(
 
 			const mutated = await postGuestCommand(
 				live.baseUrl,
-				'collections.mutate',
+				'collections.write',
 				mutationPush(
 					live.schemaFingerprint,
 					{
-						action: 'mutate',
 						collection: 'sites',
-						rows: [{ action: 'update', values: { id: DISTINCTIVE_SITE_ID, name: MUTATED_NAME } }]
+						action: 'update',
+						inputs: [{ id: DISTINCTIVE_SITE_ID, name: MUTATED_NAME }]
 					},
 					[
 						{

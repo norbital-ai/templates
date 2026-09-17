@@ -31,26 +31,23 @@
 				? `${record.variant ?? 'contract'} · ${record.status ?? 'unstamped'}`
 				: undefined}
 		>
-			<Field name="binding_hash" hidden />
-			<Field name="share_token_hash" hidden />
-			<Field name="share_expires_at" hidden />
-			<Field name="share_revoked_at" hidden />
-			<Field name="acknowledged_at" hidden />
 			<Grid minimum="compact">
-				<Field
-					name="quote_id"
-					label={t('component.quote')}
-					relationOptions={{
-						label: (record) => {
-							const docNo = record.doc_no;
-							const title = record.title;
-							if (docNo && title) return `${docNo}: ${title}`;
-							return docNo != null && docNo !== '' ? String(docNo) : '—';
-						},
-						orderBy: { doc_no: 'desc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions}
-				/>
+				{#if !record}
+					<Field
+						name="quote_id"
+						label={t('component.quote')}
+						relationOptions={{
+							label: (record) => {
+								const docNo = record.doc_no;
+								const title = record.title;
+								if (docNo && title) return `${docNo}: ${title}`;
+								return docNo != null && docNo !== '' ? String(docNo) : '—';
+							},
+							orderBy: { doc_no: 'desc' },
+							limit: 5000
+						} satisfies CollectionRelationOptions}
+					/>
+				{/if}
 				<Field name="variant" />
 				<Field name="status" />
 				<Field name="generated_file" label={t('component.generated_contract')} />
@@ -65,7 +62,10 @@
 						limit: 500
 					} satisfies CollectionRelationOptions}
 				/>
-				<Column span="all"><Field name="void_reason" label={t('component.void_reason')} /></Column>
+				{#if record}
+					<Column span="all"><Field name="void_reason" label={t('component.void_reason')} /></Column
+					>
+				{/if}
 			</Grid>
 		</RecordShell>
 	{/snippet}

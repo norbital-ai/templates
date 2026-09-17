@@ -3,11 +3,15 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { nullableNumberFrom } from '../../lib/ui/renderer-input.js';
+	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import { statutoryFactStatusSchema } from './+definition.js';
+	import { Cluster, Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { statutoryFactInstalmentSchema, statutoryFactStatusSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
+	import ElectionsEditor from '../entity_facts/+renderer.svelte';
+
+	type Instalment = Schema.Schema.Type<typeof statutoryFactInstalmentSchema>;
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -39,6 +43,17 @@
 
 	function emit(next: Value | null): void {
 		if (props.mode === 'edit') props.onValueChange(next);
+	}
+
+	/** The registered arm with one instalment row replaced, or the list without it. */
+	function editInstalment(index: number, change: Partial<Instalment> | null): void {
+		if (current?.kind !== 'REGISTERED') return;
+		const rows = current.instalments ?? [];
+		const instalments =
+			change === null
+				? rows.filter((_, position) => position !== index)
+				: rows.map((row, position) => (position === index ? { ...row, ...change } : row));
+		emit({ ...current, instalments });
 	}
 
 	function defaultFor(kind: StatusKind): Value {
@@ -110,6 +125,105 @@
 					/>
 				</Stack>
 			</label>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.statutory_fact_status.since')}
+					<Input
+						type="date"
+						value={current.since ?? ''}
+						{disabled}
+						oninput={(event) => emit({ ...current, since: event.currentTarget.value || null })}
+					/>
+				</Stack>
+			</label>
+			<Column span="all">
+				<Stack gap="xs">
+					<span class="text-sm font-medium">{t('renderer.statutory_fact_status.elections')}</span>
+					<ElectionsEditor
+						mode="edit"
+						field={props.field}
+						value={current.elections ?? {}}
+						{disabled}
+						onValueChange={(elections) => emit({ ...current, elections: elections ?? {} })}
+					/>
+				</Stack>
+			</Column>
+			<Column span="all">
+				<Stack gap="sm">
+					<span class="text-sm font-medium">{t('renderer.statutory_fact_status.instalments')}</span>
+					{#each current.instalments ?? [] as row, index (index)}
+						<Grid gap="sm" minimum="compact" class="border-b border-border pb-3">
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.instalment_amount')}<Input
+										type="number"
+										min="0"
+										step="0.01"
+										value={row.amount}
+										{disabled}
+										oninput={(event) =>
+											editInstalment(index, { amount: Number(event.currentTarget.value) || 0 })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.instalment_from')}<Input
+										type="month"
+										value={row.from}
+										{disabled}
+										oninput={(event) => editInstalment(index, { from: event.currentTarget.value })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.instalment_to')}<Input
+										type="month"
+										value={row.to}
+										{disabled}
+										oninput={(event) => editInstalment(index, { to: event.currentTarget.value })}
+									/></Stack
+								></label
+							>
+							<label class="text-sm"
+								><Stack gap="xs"
+									>{t('renderer.statutory_fact_status.instalment_reference')}<Input
+										value={row.reference}
+										{disabled}
+										oninput={(event) =>
+											editInstalment(index, { reference: event.currentTarget.value })}
+									/></Stack
+								></label
+							>
+							<Cluster>
+								<Button
+									variant="ghost"
+									size="sm"
+									{disabled}
+									onclick={() => editInstalment(index, null)}
+									>{t('renderer.statutory_fact_status.remove_instalment')}</Button
+								>
+							</Cluster>
+						</Grid>
+					{/each}
+					<Cluster
+						><Button
+							variant="outline"
+							size="sm"
+							{disabled}
+							onclick={() =>
+								emit({
+									...current,
+									instalments: [
+										...(current.instalments ?? []),
+										{ amount: 0, from: '', to: '', reference: '' }
+									]
+								})}>{t('renderer.statutory_fact_status.add_instalment')}</Button
+						></Cluster
+					>
+				</Stack>
+			</Column>
 		{:else if current?.kind === 'NOT_REGISTERED'}
 			<label class="text-sm font-medium">
 				<Stack gap="xs">

@@ -5,7 +5,9 @@ import {
 	mergeGrants,
 	payrollGrants,
 	payrollRunCascadeGrants,
+	payrollRunGrants,
 	peopleGrants,
+	requestGrants,
 	referenceGrants,
 	settingsCatalogueGrants,
 	settingsGrants,
@@ -29,7 +31,7 @@ import type { Policy } from './$types.js';
  * `src/lib/policy_grants.ts`: there is no `extends` in the authoring surface and no rank in the
  * runtime, so a subject carrying only `senior_management` is granted exactly what this file lists.
  *
- * Corrections use `as_adjustment_entry` on Claim, Allowance and Payment requests. Their collection
+ * Corrections use `as_adjustment_entry` on Claim and Allowance requests. Their collection
  * grants below include these entries; no separate correction collection grant exists. Senior
  * management also reads payroll outputs so it can review the figures it is asked to approve.
  */
@@ -66,7 +68,7 @@ export default {
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		// The settings lineage: everything the controller may do, plus sealing and voiding under
-		// approval. The hooks still refuse every write under a seal.
+		// approval. The transforms still refuse every write under a seal.
 		statutoryGrants('read'),
 		settingsGrants('seal'),
 		settingsCatalogueGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
@@ -75,11 +77,7 @@ export default {
 		grantsOn('work_days', ['read']),
 
 		// These family grants include corrections marked with `as_adjustment_entry`.
-		grantsOn('claim_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('allowance_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('payment_requests', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		requestGrants(),
 
 		// Both sides of the person-day: publish the schedule, and record what happened against it.
 		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
@@ -97,7 +95,7 @@ export default {
 		payrollGrants('read'),
 		// Deleting a run cascades as this person: delete on what the run owns, nothing else.
 		payrollRunCascadeGrants(),
-		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
+		payrollRunGrants()
 	),
 	/**
 	 * What a holder of this policy may spend.

@@ -6,7 +6,6 @@
 		"name": "Annual leave (Nghỉ hằng năm)",
 		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -102,8 +101,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "c8c17dad-bd2d-5e40-9cd3-3e7673d53b0a",
@@ -112,7 +111,6 @@
 		"name": "Sick leave (Nghỉ ốm đau)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -145,8 +143,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "32f0180c-9a15-54e6-9104-892b4bc00bf4",
@@ -155,7 +153,6 @@
 		"name": "Maternity leave (Nghỉ thai sản)",
 		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -168,8 +165,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "3b9ac3e8-2da0-56fb-8f6d-15f0f0e9dc04",
@@ -178,7 +175,6 @@
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth.",
 		"eligibility": "employee.gender == \"MALE\"",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -191,8 +187,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "02a55899-2079-5d71-9dde-db471ece9651",
@@ -201,7 +197,6 @@
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
 		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -213,8 +208,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "78416cc8-90dc-5ed1-b96b-b594b1921120",
@@ -223,7 +218,6 @@
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
 		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -235,8 +229,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a2de3baa-cab6-577e-b033-5aab116a6535",
@@ -245,7 +239,6 @@
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
 		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -257,8 +250,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "80365960-1e69-5406-8fdd-a3285fad038a",
@@ -267,7 +260,6 @@
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
 		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -279,8 +271,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "dcfd01f6-1a75-5bda-bde0-a74a988c55f1",
@@ -289,7 +281,6 @@
 		"name": "Public holidays (Nghỉ lễ, tết)",
 		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -301,8 +292,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "a5a3d0ba-38dc-4032-8791-bc7fb90a27a4",
@@ -311,15 +302,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "4f6dca9e-ede7-5434-b019-0bbd3c57b15a",
@@ -328,7 +318,6 @@
 		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
 		"authority": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. Seeded as an entitlement of two paid days, which is the whole of it: an event-driven head states a count and the employee takes it when the event falls, exactly as MARRIAGE_LEAVE states three days without a marriage calendar. Nothing here waits on the employee's own country's dates.",
 		"eligibility": "employee.citizenship == \"FOREIGNER\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -340,8 +329,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "3a0553af-cebc-5864-a33d-b3006e99bc03",
@@ -350,7 +339,6 @@
 		"name": "Annual leave (Nghỉ hằng năm)",
 		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -446,8 +434,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "23e2ad22-bac9-5612-8ed0-a77392e001a9",
@@ -456,7 +444,6 @@
 		"name": "Sick leave (Nghỉ ốm đau)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -489,8 +476,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "6c27641f-8bc6-5819-b39a-f11ba6bb21eb",
@@ -499,7 +486,6 @@
 		"name": "Maternity leave (Nghỉ thai sản)",
 		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -512,8 +498,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "604dace5-816f-5f89-ba1d-af7cb49ec5ed",
@@ -522,7 +508,6 @@
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth.",
 		"eligibility": "employee.gender == \"MALE\"",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -535,8 +520,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "88877a49-72f6-5199-802f-5cdc112325f0",
@@ -545,7 +530,6 @@
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
 		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -557,8 +541,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "77a4cace-ec32-5828-ad6d-6598a57c55ba",
@@ -567,7 +551,6 @@
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
 		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -579,8 +562,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "4cb40f30-1051-5eef-9970-c0fb4052ca73",
@@ -589,7 +572,6 @@
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
 		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -601,8 +583,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "8b95ced1-56b0-5100-9887-a2377ae476a1",
@@ -611,7 +593,6 @@
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
 		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -623,8 +604,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "84467886-9d33-5f19-8247-186455d50e33",
@@ -633,7 +614,6 @@
 		"name": "Public holidays (Nghỉ lễ, tết)",
 		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -645,8 +625,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "1b957931-d254-4ab1-8e22-69ae865d1da4",
@@ -655,15 +635,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "2e64d930-b657-5724-b6e0-6ea81f18b1cc",
@@ -672,7 +651,6 @@
 		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
 		"authority": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. Seeded as an entitlement of two paid days, which is the whole of it: an event-driven head states a count and the employee takes it when the event falls, exactly as MARRIAGE_LEAVE states three days without a marriage calendar. Nothing here waits on the employee's own country's dates.",
 		"eligibility": "employee.citizenship == \"FOREIGNER\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -684,8 +662,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "8abc3f5f-88d0-5365-a21a-fbe4cfc70a60",
@@ -694,7 +672,6 @@
 		"name": "Annual leave (Nghỉ hằng năm)",
 		"authority": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -790,8 +767,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "447c82c2-4118-54b3-adeb-ceb379bcaa6f",
@@ -800,7 +777,6 @@
 		"name": "Sick leave (Nghỉ ốm đau)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -833,8 +809,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "38a533b8-21b8-5374-b0ea-2268d208c9d3",
@@ -843,7 +819,6 @@
 		"name": "Maternity leave (Nghỉ thai sản)",
 		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave.",
 		"eligibility": "employee.gender == \"FEMALE\"",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -856,8 +831,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "1dae4f31-c349-5b53-8f87-191b67978cc5",
@@ -866,7 +841,6 @@
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth.",
 		"eligibility": "employee.gender == \"MALE\"",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -879,8 +853,8 @@
 			]
 		},
 		"evidence_after_days": 0,
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "a3f51a2d-c8c7-5649-9006-ff4acc3d0f3b",
@@ -889,7 +863,6 @@
 		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
 		"authority": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -901,8 +874,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "79c2f845-8e0b-584b-9206-6d34dc33f8de",
@@ -911,7 +884,6 @@
 		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
 		"authority": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -923,8 +895,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "f391c034-b05b-5bc3-adf3-6ba87b7d67fe",
@@ -933,7 +905,6 @@
 		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
 		"authority": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -945,8 +916,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "976e4480-f5a7-5b47-aac3-87330fb6f651",
@@ -955,7 +926,6 @@
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
 		"authority": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage.",
 		"eligibility": "",
-		"paid": false,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -967,8 +937,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": true,
+		"can_encash": false
 	},
 	{
 		"id": "c8fb6d8f-aa56-5026-96b0-58dae8989f57",
@@ -977,7 +947,6 @@
 		"name": "Public holidays (Nghỉ lễ, tết)",
 		"authority": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day. Twelve from 1 July 2026: Nghị quyết 28/2026/QH16 điều 2 (passed 24 April 2026, in force 1 July 2026) makes 24 November each year Ngày Văn hóa Việt Nam — \"người lao động được nghỉ làm việc và hưởng nguyên lương\", the same formula art.112(1) uses. The resolution stands alone and does NOT amend art.112(1), which still reads eleven; the amendment that would insert it into the Code is a separate draft not yet passed, so both instruments are cited and the count is theirs together.",
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -989,8 +958,8 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "822925d9-67a3-4198-ae6a-2e3b1c909dda",
@@ -999,15 +968,14 @@
 		"name": "Public holiday in lieu",
 		"authority": null,
 		"eligibility": "",
-		"paid": true,
 		"entitlement": {
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	},
 	{
 		"id": "0d6f7d5f-0f33-5d37-a8ae-1f600b3ff962",
@@ -1016,7 +984,6 @@
 		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
 		"authority": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. Seeded as an entitlement of two paid days, which is the whole of it: an event-driven head states a count and the employee takes it when the event falls, exactly as MARRIAGE_LEAVE states three days without a marriage calendar. Nothing here waits on the employee's own country's dates.",
 		"eligibility": "employee.citizenship == \"FOREIGNER\"",
-		"paid": true,
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
@@ -1028,7 +995,7 @@
 				}
 			]
 		},
-		"destination": "PAY",
-		"direction": "ADD"
+		"is_npl": false,
+		"can_encash": true
 	}
 ]

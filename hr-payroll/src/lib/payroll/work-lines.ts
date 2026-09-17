@@ -83,9 +83,17 @@ export function workPayItems(
 			})
 		);
 	};
+	// A calendar-month overtime ceiling (`funnelMonthlyOvertime`) funnels every band's excess to
+	// its INCENTIVE line, so each band needs that line whether or not it funnels a daily limit
+	// itself. Without it a Malaysian who worked past the Employment (Limitation of Overtime Work)
+	// Regulations 1980 reg.4 104 hours refused the whole run — and s.60A(3)(a) still owes those
+	// hours at 1.5× whatever the employer's own breach.
+	const monthlyCeiling = work.limits.some(
+		(limit) => limit.period === 'MONTH' && limit.measure === 'OVERTIME_HOURS'
+	);
 	for (const band of work.bands) {
 		add(OVERTIME_LINE, band.label);
-		if (band.funnel_above_hours != null) add(INCENTIVE_LINE, band.label);
+		if (band.funnel_above_hours != null || monthlyCeiling) add(INCENTIVE_LINE, band.label);
 	}
 	return items;
 }

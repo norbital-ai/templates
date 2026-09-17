@@ -15,43 +15,14 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
-import workDayHooks from '../src/collections/work_days/+hooks.ts';
+import workDays from '../src/collections/work_days/+collection.ts';
 import { derivedBreakMinutes } from '../src/lib/scheduling/rest-break.ts';
+import { transformOne } from './helpers/transform.ts';
+import { workDayDb } from './helpers/work-day-db.ts';
 
-const api = {
-	db: {
-		employments: {
-			findFirst: () => Effect.succeed({ company_id: 'co-1' }),
-			findMany: ({ where }) =>
-				Effect.succeed((where?.id?.in ?? ['emp-1']).map((id) => ({ id, company_id: 'co-1' })))
-		},
-		employment_terms: { findMany: () => Effect.succeed([]) },
-		work_days: { findMany: () => Effect.succeed([]) },
-		rosters: { findMany: () => Effect.succeed([]) },
-		shift_definitions: { findMany: () => Effect.succeed([]) },
-		shift_patterns: { findMany: () => Effect.succeed([]) },
-		// A complete jurisdiction calendar is required even when this fixture has no holidays or
-		// weekly rest rule. Preparation must reach interval validation with legitimate inputs.
-		companies: { findMany: () => Effect.succeed([{ id: 'co-1', settings_code: 'TEST' }]) },
-		jurisdiction_settings: {
-			findMany: () =>
-				Effect.succeed([
-					{
-						id: 'settings-1',
-						code: 'TEST',
-						jurisdiction_code: 'TEST-JUR',
-						sealed_at: '2020-01-01T00:00:00.000Z',
-						voided_at: null,
-						approval_id: null,
-						effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
-					}
-				])
-		},
-		payroll_runs: { findMany: () => Effect.succeed([]) },
-		leave_entries: { findMany: () => Effect.succeed([]) }
-	}
-};
+// A complete jurisdiction calendar is required even when this fixture has no holidays or weekly
+// rest rule. The transform must reach interval validation with legitimate inputs.
+const db = workDayDb();
 
 const at = (time) => `2026-07-01T${time}:00.000Z`;
 
@@ -63,10 +34,7 @@ const write = (overrides) => {
 		worked_intervals: [{ start: at('01:00'), end: at('09:00') }],
 		...overrides
 	};
-	const prepared = Effect.runSync(workDayHooks.mutate.prepare({ inputs: [input], api }));
-	return Effect.runSync(
-		workDayHooks.mutate.perRecord.before.handler({ input, existing: undefined, prepared, api })
-	);
+	return transformOne(workDays, input, undefined, db);
 };
 
 test('overlapping intervals are refused, so no minute can be paid twice', () => {

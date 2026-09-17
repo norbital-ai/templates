@@ -7,7 +7,7 @@ import {
 	EMPLOYMENT_ID,
 	createPublicPayrollWorld
 } from './fixtures/public-payroll-world.ts';
-import { memoryPayrollApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { memoryWorkspaceApi, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 /**
  * The `work_days` import against the contract history: one payload, one legal entity, one month.
@@ -90,7 +90,7 @@ function runImport(
 	dates: readonly string[],
 	legalEntity: string | null = 'Public Fixture Co'
 ) {
-	const api = memoryPayrollApi(world);
+	const api = memoryWorkspaceApi(world);
 	const input = {
 		legal_entity: legalEntity ?? undefined,
 		month: MONTH,
@@ -117,15 +117,24 @@ for (const half of ['roster', 'attendance'] as const) {
 					: null
 		});
 		const results = await runImport(current, half, ['2026-01-15', '2026-01-16']);
+		// The stored day is restated in place through the collection; the new day is returned as
+		// a create with no id, for the runtime to allocate.
 		assert.deepEqual(
 			results
-				.filter((row) => row.work_date === '2026-01-15' || row.work_date === '2026-01-16')
+				.filter((row) => row.work_date === '2026-01-16')
 				.map((row) => [row.employment_id, row.work_date, row.id ?? null]),
-			[
-				[EMPLOYMENT_ID, '2026-01-15', 'existing-old-day'],
-				[REHIRE, '2026-01-16', null]
-			]
+			[[REHIRE, '2026-01-16', null]]
 		);
+		assert.equal(
+			results.some((row) => row.work_date === '2026-01-15'),
+			false,
+			'the existing day is updated, not created'
+		);
+		const restated = current.work_days.find((row) => row.id === 'existing-old-day');
+		assert.equal(restated?.employment_id, EMPLOYMENT_ID);
+		if (half === 'roster')
+			assert.equal(restated?.shift_definition_id, current.shift_definitions[0].id);
+		else assert.ok(Array.isArray(restated?.worked_intervals));
 	});
 	test(`${half} refuses a date in the gap between contracts`, async () => {
 		const current = world();
@@ -188,7 +197,7 @@ test('the legal entity is the file’s to state: absent it is refused before a r
 
 test('a roster names every employed day of the month, or the file is refused listing the gaps', async () => {
 	const world = rosterWorld();
-	const api = memoryPayrollApi(world);
+	const api = memoryWorkspaceApi(world);
 	const partial = januaryRoster([]).filter((row) => row.work_date < '2026-01-30');
 	await assert.rejects(
 		Effect.runPromise(
@@ -222,7 +231,7 @@ test('PH is not a roster code: the holiday is overlaid from the calendar', async
 		Effect.runPromise(
 			pipeline.import.handler(
 				{ input: { legal_entity: 'Public Fixture Co', month: MONTH, roster } } as never,
-				memoryPayrollApi(world) as never
+				memoryWorkspaceApi(world) as never
 			)
 		),
 		/PH is not a roster code[\s\S]*PERSON on 2026-01-01/
@@ -243,12 +252,16 @@ test('a sealed day restated unchanged is skipped; changed or omitted, the whole 
 	// so the day is untouched — it is not among the mutations and is not deleted.
 	const same = rosterWorld();
 	sealed(same, same.shift_definitions[0].id);
+	const before = structuredClone(same.work_days.find((row) => row.id === 'sealed-day'));
 	const results = await runImport(same, 'roster', ['2026-01-20']);
 	assert.equal(
 		results.some((row) => row.work_date === '2026-01-20'),
 		false
 	);
-	assert.ok(same.work_days.some((row) => row.id === 'sealed-day'));
+	assert.deepEqual(
+		same.work_days.find((row) => row.id === 'sealed-day'),
+		before
+	);
 
 	const changed = rosterWorld();
 	sealed(changed, changed.shift_definitions[0].id);
@@ -277,7 +290,7 @@ test('a sealed day restated unchanged is skipped; changed or omitted, the whole 
 					]
 				}
 			} as never,
-			memoryPayrollApi(sameClock) as never
+			memoryWorkspaceApi(sameClock) as never
 		)
 	);
 	assert.deepEqual(restated, []);

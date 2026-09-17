@@ -161,8 +161,8 @@ test('manual adjustments and encashment use their actual source date instead of 
 	const context = leaveContext();
 	context.versions[0]!.effective_range = { start: '2026-01-01', end: '2026-03-01' };
 	approve(context, {
-		kind: 'ADJUSTMENT',
-		window: annualWindow,
+		from_date: annualWindow.start,
+		to_date: annualWindow.end,
 		days: 2,
 		effective_on: '2026-01-31',
 		reason: 'Documented additional award'
@@ -170,18 +170,17 @@ test('manual adjustments and encashment use their actual source date instead of 
 	const cash = approve(
 		context,
 		{
-			kind: 'ENCASHMENT',
-			source_window: annualWindow,
+			from_date: annualWindow.start,
+			to_date: annualWindow.end,
 			days: 1,
-			gross_amount: { value: 100, currency: 'MYR' },
-			rate: 100,
+			encash_days: 1,
 			effective_on: '2026-01-31',
 			due_on: '2026-02-01',
 			reason: 'Approved manual payment'
 		},
 		11
 	);
-	assert.equal(cash.event.kind, 'ENCASHMENT');
+	assert.equal(cash.encash_days, 1);
 	assert.equal(leaveBalanceSummaries(context, id(1), '2026-01-31')[0]?.balance, 13);
 	assert.equal(context.entries.length, 2);
 });
@@ -190,21 +189,20 @@ test('manual carry validates its source debit and destination availability witho
 	const context = leaveContext();
 	context.versions[0]!.effective_range = { start: '2025-12-01', end: '2026-03-01' };
 	const carry = approve(context, {
-		kind: 'CARRY_FORWARD',
-		source_window: { start: '2025-01-01', end: '2025-12-31' },
-		destination_window: annualWindow,
+		from_date: '2025-01-01',
+		to_date: '2025-12-31',
+		destination_from: annualWindow.start,
+		destination_to: annualWindow.end,
 		days: 5,
 		available_from: '2026-01-01',
 		expires_on: '2026-03-31',
 		effective_on: '2026-01-15',
 		reason: 'Approved manual transfer'
 	});
+	// The carry is its own credit; the only allocation is the source debit.
 	assert.deepEqual(
 		carry.allocations.map((row) => [row.date, row.days]),
-		[
-			['2025-12-31', -5],
-			['2026-01-01', 5]
-		]
+		[['2025-12-31', -5]]
 	);
 	assert.equal(leaveBalanceSummaries(context, id(1), '2026-01-31')[0]?.available, 17);
 	assert.equal(context.entries.length, 1);

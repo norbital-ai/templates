@@ -1,10 +1,38 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import {
 	contribute,
+	contributeCompany,
 	type ContributionCharge
 } from '../../collections/payroll_runs/lib/contribute.js';
-import type { EmploymentBundle } from '../../collections/payroll_runs/lib/gather.js';
+import {
+	sumAccumulations,
+	type AccumulatedPayslip
+} from '../../collections/payroll_runs/lib/accumulate.js';
+import type { EmploymentBundle, GatheredRun } from '../../collections/payroll_runs/lib/gather.js';
 import { cents } from '../../collections/payroll_runs/lib/rounding.js';
+
+/**
+ * One registration as the conflict check reads it: absent is the registered default, and every
+ * optional member is spelled so an explicit default and an absent row compare equal.
+ */
+function factStanding(status: StatutoryFactStatus | undefined): string {
+	if (status == null)
+		return JSON.stringify({
+			kind: 'REGISTERED',
+			rate_override: null,
+			since: null,
+			instalments: [],
+			elections: {}
+		});
+	if (status.kind === 'NOT_REGISTERED') return JSON.stringify(status);
+	return JSON.stringify({
+		kind: 'REGISTERED',
+		rate_override: status.rate_override ?? null,
+		since: status.since ?? null,
+		instalments: status.instalments ?? [],
+		elections: status.elections ?? {}
+	});
+}
 
 type ContractAssessment = {
 	readonly employment: Pick<
@@ -32,11 +60,15 @@ function allocate(amount: number, weights: readonly number[]): number[] {
 }
 
 /**
- * Contract payslips retain their own bases and sources. Contribution assesses the person's combined
- * remuneration once within the entity and interval, then allocates each share by that scheme's own
- * assessed base. Existing frozen bases, rule keys and sealed employment identities reconstruct both
- * the assessment and allocation without a separate ledger.
+ * Contract payslips retain their own money and sources. Contribution assesses the person's
+ * combined remuneration once within the entity and interval, then allocates each share by that
+ * scheme's own assessed base. Existing frozen money, rule keys and sealed employment identities
+ * reconstruct both the assessment and allocation without a separate ledger.
  */
+/** The entity's `semi_monthly_statutory_cutoff`, as the stored text; the column's own default otherwise. */
+const statutoryCutoff = (value: string): 'FIRST' | 'SPLIT' | 'LAST' =>
+	value === 'LAST' || value === 'SPLIT' ? value : 'FIRST';
+
 export function assessContributions(
 	contracts: readonly ContractAssessment[]
 ): Map<string, ContributionCharge[]> {
@@ -62,16 +94,13 @@ export function assessContributions(
 				refuse(
 					`Contracts for ${first.employment.employee_number} have conflicting Contribution assessment intervals or cadences.`
 				);
-			for (const base of input.bases) {
-				const id = base.contribution.row.id;
+			for (const contribution of input.contributions) {
+				const id = contribution.row.id;
 				const status = input.facts.get(id);
 				const otherStatus = other.facts.get(id);
-				if (
-					(status?.kind ?? 'REGISTERED') !== (otherStatus?.kind ?? 'REGISTERED') ||
-					(status?.rate_override ?? null) !== (otherStatus?.rate_override ?? null)
-				)
+				if (factStanding(status) !== factStanding(otherStatus))
 					refuse(
-						`Contracts for ${first.employment.employee_number} have conflicting ${base.contribution.row.code} registrations or rate overrides.`
+						`Contracts for ${first.employment.employee_number} have conflicting ${contribution.row.code} registrations or rate overrides.`
 					);
 			}
 		}
@@ -79,33 +108,30 @@ export function assessContributions(
 			result.set(first.employment.id, contribute(input));
 			continue;
 		}
-		const bases = input.bases.map((base, index) => {
-			const parts = ordered.map((contract) => contract.calculation.bases[index]!);
-			return {
-				contribution: base.contribution,
-				base: cents(parts.reduce((sum, part) => sum + part.base, 0)),
-				lines: parts.flatMap((part) => part.lines)
-			};
+		const accumulations = ordered.map((contract) => contract.calculation.accumulation);
+		const charges = contribute({
+			...input,
+			accumulation: sumAccumulations(accumulations),
+			parts: accumulations
 		});
-		const charges = contribute({ ...input, bases });
 		for (const contract of ordered) result.set(contract.employment.id, []);
 		// By scheme, not by position: a scheme the person is outside produced no charge at all.
 		for (const charge of charges) {
-			const index = input.bases.findIndex(
-				(base) => base.contribution.row.id === charge.contribution.row.id
-			);
-			const parts = ordered.map((contract) => contract.calculation.bases[index]!);
+			const parts = charge.parts ?? [{ base: charge.base, inputs: charge.inputs }];
 			const weights = parts.map((part) => Math.max(0, part.base));
 			const employee = allocate(charge.employee, weights);
 			const employer = allocate(charge.employer, weights);
+			const directed = allocate(charge.directed, weights);
+			const { parts: _parts, ...rest } = charge;
 			for (const [position, contract] of ordered.entries()) {
 				const part = parts[position]!;
 				result.get(contract.employment.id)!.push({
-					...charge,
+					...rest,
 					base: part.base,
-					inputs: part.lines,
+					inputs: part.inputs,
 					employee: employee[position]!,
-					employer: employer[position]!
+					employer: employer[position]!,
+					directed: directed[position]!
 				});
 			}
 		}
@@ -124,10 +150,22 @@ import { realignStatutoryFacts } from '../../collections/payroll_runs/lib/statut
 import { live, coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import type { Configuration } from '../../collections/payroll_runs/lib/configuration.js';
 import type { WorkspaceRow } from '../../collections/payroll_runs/$types.js';
-import { accumulateBases } from '../../collections/payroll_runs/lib/accumulate.js';
+import { accumulatePayslip } from '../../collections/payroll_runs/lib/accumulate.js';
 import { orderSchemes } from '../../collections/payroll_runs/lib/mentions.js';
 import { employmentDates } from '../../collections/payroll_runs/lib/settlement.js';
 import type { StatutoryFactStatus } from '../../collections/payroll_runs/lib/contribute.js';
+import {
+	addDays,
+	completedMonths,
+	inclusiveDays,
+	monthDays,
+	periodHalf
+} from '../../collections/payroll_runs/lib/dates.js';
+import {
+	closesTaxYear,
+	taxYearBounds,
+	type PayrollWindow
+} from '../../collections/payroll_runs/lib/period.js';
 import {
 	isEligible,
 	personContext,
@@ -137,6 +175,74 @@ import type { RunIssue } from '../../collections/payroll_runs/lib/validate.js';
 import { stint } from '../employment-contract.js';
 import { fixedAllowancesOn } from './money.js';
 import type { MeasuredEmployment } from './family.js';
+
+/**
+ * The COMPANY-assessed schemes' charges: one row for the whole run, over the sum of every
+ * payslip's reserved magnitudes and code map, evaluated once after the employment schemes. The
+ * entity's own levy answers to no employment and no registration, so its context carries the
+ * company's region and headcount and no person.
+ */
+export function assessCompanyContributions(options: {
+	readonly configuration: Configuration;
+	readonly gathered: GatheredRun;
+	readonly window: PayrollWindow;
+	readonly period: string;
+	readonly accumulations: readonly AccumulatedPayslip[];
+}): ContributionCharge[] {
+	const { configuration, gathered, window, period } = options;
+	const companySchemes = configuration.contributions.filter(
+		(entry) => entry.row.assessment_scope === 'COMPANY'
+	);
+	if (companySchemes.length === 0) return [];
+	const startMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
+	const minimumWage = regionalMinimumWage(configuration);
+	const entity = personContext({
+		employee: null,
+		employment: { service_start: '' },
+		terms: null,
+		company: { ...configuration.company, headcount: gathered.headcount },
+		asOf: window.salary.end
+	});
+	const covered = minimumWageCovers(configuration, entity);
+	const bounds = taxYearBounds(period, startMonth);
+	// The year-to-date and earned facts a company formula reads are the entity's: the sum over
+	// every employee the run gathered.
+	const yearToDate = (code: string) => {
+		const total = { employee: 0, employer: 0, base: 0 };
+		for (const [key, value] of gathered.yearToDate)
+			if (key.endsWith(`:${code}`)) {
+				total.employee += value.employee;
+				total.employer += value.employer;
+				total.base += value.base;
+			}
+		return total;
+	};
+	const yearEarned = new Map<string, number>();
+	for (const byCode of gathered.yearEarned.values())
+		for (const [code, amount] of byCode) yearEarned.set(code, (yearEarned.get(code) ?? 0) + amount);
+	return contributeCompany({
+		accumulation: sumAccumulations(options.accumulations),
+		contributions: companySchemes,
+		period: {
+			key: period,
+			start: window.salary.start,
+			end: window.salary.end,
+			index: 1,
+			instalments: 1,
+			monthlyOn: 'FIRST',
+			lastOfYear: closesTaxYear(period, startMonth),
+			daysEmployed: 0,
+			daysInMonth: monthDays(window.salary.start)
+		},
+		currency: configuration.jurisdiction.payroll.currency,
+		year: { start: bounds.start, end: bounds.end, months_employed: 0, days_employed: 0 },
+		person: { ...entity, wage_floor: covered ? (minimumWage ?? 0) : 0 },
+		minimumWage,
+		projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
+		yearToDate,
+		yearEarned
+	});
+}
 export function prepareContributionCatalogue(options: {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly settingsId: string;
@@ -275,33 +381,44 @@ export function prepareContributionAssessment(options: {
 		bundle.employedDays?.end ?? employmentDates(bundle.employment).exit ?? bundle.window.salary.end;
 	for (const fact of bundle.statutoryFacts) {
 		if (!coversDate(fact.effective_range, asOf) || fact.status == null) continue;
-		facts.set(fact.statutory_contribution_id, {
-			kind: fact.status.kind,
-			rate_override: fact.status.kind === 'REGISTERED' ? fact.status.rate_override : null
-		});
+		facts.set(fact.statutory_contribution_id, fact.status);
 	}
+	const minimumWage = regionalMinimumWage(configuration);
 	const person = personContext({
 		employee: bundle.employee,
-		employment: stint(bundle.employment),
+		employment: { ...stint(bundle.employment), risk_class: configuration.company.risk_class },
 		fixedAllowances: fixedAllowancesOn(bundle.payRequests, asOf),
 		terms:
 			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
 			bundle.terms.at(-1) ??
 			null,
 		children: bundle.children,
-		company: configuration.company,
+		company: { ...configuration.company, headcount },
+		// The pay month's working days, so a scheme can count the unpaid ones (VN art.33(5)).
+		period: { working_days: measured.periodWorkingDays },
 		asOf
 	});
+	const covered = minimumWageCovers(configuration, person);
+	// The floor is the region's wage where the order covers this person, and 0 where it does not;
+	// the person root carries both, so a formula may read either.
+	const floor = covered ? (minimumWage ?? 0) : 0;
+	const startMonth = decodeNumber(configuration.jurisdiction.payroll.tax_year_start_month);
+	const bounds = taxYearBounds(bundle.window.period, startMonth);
+	const dates = employmentDates(bundle.employment);
+	const from = dates.hire > bounds.start ? dates.hire : bounds.start;
+	const through =
+		dates.exit != null && dates.exit < bundle.window.salary.end
+			? dates.exit
+			: bundle.window.salary.end;
+	const employed = through >= from;
 	return {
 		employment: bundle.employment,
 		window: bundle.window,
 		calculation: {
-			bases: accumulateBases({
-				configuration,
-				items: [...measured.base, ...measured.adjustments],
-				employeeNumber: bundle.employment.employee_number,
-				yearEarned: options.yearEarned
+			accumulation: accumulatePayslip({
+				items: [...measured.base, ...measured.adjustments]
 			}),
+			contributions: configuration.contributions,
 			facts,
 			yearToDate: (code) =>
 				options.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
@@ -309,21 +426,38 @@ export function prepareContributionAssessment(options: {
 					employer: 0,
 					base: 0
 				},
-			age: bundle.age,
-			headcount,
-			riskClass: configuration.company.risk_class,
+			yearEarned: options.yearEarned,
+			period: {
+				key: bundle.window.period,
+				start: bundle.window.salary.start,
+				end: bundle.window.salary.end,
+				// How this period sits in the month: a scheme assessed over the MONTH is charged once,
+				// in the period that owns the month's start, on the month's wage. The cadence is the
+				// employment's own, not the company's: a MONTHLY employment inside a SEMI_MONTHLY company
+				// is paid once, in the `-2` run, and that one instalment is its whole month.
+				index:
+					bundle.window.payFrequency === 'SEMI_MONTHLY'
+						? (periodHalf(bundle.window.period) ?? 1)
+						: 1,
+				instalments: bundle.window.payFrequency === 'SEMI_MONTHLY' ? 2 : 1,
+				monthlyOn: statutoryCutoff(configuration.company.semi_monthly_statutory_cutoff),
+				lastOfYear:
+					closesTaxYear(bundle.window.period, startMonth) ||
+					(dates.exit != null && dates.exit <= bundle.window.salary.end),
+				daysEmployed: measured.proration.reduce((total, segment) => total + segment.days, 0),
+				daysInMonth: monthDays(bundle.window.salary.start)
+			},
+			currency: measured.currency,
+			year: {
+				start: bounds.start,
+				end: bounds.end,
+				months_employed: employed ? completedMonths(from, addDays(through, 1)) : 0,
+				days_employed: employed ? inclusiveDays(from, through) : 0
+			},
 			projection,
-			person,
-			minimumWage: regionalMinimumWage(configuration),
-			minimumWageApplies: minimumWageCovers(configuration, person),
-			// How this period sits in the month: a scheme assessed over the MONTH is charged once,
-			// in the period that owns the month's start, on the month's wage. The cadence is the
-			// employment's own, not the company's: a MONTHLY employment inside a SEMI_MONTHLY company
-			// is paid once, in the `-2` run, and that one instalment is its whole month.
-			assessment:
-				bundle.window.payFrequency === 'SEMI_MONTHLY'
-					? { periodsPerMonth: 2, periodIndex: bundle.window.period.endsWith('-2') ? 2 : 1 }
-					: { periodsPerMonth: 1, periodIndex: 1 }
+			person: { ...person, wage_floor: floor },
+			minimumWage,
+			minimumWageApplies: covered
 		}
 	};
 }

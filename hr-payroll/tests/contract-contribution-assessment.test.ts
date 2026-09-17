@@ -4,6 +4,7 @@ import { assessContributions } from '../src/lib/payroll/contribution.ts';
 import { contribute } from '../src/collections/payroll_runs/lib/contribute.ts';
 import type { ContributionConfig } from '../src/collections/payroll_runs/lib/configuration.ts';
 import { personContext } from '../src/collections/payroll_runs/lib/eligibility.ts';
+import { accumulatePayslip } from '../src/collections/payroll_runs/lib/accumulate.ts';
 
 /** A person with nothing recorded: every scheme and rule without a predicate covers them. */
 const NOBODY = personContext({
@@ -14,6 +15,12 @@ const NOBODY = personContext({
 });
 
 type Contract = Parameters<typeof assessContributions>[0][number];
+
+/** A payslip whose only money is a salary of `base`. */
+const accumulationOf = (base: number) => {
+	const accumulated = accumulatePayslip({ items: [] });
+	return { ...accumulated, reserved: { ...accumulated.reserved, BASE: base } };
+};
 type Band = ContributionConfig['rules'][number];
 
 function scheme(
@@ -33,10 +40,13 @@ function scheme(
 			settings_id: 'settings',
 			authority: 'Invented regression fixture',
 			assessment_period: 'PAY_PERIOD',
+			assessment_scope: 'EMPLOYMENT',
+			elections: [],
 			employee_share_annual_cap: pool.employee_share_annual_cap ?? null,
 			shared_cap_group: pool.shared_cap_group ?? null,
 			project_relief_annually: pool.project_relief_annually ?? false,
-			rules: [...bands]
+			rules: [...bands],
+			assessed_on: 'BASE'
 		},
 		rules: bands
 	} as unknown as ContributionConfig;
@@ -52,12 +62,21 @@ function contract(
 		employment: { id, employee_id: 'person', company_id: 'company', employee_number: 'Fixture 1' },
 		window: { payFrequency: 'MONTHLY', salary: { start: '2026-12-01', end: '2026-12-31' } },
 		calculation: {
-			bases: contributions.map((contribution) => ({ contribution, base, lines: [] })),
+			accumulation: accumulationOf(base),
+			contributions,
 			facts: new Map(),
 			yearToDate: () => ({ base: 0, employee: 0, employer: 0 }),
-			age: 40,
-			headcount: 1,
-			riskClass: null,
+			yearEarned: new Map(),
+			period: {
+				key: '2026-12',
+				start: '2026-12-01',
+				end: '2026-12-31',
+				index: 1,
+				instalments: 1,
+				monthlyOn: 'FIRST',
+				lastOfYear: true
+			},
+			year: { start: '2026-01-01', end: '2026-12-31', months_employed: 12, days_employed: 365 },
 			projection: { payslipsRemaining: 1, futurePayslipEquivalents: 0 },
 			person: NOBODY,
 			minimumWage: null,
@@ -98,13 +117,13 @@ test('a periodic progressive threshold applies to combined contract remuneration
 
 test('personal relief, a shared relief cap and prior YTD are applied once for the person', () => {
 	const chargeable =
-		'(year_to_date.base + base * (1.0 + projection.future_equivalents) - produced.PUB_FUND_A.employee - produced.PUB_FUND_B.employee - 1200.0)';
+		'(scheme.year_to_date.base + base * (1.0 + scheme.projection.future_equivalents) - produced.PUB_FUND_A.employee - produced.PUB_FUND_B.employee - 1200.0)';
 	const clamped = `(${chargeable} > 0.0 ? ${chargeable} : 0.0)`;
 	const scaled = `progressive(${clamped}, [0.0, 0.0, 10.0])`;
 	const tax = scheme('PUB_TAX', [
 		{
 			when: 'true',
-			employee: `round_cent((${scaled} - year_to_date.employee > 0.0 ? (${scaled} - year_to_date.employee) / (projection.payslips_remaining > 1.0 ? projection.payslips_remaining : 1.0) : 0.0))`,
+			employee: `round_cent((${scaled} - scheme.year_to_date.employee > 0.0 ? (${scaled} - scheme.year_to_date.employee) / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0))`,
 			employer: '0.0'
 		}
 	]);

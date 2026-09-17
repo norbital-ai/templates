@@ -2,9 +2,9 @@
 	/**
 	 * How the payslip's line items are produced, deterministically and for the whole version.
 	 *
-	 * A scheme's base is the signed sum of every line its declaration admits (the work lines by
-	 * flag, the catalogue rows it names); its rules then turn that base into employee and employer
-	 * shares. A rule that names `produced.<code>` is a dependency, so the engine computes
+	 * A scheme states its wage as one `assessed_on` formula over the reserved lines and its
+	 * version's catalogue rows; its rules then turn that base into employee and employer shares.
+	 * A rule or formula that names `produced.<code>` is a dependency, so the engine computes
 	 * schemes in dependency order — the order below, with cycle-free code order as the floor.
 	 */
 	import { client } from '../workspace-client.js';
@@ -13,56 +13,23 @@
 	import { Stack } from '@norbital-ai/ui/layout';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { orderSchemes, producedMentions } from '../../collections/payroll_runs/lib/mentions.js';
-	import { baseLines as linesOfBase } from '../payroll/base-lines.js';
 
 	let { version }: { readonly version: WorkspaceRow<'jurisdiction_settings'> } = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const versionId = $derived(String(version.id));
 	const approved = { approval_id: { isNull: true } } as const;
-	const catalogueQuery = () => ({
-		where: { settings_id: { eq: versionId }, ...approved },
-		columns: { id: true, code: true, direction: true },
-		limit: 500
-	});
-	const leave = $derived(client.db.leave_catalogue.findMany(catalogueQuery())?.current ?? []);
-	const loan = $derived(client.db.loan_catalogue.findMany(catalogueQuery())?.current ?? []);
-	const claim = $derived(client.db.claim_catalogue.findMany(catalogueQuery())?.current ?? []);
-	const allowance = $derived(
-		client.db.allowance_catalogue.findMany(catalogueQuery())?.current ?? []
-	);
-	const payment = $derived(client.db.payment_catalogue.findMany(catalogueQuery())?.current ?? []);
 	const schemesQuery = $derived(
 		client.db.statutory_contributions.findMany({
 			where: { settings_id: { eq: versionId }, ...approved },
-			columns: { id: true, code: true, name: true, rules: true, base: true },
+			columns: { id: true, code: true, name: true, rules: true, assessed_on: true },
 			orderBy: { code: 'asc' },
 			limit: 500
 		})
 	);
 
-	const baseLinesOf = (contributionId: string) => {
-		const scheme = (schemesQuery?.current ?? []).find((row) => row.id === contributionId);
-		if (scheme == null) return [];
-		return linesOfBase({
-			base: scheme.base,
-			catalogues: [
-				['LEAVE', leave],
-				['LOAN', loan],
-				['CLAIM', claim],
-				['ALLOWANCE', allowance],
-				['PAYMENT', payment]
-			],
-			workLabels: {
-				salary: t('renderer.work_rules.line_salary'),
-				absence: t('renderer.work_rules.line_absence'),
-				overtime: t('renderer.work_rules.line_overtime'),
-				night: t('renderer.work_rules.line_night')
-			}
-		});
-	};
 	/**
-	 * Dependency order, computed from the rules themselves: `produced.<code>` mentions order the
-	 * schemes, and a version the write gate let through cannot loop.
+	 * Dependency order, computed from the expressions themselves: `produced.<code>` mentions order
+	 * the schemes, and a version the write gate let through cannot loop.
 	 */
 	const ordered = $derived.by(() => {
 		const schemes = schemesQuery?.current ?? [];
@@ -88,7 +55,7 @@
 			</thead>
 			<tbody>
 				{#each ordered as entry, index (`${entry.row.code}:${index}`)}
-					{@const baseLines = baseLinesOf(entry.row.id)}
+					{@const reads = producedMentions(entry.row.rules, entry.row.assessed_on ?? '')}
 					<tr class="border-t border-border align-top">
 						<td class="py-1.5 pr-3 tabular-nums text-muted-foreground">{index + 1}</td>
 						<td class="py-1.5 pr-4">
@@ -96,28 +63,21 @@
 							<span class="text-muted-foreground"> · {entry.row.name}</span>
 						</td>
 						<td class="py-1.5 pr-4">
-							{#if baseLines.length === 0}
+							{#if (entry.row.assessed_on ?? '').trim() === ''}
 								<span class="text-meta">{t('component.scheme_used_by_empty')}</span>
 							{:else}
-								<ul class="flex flex-wrap gap-1">
-									{#each baseLines as line (`${line.code}:${line.effect}`)}
-										<li class="rounded-sm bg-muted px-1.5 py-0.5 text-xs">
-											{line.code}
-											{line.effect === 'REDUCE' ? '−' : '+'}
-										</li>
-									{/each}
-								</ul>
+								<span class="font-mono text-xs">{entry.row.assessed_on}</span>
 							{/if}
 						</td>
 						<td class="py-1.5 pr-4 text-muted-foreground">
 							{t('component.flow_rules_hint', { count: entry.row.rules.length })}
 						</td>
 						<td class="py-1.5">
-							{#if producedMentions(entry.row.rules).length === 0}
+							{#if reads.length === 0}
 								<span class="text-muted-foreground">—</span>
 							{:else}
 								<ul class="flex flex-wrap gap-1">
-									{#each producedMentions(entry.row.rules) as code (code)}
+									{#each reads as code (code)}
 										<li class="rounded-sm bg-muted px-1.5 py-0.5 text-xs">produced.{code}</li>
 									{/each}
 								</ul>

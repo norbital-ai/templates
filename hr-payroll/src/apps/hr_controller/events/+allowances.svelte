@@ -1,17 +1,16 @@
 <script lang="ts">
 	/**
-	 * Standing allowances of one legal entity: what each is paid under, how much, and whether it is
-	 * paid once or across a window.
+	 * Standing allowances of one legal entity, and the entries payroll priced from them.
 	 *
-	 * The one family with no date column, so this table is ordered by when the row was written
-	 * rather than by an event day. That is not an omission: a one-off's day is the first of the
-	 * period it names and a recurring allowance's is the day its window opens, so a stored date
-	 * would be a second statement of the same fact, free to disagree with the first.
+	 * Every allowance recurs: it is a catalogue item, a monthly amount and the window it is in
+	 * force over. The first tab is those sources, ordered by the day they open. The second is what
+	 * each pay period actually paid of them — one entry per period per allowance, created by the
+	 * run under the payslip that priced it, carrying the days it covered, the divisor and the
+	 * unpaid-leave days that came off, so a figure on a payslip explains itself.
 	 *
-	 * One live query, and the same shape as its three siblings in this group: the entity's own rows,
-	 * each carrying its employment, its component and the payroll capture that may lock it. Rows
-	 * held under an approval are listed and wear the pending badge rather than being filtered away
-	 * — see `+claims.svelte` for why that clause is gone.
+	 * One live query per tab, and the same shape as its siblings in this group: the entity's own
+	 * rows, each carrying its employment and its component. Rows held under an approval are listed
+	 * and wear the pending badge rather than being filtered away — see `+claims.svelte` for why.
 	 */
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../../lib/workspace-client.js';
@@ -38,40 +37,42 @@
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
-	/** The pay period the one-off entries are stepped by, in the entity's own grammar. */
+	/** The pay period the entries are stepped by, in the entity's own grammar. */
 	const pay = createPayPeriodScope(() => companyById(selectedCompanyId));
-	/** The open tab: what a request created from this page is, before anyone touches the form. */
-	let tab = $state('recurring');
+	let tab = $state('allowances');
 	/** The scope the create form this page opens is drawn against. See `+claims.svelte`. */
 	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		companyId: () => selectedCompanyId ?? undefined,
 		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined,
-		allowanceRecurrence: () => {
-			const start = pay.window?.start;
-			if (start == null) return undefined;
-			return tab === 'one-off'
-				? { kind: 'ONE_OFF', on: start }
-				: { kind: 'RECURRING', from: start, to: null };
-		}
+		allowanceFrom: () => pay.window?.start
 	});
 
-	type AllowanceRow = WorkspaceRow<'allowance_requests'> & {
-		readonly allowance_request_employment?: Pick<
-			WorkspaceRow<'employments'>,
-			'employee_number'
-		> | null;
-		readonly allowance_request_allowance_catalogue?: Pick<
+	type Named = {
+		readonly allowance_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly allowance_allowance_catalogue?: Pick<
 			WorkspaceRow<'allowance_catalogue'>,
 			'code'
 		> | null;
 	};
+	type AllowanceRow = WorkspaceRow<'allowances'> & Named;
+	type EntryRow = WorkspaceRow<'allowance_entries'> & {
+		readonly allowance_entry_employment?: Pick<
+			WorkspaceRow<'employments'>,
+			'employee_number'
+		> | null;
+		readonly allowance_entry_allowance_catalogue?: Pick<
+			WorkspaceRow<'allowance_catalogue'>,
+			'code'
+		> | null;
+	};
+	const ownCompany = $derived({ some: { company_id: { eq: selectedCompanyId } } });
 </script>
 
 <AppShell
 	icon="lucide:calendar-clock"
 	title="Allowances"
-	description="Standing allowances people are paid, each stating the one period or the window it is live across"
-	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
+	description="Standing allowances people are paid every period between two days, and what each payroll priced of them"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/requests-banner.webp"
 >
 	<AppHeaderActions>
 		<CompanyScopeCombobox
@@ -94,16 +95,16 @@
 				contentPadding={false}
 				config={[
 					{
-						name: 'recurring',
-						label: t('app.events.tab_recurring'),
+						name: 'allowances',
+						label: t('app.events.tab_allowances'),
 						icon: 'lucide:repeat',
-						content: recurringAllowances
+						content: allowances
 					},
 					{
-						name: 'one-off',
-						label: t('app.events.tab_one_off'),
-						icon: 'lucide:calendar-check',
-						content: oneOffAllowances
+						name: 'entries',
+						label: t('app.events.tab_allowance_entries'),
+						icon: 'lucide:receipt-text',
+						content: entries
 					}
 				] satisfies TabConfig[]}
 			/>
@@ -111,88 +112,107 @@
 	{/if}
 </AppShell>
 
-{#snippet allowanceColumns({ Column }: { Column: any })}
-	<Column
-		name="catalogue_id"
-		label={t('component.component')}
-		card="title"
-		renderer={FormattedValueRenderer}
-		rendererProps={{
-			format: ({ row }: { row: AllowanceRow }) =>
-				row.allowance_request_allowance_catalogue?.code ?? '—'
-		}}
-	/>
-	<Column
-		name="employment_id"
-		label={t('component.person')}
-		card="subtitle"
-		renderer={FormattedValueRenderer}
-		rendererProps={{
-			format: ({ row }: { row: AllowanceRow }) =>
-				row.allowance_request_employment?.employee_number ?? '—'
-		}}
-	/>
-	<Column name="amount" label={t('component.amount')} />
-	<!--
-						Whether this one settles against its component's declared direction. It is the whole
-						of what a correction is now, so it is a column rather than a fact you open a row to
-						find: the family that used to carry it had its own page.
-					-->
-	<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
-	<Column name="recurrence" label={t('component.entry_cadence')} />
-{/snippet}
-
-{#snippet recurringAllowances()}
+{#snippet allowances()}
 	<CollectionTable
 		{client}
-		collection="allowance_requests"
-		view={`hr_controller:events:allowances:recurring:${selectedCompanyId}`}
-		title={t('app.events.tab_recurring')}
-		recordMetadata={(row: AllowanceRow) =>
-			payRequestRecordMetadata(row.approval_id, row.payslip_id == null ? [] : [{ period: '' }], t)}
+		collection="allowances"
+		view={`hr_controller:events:allowances:${selectedCompanyId}`}
+		title={t('app.events.tab_allowances')}
+		recordMetadata={(row: AllowanceRow) => payRequestRecordMetadata(row.approval_id, [], t)}
 		query={{
-			where: {
-				allowance_request_employment: { some: { company_id: { eq: selectedCompanyId } } },
-				one_off_on: { isNull: true }
-			},
-			orderBy: { created_at: 'desc' },
+			where: { allowance_employment: ownCompany },
+			orderBy: { effective_from: 'desc' },
 			with: {
-				allowance_request_employment: { columns: { employee_number: true } },
-				allowance_request_allowance_catalogue: { columns: { code: true } }
+				allowance_employment: { columns: { employee_number: true } },
+				allowance_allowance_catalogue: { columns: { code: true } }
 			}
 		}}
-		columns={allowanceColumns}
-	/>
+	>
+		{#snippet columns({ Column })}
+			<Column
+				name="catalogue_id"
+				label={t('component.component')}
+				card="title"
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }: { row: AllowanceRow }) => row.allowance_allowance_catalogue?.code ?? '—'
+				}}
+			/>
+			<Column
+				name="employment_id"
+				label={t('component.person')}
+				card="subtitle"
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }: { row: AllowanceRow }) =>
+						row.allowance_employment?.employee_number ?? '—'
+				}}
+			/>
+			<Column name="amount" label={t('component.amount')} />
+			<Column name="effective_from" label={t('component.effective_from')} />
+			<Column name="effective_to" label={t('component.effective_to')} />
+			<!--
+				Whether this one settles against its component's declared direction. It is the whole of
+				what a correction is, so it is a column rather than a fact you open a row to find.
+			-->
+			<Column name="as_adjustment_entry" label={t('component.as_adjustment_entry')} />
+		{/snippet}
+	</CollectionTable>
 {/snippet}
 
-{#snippet oneOffAllowances()}
+{#snippet entries()}
 	{#if pay.bounds != null}
 		{#key pay.period}
 			<CollectionTable
 				{client}
-				collection="allowance_requests"
-				view={`hr_controller:events:allowances:one-off:${selectedCompanyId}:${pay.period}`}
-				title={t('app.events.tab_one_off')}
+				collection="allowance_entries"
+				view={`hr_controller:events:allowance-entries:${selectedCompanyId}:${pay.period}`}
+				title={t('app.events.tab_allowance_entries')}
 				navigation={periodNavigation}
-				recordMetadata={(row: AllowanceRow) =>
-					payRequestRecordMetadata(
-						row.approval_id,
-						row.payslip_id == null ? [] : [{ period: '' }],
-						t
-					)}
+				recordMetadata={(row: EntryRow) =>
+					payRequestRecordMetadata(row.approval_id, [{ period: '' }], t)}
 				query={{
 					where: {
-						allowance_request_employment: { some: { company_id: { eq: selectedCompanyId } } },
-						one_off_on: { gte: pay.bounds.start, lt: pay.bounds.end }
+						allowance_entry_employment: ownCompany,
+						from: { gte: pay.bounds.start, lt: pay.bounds.end }
 					},
-					orderBy: { one_off_on: 'desc' },
+					orderBy: { from: 'desc' },
 					with: {
-						allowance_request_employment: { columns: { employee_number: true } },
-						allowance_request_allowance_catalogue: { columns: { code: true } }
+						allowance_entry_employment: { columns: { employee_number: true } },
+						allowance_entry_allowance_catalogue: { columns: { code: true } }
 					}
 				}}
-				columns={allowanceColumns}
-			/>
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="catalogue_id"
+						label={t('component.component')}
+						card="title"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: EntryRow }) =>
+								row.allowance_entry_allowance_catalogue?.code ?? '—'
+						}}
+					/>
+					<Column
+						name="employment_id"
+						label={t('component.person')}
+						card="subtitle"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: EntryRow }) =>
+								row.allowance_entry_employment?.employee_number ?? '—'
+						}}
+					/>
+					<Column name="from" label={t('component.entry_from')} />
+					<Column name="to" label={t('component.entry_to')} />
+					<Column name="contract_amount" label={t('component.contract_amount')} />
+					<Column name="days" label={t('component.entry_days')} />
+					<Column name="denominator" label={t('component.entry_denominator')} />
+					<Column name="unpaid_days" label={t('component.entry_unpaid_days')} />
+					<Column name="amount" label={t('component.amount')} />
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}

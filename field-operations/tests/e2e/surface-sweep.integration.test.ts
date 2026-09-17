@@ -70,7 +70,7 @@ const NO_REPRESENTATION = new Set([]);
  * Naming them rather than skipping quietly is the point: each is a representation no test has ever
  * painted. `photo_evidence` is produced at provisioning time by the manifest's producer rather
  * than seeded, and the suspicion pair is automation output; `variation_requests` has no fixture at
- * all. A row in `tests/fixtures/seed/` — or a `collections.mutate` before the walk — is what
+ * all. A row in `tests/fixtures/seed/` — or a `collections.write` before the walk — is what
  * removes a name from this list.
  */
 const UNSEEDED_COLLECTIONS = new Set([

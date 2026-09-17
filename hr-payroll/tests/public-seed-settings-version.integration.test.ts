@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {
 	asRecord,
 	bearerHeaders,
-	mutationPush,
 	postGuestCommand,
 	requireAccepted,
 	requireOk
 } from '@norbital-ai/test-utilities';
+import { createdIds, graphOf, writeGraph } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	JANUARY_2026,
@@ -24,21 +24,11 @@ const CHILDREN = [
 	'leave_catalogue',
 	'claim_catalogue',
 	'allowance_catalogue',
-	'payment_catalogue',
 	'loan_catalogue'
 ] as const;
 
-const command = (
-	session: Session,
-	body: Parameters<typeof mutationPush>[1],
-	bases: Parameters<typeof mutationPush>[2] = []
-) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(session.schemaFingerprint, body, bases),
-		bearerHeaders(session.credential)
-	);
+const command = (session: Session, body: Parameters<typeof graphOf>[0], bases = []) =>
+	writeGraph(session, body, bases);
 
 const rowVersion = async (session: Session, collection: string, id: string): Promise<number> => {
 	const [row] = (await session.query(`select row_version from ${collection} where id = $1`, [
@@ -261,7 +251,6 @@ test(
 					{
 						action: 'create',
 						values: {
-							id: crypto.randomUUID(),
 							code: 'PUB',
 							name: 'PUB overlapping',
 							sealed_at: new Date().toISOString(),
@@ -342,8 +331,8 @@ test(
 				[employmentId, employeeId, companyId, { start: '2022-03-01', end: null }]
 			);
 			await session.query(
-				`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification, statutory_work_category, employment_type, job_title, shift_pattern_id, effective_range)
-				 values ($1, $2, $3, 'MONTHLY', 'EA_COVERED', 'NON_MANUAL', 'PERMANENT', 'Operator', $4, $5)`,
+				`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification, statutory_work_category, employment_type, job_title, agreed_days_per_week, shift_pattern_id, effective_range)
+				 values ($1, $2, $3, 'MONTHLY', 'EA_COVERED', 'NON_MANUAL', 'PERMANENT', 'Operator', 6, $4, $5)`,
 				[
 					crypto.randomUUID(),
 					employmentId,
@@ -354,20 +343,13 @@ test(
 			);
 			const runs: Array<{ company: string; id: string }> = [];
 			for (const company of [COMPANY_ID, companyId]) {
-				const id = crypto.randomUUID();
-				requireAccepted(
-					(
-						await command(session, {
-							action: 'mutate',
-							collection: 'payroll_runs',
-							rows: [
-								{ action: 'create', values: { id, company_id: company, period: JANUARY_2026 } }
-							]
-						})
-					).value,
-					`January run for ${company}`
-				);
-				runs.push({ company, id });
+				const created = await command(session, {
+					action: 'mutate',
+					collection: 'payroll_runs',
+					rows: [{ action: 'create', values: { company_id: company, period: JANUARY_2026 } }]
+				});
+				requireAccepted(created.value, `January run for ${company}`);
+				runs.push({ company, id: createdIds(created.value)[0]! });
 			}
 			const cited = (await session.query(
 				`select r.company_id, r.settings_id, (select count(*) from payslips p where p.payroll_run_id = r.id)::int as payslips from payroll_runs r where r.id = any($1::uuid[]) order by r.company_id`,

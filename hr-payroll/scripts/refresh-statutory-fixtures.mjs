@@ -51,8 +51,8 @@ const FILES = [
 	'statutory_contributions.json',
 	'leave_catalogue.json'
 ];
-/** Carried when the lineage has one: a scheduled payment row is law the goldens price. */
-const OPTIONAL_FILES = ['payment_catalogue.json'];
+/** Carried when the lineage has one: a scheduled allowance row is law the goldens price. */
+const OPTIONAL_FILES = ['allowance_catalogue.json'];
 
 for (const code of LINEAGES) {
 	const source = resolve(bank, code);

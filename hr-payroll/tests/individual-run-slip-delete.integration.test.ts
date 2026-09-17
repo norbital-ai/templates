@@ -1,14 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
+import { requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, graphOf, writeGraph } from './helpers/write.ts';
 import {
 	COMPANY_ID,
 	FEBRUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
-
-const MUTATE = 'collections.mutate';
 
 /**
  * A run pays everyone eligible, and the payslips it writes are engine output: a person may delete
@@ -23,33 +22,16 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-individual-slip-delete');
 		const headers = { authorization: `Bearer ${session.credential}` };
-		const command = (
-			body: Parameters<typeof mutationPush>[1],
-			bases: Parameters<typeof mutationPush>[2] = []
-		) =>
-			postGuestCommand(
-				session.host.baseUrl,
-				MUTATE,
-				mutationPush(session.schemaFingerprint, body, bases),
-				headers
-			);
+		const command = (body: Parameters<typeof graphOf>[0], bases = []) =>
+			writeGraph(session, body, bases, headers);
 		try {
-			const runId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'payroll_runs',
-						rows: [
-							{
-								action: 'create',
-								values: { id: runId, company_id: COMPANY_ID, period: FEBRUARY_2026 }
-							}
-						]
-					})
-				).value,
-				'create a run'
-			);
+			const run = await command({
+				action: 'mutate',
+				collection: 'payroll_runs',
+				rows: [{ action: 'create', values: { company_id: COMPANY_ID, period: FEBRUARY_2026 } }]
+			});
+			requireAccepted(run.value, 'create a run');
+			const [runId] = createdIds(run.value);
 
 			const slips = (await session.query(
 				'select id, row_version, paid_at from payslips where payroll_run_id = $1 order by employment_id',
@@ -99,16 +81,8 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-partial-then-full');
 		const headers = { authorization: `Bearer ${session.credential}` };
-		const command = (
-			body: Parameters<typeof mutationPush>[1],
-			bases: Parameters<typeof mutationPush>[2] = []
-		) =>
-			postGuestCommand(
-				session.host.baseUrl,
-				MUTATE,
-				mutationPush(session.schemaFingerprint, body, bases),
-				headers
-			);
+		const command = (body: Parameters<typeof graphOf>[0], bases = []) =>
+			writeGraph(session, body, bases, headers);
 		try {
 			const employments = (await session.query(
 				'select id from employments where company_id = $1 and approval_id is null order by employee_number',
@@ -116,22 +90,13 @@ test(
 			)) as ReadonlyArray<{ readonly id: string }>;
 			assert.ok(employments.length >= 2, 'the public seed carries a population');
 
-			const firstId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'payroll_runs',
-						rows: [
-							{
-								action: 'create',
-								values: { id: firstId, company_id: COMPANY_ID, period: FEBRUARY_2026 }
-							}
-						]
-					})
-				).value,
-				'create the first run'
-			);
+			const first = await command({
+				action: 'mutate',
+				collection: 'payroll_runs',
+				rows: [{ action: 'create', values: { company_id: COMPANY_ID, period: FEBRUARY_2026 } }]
+			});
+			requireAccepted(first.value, 'create the first run');
+			const [firstId] = createdIds(first.value);
 			const firstSlips = (await session.query(
 				'select employment_id from payslips where payroll_run_id = $1',
 				[firstId]
@@ -157,22 +122,13 @@ test(
 				[]
 			);
 
-			const fullId = crypto.randomUUID();
-			requireAccepted(
-				(
-					await command({
-						action: 'mutate',
-						collection: 'payroll_runs',
-						rows: [
-							{
-								action: 'create',
-								values: { id: fullId, company_id: COMPANY_ID, period: FEBRUARY_2026 }
-							}
-						]
-					})
-				).value,
-				'rebuild the same period'
-			);
+			const full = await command({
+				action: 'mutate',
+				collection: 'payroll_runs',
+				rows: [{ action: 'create', values: { company_id: COMPANY_ID, period: FEBRUARY_2026 } }]
+			});
+			requireAccepted(full.value, 'rebuild the same period');
+			const [fullId] = createdIds(full.value);
 			const fullSlips = (await session.query(
 				'select employment_id from payslips where payroll_run_id = $1',
 				[fullId]

@@ -27,31 +27,32 @@
 			title={record?.doc_no ?? 'New sales invoice'}
 			subtitle={record ? `${record.status ?? 'draft'}` : undefined}
 		>
-			<Field name="account_id" hidden />
-			<Field name="currency" hidden />
-			<Field name="tax_inclusive" hidden />
-			<Field name="net" hidden />
-			<Field name="tax" hidden />
-			<Field name="gross" hidden />
-			<Field name="issued_at" hidden />
-			<Field name="cancelled_at" hidden />
-			<Field name="cancel_reason" hidden />
+			{#if record}
+				<Field name="net" hidden />
+				<Field name="tax" hidden />
+				<Field name="gross" hidden />
+				<Field name="cancel_reason" hidden />
+			{/if}
 			<Grid minimum="compact">
-				<Field name="doc_no" label={t('component.doc_no')} />
-				<Field
-					name="quote_id"
-					label={t('component.quote')}
-					relationOptions={{
-						label: (record) => {
-							const docNo = record.doc_no;
-							const title = record.title;
-							if (docNo && title) return `${docNo}: ${title}`;
-							return docNo != null && docNo !== '' ? String(docNo) : '—';
-						},
-						orderBy: { doc_no: 'desc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions}
-				/>
+				{#if record}
+					<Field name="doc_no" label={t('component.doc_no')} />
+				{/if}
+				{#if !record}
+					<Field
+						name="quote_id"
+						label={t('component.quote')}
+						relationOptions={{
+							label: (record) => {
+								const docNo = record.doc_no;
+								const title = record.title;
+								if (docNo && title) return `${docNo}: ${title}`;
+								return docNo != null && docNo !== '' ? String(docNo) : '—';
+							},
+							orderBy: { doc_no: 'desc' },
+							limit: 5000
+						} satisfies CollectionRelationOptions}
+					/>
+				{/if}
 				<Field name="status" />
 				<Field
 					name="owner_id"

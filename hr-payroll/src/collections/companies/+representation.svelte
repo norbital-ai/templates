@@ -88,6 +88,13 @@
 						label={t('component.region')}
 						description={t('component.region_hint')}
 					/>
+					<Column span="all">
+						<Field
+							name="facts"
+							label={t('component.entity_facts')}
+							description={t('component.entity_facts_hint')}
+						/>
+					</Column>
 					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
 					<Field name="pay_frequency" label={t('component.pay_frequency')} />
 					<Field name="workbook_layout" label={t('component.workbook_layout')} />

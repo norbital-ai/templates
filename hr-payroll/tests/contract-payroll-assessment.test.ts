@@ -35,7 +35,7 @@ function rehireWorld() {
 			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:00:00+08:00` }
 		];
 	}
-	world.allowance_requests.length = 0;
+	world.allowances.length = 0;
 	world.statutory_contributions.push({
 		id: 'fixed-scheme',
 		settings_id: JURISDICTION_ID,
@@ -43,25 +43,51 @@ function rehireWorld() {
 		name: 'Invented fixed assessment',
 		authority: 'Public regression fixture',
 		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'EMPLOYMENT',
+		elections: [],
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
 		rules: [{ when: 'base >= 0.0', employee: 'round_cent(30.01)', employer: 'round_cent(60.01)' }],
+		assessed_on: "BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + catalog('ALLOWANCE')",
 		approval_id: null
 	});
-	const pubFixed = world.statutory_contributions.find((row) => row.code === 'PUB-FIXED')!;
-	pubFixed.base = {
-		salary: true,
-		absence: true,
-		overtime: true,
-		night_premium: false,
-		entries: [
-			...world.allowance_catalogue.map((row) => ({ family: 'ALLOWANCE', code: row.code })),
-			...world.payment_catalogue.map((row) => ({ family: 'PAYMENT', code: row.code }))
-		]
-	};
 	return world;
 }
+
+test('a company-assessed scheme lands once on the run, on no payslip', async () => {
+	const world = createPublicPayrollWorld();
+	world.statutory_contributions.push({
+		id: 'company-levy',
+		settings_id: JURISDICTION_ID,
+		code: 'PUB-LEVY',
+		name: 'Invented establishment levy',
+		authority: 'Public regression fixture',
+		assessment_period: 'PAY_PERIOD',
+		assessment_scope: 'COMPANY',
+		elections: [],
+		employee_share_annual_cap: null,
+		shared_cap_group: null,
+		project_relief_annually: false,
+		rules: [{ when: 'true', employee: '0.0', employer: 'round_cent(base * 1.0 / 100.0)' }],
+		assessed_on: 'BASE',
+		approval_id: null
+	});
+	const built = buildPayrollRun(
+		await Effect.runPromise(
+			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
+		)
+	);
+	// One charge for the whole run, and the payslips carry none of it.
+	assert.equal(built.company_charges.length, 1);
+	assert.equal(built.company_charges[0]!.scheme_code, 'PUB-LEVY');
+	assert.ok(built.company_charges[0]!.employer_amount > 0);
+	assert.ok(
+		built.payslip_payroll_run.every(
+			(slip) => !slip.statutory.some((line) => line.scheme_code === 'PUB-LEVY')
+		)
+	);
+});
 
 test('the payroll engine measures two rehire contracts but charges one contribution assessment', async () => {
 	const world = rehireWorld();

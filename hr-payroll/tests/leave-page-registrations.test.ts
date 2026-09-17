@@ -8,7 +8,7 @@ test('Controller Events Leave registers one contract-scoped immutable activity t
 	assert.match(page, /collection="leave_entries"/);
 	assert.match(page, /leave_entry_employment: \{ some: \{ company_id: \{ eq: selectedCompanyId \}/);
 	assert.match(page, /operations: \['update', 'delete'\]/);
-	assert.match(page, /<Column name="event"/);
+	assert.match(page, /<Column name="summary"/);
 	assert.doesNotMatch(page, /leave_entitlements|entry_leave_entitlement|request_leave_entitlement/);
 });
 
@@ -17,7 +17,7 @@ test('Settings Leave catalogue is one table over the selected settings revision'
 	assert.deepEqual(registrations(tab), ['CollectionTable']);
 	assert.match(tab, /collection="leave_catalogue"/);
 	assert.match(tab, /settings_id: \{ eq: selectedVersion\.id \}/);
-	assert.match(tab, /<Column name="paid"/);
+	assert.match(tab, /<Column name="is_npl"/);
 });
 
 test('Employee Leave combines one computed balance query with a contract-scoped activity table', () => {

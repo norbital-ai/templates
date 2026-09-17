@@ -1,13 +1,8 @@
 import test from 'node:test';
 import { approveLeave } from './helpers/public-leave.ts';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, requireAccepted } from '@norbital-ai/test-utilities';
+import { createdIds, observedVersion, writeRows } from './helpers/write.ts';
 import {
 	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
@@ -17,7 +12,6 @@ import {
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
-const MUTATE_COMMAND = 'collections.mutate';
 /** The public Claim catalogue entry used for the reimbursed taxi. */
 const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777701';
 
@@ -34,21 +28,18 @@ const create = async (
 	values: Readonly<Record<string, unknown>>,
 	headers: Readonly<Record<string, string>>
 ) => {
-	const response = await postGuestCommand(
-		session.host.baseUrl,
-		MUTATE_COMMAND,
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection,
-			rows: [{ action: 'create', values }]
-		}),
-		headers
-	);
+	const response = await writeRows(session, collection, 'create', [values], headers);
 	assert.ok(
 		response.status >= 200 && response.status < 300,
 		`${collection} create returned ${response.status}: ${JSON.stringify(response.value)}`
 	);
 	return asRecord(response.value, `${collection} create`);
+};
+/** The id the runtime gave the one created row, or the held root's id. */
+const idOf = (settlement: Readonly<Record<string, unknown>>): string => {
+	const [id] = createdIds(settlement);
+	if (id != null) return id;
+	return String(asRecord(settlement.pendingApproval, 'held root').id);
 };
 
 const rowCount = async (session: Session, sql: string, parameters: ReadonlyArray<unknown>) => {
@@ -72,12 +63,10 @@ test(
 			const controller = teamHeaders(session, 'HQ Payroll HR');
 
 			// 1. A claim is one write, landed directly — no approval, no second step.
-			const claimId = crypto.randomUUID();
 			const claim = await create(
 				session,
 				'claim_requests',
 				{
-					id: claimId,
 					employment_id: EMPLOYMENT_ID,
 					catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
@@ -92,6 +81,7 @@ test(
 				undefined,
 				`a claim must not wait: ${JSON.stringify(claim)}`
 			);
+			const claimId = idOf(claim);
 			assert.equal(
 				await rowCount(session, 'select count(*)::int as n from claim_requests where id = $1', [
 					claimId
@@ -100,28 +90,24 @@ test(
 			);
 
 			// 2. Leave: the controller applies, the request is held, the manager approves, the row lands.
-			const leaveId = crypto.randomUUID();
 			const applied = await create(
 				session,
 				'leave_entries',
 				{
-					id: leaveId,
 					employment_id: EMPLOYMENT_ID,
 					catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
-					reference: `LEAVE-${leaveId}`,
-					event: {
-						kind: 'TIME_OFF',
-						range: {
-							start: { date: '2026-03-10', half: 'FIRST' },
-							end: { date: '2026-03-10', half: 'SECOND' }
-						},
-						chargeable_days: null,
-						reason: 'Family matter'
-					}
+					reference: 'LEAVE-MARCH-FAMILY',
+					from_date: '2026-03-10',
+					to_date: '2026-03-10',
+					half_day_start: false,
+					half_day_end: false,
+					days: null,
+					reason: 'Family matter'
 				},
 				controller
 			);
 			assert.equal(applied.resolution, 'accepted', JSON.stringify(applied));
+			const leaveId = idOf(applied);
 			await approveLeave(session, applied);
 			assert.equal(
 				await rowCount(session, 'select count(*)::int as n from leave_entries where id = $1', [
@@ -132,14 +118,14 @@ test(
 			);
 
 			// 3. The March run captures both as inputs.
-			const runId = crypto.randomUUID();
 			const run = await create(
 				session,
 				'payroll_runs',
-				{ id: runId, company_id: COMPANY_ID, period: MARCH_2026 },
+				{ company_id: COMPANY_ID, period: MARCH_2026 },
 				manager
 			);
 			requireAccepted(run, 'payroll run create');
+			const runId = idOf(run);
 			assert.equal(run.pendingApproval, undefined, `manager runs land: ${JSON.stringify(run)}`);
 			assert.equal(
 				await rowCount(
@@ -166,27 +152,15 @@ test(
 
 			// 4. Deleting the draft run releases both captures and deletes neither source.
 			const sourceBefore = await session.query(
-				'select event, charges, allocations from leave_entries where id = $1',
+				'select days, charges, allocations from leave_entries where id = $1',
 				[leaveId]
 			);
 			const versions = (await session.query('select row_version from payroll_runs where id = $1', [
 				runId
 			])) as ReadonlyArray<{ readonly row_version: number }>;
-			const deleted = await postGuestCommand(
-				session.host.baseUrl,
-				MUTATE_COMMAND,
-				mutationPush(
-					session.schemaFingerprint,
-					{ action: 'delete', collection: 'payroll_runs', ids: [runId] },
-					[
-						{
-							row: { collection: 'payroll_runs', recordId: runId },
-							rowVersion: versions[0]?.row_version
-						}
-					]
-				),
-				manager
-			);
+			const deleted = await writeRows(session, 'payroll_runs', 'delete', [{ id: runId }], manager, [
+				observedVersion('payroll_runs', runId, versions[0]!.row_version)
+			]);
 			requireAccepted(deleted.value, 'payroll run delete');
 			assert.equal(
 				await rowCount(session, 'select count(*)::int as n from payroll_runs where id = $1', [
@@ -227,7 +201,7 @@ test(
 				'deleting the run must not delete the leave request'
 			);
 			assert.deepEqual(
-				await session.query('select event, charges, allocations from leave_entries where id = $1', [
+				await session.query('select days, charges, allocations from leave_entries where id = $1', [
 					leaveId
 				]),
 				sourceBefore

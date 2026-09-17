@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * One row of a settings version's leave catalogue. A statutory row cites its authority and its
-	 * eligibility is one CEL expression over the person, which the write hook compiles. Sealed with
+	 * eligibility is one CEL expression over the person, which the transform compiles. Sealed with
 	 * its version.
 	 *
 	 * The shared catalogue spine lives here too: destination and direction say how an entry settles
@@ -33,9 +33,6 @@
 	const settingsId = $derived(createScope?.settingsId?.());
 	const formValues = $derived(record ?? (settingsId ? { settings_id: settingsId } : undefined));
 	const sealed = $derived(settingsVersionSealed(() => record?.settings_id)());
-	/** EMPLOYER and DISPLAY settle no direction: the model keeps it null there. */
-	const takesDirection = (destination: unknown): boolean =>
-		destination === 'PAY' || destination === 'NET';
 </script>
 
 <RecordShell
@@ -113,25 +110,13 @@
 				<Stack gap="sm">
 					<p class="text-meta">{t('component.leave_section_pay_hint')}</p>
 					<Grid gap="md" minimum="card">
-						<Field name="paid" label={t('component.paid')} />
+						<Field name="is_npl" label={t('component.is_npl')} />
+						<Field name="can_encash" label={t('component.can_encash')} />
 						<Field name="evidence" label={t('component.evidence')} />
 						<Field
 							name="evidence_after_days"
 							label={t('component.certificate_required_after_days')}
 						/>
-						<Field name="destination" label={t('component.destination')} />
-						{#if takesDirection(form.values().destination)}
-							<Field name="direction" label={t('component.direction')} />
-						{:else}
-							<Field name="direction" hidden />
-							<span
-								class="hidden"
-								{@attach () => {
-									if (form.values().direction != null)
-										form.setValues({ ...form.values(), direction: null });
-								}}
-							></span>
-						{/if}
 					</Grid>
 				</Stack>
 			{/snippet}

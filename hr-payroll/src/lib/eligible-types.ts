@@ -4,7 +4,7 @@
  * The rule is the engine's own (`payroll_runs/lib/eligibility.ts`), fed by the facts a browser can
  * read in one query: the employment, its employee, its terms and its entity. The picker then
  * narrows to these ids, so an ineligible type is not offered rather than refused after the fact;
- * the hook keeps the same rule for a write that did not come through the form.
+ * the transform keeps the same rule for a write that did not come through the form.
  */
 import {
 	isEligible,

@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
 	 * Amend an active employment's terms: the form opens prefilled from the terms in force, with a
-	 * new effective start. Submit closes the previous row the day before and creates the successor
-	 * in one batch, through the hook's existing amendment rule — never by editing a consumed row.
+	 * new effective start. Submit closes the previous row the day before, through the transform's
+	 * amendment rule, then creates the successor — never by editing a consumed row.
 	 */
 	import { Effect } from 'effect';
 	import { client } from '../../workspace-client.js';
@@ -51,6 +51,7 @@
 				job_title: true,
 				payroll_group: true,
 				grade: true,
+				agreed_days_per_week: true,
 				shift_pattern_id: true,
 				effective_range: true
 			},
@@ -70,6 +71,7 @@
 		readonly job_title: string | null;
 		readonly payroll_group: string | null;
 		readonly grade: string | null;
+		readonly agreed_days_per_week: number;
 		readonly shift_pattern_id: string | null;
 		readonly effective_range: unknown;
 	};
@@ -103,6 +105,7 @@
 	let jobTitle = $state('');
 	let payrollGroup = $state('');
 	let grade = $state('');
+	let agreedDaysPerWeek = $state('');
 	let shiftPatternId = $state('');
 	let formError = $state<string | null>(null);
 	let submitting = $state(false);
@@ -123,6 +126,7 @@
 		jobTitle = row.job_title ?? '';
 		payrollGroup = row.payroll_group ?? '';
 		grade = row.grade ?? '';
+		agreedDaysPerWeek = String(row.agreed_days_per_week);
 		shiftPatternId = row.shift_pattern_id ?? '';
 		formError = null;
 	});
@@ -179,6 +183,11 @@
 			formError = t('offboarding.need_valid_salary');
 			return null;
 		}
+		const agreedDays = numberFrom(agreedDaysPerWeek, Number.NaN);
+		if (!Number.isInteger(agreedDays) || agreedDays < 1 || agreedDays > 7) {
+			formError = t('offboarding.need_agreed_days');
+			return null;
+		}
 		const facts: ChangeTermsFacts = {
 			residency_status: residencyStatus === '' ? null : residencyStatus,
 			residency_since:
@@ -192,6 +201,7 @@
 			job_title: jobTitle.trim() === '' ? null : jobTitle.trim(),
 			payroll_group: payrollGroup.trim() === '' ? null : payrollGroup.trim(),
 			grade: grade.trim() === '' ? null : grade.trim(),
+			agreed_days_per_week: agreedDays,
 			shift_pattern_id: shiftPatternId === '' ? null : shiftPatternId
 		};
 		try {
@@ -201,7 +211,6 @@
 				previousStart: range.start,
 				closeEnd: startOfDayInstant(previousDay(newStart), PAYROLL_TIME_ZONE),
 				newStart: startOfDayInstant(newStart, PAYROLL_TIME_ZONE),
-				newId: crypto.randomUUID(),
 				facts
 			});
 		} catch (error) {
@@ -270,6 +279,28 @@
 					PAY_FREQUENCIES,
 					false
 				)}
+			</Grid>
+		</FormSection>
+
+		<FormSection
+			title={t('component.shift_assignment')}
+			hint={t('component.shift_assignment_hint')}
+		>
+			<Grid gap="sm" minimum="compact">
+				<label class="text-sm font-medium"
+					><Stack gap="xs"
+						>{t('component.agreed_days_per_week')}<Input
+							type="number"
+							min="1"
+							max="7"
+							step="1"
+							value={agreedDaysPerWeek}
+							oninput={(event) => {
+								agreedDaysPerWeek = event.currentTarget.value;
+							}}
+						/></Stack
+					></label
+				>
 				{@render select(
 					t('component.shift_pattern'),
 					shiftPatternId,
@@ -370,7 +401,9 @@
 					submitting = true;
 					Effect.runFork(
 						submitCollectionMutation(() =>
-							client.db.employment_terms.mutate([writes.close, writes.create])
+							client.collection.employment_terms
+								.update(writes.close.id, { effective_range: writes.close.effective_range })
+								.then(() => client.collection.employment_terms.create(writes.create))
 						).pipe(
 							Effect.tap((result) =>
 								Effect.sync(() => {

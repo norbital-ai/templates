@@ -38,7 +38,7 @@ function dayMinutes(date: string): number {
 /**
  * Find clock collisions on the real timeline, including an overnight shift colliding with the
  * following day's early shift. Touching end/start boundaries are allowed; overlapping minutes are
- * not. The function is shared by authored hooks, the draft UI and the publication gate.
+ * not. The function is shared by authored transforms, the draft UI and the publication gate.
  */
 export function overlappingWorkShifts(days: readonly ValidationDay[]): WorkShiftOverlap[] {
 	const byEmployment = Map.groupBy(

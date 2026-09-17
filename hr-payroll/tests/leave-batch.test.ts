@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Effect } from 'effect';
 import { withPendingLeaveEntries } from '../src/lib/leave/pending.ts';
 import {
-	leaveEntryHooks,
+	planLeaveBatch,
 	approve,
 	annualWindow,
 	id,
@@ -15,11 +14,7 @@ import type { LeaveContext } from '../src/lib/leave/context.ts';
 import type { LeaveSubmission } from '../src/lib/leave/activity.ts';
 
 const before = (context: LeaveContext, inputs: readonly LeaveSubmission[], index = 0) =>
-	leaveEntryHooks.mutate.perRecord.before.handler({
-		input: inputs[index],
-		recordId: id(100 + index),
-		prepared: { context, inputs }
-	} as never);
+	planLeaveBatch(context, inputs)[index]!;
 
 test('a same-contract batch reserves all debits before any single entry can commit', () => {
 	const context = leaveContext();
@@ -39,9 +34,11 @@ test('a same-contract batch reserves all debits before any single entry can comm
 test('opposite halves coexist in a batch but repeated halves are refused', () => {
 	const context = leaveContext();
 	const half = (value: 'FIRST' | 'SECOND') => ({
-		kind: 'TIME_OFF' as const,
-		range: { start: { date: '2026-04-01', half: value }, end: { date: '2026-04-01', half: value } },
-		chargeable_days: null,
+		from_date: '2026-04-01',
+		to_date: '2026-04-01',
+		half_day_start: value === 'SECOND',
+		half_day_end: value === 'FIRST',
+		days: null,
 		reason: null
 	});
 	const inputs = [submission(half('FIRST'), 'A'), submission(half('SECOND'), 'B')];
@@ -54,8 +51,8 @@ test('a pending credit in the same batch cannot fund another transaction', () =>
 	const context = leaveContext();
 	const credit = submission(
 		{
-			kind: 'ADJUSTMENT',
-			window: annualWindow,
+			from_date: annualWindow.start,
+			to_date: annualWindow.end,
 			days: 2,
 			effective_on: '2026-01-01',
 			reason: 'Additional grant'
@@ -69,24 +66,6 @@ test('a pending credit in the same batch cannot fund another transaction', () =>
 	])
 		assert.throws(() => before(context, inputs), /Insufficient leave/);
 	assert.deepEqual(context.entries, []);
-});
-
-test('approval replay excludes its own held proposal and preserves other held reservations', () => {
-	const context = leaveContext();
-	const own = approve(context, timeOff('2026-04-01', '2026-04-07'), 100);
-	const other = approve(context, timeOff('2026-05-01', '2026-05-05'), 101);
-	context.entries = [own, other].map((row) => ({ ...row, approval_id: id(200) }));
-	const replay = submission(own.event, own.reference);
-	const result = before(context, [replay]);
-	assert.equal(
-		result.allocations.reduce((total, row) => total + row.days, 0),
-		-7
-	);
-	assert.equal(context.entries.length, 2);
-	assert.throws(
-		() => before(context, [submission(timeOff('2026-06-01'), 'THIRD')]),
-		/Insufficient leave/
-	);
 });
 
 test('duplicate references are refused both within a batch and against held activity', () => {
@@ -111,6 +90,7 @@ test('a batch does not spend another contract’s balance even for the same empl
 		...context.terms[0]!,
 		id: id(31),
 		employment_id: id(30),
+		agreed_days_per_week: 5,
 		shift_pattern_id: id(42)
 	});
 	context.shifts.push({ ...context.shifts[0]!, id: id(41), company_id: id(40) });
@@ -134,38 +114,24 @@ test('a batch does not spend another contract’s balance even for the same empl
 	);
 });
 
-test('pending reads preserve server evidence and scope reservations to the requested contracts', () => {
+test('held proposals reserve the debits they measured and never read as settled', () => {
 	const context = leaveContext();
-	const proposed = { ...approve(context, timeOff('2026-04-01')), approval_id: id(200) };
-	const queries: unknown[] = [];
-	const api = {
-		db: {
-			leave_entries: {
-				findPending: (query: unknown) => {
-					queries.push(query);
-					return Effect.succeed([proposed]);
-				}
-			}
-		}
+	const proposed = {
+		...approve(context, timeOff('2026-04-01')),
+		approval_id: id(200),
+		payslip_id: 'slip'
 	};
-	const entries = Effect.runSync(withPendingLeaveEntries(api as never, [id(1)], []));
-	assert.deepEqual(queries, [{ where: { employment_id: { in: [id(1)] } }, limit: 2000 }]);
+	const entries = withPendingLeaveEntries([proposed], []);
 	assert.equal(entries[0]?.approval_id, id(200));
+	assert.equal(entries[0]?.payslip_id, null);
 	assert.deepEqual(entries[0]?.allocations, proposed.allocations);
-	const withdrawn = { db: { leave_entries: { findPending: () => Effect.succeed([]) } } };
-	assert.deepEqual(Effect.runSync(withPendingLeaveEntries(withdrawn as never, [id(1)], [])), []);
+	assert.deepEqual(withPendingLeaveEntries([], []), []);
 });
 
-test('pending activity with missing evidence or a truncated read refuses instead of overstating availability', () => {
-	const malformed = { id: id(10), approval_id: id(200), employment_id: id(1) };
-	for (const [rows, message] of [
-		[[malformed], /no valid approval evidence/],
-		[Array.from({ length: 2000 }, () => malformed), /safety ceiling/]
-	] as const) {
-		const api = { db: { leave_entries: { findPending: () => Effect.succeed(rows) } } };
-		assert.throws(
-			() => Effect.runSync(withPendingLeaveEntries(api as never, [id(1)], [])),
-			message
-		);
-	}
+test('a truncated pending read refuses instead of overstating availability', () => {
+	const held = { id: id(10), approval_id: id(200), employment_id: id(1) };
+	assert.throws(
+		() => withPendingLeaveEntries(Array.from({ length: 2000 }, () => held) as never, []),
+		/safety ceiling/
+	);
 });

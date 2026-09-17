@@ -1,12 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { asRecord, requireAccepted } from '@norbital-ai/test-utilities';
+import { writeRows } from './helpers/write.ts';
 import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
@@ -33,16 +28,7 @@ const sealedCopy = async (session: Session, overrides: Row): Promise<Row> => {
 };
 
 const create = (session: Session, values: Row) =>
-	postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'jurisdiction_settings',
-			rows: [{ action: 'create', values: { id: crypto.randomUUID(), ...values } }]
-		}),
-		bearerHeaders(session.credential)
-	);
+	writeRows(session, 'jurisdiction_settings', 'create', [values]);
 
 test(
 	'a second sealed PUB row overlapping the first is refused, in a sentence and by the exclusion',

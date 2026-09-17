@@ -7,18 +7,18 @@ import { cascade, deferrable, setNull } from '@norbital-ai/bolt/authoring';
  * ## Ownership is declared once, by `cascade(...)`
  *
  * A `cascade(...)` on the `one` side says the child cannot meaningfully exist without that parent:
- * deleting the parent deletes it, and a nested `many` in a `mutate` hard-deletes the children it
- * leaves out. Everything not wrapped is `restrict` — the parent cannot be deleted while children
- * point at it — and that is a deliberate answer, not an omission. Two cases are worth reading
- * twice:
+ * deleting the parent deletes it. Nothing is ever deleted by omission: a child goes only through an
+ * explicit `delete` action or its parent's cascade. Everything not wrapped is `restrict` — the
+ * parent cannot be deleted while children point at it — and that is a deliberate answer, not an
+ * omission. Two cases are worth reading twice:
  *
  * - `work_days` is NOT owned by the payroll: the same day carries a plan and attendance together,
  *   and nobody's roster owns either half. Its `payslip_id` is a nullable pin, not an edge: payroll
  *   stamps it on capture and clears it when the draft that holds it is released.
  * - every entry family and `work_days` carries a nullable `payslip_id` foreign key. The run sets
  *   it on consumption; deleting a `DRAFT` run (or one `DRAFT`/`ON_HOLD` payslip) clears it through
- *   the database's `ON DELETE SET NULL`, not a hook. A `PAID` payslip is never deleted, so a paid
- *   source stays locked.
+ *   the database's `ON DELETE SET NULL`, not authored code. A `PAID` payslip is never deleted, so
+ *   a paid source stays locked.
  *
  * ## Where an edge is not declared here
  *
@@ -39,7 +39,7 @@ export default ((r) => ({
 	},
 	/**
 	 * The sealed, shareable root. Every downstream rule row is owned by its version (`cascade`: a
-	 * draft deleted takes its children; the version's own hook refuses deleting a sealed one), and
+	 * draft deleted takes its children; the delete grant refuses deleting a sealed one), and
 	 * a company binds to the lineage by `settings_code`, a text key with no edge, so a change of law
 	 * never touches the company row and two entities can take one root.
 	 */
@@ -49,7 +49,6 @@ export default ((r) => ({
 		loan_catalogue_settings: r.many.loan_catalogue(),
 		claim_catalogue_settings: r.many.claim_catalogue(),
 		allowance_catalogue_settings: r.many.allowance_catalogue(),
-		payment_catalogue_settings: r.many.payment_catalogue(),
 		/** The versions runs name as the law they were calculated under. */
 		settings_payroll_run: r.many.payroll_runs()
 	},
@@ -104,17 +103,8 @@ export default ((r) => ({
 				to: r.jurisdiction_settings.id
 			})
 		),
-		allowance_request_allowance_catalogue: r.many.allowance_requests()
-	},
-
-	payment_catalogue: {
-		payment_catalogue_settings: cascade(
-			r.one.jurisdiction_settings({
-				from: r.payment_catalogue.settings_id,
-				to: r.jurisdiction_settings.id
-			})
-		),
-		payment_request_payment_catalogue: r.many.payment_requests()
+		allowance_allowance_catalogue: r.many.allowances(),
+		allowance_entry_allowance_catalogue: r.many.allowance_entries()
 	},
 
 	leave_catalogue: {
@@ -161,8 +151,8 @@ export default ((r) => ({
 		}),
 		term_employment: r.many.employment_terms(),
 		claim_request_employment: r.many.claim_requests(),
-		allowance_request_employment: r.many.allowance_requests(),
-		payment_request_employment: r.many.payment_requests(),
+		allowance_employment: r.many.allowances(),
+		allowance_entry_employment: r.many.allowance_entries(),
 		loan_employment: r.many.loans(),
 		loan_repayment_employment: r.many.loan_repayments(),
 		leave_entry_employment: r.many.leave_entries(),
@@ -218,31 +208,41 @@ export default ((r) => ({
 		})
 	},
 
-	allowance_requests: {
-		allowance_request_employment: r.one.employments({
-			from: r.allowance_requests.employment_id,
+	/**
+	 * A standing allowance is the source; its entries are the lines. Restrict on every edge: an
+	 * allowance a payslip has priced is money history, and its employment stays with it.
+	 */
+	allowances: {
+		allowance_employment: r.one.employments({
+			from: r.allowances.employment_id,
 			to: r.employments.id
 		}),
-		allowance_request_payslip: deferrable(
-			setNull(r.one.payslips({ from: r.allowance_requests.payslip_id, to: r.payslips.id }))
-		),
-		allowance_request_allowance_catalogue: r.one.allowance_catalogue({
-			from: r.allowance_requests.catalogue_id,
+		allowance_allowance_catalogue: r.one.allowance_catalogue({
+			from: r.allowances.catalogue_id,
 			to: r.allowance_catalogue.id
-		})
+		}),
+		allowance_entry_allowance: r.many.allowance_entries()
 	},
 
-	payment_requests: {
-		payment_request_employment: r.one.employments({
-			from: r.payment_requests.employment_id,
+	/**
+	 * An entry is owned by the payslip that priced it (`cascade`: a deleted draft slip takes its
+	 * entries) and repeats a standing allowance (restrict: the allowance outlives no entry).
+	 */
+	allowance_entries: {
+		allowance_entry_payslip: cascade(
+			r.one.payslips({ from: r.allowance_entries.payslip_id, to: r.payslips.id })
+		),
+		allowance_entry_allowance: r.one.allowances({
+			from: r.allowance_entries.derived_from_id,
+			to: r.allowances.id
+		}),
+		allowance_entry_employment: r.one.employments({
+			from: r.allowance_entries.employment_id,
 			to: r.employments.id
 		}),
-		payment_request_payslip: deferrable(
-			setNull(r.one.payslips({ from: r.payment_requests.payslip_id, to: r.payslips.id }))
-		),
-		payment_request_payment_catalogue: r.one.payment_catalogue({
-			from: r.payment_requests.catalogue_id,
-			to: r.payment_catalogue.id
+		allowance_entry_allowance_catalogue: r.one.allowance_catalogue({
+			from: r.allowance_entries.catalogue_id,
+			to: r.allowance_catalogue.id
 		})
 	},
 
@@ -313,7 +313,17 @@ export default ((r) => ({
 		payslip_employment: r.one.employments({
 			from: r.payslips.employment_id,
 			to: r.employments.id
-		})
+		}),
+		/**
+		 * The sources this slip consumed. The run's transform pins them as `link` actions on the
+		 * slip and creates the per-period allowance entries it materialised under it; a deleted
+		 * draft slip releases every pin and takes its entries with it.
+		 */
+		work_day_payslip: r.many.work_days(),
+		claim_request_payslip: r.many.claim_requests(),
+		allowance_entry_payslip: r.many.allowance_entries(),
+		leave_entry_payslip: r.many.leave_entries(),
+		loan_repayment_payslip: r.many.loan_repayments()
 	},
 
 	loans: {

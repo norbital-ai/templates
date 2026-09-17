@@ -12,31 +12,25 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Effect } from 'effect';
 import { attendanceRecorded, planChanges } from '../src/lib/scheduling/lock.ts';
-import workDayHooks from '../src/collections/work_days/+hooks.ts';
+import workDays from '../src/collections/work_days/+collection.ts';
+import { transformOne } from './helpers/transform.ts';
+import { workDayDb } from './helpers/work-day-db.ts';
 
 const WORK = 'shift-work';
 const REST = 'shift-rest';
 
-const api = {
-	db: {
-		leave_entries: { findMany: () => Effect.succeed([]) },
-		payroll_runs: { findMany: () => Effect.succeed([]) }
-	}
-};
-
-const prepared = {
-	companyByEmployment: new Map([['emp-1', 'co-1']]),
-	windowsByCompany: new Map(),
-	leaveByEmployment: new Map(),
-	overlap: {
-		termsByEmployment: new Map(),
-		patternById: new Map(),
-		explicitByKey: new Map(),
-		codeById: new Map()
-	}
-};
+/** Two codes and no pattern: a plan change here is never a month-conformance question. */
+const db = workDayDb({
+	codes: [
+		{
+			id: WORK,
+			code: 'D',
+			variant: { kind: 'WORK', start_time: '09:00', end_time: '17:00', break_minutes: 60 }
+		},
+		{ id: REST, code: 'R', variant: { kind: 'REST' } }
+	]
+});
 
 const stored = (over = {}) => ({
 	id: 'day-1',
@@ -48,8 +42,7 @@ const stored = (over = {}) => ({
 	...over
 });
 
-const write = (input, existing) =>
-	Effect.runSync(workDayHooks.mutate.perRecord.before.handler({ input, existing, prepared, api }));
+const write = (input, existing) => transformOne(workDays, input, existing, db);
 
 const PUNCHED = [{ start: '2026-03-10T01:00:00.000Z', end: '2026-03-10T09:00:00.000Z' }];
 

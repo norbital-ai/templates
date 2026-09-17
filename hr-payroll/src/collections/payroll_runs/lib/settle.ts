@@ -61,9 +61,12 @@ export function settle(options: {
 	readonly base: readonly MeasuredBase[];
 	readonly adjustments: readonly MeasuredAdjustment[];
 	readonly charges: readonly ContributionCharge[];
+	/** The payroll currency the four figures are rounded to the minor unit of. */
+	readonly currency: string;
 	/** Who is being settled, for the refusal that names them. */
 	readonly employeeNumber?: string;
 }): Settlement {
+	const { currency } = options;
 	const statutoryEmployee = options.charges.reduce((total, charge) => total + charge.employee, 0);
 	const statutoryEmployer = options.charges.reduce((total, charge) => total + charge.employer, 0);
 
@@ -73,7 +76,8 @@ export function settle(options: {
 		sumOf(options.base, 'EARNING') +
 			sumOf(options.adjustments, 'EARNING') -
 			sumOf(options.base, 'ABSENCE') -
-			sumOf(options.adjustments, 'ABSENCE')
+			sumOf(options.adjustments, 'ABSENCE'),
+		currency
 	);
 	const paymentsOf = (items: readonly PricedItem[]): number => sumOf(items, 'NON_WAGE_PAYMENT');
 	const employerOf = (items: readonly PricedItem[]): number => sumOf(items, 'EMPLOYER_COST');
@@ -83,7 +87,7 @@ export function settle(options: {
 	const base = options.base;
 	let adjustments = options.adjustments;
 	let otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
-	let net = cents(gross - statutoryEmployee - otherDeductions + payments);
+	let net = cents(gross - statutoryEmployee - otherDeductions + payments, currency);
 	const shortfalls: { componentCatalogueId: string; amount: number }[] = [];
 
 	if (net < 0) {
@@ -95,20 +99,20 @@ export function settle(options: {
 				item.input.family === 'LOAN_REPAYMENT' && item.bucket === 'DEDUCTION' && item.amount > 0;
 			if (recovery && outstanding > 0) {
 				shortfalls.push({ componentCatalogueId: item.catalogueComponent.id, amount: item.amount });
-				outstanding = cents(outstanding - item.amount);
+				outstanding = cents(outstanding - item.amount, currency);
 				continue;
 			}
 			kept.push(item);
 		}
 		adjustments = kept.toReversed();
 		otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
-		net = cents(gross - statutoryEmployee - otherDeductions + payments);
+		net = cents(gross - statutoryEmployee - otherDeductions + payments, currency);
 	}
 
 	if (net < 0)
 		refuse(
 			`Payroll net pay is negative${options.employeeNumber == null ? '' : ` for ${options.employeeNumber}`} ` +
-				`(gross ${gross}, statutory ${cents(statutoryEmployee)}, other deductions ${cents(otherDeductions)}, payments ${cents(payments)}; ` +
+				`(gross ${gross}, statutory ${cents(statutoryEmployee, currency)}, other deductions ${cents(otherDeductions, currency)}, payments ${cents(payments, currency)}; ` +
 				[...base, ...adjustments]
 					.map((item) => `${item.label} ${item.bucket} ${item.amount}`)
 					.join(', ') +
@@ -117,9 +121,9 @@ export function settle(options: {
 
 	return {
 		gross,
-		totalDeductions: cents(statutoryEmployee + otherDeductions),
+		totalDeductions: cents(statutoryEmployee + otherDeductions, currency),
 		net,
-		employerCost: cents(statutoryEmployer + employerAmounts),
+		employerCost: cents(statutoryEmployer + employerAmounts, currency),
 		base,
 		adjustments,
 		shortfalls

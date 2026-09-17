@@ -6,7 +6,7 @@
 	 * band consuming a slice and optionally funnelling the portion above a named limit to the
 	 * incentive line), states the `limits` schedules must respect and the `breaks` the law owes.
 	 * Every attribute whose value is a money decision is CEL over the `work_day` context; a CEL
-	 * cell carries the Fields popover and prints the same refusal the write hook would.
+	 * cell carries the Fields popover and prints the same refusal the transform would.
 	 *
 	 * The lists — bands, limits, breaks — are matrices: one row each, one column
 	 * per fact, no card per row. The scalars share a compact labelled grid.
